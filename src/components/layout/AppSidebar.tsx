@@ -86,7 +86,7 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
   ];
 
   const settingsMenuItems = [
-    { title: "Настройки подключения", url: "/settings/connection", icon: Wifi },
+    { title: "Настройки подключения", url: "/settings/connections", icon: Wifi },
     { 
       title: "Справочники", 
       url: "/settings/references", 
