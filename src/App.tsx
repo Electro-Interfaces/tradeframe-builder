@@ -13,6 +13,7 @@ import Commands from "./pages/Commands";
 import Connections from "./pages/Connections";
 import NetworkOverview from "./pages/NetworkOverview";
 import Tanks from "./pages/Tanks";
+import Prices from "./pages/Prices";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/settings/commands" element={<Commands />} />
           <Route path="/settings/connections" element={<Connections />} />
           <Route path="/network/overview" element={<NetworkOverview />} />
+          <Route path="/point/prices" element={<Prices />} />
           <Route path="/point/tanks" element={<Tanks />} />
           <Route path="/point/equipment" element={<Equipment />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
