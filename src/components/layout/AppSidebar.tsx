@@ -296,7 +296,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     <div className={`${isMobile ? 'h-full bg-sidebar' : ''}`}>
       {isMobile ? (
         // Mobile version without Sidebar wrapper
-        <div className="pt-header scrollbar-hide h-full overflow-y-auto bg-slate-900 text-slate-100">
+        <div className="scrollbar-hide h-full overflow-y-auto bg-slate-900 text-slate-100">
           {renderMenuContent()}
         </div>
       ) : (
