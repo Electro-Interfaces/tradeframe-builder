@@ -11,6 +11,7 @@ import ComponentTypes from "./pages/ComponentTypes";
 import Equipment from "./pages/Equipment";
 import Commands from "./pages/Commands";
 import Connections from "./pages/Connections";
+import NetworkOverview from "./pages/NetworkOverview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/settings/dictionaries/component-types" element={<ComponentTypes />} />
           <Route path="/settings/commands" element={<Commands />} />
           <Route path="/settings/connections" element={<Connections />} />
+          <Route path="/network/overview" element={<NetworkOverview />} />
           <Route path="/point/equipment" element={<Equipment />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
