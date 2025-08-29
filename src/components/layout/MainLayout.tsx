@@ -58,21 +58,26 @@ export function MainLayout({ children }: MainLayoutProps) {
             </Sheet>
             
             {/* Mobile Trading Point Selector */}
-            <div className="pt-header px-4 py-3 bg-card border-b border-border">
+            <div className="pt-header px-4 py-3 bg-gray-800 border-b border-gray-700">
               <Select 
                 value={selectedTradingPoint} 
                 onValueChange={handleTradingPointChange}
                 disabled={!selectedNetwork}
               >
-                <SelectTrigger className="w-full">
-                  <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white hover:bg-gray-600 focus:ring-blue-500">
+                  <MapPin className="h-4 w-4 mr-2 text-blue-400" />
                   <SelectValue 
                     placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"} 
+                    className="text-white"
                   />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-gray-700 border-gray-600">
                   {tradingPoints.map((point) => (
-                    <SelectItem key={point.value} value={point.value}>
+                    <SelectItem 
+                      key={point.value} 
+                      value={point.value}
+                      className="text-white hover:bg-gray-600 focus:bg-blue-600"
+                    >
                       {point.label}
                     </SelectItem>
                   ))}
