@@ -134,8 +134,8 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
 
         {/* ТОРГОВЫЕ СЕТИ */}
         <Collapsible
-          open={openGroups.includes("networks")}
-          onOpenChange={() => toggleGroup("networks")}
+          open={isMobile || openGroups.includes("networks")}
+          onOpenChange={() => !isMobile && toggleGroup("networks")}
         >
           <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
             <CollapsibleTrigger asChild>
@@ -151,8 +151,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
-            {(isMobile || !collapsed || openGroups.includes("networks")) && (
-              <CollapsibleContent className="transition-all duration-200 ease-in-out">
+            <CollapsibleContent className="transition-all duration-200 ease-in-out">
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {networkMenuItems.map((item) => (
@@ -171,14 +170,13 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
-            )}
           </SidebarGroup>
         </Collapsible>
 
         {/* ТОРГОВАЯ ТОЧКА */}
         <Collapsible
-          open={openGroups.includes("trading-point")}
-          onOpenChange={() => toggleGroup("trading-point")}
+          open={isMobile || openGroups.includes("trading-point")}
+          onOpenChange={() => !isMobile && toggleGroup("trading-point")}
         >
           <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
             <CollapsibleTrigger asChild>
@@ -194,8 +192,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
-            {(isMobile || !collapsed || openGroups.includes("trading-point")) && (
-              <CollapsibleContent className="transition-all duration-200 ease-in-out">
+            <CollapsibleContent className="transition-all duration-200 ease-in-out">
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {tradingPointMenuItems.map((item) => (
@@ -219,14 +216,13 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
-            )}
           </SidebarGroup>
         </Collapsible>
 
         {/* АДМИНИСТРИРОВАНИЕ */}
         <Collapsible
-          open={openGroups.includes("admin")}
-          onOpenChange={() => toggleGroup("admin")}
+          open={isMobile || openGroups.includes("admin")}
+          onOpenChange={() => !isMobile && toggleGroup("admin")}
         >
           <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
             <CollapsibleTrigger asChild>
@@ -242,8 +238,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
-            {(isMobile || !collapsed || openGroups.includes("admin")) && (
-              <CollapsibleContent className="transition-all duration-200 ease-in-out">
+            <CollapsibleContent className="transition-all duration-200 ease-in-out">
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {adminMenuItems.map((item) => (
@@ -262,14 +257,13 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
-            )}
           </SidebarGroup>
         </Collapsible>
 
         {/* НАСТРОЙКИ */}
         <Collapsible
-          open={openGroups.includes("settings")}
-          onOpenChange={() => toggleGroup("settings")}
+          open={isMobile || openGroups.includes("settings")}
+          onOpenChange={() => !isMobile && toggleGroup("settings")}
         >
           <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
             <CollapsibleTrigger asChild>
@@ -285,17 +279,16 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
-            {(isMobile || !collapsed || openGroups.includes("settings")) && (
-              <CollapsibleContent className="transition-all duration-200 ease-in-out">
+            <CollapsibleContent className="transition-all duration-200 ease-in-out">
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {settingsMenuItems.map((item) => (
                       <SidebarMenuItem key={item.title}>
                         {item.submenu ? (
-                          <Collapsible
-                            open={openGroups.includes(item.title)}
-                            onOpenChange={() => toggleGroup(item.title)}
-                          >
+                            <Collapsible
+                              open={isMobile || openGroups.includes(item.title)}
+                              onOpenChange={() => !isMobile && toggleGroup(item.title)}
+                            >
                             <CollapsibleTrigger asChild>
                               <SidebarMenuButton className="w-full">
                                 <item.icon className="w-4 h-4" />
@@ -311,8 +304,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                                 )}
                               </SidebarMenuButton>
                             </CollapsibleTrigger>
-                            {(isMobile || !collapsed) && (
-                              <CollapsibleContent className="transition-all duration-200 ease-in-out">
+                            <CollapsibleContent className="transition-all duration-200 ease-in-out">
                                 <SidebarMenuSub>
                                   {item.submenu.map((subItem) => (
                                     <SidebarMenuSubItem key={subItem.title}>
@@ -328,7 +320,6 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                                   ))}
                                 </SidebarMenuSub>
                               </CollapsibleContent>
-                            )}
                           </Collapsible>
                         ) : (
                           <SidebarMenuButton asChild>
@@ -346,7 +337,6 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
-            )}
           </SidebarGroup>
         </Collapsible>
       </SidebarContent>
