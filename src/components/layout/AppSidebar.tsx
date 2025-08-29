@@ -92,8 +92,8 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
       url: "/settings/references", 
       icon: Book,
       submenu: [
-        { title: "Типы оборудования", url: "/settings/references/equipment-types" },
-        { title: "Типы компонентов", url: "/settings/references/component-types" },
+        { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types" },
+        { title: "Типы компонентов", url: "/settings/dictionaries/component-types" },
       ]
     },
     { title: "Команды", url: "/settings/commands", icon: Wrench },
