@@ -41,14 +41,16 @@ import {
 
 interface AppSidebarProps {
   selectedTradingPoint: string;
+  isMobile?: boolean;
 }
 
-export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
+export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSidebarProps) {
   const location = useLocation();
   const { state } = useSidebar();
   const [openGroups, setOpenGroups] = useState<string[]>(["main", "networks", "trading-point", "admin", "settings"]);
   
-  const collapsed = state === "collapsed";
+  // В мобильном режиме никогда не сворачиваем меню
+  const collapsed = isMobile ? false : state === "collapsed";
 
   const toggleGroup = (groupId: string) => {
     setOpenGroups(prev => 
@@ -136,16 +138,14 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
           <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
-                {collapsed ? <Network className="w-4 h-4" /> : (
-                  <>
-                    <Network className="w-4 h-4" />
-                    ТОРГОВЫЕ СЕТИ
-                    <ChevronRight 
-                      className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                        openGroups.includes("networks") ? "rotate-90" : ""
-                      }`} 
-                    />
-                  </>
+                <Network className="w-4 h-4" />
+                {!collapsed && "ТОРГОВЫЕ СЕТИ"}
+                {!collapsed && (
+                  <ChevronRight 
+                    className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                      openGroups.includes("networks") ? "rotate-90" : ""
+                    }`} 
+                  />
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
@@ -181,16 +181,14 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
           <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
-                {collapsed ? <MapPin className="w-4 h-4" /> : (
-                  <>
-                    <MapPin className="w-4 h-4" />
-                    ТОРГОВАЯ ТОЧКА
-                    <ChevronRight 
-                      className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                        openGroups.includes("trading-point") ? "rotate-90" : ""
-                      }`} 
-                    />
-                  </>
+                <MapPin className="w-4 h-4" />
+                {!collapsed && "ТОРГОВАЯ ТОЧКА"}
+                {!collapsed && (
+                  <ChevronRight 
+                    className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                      openGroups.includes("trading-point") ? "rotate-90" : ""
+                    }`} 
+                  />
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
@@ -231,16 +229,14 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
           <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
-                {collapsed ? <Shield className="w-4 h-4" /> : (
-                  <>
-                    <Shield className="w-4 h-4" />
-                    АДМИНИСТРИРОВАНИЕ
-                    <ChevronRight 
-                      className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                        openGroups.includes("admin") ? "rotate-90" : ""
-                      }`} 
-                    />
-                  </>
+                <Shield className="w-4 h-4" />
+                {!collapsed && "АДМИНИСТРИРОВАНИЕ"}
+                {!collapsed && (
+                  <ChevronRight 
+                    className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                      openGroups.includes("admin") ? "rotate-90" : ""
+                    }`} 
+                  />
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
@@ -276,16 +272,14 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
           <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
             <CollapsibleTrigger asChild>
               <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
-                {collapsed ? <Cog className="w-4 h-4" /> : (
-                  <>
-                    <Cog className="w-4 h-4" />
-                    НАСТРОЙКИ
-                    <ChevronRight 
-                      className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                        openGroups.includes("settings") ? "rotate-90" : ""
-                      }`} 
-                    />
-                  </>
+                <Cog className="w-4 h-4" />
+                {!collapsed && "НАСТРОЙКИ"}
+                {!collapsed && (
+                  <ChevronRight 
+                    className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                      openGroups.includes("settings") ? "rotate-90" : ""
+                    }`} 
+                  />
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
