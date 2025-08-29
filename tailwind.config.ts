@@ -61,7 +61,21 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Trading platform accent colors
+				trade: {
+					blue: 'hsl(var(--accent-blue))',
+					purple: 'hsl(var(--accent-purple))',
+					green: 'hsl(var(--accent-green))',
+					orange: 'hsl(var(--accent-orange))'
+				},
+				// Status colors
+				success: 'hsl(var(--success))',
+				warning: 'hsl(var(--warning))',
+				error: 'hsl(var(--error))'
+			},
+			spacing: {
+				'header': 'var(--header-height)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
