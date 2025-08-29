@@ -239,24 +239,30 @@ export default function Connections() {
                     <FormItem>
                       <FormLabel>Supabase Anon Key (Public)</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            type={showSupabaseKeys.anonKey ? "text" : "password"}
-                            value={supabaseEditMode ? field.value : maskValue(field.value)}
-                            readOnly={!supabaseEditMode}
-                            className={!supabaseEditMode ? "bg-muted pr-10" : "pr-10"}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowSupabaseKeys(prev => ({ ...prev, anonKey: !prev.anonKey }))}
-                          >
-                            {showSupabaseKeys.anonKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
+                         <div className="relative">
+                           <Input
+                             {...field}
+                             type="text"
+                             value={
+                               supabaseEditMode 
+                                 ? field.value 
+                                 : showSupabaseKeys.anonKey 
+                                   ? field.value 
+                                   : maskValue(field.value)
+                             }
+                             readOnly={!supabaseEditMode}
+                             className={!supabaseEditMode ? "bg-muted pr-10" : "pr-10"}
+                           />
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="icon"
+                             className="absolute right-0 top-0 h-full px-3"
+                             onClick={() => setShowSupabaseKeys(prev => ({ ...prev, anonKey: !prev.anonKey }))}
+                           >
+                             {showSupabaseKeys.anonKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                           </Button>
+                         </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -270,24 +276,30 @@ export default function Connections() {
                     <FormItem>
                       <FormLabel>Supabase Service Role Key (Secret)</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            type={showSupabaseKeys.serviceRoleKey ? "text" : "password"}
-                            value={supabaseEditMode ? field.value : maskValue(field.value)}
-                            readOnly={!supabaseEditMode}
-                            className={!supabaseEditMode ? "bg-muted pr-10" : "pr-10"}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowSupabaseKeys(prev => ({ ...prev, serviceRoleKey: !prev.serviceRoleKey }))}
-                          >
-                            {showSupabaseKeys.serviceRoleKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
+                         <div className="relative">
+                           <Input
+                             {...field}
+                             type="text"
+                             value={
+                               supabaseEditMode 
+                                 ? field.value 
+                                 : showSupabaseKeys.serviceRoleKey 
+                                   ? field.value 
+                                   : maskValue(field.value)
+                             }
+                             readOnly={!supabaseEditMode}
+                             className={!supabaseEditMode ? "bg-muted pr-10" : "pr-10"}
+                           />
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="icon"
+                             className="absolute right-0 top-0 h-full px-3"
+                             onClick={() => setShowSupabaseKeys(prev => ({ ...prev, serviceRoleKey: !prev.serviceRoleKey }))}
+                           >
+                             {showSupabaseKeys.serviceRoleKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                           </Button>
+                         </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -363,24 +375,30 @@ export default function Connections() {
                     <FormItem>
                       <FormLabel>API Key / Auth Token</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            type={showNetworkApiKey ? "text" : "password"}
-                            value={networkApiEditMode ? field.value : maskValue(field.value)}
-                            readOnly={!networkApiEditMode}
-                            className={!networkApiEditMode ? "bg-muted pr-10" : "pr-10"}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowNetworkApiKey(!showNetworkApiKey)}
-                          >
-                            {showNetworkApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
+                         <div className="relative">
+                           <Input
+                             {...field}
+                             type="text"
+                             value={
+                               networkApiEditMode 
+                                 ? field.value 
+                                 : showNetworkApiKey 
+                                   ? field.value 
+                                   : maskValue(field.value)
+                             }
+                             readOnly={!networkApiEditMode}
+                             className={!networkApiEditMode ? "bg-muted pr-10" : "pr-10"}
+                           />
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="icon"
+                             className="absolute right-0 top-0 h-full px-3"
+                             onClick={() => setShowNetworkApiKey(!showNetworkApiKey)}
+                           >
+                             {showNetworkApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                           </Button>
+                         </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
