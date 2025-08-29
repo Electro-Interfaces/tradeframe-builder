@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, User, Menu } from "lucide-react";
+import { Settings, LogOut, User, Menu, Network, MapPin } from "lucide-react";
 
 interface HeaderProps {
   selectedNetwork: string;
@@ -78,6 +78,7 @@ export function Header({
           <div className="flex flex-col gap-2 flex-1 max-w-xs mx-4">
             <Select value={selectedNetwork} onValueChange={onNetworkChange}>
               <SelectTrigger className="h-9 text-xs">
+                <Network className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Выберите сеть" />
               </SelectTrigger>
               <SelectContent>
@@ -95,6 +96,7 @@ export function Header({
               disabled={!selectedNetwork}
             >
               <SelectTrigger className="h-9 text-xs">
+                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue 
                   placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"} 
                 />
@@ -109,14 +111,13 @@ export function Header({
             </Select>
           </div>
         ) : (
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Сеть</label>
-              <div className="flex items-center gap-2">
-                <Select value={selectedNetwork} onValueChange={onNetworkChange}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Выберите сеть" />
-                  </SelectTrigger>
+          <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center gap-2">
+              <Select value={selectedNetwork} onValueChange={onNetworkChange}>
+                <SelectTrigger className="w-56 h-10">
+                  <Network className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Выберите сеть" />
+                </SelectTrigger>
                 <SelectContent>
                   {networks.map((network) => (
                     <SelectItem key={network.value} value={network.value}>
@@ -124,28 +125,26 @@ export function Header({
                     </SelectItem>
                   ))}
                 </SelectContent>
-                </Select>
-                {selectedNetwork && (
-                  <span className="bg-green-600 text-white px-2 py-1 rounded text-xs">
-                    Активна
-                  </span>
-                )}
-              </div>
+              </Select>
+              {selectedNetwork && (
+                <span className="bg-green-600 text-white px-2 py-1 rounded text-xs font-medium">
+                  Активна
+                </span>
+              )}
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Торговая точка</label>
-              <div className="flex items-center gap-2">
-                <Select 
-                  value={selectedTradingPoint} 
-                  onValueChange={onTradingPointChange}
-                  disabled={!selectedNetwork}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue 
-                      placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"} 
-                    />
-                  </SelectTrigger>
+            <div className="flex items-center gap-2">
+              <Select 
+                value={selectedTradingPoint} 
+                onValueChange={onTradingPointChange}
+                disabled={!selectedNetwork}
+              >
+                <SelectTrigger className="w-56 h-10">
+                  <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue 
+                    placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"} 
+                  />
+                </SelectTrigger>
                 <SelectContent>
                   {tradingPoints.map((point) => (
                     <SelectItem key={point.value} value={point.value}>
@@ -153,13 +152,12 @@ export function Header({
                     </SelectItem>
                   ))}
                 </SelectContent>
-                </Select>
-                {selectedTradingPoint && (
-                  <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs">
-                    Выбрана
-                  </span>
-                )}
-              </div>
+              </Select>
+              {selectedTradingPoint && (
+                <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
+                  Выбрана
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -167,13 +165,13 @@ export function Header({
         {/* User Profile */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className={`flex items-center gap-3 px-3 transition-colors duration-200 ${isMobile ? 'p-2' : ''}`}>
+            <Button variant="ghost" className={`flex items-center gap-2 px-3 transition-colors duration-200 ${isMobile ? 'p-2' : ''}`}>
               <Avatar className="w-8 h-8 rounded-full">
-                <AvatarFallback className="bg-primary text-primary-foreground">
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                   А
                 </AvatarFallback>
               </Avatar>
-              {!isMobile && <span className="font-medium">Андрей</span>}
+              {!isMobile && <span className="font-medium text-sm">Андрей</span>}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">

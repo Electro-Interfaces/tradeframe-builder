@@ -34,7 +34,9 @@ import {
   Book,
   Wrench,
   ChevronRight,
-  MapPin
+  MapPin,
+  Shield,
+  Cog
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -44,7 +46,7 @@ interface AppSidebarProps {
 export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
   const location = useLocation();
   const { state } = useSidebar();
-  const [openGroups, setOpenGroups] = useState<string[]>(["main"]);
+  const [openGroups, setOpenGroups] = useState<string[]>(["main", "networks", "trading-point", "admin", "settings"]);
   
   const collapsed = state === "collapsed";
 
@@ -58,7 +60,7 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
 
   const isActive = (path: string) => location.pathname === path;
   const getNavCls = (active: boolean) => 
-    active ? "bg-blue-600 text-white font-medium transition-colors duration-200" : "transition-colors duration-200 hover:bg-gray-700";
+    active ? "bg-blue-600 text-white font-medium transition-colors duration-200" : "transition-colors duration-200 hover:bg-slate-700 text-gray-400 hover:text-white";
 
   const isTradingPointSelected = Boolean(selectedTradingPoint);
 
@@ -100,11 +102,11 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
   ];
 
   return (
-    <Sidebar className="border-r border-sidebar-border">
-      <SidebarContent className="pt-header">
+    <Sidebar className="border-r border-sidebar-border shadow-md">
+      <SidebarContent className="pt-header scrollbar-hide">
         {/* ГЛАВНАЯ */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-200 text-xs font-semibold">
+          <SidebarGroupLabel className="text-gray-100 text-sm font-semibold">
             ГЛАВНАЯ
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -127,146 +129,230 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
         </SidebarGroup>
 
         {/* ТОРГОВЫЕ СЕТИ */}
-        <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
-          <SidebarGroupLabel className="text-gray-200 text-xs font-semibold">
-            ТОРГОВЫЕ СЕТИ
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {networkMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavCls(isActive(item.url))}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <Collapsible
+          open={openGroups.includes("networks")}
+          onOpenChange={() => toggleGroup("networks")}
+        >
+          <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
+            <CollapsibleTrigger asChild>
+              <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
+                {collapsed ? <Network className="w-4 h-4" /> : (
+                  <>
+                    <Network className="w-4 h-4" />
+                    ТОРГОВЫЕ СЕТИ
+                    <ChevronRight 
+                      className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                        openGroups.includes("networks") ? "rotate-90" : ""
+                      }`} 
+                    />
+                  </>
+                )}
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            {(!collapsed || openGroups.includes("networks")) && (
+              <CollapsibleContent className="transition-all duration-200 ease-in-out">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {networkMenuItems.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <NavLink 
+                            to={item.url} 
+                            className={getNavCls(isActive(item.url))}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            )}
+          </SidebarGroup>
+        </Collapsible>
 
         {/* ТОРГОВАЯ ТОЧКА */}
-        <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
-          <SidebarGroupLabel className="text-gray-200 text-xs font-semibold">
-            ТОРГОВАЯ ТОЧКА
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {tradingPointMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    disabled={!isTradingPointSelected}
-                    className={!isTradingPointSelected ? "opacity-50 cursor-not-allowed" : ""}
-                  >
-                    <NavLink 
-                      to={isTradingPointSelected ? item.url : "#"} 
-                      className={isTradingPointSelected ? getNavCls(isActive(item.url)) : ""}
-                      onClick={(e) => !isTradingPointSelected && e.preventDefault()}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <Collapsible
+          open={openGroups.includes("trading-point")}
+          onOpenChange={() => toggleGroup("trading-point")}
+        >
+          <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
+            <CollapsibleTrigger asChild>
+              <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
+                {collapsed ? <MapPin className="w-4 h-4" /> : (
+                  <>
+                    <MapPin className="w-4 h-4" />
+                    ТОРГОВАЯ ТОЧКА
+                    <ChevronRight 
+                      className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                        openGroups.includes("trading-point") ? "rotate-90" : ""
+                      }`} 
+                    />
+                  </>
+                )}
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            {(!collapsed || openGroups.includes("trading-point")) && (
+              <CollapsibleContent className="transition-all duration-200 ease-in-out">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {tradingPointMenuItems.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton 
+                          asChild 
+                          disabled={!isTradingPointSelected}
+                          className={!isTradingPointSelected ? "opacity-50 cursor-not-allowed" : ""}
+                        >
+                          <NavLink 
+                            to={isTradingPointSelected ? item.url : "#"} 
+                            className={isTradingPointSelected ? getNavCls(isActive(item.url)) : ""}
+                            onClick={(e) => !isTradingPointSelected && e.preventDefault()}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            )}
+          </SidebarGroup>
+        </Collapsible>
 
         {/* АДМИНИСТРИРОВАНИЕ */}
-        <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
-          <SidebarGroupLabel className="text-gray-200 text-xs font-semibold">
-            АДМИНИСТРИРОВАНИЕ
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavCls(isActive(item.url))}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <Collapsible
+          open={openGroups.includes("admin")}
+          onOpenChange={() => toggleGroup("admin")}
+        >
+          <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
+            <CollapsibleTrigger asChild>
+              <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
+                {collapsed ? <Shield className="w-4 h-4" /> : (
+                  <>
+                    <Shield className="w-4 h-4" />
+                    АДМИНИСТРИРОВАНИЕ
+                    <ChevronRight 
+                      className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                        openGroups.includes("admin") ? "rotate-90" : ""
+                      }`} 
+                    />
+                  </>
+                )}
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            {(!collapsed || openGroups.includes("admin")) && (
+              <CollapsibleContent className="transition-all duration-200 ease-in-out">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {adminMenuItems.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <NavLink 
+                            to={item.url} 
+                            className={getNavCls(isActive(item.url))}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            )}
+          </SidebarGroup>
+        </Collapsible>
 
         {/* НАСТРОЙКИ */}
-        <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
-          <SidebarGroupLabel className="text-gray-200 text-xs font-semibold">
-            НАСТРОЙКИ
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {settingsMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  {item.submenu ? (
-                    <Collapsible
-                      open={openGroups.includes(item.title)}
-                      onOpenChange={() => toggleGroup(item.title)}
-                    >
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton className="w-full">
-                          <item.icon className="w-4 h-4" />
-                          {!collapsed && (
-                            <>
-                              <span>{item.title}</span>
-                              <ChevronRight 
-                                className={`w-4 h-4 ml-auto transition-transform ${
-                                  openGroups.includes(item.title) ? "rotate-90" : ""
-                                }`} 
-                              />
-                            </>
-                          )}
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      {!collapsed && (
-                        <CollapsibleContent>
-                          <SidebarMenuSub>
-                            {item.submenu.map((subItem) => (
-                              <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton asChild>
-                                  <NavLink 
-                                    to={subItem.url}
-                                    className={getNavCls(isActive(subItem.url))}
-                                  >
-                                    {subItem.title}
-                                  </NavLink>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      )}
-                    </Collapsible>
-                  ) : (
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to={item.url} 
-                        className={getNavCls(isActive(item.url))}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <Collapsible
+          open={openGroups.includes("settings")}
+          onOpenChange={() => toggleGroup("settings")}
+        >
+          <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
+            <CollapsibleTrigger asChild>
+              <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
+                {collapsed ? <Cog className="w-4 h-4" /> : (
+                  <>
+                    <Cog className="w-4 h-4" />
+                    НАСТРОЙКИ
+                    <ChevronRight 
+                      className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                        openGroups.includes("settings") ? "rotate-90" : ""
+                      }`} 
+                    />
+                  </>
+                )}
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            {(!collapsed || openGroups.includes("settings")) && (
+              <CollapsibleContent className="transition-all duration-200 ease-in-out">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {settingsMenuItems.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        {item.submenu ? (
+                          <Collapsible
+                            open={openGroups.includes(item.title)}
+                            onOpenChange={() => toggleGroup(item.title)}
+                          >
+                            <CollapsibleTrigger asChild>
+                              <SidebarMenuButton className="w-full">
+                                <item.icon className="w-4 h-4" />
+                                {!collapsed && (
+                                  <>
+                                    <span>{item.title}</span>
+                                    <ChevronRight 
+                                      className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                                        openGroups.includes(item.title) ? "rotate-90" : ""
+                                      }`} 
+                                    />
+                                  </>
+                                )}
+                              </SidebarMenuButton>
+                            </CollapsibleTrigger>
+                            {!collapsed && (
+                              <CollapsibleContent className="transition-all duration-200 ease-in-out">
+                                <SidebarMenuSub>
+                                  {item.submenu.map((subItem) => (
+                                    <SidebarMenuSubItem key={subItem.title}>
+                                      <SidebarMenuSubButton asChild>
+                                        <NavLink 
+                                          to={subItem.url}
+                                          className={getNavCls(isActive(subItem.url))}
+                                        >
+                                          {subItem.title}
+                                        </NavLink>
+                                      </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                  ))}
+                                </SidebarMenuSub>
+                              </CollapsibleContent>
+                            )}
+                          </Collapsible>
+                        ) : (
+                          <SidebarMenuButton asChild>
+                            <NavLink 
+                              to={item.url} 
+                              className={getNavCls(isActive(item.url))}
+                            >
+                              <item.icon className="w-4 h-4" />
+                              {!collapsed && <span>{item.title}</span>}
+                            </NavLink>
+                          </SidebarMenuButton>
+                        )}
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            )}
+          </SidebarGroup>
+        </Collapsible>
       </SidebarContent>
     </Sidebar>
   );
