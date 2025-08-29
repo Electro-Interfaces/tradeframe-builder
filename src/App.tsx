@@ -14,6 +14,7 @@ import Connections from "./pages/Connections";
 import NetworkOverview from "./pages/NetworkOverview";
 import Tanks from "./pages/Tanks";
 import Prices from "./pages/Prices";
+import ShiftReports from "./pages/ShiftReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/network/overview" element={<NetworkOverview />} />
           <Route path="/point/prices" element={<Prices />} />
           <Route path="/point/tanks" element={<Tanks />} />
+          <Route path="/point/shift-reports" element={<ShiftReports />} />
           <Route path="/point/equipment" element={<Equipment />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
