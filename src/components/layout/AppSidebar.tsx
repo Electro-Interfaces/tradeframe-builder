@@ -3,22 +3,8 @@ import { useLocation, NavLink } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   Home,
   Network,
@@ -106,6 +92,206 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     { title: "Команды", url: "/settings/commands", icon: Wrench },
   ];
 
+  function renderMenuContent() {
+    return (
+      <>
+        {/* ГЛАВНАЯ */}
+        <div className="p-4">
+          <div className="text-gray-100 text-sm font-semibold mb-3">
+            ГЛАВНАЯ
+          </div>
+          <div className="space-y-1">
+            {mainMenuItems.map((item) => (
+              <div key={item.title}>
+                <NavLink 
+                  to={item.url} 
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                  onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span>{item.title}</span>
+                </NavLink>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ТОРГОВЫЕ СЕТИ */}
+        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+          <div 
+            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            onClick={() => toggleGroup("networks")}
+          >
+            <Network className="w-4 h-4" />
+            ТОРГОВЫЕ СЕТИ
+            <ChevronRight 
+              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                openGroups.includes("networks") ? "rotate-90" : ""
+              }`} 
+            />
+          </div>
+          {openGroups.includes("networks") && (
+            <div className="space-y-1">
+              {networkMenuItems.map((item) => (
+                <div key={item.title}>
+                  <NavLink 
+                    to={item.url} 
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </NavLink>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ТОРГОВАЯ ТОЧКА */}
+        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+          <div 
+            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            onClick={() => toggleGroup("trading-point")}
+          >
+            <MapPin className="w-4 h-4" />
+            ТОРГОВАЯ ТОЧКА
+            <ChevronRight 
+              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                openGroups.includes("trading-point") ? "rotate-90" : ""
+              }`} 
+            />
+          </div>
+          {openGroups.includes("trading-point") && (
+            <div className="space-y-1">
+              {tradingPointMenuItems.map((item) => (
+                <div key={item.title}>
+                  <div 
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+                      !isTradingPointSelected ? "opacity-50 cursor-not-allowed" : 
+                      isTradingPointSelected ? getNavCls(isActive(item.url)) : ""
+                    }`}
+                  >
+                    {isTradingPointSelected ? (
+                      <NavLink 
+                        to={item.url} 
+                        className="flex items-center gap-3 w-full"
+                        onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    ) : (
+                      <>
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* АДМИНИСТРИРОВАНИЕ */}
+        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+          <div 
+            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            onClick={() => toggleGroup("admin")}
+          >
+            <Shield className="w-4 h-4" />
+            АДМИНИСТРИРОВАНИЕ
+            <ChevronRight 
+              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                openGroups.includes("admin") ? "rotate-90" : ""
+              }`} 
+            />
+          </div>
+          {openGroups.includes("admin") && (
+            <div className="space-y-1">
+              {adminMenuItems.map((item) => (
+                <div key={item.title}>
+                  <NavLink 
+                    to={item.url} 
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </NavLink>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* НАСТРОЙКИ */}
+        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+          <div 
+            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            onClick={() => toggleGroup("settings")}
+          >
+            <Cog className="w-4 h-4" />
+            НАСТРОЙКИ
+            <ChevronRight 
+              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                openGroups.includes("settings") ? "rotate-90" : ""
+              }`} 
+            />
+          </div>
+          {openGroups.includes("settings") && (
+            <div className="space-y-1">
+              {settingsMenuItems.map((item) => (
+                <div key={item.title}>
+                  {item.submenu ? (
+                    <div>
+                      <div 
+                        className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 hover:bg-slate-700 text-gray-400 hover:text-white cursor-pointer"
+                        onClick={() => toggleGroup(item.title)}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                        <ChevronRight 
+                          className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                            openGroups.includes(item.title) ? "rotate-90" : ""
+                          }`} 
+                        />
+                      </div>
+                      {openGroups.includes(item.title) && (
+                        <div className="ml-6 mt-1 space-y-1">
+                          {item.submenu.map((subItem) => (
+                            <NavLink 
+                              key={subItem.title}
+                              to={subItem.url}
+                              className={`block px-3 py-2 rounded-md text-sm ${getNavCls(isActive(subItem.url))}`}
+                              onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                            >
+                              {subItem.title}
+                            </NavLink>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <NavLink 
+                      to={item.url} 
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
+
   return (
     <div className={`${isMobile ? 'h-full bg-sidebar' : ''}`}>
       {isMobile ? (
@@ -123,206 +309,4 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
       )}
     </div>
   );
-
-  function renderMenuContent() {
-    return (
-      <>
-        {/* ГЛАВНАЯ */}
-        <div className="p-4">
-          <div className="text-gray-100 text-sm font-semibold mb-3">
-            ГЛАВНАЯ
-          </div>
-          <div>
-            <div className="space-y-1">
-              {mainMenuItems.map((item) => (
-                <div key={item.title}>
-                  <NavLink 
-                    to={item.url} 
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
-                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.title}</span>
-                  </NavLink>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ТОРГОВЫЕ СЕТИ */}
-        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
-          <div 
-            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
-            onClick={() => !isMobile && toggleGroup("networks")}
-          >
-            <Network className="w-4 h-4" />
-            ТОРГОВЫЕ СЕТИ
-            {!isMobile && (
-              <ChevronRight 
-                className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                  isMobile || openGroups.includes("networks") ? "rotate-90" : ""
-                }`} 
-              />
-            )}
-          </div>
-          <div className="space-y-1">
-            {networkMenuItems.map((item) => (
-              <div key={item.title}>
-                <NavLink 
-                  to={item.url} 
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
-                  onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.title}</span>
-                </NavLink>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ТОРГОВАЯ ТОЧКА */}
-        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
-          <div 
-            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
-            onClick={() => !isMobile && toggleGroup("trading-point")}
-          >
-            <MapPin className="w-4 h-4" />
-            ТОРГОВАЯ ТОЧКА
-            {!isMobile && (
-              <ChevronRight 
-                className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                  isMobile || openGroups.includes("trading-point") ? "rotate-90" : ""
-                }`} 
-              />
-            )}
-          </div>
-          <div className="space-y-1">
-            {tradingPointMenuItems.map((item) => (
-              <div key={item.title}>
-                <div 
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md ${
-                    !isTradingPointSelected ? "opacity-50 cursor-not-allowed" : 
-                    isTradingPointSelected ? getNavCls(isActive(item.url)) : ""
-                  }`}
-                >
-                  {isTradingPointSelected ? (
-                    <NavLink 
-                      to={item.url} 
-                      className="flex items-center gap-3 w-full"
-                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  ) : (
-                    <>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* АДМИНИСТРИРОВАНИЕ */}
-        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
-          <div 
-            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
-            onClick={() => !isMobile && toggleGroup("admin")}
-          >
-            <Shield className="w-4 h-4" />
-            АДМИНИСТРИРОВАНИЕ
-            {!isMobile && (
-              <ChevronRight 
-                className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                  isMobile || openGroups.includes("admin") ? "rotate-90" : ""
-                }`} 
-              />
-            )}
-          </div>
-          <div className="space-y-1">
-            {adminMenuItems.map((item) => (
-              <div key={item.title}>
-                <NavLink 
-                  to={item.url} 
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
-                  onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.title}</span>
-                </NavLink>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* НАСТРОЙКИ */}
-        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
-          <div 
-            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
-            onClick={() => !isMobile && toggleGroup("settings")}
-          >
-            <Cog className="w-4 h-4" />
-            НАСТРОЙКИ
-            {!isMobile && (
-              <ChevronRight 
-                className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                  isMobile || openGroups.includes("settings") ? "rotate-90" : ""
-                }`} 
-              />
-            )}
-          </div>
-          <div className="space-y-1">
-            {settingsMenuItems.map((item) => (
-              <div key={item.title}>
-                {item.submenu ? (
-                  <div>
-                    <div 
-                      className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 hover:bg-slate-700 text-gray-400 hover:text-white cursor-pointer"
-                      onClick={() => !isMobile && toggleGroup(item.title)}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                      {!isMobile && (
-                        <ChevronRight 
-                          className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                            isMobile || openGroups.includes(item.title) ? "rotate-90" : ""
-                          }`} 
-                        />
-                      )}
-                    </div>
-                    <div className="ml-6 mt-1 space-y-1">
-                      {item.submenu.map((subItem) => (
-                        <NavLink 
-                          key={subItem.title}
-                          to={subItem.url}
-                          className={`block px-3 py-2 rounded-md text-sm ${getNavCls(isActive(subItem.url))}`}
-                          onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                        >
-                          {subItem.title}
-                        </NavLink>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <NavLink 
-                    to={item.url} 
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
-                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.title}</span>
-                  </NavLink>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </>
-    );
-  }
 }
