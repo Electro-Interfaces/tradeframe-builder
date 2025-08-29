@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,40 +25,52 @@ import {
   Fuel 
 } from "lucide-react";
 
-// Mock data
+// Mock data with improved structure
 const mockTanks = [
   {
     id: 1,
     name: "Резервуар №1",
     fuelType: "АИ-95",
-    currentLevel: 25000,
-    capacity: 50000,
+    currentLevelLiters: 25000,
+    capacityLiters: 50000,
+    minLevelPercent: 20,
+    criticalLevelPercent: 10,
     temperature: 15,
-    waterLevel: 5,
-    levelSensorStatus: "ok",
-    temperatureSensorStatus: "ok"
+    waterLevelMm: 5,
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ]
   },
   {
     id: 2,
     name: "Резервуар №2", 
     fuelType: "АИ-92",
-    currentLevel: 8000,
-    capacity: 50000,
+    currentLevelLiters: 8000,
+    capacityLiters: 50000,
+    minLevelPercent: 20,
+    criticalLevelPercent: 10,
     temperature: 14,
-    waterLevel: 3,
-    levelSensorStatus: "ok",
-    temperatureSensorStatus: "error"
+    waterLevelMm: 3,
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "error" }
+    ]
   },
   {
     id: 3,
     name: "Резервуар №3",
     fuelType: "ДТ",
-    currentLevel: 3000,
-    capacity: 40000,
+    currentLevelLiters: 3000,
+    capacityLiters: 40000,
+    minLevelPercent: 20,
+    criticalLevelPercent: 10,
     temperature: 16,
-    waterLevel: 2,
-    levelSensorStatus: "error",
-    temperatureSensorStatus: "ok"
+    waterLevelMm: 2,
+    sensors: [
+      { name: "Уровень", status: "error" },
+      { name: "Температура", status: "ok" }
+    ]
   }
 ];
 
@@ -83,6 +96,70 @@ const mockDrainageLog = [
     status: "Завершено"
   }
 ];
+
+// Enhanced Progress Component with threshold markers
+const TankProgressIndicator = ({ percentage, minLevel, criticalLevel, isMobile }: {
+  percentage: number;
+  minLevel: number;
+  criticalLevel: number;
+  isMobile: boolean;
+}) => {
+  const getProgressColor = (percent: number) => {
+    if (percent > minLevel) return "hsl(var(--primary))"; // Blue
+    if (percent >= criticalLevel) return "hsl(45, 93%, 47%)"; // Yellow 
+    return "hsl(0, 84%, 60%)"; // Red
+  };
+
+  const progressColor = getProgressColor(percentage);
+
+  return (
+    <TooltipProvider>
+      <div className="relative">
+        <Progress 
+          value={percentage} 
+          className="h-4"
+          style={{
+            background: 'rgb(55, 65, 81)',
+          }}
+        />
+        
+        {/* Custom progress bar with dynamic color */}
+        <div 
+          className="absolute top-0 left-0 h-4 rounded-full transition-all duration-300"
+          style={{
+            width: `${percentage}%`,
+            backgroundColor: progressColor,
+          }}
+        />
+        
+        {/* Threshold markers */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div 
+              className="absolute top-0 h-4 w-0.5 bg-gray-300 cursor-help"
+              style={{ left: `${minLevel}%` }}
+            />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Минимальный уровень ({minLevel}%)</p>
+          </TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div 
+              className="absolute top-0 h-4 w-0.5 bg-red-400 cursor-help"
+              style={{ left: `${criticalLevel}%` }}
+            />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Критический уровень ({criticalLevel}%)</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  );
+};
 
 const drainageFormSchema = z.object({
   tankId: z.string().min(1, "Выберите резервуар"),
@@ -111,13 +188,22 @@ export default function Tanks() {
   });
 
   const getProgressColor = (percentage: number) => {
-    if (percentage > 20) return "bg-green-500";
-    if (percentage >= 10) return "bg-yellow-500";
-    return "bg-red-500";
+    if (percentage > 20) return "hsl(var(--primary))"; // Blue
+    if (percentage >= 10) return "hsl(45, 93%, 47%)"; // Yellow
+    return "hsl(0, 84%, 60%)"; // Red
   };
 
   const getPercentage = (current: number, capacity: number) => {
     return Math.round((current / capacity) * 100);
+  };
+
+  const getFuelTypeColor = (fuelType: string) => {
+    switch (fuelType) {
+      case "АИ-95": return "text-blue-400";
+      case "АИ-92": return "text-green-400"; 
+      case "ДТ": return "text-orange-400";
+      default: return "text-gray-400";
+    }
   };
 
   const onSubmitDrainage = (data: DrainageFormData) => {
@@ -342,17 +428,16 @@ export default function Tanks() {
         ) : (
           <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
             {mockTanks.map((tank) => {
-              const percentage = getPercentage(tank.currentLevel, tank.capacity);
-              const progressColor = getProgressColor(percentage);
+              const percentage = getPercentage(tank.currentLevelLiters, tank.capacityLiters);
               
               return (
-                <Card key={tank.id} className="bg-gray-800 border-gray-700 shadow-lg">
+                <Card key={tank.id} className="bg-gray-800 border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-200">
                   <CardHeader className={`pb-3 ${isMobile ? 'pb-2' : ''}`}>
                     <CardTitle className={`flex items-center gap-3 ${isMobile ? 'text-lg' : 'text-xl'}`}>
                       <Gauge className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} text-blue-400`} />
-                      <div>
-                        <div className="text-gray-100">{tank.name}</div>
-                        <div className={`${isMobile ? 'text-sm' : 'text-base'} font-normal text-blue-400`}>
+                      <div className="flex-1">
+                        <div className="text-gray-100 font-semibold">{tank.name}</div>
+                        <div className={`${isMobile ? 'text-lg font-bold' : 'text-xl font-bold'} ${getFuelTypeColor(tank.fuelType)}`}>
                           {tank.fuelType}
                         </div>
                       </div>
@@ -360,68 +445,78 @@ export default function Tanks() {
                   </CardHeader>
                   
                   <CardContent className="space-y-4">
-                    {/* Progress Indicator */}
-                    <div className="space-y-2">
+                    {/* Enhanced Progress Indicator */}
+                    <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className={`${isMobile ? 'text-sm' : 'text-base'} font-medium text-gray-200`}>
-                          Уровень
+                          Уровень топлива
                         </span>
-                        <span className={`${isMobile ? 'text-sm' : 'text-base'} font-bold text-gray-100`}>
+                        <span className={`${isMobile ? 'text-lg font-bold' : 'text-xl font-bold'} ${
+                          percentage > tank.minLevelPercent ? 'text-blue-400' :
+                          percentage >= tank.criticalLevelPercent ? 'text-yellow-400' : 'text-red-400'
+                        }`}>
                           {percentage}%
                         </span>
                       </div>
-                      <Progress 
-                        value={percentage} 
-                        className="h-3"
-                        style={{ 
-                          background: 'rgb(55, 65, 81)',
-                        }}
+                      
+                      <TankProgressIndicator 
+                        percentage={percentage} 
+                        minLevel={tank.minLevelPercent}
+                        criticalLevel={tank.criticalLevelPercent}
+                        isMobile={isMobile}
                       />
-                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400`}>
-                        {tank.currentLevel.toLocaleString()} / {tank.capacity.toLocaleString()} л
+                      
+                      <div className={`${isMobile ? 'text-sm' : 'text-base'} text-gray-300 font-medium`}>
+                        {tank.currentLevelLiters.toLocaleString()} / {tank.capacityLiters.toLocaleString()} л
                       </div>
                     </div>
                     
                     {/* Tank Data */}
-                    <div className={`grid grid-cols-2 gap-3 ${isMobile ? 'text-sm' : ''}`}>
+                    <div className={`grid grid-cols-2 gap-4 ${isMobile ? 'text-sm' : ''}`}>
                       <div className="flex items-center gap-2">
-                        <Thermometer className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-orange-400`} />
+                        <Thermometer className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-orange-400`} />
                         <div>
                           <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400`}>Температура</div>
-                          <div className="font-medium text-gray-100">{tank.temperature} °C</div>
+                          <div className="font-semibold text-gray-100">{tank.temperature} °C</div>
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <Droplets className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-cyan-400`} />
+                        <Droplets className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-cyan-400`} />
                         <div>
                           <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400`}>Подтоварная вода</div>
-                          <div className="font-medium text-gray-100">{tank.waterLevel} мм</div>
+                          <div className="font-semibold text-gray-100">{tank.waterLevelMm} мм</div>
                         </div>
                       </div>
                     </div>
                     
-                    {/* Sensor Status */}
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-700">
-                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400`}>Датчики:</span>
-                      <div className="flex gap-3">
-                        <div className="flex items-center gap-1">
-                          {tank.levelSensorStatus === "ok" ? (
-                            <CheckCircle className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-green-400`} />
-                          ) : (
-                            <XCircle className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-red-400`} />
-                          )}
-                          <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-300`}>Уровень</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-1">
-                          {tank.temperatureSensorStatus === "ok" ? (
-                            <CheckCircle className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-green-400`} />
-                          ) : (
-                            <XCircle className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-red-400`} />
-                          )}
-                          <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-300`}>Температура</span>
-                        </div>
+                    {/* Enhanced Sensor Status */}
+                    <div className="flex justify-between items-center pt-3 border-t border-gray-700">
+                      <span className={`${isMobile ? 'text-sm' : 'text-base'} font-medium text-gray-300`}>Статус датчиков:</span>
+                      <div className="flex gap-4">
+                        {tank.sensors.map((sensor, index) => (
+                          <TooltipProvider key={index}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1.5 cursor-help">
+                                  {sensor.status === "ok" ? (
+                                    <CheckCircle className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-green-400`} />
+                                  ) : (
+                                    <XCircle className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-red-400`} />
+                                  )}
+                                  <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${
+                                    sensor.status === "ok" ? 'text-green-400' : 'text-red-400'
+                                  } font-medium`}>
+                                    {sensor.name}
+                                  </span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Датчик {sensor.name.toLowerCase()}: {sensor.status === "ok" ? "Работает нормально" : "Ошибка"}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ))}
                       </div>
                     </div>
                   </CardContent>
