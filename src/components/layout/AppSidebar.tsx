@@ -80,6 +80,7 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
   ];
 
   const adminMenuItems = [
+    { title: "Сети и ТТ", url: "/admin/networks", icon: Network },
     { title: "Пользователи и роли", url: "/admin/users", icon: Users },
     { title: "Журнал аудита", url: "/admin/audit", icon: FileText },
   ];
