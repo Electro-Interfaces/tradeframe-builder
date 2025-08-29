@@ -58,7 +58,7 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
 
   const isActive = (path: string) => location.pathname === path;
   const getNavCls = (active: boolean) => 
-    active ? "bg-sidebar-accent text-sidebar-primary font-medium" : "";
+    active ? "bg-blue-600 text-white font-medium transition-colors duration-200" : "transition-colors duration-200 hover:bg-gray-700";
 
   const isTradingPointSelected = Boolean(selectedTradingPoint);
 
@@ -104,7 +104,7 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
       <SidebarContent className="pt-header">
         {/* ГЛАВНАЯ */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground text-xs font-semibold">
+          <SidebarGroupLabel className="text-gray-200 text-xs font-semibold">
             ГЛАВНАЯ
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -127,8 +127,8 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
         </SidebarGroup>
 
         {/* ТОРГОВЫЕ СЕТИ */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground text-xs font-semibold">
+        <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
+          <SidebarGroupLabel className="text-gray-200 text-xs font-semibold">
             ТОРГОВЫЕ СЕТИ
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -151,8 +151,8 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
         </SidebarGroup>
 
         {/* ТОРГОВАЯ ТОЧКА */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground text-xs font-semibold">
+        <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
+          <SidebarGroupLabel className="text-gray-200 text-xs font-semibold">
             ТОРГОВАЯ ТОЧКА
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -180,8 +180,8 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
         </SidebarGroup>
 
         {/* АДМИНИСТРИРОВАНИЕ */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground text-xs font-semibold">
+        <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
+          <SidebarGroupLabel className="text-gray-200 text-xs font-semibold">
             АДМИНИСТРИРОВАНИЕ
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -204,8 +204,8 @@ export function AppSidebar({ selectedTradingPoint }: AppSidebarProps) {
         </SidebarGroup>
 
         {/* НАСТРОЙКИ */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground text-xs font-semibold">
+        <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
+          <SidebarGroupLabel className="text-gray-200 text-xs font-semibold">
             НАСТРОЙКИ
           </SidebarGroupLabel>
           <SidebarGroupContent>

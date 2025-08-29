@@ -21,15 +21,15 @@ const mockKpiData = {
 };
 
 const mockFuelData = [
-  { name: "АИ-95", value: 45, amount: 1281234, color: "#0ea5e9" },
-  { name: "АИ-92", value: 35, amount: 996223, color: "#10b981" },
-  { name: "ДТ", value: 20, amount: 570178, color: "#f59e0b" }
+  { name: "АИ-95", value: 45, amount: 1281234, color: "#60a5fa" },
+  { name: "АИ-92", value: 35, amount: 996223, color: "#4ade80" },
+  { name: "ДТ", value: 20, amount: 570178, color: "#9ca3af" }
 ];
 
 const mockPaymentData = [
-  { name: "Банк. карты", value: 65, amount: 1850763, color: "#8b5cf6" },
-  { name: "Наличные", value: 25, amount: 711909, color: "#ef4444" },
-  { name: "Корп. карты", value: 10, amount: 284963, color: "#06b6d4" }
+  { name: "Банк. карты", value: 65, amount: 1850763, color: "#3b82f6" },
+  { name: "Наличные", value: 25, amount: 711909, color: "#10b981" },
+  { name: "Корп. карты", value: 10, amount: 284963, color: "#6b7280" }
 ];
 
 const mockTrendData = [
@@ -98,17 +98,17 @@ export default function NetworkOverview() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold">Анализ Сети</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold text-gray-100">Анализ Сети</h1>
+          <p className="text-gray-300">
             Аналитика продаж и производительности торговой сети
           </p>
         </div>
 
         {/* Filters Panel */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700 shadow-sm">
           <CardHeader>
-            <CardTitle>Фильтры</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl text-gray-100">Фильтры</CardTitle>
+            <CardDescription className="text-gray-300">
               Настройте период и параметры анализа
             </CardDescription>
           </CardHeader>
@@ -145,7 +145,13 @@ export default function NetworkOverview() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleApplyFilters}>
+              <Button 
+                onClick={handleApplyFilters}
+                className="bg-blue-600 hover:bg-blue-700 transition-colors duration-200 flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
                 Применить
               </Button>
             </div>
@@ -154,82 +160,82 @@ export default function NetworkOverview() {
 
         {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          <Card>
+          <Card className="bg-gray-800 border-gray-700 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-gray-200">
                 Общая выручка
               </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-5 w-5 text-green-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold text-gray-100">
                 {formatCurrency(mockKpiData.totalRevenue)}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-green-400">
                 +12.5% к предыдущему периоду
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-gray-800 border-gray-700 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-gray-200">
                 Транзакции
               </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-5 w-5 text-blue-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl font-bold text-gray-100">
                 {mockKpiData.totalTransactions.toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-blue-400">
                 +8.1% к предыдущему периоду
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-gray-800 border-gray-700 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-gray-200">
                 Топлива отпущено
               </CardTitle>
-              <Fuel className="h-4 w-4 text-muted-foreground" />
+              <Fuel className="h-5 w-5 text-orange-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl font-bold text-gray-100">
                 {mockKpiData.totalFuelLiters.toLocaleString()} л
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-orange-400">
                 +5.3% к предыдущему периоду
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-gray-800 border-gray-700 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-gray-200">
                 Средний чек
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-5 w-5 text-purple-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl font-bold text-gray-100">
                 {formatCurrency(mockKpiData.averageTicket)}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-purple-400">
                 +3.7% к предыдущему периоду
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-gray-800 border-gray-700 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-gray-200">
                 Доля безналичных
               </CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <CreditCard className="h-5 w-5 text-cyan-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl font-bold text-gray-100">
                 {mockKpiData.cashlessPercentage}%
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-cyan-400">
                 +2.1% к предыдущему периоду
               </p>
             </CardContent>
@@ -247,17 +253,21 @@ export default function NetworkOverview() {
           
           <TabsContent value="structure" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Структура продаж</h3>
-              <Button variant="outline" onClick={() => handleExport("структуры продаж")}>
-                <Download className="mr-2 h-4 w-4" />
+              <h3 className="text-xl font-semibold text-gray-100">Структура продаж</h3>
+              <Button 
+                variant="outline" 
+                onClick={() => handleExport("структуры продаж")}
+                className="transition-colors duration-200 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
                 Экспорт в CSV
               </Button>
             </div>
             
             <div className="grid gap-4 md:grid-cols-2">
-              <Card>
+              <Card className="bg-gray-800 border-gray-700 shadow-sm">
                 <CardHeader>
-                  <CardTitle>Разрез по видам топлива</CardTitle>
+                  <CardTitle className="text-gray-100">Разрез по видам топлива</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -282,9 +292,9 @@ export default function NetworkOverview() {
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="bg-gray-800 border-gray-700 shadow-sm">
                 <CardHeader>
-                  <CardTitle>Разрез по способам оплаты</CardTitle>
+                  <CardTitle className="text-gray-100">Разрез по способам оплаты</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -310,9 +320,9 @@ export default function NetworkOverview() {
               </Card>
             </div>
             
-            <Card>
+            <Card className="bg-gray-800 border-gray-700 shadow-sm">
               <CardHeader>
-                <CardTitle>Детализация по структуре</CardTitle>
+                <CardTitle className="text-gray-100">Детализация по структуре</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -341,16 +351,20 @@ export default function NetworkOverview() {
           
           <TabsContent value="trends" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Динамика (Тренды)</h3>
-              <Button variant="outline" onClick={() => handleExport("трендов")}>
-                <Download className="mr-2 h-4 w-4" />
+              <h3 className="text-xl font-semibold text-gray-100">Динамика (Тренды)</h3>
+              <Button 
+                variant="outline" 
+                onClick={() => handleExport("трендов")}
+                className="transition-colors duration-200 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
                 Экспорт в CSV
               </Button>
             </div>
             
-            <Card>
+            <Card className="bg-gray-800 border-gray-700 shadow-sm">
               <CardHeader>
-                <CardTitle>Изменение выручки и транзакций во времени</CardTitle>
+                <CardTitle className="text-gray-100">Изменение выручки и транзакций во времени</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={400}>
@@ -365,7 +379,7 @@ export default function NetworkOverview() {
                       yAxisId="left"
                       type="monotone"
                       dataKey="revenue"
-                      stroke="#0ea5e9"
+                      stroke="#3b82f6"
                       strokeWidth={2}
                       name="Выручка (руб.)"
                     />
@@ -385,14 +399,18 @@ export default function NetworkOverview() {
           
           <TabsContent value="stations" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Сравнение торговых точек</h3>
-              <Button variant="outline" onClick={() => handleExport("сравнения точек")}>
-                <Download className="mr-2 h-4 w-4" />
+              <h3 className="text-xl font-semibold text-gray-100">Сравнение торговых точек</h3>
+              <Button 
+                variant="outline" 
+                onClick={() => handleExport("сравнения точек")}
+                className="transition-colors duration-200 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
                 Экспорт в CSV
               </Button>
             </div>
             
-            <Card>
+            <Card className="bg-gray-800 border-gray-700 shadow-sm">
               <CardContent className="pt-6">
                 <Table>
                   <TableHeader>
@@ -420,9 +438,13 @@ export default function NetworkOverview() {
           
           <TabsContent value="transactions" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Детализация транзакций</h3>
-              <Button variant="outline" onClick={() => handleExport("транзакций")}>
-                <Download className="mr-2 h-4 w-4" />
+              <h3 className="text-xl font-semibold text-gray-100">Детализация транзакций</h3>
+              <Button 
+                variant="outline" 
+                onClick={() => handleExport("транзакций")}
+                className="transition-colors duration-200 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
                 Экспорт в CSV
               </Button>
             </div>
