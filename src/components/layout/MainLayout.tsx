@@ -78,13 +78,6 @@ export function MainLayout({ children }: MainLayoutProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {selectedTradingPoint && (
-                <div className="mt-2 flex justify-center">
-                  <span className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium">
-                    Торговая точка выбрана
-                  </span>
-                </div>
-              )}
             </div>
             
             <main className="px-4 pb-6">
