@@ -48,22 +48,22 @@ export function Header({
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-header bg-background/95 backdrop-blur-sm border-b border-border shadow-soft">
-      <div className="flex items-center justify-between h-full px-4 md:px-6">
+      <div className="flex items-center justify-between h-full px-3 md:px-6">
         {/* Mobile Left Section: Burger + Network Selector */}
-        <div className="flex items-center gap-3 md:hidden">
+        <div className="flex items-center gap-2 md:hidden flex-1 min-w-0">
           <Button
             variant="ghost"
             size="icon"
             onClick={onMobileMenuToggle}
-            className="shrink-0"
+            className="shrink-0 h-8 w-8"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-4 w-4" />
           </Button>
           
           <Select value={selectedNetwork} onValueChange={onNetworkChange}>
-            <SelectTrigger className="w-48 h-9">
-              <Network className="h-4 w-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Выберите сеть" />
+            <SelectTrigger className="h-8 text-xs border-none bg-transparent hover:bg-accent min-w-0 flex-1">
+              <Network className="h-3 w-3 mr-1 text-muted-foreground shrink-0" />
+              <SelectValue placeholder="Выберите сеть" className="truncate" />
             </SelectTrigger>
             <SelectContent>
               {networks.map((network) => (
@@ -138,9 +138,9 @@ export function Header({
         </div>
 
         {/* Right Section: Notifications + User Profile */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 shrink-0">
           {/* Mobile Quick Actions */}
-          <div className="flex md:hidden items-center gap-1">
+          <div className="flex md:hidden items-center">
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Bell className="h-4 w-4" />
             </Button>
@@ -162,9 +162,9 @@ export function Header({
           {/* User Profile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2 px-2 md:px-3 transition-colors duration-200">
-                <Avatar className="w-8 h-8 rounded-full">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+              <Button variant="ghost" className="flex items-center gap-1 px-1 md:px-3 transition-colors duration-200 h-8 md:h-auto">
+                <Avatar className="w-7 h-7 md:w-8 md:h-8 rounded-full">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                     А
                   </AvatarFallback>
                 </Avatar>
