@@ -12,12 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Plus, Edit, Trash2, CalendarIcon, MapPin } from "lucide-react";
+import { Plus, Edit, Trash2, CalendarIcon, MapPin, ChevronDown, ChevronRight, Layers3 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -46,11 +47,48 @@ const mockEquipmentTemplates = [
   },
 ];
 
+// Mock данные для шаблонов компонентов (синхронизируются с ComponentTypes)
+const mockComponentTemplates = [
+  {
+    id: "1",
+    name: "Датчик уровня ПМП-201",
+    technical_code: "PMP_201_LEVEL_SENSOR",
+    system_type: "sensor",
+    status: true,
+  },
+  {
+    id: "2",
+    name: "Платежный терминал Ingenico iCT220",
+    technical_code: "PAY_ICT220",
+    system_type: "payment_terminal",
+    status: true,
+  },
+  {
+    id: "3",
+    name: "Дисплей покупателя LED-200",
+    technical_code: "DISP_LED200",
+    system_type: "display",
+    status: true,
+  },
+];
+
 // Mock данные для торговых точек
 const mockTradingPoints = [
   { id: "1", name: "АЗС-5 на Ленина" },
   { id: "2", name: "АЗС-12 на Гагарина" },
 ];
+
+// Интерфейс для экземпляра компонента
+interface ComponentInstance {
+  id: string;
+  name: string;
+  template_id: string;
+  serial_number?: string;
+  external_id: string;
+  status: "online" | "offline" | "error";
+  is_active: boolean;
+  equipment_id: string;
+}
 
 // Интерфейс для экземпляра оборудования
 interface EquipmentInstance {
@@ -63,6 +101,7 @@ interface EquipmentInstance {
   installation_date?: Date;
   trading_point_id: string;
   is_active: boolean;
+  components?: ComponentInstance[];
 }
 
 // Mock данные для экземпляров оборудования
@@ -77,6 +116,27 @@ const mockEquipmentInstances: EquipmentInstance[] = [
     installation_date: new Date("2024-01-15"),
     trading_point_id: "1",
     is_active: true,
+    components: [
+      {
+        id: "c1",
+        name: "Датчик уровня топлива",
+        template_id: "1",
+        serial_number: "PMP123",
+        external_id: "SENSOR_001",
+        status: "online",
+        is_active: true,
+        equipment_id: "1",
+      },
+      {
+        id: "c2",
+        name: "Платежный терминал",
+        template_id: "2",
+        external_id: "PAY_001",
+        status: "online",
+        is_active: true,
+        equipment_id: "1",
+      },
+    ],
   },
   {
     id: "2",
@@ -88,6 +148,17 @@ const mockEquipmentInstances: EquipmentInstance[] = [
     installation_date: new Date("2024-02-20"),
     trading_point_id: "1",
     is_active: true,
+    components: [
+      {
+        id: "c3",
+        name: "Дисплей покупателя",
+        template_id: "3",
+        external_id: "DISP_001",
+        status: "error",
+        is_active: true,
+        equipment_id: "2",
+      },
+    ],
   },
   {
     id: "3",
@@ -97,6 +168,7 @@ const mockEquipmentInstances: EquipmentInstance[] = [
     status: "online",
     trading_point_id: "1",
     is_active: true,
+    components: [],
   },
 ];
 
@@ -110,7 +182,16 @@ const equipmentSchema = z.object({
   installation_date: z.date().optional(),
 });
 
+const componentSchema = z.object({
+  name: z.string().min(1, "Название обязательно"),
+  template_id: z.string().min(1, "Тип компонента обязателен"),
+  serial_number: z.string().optional(),
+  external_id: z.string().min(1, "Внешний ID обязателен"),
+  is_active: z.boolean().default(true),
+});
+
 type EquipmentFormData = z.infer<typeof equipmentSchema>;
+type ComponentFormData = z.infer<typeof componentSchema>;
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -133,11 +214,18 @@ const getStatusText = (status: string) => {
 export default function Equipment() {
   const { toast } = useToast();
   const [equipmentInstances, setEquipmentInstances] = useState<EquipmentInstance[]>(mockEquipmentInstances);
+  const [expandedEquipment, setExpandedEquipment] = useState<string[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateComponentModalOpen, setIsCreateComponentModalOpen] = useState(false);
+  const [isEditComponentModalOpen, setIsEditComponentModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1); // 1 - выбор шаблона, 2 - заполнение данных
+  const [currentComponentStep, setCurrentComponentStep] = useState(1);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [selectedComponentTemplateId, setSelectedComponentTemplateId] = useState<string>("");
   const [editingEquipment, setEditingEquipment] = useState<EquipmentInstance | null>(null);
+  const [editingComponent, setEditingComponent] = useState<ComponentInstance | null>(null);
+  const [currentEquipmentId, setCurrentEquipmentId] = useState<string>("");
 
   // Для демонстрации используем фиксированную торговую точку
   const selectedTradingPointId = "1";
@@ -154,10 +242,29 @@ export default function Equipment() {
     },
   });
 
+  const componentForm = useForm<ComponentFormData>({
+    resolver: zodResolver(componentSchema),
+    defaultValues: {
+      name: "",
+      template_id: "",
+      serial_number: "",
+      external_id: "",
+      is_active: true,
+    },
+  });
+
   // Фильтрация оборудования для выбранной торговой точки
   const filteredEquipment = equipmentInstances.filter(
     equipment => equipment.trading_point_id === selectedTradingPointId
   );
+
+  const toggleEquipmentExpansion = (equipmentId: string) => {
+    setExpandedEquipment(prev => 
+      prev.includes(equipmentId) 
+        ? prev.filter(id => id !== equipmentId)
+        : [...prev, equipmentId]
+    );
+  };
 
   const handleCreateEquipment = (data: EquipmentFormData) => {
     const newEquipment: EquipmentInstance = {
@@ -170,6 +277,7 @@ export default function Equipment() {
       installation_date: data.installation_date,
       trading_point_id: selectedTradingPointId!,
       is_active: data.is_active,
+      components: [],
     };
 
     setEquipmentInstances(prev => [...prev, newEquipment]);
@@ -249,6 +357,129 @@ export default function Equipment() {
     setCurrentStep(1);
     setSelectedTemplateId("");
     form.reset();
+  };
+
+  // Функции для управления компонентами
+  const handleCreateComponent = (data: ComponentFormData) => {
+    const newComponent: ComponentInstance = {
+      id: Date.now().toString(),
+      name: data.name,
+      template_id: data.template_id,
+      serial_number: data.serial_number,
+      external_id: data.external_id,
+      status: "offline",
+      is_active: data.is_active,
+      equipment_id: currentEquipmentId,
+    };
+
+    setEquipmentInstances(prev => 
+      prev.map(equipment => 
+        equipment.id === currentEquipmentId 
+          ? { 
+              ...equipment, 
+              components: [...(equipment.components || []), newComponent] 
+            }
+          : equipment
+      )
+    );
+
+    setIsCreateComponentModalOpen(false);
+    setCurrentComponentStep(1);
+    setSelectedComponentTemplateId("");
+    setCurrentEquipmentId("");
+    componentForm.reset();
+    
+    toast({
+      title: "Успех",
+      description: "Компонент успешно добавлен",
+    });
+  };
+
+  const handleEditComponent = (data: ComponentFormData) => {
+    if (!editingComponent) return;
+
+    const updatedComponent: ComponentInstance = {
+      ...editingComponent,
+      name: data.name,
+      serial_number: data.serial_number,
+      external_id: data.external_id,
+      is_active: data.is_active,
+    };
+
+    setEquipmentInstances(prev => 
+      prev.map(equipment => 
+        equipment.id === editingComponent.equipment_id
+          ? {
+              ...equipment,
+              components: equipment.components?.map(component =>
+                component.id === editingComponent.id ? updatedComponent : component
+              ) || []
+            }
+          : equipment
+      )
+    );
+
+    setIsEditComponentModalOpen(false);
+    setEditingComponent(null);
+    componentForm.reset();
+    
+    toast({
+      title: "Успех",
+      description: "Компонент успешно обновлен",
+    });
+  };
+
+  const handleDeleteComponent = (component: ComponentInstance) => {
+    setEquipmentInstances(prev => 
+      prev.map(equipment => 
+        equipment.id === component.equipment_id
+          ? {
+              ...equipment,
+              components: equipment.components?.filter(c => c.id !== component.id) || []
+            }
+          : equipment
+      )
+    );
+    
+    toast({
+      title: "Успех",
+      description: "Компонент успешно удален",
+    });
+  };
+
+  const openCreateComponentModal = (equipmentId: string) => {
+    setCurrentEquipmentId(equipmentId);
+    setIsCreateComponentModalOpen(true);
+  };
+
+  const openEditComponentModal = (component: ComponentInstance) => {
+    setEditingComponent(component);
+    componentForm.reset({
+      name: component.name,
+      template_id: component.template_id,
+      serial_number: component.serial_number || "",
+      external_id: component.external_id,
+      is_active: component.is_active,
+    });
+    setIsEditComponentModalOpen(true);
+  };
+
+  const handleNextComponentStep = () => {
+    if (selectedComponentTemplateId) {
+      componentForm.setValue("template_id", selectedComponentTemplateId);
+      setCurrentComponentStep(2);
+    }
+  };
+
+  const handlePrevComponentStep = () => {
+    setCurrentComponentStep(1);
+  };
+
+  const resetCreateComponentModal = () => {
+    setCurrentComponentStep(1);
+    setSelectedComponentTemplateId("");
+    setCurrentEquipmentId("");
+    componentForm.reset();
   };
 
   // Если торговая точка не выбрана, показать пустое состояние
@@ -452,9 +683,11 @@ export default function Equipment() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10"></TableHead>
                 <TableHead>Название</TableHead>
                 <TableHead>Тип</TableHead>
                 <TableHead>Серийный номер</TableHead>
+                <TableHead>Компоненты</TableHead>
                 <TableHead>Статус</TableHead>
                 <TableHead className="text-right">Действия</TableHead>
               </TableRow>
@@ -462,7 +695,7 @@ export default function Equipment() {
             <TableBody>
               {filteredEquipment.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     На этой торговой точке пока нет оборудования.
                     <br />
                     Нажмите "Добавить оборудование", чтобы создать первое.
@@ -471,52 +704,172 @@ export default function Equipment() {
               ) : (
                 filteredEquipment.map((equipment) => {
                   const template = mockEquipmentTemplates.find(t => t.id === equipment.template_id);
+                  const isExpanded = expandedEquipment.includes(equipment.id);
+                  const componentsCount = equipment.components?.length || 0;
+                  
                   return (
-                    <TableRow key={equipment.id}>
-                      <TableCell className="font-medium">{equipment.name}</TableCell>
-                      <TableCell>{template?.name || "Неизвестный тип"}</TableCell>
-                      <TableCell>{equipment.serial_number || "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="flex items-center gap-2 w-fit">
-                          <div className={`w-2 h-2 rounded-full ${getStatusColor(equipment.status)}`} />
-                          {getStatusText(equipment.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                    <>
+                      <TableRow key={equipment.id} className="group">
+                        <TableCell>
                           <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => openEditModal(equipment)}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleEquipmentExpansion(equipment.id)}
+                            className="p-0 h-6 w-6"
                           >
-                            <Edit className="w-4 h-4" />
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
                           </Button>
-                          
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="icon">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Подтверждение удаления</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Вы уверены, что хотите удалить оборудование "{equipment.name}"?
-                                  Это действие нельзя отменить.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteEquipment(equipment)}>
-                                  Удалить
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                        <TableCell className="font-medium">{equipment.name}</TableCell>
+                        <TableCell>{template?.name || "Неизвестный тип"}</TableCell>
+                        <TableCell>{equipment.serial_number || "—"}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Layers3 className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">{componentsCount}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="flex items-center gap-2 w-fit">
+                            <div className={`w-2 h-2 rounded-full ${getStatusColor(equipment.status)}`} />
+                            {getStatusText(equipment.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => openEditModal(equipment)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="icon">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Подтверждение удаления</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Вы уверены, что хотите удалить оборудование "{equipment.name}"?
+                                    Это действие нельзя отменить.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteEquipment(equipment)}>
+                                    Удалить
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      
+                      {/* Раскрывающийся контент с компонентами */}
+                      {isExpanded && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="p-0">
+                            <div className="bg-muted/20 border-l-4 border-primary/20 ml-6 mr-2 mb-2">
+                              <div className="p-4">
+                                <div className="flex items-center justify-between mb-4">
+                                  <h4 className="font-medium text-sm">
+                                    Компоненты в составе "{equipment.name}"
+                                  </h4>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => openCreateComponentModal(equipment.id)}
+                                  >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Добавить компонент
+                                  </Button>
+                                </div>
+                                
+                                {equipment.components && equipment.components.length > 0 ? (
+                                  <div className="border rounded-md bg-background">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead className="text-xs">Название</TableHead>
+                                          <TableHead className="text-xs">Тип</TableHead>
+                                          <TableHead className="text-xs">Серийный номер</TableHead>
+                                          <TableHead className="text-xs">Статус</TableHead>
+                                          <TableHead className="text-xs text-right">Действия</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {equipment.components.map((component) => {
+                                          const componentTemplate = mockComponentTemplates.find(t => t.id === component.template_id);
+                                          return (
+                                            <TableRow key={component.id}>
+                                              <TableCell className="text-sm">{component.name}</TableCell>
+                                              <TableCell className="text-sm">{componentTemplate?.name || "Неизвестный тип"}</TableCell>
+                                              <TableCell className="text-sm">{component.serial_number || "—"}</TableCell>
+                                              <TableCell>
+                                                <Badge variant="secondary" className="text-xs">
+                                                  <div className={`w-1.5 h-1.5 rounded-full mr-1 ${getStatusColor(component.status)}`} />
+                                                  {getStatusText(component.status)}
+                                                </Badge>
+                                              </TableCell>
+                                              <TableCell className="text-right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                  <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => openEditComponentModal(component)}
+                                                  >
+                                                    <Edit className="w-3 h-3" />
+                                                  </Button>
+                                                  
+                                                  <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                      <Button variant="outline" size="sm">
+                                                        <Trash2 className="w-3 h-3" />
+                                                      </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                      <AlertDialogHeader>
+                                                        <AlertDialogTitle>Подтверждение удаления</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                          Вы уверены, что хотите удалить компонент "{component.name}"?
+                                                        </AlertDialogDescription>
+                                                      </AlertDialogHeader>
+                                                      <AlertDialogFooter>
+                                                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteComponent(component)}>
+                                                          Удалить
+                                                        </AlertDialogAction>
+                                                      </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                  </AlertDialog>
+                                                </div>
+                                              </TableCell>
+                                            </TableRow>
+                                          );
+                                        })}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-4 text-muted-foreground text-sm">
+                                    В составе этого оборудования пока нет компонентов.
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   );
                 })
               )}
@@ -636,6 +989,211 @@ export default function Equipment() {
 
                 <div className="flex justify-end space-x-2">
                   <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button type="submit">Сохранить</Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Модальное окно создания компонента */}
+        <Dialog open={isCreateComponentModalOpen} onOpenChange={(open) => {
+          setIsCreateComponentModalOpen(open);
+          if (!open) resetCreateComponentModal();
+        }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {currentComponentStep === 1 ? "Выбор типа компонента" : "Данные экземпляра компонента"}
+              </DialogTitle>
+            </DialogHeader>
+
+            {currentComponentStep === 1 ? (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="component-template-select">Выберите тип компонента</Label>
+                  <Select value={selectedComponentTemplateId} onValueChange={setSelectedComponentTemplateId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите тип компонента" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mockComponentTemplates
+                        .filter(template => template.status)
+                        .map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsCreateComponentModalOpen(false)}
+                  >
+                    Отмена
+                  </Button>
+                  <Button 
+                    onClick={handleNextComponentStep}
+                    disabled={!selectedComponentTemplateId}
+                  >
+                    Далее
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Form {...componentForm}>
+                <form onSubmit={componentForm.handleSubmit(handleCreateComponent)} className="space-y-4">
+                  <FormField
+                    control={componentForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Название</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Например: Датчик уровня топлива" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={componentForm.control}
+                    name="serial_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Серийный номер</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Серийный номер" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={componentForm.control}
+                    name="external_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Внешний ID</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Уникальный ID во внешней системе" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={componentForm.control}
+                    name="is_active"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel>Статус</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={handlePrevComponentStep}>
+                      Назад
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setIsCreateComponentModalOpen(false)}>
+                      Отмена
+                    </Button>
+                    <Button type="submit">Сохранить</Button>
+                  </div>
+                </form>
+              </Form>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Модальное окно редактирования компонента */}
+        <Dialog open={isEditComponentModalOpen} onOpenChange={setIsEditComponentModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Редактирование компонента</DialogTitle>
+            </DialogHeader>
+
+            <Form {...componentForm}>
+              <form onSubmit={componentForm.handleSubmit(handleEditComponent)} className="space-y-4">
+                <FormField
+                  control={componentForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Название</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Например: Датчик уровня топлива" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={componentForm.control}
+                  name="serial_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Серийный номер</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Серийный номер" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={componentForm.control}
+                  name="external_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Внешний ID</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Уникальный ID во внешней системе" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={componentForm.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel>Статус</FormLabel>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setIsEditComponentModalOpen(false)}>
                     Отмена
                   </Button>
                   <Button type="submit">Сохранить</Button>
