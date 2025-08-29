@@ -2,7 +2,8 @@ import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Menu, MapPin } from "lucide-react";
 import { Header } from "./Header";
 import { AppSidebar } from "./AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -29,6 +30,12 @@ export function MainLayout({ children }: MainLayoutProps) {
     setSelectedTradingPoint(value);
   };
 
+  const tradingPoints = [
+    { value: "point1", label: "АЗС №001 - Центральная" },
+    { value: "point2", label: "АЗС №002 - Северная" },
+    { value: "point3", label: "АЗС №003 - Южная" },
+  ];
+
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-background text-foreground">
@@ -50,7 +57,37 @@ export function MainLayout({ children }: MainLayoutProps) {
               </SheetContent>
             </Sheet>
             
-            <main className="pt-header px-4 pb-6">
+            {/* Mobile Trading Point Selector */}
+            <div className="pt-header px-4 py-3 bg-card border-b border-border">
+              <Select 
+                value={selectedTradingPoint} 
+                onValueChange={handleTradingPointChange}
+                disabled={!selectedNetwork}
+              >
+                <SelectTrigger className="w-full">
+                  <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue 
+                    placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"} 
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {tradingPoints.map((point) => (
+                    <SelectItem key={point.value} value={point.value}>
+                      {point.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedTradingPoint && (
+                <div className="mt-2 flex justify-center">
+                  <span className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium">
+                    Торговая точка выбрана
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            <main className="px-4 pb-6">
               {children}
             </main>
           </>
