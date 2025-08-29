@@ -9,6 +9,7 @@ import AdminNetworks from "./pages/AdminNetworks";
 import EquipmentTypes from "./pages/EquipmentTypes";
 import ComponentTypes from "./pages/ComponentTypes";
 import Equipment from "./pages/Equipment";
+import Commands from "./pages/Commands";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/admin/networks" element={<AdminNetworks />} />
           <Route path="/settings/dictionaries/equipment-types" element={<EquipmentTypes />} />
           <Route path="/settings/dictionaries/component-types" element={<ComponentTypes />} />
+          <Route path="/settings/commands" element={<Commands />} />
           <Route path="/point/equipment" element={<Equipment />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
