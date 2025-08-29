@@ -105,9 +105,9 @@ const TankProgressIndicator = ({ percentage, minLevel, criticalLevel, isMobile }
   isMobile: boolean;
 }) => {
   const getProgressColor = (percent: number) => {
-    if (percent > minLevel) return "hsl(var(--primary))"; // Blue
-    if (percent >= criticalLevel) return "hsl(45, 93%, 47%)"; // Yellow 
-    return "hsl(0, 84%, 60%)"; // Red
+    if (percent > minLevel) return "#3b82f6"; // Blue
+    if (percent >= criticalLevel) return "#f59e0b"; // Yellow 
+    return "#ef4444"; // Red
   };
 
   const progressColor = getProgressColor(percentage);
@@ -115,28 +115,23 @@ const TankProgressIndicator = ({ percentage, minLevel, criticalLevel, isMobile }
   return (
     <TooltipProvider>
       <div className="relative">
-        <Progress 
-          value={percentage} 
-          className="h-4"
-          style={{
-            background: 'rgb(55, 65, 81)',
-          }}
-        />
-        
-        {/* Custom progress bar with dynamic color */}
-        <div 
-          className="absolute top-0 left-0 h-4 rounded-full transition-all duration-300"
-          style={{
-            width: `${percentage}%`,
-            backgroundColor: progressColor,
-          }}
-        />
+        {/* Background bar */}
+        <div className="w-full h-4 bg-gray-600 rounded-full overflow-hidden">
+          {/* Progress fill */}
+          <div 
+            className="h-full rounded-full transition-all duration-300"
+            style={{
+              width: `${percentage}%`,
+              backgroundColor: progressColor,
+            }}
+          />
+        </div>
         
         {/* Threshold markers */}
         <Tooltip>
           <TooltipTrigger asChild>
             <div 
-              className="absolute top-0 h-4 w-0.5 bg-gray-300 cursor-help"
+              className="absolute top-0 h-4 w-0.5 bg-gray-300 cursor-help z-10"
               style={{ left: `${minLevel}%` }}
             />
           </TooltipTrigger>
@@ -148,7 +143,7 @@ const TankProgressIndicator = ({ percentage, minLevel, criticalLevel, isMobile }
         <Tooltip>
           <TooltipTrigger asChild>
             <div 
-              className="absolute top-0 h-4 w-0.5 bg-red-400 cursor-help"
+              className="absolute top-0 h-4 w-0.5 bg-red-400 cursor-help z-10"
               style={{ left: `${criticalLevel}%` }}
             />
           </TooltipTrigger>
@@ -473,38 +468,40 @@ export default function Tanks() {
                     
                     {/* Tank Data */}
                     <div className={`grid grid-cols-2 gap-4 ${isMobile ? 'text-sm' : ''}`}>
-                      <div className="flex items-center gap-2">
-                        <Thermometer className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-orange-400`} />
+                      <div className="flex items-start gap-2">
+                        <Thermometer className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-orange-400 mt-0.5`} />
                         <div>
-                          <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400`}>Температура</div>
+                          <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400 mb-1`}>Температура</div>
                           <div className="font-semibold text-gray-100">{tank.temperature} °C</div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
-                        <Droplets className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-cyan-400`} />
+                      <div className="flex items-start gap-2">
+                        <Droplets className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-cyan-400 mt-0.5`} />
                         <div>
-                          <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400`}>Подтоварная вода</div>
+                          <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400 mb-1`}>Подтоварная вода</div>
                           <div className="font-semibold text-gray-100">{tank.waterLevelMm} мм</div>
                         </div>
                       </div>
                     </div>
                     
                     {/* Enhanced Sensor Status */}
-                    <div className="flex justify-between items-center pt-3 border-t border-gray-700">
-                      <span className={`${isMobile ? 'text-sm' : 'text-base'} font-medium text-gray-300`}>Статус датчиков:</span>
-                      <div className="flex gap-4">
+                    <div className="pt-4 border-t border-gray-700">
+                      <div className={`${isMobile ? 'text-sm' : 'text-base'} font-medium text-gray-300 mb-3`}>
+                        Статус датчиков:
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
                         {tank.sensors.map((sensor, index) => (
                           <TooltipProvider key={index}>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="flex items-center gap-1.5 cursor-help">
+                                <div className="flex items-center gap-2 cursor-help">
                                   {sensor.status === "ok" ? (
                                     <CheckCircle className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-green-400`} />
                                   ) : (
                                     <XCircle className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-red-400`} />
                                   )}
-                                  <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${
+                                  <span className={`${isMobile ? 'text-sm' : 'text-base'} ${
                                     sensor.status === "ok" ? 'text-green-400' : 'text-red-400'
                                   } font-medium`}>
                                     {sensor.name}
