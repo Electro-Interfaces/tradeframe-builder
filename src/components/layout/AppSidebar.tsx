@@ -42,9 +42,10 @@ import {
 interface AppSidebarProps {
   selectedTradingPoint: string;
   isMobile?: boolean;
+  setMobileMenuOpen?: (open: boolean) => void;
 }
 
-export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSidebarProps) {
+export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMenuOpen }: AppSidebarProps) {
   const location = useLocation();
   const { state } = useSidebar();
   const [openGroups, setOpenGroups] = useState<string[]>(["main", "networks", "trading-point", "admin", "settings"]);
@@ -106,240 +107,222 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
   ];
 
   return (
-    <Sidebar className="border-r border-sidebar-border shadow-md">
-      <SidebarContent className="pt-header scrollbar-hide">
+    <div className={`${isMobile ? 'h-full bg-sidebar' : ''}`}>
+      {isMobile ? (
+        // Mobile version without Sidebar wrapper
+        <div className="pt-header scrollbar-hide h-full overflow-y-auto bg-slate-900 text-slate-100">
+          {renderMenuContent()}
+        </div>
+      ) : (
+        // Desktop version with Sidebar wrapper
+        <Sidebar className="border-r border-sidebar-border shadow-md">
+          <SidebarContent className="pt-header scrollbar-hide">
+            {renderMenuContent()}
+          </SidebarContent>
+        </Sidebar>
+      )}
+    </div>
+  );
+
+  function renderMenuContent() {
+    return (
+      <>
         {/* ГЛАВНАЯ */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-100 text-sm font-semibold">
+        <div className="p-4">
+          <div className="text-gray-100 text-sm font-semibold mb-3">
             ГЛАВНАЯ
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+          </div>
+          <div>
+            <div className="space-y-1">
               {mainMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavCls(isActive(item.url))}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <div key={item.title}>
+                  <NavLink 
+                    to={item.url} 
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </NavLink>
+                </div>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+            </div>
+          </div>
+        </div>
 
         {/* ТОРГОВЫЕ СЕТИ */}
-        <Collapsible
-          open={isMobile || openGroups.includes("networks")}
-          onOpenChange={() => !isMobile && toggleGroup("networks")}
-        >
-          <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
-            <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
-                <Network className="w-4 h-4" />
-                {!collapsed && "ТОРГОВЫЕ СЕТИ"}
-                {!collapsed && (
-                  <ChevronRight 
-                    className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                      openGroups.includes("networks") ? "rotate-90" : ""
-                    }`} 
-                  />
-                )}
-              </SidebarGroupLabel>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="transition-all duration-200 ease-in-out">
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {networkMenuItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild>
-                          <NavLink 
-                            to={item.url} 
-                            className={getNavCls(isActive(item.url))}
-                          >
-                            <item.icon className="w-4 h-4" />
-                            {!collapsed && <span>{item.title}</span>}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
+        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+          <div 
+            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            onClick={() => !isMobile && toggleGroup("networks")}
+          >
+            <Network className="w-4 h-4" />
+            ТОРГОВЫЕ СЕТИ
+            {!isMobile && (
+              <ChevronRight 
+                className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                  isMobile || openGroups.includes("networks") ? "rotate-90" : ""
+                }`} 
+              />
+            )}
+          </div>
+          <div className="space-y-1">
+            {networkMenuItems.map((item) => (
+              <div key={item.title}>
+                <NavLink 
+                  to={item.url} 
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                  onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span>{item.title}</span>
+                </NavLink>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* ТОРГОВАЯ ТОЧКА */}
-        <Collapsible
-          open={isMobile || openGroups.includes("trading-point")}
-          onOpenChange={() => !isMobile && toggleGroup("trading-point")}
-        >
-          <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
-            <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                {!collapsed && "ТОРГОВАЯ ТОЧКА"}
-                {!collapsed && (
-                  <ChevronRight 
-                    className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                      openGroups.includes("trading-point") ? "rotate-90" : ""
-                    }`} 
-                  />
-                )}
-              </SidebarGroupLabel>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="transition-all duration-200 ease-in-out">
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {tradingPointMenuItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton 
-                          asChild 
-                          disabled={!isTradingPointSelected}
-                          className={!isTradingPointSelected ? "opacity-50 cursor-not-allowed" : ""}
-                        >
-                          <NavLink 
-                            to={isTradingPointSelected ? item.url : "#"} 
-                            className={isTradingPointSelected ? getNavCls(isActive(item.url)) : ""}
-                            onClick={(e) => !isTradingPointSelected && e.preventDefault()}
-                          >
-                            <item.icon className="w-4 h-4" />
-                            {!collapsed && <span>{item.title}</span>}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
+        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+          <div 
+            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            onClick={() => !isMobile && toggleGroup("trading-point")}
+          >
+            <MapPin className="w-4 h-4" />
+            ТОРГОВАЯ ТОЧКА
+            {!isMobile && (
+              <ChevronRight 
+                className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                  isMobile || openGroups.includes("trading-point") ? "rotate-90" : ""
+                }`} 
+              />
+            )}
+          </div>
+          <div className="space-y-1">
+            {tradingPointMenuItems.map((item) => (
+              <div key={item.title}>
+                <div 
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+                    !isTradingPointSelected ? "opacity-50 cursor-not-allowed" : 
+                    isTradingPointSelected ? getNavCls(isActive(item.url)) : ""
+                  }`}
+                >
+                  {isTradingPointSelected ? (
+                    <NavLink 
+                      to={item.url} 
+                      className="flex items-center gap-3 w-full"
+                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  ) : (
+                    <>
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* АДМИНИСТРИРОВАНИЕ */}
-        <Collapsible
-          open={isMobile || openGroups.includes("admin")}
-          onOpenChange={() => !isMobile && toggleGroup("admin")}
-        >
-          <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
-            <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                {!collapsed && "АДМИНИСТРИРОВАНИЕ"}
-                {!collapsed && (
-                  <ChevronRight 
-                    className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                      openGroups.includes("admin") ? "rotate-90" : ""
-                    }`} 
-                  />
-                )}
-              </SidebarGroupLabel>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="transition-all duration-200 ease-in-out">
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {adminMenuItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild>
-                          <NavLink 
-                            to={item.url} 
-                            className={getNavCls(isActive(item.url))}
-                          >
-                            <item.icon className="w-4 h-4" />
-                            {!collapsed && <span>{item.title}</span>}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
+        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+          <div 
+            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            onClick={() => !isMobile && toggleGroup("admin")}
+          >
+            <Shield className="w-4 h-4" />
+            АДМИНИСТРИРОВАНИЕ
+            {!isMobile && (
+              <ChevronRight 
+                className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                  isMobile || openGroups.includes("admin") ? "rotate-90" : ""
+                }`} 
+              />
+            )}
+          </div>
+          <div className="space-y-1">
+            {adminMenuItems.map((item) => (
+              <div key={item.title}>
+                <NavLink 
+                  to={item.url} 
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                  onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span>{item.title}</span>
+                </NavLink>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* НАСТРОЙКИ */}
-        <Collapsible
-          open={isMobile || openGroups.includes("settings")}
-          onOpenChange={() => !isMobile && toggleGroup("settings")}
-        >
-          <SidebarGroup className="border-t border-gray-700 mt-2 pt-2">
-            <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2">
-                <Cog className="w-4 h-4" />
-                {!collapsed && "НАСТРОЙКИ"}
-                {!collapsed && (
-                  <ChevronRight 
-                    className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                      openGroups.includes("settings") ? "rotate-90" : ""
-                    }`} 
-                  />
+        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+          <div 
+            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            onClick={() => !isMobile && toggleGroup("settings")}
+          >
+            <Cog className="w-4 h-4" />
+            НАСТРОЙКИ
+            {!isMobile && (
+              <ChevronRight 
+                className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                  isMobile || openGroups.includes("settings") ? "rotate-90" : ""
+                }`} 
+              />
+            )}
+          </div>
+          <div className="space-y-1">
+            {settingsMenuItems.map((item) => (
+              <div key={item.title}>
+                {item.submenu ? (
+                  <div>
+                    <div 
+                      className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 hover:bg-slate-700 text-gray-400 hover:text-white cursor-pointer"
+                      onClick={() => !isMobile && toggleGroup(item.title)}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                      {!isMobile && (
+                        <ChevronRight 
+                          className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                            isMobile || openGroups.includes(item.title) ? "rotate-90" : ""
+                          }`} 
+                        />
+                      )}
+                    </div>
+                    <div className="ml-6 mt-1 space-y-1">
+                      {item.submenu.map((subItem) => (
+                        <NavLink 
+                          key={subItem.title}
+                          to={subItem.url}
+                          className={`block px-3 py-2 rounded-md text-sm ${getNavCls(isActive(subItem.url))}`}
+                          onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                        >
+                          {subItem.title}
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <NavLink 
+                    to={item.url} 
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </NavLink>
                 )}
-              </SidebarGroupLabel>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="transition-all duration-200 ease-in-out">
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {settingsMenuItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        {item.submenu ? (
-                            <Collapsible
-                              open={isMobile || openGroups.includes(item.title)}
-                              onOpenChange={() => !isMobile && toggleGroup(item.title)}
-                            >
-                            <CollapsibleTrigger asChild>
-                              <SidebarMenuButton className="w-full">
-                                <item.icon className="w-4 h-4" />
-                                {!collapsed && (
-                                  <>
-                                    <span>{item.title}</span>
-                                    <ChevronRight 
-                                      className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                                        openGroups.includes(item.title) ? "rotate-90" : ""
-                                      }`} 
-                                    />
-                                  </>
-                                )}
-                              </SidebarMenuButton>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="transition-all duration-200 ease-in-out">
-                                <SidebarMenuSub>
-                                  {item.submenu.map((subItem) => (
-                                    <SidebarMenuSubItem key={subItem.title}>
-                                      <SidebarMenuSubButton asChild>
-                                        <NavLink 
-                                          to={subItem.url}
-                                          className={getNavCls(isActive(subItem.url))}
-                                        >
-                                          {subItem.title}
-                                        </NavLink>
-                                      </SidebarMenuSubButton>
-                                    </SidebarMenuSubItem>
-                                  ))}
-                                </SidebarMenuSub>
-                              </CollapsibleContent>
-                          </Collapsible>
-                        ) : (
-                          <SidebarMenuButton asChild>
-                            <NavLink 
-                              to={item.url} 
-                              className={getNavCls(isActive(item.url))}
-                            >
-                              <item.icon className="w-4 h-4" />
-                              {!collapsed && <span>{item.title}</span>}
-                            </NavLink>
-                          </SidebarMenuButton>
-                        )}
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-      </SidebarContent>
-    </Sidebar>
-  );
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  }
 }

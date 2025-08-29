@@ -53,7 +53,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetContent side="left" className="p-0 w-80">
-                <AppSidebar selectedTradingPoint={selectedTradingPoint} isMobile={true} />
+                <AppSidebar selectedTradingPoint={selectedTradingPoint} isMobile={true} setMobileMenuOpen={setMobileMenuOpen} />
               </SheetContent>
             </Sheet>
             
