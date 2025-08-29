@@ -51,6 +51,8 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
   
   // В мобильном режиме никогда не сворачиваем меню
   const collapsed = isMobile ? false : state === "collapsed";
+  
+  console.log("AppSidebar render:", { isMobile, collapsed, openGroups });
 
   const toggleGroup = (groupId: string) => {
     setOpenGroups(prev => 
@@ -149,7 +151,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
-            {(!collapsed || openGroups.includes("networks")) && (
+            {(isMobile || !collapsed || openGroups.includes("networks")) && (
               <CollapsibleContent className="transition-all duration-200 ease-in-out">
                 <SidebarGroupContent>
                   <SidebarMenu>
@@ -192,7 +194,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
-            {(!collapsed || openGroups.includes("trading-point")) && (
+            {(isMobile || !collapsed || openGroups.includes("trading-point")) && (
               <CollapsibleContent className="transition-all duration-200 ease-in-out">
                 <SidebarGroupContent>
                   <SidebarMenu>
@@ -240,7 +242,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
-            {(!collapsed || openGroups.includes("admin")) && (
+            {(isMobile || !collapsed || openGroups.includes("admin")) && (
               <CollapsibleContent className="transition-all duration-200 ease-in-out">
                 <SidebarGroupContent>
                   <SidebarMenu>
@@ -283,7 +285,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                 )}
               </SidebarGroupLabel>
             </CollapsibleTrigger>
-            {(!collapsed || openGroups.includes("settings")) && (
+            {(isMobile || !collapsed || openGroups.includes("settings")) && (
               <CollapsibleContent className="transition-all duration-200 ease-in-out">
                 <SidebarGroupContent>
                   <SidebarMenu>
@@ -309,7 +311,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false }: AppSideba
                                 )}
                               </SidebarMenuButton>
                             </CollapsibleTrigger>
-                            {!collapsed && (
+                            {(isMobile || !collapsed) && (
                               <CollapsibleContent className="transition-all duration-200 ease-in-out">
                                 <SidebarMenuSub>
                                   {item.submenu.map((subItem) => (
