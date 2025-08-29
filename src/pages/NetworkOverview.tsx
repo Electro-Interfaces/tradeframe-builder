@@ -249,42 +249,42 @@ export default function NetworkOverview() {
 
         {/* Main Analysis Tabs */}
         <Tabs defaultValue="structure" className="space-y-4">
-          <TabsList className={`${isMobile ? 'grid w-full grid-cols-2 h-auto' : ''}`}>
-            <TabsTrigger 
-              value="structure" 
-              className={`${isMobile ? 'text-xs py-2 px-1 data-[state=active]:bg-blue-600' : ''}`}
-            >
-              {isMobile ? 'Структура' : 'Структура продаж'}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="trends"
-              className={`${isMobile ? 'text-xs py-2 px-1 data-[state=active]:bg-blue-600' : ''}`}
-            >
-              {isMobile ? 'Тренды' : 'Динамика (Тренды)'}
-            </TabsTrigger>
-            {!isMobile && (
-              <>
-                <TabsTrigger value="stations">Сравнение торговых точек</TabsTrigger>
-                <TabsTrigger value="transactions">Детализация транзакций</TabsTrigger>
-              </>
-            )}
-          </TabsList>
-          
-          {isMobile && (
-            <div className="grid grid-cols-1 gap-2">
+          {isMobile ? (
+            // Mobile: Stack all tabs vertically
+            <TabsList className="grid w-full grid-cols-2 h-auto gap-2">
+              <TabsTrigger 
+                value="structure" 
+                className="text-xs py-2 px-1 data-[state=active]:bg-blue-600"
+              >
+                Структура
+              </TabsTrigger>
+              <TabsTrigger 
+                value="trends"
+                className="text-xs py-2 px-1 data-[state=active]:bg-blue-600"
+              >
+                Тренды
+              </TabsTrigger>
               <TabsTrigger 
                 value="stations"
-                className="text-xs py-2 px-1 data-[state=active]:bg-blue-600 w-full"
+                className="text-xs py-2 px-1 data-[state=active]:bg-blue-600"
               >
                 Сравнение точек
               </TabsTrigger>
               <TabsTrigger 
                 value="transactions"
-                className="text-xs py-2 px-1 data-[state=active]:bg-blue-600 w-full"
+                className="text-xs py-2 px-1 data-[state=active]:bg-blue-600"
               >
                 Транзакции
               </TabsTrigger>
-            </div>
+            </TabsList>
+          ) : (
+            // Desktop: All tabs in one row
+            <TabsList>
+              <TabsTrigger value="structure">Структура продаж</TabsTrigger>
+              <TabsTrigger value="trends">Динамика (Тренды)</TabsTrigger>
+              <TabsTrigger value="stations">Сравнение торговых точек</TabsTrigger>
+              <TabsTrigger value="transactions">Детализация транзакций</TabsTrigger>
+            </TabsList>
           )}
           
           <TabsContent value="structure" className="space-y-4">
