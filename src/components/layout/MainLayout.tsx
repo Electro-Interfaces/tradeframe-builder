@@ -30,32 +30,32 @@ export function MainLayout({ children }: MainLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header
-        selectedNetwork={selectedNetwork}
-        selectedTradingPoint={selectedTradingPoint}
-        onNetworkChange={handleNetworkChange}
-        onTradingPointChange={handleTradingPointChange}
-        onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
-        isMobile={isMobile}
-      />
-      
-      {isMobile ? (
-        // Mobile Layout with Sheet
-        <>
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetContent side="left" className="p-0 w-80">
-              <AppSidebar selectedTradingPoint={selectedTradingPoint} />
-            </SheetContent>
-          </Sheet>
-          
-          <main className="pt-header px-4 pb-6">
-            {children}
-          </main>
-        </>
-      ) : (
-        // Desktop Layout with SidebarProvider
-        <SidebarProvider>
+    <SidebarProvider>
+      <div className="min-h-screen bg-background text-foreground">
+        <Header
+          selectedNetwork={selectedNetwork}
+          selectedTradingPoint={selectedTradingPoint}
+          onNetworkChange={handleNetworkChange}
+          onTradingPointChange={handleTradingPointChange}
+          onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+          isMobile={isMobile}
+        />
+        
+        {isMobile ? (
+          // Mobile Layout with Sheet
+          <>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetContent side="left" className="p-0 w-80">
+                <AppSidebar selectedTradingPoint={selectedTradingPoint} />
+              </SheetContent>
+            </Sheet>
+            
+            <main className="pt-header px-4 pb-6">
+              {children}
+            </main>
+          </>
+        ) : (
+          // Desktop Layout
           <div className="flex w-full pt-header">
             <AppSidebar selectedTradingPoint={selectedTradingPoint} />
             
@@ -63,8 +63,8 @@ export function MainLayout({ children }: MainLayoutProps) {
               {children}
             </main>
           </div>
-        </SidebarProvider>
-      )}
-    </div>
+        )}
+      </div>
+    </SidebarProvider>
   );
 }
