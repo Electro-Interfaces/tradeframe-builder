@@ -15,6 +15,7 @@ import Commands from "./pages/Commands";
 import Connections from "./pages/Connections";
 import Workflows from "./pages/Workflows";
 import NetworkOverview from "./pages/NetworkOverview";
+import NotificationRules from "./pages/NotificationRules";
 import Tanks from "./pages/Tanks";
 import Prices from "./pages/Prices";
 import ShiftReports from "./pages/ShiftReports";
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/settings/connections" element={<Connections />} />
           <Route path="/settings/workflows" element={<Workflows />} />
           <Route path="/network/overview" element={<NetworkOverview />} />
+          <Route path="/network/notifications" element={<NotificationRules />} />
           <Route path="/point/prices" element={<Prices />} />
           <Route path="/point/tanks" element={<Tanks />} />
           <Route path="/point/shift-reports" element={<ShiftReports />} />

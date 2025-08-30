@@ -62,7 +62,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
   const networkMenuItems = [
     { title: "Обзор сети", url: "/network/overview", icon: Network },
     { title: "Отчеты по сети", url: "/network/reports", icon: BarChart3 },
-    { title: "Оповещения сети", url: "/network/alerts", icon: Bell },
+    { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
   ];
 
   const tradingPointMenuItems = [
