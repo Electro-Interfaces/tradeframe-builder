@@ -90,6 +90,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
       ]
     },
     { title: "Команды", url: "/settings/commands", icon: Wrench },
+    { title: "Регламенты", url: "/settings/workflows", icon: Clock },
   ];
 
   function renderMenuContent() {

@@ -13,6 +13,7 @@ import ComponentTypes from "./pages/ComponentTypes";
 import Equipment from "./pages/Equipment";
 import Commands from "./pages/Commands";
 import Connections from "./pages/Connections";
+import Workflows from "./pages/Workflows";
 import NetworkOverview from "./pages/NetworkOverview";
 import Tanks from "./pages/Tanks";
 import Prices from "./pages/Prices";
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/settings/dictionaries/component-types" element={<ComponentTypes />} />
           <Route path="/settings/commands" element={<Commands />} />
           <Route path="/settings/connections" element={<Connections />} />
+          <Route path="/settings/workflows" element={<Workflows />} />
           <Route path="/network/overview" element={<NetworkOverview />} />
           <Route path="/point/prices" element={<Prices />} />
           <Route path="/point/tanks" element={<Tanks />} />
