@@ -26,7 +26,14 @@ import {
   MapPin,
   Activity,
   Database,
-  ChevronRight
+  ChevronRight,
+  DollarSign,
+  Users,
+  Settings,
+  Lock,
+  Globe,
+  FileText,
+  Wrench
 } from "lucide-react";
 
 // Mock audit events data
@@ -545,27 +552,27 @@ export default function AuditLog() {
 
   const getActionTypeIcon = (actionType: string) => {
     switch (actionType) {
-      case "price_change": return "💰";
-      case "user_management": return "👥";
-      case "equipment_management": return "⚙️";
-      case "authentication": return "🔐";
-      case "network_settings": return "🌐";
-      case "reports": return "📊";
-      case "system_maintenance": return "🛠️";
-      default: return "📝";
+      case "price_change": return DollarSign;
+      case "user_management": return Users;
+      case "equipment_management": return Settings;
+      case "authentication": return Lock;
+      case "network_settings": return Globe;
+      case "reports": return FileText;
+      case "system_maintenance": return Wrench;
+      default: return Activity;
     }
   };
 
   const getActionTypeColor = (actionType: string) => {
     switch (actionType) {
-      case "price_change": return "bg-amber-100 text-amber-800";
-      case "user_management": return "bg-blue-100 text-blue-800";
-      case "equipment_management": return "bg-purple-100 text-purple-800";
-      case "authentication": return "bg-green-100 text-green-800";
-      case "network_settings": return "bg-cyan-100 text-cyan-800";
-      case "reports": return "bg-indigo-100 text-indigo-800";
-      case "system_maintenance": return "bg-orange-100 text-orange-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "price_change": return "text-emerald-600 bg-emerald-50 border-emerald-200";
+      case "user_management": return "text-blue-600 bg-blue-50 border-blue-200";
+      case "equipment_management": return "text-purple-600 bg-purple-50 border-purple-200";
+      case "authentication": return "text-green-600 bg-green-50 border-green-200";
+      case "network_settings": return "text-cyan-600 bg-cyan-50 border-cyan-200";
+      case "reports": return "text-indigo-600 bg-indigo-50 border-indigo-200";
+      case "system_maintenance": return "text-orange-600 bg-orange-50 border-orange-200";
+      default: return "text-gray-600 bg-gray-50 border-gray-200";
     }
   };
 
@@ -699,14 +706,18 @@ export default function AuditLog() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-foreground flex items-center gap-3`}>
-            <Shield className="h-8 w-8 text-primary" />
-            Журнал аудита
-          </h1>
-          <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
-            Полный лог всех действий пользователей в системе
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-foreground flex items-center gap-3`}>
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
+              Журнал аудита
+            </h1>
+            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''} mt-2`}>
+              Полный лог всех действий пользователей в системе
+            </p>
+          </div>
         </div>
 
         {/* Filters */}
@@ -764,16 +775,19 @@ export default function AuditLog() {
               /* Mobile Cards */
               <div className="space-y-4">
                 {filteredEvents.map((event) => (
-                  <Card key={event.id} className="border-l-4 border-l-primary">
+                  <Card key={event.id} className="border border-border bg-card hover:bg-accent/5 transition-colors">
                     <CardContent className="pt-4">
                       <div className="space-y-3">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="font-medium text-base flex items-center gap-2">
-                              <span className="text-lg">{getActionTypeIcon(event.actionType)}</span>
+                            <div className="font-medium text-base flex items-center gap-3">
+                              {(() => {
+                                const IconComponent = getActionTypeIcon(event.actionType);
+                                return <IconComponent className="h-5 w-5 text-muted-foreground" />;
+                              })()}
                               {event.action}
                             </div>
-                            <Badge className={`mt-1 text-xs ${getActionTypeColor(event.actionType)}`}>
+                            <Badge className={`mt-2 text-xs border ${getActionTypeColor(event.actionType)}`}>
                               {actionTypes.find(t => t.value === event.actionType)?.label}
                             </Badge>
                           </div>
@@ -842,11 +856,14 @@ export default function AuditLog() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{getActionTypeIcon(event.actionType)}</span>
+                          <div className="flex items-center gap-3">
+                            {(() => {
+                              const IconComponent = getActionTypeIcon(event.actionType);
+                              return <IconComponent className="h-4 w-4 text-muted-foreground" />;
+                            })()}
                             <div>
                               <div className="font-medium">{event.action}</div>
-                              <Badge className={`text-xs ${getActionTypeColor(event.actionType)}`}>
+                              <Badge className={`text-xs border ${getActionTypeColor(event.actionType)}`}>
                                 {actionTypes.find(t => t.value === event.actionType)?.label}
                               </Badge>
                             </div>
@@ -888,8 +905,11 @@ export default function AuditLog() {
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
           <DialogContent className={`${isMobile ? "w-[95vw] h-[90vh]" : "max-w-4xl max-h-[80vh]"} overflow-hidden`}>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <span className="text-lg">{selectedEvent ? getActionTypeIcon(selectedEvent.actionType) : ''}</span>
+              <DialogTitle className="flex items-center gap-3">
+                {(() => {
+                  const IconComponent = selectedEvent ? getActionTypeIcon(selectedEvent.actionType) : Activity;
+                  return <IconComponent className="h-5 w-5 text-muted-foreground" />;
+                })()}
                 Детали события
               </DialogTitle>
             </DialogHeader>
