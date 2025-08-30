@@ -28,7 +28,7 @@ export default function NetworksPage() {
   const selectedNet = networks.find(n => n.id === selectedId);
 
   return (
-    <div className="w-full px-4 md:px-6 py-4 text-base">
+    <div className="w-full h-full p-4 text-base">
       <h1 className="text-3xl font-semibold mb-1">Сети и ТТ</h1>
       <p className="text-sm text-slate-400 mb-4">Управление торговыми сетями и точками</p>
 
