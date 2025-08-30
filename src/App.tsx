@@ -32,7 +32,7 @@ const App = () => (
           <Route path="/admin/users-and-roles" element={<AdminUsersAndRoles />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/networks" element={<AdminNetworks />} />
-          <Route path="/admin/audit-log" element={<AuditLog />} />
+          <Route path="/admin/audit" element={<AuditLog />} />
           <Route path="/settings/dictionaries/equipment-types" element={<EquipmentTypes />} />
           <Route path="/settings/dictionaries/component-types" element={<ComponentTypes />} />
           <Route path="/settings/commands" element={<Commands />} />
