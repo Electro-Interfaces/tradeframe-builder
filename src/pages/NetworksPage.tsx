@@ -6,16 +6,26 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export default function NetworksPage() {
+  const loc = useLocation();
   const nav = useNavigate();
-  const q = new URLSearchParams(useLocation().search);
-  const [selectedId, setSelectedId] = useState<string | null>(q.get("id"));
+  const qs = new URLSearchParams(loc.search);
+  const [selectedId, setSelectedId] = useState<string | null>(qs.get("id"));
 
-  const onSelect = (id: string) => {
+  function selectNet(id: string) {
     setSelectedId(id);
-    const sp = new URLSearchParams(location.search);
+    const sp = new URLSearchParams(loc.search);
     sp.set("id", id);
     nav({ search: sp.toString() }, { replace: true });
-  };
+  }
+
+  // Временные данные для заглушки
+  const networks = [
+    { id: "0", name: "Автомойка Люкс" },
+    { id: "1", name: "ГазПром Газ" },
+    { id: "2", name: "Ромашка-Нефть" },
+  ];
+  
+  const selectedNet = networks.find(n => n.id === selectedId);
 
   return (
     <div className="w-full px-4 md:px-6 py-4 text-base">
@@ -48,17 +58,16 @@ export default function NetworksPage() {
                 </tr>
               </thead>
               <tbody>
-                {/* TEMP-заглушки; позже заменим привязкой к данным */}
-                {["Автомойка Люкс", "ГазПром Газ", "Ромашка-Нефть"].map((n, i) => (
+                {networks.map((network, i) => (
                   <tr
-                    key={i}
-                    role="row"
-                    onClick={() => onSelect(String(i))}
+                    key={network.id}
+                    onClick={() => selectNet(network.id)}
+                    aria-selected={selectedId === network.id}
                     className={`h-11 border-b border-slate-800 cursor-pointer hover:bg-slate-800 ${
-                      selectedId === String(i) ? "bg-slate-800/80" : ""
+                      selectedId === network.id ? "bg-slate-800/80" : ""
                     }`}
                   >
-                    <td className="pr-2">{n}</td>
+                    <td className="pr-2">{network.name}</td>
                     <td className="pr-2 text-slate-400">Описание…</td>
                     <td className="pr-2">
                       <span className="badge info">АЗС</span>
@@ -73,11 +82,17 @@ export default function NetworksPage() {
 
           {/* Мобайл: карточки */}
           <div className="md:hidden space-y-2">
-            {["Автомойка Люкс", "ГазПром Газ", "Ромашка-Нефть"].map((n, i) => (
-              <Card key={i} className="p-3" onClick={() => onSelect(String(i))}>
+            {networks.map((network, i) => (
+              <Card
+                key={network.id}
+                className={`p-3 cursor-pointer ${
+                  selectedId === network.id ? "bg-slate-800/80" : ""
+                }`}
+                onClick={() => selectNet(network.id)}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-medium truncate">{n}</div>
+                    <div className="font-medium truncate">{network.name}</div>
                     <div className="text-xs text-slate-400 truncate">Описание…</div>
                     <div className="mt-1 flex items-center gap-2">
                       <span className="badge info">АЗС</span>
@@ -98,7 +113,9 @@ export default function NetworksPage() {
           ) : (
             <>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl font-semibold">Торговые точки</h2>
+                <h2 className="text-xl font-semibold">
+                  Торговые точки — {selectedNet?.name ?? "…"}
+                </h2>
                 <Button className="h-10 rounded-lg">+ Создать точку</Button>
               </div>
               <div className="overflow-auto scroll-thin">
