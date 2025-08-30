@@ -45,13 +45,13 @@ const auditEvents = [
     objectType: "trading_point",
     ipAddress: "192.168.1.100",
     details: {
-      before: { price: 51.50, currency: "RUB" },
-      after: { price: 52.50, currency: "RUB" },
+      before: { price: 51.50, currency: "RUB", fuelType: "АИ-95" },
+      after: { price: 52.50, currency: "RUB", fuelType: "АИ-95" },
       reason: "Корректировка по рынку"
     },
     metadata: {
       sessionId: "sess_123456",
-      userAgent: "Mozilla/5.0...",
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       location: "Москва"
     }
   },
@@ -74,12 +74,13 @@ const auditEvents = [
         name: "Алексей Сидоров",
         email: "alexey@company.com",
         role: "operator",
-        status: "active"
+        status: "active",
+        assignedPoints: ["АЗС-3 на Пушкина"]
       }
     },
     metadata: {
       sessionId: "sess_789012",
-      userAgent: "Mozilla/5.0...",
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
       location: "Москва"
     }
   },
@@ -101,14 +102,15 @@ const auditEvents = [
         name: "ТРК-1",
         type: "fuel_dispenser",
         status: "offline",
-        location: "Стояка №1"
+        location: "Стояка №1",
+        serialNumber: "FD2024001"
       },
       after: null,
       reason: "Списание по износу"
     },
     metadata: {
       sessionId: "sess_345678",
-      userAgent: "Mozilla/5.0...",
+      userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
       location: "Москва"
     }
   },
@@ -130,12 +132,13 @@ const auditEvents = [
       after: {
         loginMethod: "email_password",
         success: true,
-        twoFactorUsed: false
+        twoFactorUsed: false,
+        deviceInfo: "Chrome 120 on Windows"
       }
     },
     metadata: {
       sessionId: "sess_123456",
-      userAgent: "Mozilla/5.0...",
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       location: "Москва"
     }
   },
@@ -155,18 +158,324 @@ const auditEvents = [
     details: {
       before: {
         autoUpdate: false,
-        reportingInterval: 60
+        reportingInterval: 60,
+        alertsEnabled: true
       },
       after: {
         autoUpdate: true,
-        reportingInterval: 30
+        reportingInterval: 30,
+        alertsEnabled: true
       },
       reason: "Оптимизация мониторинга"
     },
     metadata: {
       sessionId: "sess_901234",
-      userAgent: "Mozilla/5.0...",
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
       location: "Москва"
+    }
+  },
+  {
+    id: 6,
+    timestamp: new Date("2024-01-15T09:45:00"),
+    user: {
+      id: 5,
+      name: "Дмитрий Волков",
+      email: "dmitry@company.com"
+    },
+    action: "Добавил новую торговую точку",
+    actionType: "network_settings",
+    object: "АЗС-12 на Гагарина",
+    objectType: "trading_point",
+    ipAddress: "192.168.1.104",
+    details: {
+      before: null,
+      after: {
+        name: "АЗС-12 на Гагарина",
+        address: "ул. Гагарина, 45",
+        network: "Сеть Восток",
+        status: "active",
+        tankCount: 4
+      }
+    },
+    metadata: {
+      sessionId: "sess_567890",
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      location: "Санкт-Петербург"
+    }
+  },
+  {
+    id: 7,
+    timestamp: new Date("2024-01-15T08:30:00"),
+    user: {
+      id: 2,
+      name: "Мария Петрова",
+      email: "maria@company.com"
+    },
+    action: "Заблокировала пользователя",
+    actionType: "user_management",
+    object: "Сергей Попов",
+    objectType: "user",
+    ipAddress: "192.168.1.101",
+    details: {
+      before: {
+        status: "active",
+        lastLogin: "2024-01-14T18:20:00",
+        failedLoginAttempts: 3
+      },
+      after: {
+        status: "blocked",
+        blockReason: "Подозрительная активность",
+        blockedAt: "2024-01-15T08:30:00"
+      },
+      reason: "Превышено количество неудачных попыток входа"
+    },
+    metadata: {
+      sessionId: "sess_789012",
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      location: "Москва"
+    }
+  },
+  {
+    id: 8,
+    timestamp: new Date("2024-01-15T07:15:00"),
+    user: {
+      id: 6,
+      name: "Елена Смирнова",
+      email: "elena@company.com"
+    },
+    action: "Обновила уровни топлива в резервуаре",
+    actionType: "equipment_management",
+    object: "Резервуар №3 АИ-92",
+    objectType: "tank",
+    ipAddress: "192.168.1.105",
+    details: {
+      before: {
+        fuelType: "АИ-92",
+        volume: 15000,
+        currentLevel: 8500,
+        lastUpdated: "2024-01-14T23:45:00"
+      },
+      after: {
+        fuelType: "АИ-92",
+        volume: 15000,
+        currentLevel: 12500,
+        lastUpdated: "2024-01-15T07:15:00"
+      },
+      reason: "Поступление топлива от поставщика"
+    },
+    metadata: {
+      sessionId: "sess_234567",
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+      location: "АЗС-5 на Ленина"
+    }
+  },
+  {
+    id: 9,
+    timestamp: new Date("2024-01-14T23:45:00"),
+    user: {
+      id: 7,
+      name: "Александр Федоров",
+      email: "alex@company.com"
+    },
+    action: "Изменил цену на ДТ",
+    actionType: "price_change",
+    object: "АЗС-3 на Пушкина",
+    objectType: "trading_point",
+    ipAddress: "192.168.1.106",
+    details: {
+      before: { price: 58.90, currency: "RUB", fuelType: "ДТ" },
+      after: { price: 59.50, currency: "RUB", fuelType: "ДТ" },
+      reason: "Рост цен поставщика"
+    },
+    metadata: {
+      sessionId: "sess_345678",
+      userAgent: "Mozilla/5.0 (Android 14; Mobile; rv:120.0) Gecko/120.0 Firefox/120.0",
+      location: "АЗС-3 на Пушкина"
+    }
+  },
+  {
+    id: 10,
+    timestamp: new Date("2024-01-14T22:30:00"),
+    user: {
+      id: 3,
+      name: "Петр Смирнов",
+      email: "petr@company.com"
+    },
+    action: "Выполнил диагностику ТРК-4",
+    actionType: "equipment_management",
+    object: "ТРК-4 (ID: 67890)",
+    objectType: "equipment",
+    ipAddress: "192.168.1.102",
+    details: {
+      before: {
+        status: "warning",
+        lastDiagnostic: "2024-01-10T15:00:00",
+        errorCodes: ["E001", "W003"]
+      },
+      after: {
+        status: "normal",
+        lastDiagnostic: "2024-01-14T22:30:00",
+        errorCodes: []
+      },
+      reason: "Плановое техническое обслуживание"
+    },
+    metadata: {
+      sessionId: "sess_345678",
+      userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+      location: "АЗС-7 на Гагарина"
+    }
+  },
+  {
+    id: 11,
+    timestamp: new Date("2024-01-14T20:15:00"),
+    user: {
+      id: 8,
+      name: "Ольга Николаева",
+      email: "olga@company.com"
+    },
+    action: "Сгенерировала сменный отчет",
+    actionType: "reports",
+    object: "Смена 14.01.2024 (20:00-08:00)",
+    objectType: "shift_report",
+    ipAddress: "192.168.1.107",
+    details: {
+      before: null,
+      after: {
+        shiftDate: "2024-01-14",
+        startTime: "20:00",
+        endTime: "08:00",
+        totalSales: 125000,
+        fuelSold: 2500,
+        transactions: 156
+      }
+    },
+    metadata: {
+      sessionId: "sess_456789",
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      location: "АЗС-1 на Московской"
+    }
+  },
+  {
+    id: 12,
+    timestamp: new Date("2024-01-14T18:20:00"),
+    user: {
+      id: 9,
+      name: "Сергей Попов",
+      email: "sergey@company.com"
+    },
+    action: "Неудачная попытка входа в систему",
+    actionType: "authentication",
+    object: "Система TradeControl",
+    objectType: "system",
+    ipAddress: "85.143.45.123",
+    details: {
+      before: null,
+      after: {
+        loginMethod: "email_password",
+        success: false,
+        failureReason: "Неверный пароль",
+        attemptNumber: 3
+      }
+    },
+    metadata: {
+      sessionId: null,
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      location: "Неизвестно"
+    }
+  },
+  {
+    id: 13,
+    timestamp: new Date("2024-01-14T16:45:00"),
+    user: {
+      id: 4,
+      name: "Анна Козлова",
+      email: "anna@company.com"
+    },
+    action: "Создала резервную копию базы данных",
+    actionType: "system_maintenance",
+    object: "База данных TradeControl",
+    objectType: "database",
+    ipAddress: "192.168.1.103",
+    details: {
+      before: {
+        lastBackup: "2024-01-13T16:45:00",
+        backupSize: "1.2GB"
+      },
+      after: {
+        lastBackup: "2024-01-14T16:45:00",
+        backupSize: "1.3GB",
+        backupLocation: "/backups/2024-01-14_1645.sql"
+      }
+    },
+    metadata: {
+      sessionId: "sess_901234",
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      location: "Москва"
+    }
+  },
+  {
+    id: 14,
+    timestamp: new Date("2024-01-14T14:30:00"),
+    user: {
+      id: 10,
+      name: "Михаил Лебедев",
+      email: "mikhail@company.com"
+    },
+    action: "Назначил роль менеджера точки",
+    actionType: "user_management",
+    object: "Татьяна Белова",
+    objectType: "user",
+    ipAddress: "192.168.1.108",
+    details: {
+      before: {
+        roles: ["operator"],
+        permissions: ["transactions.create", "shifts.manage"]
+      },
+      after: {
+        roles: ["operator", "point_manager"],
+        permissions: ["transactions.create", "shifts.manage", "point.manage", "prices.edit", "reports.view"],
+        assignedPoint: "АЗС-8 на Невском"
+      },
+      reason: "Повышение по службе"
+    },
+    metadata: {
+      sessionId: "sess_567890",
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      location: "Санкт-Петербург"
+    }
+  },
+  {
+    id: 15,
+    timestamp: new Date("2024-01-14T12:00:00"),
+    user: {
+      id: 6,
+      name: "Елена Смирнова",
+      email: "elena@company.com"
+    },
+    action: "Обновила цены на все виды топлива",
+    actionType: "price_change",
+    object: "АЗС-5 на Ленина",
+    objectType: "trading_point",
+    ipAddress: "192.168.1.105",
+    details: {
+      before: {
+        "АИ-92": 50.50,
+        "АИ-95": 51.50,
+        "АИ-98": 55.50,
+        "ДТ": 58.90
+      },
+      after: {
+        "АИ-92": 51.00,
+        "АИ-95": 52.50,
+        "АИ-98": 56.00,
+        "ДТ": 59.50
+      },
+      reason: "Еженедельная корректировка цен"
+    },
+    metadata: {
+      sessionId: "sess_234567",
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+      location: "АЗС-5 на Ленина"
     }
   }
 ];
@@ -176,7 +485,13 @@ const allUsers = [
   { id: 1, name: "Иван Иванов", email: "ivan@company.com" },
   { id: 2, name: "Мария Петрова", email: "maria@company.com" },
   { id: 3, name: "Петр Смирнов", email: "petr@company.com" },
-  { id: 4, name: "Анна Козлова", email: "anna@company.com" }
+  { id: 4, name: "Анна Козлова", email: "anna@company.com" },
+  { id: 5, name: "Дмитрий Волков", email: "dmitry@company.com" },
+  { id: 6, name: "Елена Смирнова", email: "elena@company.com" },
+  { id: 7, name: "Александр Федоров", email: "alex@company.com" },
+  { id: 8, name: "Ольга Николаева", email: "olga@company.com" },
+  { id: 9, name: "Сергей Попов", email: "sergey@company.com" },
+  { id: 10, name: "Михаил Лебедев", email: "mikhail@company.com" }
 ];
 
 // Action types for filter
@@ -186,7 +501,9 @@ const actionTypes = [
   { value: "user_management", label: "Управление пользователями" },
   { value: "equipment_management", label: "Работа с оборудованием" },
   { value: "authentication", label: "Аутентификация" },
-  { value: "network_settings", label: "Настройки сети" }
+  { value: "network_settings", label: "Настройки сети" },
+  { value: "reports", label: "Отчеты" },
+  { value: "system_maintenance", label: "Обслуживание системы" }
 ];
 
 type DateRange = {
@@ -233,6 +550,8 @@ export default function AuditLog() {
       case "equipment_management": return "⚙️";
       case "authentication": return "🔐";
       case "network_settings": return "🌐";
+      case "reports": return "📊";
+      case "system_maintenance": return "🛠️";
       default: return "📝";
     }
   };
@@ -244,6 +563,8 @@ export default function AuditLog() {
       case "equipment_management": return "bg-purple-100 text-purple-800";
       case "authentication": return "bg-green-100 text-green-800";
       case "network_settings": return "bg-cyan-100 text-cyan-800";
+      case "reports": return "bg-indigo-100 text-indigo-800";
+      case "system_maintenance": return "bg-orange-100 text-orange-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
