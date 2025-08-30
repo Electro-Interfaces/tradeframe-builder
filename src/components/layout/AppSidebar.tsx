@@ -22,7 +22,8 @@ import {
   ChevronRight,
   MapPin,
   Shield,
-  Cog
+  Cog,
+  MessageSquare
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -63,6 +64,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     { title: "Обзор сети", url: "/network/overview", icon: Network },
     { title: "Отчеты по сети", url: "/network/reports", icon: BarChart3 },
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
+    { title: "Сообщения", url: "/network/messages", icon: MessageSquare },
   ];
 
   const tradingPointMenuItems = [
