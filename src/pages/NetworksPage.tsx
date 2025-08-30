@@ -42,7 +42,7 @@ export default function NetworksPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(22rem,28rem)_1fr] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-4">
         {/* ЛЕВАЯ КОЛОНКА — список сетей */}
         <div className="panel overflow-auto scroll-thin">
           {/* Десктоп: таблица */}
