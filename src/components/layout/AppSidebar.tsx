@@ -98,8 +98,8 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     return (
       <>
         {/* ГЛАВНАЯ */}
-        <div className="p-4">
-          <div className="text-gray-100 text-sm font-semibold mb-3">
+        <div className="px-4 py-3">
+          <div className="text-slate-200 text-xs font-semibold tracking-wider mb-3 uppercase">
             ГЛАВНАЯ
           </div>
           <div className="space-y-1">
@@ -107,11 +107,11 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
               <div key={item.title}>
                 <NavLink 
                   to={item.url} 
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
                   onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                 >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.title}</span>
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">{item.title}</span>
                 </NavLink>
               </div>
             ))}
@@ -119,12 +119,12 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
         </div>
 
         {/* ТОРГОВЫЕ СЕТИ */}
-        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+        <div className="border-t border-slate-600 px-4 py-3">
           <div 
-            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
             onClick={() => toggleGroup("networks")}
           >
-            <Network className="w-4 h-4" />
+            <Network className="w-4 h-4 flex-shrink-0" />
             ТОРГОВЫЕ СЕТИ
             <ChevronRight 
               className={`w-4 h-4 ml-auto transition-transform duration-200 ${
@@ -138,11 +138,11 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
                 <div key={item.title}>
                   <NavLink 
                     to={item.url} 
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
                     onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                   >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.title}</span>
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{item.title}</span>
                   </NavLink>
                 </div>
               ))}
@@ -151,12 +151,12 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
         </div>
 
         {/* ТОРГОВАЯ ТОЧКА */}
-        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+        <div className="border-t border-slate-600 px-4 py-3">
           <div 
-            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
             onClick={() => toggleGroup("trading-point")}
           >
-            <MapPin className="w-4 h-4" />
+            <MapPin className="w-4 h-4 flex-shrink-0" />
             ТОРГОВАЯ ТОЧКА
             <ChevronRight 
               className={`w-4 h-4 ml-auto transition-transform duration-200 ${
@@ -169,7 +169,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
               {tradingPointMenuItems.map((item) => (
                 <div key={item.title}>
                   <div 
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                       !isTradingPointSelected ? "opacity-50 cursor-not-allowed" : 
                       isTradingPointSelected ? getNavCls(isActive(item.url)) : ""
                     }`}
@@ -180,13 +180,13 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
                         className="flex items-center gap-3 w-full"
                         onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                       >
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.title}</span>
+                        <item.icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{item.title}</span>
                       </NavLink>
                     ) : (
                       <>
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.title}</span>
+                        <item.icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{item.title}</span>
                       </>
                     )}
                   </div>
@@ -197,12 +197,12 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
         </div>
 
         {/* АДМИНИСТРИРОВАНИЕ */}
-        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+        <div className="border-t border-slate-600 px-4 py-3">
           <div 
-            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
             onClick={() => toggleGroup("admin")}
           >
-            <Shield className="w-4 h-4" />
+            <Shield className="w-4 h-4 flex-shrink-0" />
             АДМИНИСТРИРОВАНИЕ
             <ChevronRight 
               className={`w-4 h-4 ml-auto transition-transform duration-200 ${
@@ -216,11 +216,11 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
                 <div key={item.title}>
                   <NavLink 
                     to={item.url} 
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
                     onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                   >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.title}</span>
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{item.title}</span>
                   </NavLink>
                 </div>
               ))}
@@ -229,12 +229,12 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
         </div>
 
         {/* НАСТРОЙКИ */}
-        <div className="border-t border-gray-700 mt-2 pt-2 p-4">
+        <div className="border-t border-slate-600 px-4 py-3">
           <div 
-            className="text-gray-100 text-sm font-semibold cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3"
+            className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
             onClick={() => toggleGroup("settings")}
           >
-            <Cog className="w-4 h-4" />
+            <Cog className="w-4 h-4 flex-shrink-0" />
             НАСТРОЙКИ
             <ChevronRight 
               className={`w-4 h-4 ml-auto transition-transform duration-200 ${
@@ -249,11 +249,11 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
                   {item.submenu ? (
                     <div>
                       <div 
-                        className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 hover:bg-slate-700 text-gray-400 hover:text-white cursor-pointer"
+                        className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
                         onClick={() => toggleGroup(item.title)}
                       >
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.title}</span>
+                        <item.icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{item.title}</span>
                         <ChevronRight 
                           className={`w-4 h-4 ml-auto transition-transform duration-200 ${
                             openGroups.includes(item.title) ? "rotate-90" : ""
@@ -266,10 +266,10 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
                             <NavLink 
                               key={subItem.title}
                               to={subItem.url}
-                              className={`block px-3 py-2 rounded-md text-sm ${getNavCls(isActive(subItem.url))}`}
+                              className={`block px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(subItem.url))}`}
                               onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                             >
-                              {subItem.title}
+                              <span className="truncate">{subItem.title}</span>
                             </NavLink>
                           ))}
                         </div>
@@ -278,11 +278,11 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
                   ) : (
                     <NavLink 
                       to={item.url} 
-                      className={`flex items-center gap-3 px-3 py-2 rounded-md ${getNavCls(isActive(item.url))}`}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
                       onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                     >
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{item.title}</span>
                     </NavLink>
                   )}
                 </div>
@@ -298,13 +298,13 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     <div className={`${isMobile ? 'h-full bg-sidebar' : ''}`}>
       {isMobile ? (
         // Mobile version without Sidebar wrapper
-        <div className="scrollbar-hide h-full overflow-y-auto bg-slate-900 text-slate-100">
+        <div className="scrollbar-hide h-full overflow-y-auto bg-slate-800 text-slate-100">
           {renderMenuContent()}
         </div>
       ) : (
         // Desktop version with Sidebar wrapper
-        <Sidebar className="border-r border-sidebar-border shadow-md">
-          <SidebarContent className="pt-header scrollbar-hide">
+        <Sidebar className="border-r border-slate-600 shadow-md bg-slate-800">
+          <SidebarContent className="pt-header scrollbar-hide bg-slate-800">
             {renderMenuContent()}
           </SidebarContent>
         </Sidebar>
