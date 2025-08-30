@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import AdminUsersAndRoles from "./pages/AdminUsersAndRoles";
 import AdminUsers from "./pages/AdminUsers";
 import AdminNetworks from "./pages/AdminNetworks";
+import AuditLog from "./pages/AuditLog";
 import EquipmentTypes from "./pages/EquipmentTypes";
 import ComponentTypes from "./pages/ComponentTypes";
 import Equipment from "./pages/Equipment";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/admin/users-and-roles" element={<AdminUsersAndRoles />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/networks" element={<AdminNetworks />} />
+          <Route path="/admin/audit-log" element={<AuditLog />} />
           <Route path="/settings/dictionaries/equipment-types" element={<EquipmentTypes />} />
           <Route path="/settings/dictionaries/component-types" element={<ComponentTypes />} />
           <Route path="/settings/commands" element={<Commands />} />
