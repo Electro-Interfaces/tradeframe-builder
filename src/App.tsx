@@ -3,10 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SimpleLayout } from "./components/layout/MainLayout";
 import Index from "./pages/Index";
 import AdminUsersAndRoles from "./pages/AdminUsersAndRoles";
 import AdminUsers from "./pages/AdminUsers";
 import AdminNetworks from "./pages/AdminNetworks";
+import NetworksPage from "./pages/NetworksPage";
 import AuditLog from "./pages/AuditLog";
 import EquipmentTypes from "./pages/EquipmentTypes";
 import ComponentTypes from "./pages/ComponentTypes";
@@ -35,7 +37,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/admin/users-and-roles" element={<AdminUsersAndRoles />} />
           <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/networks" element={<AdminNetworks />} />
+          <Route path="/admin/networks" element={<SimpleLayout><NetworksPage /></SimpleLayout>} />
           <Route path="/admin/audit" element={<AuditLog />} />
           <Route path="/settings/dictionaries/equipment-types" element={<EquipmentTypes />} />
           <Route path="/settings/dictionaries/component-types" element={<ComponentTypes />} />

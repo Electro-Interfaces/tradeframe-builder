@@ -194,4 +194,17 @@
   .scroll-thin::-webkit-scrollbar-track {
     background: transparent;
   }
+  
+  /* Badge component styles */
+  .badge {
+    @apply px-2 py-0.5 rounded-md text-xs border;
+  }
+  
+  .badge.info {
+    @apply bg-slate-600/20 text-slate-300 border-slate-700/40;
+  }
+  
+  .badge.success {
+    @apply bg-emerald-600/20 text-emerald-300 border-emerald-700/40;
+  }
 }
