@@ -39,8 +39,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Copy, Trash2 } from "lucide-react";
+import { Plus, Edit, Copy, Trash2, Command, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -54,6 +56,7 @@ const equipmentTypeSchema = z.object({
   description: z.string().optional(),
   systemType: z.string().min(1, "Системный тип обязателен"),
   isActive: z.boolean(),
+  availableCommandIds: z.array(z.string()).default([]),
 });
 
 type EquipmentType = z.infer<typeof equipmentTypeSchema>;
@@ -62,23 +65,64 @@ interface EquipmentTypeWithId extends EquipmentType {
   id: string;
 }
 
+// Mock данные команд (из Commands.tsx)
+const mockAvailableCommands = [
+  {
+    id: "1",
+    name: "Перезагрузить устройство",
+    code: "REBOOT_DEVICE",
+    targetType: "equipment",
+    isActive: true,
+  },
+  {
+    id: "2", 
+    name: "Установить цену топлива",
+    code: "SET_FUEL_PRICE",
+    targetType: "equipment",
+    isActive: true,
+  },
+  {
+    id: "3",
+    name: "Обновить прошивку",
+    code: "UPDATE_FIRMWARE", 
+    targetType: "equipment",
+    isActive: true,
+  },
+  {
+    id: "4",
+    name: "Получить статус",
+    code: "GET_STATUS",
+    targetType: "equipment", 
+    isActive: true,
+  },
+  {
+    id: "5",
+    name: "Остановить топливоотдачу",
+    code: "STOP_FUELING",
+    targetType: "equipment",
+    isActive: true,
+  },
+];
+
 // Mock данные
 const mockEquipmentTypes: EquipmentTypeWithId[] = [
   {
     id: "1",
     name: "ТРК Tokheim Quantium 310",
-    code: "TQK_Q310",
+    code: "TQK_Q310", 
     description: "Топливораздаточная колонка Tokheim серии Quantium 310",
     systemType: "fuel_dispenser",
     isActive: true,
+    availableCommandIds: ["1", "2", "4", "5"], // Привязанные команды
   },
   {
     id: "2",
     name: "Резервуар подземный 50м³",
     code: "TANK_UG_50",
     description: "Подземный топливный резервуар объемом 50 кубических метров",
-    systemType: "fuel_tank",
+    systemType: "fuel_tank", 
     isActive: true,
+    availableCommandIds: ["1", "4"], // Привязанные команды
   },
   {
     id: "3",
@@ -87,6 +131,7 @@ const mockEquipmentTypes: EquipmentTypeWithId[] = [
     description: "Беспроводной POS-терминал для приема платежей",
     systemType: "pos_system",
     isActive: false,
+    availableCommandIds: ["1", "3", "4"], // Привязанные команды
   },
   {
     id: "4",
@@ -95,6 +140,7 @@ const mockEquipmentTypes: EquipmentTypeWithId[] = [
     description: "Датчик контроля уровня и качества топлива",
     systemType: "sensor",
     isActive: true,
+    availableCommandIds: ["1", "4"], // Привязанные команды
   },
 ];
 
@@ -132,6 +178,7 @@ export default function EquipmentTypes() {
       description: "",
       systemType: "",
       isActive: true,
+      availableCommandIds: [],
     });
     setEditingItem(null);
     setIsDialogOpen(true);
@@ -290,7 +337,7 @@ export default function EquipmentTypes() {
 
         {/* Диалог создания/редактирования */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <DialogHeader>
                 <DialogTitle>
@@ -304,81 +351,163 @@ export default function EquipmentTypes() {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Название шаблона *</Label>
-                  <Input
-                    id="name"
-                    {...form.register("name")}
-                    placeholder="ТРК Tokheim Quantium 310"
-                  />
-                  {form.formState.errors.name && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.name.message}
-                    </p>
-                  )}
-                </div>
+              <Tabs defaultValue="basic" className="mt-6">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="basic">Основные параметры</TabsTrigger>
+                  <TabsTrigger value="commands">Доступные команды</TabsTrigger>
+                </TabsList>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="code">Технический код *</Label>
-                  <Input
-                    id="code"
-                    {...form.register("code")}
-                    placeholder="TQK_Q310"
-                    className="font-mono"
-                  />
-                  {form.formState.errors.code && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.code.message}
-                    </p>
-                  )}
-                </div>
+                <TabsContent value="basic" className="space-y-4 mt-6">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Название шаблона *</Label>
+                    <Input
+                      id="name"
+                      {...form.register("name")}
+                      placeholder="ТРК Tokheim Quantium 310"
+                    />
+                    {form.formState.errors.name && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.name.message}
+                      </p>
+                    )}
+                  </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="systemType">Системный тип *</Label>
-                  <Select
-                    value={form.watch("systemType")}
-                    onValueChange={(value) => form.setValue("systemType", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите тип оборудования" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {systemTypeOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {form.formState.errors.systemType && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.systemType.message}
-                    </p>
-                  )}
-                </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="code">Технический код *</Label>
+                    <Input
+                      id="code"
+                      {...form.register("code")}
+                      placeholder="TQK_Q310"
+                      className="font-mono"
+                    />
+                    {form.formState.errors.code && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.code.message}
+                      </p>
+                    )}
+                  </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="description">Описание</Label>
-                  <Textarea
-                    id="description"
-                    {...form.register("description")}
-                    placeholder="Подробное описание оборудования..."
-                    rows={3}
-                  />
-                </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="systemType">Системный тип *</Label>
+                    <Select
+                      value={form.watch("systemType")}
+                      onValueChange={(value) => form.setValue("systemType", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите тип оборудования" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {systemTypeOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.systemType && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.systemType.message}
+                      </p>
+                    )}
+                  </div>
 
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isActive"
-                    checked={form.watch("isActive")}
-                    onCheckedChange={(checked) => form.setValue("isActive", checked)}
-                  />
-                  <Label htmlFor="isActive">Активен</Label>
-                </div>
-              </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Описание</Label>
+                    <Textarea
+                      id="description"
+                      {...form.register("description")}
+                      placeholder="Подробное описание оборудования..."
+                      rows={3}
+                    />
+                  </div>
 
-              <DialogFooter>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isActive"
+                      checked={form.watch("isActive")}
+                      onCheckedChange={(checked) => form.setValue("isActive", checked)}
+                    />
+                    <Label htmlFor="isActive">Активен</Label>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="commands" className="space-y-4 mt-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Доступные команды для данного типа оборудования</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Выберите команды, которые можно выполнять на этом типе оборудования
+                      </p>
+                    </div>
+
+                    <div className="grid gap-3">
+                      {mockAvailableCommands
+                        .filter(cmd => cmd.targetType === "equipment" && cmd.isActive)
+                        .map((command) => {
+                          const isSelected = form.watch("availableCommandIds")?.includes(command.id) || false;
+                          
+                          return (
+                            <div key={command.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                              <Checkbox
+                                id={`command-${command.id}`}
+                                checked={isSelected}
+                                onCheckedChange={(checked) => {
+                                  const currentIds = form.getValues("availableCommandIds") || [];
+                                  if (checked) {
+                                    form.setValue("availableCommandIds", [...currentIds, command.id]);
+                                  } else {
+                                    form.setValue("availableCommandIds", currentIds.filter(id => id !== command.id));
+                                  }
+                                }}
+                              />
+                              <div className="flex-1">
+                                <Label htmlFor={`command-${command.id}`} className="font-medium cursor-pointer">
+                                  {command.name}
+                                </Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Код: <code className="bg-muted px-1 py-0.5 rounded text-xs">{command.code}</code>
+                                </p>
+                              </div>
+                              <Command className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          );
+                        })}
+                    </div>
+
+                    {form.watch("availableCommandIds")?.length > 0 && (
+                      <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                        <Label className="text-sm font-medium">Выбранные команды:</Label>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {form.watch("availableCommandIds").map((commandId) => {
+                            const command = mockAvailableCommands.find(cmd => cmd.id === commandId);
+                            if (!command) return null;
+                            
+                            return (
+                              <Badge key={commandId} variant="secondary" className="text-xs">
+                                {command.name}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-0 ml-2"
+                                  onClick={() => {
+                                    const currentIds = form.getValues("availableCommandIds") || [];
+                                    form.setValue("availableCommandIds", currentIds.filter(id => id !== commandId));
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <DialogFooter className="mt-6">
                 <Button
                   type="button"
                   variant="outline"

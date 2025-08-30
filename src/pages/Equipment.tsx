@@ -13,14 +13,18 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Plus, Edit, Trash2, CalendarIcon, MapPin, ChevronDown, ChevronRight, Layers3 } from "lucide-react";
+import { Plus, Edit, Trash2, CalendarIcon, MapPin, ChevronDown, ChevronRight, Layers3, MoreHorizontal, Play, Terminal } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { DynamicForm } from "@/components/ui/dynamic-form";
+import { CommandHistory, CommandExecutionHistory } from "@/components/ui/command-history";
 
 // Mock данные для шаблонов оборудования (должны синхронизироваться с EquipmentTypes)
 const mockEquipmentTemplates = [
@@ -30,6 +34,7 @@ const mockEquipmentTemplates = [
     technical_code: "TQK_Q310",
     system_type: "fuel_dispenser",
     status: true,
+    availableCommandIds: ["1", "2", "4", "5"], // Привязанные команды
   },
   {
     id: "2", 
@@ -37,6 +42,7 @@ const mockEquipmentTemplates = [
     technical_code: "TANK_50K",
     system_type: "fuel_tank",
     status: true,
+    availableCommandIds: ["1", "4"], // Привязанные команды
   },
   {
     id: "3",
@@ -44,6 +50,51 @@ const mockEquipmentTemplates = [
     technical_code: "POS_ICT250",
     system_type: "pos_system",
     status: true,
+    availableCommandIds: ["1", "3", "4"], // Привязанные команды
+  },
+];
+
+// Mock данные команд (синхронизированы с Commands.tsx)
+const mockAvailableCommands = [
+  {
+    id: "1",
+    name: "Перезагрузить устройство",
+    code: "REBOOT_DEVICE",
+    targetType: "equipment",
+    isActive: true,
+    jsonSchema: '{"type": "object", "properties": {"force": {"type": "boolean", "title": "Принудительная перезагрузка", "description": "Принудительно перезагрузить без сохранения состояния"}}, "required": []}',
+  },
+  {
+    id: "2", 
+    name: "Установить цену топлива",
+    code: "SET_FUEL_PRICE",
+    targetType: "equipment",
+    isActive: true,
+    jsonSchema: '{"type": "object", "properties": {"price": {"type": "number", "title": "Цена за литр", "description": "Новая цена топлива в рублях", "minimum": 0}, "fuel_type": {"type": "string", "title": "Тип топлива", "enum": ["АИ-92", "АИ-95", "АИ-98", "ДТ"], "description": "Выберите тип топлива"}}, "required": ["price", "fuel_type"]}',
+  },
+  {
+    id: "3",
+    name: "Обновить прошивку",
+    code: "UPDATE_FIRMWARE", 
+    targetType: "equipment",
+    isActive: true,
+    jsonSchema: '{"type": "object", "properties": {"version": {"type": "string", "title": "Версия прошивки", "description": "Номер версии прошивки для установки"}, "backup": {"type": "boolean", "title": "Создать резервную копию", "description": "Создать резервную копию текущей прошивки"}}, "required": ["version"]}',
+  },
+  {
+    id: "4",
+    name: "Получить статус",
+    code: "GET_STATUS",
+    targetType: "equipment", 
+    isActive: true,
+    jsonSchema: '{"type": "object", "properties": {}, "required": []}', // Без параметров
+  },
+  {
+    id: "5",
+    name: "Остановить топливоотдачу",
+    code: "STOP_FUELING",
+    targetType: "equipment",
+    isActive: true,
+    jsonSchema: '{"type": "object", "properties": {"emergency": {"type": "boolean", "title": "Экстренная остановка", "description": "Экстренная остановка всех пистолетов"}}, "required": []}',
   },
 ];
 
@@ -172,6 +223,59 @@ const mockEquipmentInstances: EquipmentInstance[] = [
   },
 ];
 
+// Mock данные истории выполнения команд
+const mockCommandHistory: CommandExecutionHistory[] = [
+  {
+    id: "h1",
+    commandId: "1",
+    commandName: "Перезагрузить устройство",
+    commandCode: "REBOOT_DEVICE",
+    userId: "1",
+    userName: "Иван Иванов",
+    executedAt: new Date("2024-08-30T14:30:00"),
+    status: "success",
+    parameters: { force: false },
+    duration: 3200,
+  },
+  {
+    id: "h2",
+    commandId: "2",
+    commandName: "Установить цену топлива",
+    commandCode: "SET_FUEL_PRICE",
+    userId: "2",
+    userName: "Мария Петрова",
+    executedAt: new Date("2024-08-30T12:15:00"),
+    status: "success",
+    parameters: { price: 52.50, fuel_type: "АИ-95" },
+    duration: 1800,
+  },
+  {
+    id: "h3",
+    commandId: "4",
+    commandName: "Получить статус",
+    commandCode: "GET_STATUS",
+    userId: "1",
+    userName: "Иван Иванов",
+    executedAt: new Date("2024-08-30T11:45:00"),
+    status: "error",
+    parameters: {},
+    errorMessage: "Устройство не отвечает",
+    duration: 5000,
+  },
+  {
+    id: "h4",
+    commandId: "5",
+    commandName: "Остановить топливоотдачу",
+    commandCode: "STOP_FUELING",
+    userId: "3",
+    userName: "Петр Смирнов",
+    executedAt: new Date("2024-08-29T16:20:00"),
+    status: "success",
+    parameters: { emergency: true },
+    duration: 500,
+  },
+];
+
 // Схемы валидации
 const equipmentSchema = z.object({
   name: z.string().min(1, "Название обязательно"),
@@ -214,11 +318,13 @@ const getStatusText = (status: string) => {
 export default function Equipment() {
   const { toast } = useToast();
   const [equipmentInstances, setEquipmentInstances] = useState<EquipmentInstance[]>(mockEquipmentInstances);
+  const [commandHistory, setCommandHistory] = useState<CommandExecutionHistory[]>(mockCommandHistory);
   const [expandedEquipment, setExpandedEquipment] = useState<string[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateComponentModalOpen, setIsCreateComponentModalOpen] = useState(false);
   const [isEditComponentModalOpen, setIsEditComponentModalOpen] = useState(false);
+  const [isCommandModalOpen, setIsCommandModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1); // 1 - выбор шаблона, 2 - заполнение данных
   const [currentComponentStep, setCurrentComponentStep] = useState(1);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
@@ -226,6 +332,9 @@ export default function Equipment() {
   const [editingEquipment, setEditingEquipment] = useState<EquipmentInstance | null>(null);
   const [editingComponent, setEditingComponent] = useState<ComponentInstance | null>(null);
   const [currentEquipmentId, setCurrentEquipmentId] = useState<string>("");
+  const [selectedCommand, setSelectedCommand] = useState<any>(null);
+  const [targetEquipment, setTargetEquipment] = useState<EquipmentInstance | null>(null);
+  const [isExecutingCommand, setIsExecutingCommand] = useState(false);
 
   // Для демонстрации используем фиксированную торговую точку
   const selectedTradingPointId = "1";
@@ -480,6 +589,85 @@ export default function Equipment() {
     setSelectedComponentTemplateId("");
     setCurrentEquipmentId("");
     componentForm.reset();
+  };
+
+  // Функции для выполнения команд
+  const handleExecuteCommand = (equipment: EquipmentInstance, command: any) => {
+    setTargetEquipment(equipment);
+    setSelectedCommand(command);
+    setIsCommandModalOpen(true);
+  };
+
+  const executeCommand = async (parameters: any) => {
+    if (!selectedCommand || !targetEquipment) return;
+
+    setIsExecutingCommand(true);
+
+    // Симуляция отправки команды
+    toast({
+      title: "Команда отправлена",
+      description: `Команда "${selectedCommand.name}" отправлена на выполнение`,
+    });
+
+    // Добавляем запись в историю
+    const newHistoryEntry: CommandExecutionHistory = {
+      id: `h_${Date.now()}`,
+      commandId: selectedCommand.id,
+      commandName: selectedCommand.name,
+      commandCode: selectedCommand.code,
+      userId: "1", // В реальном приложении - текущий пользователь
+      userName: "Текущий пользователь",
+      executedAt: new Date(),
+      status: "pending",
+      parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
+    };
+
+    setCommandHistory(prev => [newHistoryEntry, ...prev]);
+
+    // Симуляция выполнения (2-3 секунды)
+    setTimeout(() => {
+      const success = Math.random() > 0.2; // 80% успешности
+      
+      setCommandHistory(prev => 
+        prev.map(item => 
+          item.id === newHistoryEntry.id 
+            ? {
+                ...item,
+                status: success ? "success" : "error",
+                duration: Math.floor(Math.random() * 3000) + 500,
+                errorMessage: success ? undefined : "Устройство не отвечает или команда не поддерживается"
+              }
+            : item
+        )
+      );
+
+      toast({
+        title: success ? "Команда выполнена" : "Ошибка выполнения",
+        description: success 
+          ? `Команда "${selectedCommand.name}" успешно выполнена на "${targetEquipment.name}"` 
+          : `Ошибка при выполнении команды "${selectedCommand.name}"`,
+        variant: success ? "default" : "destructive"
+      });
+
+      setIsExecutingCommand(false);
+      setIsCommandModalOpen(false);
+      setSelectedCommand(null);
+      setTargetEquipment(null);
+    }, Math.random() * 2000 + 1000);
+  };
+
+  const getAvailableCommands = (equipmentTemplateId: string) => {
+    const template = mockEquipmentTemplates.find(t => t.id === equipmentTemplateId);
+    if (!template?.availableCommandIds) return [];
+    
+    return mockAvailableCommands.filter(cmd => 
+      template.availableCommandIds.includes(cmd.id) && cmd.isActive
+    );
+  };
+
+  const getEquipmentHistory = (equipmentId: string) => {
+    // В реальном приложении здесь будет фильтрация по equipment_id
+    return commandHistory.slice(0, 10); // Показываем последние 10 записей для демонстрации
   };
 
   // Если торговая точка не выбрана, показать пустое состояние
@@ -740,38 +928,43 @@ export default function Equipment() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => openEditModal(equipment)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="icon">
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Подтверждение удаления</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Вы уверены, что хотите удалить оборудование "{equipment.name}"?
-                                    Это действие нельзя отменить.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteEquipment(equipment)}>
-                                    Удалить
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditModal(equipment)}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Редактировать
+                              </DropdownMenuItem>
+                              
+                              {getAvailableCommands(equipment.template_id).length > 0 && (
+                                <>
+                                  <div className="h-px bg-border my-1" />
+                                  {getAvailableCommands(equipment.template_id).map((command) => (
+                                    <DropdownMenuItem 
+                                      key={command.id}
+                                      onClick={() => handleExecuteCommand(equipment, command)}
+                                    >
+                                      <Play className="w-4 h-4 mr-2" />
+                                      {command.name}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </>
+                              )}
+                              
+                              <div className="h-px bg-border my-1" />
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteEquipment(equipment)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Удалить
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                       
@@ -1202,6 +1395,85 @@ export default function Equipment() {
             </Form>
           </DialogContent>
         </Dialog>
+        {/* Модальное окно выполнения команды */}
+        <Dialog open={isCommandModalOpen} onOpenChange={setIsCommandModalOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Play className="h-5 w-5" />
+                Выполнить команду: {selectedCommand?.name}
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedCommand && targetEquipment && (
+              <div className="space-y-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="text-sm text-muted-foreground">Целевое оборудование:</div>
+                  <div className="font-medium">{targetEquipment.name}</div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    ID: {targetEquipment.external_id}
+                  </div>
+                </div>
+                
+                <DynamicForm
+                  jsonSchema={selectedCommand.jsonSchema || '{"type": "object", "properties": {}, "required": []}'}
+                  onSubmit={executeCommand}
+                  onCancel={() => setIsCommandModalOpen(false)}
+                  isLoading={isExecutingCommand}
+                  submitText="Выполнить команду"
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Обновленное модальное окно редактирования с вкладками */}
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Редактировать оборудование</DialogTitle>
+            </DialogHeader>
+
+            <Tabs defaultValue="basic" className="mt-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="basic">Основные данные</TabsTrigger>
+                <TabsTrigger value="history">История команд</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="basic" className="mt-6">
+                {editingEquipment && (
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleEditEquipment)} className="space-y-4">
+                      {/* ... существующие поля формы ... */}
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsEditModalOpen(false)}
+                        >
+                          Отмена
+                        </Button>
+                        <Button type="submit">Сохранить</Button>
+                      </div>
+                    </form>
+                  </Form>
+                )}
+              </TabsContent>
+
+              <TabsContent value="history" className="mt-6">
+                {editingEquipment && (
+                  <CommandHistory 
+                    history={getEquipmentHistory(editingEquipment.id)}
+                    equipmentId={editingEquipment.id}
+                    equipmentName={editingEquipment.name}
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
+          </DialogContent>
+        </Dialog>
+
+        {/* ... остальные модальные окна ... */}
       </div>
     </MainLayout>
   );
