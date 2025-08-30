@@ -33,7 +33,7 @@ import {
 const auditEvents = [
   {
     id: 1,
-    timestamp: new Date("2024-01-15T14:30:00"),
+    timestamp: new Date("2024-08-30T14:30:00"),
     user: {
       id: 1,
       name: "Иван Иванов",
@@ -57,7 +57,7 @@ const auditEvents = [
   },
   {
     id: 2,
-    timestamp: new Date("2024-01-15T13:45:00"),
+    timestamp: new Date("2024-08-30T13:45:00"),
     user: {
       id: 2,
       name: "Мария Петрова",
@@ -86,7 +86,7 @@ const auditEvents = [
   },
   {
     id: 3,
-    timestamp: new Date("2024-01-15T12:20:00"),
+    timestamp: new Date("2024-08-30T12:20:00"),
     user: {
       id: 3,
       name: "Петр Смирнов",
@@ -116,7 +116,7 @@ const auditEvents = [
   },
   {
     id: 4,
-    timestamp: new Date("2024-01-15T11:15:00"),
+    timestamp: new Date("2024-08-30T11:15:00"),
     user: {
       id: 1,
       name: "Иван Иванов",
@@ -144,7 +144,7 @@ const auditEvents = [
   },
   {
     id: 5,
-    timestamp: new Date("2024-01-15T10:30:00"),
+    timestamp: new Date("2024-08-30T10:30:00"),
     user: {
       id: 4,
       name: "Анна Козлова",
@@ -176,7 +176,7 @@ const auditEvents = [
   },
   {
     id: 6,
-    timestamp: new Date("2024-01-15T09:45:00"),
+    timestamp: new Date("2024-08-30T09:45:00"),
     user: {
       id: 5,
       name: "Дмитрий Волков",
@@ -205,7 +205,7 @@ const auditEvents = [
   },
   {
     id: 7,
-    timestamp: new Date("2024-01-15T08:30:00"),
+    timestamp: new Date("2024-08-30T08:30:00"),
     user: {
       id: 2,
       name: "Мария Петрова",
@@ -219,13 +219,13 @@ const auditEvents = [
     details: {
       before: {
         status: "active",
-        lastLogin: "2024-01-14T18:20:00",
+        lastLogin: "2024-08-29T18:20:00",
         failedLoginAttempts: 3
       },
       after: {
         status: "blocked",
         blockReason: "Подозрительная активность",
-        blockedAt: "2024-01-15T08:30:00"
+        blockedAt: "2024-08-30T08:30:00"
       },
       reason: "Превышено количество неудачных попыток входа"
     },
@@ -237,7 +237,7 @@ const auditEvents = [
   },
   {
     id: 8,
-    timestamp: new Date("2024-01-15T07:15:00"),
+    timestamp: new Date("2024-08-30T07:15:00"),
     user: {
       id: 6,
       name: "Елена Смирнова",
@@ -253,13 +253,13 @@ const auditEvents = [
         fuelType: "АИ-92",
         volume: 15000,
         currentLevel: 8500,
-        lastUpdated: "2024-01-14T23:45:00"
+        lastUpdated: "2024-08-29T23:45:00"
       },
       after: {
         fuelType: "АИ-92",
         volume: 15000,
         currentLevel: 12500,
-        lastUpdated: "2024-01-15T07:15:00"
+        lastUpdated: "2024-08-30T07:15:00"
       },
       reason: "Поступление топлива от поставщика"
     },
@@ -271,7 +271,7 @@ const auditEvents = [
   },
   {
     id: 9,
-    timestamp: new Date("2024-01-14T23:45:00"),
+    timestamp: new Date("2024-08-29T23:45:00"),
     user: {
       id: 7,
       name: "Александр Федоров",
@@ -295,7 +295,7 @@ const auditEvents = [
   },
   {
     id: 10,
-    timestamp: new Date("2024-01-14T22:30:00"),
+    timestamp: new Date("2024-08-29T22:30:00"),
     user: {
       id: 3,
       name: "Петр Смирнов",
@@ -309,12 +309,12 @@ const auditEvents = [
     details: {
       before: {
         status: "warning",
-        lastDiagnostic: "2024-01-10T15:00:00",
+        lastDiagnostic: "2024-08-25T15:00:00",
         errorCodes: ["E001", "W003"]
       },
       after: {
         status: "normal",
-        lastDiagnostic: "2024-01-14T22:30:00",
+        lastDiagnostic: "2024-08-29T22:30:00",
         errorCodes: []
       },
       reason: "Плановое техническое обслуживание"
@@ -327,7 +327,7 @@ const auditEvents = [
   },
   {
     id: 11,
-    timestamp: new Date("2024-01-14T20:15:00"),
+    timestamp: new Date("2024-08-29T20:15:00"),
     user: {
       id: 8,
       name: "Ольга Николаева",
@@ -335,13 +335,13 @@ const auditEvents = [
     },
     action: "Сгенерировала сменный отчет",
     actionType: "reports",
-    object: "Смена 14.01.2024 (20:00-08:00)",
+    object: "Смена 29.08.2024 (20:00-08:00)",
     objectType: "shift_report",
     ipAddress: "192.168.1.107",
     details: {
       before: null,
       after: {
-        shiftDate: "2024-01-14",
+        shiftDate: "2024-08-29",
         startTime: "20:00",
         endTime: "08:00",
         totalSales: 125000,
@@ -357,7 +357,7 @@ const auditEvents = [
   },
   {
     id: 12,
-    timestamp: new Date("2024-01-14T18:20:00"),
+    timestamp: new Date("2024-08-29T18:20:00"),
     user: {
       id: 9,
       name: "Сергей Попов",
@@ -385,7 +385,7 @@ const auditEvents = [
   },
   {
     id: 13,
-    timestamp: new Date("2024-01-14T16:45:00"),
+    timestamp: new Date("2024-08-29T16:45:00"),
     user: {
       id: 4,
       name: "Анна Козлова",
@@ -398,13 +398,13 @@ const auditEvents = [
     ipAddress: "192.168.1.103",
     details: {
       before: {
-        lastBackup: "2024-01-13T16:45:00",
+        lastBackup: "2024-08-28T16:45:00",
         backupSize: "1.2GB"
       },
       after: {
-        lastBackup: "2024-01-14T16:45:00",
+        lastBackup: "2024-08-29T16:45:00",
         backupSize: "1.3GB",
-        backupLocation: "/backups/2024-01-14_1645.sql"
+        backupLocation: "/backups/2024-08-29_1645.sql"
       }
     },
     metadata: {
@@ -415,7 +415,7 @@ const auditEvents = [
   },
   {
     id: 14,
-    timestamp: new Date("2024-01-14T14:30:00"),
+    timestamp: new Date("2024-08-29T14:30:00"),
     user: {
       id: 10,
       name: "Михаил Лебедев",
@@ -446,7 +446,7 @@ const auditEvents = [
   },
   {
     id: 15,
-    timestamp: new Date("2024-01-14T12:00:00"),
+    timestamp: new Date("2024-08-29T12:00:00"),
     user: {
       id: 6,
       name: "Елена Смирнова",
