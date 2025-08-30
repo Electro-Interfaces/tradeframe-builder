@@ -1,14 +1,6 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +8,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, User, Menu, Network, MapPin, Bell, MessageCircle } from "lucide-react";
+import { Settings, LogOut, User, Menu, Bell, MessageCircle } from "lucide-react";
+import { NetworkSelect } from "@/components/selects/NetworkSelect";
+import { PointSelect } from "@/components/selects/PointSelect";
 
 interface HeaderProps {
   selectedNetwork: string;
@@ -36,17 +30,6 @@ export function Header({
   isMobile = false
 }: HeaderProps) {
   const navigate = useNavigate();
-  const networks = [
-    { value: "network1", label: "Сеть АЗС №1" },
-    { value: "network2", label: "Сеть АЗС №2" },
-    { value: "network3", label: "Автодор" },
-  ];
-
-  const tradingPoints = [
-    { value: "point1", label: "АЗС №001 - Центральная" },
-    { value: "point2", label: "АЗС №002 - Северная" },
-    { value: "point3", label: "АЗС №003 - Южная" },
-  ];
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-header bg-background/95 backdrop-blur-sm border-b border-border shadow-soft">
@@ -62,19 +45,11 @@ export function Header({
             <Menu className="h-4 w-4" />
           </Button>
           
-          <Select value={selectedNetwork} onValueChange={onNetworkChange}>
-            <SelectTrigger className="h-8 text-xs border-none bg-transparent hover:bg-accent min-w-0 flex-1">
-              <Network className="h-3 w-3 mr-1 text-muted-foreground shrink-0" />
-              <SelectValue placeholder="Выберите сеть" className="truncate" />
-            </SelectTrigger>
-            <SelectContent>
-              {networks.map((network) => (
-                <SelectItem key={network.value} value={network.value}>
-                  {network.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <NetworkSelect 
+            value={selectedNetwork} 
+            onValueChange={onNetworkChange}
+            className="h-8 text-xs min-w-0 flex-1"
+          />
         </div>
 
         {/* Desktop Left Section: Logo + Brand */}
@@ -89,54 +64,14 @@ export function Header({
         </div>
 
         {/* Desktop Center: Context Selectors */}
-        <div className="hidden md:flex items-center justify-center gap-4">
-          <div className="flex items-center gap-2">
-            <Select value={selectedNetwork} onValueChange={onNetworkChange}>
-              <SelectTrigger className="w-56 h-10">
-                <Network className="h-4 w-4 mr-2 text-muted-foreground" />
-                <SelectValue placeholder="Выберите сеть" />
-              </SelectTrigger>
-              <SelectContent>
-                {networks.map((network) => (
-                  <SelectItem key={network.value} value={network.value}>
-                    {network.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedNetwork && (
-              <span className="bg-green-600 text-white px-2 py-1 rounded text-xs font-medium">
-                Активна
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Select 
-              value={selectedTradingPoint} 
-              onValueChange={onTradingPointChange}
-              disabled={!selectedNetwork}
-            >
-              <SelectTrigger className="w-56 h-10">
-                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                <SelectValue 
-                  placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"} 
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {tradingPoints.map((point) => (
-                  <SelectItem key={point.value} value={point.value}>
-                    {point.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedTradingPoint && (
-              <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
-                Выбрана
-              </span>
-            )}
-          </div>
+        <div className="hidden md:flex items-center justify-center gap-2">
+          <NetworkSelect value={selectedNetwork} onValueChange={onNetworkChange} />
+          <PointSelect 
+            value={selectedTradingPoint} 
+            onValueChange={onTradingPointChange}
+            disabled={!selectedNetwork}
+            className="hidden md:inline-flex"
+          />
         </div>
 
         {/* Right Section: Notifications + User Profile */}
