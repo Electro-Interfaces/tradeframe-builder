@@ -18,8 +18,8 @@ export default function NetworksPage() {
   };
 
   return (
-    <div className="w-full max-w-none">
-      <h1 className="text-2xl font-semibold mb-2">Сети и ТТ</h1>
+    <div className="w-full px-4 md:px-6 py-4 text-base">
+      <h1 className="text-3xl font-semibold mb-1">Сети и ТТ</h1>
       <p className="text-sm text-slate-400 mb-4">Управление торговыми сетями и точками</p>
 
       <div className="grid grid-cols-[1fr_auto] gap-3 mb-3">
