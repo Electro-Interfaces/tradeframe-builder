@@ -248,7 +248,7 @@ export default function NetworksPage() {
                     key={network.id}
                     onClick={() => setSelectedNetworkId(network.id)}
                     className={`border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors ${
-                      selectedNetworkId === network.id ? 'bg-slate-700' : ''
+                      selectedNetworkId === network.id ? 'bg-blue-600/20 border-blue-500' : ''
                     }`}
                   >
                     <td className="px-6 py-4">
@@ -309,7 +309,7 @@ export default function NetworksPage() {
                   key={network.id}
                   onClick={() => setSelectedNetworkId(network.id)}
                   className={`bg-slate-700 rounded-lg p-4 cursor-pointer hover:bg-slate-600 transition-colors border-2 ${
-                    selectedNetworkId === network.id ? 'border-blue-500 bg-slate-600' : 'border-transparent'
+                    selectedNetworkId === network.id ? 'border-blue-500 bg-blue-600/20' : 'border-transparent'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
