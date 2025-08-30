@@ -42,7 +42,6 @@ const App = () => (
           <Route path="/settings/connections" element={<Connections />} />
           <Route path="/settings/workflows" element={<Workflows />} />
           <Route path="/network/overview" element={<NetworkOverview />} />
-          <Route path="/network/reports" element={<NetworkOverview />} />
           <Route path="/network/notifications" element={<NotificationRules />} />
           <Route path="/network/messages" element={<Messages />} />
           <Route path="/point/prices" element={<Prices />} />
