@@ -43,9 +43,9 @@ export default function NetworksPage() {
       </div>
 
       <section className="w-full">
-        <div className="w-full grid grid-cols-12 gap-6">
-          <div className="col-span-12 xl:col-span-8 2xl:col-span-9">
-          {/* ЛЕВАЯ КОЛОНКА — список сетей */}
+        <div className="w-full space-y-6">
+          <div className="w-full">
+          {/* Список сетей (верхняя таблица, full-width) */}
           <div className="panel w-full min-w-0 max-w-none min-h-[24rem]">
           {/* Десктоп: таблица */}
           <div className="hidden md:block">
@@ -110,10 +110,10 @@ export default function NetworksPage() {
           </div>
         </div>
 
-          {/* ПРАВАЯ КОЛОНКА — точки выбранной сети */}
+          {/* Торговые точки выбранной сети (нижняя таблица, full-width) */}
           </div>
-          <div className="col-span-12 xl:col-span-4 2xl:col-span-3">
-            <div className="panel w-full min-w-0 max-w-none min-h-[24rem]">
+          <div className="panel w-full min-w-0 max-w-none min-h-[24rem]">
+            <h2 className="text-lg font-semibold mb-3">Торговые точки выбранной сети</h2>
             {!selectedId ? (
               <EmptyState title="Выберите сеть слева" />
             ) : (
