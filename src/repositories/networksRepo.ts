@@ -1,6 +1,6 @@
 import { Network, NetworkId, NetworkInput } from '@/types/network';
 import { networksStore } from '@/mock/networksStore';
-import { pointsStore } from '@/mock/pointsStore';
+import { tradingPointsStore } from '@/mock/pointsStore';
 
 export interface NetworksRepo {
   list(): Promise<Network[]>;
@@ -18,7 +18,7 @@ class MockNetworksRepo implements NetworksRepo {
     const networks = networksStore.getAll();
     // Update points count for each network
     networks.forEach(network => {
-      const count = pointsStore.getCountByNetworkId(network.id);
+      const count = tradingPointsStore.getCountByNetworkId(network.id);
       networksStore.updatePointsCount(network.id, count);
     });
     
@@ -62,7 +62,7 @@ class MockNetworksRepo implements NetworksRepo {
     }
     
     // Cascade delete: remove all trading points
-    pointsStore.removeByNetworkId(id);
+    tradingPointsStore.removeByNetworkId(id);
     
     // Remove the network
     networksStore.remove(id);
@@ -72,7 +72,7 @@ class MockNetworksRepo implements NetworksRepo {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 50));
     
-    return pointsStore.getCountByNetworkId(id);
+    return tradingPointsStore.getCountByNetworkId(id);
   }
 }
 

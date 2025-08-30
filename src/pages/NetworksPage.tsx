@@ -6,10 +6,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { NetworkCreateDialog } from "@/components/dialogs/NetworkCreateDialog";
 import { NetworkEditDialog } from "@/components/dialogs/NetworkEditDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import { TradingPointCreateDialog } from "@/components/dialogs/TradingPointCreateDialog";
+import { TradingPointEditDialog } from "@/components/dialogs/TradingPointEditDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Edit, Trash2, MapPin, MoreHorizontal } from "lucide-react";
+import { Edit, Trash2, MapPin, MoreHorizontal, Plus } from "lucide-react";
 import { Network, NetworkInput } from "@/types/network";
+import { TradingPoint, TradingPointInput, TradingPointUpdateInput } from "@/types/tradingpoint";
 import { networksRepo } from "@/repositories";
+import { tradingPointsRepo } from "@/repositories/tradingPointsRepo";
 import { useToast } from "@/hooks/use-toast";
 
 export default function NetworksPage() {
@@ -17,7 +21,9 @@ export default function NetworksPage() {
   const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [networks, setNetworks] = useState<Network[]>([]);
+  const [tradingPoints, setTradingPoints] = useState<TradingPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pointsLoading, setPointsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -25,11 +31,28 @@ export default function NetworksPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingNetwork, setDeletingNetwork] = useState<Network | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  
+  // Trading point dialogs state
+  const [pointCreateDialogOpen, setPointCreateDialogOpen] = useState(false);
+  const [pointEditDialogOpen, setPointEditDialogOpen] = useState(false);
+  const [editingTradingPoint, setEditingTradingPoint] = useState<TradingPoint | null>(null);
+  const [pointDeleteDialogOpen, setPointDeleteDialogOpen] = useState(false);
+  const [deletingTradingPoint, setDeletingTradingPoint] = useState<TradingPoint | null>(null);
+  const [pointActionLoading, setPointActionLoading] = useState<string | null>(null);
 
   // Load networks on component mount
   useEffect(() => {
     loadNetworks();
   }, []);
+
+  // Load trading points when selected network changes
+  useEffect(() => {
+    if (selectedNetworkId) {
+      loadTradingPoints(selectedNetworkId);
+    } else {
+      setTradingPoints([]);
+    }
+  }, [selectedNetworkId]);
 
   const loadNetworks = async () => {
     try {
@@ -50,6 +73,23 @@ export default function NetworksPage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTradingPoints = async (networkId: string) => {
+    try {
+      setPointsLoading(true);
+      const points = await tradingPointsRepo.getByNetworkId(networkId);
+      setTradingPoints(points);
+    } catch (error) {
+      console.error('Error loading trading points:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить торговые точки",
+        variant: "destructive"
+      });
+    } finally {
+      setPointsLoading(false);
     }
   };
 
@@ -146,28 +186,171 @@ export default function NetworksPage() {
       setDeletingNetwork(null);
     }
   };
-  
-  const tradingPoints = [
-    {
-      id: "1",
-      name: "АЗС №001 — Центральная",
-      code: "A001",
-      city: "Казань",
-      status: "Активный",
-      networkId: "2"
-    },
-    {
-      id: "2",
-      name: "АЗС №002 — Северная",
-      code: "A002",
-      city: "Казань",
-      status: "Активный",
-      networkId: "2"
-    },
-  ];
+
+  // Trading point handlers
+  const handlePointCreate = async (input: TradingPointInput) => {
+    if (!selectedNetworkId) return;
+
+    setPointActionLoading('create');
+    try {
+      const created = await tradingPointsRepo.create(selectedNetworkId, input);
+      setTradingPoints(prev => [created, ...prev]);
+      
+      // Update network points count
+      await loadNetworks();
+      
+      toast({
+        title: "Успешно",
+        description: "Торговая точка создана"
+      });
+    } catch (error) {
+      console.error('Error creating trading point:', error);
+      toast({
+        title: "Ошибка", 
+        description: "Не удалось создать торговую точку",
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setPointActionLoading(null);
+    }
+  };
+
+  const handlePointEdit = (point: TradingPoint) => {
+    setEditingTradingPoint(point);
+    setPointEditDialogOpen(true);
+  };
+
+  const handlePointUpdate = async (id: string, input: TradingPointUpdateInput) => {
+    setPointActionLoading('edit');
+    try {
+      const updated = await tradingPointsRepo.update(id, input);
+      setTradingPoints(prev => prev.map(p => p.id === id ? updated : p));
+      
+      toast({
+        title: "Успешно",
+        description: "Торговая точка обновлена"
+      });
+    } catch (error) {
+      console.error('Error updating trading point:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить торговую точку",
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setPointActionLoading(null);
+      setEditingTradingPoint(null);
+    }
+  };
+
+  const handlePointDelete = (point: TradingPoint) => {
+    setDeletingTradingPoint(point);
+    setPointDeleteDialogOpen(true);
+  };
+
+  const handlePointDeleteConfirm = async () => {
+    if (!deletingTradingPoint) return;
+
+    setPointActionLoading('delete');
+    try {
+      await tradingPointsRepo.delete(deletingTradingPoint.id);
+      setTradingPoints(prev => prev.filter(p => p.id !== deletingTradingPoint.id));
+      
+      // Update network points count
+      await loadNetworks();
+      
+      toast({
+        title: "Успешно",
+        description: "Торговая точка удалена"
+      });
+    } catch (error) {
+      console.error('Error deleting trading point:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить торговую точку",
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setPointActionLoading(null);
+      setDeletingTradingPoint(null);
+    }
+  };
+
+  // External codes handlers
+  const handlePointAddExternalCode = async (pointId: string, system: string, code: string, description?: string) => {
+    try {
+      const updated = await tradingPointsRepo.addExternalCode(pointId, system, code, description);
+      setTradingPoints(prev => prev.map(p => p.id === pointId ? updated : p));
+      
+      toast({
+        title: "Успешно",
+        description: "Внешний код добавлен"
+      });
+    } catch (error) {
+      console.error('Error adding external code:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить внешний код",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
+  const handlePointUpdateExternalCode = async (pointId: string, codeId: string, system: string, code: string, description?: string, isActive?: boolean) => {
+    try {
+      // Update external code through repository
+      const point = tradingPoints.find(p => p.id === pointId);
+      if (!point) return;
+
+      const updatedCodes = point.externalCodes.map(ec => 
+        ec.id === codeId 
+          ? { ...ec, system, code, description, isActive: isActive ?? ec.isActive, updatedAt: new Date() }
+          : ec
+      );
+      
+      const updatedPoint = { ...point, externalCodes: updatedCodes, updatedAt: new Date() };
+      setTradingPoints(prev => prev.map(p => p.id === pointId ? updatedPoint : p));
+      
+      toast({
+        title: "Успешно",
+        description: "Внешний код обновлен"
+      });
+    } catch (error) {
+      console.error('Error updating external code:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить внешний код",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
+  const handlePointRemoveExternalCode = async (pointId: string, codeId: string) => {
+    try {
+      const updated = await tradingPointsRepo.removeExternalCode(pointId, codeId);
+      setTradingPoints(prev => prev.map(p => p.id === pointId ? updated : p));
+      
+      toast({
+        title: "Успешно",
+        description: "Внешний код удален"
+      });
+    } catch (error) {
+      console.error('Error removing external code:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить внешний код",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
   
   const selectedNetwork = networks.find(n => n.id === selectedNetworkId);
-  const selectedNetworkPoints = tradingPoints.filter(p => p.networkId === selectedNetworkId);
 
   if (loading) {
     return (
@@ -265,35 +448,26 @@ export default function NetworksPage() {
                     <td className="px-6 py-4 text-right text-white font-medium">{network.pointsCount}</td>
                     <td className="px-6 py-4 text-right text-slate-400">Сегодня</td>
                     <td className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-white"
-                            disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-                          <DropdownMenuItem 
-                            onClick={() => handleEdit(network)}
-                            className="text-slate-200 hover:bg-slate-700"
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Редактировать
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator className="bg-slate-700" />
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(network)}
-                            className="text-rose-400 hover:bg-slate-700 focus:bg-slate-700"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Удалить
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                          onClick={() => handleEdit(network)}
+                          disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                          onClick={() => handleDelete(network)}
+                          disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -324,35 +498,26 @@ export default function NetworksPage() {
                         <span className="text-slate-400">Сегодня</span>
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
-                          disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-                        <DropdownMenuItem 
-                          onClick={() => handleEdit(network)}
-                          className="text-slate-200 hover:bg-slate-700"
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Редактировать
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-slate-700" />
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(network)}
-                          className="text-rose-400 hover:bg-slate-700 focus:bg-slate-700"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Удалить
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                        onClick={() => handleEdit(network)}
+                        disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                        onClick={() => handleDelete(network)}
+                        disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -374,8 +539,12 @@ export default function NetworksPage() {
               </h2>
             </div>
             {selectedNetworkId && (
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0">
-                + Добавить ТТ
+              <Button 
+                onClick={() => setPointCreateDialogOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить ТТ
               </Button>
             )}
           </div>
@@ -400,7 +569,7 @@ export default function NetworksPage() {
               className="py-16"
             />
           </div>
-        ) : selectedNetworkPoints.length === 0 ? (
+        ) : tradingPoints.length === 0 ? (
           <div className="px-6 pb-6">
             <EmptyState 
               title="В этой сети пока нет торговых точек" 
@@ -423,28 +592,56 @@ export default function NetworksPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-slate-800">
-                    {selectedNetworkPoints.map((point) => (
-                      <tr key={point.id} className="border-b border-slate-600 hover:bg-slate-700 transition-colors">
-                        <td className="px-6 py-4 text-white font-medium text-base">{point.name}</td>
-                        <td className="px-6 py-4 text-slate-400">{point.city}</td>
-                        <td className="px-6 py-4">
-                          <Badge className="bg-green-600 text-white">
-                            {point.status}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-right text-slate-400">30.08.2025</td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                    {pointsLoading ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                          Загрузка торговых точек...
                         </td>
                       </tr>
-                    ))}
+                    ) : tradingPoints.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                          Нет торговых точек в этой сети
+                        </td>
+                      </tr>
+                    ) : (
+                      tradingPoints.map((point) => (
+                        <tr key={point.id} className="border-b border-slate-600 hover:bg-slate-700 transition-colors">
+                          <td className="px-6 py-4 text-white font-medium text-base">{point.name}</td>
+                          <td className="px-6 py-4 text-slate-400">{point.geolocation.address || `${point.geolocation.city}`}</td>
+                          <td className="px-6 py-4">
+                            <Badge className={point.isBlocked ? "bg-red-600 text-white" : point.isActive ? "bg-green-600 text-white" : "bg-yellow-600 text-white"}>
+                              {point.isBlocked ? "Заблокирован" : point.isActive ? "Активный" : "Неактивный"}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-right text-slate-400">
+                            {point.updatedAt ? new Date(point.updatedAt).toLocaleDateString('ru-RU') : new Date(point.createdAt).toLocaleDateString('ru-RU')}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                                onClick={() => handlePointEdit(point)}
+                                disabled={pointActionLoading === `edit-${point.id}` || pointActionLoading === `delete-${point.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                                onClick={() => handlePointDelete(point)}
+                                disabled={pointActionLoading === `edit-${point.id}` || pointActionLoading === `delete-${point.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -452,33 +649,57 @@ export default function NetworksPage() {
 
             {/* Мобайл: карточки */}
             <div className="md:hidden space-y-3 px-6 pb-6">
-              {selectedNetworkPoints.map((point) => (
-                <div
-                  key={point.id}
-                  className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors"
-                >
+              {pointsLoading ? (
+                <div className="text-center text-slate-400 py-8">
+                  Загрузка торговых точек...
+                </div>
+              ) : tradingPoints.length === 0 ? (
+                <div className="text-center text-slate-400 py-8">
+                  Нет торговых точек в этой сети
+                </div>
+              ) : (
+                tradingPoints.map((point) => (
+                  <div
+                    key={point.id}
+                    className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors"
+                  >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-white text-base mb-1">{point.name}</div>
-                      <div className="text-sm text-slate-400 mb-2">{point.city}</div>
+                      <div className="text-sm text-slate-400 mb-2">{point.geolocation.address || point.geolocation.city}</div>
                       <div className="flex items-center gap-3 text-xs">
-                        <Badge className="bg-green-600 text-white">
-                          {point.status}
+                        <Badge className={point.isBlocked ? "bg-red-600 text-white" : point.isActive ? "bg-green-600 text-white" : "bg-yellow-600 text-white"}>
+                          {point.isBlocked ? "Заблокирован" : point.isActive ? "Активный" : "Неактивный"}
                         </Badge>
-                        <span className="text-slate-400">30.08.2025</span>
+                        <span className="text-slate-400">
+                          {point.updatedAt ? new Date(point.updatedAt).toLocaleDateString('ru-RU') : new Date(point.createdAt).toLocaleDateString('ru-RU')}
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                        onClick={() => handlePointEdit(point)}
+                        disabled={pointActionLoading === `edit-${point.id}` || pointActionLoading === `delete-${point.id}`}
+                      >
                         <Edit className="h-3 w-3" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                        onClick={() => handlePointDelete(point)}
+                        disabled={pointActionLoading === `edit-${point.id}` || pointActionLoading === `delete-${point.id}`}
+                      >
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}
@@ -507,6 +728,36 @@ export default function NetworksPage() {
         variant="destructive"
         loading={deleteLoading}
         onConfirm={confirmDelete}
+      />
+
+      {/* Trading Point Dialogs */}
+      <TradingPointCreateDialog
+        open={pointCreateDialogOpen}
+        onOpenChange={setPointCreateDialogOpen}
+        networkId={selectedNetworkId!}
+        onSubmit={handlePointCreate}
+      />
+      
+      <TradingPointEditDialog
+        open={pointEditDialogOpen}
+        onOpenChange={setPointEditDialogOpen}
+        tradingPoint={editingTradingPoint}
+        onSubmit={handlePointUpdate}
+        onAddExternalCode={handlePointAddExternalCode}
+        onUpdateExternalCode={handlePointUpdateExternalCode}
+        onRemoveExternalCode={handlePointRemoveExternalCode}
+      />
+      
+      <ConfirmDialog
+        open={pointDeleteDialogOpen}
+        onOpenChange={setPointDeleteDialogOpen}
+        title="Удалить торговую точку?"
+        description={`Вы действительно хотите удалить торговую точку "${deletingTradingPoint?.name}"? Это действие необратимо.`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+        variant="destructive"
+        loading={pointActionLoading === 'delete'}
+        onConfirm={handlePointDeleteConfirm}
       />
     </div>
   );
