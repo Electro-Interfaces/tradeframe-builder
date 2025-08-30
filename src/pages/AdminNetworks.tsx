@@ -231,7 +231,7 @@ const AdminNetworks = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="mx-auto max-w-7xl px-3 md:px-6 space-y-6">
+        <div className="w-full px-3 md:px-6 space-y-6">
           <div>
             <h1 className="text-2xl font-semibold mb-2">Сети и ТТ</h1>
             <p className="text-sm text-slate-400 mb-4">Управление торговыми сетями и торговыми точками</p>
@@ -245,7 +245,7 @@ const AdminNetworks = () => {
   if (error) {
     return (
       <MainLayout>
-        <div className="mx-auto max-w-7xl px-3 md:px-6 space-y-6">
+        <div className="w-full px-3 md:px-6 space-y-6">
           <div>
             <h1 className="text-2xl font-semibold mb-2">Сети и ТТ</h1>
             <p className="text-sm text-slate-400 mb-4">Управление торговыми сетями и торговыми точками</p>
@@ -258,7 +258,7 @@ const AdminNetworks = () => {
 
   return (
     <MainLayout>
-      <div className="mx-auto max-w-7xl px-3 md:px-6 space-y-6">
+      <div className="w-full px-3 md:px-6 space-y-6">
         {/* Шапка */}
         <div>
           <h1 className="text-2xl font-semibold mb-2">Сети и ТТ</h1>

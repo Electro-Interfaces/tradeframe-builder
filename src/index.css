@@ -112,6 +112,11 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Ensure app root uses full viewport width (override any template defaults) */
+  #root {
+    @apply w-full max-w-none m-0 p-0 text-left;
+  }
   
   /* Custom scrollbars */
   * {

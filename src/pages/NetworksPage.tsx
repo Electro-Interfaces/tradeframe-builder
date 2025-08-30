@@ -28,7 +28,7 @@ export default function NetworksPage() {
   const selectedNet = networks.find(n => n.id === selectedId);
 
   return (
-    <div className="w-full h-full p-4 text-base">
+    <div className="w-full min-w-0 h-full p-4 text-base">
       <h1 className="text-3xl font-semibold mb-1">Сети и ТТ</h1>
       <p className="text-sm text-slate-400 mb-4">Управление торговыми сетями и точками</p>
 
@@ -42,13 +42,13 @@ export default function NetworksPage() {
         </Button>
       </div>
 
-      <section className="w-full">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-[minmax(24rem,32rem)_1fr] gap-4">
+      <section className="w-full min-w-0">
+        <div className="w-full min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(24rem,32rem)_minmax(0,1fr)] gap-4">
           {/* ЛЕВАЯ КОЛОНКА — список сетей */}
-          <div className="panel w-full overflow-auto scroll-thin">
+          <div className="panel w-full min-w-0 overflow-auto scroll-thin">
           {/* Десктоп: таблица */}
           <div className="hidden md:block">
-            <table className="w-full table-auto text-sm">
+            <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="h-11 border-b border-slate-700">
                   <th className="text-left">Название</th>
@@ -108,7 +108,7 @@ export default function NetworksPage() {
         </div>
 
           {/* ПРАВАЯ КОЛОНКА — точки выбранной сети */}
-          <div className="panel w-full min-h-[24rem]">
+          <div className="panel w-full min-w-0 min-h-[24rem]">
             {!selectedId ? (
               <EmptyState title="Выберите сеть слева" />
             ) : (
@@ -119,8 +119,8 @@ export default function NetworksPage() {
                   </h2>
                   <Button className="h-10 rounded-lg">+ Создать точку</Button>
                 </div>
-                <div className="w-full overflow-auto scroll-thin">
-                  <table className="w-full table-auto text-sm">
+                <div className="w-full min-w-0 overflow-auto scroll-thin">
+                  <table className="w-full table-fixed text-sm">
                     <thead>
                       <tr className="h-11 border-b border-slate-700">
                         <th className="text-left">Название</th>
