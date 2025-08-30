@@ -42,12 +42,13 @@ export default function NetworksPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-4">
-        {/* ЛЕВАЯ КОЛОНКА — список сетей */}
-        <div className="panel overflow-auto scroll-thin">
+      <section className="w-full">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-[minmax(24rem,32rem)_1fr] gap-4">
+          {/* ЛЕВАЯ КОЛОНКА — список сетей */}
+          <div className="panel w-full overflow-auto scroll-thin">
           {/* Десктоп: таблица */}
           <div className="hidden md:block">
-            <table className="w-full text-sm">
+            <table className="w-full table-auto text-sm">
               <thead>
                 <tr className="h-11 border-b border-slate-700">
                   <th className="text-left">Название</th>
@@ -106,49 +107,49 @@ export default function NetworksPage() {
           </div>
         </div>
 
-        {/* ПРАВАЯ КОЛОНКА — точки выбранной сети */}
-        <div className="panel min-h-[24rem]">
-          {!selectedId ? (
-            <EmptyState title="Выберите сеть слева" />
-          ) : (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl font-semibold">
-                  Торговые точки — {selectedNet?.name ?? "…"}
-                </h2>
-                <Button className="h-10 rounded-lg">+ Создать точку</Button>
-              </div>
-              <div className="overflow-auto scroll-thin">
-                {/* Заглушка таблицы точек; заменим данными и колонками Название | Код | Город | Статус | Удобства | ⋯ */}
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="h-11 border-b border-slate-700">
-                      <th className="text-left">Название</th>
-                      <th className="text-left">Код</th>
-                      <th className="text-left">Город</th>
-                      <th className="text-left">Статус</th>
-                      <th className="w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[1, 2].map((i) => (
-                      <tr key={i} className="h-11 border-b border-slate-800">
-                        <td>АЗС №00{i} — Центральная</td>
-                        <td>A00{i}</td>
-                        <td>Казань</td>
-                        <td>
-                          <span className="badge success">Активный</span>
-                        </td>
-                        <td className="text-right">⋯</td>
+          {/* ПРАВАЯ КОЛОНКА — точки выбранной сети */}
+          <div className="panel w-full min-h-[24rem]">
+            {!selectedId ? (
+              <EmptyState title="Выберите сеть слева" />
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xl font-semibold">
+                    Торговые точки — {selectedNet?.name ?? "…"}
+                  </h2>
+                  <Button className="h-10 rounded-lg">+ Создать точку</Button>
+                </div>
+                <div className="w-full overflow-auto scroll-thin">
+                  <table className="w-full table-auto text-sm">
+                    <thead>
+                      <tr className="h-11 border-b border-slate-700">
+                        <th className="text-left">Название</th>
+                        <th className="text-left">Код</th>
+                        <th className="text-left">Город</th>
+                        <th className="text-left">Статус</th>
+                        <th className="w-10"></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
+                    </thead>
+                    <tbody>
+                      {[1, 2].map((i) => (
+                        <tr key={i} className="h-11 border-b border-slate-800">
+                          <td>АЗС №00{i} — Центральная</td>
+                          <td>A00{i}</td>
+                          <td>Казань</td>
+                          <td>
+                            <span className="badge success">Активный</span>
+                          </td>
+                          <td className="text-right">⋯</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
