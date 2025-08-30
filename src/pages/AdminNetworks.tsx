@@ -34,6 +34,7 @@ type SortOrder = 'asc' | 'desc';
 
 const AdminNetworks = () => {
   const { toast } = useToast();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   
   // Состояния загрузки и ошибок
   const [isLoading, setIsLoading] = useState(false);
@@ -259,7 +260,7 @@ const AdminNetworks = () => {
 
   return (
     <MainLayout>
-      <div className="w-full grid grid-cols-12 gap-6">
+      <div className="w-full space-y-6">
         <div className="col-span-12 xl:col-span-8 2xl:col-span-9">
         {/* Шапка */}
         <div>
@@ -401,7 +402,13 @@ const AdminNetworks = () => {
                 </thead>
                 <tbody>
                   {filteredAndSortedNetworks.map((network) => (
-                    <tr key={network.id} role="row">
+                    <tr
+                      key={network.id}
+                      role="row"
+                      onClick={() => setSelectedId(network.id)}
+                      className="cursor-pointer hover:bg-slate-800"
+                      aria-selected={selectedId === network.id}
+                    >
                       <td className="font-medium">{network.name}</td>
                       <td className="text-slate-400 max-w-xs truncate">
                         {network.description}
@@ -426,11 +433,43 @@ const AdminNetworks = () => {
         )}
         </div>
         </div>
-        <div className="col-span-12 xl:col-span-4 2xl:col-span-3">
+        <div className="hidden">
           <div className="panel w-full min-w-0 max-w-none min-h-[24rem]">
             <h2 className="text-lg font-semibold mb-2">Детали сети</h2>
             <p className="text-sm text-slate-400">Выберите сеть слева для просмотра деталей.</p>
           </div>
+        </div>
+        {/* Таблица: Торговые точки выбранной сети */}
+        <div className="panel w-full min-w-0 max-w-none min-h-[24rem]">
+          <h2 className="text-lg font-semibold mb-3">Торговые точки выбранной сети</h2>
+          {!selectedId ? (
+            <EmptyState title="Выберите сеть выше" />
+          ) : (
+            <div className="w-full min-w-0 max-w-none overflow-x-auto scroll-thin">
+              <table className="w-full table-fixed text-sm">
+                <thead>
+                  <tr className="h-11 border-b border-slate-700">
+                    <th className="text-left">Наименование</th>
+                    <th className="text-left">Код</th>
+                    <th className="text-left">Адрес</th>
+                    <th className="text-left">Статус</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1, 2, 3].map((i) => (
+                    <tr key={i} className="h-11 border-b border-slate-800">
+                      <td>АЗС №{String(i).padStart(3, '0')}</td>
+                      <td>A0{i}</td>
+                      <td>Город, Ул. Примерная, д. {i}</td>
+                      <td>
+                        <span className="badge success">Активна</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </MainLayout>
