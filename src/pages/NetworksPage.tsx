@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NetworkCreateDialog } from "@/components/dialogs/NetworkCreateDialog";
 import { NetworkEditDialog } from "@/components/dialogs/NetworkEditDialog";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Edit, Trash2, MapPin, MoreHorizontal } from "lucide-react";
 import { Network, NetworkInput } from "@/types/network";
@@ -20,6 +21,9 @@ export default function NetworksPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingNetwork, setEditingNetwork] = useState<Network | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingNetwork, setDeletingNetwork] = useState<Network | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Load networks on component mount
   useEffect(() => {
@@ -93,6 +97,42 @@ export default function NetworksPage() {
         variant: "destructive"
       });
       throw error; // Re-throw to let dialog handle loading state
+    }
+  };
+
+  const handleDelete = (network: Network) => {
+    setDeletingNetwork(network);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingNetwork) return;
+    
+    setDeleteLoading(true);
+    try {
+      await networksRepo.remove(deletingNetwork.id);
+      
+      // Remove from list and reset selection if it was selected
+      setNetworks(prev => prev.filter(n => n.id !== deletingNetwork.id));
+      if (selectedNetworkId === deletingNetwork.id) {
+        setSelectedNetworkId(null);
+      }
+      
+      toast({
+        title: "Успешно",
+        description: "Сеть и её торговые точки удалены"
+      });
+    } catch (error) {
+      console.error('Error deleting network:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить сеть",
+        variant: "destructive"
+      });
+      throw error; // Re-throw to let dialog handle error state
+    } finally {
+      setDeleteLoading(false);
+      setDeletingNetwork(null);
     }
   };
   
@@ -211,6 +251,7 @@ export default function NetworksPage() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="bg-slate-700" />
                           <DropdownMenuItem 
+                            onClick={() => handleDelete(network)}
                             className="text-rose-400 hover:bg-slate-700 focus:bg-slate-700"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
@@ -264,6 +305,7 @@ export default function NetworksPage() {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-slate-700" />
                     <DropdownMenuItem 
+                      onClick={() => handleDelete(network)}
                       className="text-rose-400 hover:bg-slate-700 focus:bg-slate-700"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
@@ -411,6 +453,18 @@ export default function NetworksPage() {
         onOpenChange={setEditDialogOpen}
         network={editingNetwork}
         onSubmit={handleUpdate}
+      />
+      
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Удалить сеть?"
+        description={`Вы действительно хотите удалить сеть "${deletingNetwork?.name}" и все её торговые точки? Это действие необратимо.`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+        variant="destructive"
+        loading={deleteLoading}
+        onConfirm={confirmDelete}
       />
     </div>
   );
