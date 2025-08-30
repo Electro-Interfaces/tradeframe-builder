@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -16,7 +16,8 @@ import { SkeletonTable } from "@/components/ui/skeleton-table";
 import { 
   ChevronUp,
   ChevronDown,
-  MoreHorizontal
+  MoreHorizontal,
+  Plus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -258,28 +259,14 @@ const AdminNetworks = () => {
 
   return (
     <MainLayout>
-      <div className="w-full px-3 md:px-6 space-y-6">
-        {/* Шапка */}
-        <div>
-          <h1 className="text-2xl font-semibold mb-2">Сети и ТТ</h1>
-          <p className="text-sm text-slate-400 mb-4">Управление торговыми сетями и торговыми точками</p>
-        </div>
-
-        {/* Строка управления */}
-        <div className="flex items-center justify-between gap-2 mb-3 sticky top-14 z-40 bg-slate-900/80 backdrop-blur">
-          <Input 
-            className="h-10 max-w-md" 
-            placeholder="Поиск сетей…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-foreground">Сети и ТТ</h1>
           <Dialog open={networkDialogOpen} onOpenChange={setNetworkDialogOpen}>
             <DialogTrigger asChild>
-              <Button 
-                className="h-10 rounded-lg bg-blue-600 hover:bg-blue-700"
-                onClick={() => openNetworkDialog()}
-              >
-                + Создать сеть
+              <Button onClick={() => openNetworkDialog()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Создать сеть
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-slate-800 border-slate-700">
@@ -336,93 +323,76 @@ const AdminNetworks = () => {
           </Dialog>
         </div>
 
-        {/* Контент */}
-        {filteredAndSortedNetworks.length === 0 && searchQuery === "" ? (
-          <EmptyState 
-            title="Сетей нет" 
-            cta={<Button onClick={() => openNetworkDialog()}>Создать сеть</Button>}
-          />
-        ) : filteredAndSortedNetworks.length === 0 ? (
-          <EmptyState 
-            title="Сети не найдены" 
-            description="Попробуйте изменить поисковый запрос"
-          />
-        ) : (
-          <>
-            {/* Мобильная версия - карточки */}
-            <div className="md:hidden space-y-2">
-              {filteredAndSortedNetworks.map(network => (
-                <Card key={network.id} className="p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{network.name}</div>
-                      <div className="text-xs text-slate-400 truncate">{network.description}</div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge variant="secondary">{network.type}</Badge>
-                        <span className="text-xs text-slate-400">Точек: {network.pointsCount}</span>
-                      </div>
-                    </div>
-                    <RowActions id={network.id.toString()} />
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            {/* Десктопная версия - таблица */}
-            <div className="panel table-condensed overflow-auto scroll-thin hidden md:block">
-              <table>
-                <thead>
-                  <tr>
-                    <th>
-                      <button
-                        className="flex items-center gap-1 hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/40 rounded"
-                        onClick={() => handleSort('name')}
-                        aria-label="Сортировать по названию"
-                      >
-                        Название
-                        {getSortIcon('name')}
-                      </button>
-                    </th>
-                    <th>Описание</th>
-                    <th>Тип</th>
-                    <th>
-                      <button
-                        className="flex items-center gap-1 hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/40 rounded"
-                        onClick={() => handleSort('pointsCount')}
-                        aria-label="Сортировать по количеству точек"
-                      >
-                        Точек
-                        {getSortIcon('pointsCount')}
-                      </button>
-                    </th>
-                    <th>Действия</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedNetworks.map((network) => (
-                    <tr key={network.id} role="row">
-                      <td className="font-medium">{network.name}</td>
-                      <td className="text-slate-400 max-w-xs truncate">
-                        {network.description}
-                      </td>
-                      <td>
-                        <Badge variant="secondary">
-                          {network.type}
-                        </Badge>
-                      </td>
-                      <td>
-                        <span className="font-mono tabular-nums">{network.pointsCount}</span>
-                      </td>
-                      <td>
-                        <RowActions id={network.id.toString()} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  <button
+                    className="flex items-center gap-1 hover:text-foreground"
+                    onClick={() => handleSort('name')}
+                  >
+                    Название
+                    {getSortIcon('name')}
+                  </button>
+                </TableHead>
+                <TableHead>Описание</TableHead>
+                <TableHead>Тип</TableHead>
+                <TableHead>
+                  <button
+                    className="flex items-center gap-1 hover:text-foreground"
+                    onClick={() => handleSort('pointsCount')}
+                  >
+                    Точек
+                    {getSortIcon('pointsCount')}
+                  </button>
+                </TableHead>
+                <TableHead className="w-[100px]">Действия</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAndSortedNetworks.length === 0 && searchQuery === "" ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    <EmptyState 
+                      title="Сетей нет" 
+                      cta={<Button onClick={() => openNetworkDialog()}>Создать сеть</Button>}
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : filteredAndSortedNetworks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    <EmptyState 
+                      title="Сети не найдены" 
+                      description="Попробуйте изменить поисковый запрос"
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredAndSortedNetworks.map((network) => (
+                  <TableRow key={network.id}>
+                    <TableCell className="font-medium">{network.name}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-xs truncate">
+                      {network.description}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {network.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono tabular-nums">{network.pointsCount}</span>
+                    </TableCell>
+                    <TableCell>
+                      <RowActions id={network.id.toString()} />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </MainLayout>
   );
