@@ -94,7 +94,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <div className="flex w-full pt-header">
             <AppSidebar selectedTradingPoint={selectedTradingPoint} />
             
-            <main className="flex-1 p-8">
+            <main className="flex-1 max-w-none w-full p-4 md:p-6">
               {children}
             </main>
           </div>
