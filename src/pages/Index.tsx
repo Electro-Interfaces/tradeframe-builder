@@ -16,7 +16,7 @@ import {
 const Index = () => {
   return (
     <MainLayout>
-      <div className="space-y-8">
+      <div className="mx-auto max-w-7xl px-3 md:px-6 space-y-8">
         {/* Header */}
         <div className="space-y-2">
           <h1 className="text-4xl font-bold text-foreground">Главная панель</h1>
@@ -26,58 +26,42 @@ const Index = () => {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="shadow-soft border-border/50 hover:shadow-medium transition-shadow">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Network className="h-4 w-4" />
-                Активные сети
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">24</div>
-              <p className="text-xs text-success mt-1">+2 за неделю</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="panel h-28 flex flex-col justify-between">
+            <div className="text-xs text-slate-300 flex items-center gap-2">
+              <Network className="h-4 w-4" />
+              Активные сети
+            </div>
+            <div className="text-3xl font-bold">24</div>
+            <div className="text-xs text-emerald-400">+2 за неделю</div>
+          </div>
 
-          <Card className="shadow-soft border-border/50 hover:shadow-medium transition-shadow">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Торговые точки
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">156</div>
-              <p className="text-xs text-success mt-1">+5 за месяц</p>
-            </CardContent>
-          </Card>
+          <div className="panel h-28 flex flex-col justify-between">
+            <div className="text-xs text-slate-300 flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Торговые точки
+            </div>
+            <div className="text-3xl font-bold">156</div>
+            <div className="text-xs text-emerald-400">+5 за месяц</div>
+          </div>
 
-          <Card className="shadow-soft border-border/50 hover:shadow-medium transition-shadow">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                Выручка за день
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">2.4М ₽</div>
-              <p className="text-xs text-success mt-1">+12% к вчера</p>
-            </CardContent>
-          </Card>
+          <div className="panel h-28 flex flex-col justify-between">
+            <div className="text-xs text-slate-300 flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Выручка за день
+            </div>
+            <div className="text-3xl font-bold">2.4М ₽</div>
+            <div className="text-xs text-emerald-400">+12% к вчера</div>
+          </div>
 
-          <Card className="shadow-soft border-border/50 hover:shadow-medium transition-shadow">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Активные оповещения
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-warning">3</div>
-              <p className="text-xs text-muted-foreground mt-1">Требуют внимания</p>
-            </CardContent>
-          </Card>
+          <div className="panel h-28 flex flex-col justify-between">
+            <div className="text-xs text-slate-300 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Активные оповещения
+            </div>
+            <div className="text-3xl font-bold text-amber-400">3</div>
+            <div className="text-xs text-slate-400">Требуют внимания</div>
+          </div>
         </div>
 
         {/* Main Widgets Grid */}
