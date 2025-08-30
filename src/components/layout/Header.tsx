@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
@@ -34,6 +35,7 @@ export function Header({
   onMobileMenuToggle,
   isMobile = false
 }: HeaderProps) {
+  const navigate = useNavigate();
   const networks = [
     { value: "network1", label: "Сеть АЗС №1" },
     { value: "network2", label: "Сеть АЗС №2" },
@@ -172,7 +174,7 @@ export function Header({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
                 <User className="mr-2 h-4 w-4" />
                 Профиль
               </DropdownMenuItem>
