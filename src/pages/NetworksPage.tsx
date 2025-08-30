@@ -18,7 +18,7 @@ export default function NetworksPage() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-none">
       <h1 className="text-2xl font-semibold mb-2">Сети и ТТ</h1>
       <p className="text-sm text-slate-400 mb-4">Управление торговыми сетями и точками</p>
 
@@ -27,7 +27,7 @@ export default function NetworksPage() {
         <Button className="h-10 rounded-lg">+ Создать сеть</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(22rem,28rem)_1fr] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(22rem,28rem)_1fr] gap-4">
         {/* ЛЕВАЯ КОЛОНКА — список сетей */}
         <div className="panel overflow-auto scroll-thin">
           {/* Десктоп: таблица */}
