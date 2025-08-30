@@ -1,33 +1,71 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { NetworkCreateDialog } from "@/components/dialogs/NetworkCreateDialog";
 import { Edit, Trash2, MapPin } from "lucide-react";
+import { Network, NetworkInput } from "@/types/network";
+import { networksRepo } from "@/repositories";
+import { useToast } from "@/hooks/use-toast";
 
 export default function NetworksPage() {
-  const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>("2");
+  const { toast } = useToast();
+  const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [networks, setNetworks] = useState<Network[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // Временные данные для заглушки
-  const networks = [
-    { 
-      id: "1", 
-      name: "Демо сеть АЗС", 
-      description: "Демонстрационная сеть заправочных станций",
-      type: "АЗС",
-      pointsCount: 0,
-      updated: "30.08.2025"
-    },
-    { 
-      id: "2", 
-      name: "Норд Лайн", 
-      description: "Сеть заправочных станций Норд Лайн",
-      type: "АЗС",
-      pointsCount: 0,
-      updated: "30.08.2025"
-    },
-  ];
+  // Load networks on component mount
+  useEffect(() => {
+    loadNetworks();
+  }, []);
+
+  const loadNetworks = async () => {
+    try {
+      setLoading(true);
+      const data = await networksRepo.list();
+      setNetworks(data);
+      
+      // Set first network as selected if none selected
+      if (!selectedNetworkId && data.length > 0) {
+        setSelectedNetworkId(data[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading networks:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить список сетей",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async (input: NetworkInput) => {
+    try {
+      const created = await networksRepo.create(input);
+      setNetworks(prev => [created, ...prev]);
+      
+      toast({
+        title: "Успешно",
+        description: "Сеть создана"
+      });
+      
+      // Select the newly created network
+      setSelectedNetworkId(created.id);
+    } catch (error) {
+      console.error('Error creating network:', error);
+      toast({
+        title: "Ошибка", 
+        description: "Не удалось создать сеть",
+        variant: "destructive"
+      });
+      throw error; // Re-throw to let dialog handle loading state
+    }
+  };
   
   const tradingPoints = [
     {
@@ -51,6 +89,21 @@ export default function NetworksPage() {
   const selectedNetwork = networks.find(n => n.id === selectedNetworkId);
   const selectedNetworkPoints = tradingPoints.filter(p => p.networkId === selectedNetworkId);
 
+  if (loading) {
+    return (
+      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+        <div className="mb-6 px-6 pt-4">
+          <h1 className="text-2xl font-semibold text-white">Настройки сетей и торговых точек</h1>
+        </div>
+        <div className="bg-slate-800 mb-6 w-full">
+          <div className="px-6 py-4">
+            <div className="text-white">Загрузка...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
       {/* Заголовок страницы */}
@@ -68,7 +121,10 @@ export default function NetworksPage() {
               </div>
               <h2 className="text-lg font-semibold text-white">Торговые сети</h2>
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0">
+            <Button 
+              onClick={() => setCreateDialogOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+            >
               + Создать сеть
             </Button>
           </div>
@@ -107,8 +163,8 @@ export default function NetworksPage() {
                         {network.type}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 text-right text-white font-medium">{selectedNetworkPoints.length}</td>
-                    <td className="px-6 py-4 text-right text-slate-400">{network.updated}</td>
+                    <td className="px-6 py-4 text-right text-white font-medium">{network.pointsCount}</td>
+                    <td className="px-6 py-4 text-right text-slate-400">Сегодня</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
@@ -144,8 +200,8 @@ export default function NetworksPage() {
                     <Badge variant="secondary" className="bg-slate-600 text-slate-200">
                       {network.type}
                     </Badge>
-                    <span className="text-slate-400">Точек: {selectedNetworkPoints.length}</span>
-                    <span className="text-slate-400">{network.updated}</span>
+                    <span className="text-slate-400">Точек: {network.pointsCount}</span>
+                    <span className="text-slate-400">Сегодня</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -284,6 +340,12 @@ export default function NetworksPage() {
           </div>
         )}
       </div>
+      
+      <NetworkCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSubmit={handleCreate}
+      />
     </div>
   );
 }
