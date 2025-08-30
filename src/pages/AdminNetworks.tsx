@@ -259,7 +259,8 @@ const AdminNetworks = () => {
 
   return (
     <MainLayout>
-      <div className="w-full space-y-6">
+      <div className="w-full grid grid-cols-12 gap-6">
+        <div className="col-span-12 xl:col-span-8 2xl:col-span-9">
         {/* Шапка */}
         <div>
           <h1 className="text-2xl font-semibold mb-2">Сети и ТТ</h1>
@@ -269,7 +270,7 @@ const AdminNetworks = () => {
         {/* Строка управления */}
         <div className="flex items-center justify-between gap-2 mb-3 sticky top-14 z-40 bg-slate-900/80 backdrop-blur">
           <Input 
-            className="h-10 max-w-md" 
+            className="h-10 w-full" 
             placeholder="Поиск сетей…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -336,6 +337,7 @@ const AdminNetworks = () => {
         </div>
 
         {/* Контент */}
+        <div className="panel w-full min-w-0 max-w-none min-h-[24rem]">
         {filteredAndSortedNetworks.length === 0 && searchQuery === "" ? (
           <EmptyState 
             title="Сетей нет" 
@@ -368,8 +370,8 @@ const AdminNetworks = () => {
             </div>
 
             {/* Десктопная версия - таблица */}
-            <div className="w-full max-w-none border rounded-lg table-condensed overflow-x-auto scroll-thin hidden md:block">
-              <table>
+            <div className="w-full min-w-0 max-w-none overflow-x-auto scroll-thin border rounded-lg table-condensed hidden md:block">
+              <table className="w-full table-fixed text-sm">
                 <thead>
                   <tr>
                     <th>
@@ -422,6 +424,14 @@ const AdminNetworks = () => {
             </div>
           </>
         )}
+        </div>
+        </div>
+        <div className="col-span-12 xl:col-span-4 2xl:col-span-3">
+          <div className="panel w-full min-w-0 max-w-none min-h-[24rem]">
+            <h2 className="text-lg font-semibold mb-2">Детали сети</h2>
+            <p className="text-sm text-slate-400">Выберите сеть слева для просмотра деталей.</p>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

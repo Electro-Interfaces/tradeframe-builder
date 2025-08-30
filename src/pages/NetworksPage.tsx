@@ -42,12 +42,14 @@ export default function NetworksPage() {
         </Button>
       </div>
 
-      <section className="w-full min-w-0">
-        <div className="w-full min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(24rem,32rem)_minmax(0,1fr)] gap-4">
+      <section className="w-full">
+        <div className="w-full grid grid-cols-12 gap-6">
+          <div className="col-span-12 xl:col-span-8 2xl:col-span-9">
           {/* ЛЕВАЯ КОЛОНКА — список сетей */}
-          <div className="panel w-full min-w-0 overflow-auto scroll-thin">
+          <div className="panel w-full min-w-0 max-w-none min-h-[24rem]">
           {/* Десктоп: таблица */}
           <div className="hidden md:block">
+            <div className="w-full min-w-0 max-w-none overflow-x-auto scroll-thin">
             <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="h-11 border-b border-slate-700">
@@ -79,6 +81,7 @@ export default function NetworksPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Мобайл: карточки */}
@@ -108,7 +111,9 @@ export default function NetworksPage() {
         </div>
 
           {/* ПРАВАЯ КОЛОНКА — точки выбранной сети */}
-          <div className="panel w-full min-w-0 min-h-[24rem]">
+          </div>
+          <div className="col-span-12 xl:col-span-4 2xl:col-span-3">
+            <div className="panel w-full min-w-0 max-w-none min-h-[24rem]">
             {!selectedId ? (
               <EmptyState title="Выберите сеть слева" />
             ) : (
@@ -119,7 +124,7 @@ export default function NetworksPage() {
                   </h2>
                   <Button className="h-10 rounded-lg">+ Создать точку</Button>
                 </div>
-                <div className="w-full min-w-0 overflow-auto scroll-thin">
+                <div className="w-full min-w-0 max-w-none overflow-x-auto scroll-thin">
                   <table className="w-full table-fixed text-sm">
                     <thead>
                       <tr className="h-11 border-b border-slate-700">
@@ -147,6 +152,7 @@ export default function NetworksPage() {
                 </div>
               </>
             )}
+            </div>
           </div>
         </div>
       </section>

@@ -85,7 +85,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               </Select>
             </div>
             
-            <main className="px-4 pb-6">
+            <main className="w-full px-4 md:px-6 lg:px-8">
               {children}
             </main>
           </>
@@ -94,7 +94,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <div className="flex w-full pt-header">
             <AppSidebar selectedTradingPoint={selectedTradingPoint} />
             
-            <main className="flex-1 max-w-none w-full">
+            <main className="w-full px-4 md:px-6 lg:px-8">
               {children}
             </main>
           </div>
@@ -113,7 +113,7 @@ export function SimpleLayout({ children }: { children: React.ReactNode }) {
           <h1 className="text-lg font-semibold text-white">TradeControl</h1>
         </div>
       </header>
-      <main className="flex-1 min-w-0 w-full px-4 md:px-6 py-4">
+      <main className="w-full px-4 md:px-6 lg:px-8">
         {children}
       </main>
     </>
