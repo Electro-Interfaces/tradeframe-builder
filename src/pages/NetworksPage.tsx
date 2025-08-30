@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NetworkCreateDialog } from "@/components/dialogs/NetworkCreateDialog";
-import { Edit, Trash2, MapPin } from "lucide-react";
+import { NetworkEditDialog } from "@/components/dialogs/NetworkEditDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Edit, Trash2, MapPin, MoreHorizontal } from "lucide-react";
 import { Network, NetworkInput } from "@/types/network";
 import { networksRepo } from "@/repositories";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +18,8 @@ export default function NetworksPage() {
   const [networks, setNetworks] = useState<Network[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingNetwork, setEditingNetwork] = useState<Network | null>(null);
 
   // Load networks on component mount
   useEffect(() => {
@@ -61,6 +65,31 @@ export default function NetworksPage() {
       toast({
         title: "Ошибка", 
         description: "Не удалось создать сеть",
+        variant: "destructive"
+      });
+      throw error; // Re-throw to let dialog handle loading state
+    }
+  };
+
+  const handleEdit = (network: Network) => {
+    setEditingNetwork(network);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (id: string, input: NetworkInput) => {
+    try {
+      const updated = await networksRepo.update(id, input);
+      setNetworks(prev => prev.map(n => n.id === id ? updated : n));
+      
+      toast({
+        title: "Успешно",
+        description: "Сеть обновлена"
+      });
+    } catch (error) {
+      console.error('Error updating network:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить сеть", 
         variant: "destructive"
       });
       throw error; // Re-throw to let dialog handle loading state
@@ -166,14 +195,29 @@ export default function NetworksPage() {
                     <td className="px-6 py-4 text-right text-white font-medium">{network.pointsCount}</td>
                     <td className="px-6 py-4 text-right text-slate-400">Сегодня</td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                          <DropdownMenuItem 
+                            onClick={() => handleEdit(network)}
+                            className="text-slate-200 hover:bg-slate-700"
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Редактировать
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-slate-700" />
+                          <DropdownMenuItem 
+                            className="text-rose-400 hover:bg-slate-700 focus:bg-slate-700"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Удалить
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))}
@@ -204,14 +248,29 @@ export default function NetworksPage() {
                     <span className="text-slate-400">Сегодня</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                    <DropdownMenuItem 
+                      onClick={() => handleEdit(network)}
+                      className="text-slate-200 hover:bg-slate-700"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Редактировать
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-slate-700" />
+                    <DropdownMenuItem 
+                      className="text-rose-400 hover:bg-slate-700 focus:bg-slate-700"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Удалить
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}
@@ -345,6 +404,13 @@ export default function NetworksPage() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSubmit={handleCreate}
+      />
+      
+      <NetworkEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        network={editingNetwork}
+        onSubmit={handleUpdate}
       />
     </div>
   );
