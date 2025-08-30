@@ -22,9 +22,14 @@ export default function NetworksPage() {
       <h1 className="text-3xl font-semibold mb-1">Сети и ТТ</h1>
       <p className="text-sm text-slate-400 mb-4">Управление торговыми сетями и точками</p>
 
-      <div className="grid grid-cols-[1fr_auto] gap-3 mb-3">
-        <Input className="h-10 w-full" placeholder="Поиск сетей…" />
-        <Button className="h-10 rounded-lg">+ Создать сеть</Button>
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mb-4">
+        <Input
+          className="h-10 w-full"
+          placeholder="Поиск сетей…"
+        />
+        <Button className="h-10 rounded-lg md:w-auto w-full">
+          + Создать сеть
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(22rem,28rem)_1fr] gap-4">
