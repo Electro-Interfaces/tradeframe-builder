@@ -72,9 +72,9 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
           <DialogTitle className="text-white">Создать сеть</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="name" className="text-slate-200">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-slate-200 block">
               Название сети <span className="text-red-400">*</span>
             </Label>
             <Input
@@ -89,8 +89,8 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
             )}
           </div>
 
-          <div>
-            <Label htmlFor="description" className="text-slate-200">Описание</Label>
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-slate-200 block">Описание</Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -100,8 +100,8 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
             />
           </div>
 
-          <div>
-            <Label htmlFor="type" className="text-slate-200">Тип сети</Label>
+          <div className="space-y-2">
+            <Label htmlFor="type" className="text-slate-200 block">Тип сети</Label>
             <Select 
               value={formData.type} 
               onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
@@ -118,7 +118,7 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
             </Select>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-3 pt-6">
             <Button 
               variant="outline" 
               onClick={handleCancel}
