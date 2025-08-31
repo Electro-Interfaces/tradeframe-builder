@@ -54,7 +54,6 @@ export interface TradingPoint {
   phone?: string;
   email?: string;
   website?: string;
-  isActive: boolean;
   isBlocked: boolean;
   blockReason?: string;
   schedule?: TradingPointSchedule;
@@ -71,7 +70,6 @@ export interface TradingPointInput {
   phone?: string;
   email?: string;
   website?: string;
-  isActive: boolean;
   isBlocked?: boolean;
   schedule?: TradingPointSchedule;
   services?: TradingPointServices;

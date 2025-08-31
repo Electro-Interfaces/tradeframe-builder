@@ -3,44 +3,36 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { tradingPointsStore } from "@/mock/tradingPointsStore";
 import { Menu, MapPin } from "lucide-react";
 import { Header } from "./Header";
 import { AppSidebar } from "./AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSelection } from "@/context/SelectionContext";
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const [selectedNetwork, setSelectedNetwork] = useState("");
-  const [selectedTradingPoint, setSelectedTradingPoint] = useState("");
+  const { selectedNetwork, setSelectedNetwork, selectedTradingPoint, setSelectedTradingPoint } = useSelection();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const handleNetworkChange = (value: string) => {
     setSelectedNetwork(value);
-    // Reset trading point when network changes
-    if (selectedTradingPoint) {
-      setSelectedTradingPoint("");
-    }
   };
 
   const handleTradingPointChange = (value: string) => {
     setSelectedTradingPoint(value);
   };
 
-  const tradingPoints = [
-    { value: "point1", label: "АЗС №001 - Центральная" },
-    { value: "point2", label: "АЗС №002 - Северная" },
-    { value: "point3", label: "АЗС №003 - Южная" },
-  ];
 
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-background text-foreground">
         <Header
-          selectedNetwork={selectedNetwork}
+          selectedNetwork={selectedNetwork?.id || ""}
           selectedTradingPoint={selectedTradingPoint}
           onNetworkChange={handleNetworkChange}
           onTradingPointChange={handleTradingPointChange}
@@ -72,13 +64,13 @@ export function MainLayout({ children }: MainLayoutProps) {
                   />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-700 border-gray-600">
-                  {tradingPoints.map((point) => (
+                  {tradingPointsStore.getByNetworkId(selectedNetwork?.id || "").map((point) => (
                     <SelectItem 
-                      key={point.value} 
-                      value={point.value}
+                      key={point.id} 
+                      value={point.id}
                       className="text-white hover:bg-gray-600 focus:bg-blue-600"
                     >
-                      {point.label}
+                      {point.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

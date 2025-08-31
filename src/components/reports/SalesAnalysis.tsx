@@ -59,13 +59,13 @@ const mockTransactionData = [
 ];
 
 interface SalesAnalysisProps {
-  isNetworkOnly: boolean;
-  isTradingPointSelected: boolean;
   selectedNetwork: string | null;
   selectedTradingPoint: string | null;
 }
 
-export function SalesAnalysis({ isNetworkOnly, isTradingPointSelected }: SalesAnalysisProps) {
+export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAnalysisProps) {
+  const isNetworkOnly = selectedNetwork && !selectedTradingPoint;
+  const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
   const [dateFrom, setDateFrom] = useState("2024-12-01");
   const [dateTo, setDateTo] = useState("2024-12-07");
   const [groupBy, setGroupBy] = useState("days");
@@ -102,39 +102,49 @@ export function SalesAnalysis({ isNetworkOnly, isTradingPointSelected }: SalesAn
   return (
     <div className="space-y-6">
       {/* Filters Panel */}
-      <Card>
-        <CardHeader className={isMobile ? 'pb-3' : ''}>
-          <CardTitle className={`${isMobile ? 'text-lg' : 'text-xl'}`}>Фильтры</CardTitle>
-          <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>
-            Настройте период и параметры анализа {isTradingPointSelected ? 'для торговой точки' : 'для сети'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className={`${isMobile ? 'flex flex-col gap-3' : 'flex flex-wrap gap-4 items-end'}`}>
-            <div className={`grid w-full ${isMobile ? '' : 'max-w-sm'} items-center gap-1.5`}>
-              <Label htmlFor="dateFrom" className={isMobile ? 'text-sm' : ''}>Дата начала</Label>
+      <div className="bg-slate-800 border border-slate-600 rounded-lg">
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm">⚙️</span>
+            </div>
+            <h2 className="text-lg font-semibold text-white">Фильтры анализа</h2>
+            <div className="text-sm text-slate-400">
+              {isTradingPointSelected ? 'Для торговой точки' : 'Для сети'}
+            </div>
+          </div>
+          
+          {/* Фильтры */}
+          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-4'}`}>
+            {/* Дата начала */}
+            <div>
+              <Label htmlFor="dateFrom" className="text-sm text-slate-400 mb-2 block">Дата начала</Label>
               <Input
                 id="dateFrom"
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className={isMobile ? 'text-sm' : ''}
+                className="bg-slate-700 border-slate-600 text-white"
               />
             </div>
-            <div className={`grid w-full ${isMobile ? '' : 'max-w-sm'} items-center gap-1.5`}>
-              <Label htmlFor="dateTo" className={isMobile ? 'text-sm' : ''}>Дата окончания</Label>
+            
+            {/* Дата окончания */}
+            <div>
+              <Label htmlFor="dateTo" className="text-sm text-slate-400 mb-2 block">Дата окончания</Label>
               <Input
                 id="dateTo"
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className={isMobile ? 'text-sm' : ''}
+                className="bg-slate-700 border-slate-600 text-white"
               />
             </div>
-            <div className={`grid w-full ${isMobile ? '' : 'max-w-sm'} items-center gap-1.5`}>
-              <Label className={isMobile ? 'text-sm' : ''}>Группировка</Label>
+            
+            {/* Группировка */}
+            <div>
+              <Label className="text-sm text-slate-400 mb-2 block">Группировка</Label>
               <Select value={groupBy} onValueChange={setGroupBy}>
-                <SelectTrigger className={isMobile ? 'text-sm' : ''}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                   <SelectValue placeholder="Выберите группировку" />
                 </SelectTrigger>
                 <SelectContent>
@@ -144,143 +154,168 @@ export function SalesAnalysis({ isNetworkOnly, isTradingPointSelected }: SalesAn
                 </SelectContent>
               </Select>
             </div>
-            <Button 
-              onClick={handleApplyFilters}
-              className={`transition-colors duration-200 flex items-center gap-2 ${isMobile ? 'w-full justify-center py-3' : ''}`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              {!isMobile && <span>Применить</span>}
-              {isMobile && <span>Применить фильтры</span>}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* KPI Cards */}
-      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-5'}`}>
-        <Card>
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobile ? 'pb-2' : 'pb-2'}`}>
-            <CardTitle className={`${isMobile ? 'text-sm' : 'text-sm'} font-medium`}>
-              {isTradingPointSelected ? 'Выручка точки' : 'Общая выручка'}
-            </CardTitle>
-            <DollarSign className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-green-500`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold`}>
-              {formatCurrency(isTradingPointSelected ? mockKpiData.totalRevenue / 5 : mockKpiData.totalRevenue)}
+            
+            {/* Применить */}
+            <div>
+              <Label className="text-sm text-slate-400 mb-2 block">Применить</Label>
+              <Button 
+                onClick={handleApplyFilters}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Применить
+              </Button>
             </div>
-            <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-green-600`}>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards as Individual Tiles */}
+      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-5'}`}>
+        {/* Общая выручка */}
+        <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <DollarSign className="h-8 w-8 text-green-400" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400">{isTradingPointSelected ? 'Выручка точки' : 'Общая выручка'}</p>
+            <p className="text-3xl font-bold text-white">
+              {formatCurrency(isTradingPointSelected ? mockKpiData.totalRevenue / 5 : mockKpiData.totalRevenue)}
+            </p>
+            <p className="text-xs text-green-400">
               +12.5% к предыдущему периоду
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobile ? 'pb-2' : 'pb-2'}`}>
-            <CardTitle className={`${isMobile ? 'text-sm' : 'text-sm'} font-medium`}>
-              Транзакции
-            </CardTitle>
-            <Users className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-blue-500`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`${isMobile ? 'text-xl' : 'text-xl'} font-bold`}>
+          </div>
+        </div>
+
+        {/* Транзакции */}
+        <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <Users className="h-8 w-8 text-blue-400" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400">Транзакции</p>
+            <p className="text-3xl font-bold text-white">
               {(isTradingPointSelected ? Math.floor(mockKpiData.totalTransactions / 5) : mockKpiData.totalTransactions).toLocaleString()}
-            </div>
-            <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-blue-600`}>
+            </p>
+            <p className="text-xs text-blue-400">
               +8.1% к предыдущему периоду
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobile ? 'pb-2' : 'pb-2'}`}>
-            <CardTitle className={`${isMobile ? 'text-sm' : 'text-sm'} font-medium`}>
-              Топлива отпущено
-            </CardTitle>
-            <Fuel className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-orange-500`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`${isMobile ? 'text-xl' : 'text-xl'} font-bold`}>
+          </div>
+        </div>
+
+        {/* Топлива отпущено */}
+        <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <Fuel className="h-8 w-8 text-orange-400" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400">Топлива отпущено</p>
+            <p className="text-3xl font-bold text-white">
               {(isTradingPointSelected ? Math.floor(mockKpiData.totalFuelLiters / 5) : mockKpiData.totalFuelLiters).toLocaleString()} л
-            </div>
-            <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-orange-600`}>
+            </p>
+            <p className="text-xs text-orange-400">
               +5.3% к предыдущему периоду
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobile ? 'pb-2' : 'pb-2'}`}>
-            <CardTitle className={`${isMobile ? 'text-sm' : 'text-sm'} font-medium`}>
-              Средний чек
-            </CardTitle>
-            <TrendingUp className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-purple-500`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`${isMobile ? 'text-xl' : 'text-xl'} font-bold`}>
+          </div>
+        </div>
+
+        {/* Средний чек */}
+        <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <TrendingUp className="h-8 w-8 text-purple-400" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400">Средний чек</p>
+            <p className="text-3xl font-bold text-white">
               {formatCurrency(mockKpiData.averageTicket)}
-            </div>
-            <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-purple-600`}>
+            </p>
+            <p className="text-xs text-purple-400">
               +3.7% к предыдущему периоду
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobile ? 'pb-2' : 'pb-2'}`}>
-            <CardTitle className={`${isMobile ? 'text-sm' : 'text-sm'} font-medium`}>
-              Доля безналичных
-            </CardTitle>
-            <CreditCard className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-cyan-500`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`${isMobile ? 'text-xl' : 'text-xl'} font-bold`}>
+          </div>
+        </div>
+
+        {/* Доля безналичных */}
+        <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <CreditCard className="h-8 w-8 text-cyan-400" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-400">Доля безналичных</p>
+            <p className="text-3xl font-bold text-white">
               {mockKpiData.cashlessPercentage}%
-            </div>
-            <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-cyan-600`}>
+            </p>
+            <p className="text-xs text-cyan-400">
               +2.1% к предыдущему периоду
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Analysis Tabs */}
       <Tabs defaultValue="structure" className="space-y-4">
         {isMobile ? (
-          <TabsList className="grid w-full grid-cols-2 h-auto gap-2">
+          <TabsList className="grid w-full grid-cols-2 h-auto gap-2 bg-slate-700 border border-slate-600 p-1">
             <TabsTrigger 
               value="structure" 
-              className="text-xs py-2 px-1 data-[state=active]:bg-primary"
+              className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
             >
-              Структура
+              📊 Структура
             </TabsTrigger>
             <TabsTrigger 
               value="trends"
-              className="text-xs py-2 px-1 data-[state=active]:bg-primary"
+              className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
             >
-              Тренды
+              📈 Тренды
             </TabsTrigger>
             {isNetworkOnly && (
               <>
                 <TabsTrigger 
                   value="stations"
-                  className="text-xs py-2 px-1 data-[state=active]:bg-primary"
+                  className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
                 >
-                  Сравнение ТТ
+                  🏪 Сравнение ТТ
                 </TabsTrigger>
                 <TabsTrigger 
                   value="transactions"
-                  className="text-xs py-2 px-1 data-[state=active]:bg-primary"
+                  className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
                 >
-                  Транзакции
+                  🧾 Транзакции
                 </TabsTrigger>
               </>
             )}
           </TabsList>
         ) : (
-          <TabsList>
-            <TabsTrigger value="structure">Структура продаж</TabsTrigger>
-            <TabsTrigger value="trends">Динамика (Тренды)</TabsTrigger>
-            {isNetworkOnly && <TabsTrigger value="stations">Сравнение торговых точек</TabsTrigger>}
-            <TabsTrigger value="transactions">Детализация транзакций</TabsTrigger>
+          <TabsList className="bg-slate-700 border border-slate-600 h-auto p-1">
+            <TabsTrigger 
+              value="structure" 
+              className="text-white font-medium px-6 py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+            >
+              📊 Структура продаж
+            </TabsTrigger>
+            <TabsTrigger 
+              value="trends" 
+              className="text-white font-medium px-6 py-3 data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+            >
+              📈 Динамика (Тренды)
+            </TabsTrigger>
+            {isNetworkOnly && (
+              <TabsTrigger 
+                value="stations" 
+                className="text-white font-medium px-6 py-3 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+              >
+                🏪 Сравнение торговых точек
+              </TabsTrigger>
+            )}
+            <TabsTrigger 
+              value="transactions" 
+              className="text-white font-medium px-6 py-3 data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+            >
+              🧾 Детализация транзакций
+            </TabsTrigger>
           </TabsList>
         )}
         
@@ -297,10 +332,14 @@ export function SalesAnalysis({ isNetworkOnly, isTradingPointSelected }: SalesAn
             </Button>
           </div>
           
-          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
-            <Card>
-              <CardHeader className={isMobile ? 'pb-3' : ''}>
-                <CardTitle className={`${isMobile ? 'text-base' : ''}`}>Разрез по видам топлива</CardTitle>
+          <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
+            {/* Разрез по видам топлива */}
+            <Card className="bg-slate-800 border border-slate-600">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Fuel className="h-5 w-5 text-orange-400" />
+                  Разрез по видам топлива
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
@@ -325,9 +364,13 @@ export function SalesAnalysis({ isNetworkOnly, isTradingPointSelected }: SalesAn
               </CardContent>
             </Card>
             
-            <Card>
-              <CardHeader className={isMobile ? 'pb-3' : ''}>
-                <CardTitle className={`${isMobile ? 'text-base' : ''}`}>Разрез по способам оплаты</CardTitle>
+            {/* Разрез по способам оплаты */}
+            <Card className="bg-slate-800 border border-slate-600">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <CreditCard className="h-5 w-5 text-blue-400" />
+                  Разрез по способам оплаты
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
@@ -369,9 +412,12 @@ export function SalesAnalysis({ isNetworkOnly, isTradingPointSelected }: SalesAn
             </Button>
           </div>
           
-          <Card>
+          <Card className="bg-slate-800 border border-slate-600">
             <CardHeader>
-              <CardTitle>График продаж</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <TrendingUp className="h-5 w-5 text-green-400" />
+                График продаж
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={isMobile ? 250 : 400}>
@@ -403,7 +449,13 @@ export function SalesAnalysis({ isNetworkOnly, isTradingPointSelected }: SalesAn
               </Button>
             </div>
             
-            <Card>
+            <Card className="bg-slate-800 border border-slate-600">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Network className="h-5 w-5 text-purple-400" />
+                  Сравнение торговых точек
+                </CardTitle>
+              </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
@@ -455,7 +507,13 @@ export function SalesAnalysis({ isNetworkOnly, isTradingPointSelected }: SalesAn
             </div>
           </div>
           
-          <Card>
+          <Card className="bg-slate-800 border border-slate-600">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <FileText className="h-5 w-5 text-orange-400" />
+                Детализация транзакций
+              </CardTitle>
+            </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <Table>

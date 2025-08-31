@@ -267,144 +267,184 @@ export default function Workflows() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="page-toolbar">
-          <h1 className="text-3xl font-bold text-foreground">Регламенты (Workflows)</h1>
-          <div className="flex items-center gap-2">
-            <Input className="input-surface w-64" placeholder="Поиск регламентов..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Создать регламент
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="dialog-surface max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Создать новый регламент</DialogTitle>
-              </DialogHeader>
-              <WorkflowForm onSubmit={handleCreateWorkflow} onCancel={() => setIsCreateDialogOpen(false)} />
-            </DialogContent>
-          </Dialog>
+      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+        {/* Заголовок страницы */}
+        <div className="mb-6 px-6 pt-4">
+          <h1 className="text-2xl font-semibold text-white">Регламенты</h1>
+          <p className="text-slate-400 mt-2">Создавайте и запускайте регламентные сценарии по расписанию, отслеживайте историю запусков и статусы</p>
+        </div>
+
+        {/* Панель регламентов */}
+        <div className="bg-slate-800 mb-6 w-full">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-sm">⚙️</span>
+                </div>
+                <h2 className="text-lg font-semibold text-white">Регламенты</h2>
+                <div className="text-sm text-slate-400">
+                  Всего регламентов: {workflows.length}
+                </div>
+              </div>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                  >
+                    + Создать регламент
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Создать новый регламент</DialogTitle>
+                  </DialogHeader>
+                  <WorkflowForm onSubmit={handleCreateWorkflow} onCancel={() => setIsCreateDialogOpen(false)} />
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            {/* Поиск регламентов */}
+            <div className="mt-4">
+              <Input 
+                placeholder="Поиск регламентов..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="text-sm text-muted-foreground">
-          Создавайте и запускайте регламентные сценарии по расписанию (CRON) или вручную, отслеживайте историю запусков и статусы.
-        </div>
-
-        <div className="table-wrap">
-          <Table className="w-full">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Название регламента</TableHead>
-                <TableHead>Триггер</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead>Последний запуск</TableHead>
-                <TableHead className="w-[100px]">Действия</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleWorkflows.map((workflow) => (
-                <TableRow key={workflow.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{workflow.name}</div>
-                      <div className="text-sm text-muted-foreground">{workflow.description}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {workflow.triggerType === 'schedule' ? (
-                        <Timer className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <span className="text-sm">{formatTrigger(workflow)}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={workflow.isActive ? "default" : "secondary"}>
-                      {workflow.isActive ? "Активен" : "Приостановлен"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {workflow.lastRun && (
-                        <div className={`w-2 h-2 rounded-full ${
-                          workflow.lastRun.status === 'success' ? 'bg-success' :
-                          workflow.lastRun.status === 'error' ? 'bg-error' : 'bg-warning'
-                        }`} />
-                      )}
-                      <span className="text-sm">{formatLastRun(workflow.lastRun)}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedWorkflow(workflow);
-                            setIsEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Редактировать
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => toggleWorkflowStatus(workflow.id)}
-                        >
-                          {workflow.isActive ? (
-                            <>
-                              <Pause className="w-4 h-4 mr-2" />
-                              Приостановить
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-4 h-4 mr-2" />
-                              Активировать
-                            </>
+        {/* Таблица регламентов */}
+        {visibleWorkflows.length === 0 ? (
+          <div className="px-6">
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-white text-2xl">⚙️</span>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                {searchTerm ? 'Регламенты не найдены' : 'Нет регламентов'}
+              </h3>
+              <p className="text-slate-400">
+                {searchTerm ? 'Попробуйте изменить условия поиска' : 'Создайте первый регламент для автоматизации процессов'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full">
+            <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+              <table className="w-full text-sm min-w-full table-fixed">
+                <thead className="bg-slate-700">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '35%'}}>НАЗВАНИЕ РЕГЛАМЕНТА</th>
+                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '25%'}}>ТРИГГЕР</th>
+                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>СТАТУС</th>
+                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ПОСЛЕДНИЙ ЗАПУСК</th>
+                    <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-slate-800">
+                  {visibleWorkflows.map((workflow) => (
+                    <tr
+                      key={workflow.id}
+                      className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="font-medium text-white text-base">{workflow.name}</div>
+                          {workflow.description && (
+                            <div className="text-sm text-slate-400">{workflow.description}</div>
                           )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => duplicateWorkflow(workflow)}
-                        >
-                          <Copy className="w-4 h-4 mr-2" />
-                          Дублировать
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedWorkflow(workflow);
-                            setIsHistoryDialogOpen(true);
-                          }}
-                        >
-                          <History className="w-4 h-4 mr-2" />
-                          История запусков
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => deleteWorkflow(workflow.id)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Удалить
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {workflow.triggerType === 'schedule' ? (
+                            <Timer className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                          ) : (
+                            <Calendar className="w-4 h-4 text-green-400 flex-shrink-0" />
+                          )}
+                          <span className="text-white text-sm">{formatTrigger(workflow)}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge variant={workflow.isActive ? "default" : "secondary"}>
+                          {workflow.isActive ? "Активен" : "Приостановлен"}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {workflow.lastRun && (
+                            <div className={`w-2 h-2 rounded-full ${
+                              workflow.lastRun.status === 'success' ? 'bg-green-400' :
+                              workflow.lastRun.status === 'error' ? 'bg-red-400' : 'bg-yellow-400'
+                            }`} />
+                          )}
+                          <span className="text-white text-sm">{formatLastRun(workflow.lastRun)}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                            onClick={() => {
+                              setSelectedWorkflow(workflow);
+                              setIsHistoryDialogOpen(true);
+                            }}
+                            title="История запусков"
+                          >
+                            <History className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                            onClick={() => {
+                              setSelectedWorkflow(workflow);
+                              setIsEditDialogOpen(true);
+                            }}
+                            title="Редактировать"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                            onClick={() => duplicateWorkflow(workflow)}
+                            title="Дублировать"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`h-8 w-8 p-0 ${workflow.isActive ? 'text-slate-400 hover:text-yellow-400' : 'text-slate-400 hover:text-green-400'}`}
+                            onClick={() => toggleWorkflowStatus(workflow.id)}
+                            title={workflow.isActive ? "Приостановить" : "Активировать"}
+                          >
+                            {workflow.isActive ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="dialog-surface max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Редактировать регламент</DialogTitle>
             </DialogHeader>
@@ -423,7 +463,7 @@ export default function Workflows() {
 
         {/* History Dialog */}
         <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
-          <DialogContent className="dialog-surface max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>История запусков: {selectedWorkflow?.name}</DialogTitle>
             </DialogHeader>

@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { MoreHorizontal, Plus, Edit, Trash2, Copy, History, Play, Pause, Mail, MessageSquare, Webhook } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Plus, Edit, Trash2, Copy, History, Play, Pause, Mail, MessageSquare, Webhook, Filter, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { NotificationRuleForm } from "@/components/notifications/NotificationRuleForm";
 import { NotificationHistory } from "@/components/notifications/NotificationHistory";
 
@@ -29,6 +32,8 @@ interface NotificationRule {
   channels: NotificationChannel[];
   recipients: string[];
   messageTemplate: string;
+  userId: string; // Привязка к пользователю
+  userName: string; // Имя пользователя для отображения
   createdAt: string;
   updatedAt: string;
   lastTriggered?: {
@@ -36,6 +41,14 @@ interface NotificationRule {
     status: 'sent' | 'failed';
   };
 }
+
+// Mock данные пользователей
+const mockUsers = [
+  { id: "1", name: "Иван Петров", email: "ivan.petrov@azs.com", role: "Администратор" },
+  { id: "2", name: "Анна Сидорова", email: "anna.sidorova@azs.com", role: "Менеджер сети" },
+  { id: "3", name: "Дмитрий Козлов", email: "dmitry.kozlov@azs.com", role: "Технический специалист" },
+  { id: "4", name: "Елена Морозова", email: "elena.morozova@azs.com", role: "Оператор" },
+];
 
 const mockNotificationRules: NotificationRule[] = [
   {
@@ -60,6 +73,8 @@ const mockNotificationRules: NotificationRule[] = [
     ],
     recipients: ["manager@azs.com", "operator@azs.com"],
     messageTemplate: "🚨 КРИТИЧЕСКИЙ УРОВЕНЬ! На точке {{point.name}} в резервуаре {{tank.name}} осталось {{tank.level}}% топлива {{tank.fuelType}}",
+    userId: "2",
+    userName: "Анна Сидорова",
     createdAt: "2024-08-15T10:00:00Z",
     updatedAt: "2024-08-20T14:30:00Z",
     lastTriggered: {
@@ -88,6 +103,8 @@ const mockNotificationRules: NotificationRule[] = [
     ],
     recipients: ["tech@azs.com"],
     messageTemplate: "⚠️ Оборудование {{equipment.name}} ({{equipment.type}}) на точке {{point.name}} перешло в статус 'Офлайн'",
+    userId: "3",
+    userName: "Дмитрий Козлов",
     createdAt: "2024-08-10T12:00:00Z",
     updatedAt: "2024-08-25T16:45:00Z",
     lastTriggered: {
@@ -116,6 +133,8 @@ const mockNotificationRules: NotificationRule[] = [
     ],
     recipients: ["manager@azs.com"],
     messageTemplate: "✅ Регламент '{{workflow.name}}' успешно завершен. Время выполнения: {{workflow.duration}}",
+    userId: "2",
+    userName: "Анна Сидорова",
     createdAt: "2024-08-05T09:00:00Z",
     updatedAt: "2024-08-28T08:15:00Z"
   }
@@ -127,6 +146,68 @@ export default function NotificationRules() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Состояние фильтров
+  const [filters, setFilters] = useState({
+    status: "all", // all, active, inactive
+    priority: "all", // all, info, warning, critical
+    userId: "all", // all, user1, user2, etc
+    triggerType: "all", // all, equipment_status, tank_level, etc
+    hasTriggered: "all" // all, yes, no
+  });
+  const { toast } = useToast();
+
+  // Фильтрация правил по поиску и фильтрам
+  const filteredRules = rules.filter(rule => {
+    // Текстовый поиск
+    const matchesSearch = searchQuery === "" || 
+      rule.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rule.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rule.trigger.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rule.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rule.recipients.some(r => r.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    // Фильтр по статусу
+    const matchesStatus = filters.status === "all" || 
+      (filters.status === "active" && rule.isActive) ||
+      (filters.status === "inactive" && !rule.isActive);
+
+    // Фильтр по приоритету
+    const matchesPriority = filters.priority === "all" || rule.priority === filters.priority;
+
+    // Фильтр по пользователю
+    const matchesUser = filters.userId === "all" || rule.userId === filters.userId;
+
+    // Фильтр по типу триггера
+    const matchesTrigger = filters.triggerType === "all" || rule.trigger.type === filters.triggerType;
+
+    // Фильтр по наличию срабатываний
+    const matchesTriggered = filters.hasTriggered === "all" ||
+      (filters.hasTriggered === "yes" && rule.lastTriggered) ||
+      (filters.hasTriggered === "no" && !rule.lastTriggered);
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesUser && matchesTrigger && matchesTriggered;
+  });
+
+  // Подсчёт активных фильтров
+  const activeFiltersCount = Object.values(filters).filter(value => value !== "all").length;
+
+  // Функции для работы с фильтрами
+  const updateFilter = (key: keyof typeof filters, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const clearAllFilters = () => {
+    setFilters({
+      status: "all",
+      priority: "all", 
+      userId: "all",
+      triggerType: "all",
+      hasTriggered: "all"
+    });
+  };
 
   const formatLastTriggered = (lastTriggered?: NotificationRule['lastTriggered']) => {
     if (!lastTriggered) return "Никогда";
@@ -162,30 +243,26 @@ export default function NotificationRules() {
 
   const getPriorityBadge = (priority: NotificationRule['priority']) => {
     const variants = {
-      info: { variant: "default" as const, label: "Информация", color: "bg-blue-100 text-blue-800 border-blue-200" },
-      warning: { variant: "secondary" as const, label: "Предупреждение", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-      critical: { variant: "destructive" as const, label: "Критическое", color: "bg-red-100 text-red-800 border-red-200" }
+      info: { label: "Информация", color: "bg-blue-600 text-blue-200" },
+      warning: { label: "Предупреждение", color: "bg-yellow-600 text-yellow-200" },
+      critical: { label: "Критическое", color: "bg-red-600 text-red-200" }
     };
     
     const config = variants[priority];
-    return <Badge className={config.color}>{config.label}</Badge>;
+    return <Badge variant="secondary" className={`${config.color} border-slate-600`}>{config.label}</Badge>;
   };
 
-  const toggleRuleStatus = (ruleId: string) => {
-    setRules(prev => prev.map(r => 
-      r.id === ruleId 
-        ? { ...r, isActive: !r.isActive }
-        : r
-    ));
-    
-    const rule = rules.find(r => r.id === ruleId);
-    toast({
-      title: rule?.isActive ? "Правило приостановлено" : "Правило активировано",
-      description: `Правило "${rule?.name}" ${rule?.isActive ? 'приостановлено' : 'активировано'}.`,
-    });
+  const handleCreate = () => {
+    setSelectedRule(null);
+    setIsCreateDialogOpen(true);
   };
 
-  const duplicateRule = (rule: NotificationRule) => {
+  const handleEdit = (rule: NotificationRule) => {
+    setSelectedRule(rule);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleClone = (rule: NotificationRule) => {
     const newRule: NotificationRule = {
       ...rule,
       id: Date.now().toString(),
@@ -202,7 +279,7 @@ export default function NotificationRules() {
     });
   };
 
-  const deleteRule = (ruleId: string) => {
+  const handleDeleteConfirm = (ruleId: string) => {
     const rule = rules.find(r => r.id === ruleId);
     setRules(prev => prev.filter(r => r.id !== ruleId));
     toast({
@@ -211,7 +288,24 @@ export default function NotificationRules() {
     });
   };
 
+  const toggleRuleStatus = (ruleId: string) => {
+    setRules(prev => prev.map(r => 
+      r.id === ruleId 
+        ? { ...r, isActive: !r.isActive }
+        : r
+    ));
+    
+    const rule = rules.find(r => r.id === ruleId);
+    toast({
+      title: rule?.isActive ? "Правило приостановлено" : "Правило активировано",
+      description: `Правило "${rule?.name}" ${rule?.isActive ? 'приостановлено' : 'активировано'}.`,
+    });
+  };
+
   const handleCreateRule = (ruleData: Partial<NotificationRule>) => {
+    // Если пользователь не указан, используем первого из списка (текущего пользователя)
+    const selectedUser = mockUsers.find(u => u.id === ruleData.userId) || mockUsers[0];
+    
     const newRule: NotificationRule = {
       id: Date.now().toString(),
       name: ruleData.name!,
@@ -223,6 +317,8 @@ export default function NotificationRules() {
       channels: ruleData.channels ?? [],
       recipients: ruleData.recipients ?? [],
       messageTemplate: ruleData.messageTemplate!,
+      userId: selectedUser.id,
+      userName: selectedUser.name,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -231,16 +327,25 @@ export default function NotificationRules() {
     setIsCreateDialogOpen(false);
     toast({
       title: "Правило создано",
-      description: `Правило "${newRule.name}" успешно создано.`,
+      description: `Правило "${newRule.name}" успешно создано для ${selectedUser.name}.`,
     });
   };
 
   const handleEditRule = (ruleData: Partial<NotificationRule>) => {
     if (!selectedRule) return;
     
+    // Если пользователь изменился, обновляем имя пользователя
+    const selectedUser = mockUsers.find(u => u.id === ruleData.userId);
+    const updatedRule = {
+      ...ruleData,
+      userId: selectedUser?.id || selectedRule.userId,
+      userName: selectedUser?.name || selectedRule.userName,
+      updatedAt: new Date().toISOString()
+    };
+    
     setRules(prev => prev.map(r => 
       r.id === selectedRule.id 
-        ? { ...r, ...ruleData, updatedAt: new Date().toISOString() }
+        ? { ...r, ...updatedRule }
         : r
     ));
     
@@ -254,168 +359,456 @@ export default function NotificationRules() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-foreground">Правила оповещений</h1>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Создать правило
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Создать новое правило оповещения</DialogTitle>
-              </DialogHeader>
-              <NotificationRuleForm onSubmit={handleCreateRule} onCancel={() => setIsCreateDialogOpen(false)} />
-            </DialogContent>
-          </Dialog>
+      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+        {/* Заголовок страницы */}
+        <div className="mb-6 px-6 pt-4">
+          <h1 className="text-2xl font-semibold text-white">Правила оповещений</h1>
+          <p className="text-slate-400 mt-2">Создавайте и управляйте правилами автоматических оповещений для торговых сетей</p>
         </div>
 
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Название правила</TableHead>
-                <TableHead>Триггер</TableHead>
-                <TableHead>Каналы</TableHead>
-                <TableHead>Получатели</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead>Последнее срабатывание</TableHead>
-                <TableHead className="w-[100px]">Действия</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rules.map((rule) => (
-                <TableRow key={rule.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{rule.name}</div>
-                      <div className="text-sm text-muted-foreground">{rule.description}</div>
-                      <div className="mt-1">{getPriorityBadge(rule.priority)}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{rule.trigger.label}</span>
-                  </TableCell>
-                  <TableCell>
-                    {getChannelIcons(rule.channels)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {rule.recipients.length > 0 ? (
-                        <>
-                          <div>{rule.recipients[0]}</div>
-                          {rule.recipients.length > 1 && (
-                            <div className="text-muted-foreground">+{rule.recipients.length - 1} ещё</div>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground">Нет получателей</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={rule.isActive ? "default" : "secondary"}>
-                      {rule.isActive ? "Активно" : "Приостановлено"}
+        {/* Панель правил оповещений */}
+        <div className="bg-slate-800 mb-6 w-full">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-sm">🔔</span>
+                </div>
+                <h2 className="text-lg font-semibold text-white">Правила оповещений</h2>
+              </div>
+              <Button 
+                onClick={handleCreate}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+              >
+                + Создать правило
+              </Button>
+            </div>
+            
+            {/* Поиск и фильтры */}
+            <div className="mt-4 space-y-4">
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Поиск правил оповещений..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="border-slate-600 text-white hover:bg-slate-700"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Фильтры
+                  {activeFiltersCount > 0 && (
+                    <Badge variant="secondary" className="ml-2 bg-blue-600 text-blue-200">
+                      {activeFiltersCount}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {rule.lastTriggered && (
-                        <div className={`w-2 h-2 rounded-full ${
-                          rule.lastTriggered.status === 'sent' ? 'bg-green-500' : 'bg-red-500'
-                        }`} />
-                      )}
-                      <span className="text-sm">{formatLastTriggered(rule.lastTriggered)}</span>
+                  )}
+                </Button>
+              </div>
+
+              {/* Панель фильтров */}
+              {showFilters && (
+                <Card className="bg-slate-700 border-slate-600">
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-white">Фильтры</h3>
+                        {activeFiltersCount > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearAllFilters}
+                            className="text-slate-400 hover:text-white"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Очистить
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        {/* Фильтр по статусу */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-300 mb-2 block">
+                            Статус
+                          </label>
+                          <Select
+                            value={filters.status}
+                            onValueChange={(value) => updateFilter("status", value)}
+                          >
+                            <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Все</SelectItem>
+                              <SelectItem value="active">Активные</SelectItem>
+                              <SelectItem value="inactive">Неактивные</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Фильтр по приоритету */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-300 mb-2 block">
+                            Приоритет
+                          </label>
+                          <Select
+                            value={filters.priority}
+                            onValueChange={(value) => updateFilter("priority", value)}
+                          >
+                            <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Все</SelectItem>
+                              <SelectItem value="info">Информация</SelectItem>
+                              <SelectItem value="warning">Предупреждение</SelectItem>
+                              <SelectItem value="critical">Критическое</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Фильтр по пользователю */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-300 mb-2 block">
+                            Пользователь
+                          </label>
+                          <Select
+                            value={filters.userId}
+                            onValueChange={(value) => updateFilter("userId", value)}
+                          >
+                            <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Все</SelectItem>
+                              {mockUsers.map((user) => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Фильтр по типу триггера */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-300 mb-2 block">
+                            Тип события
+                          </label>
+                          <Select
+                            value={filters.triggerType}
+                            onValueChange={(value) => updateFilter("triggerType", value)}
+                          >
+                            <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Все</SelectItem>
+                              <SelectItem value="equipment_status">Статус оборудования</SelectItem>
+                              <SelectItem value="tank_level">Уровень в резервуаре</SelectItem>
+                              <SelectItem value="transaction">Транзакция</SelectItem>
+                              <SelectItem value="workflow_completed">Завершение регламента</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Фильтр по срабатываниям */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-300 mb-2 block">
+                            Срабатывания
+                          </label>
+                          <Select
+                            value={filters.hasTriggered}
+                            onValueChange={(value) => updateFilter("hasTriggered", value)}
+                          >
+                            <SelectTrigger className="bg-slate-600 border-slate-500 text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Все</SelectItem>
+                              <SelectItem value="yes">Были срабатывания</SelectItem>
+                              <SelectItem value="no">Без срабатываний</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedRule(rule);
-                            setIsEditDialogOpen(true);
-                          }}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Результаты поиска */}
+            {(searchQuery || activeFiltersCount > 0) && (
+              <div className="px-6 py-2 text-sm text-slate-400 border-t border-slate-600">
+                Найдено правил: {filteredRules.length} из {rules.length}
+                {searchQuery && (
+                  <span> по запросу "{searchQuery}"</span>
+                )}
+              </div>
+            )}
+          </div>
+
+        {rules.length === 0 ? (
+          <div className="px-6 pb-6">
+            <EmptyState 
+              title="Нет правил оповещений" 
+              description="Создайте первое правило оповещения для начала работы"
+              cta={
+                <Button 
+                  onClick={handleCreate}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  + Создать правило
+                </Button>
+              }
+              className="py-16"
+            />
+          </div>
+        ) : filteredRules.length === 0 ? (
+          <div className="px-6 pb-6">
+            <EmptyState 
+              title="Ничего не найдено" 
+              description="Попробуйте изменить условия поиска"
+              className="py-16"
+            />
+          </div>
+        ) : (
+          <>
+            {/* Десктоп: таблица на всю ширину */}
+            <div className="hidden md:block w-full">
+          <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+            <table className="w-full text-sm min-w-full table-fixed">
+              <thead className="bg-slate-700">
+                <tr>
+                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '22%'}}>НАЗВАНИЕ ПРАВИЛА</th>
+                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '18%'}}>ТРИГГЕР</th>
+                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ПОЛЬЗОВАТЕЛЬ</th>
+                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '12%'}}>КАНАЛЫ</th>
+                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>СТАТУС</th>
+                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '13%'}}>ПОСЛЕДНЕЕ СРАБАТЫВАНИЕ</th>
+                  <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
+                </tr>
+              </thead>
+              <tbody className="bg-slate-800">
+                {filteredRules.map((rule) => (
+                  <tr
+                    key={rule.id}
+                    className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
+                  >
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="font-medium text-white text-base">{rule.name}</div>
+                        <div className="text-sm text-slate-400 mb-1">{rule.description}</div>
+                        <div className="mt-1">{getPriorityBadge(rule.priority)}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-slate-200 text-sm">{rule.trigger.label}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-xs font-medium">
+                            {rule.userName.split(' ').map(n => n[0]).join('')}
+                          </span>
+                        </div>
+                        <span className="text-slate-200 text-sm">{rule.userName}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {getChannelIcons(rule.channels)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={rule.isActive ? "default" : "secondary"}>
+                        {rule.isActive ? "Активно" : "Приостановлено"}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {rule.lastTriggered && (
+                          <div className={`w-2 h-2 rounded-full ${
+                            rule.lastTriggered.status === 'sent' ? 'bg-green-500' : 'bg-red-500'
+                          }`} />
+                        )}
+                        <span className="text-sm text-slate-200">{formatLastTriggered(rule.lastTriggered)}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                          onClick={() => handleEdit(rule)}
                         >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Редактировать
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                          onClick={() => handleClone(rule)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
                           onClick={() => toggleRuleStatus(rule.id)}
                         >
-                          {rule.isActive ? (
-                            <>
-                              <Pause className="w-4 h-4 mr-2" />
-                              Приостановить
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-4 h-4 mr-2" />
-                              Активировать
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => duplicateRule(rule)}
-                        >
-                          <Copy className="w-4 h-4 mr-2" />
-                          Дублировать
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
+                          {rule.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
                           onClick={() => {
                             setSelectedRule(rule);
                             setIsHistoryDialogOpen(true);
                           }}
                         >
-                          <History className="w-4 h-4 mr-2" />
-                          История срабатываний
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => deleteRule(rule.id)}
-                          className="text-destructive"
+                          <History className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                          onClick={() => handleDeleteConfirm(rule.id)}
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Удалить
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            {/* Мобайл: карточки */}
+            <div className="md:hidden space-y-3 px-6 pb-6">
+              {filteredRules.map((rule) => (
+                <div
+                  key={rule.id}
+                  className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-white text-base mb-1">{rule.name}</div>
+                      <div className="text-sm text-slate-400 mb-2">{rule.description}</div>
+                      <div className="flex flex-col gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400">Пользователь:</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-white text-xs font-medium">
+                                {rule.userName.split(' ').map(n => n[0]).join('')}
+                              </span>
+                            </div>
+                            <span className="text-slate-200">{rule.userName}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400">Триггер:</span>
+                          <span className="text-slate-200">{rule.trigger.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400">Каналы:</span>
+                          {getChannelIcons(rule.channels)}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400">Статус:</span>
+                          <Badge variant={rule.isActive ? "default" : "secondary"}>
+                            {rule.isActive ? "Активно" : "Приостановлено"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400">Последнее:</span>
+                          <span className="text-slate-200">{formatLastTriggered(rule.lastTriggered)}</span>
+                        </div>
+                        <div className="mt-1">{getPriorityBadge(rule.priority)}</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 ml-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+                        onClick={() => handleEdit(rule)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+                        onClick={() => handleClone(rule)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+                        onClick={() => toggleRuleStatus(rule.id)}
+                      >
+                        {rule.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 w-9 p-0 text-slate-400 hover:text-red-400"
+                        onClick={() => handleDeleteConfirm(rule.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        </div>
+
+        {/* Create/Edit Dialog */}
+        <Dialog open={isCreateDialogOpen || isEditDialogOpen} onOpenChange={(open) => {
+          if (!open) {
+            setIsCreateDialogOpen(false);
+            setIsEditDialogOpen(false);
+            setSelectedRule(null);
+          }
+        }}>
+          <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto sm:w-full">
             <DialogHeader>
-              <DialogTitle>Редактировать правило оповещения</DialogTitle>
+              <DialogTitle>
+                {selectedRule ? "Редактировать правило оповещения" : "Создать правило оповещения"}
+              </DialogTitle>
             </DialogHeader>
-            {selectedRule && (
-              <NotificationRuleForm 
-                initialData={selectedRule}
-                onSubmit={handleEditRule} 
-                onCancel={() => {
-                  setIsEditDialogOpen(false);
-                  setSelectedRule(null);
-                }} 
-              />
-            )}
+            <NotificationRuleForm 
+              initialData={selectedRule || undefined}
+              users={mockUsers}
+              onSubmit={selectedRule ? handleEditRule : handleCreateRule} 
+              onCancel={() => {
+                setIsCreateDialogOpen(false);
+                setIsEditDialogOpen(false);
+                setSelectedRule(null);
+              }} 
+            />
           </DialogContent>
         </Dialog>
 
         {/* History Dialog */}
         <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto sm:w-full">
             <DialogHeader>
               <DialogTitle>История срабатываний: {selectedRule?.name}</DialogTitle>
             </DialogHeader>

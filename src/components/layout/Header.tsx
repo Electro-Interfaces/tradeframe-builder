@@ -70,6 +70,7 @@ export function Header({
             value={selectedTradingPoint} 
             onValueChange={onTradingPointChange}
             disabled={!selectedNetwork}
+            networkId={selectedNetwork}
             className="hidden md:inline-flex"
           />
         </div>

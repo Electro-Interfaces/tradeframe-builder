@@ -6,7 +6,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
-  Home,
   Network,
   BarChart3,
   Bell,
@@ -25,7 +24,11 @@ import {
   Cog,
   MessageSquare,
   HardDrive,
-  Component
+  Component,
+  Receipt,
+  TrendingUp,
+  Fuel,
+  FileText as FuelIcon
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -56,14 +59,13 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
   const getNavCls = (active: boolean) => 
     active ? "bg-blue-600 text-white font-medium transition-colors duration-200" : "transition-colors duration-200 hover:bg-slate-700 text-gray-400 hover:text-white";
 
-  const isTradingPointSelected = Boolean(selectedTradingPoint);
-
-  const mainMenuItems = [
-    { title: "Главная панель", url: "/", icon: Home },
-  ];
 
   const networkMenuItems = [
     { title: "Обзор", url: "/network/overview", icon: Network },
+    { title: "Анализ продаж", url: "/network/sales-analysis", icon: BarChart3 },
+    { title: "Операции и транзакции", url: "/network/operations-transactions", icon: Receipt },
+    { title: "История цен", url: "/network/price-history", icon: TrendingUp },
+    { title: "Остатки топлива", url: "/network/fuel-stocks", icon: Fuel },
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
     { title: "Сообщения", url: "/network/messages", icon: MessageSquare },
   ];
@@ -83,6 +85,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
 
   const settingsMenuItems = [
     { title: "Настройки подключения", url: "/settings/connections", icon: Wifi },
+    { title: "Номенклатура", url: "/settings/nomenclature", icon: FuelIcon },
     { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types", icon: HardDrive },
     { title: "Типы компонентов", url: "/settings/dictionaries/component-types", icon: Component },
     { title: "Команды", url: "/settings/commands", icon: Wrench },
@@ -92,29 +95,8 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
   function renderMenuContent() {
     return (
       <>
-        {/* ГЛАВНАЯ */}
-        <div className="px-4 py-3">
-          <div className="text-slate-200 text-xs font-semibold tracking-wider mb-3 uppercase">
-            ГЛАВНАЯ
-          </div>
-          <div className="space-y-1">
-            {mainMenuItems.map((item) => (
-              <div key={item.title}>
-                <NavLink 
-                  to={item.url} 
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
-                  onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                >
-                  <item.icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{item.title}</span>
-                </NavLink>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* ТОРГОВЫЕ СЕТИ */}
-        <div className="border-t border-slate-600 px-4 py-3">
+        <div className="px-4 py-3">
           <div 
             className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
             onClick={() => toggleGroup("networks")}
@@ -165,25 +147,17 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
                 <div key={item.title}>
                   <div 
                     className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      !isTradingPointSelected ? "opacity-50 cursor-not-allowed" : 
-                      isTradingPointSelected ? getNavCls(isActive(item.url)) : ""
+                      getNavCls(isActive(item.url))
                     }`}
                   >
-                    {isTradingPointSelected ? (
-                      <NavLink 
-                        to={item.url} 
-                        className="flex items-center gap-3 w-full"
-                        onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                      >
-                        <item.icon className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{item.title}</span>
-                      </NavLink>
-                    ) : (
-                      <>
-                        <item.icon className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{item.title}</span>
-                      </>
-                    )}
+                    <NavLink 
+                      to={item.url} 
+                      className="flex items-center gap-3 w-full"
+                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                    >
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{item.title}</span>
+                    </NavLink>
                   </div>
                 </div>
               ))}

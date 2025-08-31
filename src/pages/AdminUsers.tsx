@@ -643,33 +643,42 @@ export default function AdminUsers() {
                     </thead>
                     <tbody className="bg-slate-800">
                       {filteredUsers.map((user) => (
-                        <tr key={user.id} className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors">
+                        <tr
+                          key={user.id}
+                          className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
+                        >
                           <td className="px-6 py-4">
-                            <div className="font-medium text-white">{user.name} {user.surname}</div>
-                            <div className="text-sm text-slate-400">{user.email}</div>
+                            <div>
+                              <div className="font-medium text-white text-base">{user.name} {user.surname}</div>
+                              <div className="text-sm text-slate-400">{user.email}</div>
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex flex-wrap gap-1">
-                              {user.roles.map((role, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {role.roleName}
-                                  {role.scopeValue && <span className="ml-1">({role.scopeValue})</span>}
-                                </Badge>
-                              ))}
+                              {user.roles.length === 0 ? (
+                                <span className="text-slate-500 text-sm">Роли не назначены</span>
+                              ) : (
+                                user.roles.map((role, index) => (
+                                  <Badge key={index} variant="secondary" className="bg-slate-600 text-slate-200 text-xs">
+                                    {role.roleName}
+                                    {role.scopeValue && <span className="ml-1">({role.scopeValue})</span>}
+                                  </Badge>
+                                ))
+                              )}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={user.status === 'active' ? "success" : user.status === 'pending' ? "secondary" : "destructive"}>
+                          <td className="px-6 py-4">
+                            <Badge variant={user.status === 'active' ? "default" : "secondary"}>
                               {getStatusText(user.status)}
                             </Badge>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex justify-end gap-1">
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-white"
                                 onClick={() => handleEditUser(user)}
-                                className="h-8 w-8 p-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
                                 title="Редактировать"
                               >
                                 <Edit className="h-4 w-4" />
@@ -677,8 +686,8 @@ export default function AdminUsers() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-white"
                                 onClick={() => handleManageUserRoles(user)}
-                                className="h-8 w-8 p-0 text-slate-400 hover:text-yellow-400 hover:bg-yellow-500/10"
                                 title="Управление ролями"
                               >
                                 <Settings className="h-4 w-4" />
@@ -686,8 +695,8 @@ export default function AdminUsers() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
                                 onClick={() => handleDeleteUser(user)}
-                                className="h-8 w-8 p-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10"
                                 title="Удалить"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -809,36 +818,52 @@ export default function AdminUsers() {
                     </thead>
                     <tbody className="bg-slate-800">
                       {allRoles.map((role) => (
-                        <tr key={role.id} className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors">
+                        <tr
+                          key={role.id}
+                          className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
+                        >
                           <td className="px-6 py-4">
-                            <div className="font-medium text-white">{role.name}</div>
-                            <div className="text-sm text-slate-400">{role.description}</div>
+                            <div>
+                              <div className="font-medium text-white text-base">{role.name}</div>
+                              {role.description && (
+                                <div className="text-sm text-slate-400">{role.description}</div>
+                              )}
+                            </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <code className="bg-slate-700 text-slate-300 px-2 py-1 rounded text-sm font-mono">
+                          <td className="px-6 py-4">
+                            <code className="bg-slate-600 text-slate-200 px-2 py-1 rounded text-xs">
                               {role.code}
                             </code>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-slate-300">{role.scope}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={role.isSystem ? "secondary" : "default"}>
+                          <td className="px-6 py-4">
+                            <Badge variant="secondary" className="bg-slate-600 text-slate-200">
+                              {role.scope}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge variant={role.isSystem ? "default" : "secondary"}>
                               {role.isSystem ? 'Системная' : 'Кастомная'}
                             </Badge>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div className="flex justify-end gap-1 min-w-fit">
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-white"
                                 onClick={() => handleViewPermissions(role)}
-                                className="h-8 w-8 min-w-[32px] p-0 flex-shrink-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 flex items-center justify-center"
                                 title="Просмотр прав"
                               >
-                                <Eye className="h-4 w-4 flex-shrink-0" />
+                                <Eye className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className={`h-8 w-8 p-0 ${
+                                  role.isSystem 
+                                    ? 'text-slate-600 cursor-not-allowed' 
+                                    : 'text-slate-400 hover:text-white'
+                                }`}
                                 onClick={role.isSystem ? undefined : () => {
                                   setSelectedRole(role);
                                   roleForm.setValue("name", role.name);
@@ -847,32 +872,27 @@ export default function AdminUsers() {
                                   roleForm.setValue("description", role.description);
                                   setRoleDialogOpen(true);
                                 }}
-                                className={`h-8 w-8 min-w-[32px] p-0 flex-shrink-0 flex items-center justify-center ${
-                                  role.isSystem 
-                                    ? 'text-slate-600 cursor-default' 
-                                    : 'text-slate-400 hover:text-yellow-400 hover:bg-yellow-500/10'
-                                }`}
-                                title={role.isSystem ? "" : "Редактировать"}
+                                title={role.isSystem ? "Системную роль нельзя редактировать" : "Редактировать"}
                                 disabled={role.isSystem}
                               >
-                                <Edit className="h-4 w-4 flex-shrink-0" />
+                                <Edit className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className={`h-8 w-8 p-0 ${
+                                  role.isSystem 
+                                    ? 'text-slate-600 cursor-not-allowed' 
+                                    : 'text-slate-400 hover:text-red-400'
+                                }`}
                                 onClick={role.isSystem ? undefined : () => {
                                   setAllRoles(prev => prev.filter(r => r.id !== role.id));
                                   toast({ title: "Роль удалена" });
                                 }}
-                                className={`h-8 w-8 min-w-[32px] p-0 flex-shrink-0 flex items-center justify-center ${
-                                  role.isSystem 
-                                    ? 'text-slate-600 cursor-default' 
-                                    : 'text-slate-400 hover:text-red-400 hover:bg-red-500/10'
-                                }`}
-                                title={role.isSystem ? "" : "Удалить"}
+                                title={role.isSystem ? "Системную роль нельзя удалить" : "Удалить"}
                                 disabled={role.isSystem}
                               >
-                                <Trash2 className="h-4 w-4 flex-shrink-0" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </td>

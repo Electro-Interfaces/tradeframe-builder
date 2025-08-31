@@ -1,25 +1,33 @@
+import { useState } from "react";
 import { MapPin, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { tradingPointsStore } from "@/mock/tradingPointsStore";
 
 interface PointSelectProps {
   value?: string;
   onValueChange?: (value: string) => void;
   className?: string;
   disabled?: boolean;
+  networkId?: string;
 }
 
-const tradingPoints = [
-  { value: "point1", label: "АЗС №001 - Центральная", status: "active" },
-  { value: "point2", label: "АЗС №002 - Северная", status: "active" },
-  { value: "point3", label: "АЗС №003 - Южная", status: "inactive" },
-];
-
-export function PointSelect({ value, onValueChange, className, disabled }: PointSelectProps) {
-  const selectedPoint = tradingPoints.find(p => p.value === value);
+export function PointSelect({ value, onValueChange, className, disabled, networkId }: PointSelectProps) {
+  const [open, setOpen] = useState(false);
+  const allTradingPoints = tradingPointsStore.getAll();
+  const tradingPoints = networkId 
+    ? tradingPointsStore.getByNetworkId(networkId)
+    : allTradingPoints;
+  
+  const selectedPoint = tradingPoints.find(p => p.id === value);
+  
+  const handleSelect = (pointId: string) => {
+    onValueChange?.(pointId);
+    setOpen(false); // Закрываем селектор после выбора
+  };
   
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button 
           className={cn("sel", className, disabled && "opacity-50 cursor-not-allowed")}
@@ -27,7 +35,7 @@ export function PointSelect({ value, onValueChange, className, disabled }: Point
         >
           <MapPin className="inline h-4 w-4 mr-2 opacity-70" />
           <span className="truncate">
-            {selectedPoint?.label || (disabled ? "Сначала выберите сеть" : "Выберите торговую точку")}
+            {selectedPoint?.name || (disabled ? "Сначала выберите сеть" : "Выберите торговую точку")}
           </span>
           <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
         </button>
@@ -36,18 +44,18 @@ export function PointSelect({ value, onValueChange, className, disabled }: Point
         <ul className="space-y-1">
           {tradingPoints.map((point) => (
             <li
-              key={point.value}
+              key={point.id}
               className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded-md cursor-pointer"
-              onClick={() => onValueChange?.(point.value)}
+              onClick={() => handleSelect(point.id)}
             >
               <span 
                 className={cn(
                   "h-2 w-2 rounded-full",
-                  point.status === "active" ? "bg-emerald-400" : "bg-slate-500"
+                  !point.isBlocked ? "bg-emerald-400" : "bg-slate-500"
                 )} 
                 aria-hidden 
               />
-              <span className="truncate">{point.label}</span>
+              <span className="truncate">{point.name}</span>
             </li>
           ))}
         </ul>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,48 +101,67 @@ const mockAvailableCommands = [
 const mockEquipmentTypes: EquipmentTypeWithId[] = [
   {
     id: "1",
-    name: "ТРК Tokheim Quantium 310",
-    code: "TQK_Q310", 
-    description: "Топливораздаточная колонка Tokheim серии Quantium 310",
-    systemType: "fuel_dispenser",
-    isActive: true,
-    availableCommandIds: ["1", "2", "4", "5"], // Привязанные команды
-  },
-  {
-    id: "2",
-    name: "Резервуар подземный 50м³",
-    code: "TANK_UG_50",
-    description: "Подземный топливный резервуар объемом 50 кубических метров",
-    systemType: "fuel_tank", 
+    name: "Резервуар",
+    code: "EQP_RESERVOIR",
+    description: "Топливный резервуар для хранения нефтепродуктов",
+    systemType: "fuel_tank",
     isActive: true,
     availableCommandIds: ["1", "4"], // Привязанные команды
   },
   {
+    id: "2",
+    name: "Терминал самообслуживания",
+    code: "EQP_TSO",
+    description: "Автоматизированный терминал самообслуживания на АЗС",
+    systemType: "self_service_terminal",
+    isActive: true,
+    availableCommandIds: ["1", "2", "3", "4", "5"], // Привязанные команды
+  },
+  {
     id: "3",
-    name: "POS-терминал Ingenico iWL250",
-    code: "POS_IWL250",
-    description: "Беспроводной POS-терминал для приема платежей",
-    systemType: "pos_system",
-    isActive: false,
-    availableCommandIds: ["1", "3", "4"], // Привязанные команды
+    name: "Система управления",
+    code: "EQP_CONTROL_SYSTEM",
+    description: "Центральная система управления АЗС",
+    systemType: "control_system",
+    isActive: true,
+    availableCommandIds: ["1", "2", "3", "4"], // Привязанные команды
   },
   {
     id: "4",
-    name: "Датчик уровня топлива Варта",
-    code: "SENSOR_VARTA_LVL",
-    description: "Датчик контроля уровня и качества топлива",
-    systemType: "sensor",
+    name: "Табло цен",
+    code: "EQP_PRICE_BOARD",
+    description: "Электронное табло для отображения цен на топливо",
+    systemType: "price_display",
+    isActive: true,
+    availableCommandIds: ["1", "2", "4"], // Привязанные команды
+  },
+  {
+    id: "5",
+    name: "Видеонаблюдение",
+    code: "EQP_CCTV",
+    description: "Система видеонаблюдения для безопасности АЗС",
+    systemType: "surveillance",
+    isActive: true,
+    availableCommandIds: ["1", "4"], // Привязанные команды
+  },
+  {
+    id: "6",
+    name: "Звуковое сопровождение",
+    code: "EQP_AUDIO",
+    description: "Система звукового сопровождения и оповещения",
+    systemType: "audio_system",
     isActive: true,
     availableCommandIds: ["1", "4"], // Привязанные команды
   },
 ];
 
 const systemTypeOptions = [
-  { value: "fuel_dispenser", label: "Топливораздаточная колонка (ТРК)" },
   { value: "fuel_tank", label: "Топливный резервуар" },
-  { value: "payment_terminal", label: "Платежный терминал" },
-  { value: "pos_system", label: "POS-система" },
-  { value: "sensor", label: "Датчик" },
+  { value: "self_service_terminal", label: "Терминал самообслуживания" },
+  { value: "control_system", label: "Система управления" },
+  { value: "price_display", label: "Табло цен" },
+  { value: "surveillance", label: "Видеонаблюдение" },
+  { value: "audio_system", label: "Звуковое сопровождение" },
 ];
 
 export default function EquipmentTypes() {
@@ -154,13 +173,59 @@ export default function EquipmentTypes() {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  // Фильтрация оборудования по поиску
-  const filteredEquipmentTypes = equipmentTypes.filter(equipment =>
-    equipment.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    equipment.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    equipment.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    getSystemTypeLabel(equipment.systemType).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Функция получения метки системного типа
+  const getSystemTypeLabel = (value: string) => {
+    if (!value || typeof value !== 'string') {
+      return '';
+    }
+    const option = systemTypeOptions.find(option => option.value === value);
+    return option?.label || value;
+  };
+
+  // Фильтрация оборудования по поиску с использованием useMemo для оптимизации
+  const filteredEquipmentTypes = useMemo(() => {
+    try {
+      console.log('Filtering equipment. Search query:', searchQuery);
+      console.log('Equipment types count:', equipmentTypes.length);
+      
+      if (!searchQuery || !searchQuery.trim()) {
+        return equipmentTypes;
+      }
+      
+      const lowerQuery = searchQuery.toLowerCase();
+      const filtered = equipmentTypes.filter(equipment => {
+        if (!equipment || !equipment.id) {
+          console.warn('Invalid equipment found:', equipment);
+          return false;
+        }
+        
+        try {
+          const name = (equipment.name || '').toLowerCase();
+          const code = (equipment.code || '').toLowerCase();
+          const description = (equipment.description || '').toLowerCase();
+          const systemTypeLabel = getSystemTypeLabel(equipment.systemType).toLowerCase();
+          
+          const matches = (
+            name.includes(lowerQuery) ||
+            code.includes(lowerQuery) ||
+            description.includes(lowerQuery) ||
+            systemTypeLabel.includes(lowerQuery)
+          );
+          
+          return matches;
+        } catch (innerError) {
+          console.error('Error processing equipment:', equipment, innerError);
+          return false;
+        }
+      });
+      
+      console.log('Filtered equipment count:', filtered.length);
+      return filtered;
+    } catch (error) {
+      console.error('Critical error in filtering:', error);
+      return equipmentTypes; // Возвращаем все оборудование в случае ошибки
+    }
+  }, [equipmentTypes, searchQuery]);
 
   const {
     register,
@@ -268,10 +333,6 @@ export default function EquipmentTypes() {
     setItemToDelete(null);
   };
 
-  const getSystemTypeLabel = (value: string) => {
-    return systemTypeOptions.find(option => option.value === value)?.label || value;
-  };
-
   return (
     <MainLayout>
       <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
@@ -350,7 +411,7 @@ export default function EquipmentTypes() {
                 </tr>
               </thead>
               <tbody className="bg-slate-800">
-                {filteredEquipmentTypes.map((equipmentType) => (
+                {filteredEquipmentTypes.filter(Boolean).map((equipmentType) => equipmentType && equipmentType.id ? (
                   <tr
                     key={equipmentType.id}
                     className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
@@ -407,7 +468,7 @@ export default function EquipmentTypes() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : null)}
               </tbody>
             </table>
           </div>
@@ -415,7 +476,7 @@ export default function EquipmentTypes() {
 
             {/* Мобайл: карточки */}
             <div className="md:hidden space-y-3 px-6 pb-6">
-              {filteredEquipmentTypes.map((equipmentType) => (
+              {filteredEquipmentTypes.filter(Boolean).map((equipmentType) => equipmentType && equipmentType.id ? (
                 <div
                   key={equipmentType.id}
                   className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors"
@@ -475,7 +536,7 @@ export default function EquipmentTypes() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ) : null)}
             </div>
           </>
         )}

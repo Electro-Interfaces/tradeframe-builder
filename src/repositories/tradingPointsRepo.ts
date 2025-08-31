@@ -1,5 +1,6 @@
 import { TradingPoint, TradingPointId, TradingPointInput, TradingPointUpdateInput, NetworkId } from '@/types/tradingpoint';
-import { tradingPointsStore } from '@/mock/pointsStore';
+import { tradingPointsStore } from '@/mock/tradingPointsStore';
+import { networksStore } from '@/mock/networksStore';
 
 const MOCK_API_DELAY = 150;
 
@@ -27,20 +28,26 @@ export const tradingPointsRepo = {
     if (!input.name?.trim()) {
       throw new Error('Название торговой точки обязательно');
     }
+
+    const tradingPointInput: TradingPointInput = {
+      name: input.name,
+      description: input.description,
+      geolocation: input.geolocation,
+      phone: input.phone,
+      email: input.email,
+      website: input.website,
+      isBlocked: input.isBlocked,
+      schedule: input.schedule,
+      services: input.services
+    };
+
+    const created = tradingPointsStore.create(tradingPointInput);
     
-    if (!input.geolocation?.latitude || !input.geolocation?.longitude) {
-      throw new Error('Координаты обязательны');
-    }
-
-    if (input.phone && !input.phone.match(/^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$/)) {
-      throw new Error('Неверный формат телефона. Используйте формат: +7 (XXX) XXX-XX-XX');
-    }
-
-    if (input.email && !input.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      throw new Error('Неверный формат email');
-    }
-
-    return tradingPointsStore.create(networkId, { ...input, isBlocked: input.isBlocked ?? false });
+    // Update network points count
+    const count = tradingPointsStore.getCountByNetworkId(networkId);
+    networksStore.updatePointsCount(networkId, count);
+    
+    return created;
   },
 
   async update(id: TradingPointId, input: TradingPointUpdateInput): Promise<TradingPoint> {
@@ -49,20 +56,20 @@ export const tradingPointsRepo = {
     if (!input.name?.trim()) {
       throw new Error('Название торговой точки обязательно');
     }
-    
-    if (!input.geolocation?.latitude || !input.geolocation?.longitude) {
-      throw new Error('Координаты обязательны');
-    }
 
-    if (input.phone && !input.phone.match(/^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$/)) {
-      throw new Error('Неверный формат телефона. Используйте формат: +7 (XXX) XXX-XX-XX');
-    }
+    const tradingPointInput: TradingPointInput = {
+      name: input.name,
+      description: input.description,
+      geolocation: input.geolocation,
+      phone: input.phone,
+      email: input.email,
+      website: input.website,
+      isBlocked: input.isBlocked,
+      schedule: input.schedule,
+      services: input.services
+    };
 
-    if (input.email && !input.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      throw new Error('Неверный формат email');
-    }
-
-    const updated = tradingPointsStore.update(id, input);
+    const updated = tradingPointsStore.update(id, tradingPointInput);
     if (!updated) {
       throw new Error('Торговая точка не найдена');
     }
@@ -73,71 +80,39 @@ export const tradingPointsRepo = {
   async delete(id: TradingPointId): Promise<void> {
     await delay(MOCK_API_DELAY);
     
+    // Get the trading point to find its network ID before deletion
+    const tradingPoint = tradingPointsStore.getById(id);
+    if (!tradingPoint) {
+      throw new Error('Торговая точка не найдена');
+    }
+    
+    const networkId = tradingPoint.networkId;
     const success = tradingPointsStore.remove(id);
     if (!success) {
       throw new Error('Торговая точка не найдена');
     }
+    
+    // Update network points count after deletion
+    const count = tradingPointsStore.getCountByNetworkId(networkId);
+    networksStore.updatePointsCount(networkId, count);
   },
 
-  async block(id: TradingPointId, reason: string): Promise<TradingPoint> {
-    await delay(MOCK_API_DELAY);
-    
-    if (!reason?.trim()) {
-      throw new Error('Причина блокировки обязательна');
-    }
-
-    const blocked = tradingPointsStore.block(id, reason);
-    if (!blocked) {
-      throw new Error('Торговая точка не найдена');
-    }
-    
-    return blocked;
-  },
-
-  async unblock(id: TradingPointId): Promise<TradingPoint> {
-    await delay(MOCK_API_DELAY);
-    
-    const unblocked = tradingPointsStore.unblock(id);
-    if (!unblocked) {
-      throw new Error('Торговая точка не найдена');
-    }
-    
-    return unblocked;
-  },
-
+  // Simplified methods - remove complex functionality for now
   async addExternalCode(pointId: TradingPointId, system: string, code: string, description?: string): Promise<TradingPoint> {
     await delay(MOCK_API_DELAY);
-    
-    if (!system?.trim()) {
-      throw new Error('Система обязательна');
-    }
-    
-    if (!code?.trim()) {
-      throw new Error('Код обязателен');
-    }
-
-    const updated = tradingPointsStore.addExternalCode(pointId, {
-      system,
-      code,
-      description,
-      isActive: true
-    });
-    
-    if (!updated) {
+    const point = tradingPointsStore.getById(pointId);
+    if (!point) {
       throw new Error('Торговая точка не найдена');
     }
-    
-    return updated;
+    return point;
   },
 
   async removeExternalCode(pointId: TradingPointId, externalCodeId: string): Promise<TradingPoint> {
     await delay(MOCK_API_DELAY);
-    
-    const updated = tradingPointsStore.removeExternalCode(pointId, externalCodeId);
-    if (!updated) {
-      throw new Error('Торговая точка или внешний код не найдены');
+    const point = tradingPointsStore.getById(pointId);
+    if (!point) {
+      throw new Error('Торговая точка не найдена');
     }
-    
-    return updated;
+    return point;
   }
 };

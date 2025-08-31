@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TradingPoint, TradingPointUpdateInput } from "@/types/tradingpoint";
 import { ExternalCodesManager } from "@/components/external-codes/ExternalCodesManager";
@@ -42,7 +43,6 @@ export function TradingPointEditDialog({
     phone: "",
     email: "",
     website: "",
-    isActive: true,
     isBlocked: false,
     blockReason: "",
     schedule: {
@@ -88,7 +88,6 @@ export function TradingPointEditDialog({
         phone: tradingPoint.phone || "",
         email: tradingPoint.email || "",
         website: tradingPoint.website || "",
-        isActive: tradingPoint.isActive,
         isBlocked: tradingPoint.isBlocked,
         blockReason: tradingPoint.blockReason || "",
         schedule: tradingPoint.schedule || {
@@ -176,7 +175,6 @@ export function TradingPointEditDialog({
         phone: tradingPoint.phone || "",
         email: tradingPoint.email || "",
         website: tradingPoint.website || "",
-        isActive: tradingPoint.isActive,
         isBlocked: tradingPoint.isBlocked,
         blockReason: tradingPoint.blockReason || "",
         schedule: tradingPoint.schedule || {
@@ -281,19 +279,6 @@ export function TradingPointEditDialog({
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-200 block">Активна</Label>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
-                  />
-                  <span className="text-slate-200">{formData.isActive ? "Да" : "Нет"}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
                 <Label className="text-slate-200 block">Заблокирована</Label>
                 <div className="flex items-center space-x-2">
                   <Switch
@@ -307,25 +292,25 @@ export function TradingPointEditDialog({
                   <span className="text-slate-200">{formData.isBlocked ? "Да" : "Нет"}</span>
                 </div>
               </div>
-
-              {formData.isBlocked && (
-                <div className="space-y-2">
-                  <Label htmlFor="blockReason" className="text-slate-200 block">
-                    Причина блокировки <span className="text-red-400">*</span>
-                  </Label>
-                  <Input
-                    id="blockReason"
-                    value={formData.blockReason}
-                    onChange={(e) => setFormData(prev => ({ ...prev, blockReason: e.target.value }))}
-                    placeholder="Введите причину блокировки"
-                    className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                  />
-                  {errors.blockReason && (
-                    <p className="text-red-400 text-sm mt-1">{errors.blockReason}</p>
-                  )}
-                </div>
-              )}
             </div>
+
+            {formData.isBlocked && (
+              <div className="space-y-2">
+                <Label htmlFor="blockReason" className="text-slate-200 block">
+                  Причина блокировки <span className="text-red-400">*</span>
+                </Label>
+                <Input
+                  id="blockReason"
+                  value={formData.blockReason}
+                  onChange={(e) => setFormData(prev => ({ ...prev, blockReason: e.target.value }))}
+                  placeholder="Введите причину блокировки"
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                />
+                {errors.blockReason && (
+                  <p className="text-red-400 text-sm mt-1">{errors.blockReason}</p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="description" className="text-slate-200 block">Описание</Label>
@@ -474,6 +459,153 @@ export function TradingPointEditDialog({
                   placeholder="https://company.ru"
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Services */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-white">Услуги</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="selfServiceTerminal"
+                  checked={formData.services?.selfServiceTerminal}
+                  onCheckedChange={(checked) => setFormData(prev => ({
+                    ...prev,
+                    services: { ...prev.services!, selfServiceTerminal: !!checked }
+                  }))}
+                />
+                <Label htmlFor="selfServiceTerminal" className="text-slate-200 text-sm">
+                  Терминал самообслуживания
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="airPump"
+                  checked={formData.services?.airPump}
+                  onCheckedChange={(checked) => setFormData(prev => ({
+                    ...prev,
+                    services: { ...prev.services!, airPump: !!checked }
+                  }))}
+                />
+                <Label htmlFor="airPump" className="text-slate-200 text-sm">
+                  Компрессор
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="waterService"
+                  checked={formData.services?.waterService}
+                  onCheckedChange={(checked) => setFormData(prev => ({
+                    ...prev,
+                    services: { ...prev.services!, waterService: !!checked }
+                  }))}
+                />
+                <Label htmlFor="waterService" className="text-slate-200 text-sm">
+                  Водные услуги
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="lubricants"
+                  checked={formData.services?.lubricants}
+                  onCheckedChange={(checked) => setFormData(prev => ({
+                    ...prev,
+                    services: { ...prev.services!, lubricants: !!checked }
+                  }))}
+                />
+                <Label htmlFor="lubricants" className="text-slate-200 text-sm">
+                  Масла
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="carWash"
+                  checked={formData.services?.carWash}
+                  onCheckedChange={(checked) => setFormData(prev => ({
+                    ...prev,
+                    services: { ...prev.services!, carWash: !!checked }
+                  }))}
+                />
+                <Label htmlFor="carWash" className="text-slate-200 text-sm">
+                  Автомойка
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="shop"
+                  checked={formData.services?.shop}
+                  onCheckedChange={(checked) => setFormData(prev => ({
+                    ...prev,
+                    services: { ...prev.services!, shop: !!checked }
+                  }))}
+                />
+                <Label htmlFor="shop" className="text-slate-200 text-sm">
+                  Магазин
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="cafe"
+                  checked={formData.services?.cafe}
+                  onCheckedChange={(checked) => setFormData(prev => ({
+                    ...prev,
+                    services: { ...prev.services!, cafe: !!checked }
+                  }))}
+                />
+                <Label htmlFor="cafe" className="text-slate-200 text-sm">
+                  Кафе
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="gasBottleExchange"
+                  checked={formData.services?.gasBottleExchange}
+                  onCheckedChange={(checked) => setFormData(prev => ({
+                    ...prev,
+                    services: { ...prev.services!, gasBottleExchange: !!checked }
+                  }))}
+                />
+                <Label htmlFor="gasBottleExchange" className="text-slate-200 text-sm">
+                  Обмен газовых баллонов
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="electricCharging"
+                  checked={formData.services?.electricCharging}
+                  onCheckedChange={(checked) => setFormData(prev => ({
+                    ...prev,
+                    services: { ...prev.services!, electricCharging: !!checked }
+                  }))}
+                />
+                <Label htmlFor="electricCharging" className="text-slate-200 text-sm">
+                  Зарядка электромобилей
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="truckParking"
+                  checked={formData.services?.truckParking}
+                  onCheckedChange={(checked) => setFormData(prev => ({
+                    ...prev,
+                    services: { ...prev.services!, truckParking: !!checked }
+                  }))}
+                />
+                <Label htmlFor="truckParking" className="text-slate-200 text-sm">
+                  Парковка для грузовиков
+                </Label>
               </div>
             </div>
           </div>

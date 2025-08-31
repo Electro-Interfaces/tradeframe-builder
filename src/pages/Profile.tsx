@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
+import UserInfo from "@/components/auth/UserInfo";
 
 interface ProfileFormData {
   firstName: string;
@@ -31,6 +33,7 @@ const mockUserData = {
 export default function Profile() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   const {
@@ -40,9 +43,9 @@ export default function Profile() {
     reset
   } = useForm<ProfileFormData>({
     defaultValues: {
-      firstName: mockUserData.firstName,
-      lastName: mockUserData.lastName,
-      phone: mockUserData.phone
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      phone: user?.phone || ""
     }
   });
 
@@ -152,7 +155,7 @@ export default function Profile() {
                     <Input
                       id="email"
                       type="email"
-                      value={mockUserData.email}
+                      value={user?.email || ""}
                       readOnly
                       className="bg-muted cursor-not-allowed"
                     />
@@ -164,9 +167,9 @@ export default function Profile() {
                   <div className="space-y-2">
                     <Label>Назначенные роли</Label>
                     <div className="flex flex-wrap gap-2">
-                      {mockUserData.roles.map((role, index) => (
+                      {user?.roles.map((role, index) => (
                         <Badge key={index} variant="secondary" className="text-sm">
-                          {role.name}: {role.scope}
+                          {role.roleName}: {role.scopeValue || role.scope}
                         </Badge>
                       ))}
                     </div>
@@ -190,6 +193,9 @@ export default function Profile() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Детальная информация о пользователе и ролях */}
+        <UserInfo />
       </div>
     </MainLayout>
   );

@@ -21,6 +21,7 @@ const notificationRuleSchema = z.object({
   priority: z.enum(["info", "warning", "critical"]),
   triggerType: z.enum(["equipment_status", "tank_level", "transaction", "workflow_completed"]),
   messageTemplate: z.string().min(1, "Шаблон сообщения обязателен"),
+  userId: z.string().min(1, "Пользователь обязателен"),
 });
 
 type NotificationRuleFormData = z.infer<typeof notificationRuleSchema>;
@@ -44,6 +45,8 @@ interface NotificationRule {
   channels: NotificationChannel[];
   recipients: string[];
   messageTemplate: string;
+  userId: string;
+  userName: string;
   createdAt: string;
   updatedAt: string;
   lastTriggered?: {
@@ -52,8 +55,16 @@ interface NotificationRule {
   };
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 interface NotificationRuleFormProps {
   initialData?: Partial<NotificationRule>;
+  users: User[];
   onSubmit: (data: Partial<NotificationRule>) => void;
   onCancel: () => void;
 }
@@ -81,7 +92,7 @@ const triggerOptions = [
   }
 ];
 
-export function NotificationRuleForm({ initialData, onSubmit, onCancel }: NotificationRuleFormProps) {
+export function NotificationRuleForm({ initialData, users, onSubmit, onCancel }: NotificationRuleFormProps) {
   const [conditions, setConditions] = useState<Record<string, any>>(initialData?.conditions || {});
   const [channels, setChannels] = useState<NotificationChannel[]>(
     initialData?.channels || [
@@ -102,6 +113,7 @@ export function NotificationRuleForm({ initialData, onSubmit, onCancel }: Notifi
       priority: initialData?.priority || "info",
       triggerType: initialData?.trigger?.type || "equipment_status",
       messageTemplate: initialData?.messageTemplate || "",
+      userId: initialData?.userId || users[0]?.id || "",
     },
   });
 
@@ -362,6 +374,44 @@ export function NotificationRuleForm({ initialData, onSubmit, onCancel }: Notifi
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="userId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Пользователь</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите пользователя" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-white text-xs font-medium">
+                                  {user.name.split(' ').map(n => n[0]).join('')}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="font-medium">{user.name}</div>
+                                <div className="text-sm text-muted-foreground">{user.role}</div>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Правило будет привязано к выбранному пользователю
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

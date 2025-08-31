@@ -1,6 +1,6 @@
 import { Network, NetworkId, NetworkInput } from '@/types/network';
 import { networksStore } from '@/mock/networksStore';
-import { tradingPointsStore } from '@/mock/pointsStore';
+import { tradingPointsStore } from '@/mock/tradingPointsStore';
 
 export interface NetworksRepo {
   list(): Promise<Network[]>;

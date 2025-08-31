@@ -1,0 +1,346 @@
+import { FuelNomenclature, FuelNomenclatureFormData, FuelNomenclatureFilters, ExternalCodeMapping } from '../types/nomenclature';
+
+const API_BASE_URL = '/api/v1';
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const mockNomenclature: FuelNomenclature[] = [
+  {
+    id: '1',
+    networkId: '1',
+    networkName: 'Демо сеть АЗС',
+    name: 'АИ-92',
+    internalCode: 'AI92',
+    externalCodes: [
+      {
+        id: '1',
+        nomenclatureId: '1',
+        systemType: '1C',
+        externalCode: 'БНЗ-92',
+        description: 'Код в 1С:Предприятие',
+        createdAt: new Date('2024-01-15'),
+        updatedAt: new Date('2024-01-15')
+      },
+      {
+        id: '2',
+        nomenclatureId: '1',
+        systemType: 'PROCESSING',
+        externalCode: 'FUEL_92',
+        description: 'Код в процессинге',
+        createdAt: new Date('2024-01-15'),
+        updatedAt: new Date('2024-01-15')
+      }
+    ],
+    description: 'Бензин АИ-92 (Regular)',
+    status: 'active',
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-01-15'),
+    createdBy: 'admin',
+    updatedBy: 'admin'
+  },
+  {
+    id: '2',
+    networkId: '1',
+    networkName: 'Демо сеть АЗС',
+    name: 'АИ-95',
+    internalCode: 'AI95',
+    externalCodes: [
+      {
+        id: '3',
+        nomenclatureId: '2',
+        systemType: '1C',
+        externalCode: 'БНЗ-95',
+        description: 'Код в 1С:Предприятие',
+        createdAt: new Date('2024-01-15'),
+        updatedAt: new Date('2024-01-15')
+      }
+    ],
+    description: 'Бензин АИ-95 (Premium)',
+    status: 'active',
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-03-10'),
+    createdBy: 'admin',
+    updatedBy: 'operator'
+  },
+  {
+    id: '3',
+    networkId: '1',
+    networkName: 'Демо сеть АЗС',
+    name: 'АИ-98',
+    internalCode: 'AI98',
+    externalCodes: [],
+    description: 'Бензин АИ-98 (Super)',
+    status: 'active',
+    createdAt: new Date('2024-02-01'),
+    updatedAt: new Date('2024-02-01'),
+    createdBy: 'admin',
+    updatedBy: 'admin'
+  },
+  {
+    id: '4',
+    networkId: '1',
+    networkName: 'Демо сеть АЗС',
+    name: 'ДТ',
+    internalCode: 'DT',
+    externalCodes: [
+      {
+        id: '4',
+        nomenclatureId: '4',
+        systemType: '1C',
+        externalCode: 'ДТ-Л',
+        description: 'Дизельное топливо летнее',
+        createdAt: new Date('2024-01-15'),
+        updatedAt: new Date('2024-01-15')
+      },
+      {
+        id: '5',
+        nomenclatureId: '4',
+        systemType: 'CRM',
+        externalCode: 'DIESEL_FUEL',
+        createdAt: new Date('2024-01-15'),
+        updatedAt: new Date('2024-01-15')
+      }
+    ],
+    description: 'Дизельное топливо',
+    status: 'active',
+    createdAt: new Date('2024-01-20'),
+    updatedAt: new Date('2024-01-20'),
+    createdBy: 'admin',
+    updatedBy: 'admin'
+  },
+  {
+    id: '5',
+    networkId: '2',
+    networkName: 'Норд Лайн',
+    name: 'АИ-92',
+    internalCode: 'AI92',
+    externalCodes: [
+      {
+        id: '6',
+        nomenclatureId: '5',
+        systemType: '1C',
+        externalCode: 'БНЗ-92-НЛ',
+        description: 'Код в 1С Норд Лайн',
+        createdAt: new Date('2024-03-01'),
+        updatedAt: new Date('2024-03-01')
+      }
+    ],
+    description: 'Бензин АИ-92',
+    status: 'active',
+    createdAt: new Date('2024-03-01'),
+    updatedAt: new Date('2024-03-01'),
+    createdBy: 'admin',
+    updatedBy: 'admin'
+  },
+  {
+    id: '6',
+    networkId: '2',
+    networkName: 'Норд Лайн',
+    name: 'АИ-95',
+    internalCode: 'AI95',
+    externalCodes: [
+      {
+        id: '7',
+        nomenclatureId: '6',
+        systemType: 'CRM',
+        externalCode: 'PREMIUM_95',
+        description: 'Код в CRM системе',
+        createdAt: new Date('2024-03-01'),
+        updatedAt: new Date('2024-03-01')
+      }
+    ],
+    description: 'Бензин АИ-95',
+    status: 'active',
+    createdAt: new Date('2024-03-01'),
+    updatedAt: new Date('2024-03-01'),
+    createdBy: 'admin',
+    updatedBy: 'admin'
+  },
+  {
+    id: '7',
+    networkId: '2',
+    networkName: 'Норд Лайн',
+    name: 'ДТ',
+    internalCode: 'DT',
+    externalCodes: [
+      {
+        id: '8',
+        nomenclatureId: '7',
+        systemType: '1C',
+        externalCode: 'ДТ-НЛ',
+        description: 'Дизельное топливо Норд Лайн',
+        createdAt: new Date('2024-03-01'),
+        updatedAt: new Date('2024-03-01')
+      }
+    ],
+    description: 'Дизельное топливо',
+    status: 'active',
+    createdAt: new Date('2024-03-01'),
+    updatedAt: new Date('2024-03-01'),
+    createdBy: 'admin',
+    updatedBy: 'admin'
+  }
+];
+
+export const nomenclatureService = {
+  async getNomenclature(filters?: FuelNomenclatureFilters): Promise<FuelNomenclature[]> {
+    await delay(500);
+    
+    let filtered = [...mockNomenclature];
+    
+    if (filters?.networkId) {
+      filtered = filtered.filter(item => item.networkId === filters.networkId);
+    }
+    
+    if (filters?.status && filters.status !== 'all') {
+      filtered = filtered.filter(item => item.status === filters.status);
+    }
+    
+    if (filters?.searchTerm) {
+      const search = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.name.toLowerCase().includes(search) ||
+        item.internalCode.toLowerCase().includes(search) ||
+        item.description?.toLowerCase().includes(search) ||
+        item.externalCodes.some(code => 
+          code.externalCode.toLowerCase().includes(search) ||
+          code.description?.toLowerCase().includes(search)
+        )
+      );
+    }
+    
+    return filtered;
+  },
+
+  async getNomenclatureById(id: string): Promise<FuelNomenclature | null> {
+    await delay(300);
+    return mockNomenclature.find(item => item.id === id) || null;
+  },
+
+  async createNomenclature(data: FuelNomenclatureFormData): Promise<FuelNomenclature> {
+    await delay(500);
+    
+    const newItem: FuelNomenclature = {
+      id: Date.now().toString(),
+      ...data,
+      networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'Норд Лайн',
+      externalCodes: data.externalCodes.map((code, index) => ({
+        ...code,
+        id: `${Date.now()}_${index}`,
+        nomenclatureId: Date.now().toString(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: 'current_user',
+      updatedBy: 'current_user'
+    };
+    
+    mockNomenclature.push(newItem);
+    return newItem;
+  },
+
+  async updateNomenclature(id: string, data: FuelNomenclatureFormData): Promise<FuelNomenclature> {
+    await delay(500);
+    
+    const index = mockNomenclature.findIndex(item => item.id === id);
+    if (index === -1) {
+      throw new Error('Номенклатура не найдена');
+    }
+    
+    const existing = mockNomenclature[index];
+    const updated: FuelNomenclature = {
+      ...existing,
+      ...data,
+      id: existing.id,
+      networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'Норд Лайн',
+      externalCodes: data.externalCodes.map((code, index) => ({
+        ...code,
+        id: code.id || `${Date.now()}_${index}`,
+        nomenclatureId: existing.id,
+        createdAt: code.createdAt || new Date(),
+        updatedAt: new Date()
+      })),
+      createdAt: existing.createdAt,
+      updatedAt: new Date(),
+      updatedBy: 'current_user'
+    };
+    
+    mockNomenclature[index] = updated;
+    return updated;
+  },
+
+  async deleteNomenclature(id: string): Promise<void> {
+    await delay(500);
+    const index = mockNomenclature.findIndex(item => item.id === id);
+    if (index === -1) {
+      throw new Error('Номенклатура не найдена');
+    }
+    mockNomenclature.splice(index, 1);
+  },
+
+  async archiveNomenclature(id: string): Promise<FuelNomenclature> {
+    await delay(500);
+    const item = mockNomenclature.find(n => n.id === id);
+    if (!item) {
+      throw new Error('Номенклатура не найдена');
+    }
+    item.status = 'archived';
+    item.updatedAt = new Date();
+    item.updatedBy = 'current_user';
+    return item;
+  },
+
+  async activateNomenclature(id: string): Promise<FuelNomenclature> {
+    await delay(500);
+    const item = mockNomenclature.find(n => n.id === id);
+    if (!item) {
+      throw new Error('Номенклатура не найдена');
+    }
+    item.status = 'active';
+    item.updatedAt = new Date();
+    item.updatedBy = 'current_user';
+    return item;
+  },
+
+  async getExternalCodeMappings(nomenclatureId: string): Promise<ExternalCodeMapping[]> {
+    await delay(300);
+    const item = mockNomenclature.find(n => n.id === nomenclatureId);
+    return item?.externalCodes || [];
+  },
+
+  async addExternalCode(nomenclatureId: string, code: Omit<ExternalCodeMapping, 'id' | 'nomenclatureId' | 'createdAt' | 'updatedAt'>): Promise<ExternalCodeMapping> {
+    await delay(500);
+    const item = mockNomenclature.find(n => n.id === nomenclatureId);
+    if (!item) {
+      throw new Error('Номенклатура не найдена');
+    }
+    
+    const newMapping: ExternalCodeMapping = {
+      ...code,
+      id: Date.now().toString(),
+      nomenclatureId,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    item.externalCodes.push(newMapping);
+    item.updatedAt = new Date();
+    return newMapping;
+  },
+
+  async removeExternalCode(nomenclatureId: string, mappingId: string): Promise<void> {
+    await delay(500);
+    const item = mockNomenclature.find(n => n.id === nomenclatureId);
+    if (!item) {
+      throw new Error('Номенклатура не найдена');
+    }
+    
+    const index = item.externalCodes.findIndex(code => code.id === mappingId);
+    if (index !== -1) {
+      item.externalCodes.splice(index, 1);
+      item.updatedAt = new Date();
+    }
+  }
+};

@@ -704,202 +704,285 @@ export default function AuditLog() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-foreground flex items-center gap-3`}>
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Shield className="h-6 w-6 text-primary" />
+      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+        {/* Заголовок страницы */}
+        <div className="mb-6 px-6 pt-4">
+          <h1 className="text-2xl font-semibold text-white">Журнал аудита</h1>
+          <p className="text-slate-400 mt-2">Полный лог всех действий пользователей в системе</p>
+        </div>
+
+        {/* Панель аудита */}
+        <div className="bg-slate-800 mb-6 w-full">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-sm">🔍</span>
+                </div>
+                <h2 className="text-lg font-semibold text-white">События аудита</h2>
+                <div className="text-sm text-slate-400">
+                  Всего событий: {filteredEvents.length}
+                </div>
               </div>
-              Журнал аудита
-            </h1>
-            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''} mt-2`}>
-              Полный лог всех действий пользователей в системе
-            </p>
+            </div>
+            
+            {/* Фильтры и поиск */}
+            <div className="mt-4 space-y-4">
+              {/* Первая строка - период дат */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <Label className="text-slate-300 text-sm mb-2 block">Период</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-slate-700 border-slate-600 text-white hover:bg-slate-600",
+                          !dateRange.from && "text-slate-400"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "dd.MM.yyyy", { locale: ru })} -{" "}
+                              {format(dateRange.to, "dd.MM.yyyy", { locale: ru })}
+                            </>
+                          ) : (
+                            format(dateRange.from, "dd.MM.yyyy", { locale: ru })
+                          )
+                        ) : (
+                          <span>Выберите период</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange.from}
+                        selected={{ from: dateRange.from, to: dateRange.to }}
+                        onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+                        numberOfMonths={2}
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              
+              {/* Вторая строка - остальные фильтры */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Поиск */}
+                <div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Поиск по действиям..."
+                      className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                {/* Фильтр пользователей */}
+                <div>
+                  <Select value={selectedUser} onValueChange={setSelectedUser}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue placeholder="Все пользователи" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Все пользователи</SelectItem>
+                      {allUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Фильтр типов действий */}
+                <div>
+                  <Select value={selectedActionType} onValueChange={setSelectedActionType}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectValue placeholder="Все действия" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {actionTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Кнопки управления */}
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={applyFilters}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                  >
+                    Применить
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={resetFilters}
+                    className="border-slate-600 text-white hover:bg-slate-700"
+                  >
+                    Сброс
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Filters */}
-        {isMobile ? (
-          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="w-full">
-                <Filter className="h-4 w-4 mr-2" />
-                Фильтры
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="h-[90vh]">
-              <SheetHeader>
-                <SheetTitle>Фильтры событий</SheetTitle>
-              </SheetHeader>
-              <div className="mt-6">
-                <FilterPanel />
+        {/* Таблица событий */}
+        {filteredEvents.length === 0 ? (
+          <div className="bg-slate-800 w-full">
+            <div className="px-6 pb-6">
+              <div className="text-center py-16">
+                <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-white text-2xl">🔍</span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  События не найдены
+                </h3>
+                <p className="text-slate-400">
+                  Нет событий, соответствующих выбранным фильтрам
+                </p>
               </div>
-            </SheetContent>
-          </Sheet>
+            </div>
+          </div>
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Фильтры
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FilterPanel />
-              <div className="flex gap-2 mt-4">
-                <Button onClick={applyFilters}>
-                  Применить
-                </Button>
-                <Button variant="outline" onClick={resetFilters}>
-                  Сбросить фильтры
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Results */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                События ({filteredEvents.length})
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isMobile ? (
-              /* Mobile Cards */
-              <div className="space-y-4">
-                {filteredEvents.map((event) => (
-                  <Card key={event.id} className="border border-border bg-card hover:bg-accent/5 transition-colors">
-                    <CardContent className="pt-4">
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="font-medium text-base flex items-center gap-3">
-                              {(() => {
-                                const IconComponent = getActionTypeIcon(event.actionType);
-                                return <IconComponent className="h-5 w-5 text-muted-foreground" />;
-                              })()}
-                              {event.action}
-                            </div>
-                            <Badge className={`mt-2 text-xs border ${getActionTypeColor(event.actionType)}`}>
-                              {actionTypes.find(t => t.value === event.actionType)?.label}
-                            </Badge>
-                          </div>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => handleViewDetails(event)}
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <User className="h-3 w-3" />
-                            {event.user.name}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-3 w-3" />
+          <div className="bg-slate-800 w-full">
+            {/* Десктоп: таблица на всю ширину */}
+            <div className="hidden md:block w-full">
+              <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+                <table className="w-full text-sm min-w-full table-fixed">
+                  <thead className="bg-slate-700">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ДАТА И ВРЕМЯ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>ПОЛЬЗОВАТЕЛЬ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '25%'}}>ДЕЙСТВИЕ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>ОБЪЕКТ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '12%'}}>IP-АДРЕС</th>
+                      <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '8%'}}>ДЕТАЛИ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-slate-800">
+                    {filteredEvents.map((event) => (
+                      <tr
+                        key={event.id}
+                        className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="text-white font-mono text-sm">
                             {format(event.timestamp, "dd.MM.yyyy HH:mm", { locale: ru })}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-3 w-3" />
-                            {event.object}
-                          </div>
-                        </div>
-
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={() => handleViewDetails(event)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Подробнее
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              /* Desktop Table */
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Дата и время</TableHead>
-                      <TableHead>Пользователь</TableHead>
-                      <TableHead>Действие</TableHead>
-                      <TableHead>Объект</TableHead>
-                      <TableHead>IP-адрес</TableHead>
-                      <TableHead className="text-right">Детали</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEvents.map((event) => (
-                      <TableRow key={event.id}>
-                        <TableCell className="whitespace-nowrap">
-                          {format(event.timestamp, "dd.MM.yyyy HH:mm", { locale: ru })}
-                        </TableCell>
-                        <TableCell>
+                        </td>
+                        <td className="px-6 py-4">
                           <div>
-                            <div className="font-medium">{event.user.name}</div>
-                            <div className="text-sm text-muted-foreground">{event.user.email}</div>
+                            <div className="font-medium text-white text-base">{event.user.name}</div>
+                            <div className="text-sm text-slate-400">{event.user.email}</div>
                           </div>
-                        </TableCell>
-                        <TableCell>
+                        </td>
+                        <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             {(() => {
                               const IconComponent = getActionTypeIcon(event.actionType);
-                              return <IconComponent className="h-4 w-4 text-muted-foreground" />;
+                              return <IconComponent className="h-4 w-4 text-blue-400 flex-shrink-0" />;
                             })()}
                             <div>
-                              <div className="font-medium">{event.action}</div>
-                              <Badge className={`text-xs border ${getActionTypeColor(event.actionType)}`}>
+                              <div className="font-medium text-white text-base">{event.action}</div>
+                              <Badge variant="outline" className="text-xs bg-slate-600 text-slate-200 border-slate-500 mt-1">
                                 {actionTypes.find(t => t.value === event.actionType)?.label}
                               </Badge>
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{event.object}</div>
-                          <div className="text-sm text-muted-foreground">{event.objectType}</div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {event.ipAddress}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => handleViewDetails(event)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="font-medium text-white text-base">{event.object}</div>
+                            <div className="text-sm text-slate-400">{event.objectType}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <code className="bg-slate-600 text-slate-200 px-2 py-1 rounded text-xs font-mono">
+                            {event.ipAddress}
+                          </code>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                              onClick={() => handleViewDetails(event)}
+                              title="Подробности события"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
-            )}
+            </div>
 
-            {filteredEvents.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Нет событий, соответствующих выбранным фильтрам</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            {/* Мобайл: карточки */}
+            <div className="md:hidden space-y-3 px-6 pb-6">
+              {filteredEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors cursor-pointer"
+                  onClick={() => handleViewDetails(event)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        {(() => {
+                          const IconComponent = getActionTypeIcon(event.actionType);
+                          return <IconComponent className="h-4 w-4 text-blue-400 flex-shrink-0" />;
+                        })()}
+                        <div className="font-medium text-white text-base truncate">{event.action}</div>
+                      </div>
+                      <div className="text-sm text-slate-400 mb-2">
+                        <div>{event.user.name} • {event.user.email}</div>
+                        <div className="font-mono">{format(event.timestamp, "dd.MM.yyyy HH:mm", { locale: ru })}</div>
+                      </div>
+                      <div className="text-sm text-slate-400 mb-2">
+                        <div>Объект: {event.object}</div>
+                        <div>IP: <code className="bg-slate-600 px-1 rounded text-xs">{event.ipAddress}</code></div>
+                      </div>
+                      <Badge variant="outline" className="text-xs bg-slate-600 text-slate-200 border-slate-500">
+                        {actionTypes.find(t => t.value === event.actionType)?.label}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewDetails(event);
+                        }}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Event Details Dialog */}
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>

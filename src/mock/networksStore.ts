@@ -7,14 +7,14 @@ let networksData: Network[] = [
     name: "Демо сеть АЗС",
     description: "Демонстрационная сеть заправочных станций",
     type: "АЗС",
-    pointsCount: 0
+    pointsCount: 5
   },
   {
     id: "2", 
     name: "Норд Лайн",
     description: "Сеть заправочных станций Норд Лайн",
     type: "АЗС",
-    pointsCount: 2
+    pointsCount: 1
   }
 ];
 

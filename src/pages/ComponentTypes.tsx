@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,51 +66,230 @@ interface ComponentTypeWithId extends ComponentType {
 
 // Mock данные
 const mockComponentTypes: ComponentTypeWithId[] = [
+  // Компоненты резервуара
   {
     id: "1",
-    name: "Датчик уровня ПМП-201",
-    code: "PMP_201_LEVEL_SENSOR",
+    name: "Датчик уровня",
+    code: "CMP_RES_LEVEL",
     description: "Датчик измерения уровня топлива в резервуаре",
     systemType: "SENSOR",
-    statusValues: ["OK", "ERROR", "OFFLINE"],
+    statusValues: ["OK", "WARNING", "ERROR", "OFFLINE"],
     isActive: true,
   },
   {
     id: "2",
-    name: "Контроллер насоса КН-150",
-    code: "KN_150_CONTROLLER",
-    description: "Контроллер управления насосом подачи топлива",
-    systemType: "CONTROLLER",
-    statusValues: ["RUNNING", "STOPPED", "ERROR", "MAINTENANCE"],
+    name: "Датчик температуры",
+    code: "CMP_RES_TEMP",
+    description: "Датчик измерения температуры топлива в резервуаре",
+    systemType: "SENSOR",
+    statusValues: ["OK", "WARNING", "ERROR", "OFFLINE"],
     isActive: true,
   },
   {
     id: "3",
-    name: "Дисплей ТРК 7-дюймовый",
-    code: "TRK_DISPLAY_7",
-    description: "Цветной дисплей для отображения информации на ТРК",
+    name: "Датчик товарной воды",
+    code: "CMP_RES_WATER",
+    description: "Датчик контроля наличия воды в топливе",
+    systemType: "SENSOR",
+    statusValues: ["OK", "WARNING", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  {
+    id: "4",
+    name: "Датчик утечки",
+    code: "CMP_RES_LEAK",
+    description: "Датчик обнаружения утечки топлива из резервуара",
+    systemType: "SENSOR",
+    statusValues: ["OK", "LEAK_DETECTED", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  // Компоненты терминала самообслуживания
+  {
+    id: "5",
+    name: "Дисплей",
+    code: "CMP_TSO_DISPLAY",
+    description: "Дисплей терминала самообслуживания",
     systemType: "DISPLAY",
     statusValues: ["ON", "OFF", "DIMMED", "ERROR"],
     isActive: true,
   },
   {
-    id: "4",
-    name: "Принтер чеков Epson TM-T20",
-    code: "EPSON_TM_T20",
-    description: "Термопринтер для печати чеков",
-    systemType: "PRINTER",
-    statusValues: ["READY", "PRINTING", "NO_PAPER", "ERROR"],
-    isActive: false,
+    id: "6",
+    name: "Программный модуль",
+    code: "CMP_TSO_SW",
+    description: "Программное обеспечение терминала самообслуживания",
+    systemType: "SOFTWARE",
+    statusValues: ["RUNNING", "STOPPED", "UPDATING", "ERROR"],
+    isActive: true,
+  },
+  {
+    id: "7",
+    name: "Картридер топливных карт",
+    code: "CMP_TSO_FUELCR",
+    description: "Устройство чтения топливных карт на терминале",
+    systemType: "CARD_READER",
+    statusValues: ["READY", "READING", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  {
+    id: "8",
+    name: "Картридер банковских карт",
+    code: "CMP_TSO_BANKCR",
+    description: "Устройство чтения банковских карт на терминале",
+    systemType: "CARD_READER",
+    statusValues: ["READY", "READING", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  {
+    id: "9",
+    name: "ККТ",
+    code: "CMP_TSO_KKT",
+    description: "Контрольно-кассовая техника терминала",
+    systemType: "CASH_REGISTER",
+    statusValues: ["READY", "PRINTING", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  {
+    id: "10",
+    name: "Купюроприёмник",
+    code: "CMP_TSO_CASHIN",
+    description: "Устройство приема наличных денег на терминале",
+    systemType: "CASH_ACCEPTOR",
+    statusValues: ["READY", "ACCEPTING", "FULL", "ERROR"],
+    isActive: true,
+  },
+  {
+    id: "11",
+    name: "БУТРК",
+    code: "CMP_TSO_BUTRK",
+    description: "Блок управления топливораздаточной колонкой",
+    systemType: "CONTROLLER",
+    statusValues: ["READY", "DISPENSING", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  // Компоненты системы управления
+  {
+    id: "12",
+    name: "Дисплей системы управления",
+    code: "CMP_SYS_DISPLAY",
+    description: "Дисплей центральной системы управления",
+    systemType: "DISPLAY",
+    statusValues: ["ON", "OFF", "DIMMED", "ERROR"],
+    isActive: true,
+  },
+  {
+    id: "13",
+    name: "Программный модуль системы управления",
+    code: "CMP_SYS_SW",
+    description: "ПО центральной системы управления АЗС",
+    systemType: "SOFTWARE",
+    statusValues: ["RUNNING", "STOPPED", "UPDATING", "ERROR"],
+    isActive: true,
+  },
+  {
+    id: "14",
+    name: "Картридер топливных карт системы управления",
+    code: "CMP_SYS_FUELCR",
+    description: "Картридер топливных карт системы управления",
+    systemType: "CARD_READER",
+    statusValues: ["READY", "READING", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  {
+    id: "15",
+    name: "Картридер банковских карт системы управления",
+    code: "CMP_SYS_BANKCR",
+    description: "Картридер банковских карт системы управления",
+    systemType: "CARD_READER",
+    statusValues: ["READY", "READING", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  {
+    id: "16",
+    name: "ККТ системы управления",
+    code: "CMP_SYS_KKT",
+    description: "Контрольно-кассовая техника системы управления",
+    systemType: "CASH_REGISTER",
+    statusValues: ["READY", "PRINTING", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  {
+    id: "17",
+    name: "Купюроприёмник системы управления",
+    code: "CMP_SYS_CASHIN",
+    description: "Купюроприёмник системы управления",
+    systemType: "CASH_ACCEPTOR",
+    statusValues: ["READY", "ACCEPTING", "FULL", "ERROR"],
+    isActive: true,
+  },
+  {
+    id: "18",
+    name: "БУТРК системы управления",
+    code: "CMP_SYS_BUTRK",
+    description: "Блок управления ТРК системы управления",
+    systemType: "CONTROLLER",
+    statusValues: ["READY", "DISPENSING", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  // Компоненты табло цен
+  {
+    id: "19",
+    name: "Контроллер табло цен",
+    code: "CMP_PRICE_CTRL",
+    description: "Контроллер управления табло цен",
+    systemType: "CONTROLLER",
+    statusValues: ["RUNNING", "STOPPED", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  {
+    id: "20",
+    name: "Панель отображения",
+    code: "CMP_PRICE_PANEL",
+    description: "Светодиодная панель отображения цен",
+    systemType: "DISPLAY",
+    statusValues: ["ON", "OFF", "DIMMED", "ERROR"],
+    isActive: true,
+  },
+  // Компоненты видеонаблюдения
+  {
+    id: "21",
+    name: "Камера видеонаблюдения",
+    code: "CMP_CAM_CAMERA",
+    description: "IP-камера системы видеонаблюдения",
+    systemType: "CAMERA",
+    statusValues: ["RECORDING", "STOPPED", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  {
+    id: "22",
+    name: "Контроллер видеонаблюдения",
+    code: "CMP_CAM_CTRL",
+    description: "Контроллер системы видеонаблюдения",
+    systemType: "CONTROLLER",
+    statusValues: ["RUNNING", "STOPPED", "ERROR", "OFFLINE"],
+    isActive: true,
+  },
+  // Компоненты звукового сопровождения
+  {
+    id: "23",
+    name: "Контроллер звукового сопровождения",
+    code: "CMP_SOUND_CTRL",
+    description: "Контроллер системы звукового сопровождения",
+    systemType: "CONTROLLER",
+    statusValues: ["RUNNING", "STOPPED", "ERROR", "OFFLINE"],
+    isActive: true,
   },
 ];
 
 // Опции для системных типов
 const systemTypeOptions = [
   { value: "SENSOR", label: "Датчик" },
-  { value: "CONTROLLER", label: "Контроллер" },
   { value: "DISPLAY", label: "Дисплей" },
-  { value: "PAYMENT_TERMINAL", label: "Платежный терминал" },
-  { value: "PRINTER", label: "Принтер" },
+  { value: "SOFTWARE", label: "Программный модуль" },
+  { value: "CARD_READER", label: "Картридер" },
+  { value: "CASH_REGISTER", label: "ККТ" },
+  { value: "CASH_ACCEPTOR", label: "Купюроприёмник" },
+  { value: "CONTROLLER", label: "Контроллер" },
   { value: "CAMERA", label: "Камера" },
 ];
 
@@ -141,13 +320,58 @@ export default function ComponentTypes() {
 
   const watchedStatusValues = watch("statusValues") || [];
 
-  // Фильтрация компонентов по поиску
-  const filteredComponentTypes = componentTypes.filter(component =>
-    component.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    component.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    component.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    getSystemTypeLabel(component.systemType).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Функция получения метки системного типа
+  const getSystemTypeLabel = (value: string) => {
+    if (!value || typeof value !== 'string') {
+      return '';
+    }
+    const option = systemTypeOptions.find(option => option.value === value);
+    return option?.label || value;
+  };
+
+  // Фильтрация компонентов по поиску с использованием useMemo для оптимизации
+  const filteredComponentTypes = useMemo(() => {
+    try {
+      console.log('Filtering components. Search query:', searchQuery);
+      console.log('Component types count:', componentTypes.length);
+      
+      if (!searchQuery || !searchQuery.trim()) {
+        return componentTypes;
+      }
+      
+      const lowerQuery = searchQuery.toLowerCase();
+      const filtered = componentTypes.filter(component => {
+        if (!component || !component.id) {
+          console.warn('Invalid component found:', component);
+          return false;
+        }
+        
+        try {
+          const name = (component.name || '').toLowerCase();
+          const code = (component.code || '').toLowerCase();
+          const description = (component.description || '').toLowerCase();
+          
+          // Упростим поиск - пока без systemTypeLabel
+          const matches = (
+            name.includes(lowerQuery) ||
+            code.includes(lowerQuery) ||
+            description.includes(lowerQuery)
+          );
+          
+          return matches;
+        } catch (innerError) {
+          console.error('Error processing component:', component, innerError);
+          return false;
+        }
+      });
+      
+      console.log('Filtered components count:', filtered.length);
+      return filtered;
+    } catch (error) {
+      console.error('Critical error in filtering:', error);
+      return componentTypes; // Возвращаем все компоненты в случае ошибки
+    }
+  }, [componentTypes, searchQuery]);
 
   const handleCreate = () => {
     setEditingItem(null);
@@ -254,10 +478,6 @@ export default function ComponentTypes() {
     }
   };
 
-  const getSystemTypeLabel = (value: string) => {
-    return systemTypeOptions.find(option => option.value === value)?.label || value;
-  };
-
   const addStatusValue = () => {
     if (statusInput.trim() && !watchedStatusValues.includes(statusInput.trim())) {
       setValue("statusValues", [...watchedStatusValues, statusInput.trim()]);
@@ -354,7 +574,7 @@ export default function ComponentTypes() {
                     </tr>
                   </thead>
                   <tbody className="bg-slate-800">
-                    {filteredComponentTypes.map((componentType) => (
+                    {filteredComponentTypes.filter(Boolean).map((componentType) => componentType && componentType.id ? (
                       <tr
                         key={componentType.id}
                         className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
@@ -411,7 +631,7 @@ export default function ComponentTypes() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    ) : null)}
                   </tbody>
                 </table>
               </div>
@@ -419,7 +639,7 @@ export default function ComponentTypes() {
 
             {/* Мобайл: карточки */}
             <div className="md:hidden space-y-3 px-6 pb-6">
-              {filteredComponentTypes.map((componentType) => (
+              {filteredComponentTypes.filter(Boolean).map((componentType) => componentType && componentType.id ? (
                 <div
                   key={componentType.id}
                   className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors"
@@ -496,7 +716,7 @@ export default function ComponentTypes() {
                     </div>
                   </div>
                 </div>
-              ))}
+              ) : null)}
             </div>
           </>
         )}
