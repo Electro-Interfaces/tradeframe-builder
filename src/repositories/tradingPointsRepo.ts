@@ -40,7 +40,7 @@ export const tradingPointsRepo = {
       throw new Error('Неверный формат email');
     }
 
-    return tradingPointsStore.create(networkId, input);
+    return tradingPointsStore.create(networkId, { ...input, isBlocked: input.isBlocked ?? false });
   },
 
   async update(id: TradingPointId, input: TradingPointUpdateInput): Promise<TradingPoint> {
