@@ -584,23 +584,24 @@ export default function NetworksPage() {
                 <table className="w-full text-sm min-w-full table-fixed">
                   <thead className="bg-slate-700">
                     <tr>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '40%'}}>НАЗВАНИЕ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '30%'}}>НАЗВАНИЕ</th>
                       <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>АДРЕС</th>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>СТАТУС</th>
-                      <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '20%'}}>ОБНОВЛЕНО</th>
-                      <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ТЕЛЕФОН</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>СТАТУС</th>
+                      <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ОБНОВЛЕНО</th>
+                      <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
                     </tr>
                   </thead>
                   <tbody className="bg-slate-800">
                     {pointsLoading ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                        <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
                           Загрузка торговых точек...
                         </td>
                       </tr>
                     ) : tradingPoints.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                        <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
                           Нет торговых точек в этой сети
                         </td>
                       </tr>
@@ -609,6 +610,7 @@ export default function NetworksPage() {
                         <tr key={point.id} className="border-b border-slate-600 hover:bg-slate-700 transition-colors">
                           <td className="px-6 py-4 text-white font-medium text-base">{point.name}</td>
                           <td className="px-6 py-4 text-slate-400">{point.geolocation.address || `${point.geolocation.city}`}</td>
+                          <td className="px-6 py-4 text-slate-400">{point.phone || '—'}</td>
                           <td className="px-6 py-4">
                             <Badge className={point.isBlocked ? "bg-red-600 text-white" : point.isActive ? "bg-green-600 text-white" : "bg-yellow-600 text-white"}>
                               {point.isBlocked ? "Заблокирован" : point.isActive ? "Активный" : "Неактивный"}
@@ -666,7 +668,10 @@ export default function NetworksPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-white text-base mb-1">{point.name}</div>
-                      <div className="text-sm text-slate-400 mb-2">{point.geolocation.address || point.geolocation.city}</div>
+                      <div className="text-sm text-slate-400 mb-1">{point.geolocation.address || point.geolocation.city}</div>
+                      {point.phone && (
+                        <div className="text-sm text-slate-400 mb-2">{point.phone}</div>
+                      )}
                       <div className="flex items-center gap-3 text-xs">
                         <Badge className={point.isBlocked ? "bg-red-600 text-white" : point.isActive ? "bg-green-600 text-white" : "bg-yellow-600 text-white"}>
                           {point.isBlocked ? "Заблокирован" : point.isActive ? "Активный" : "Неактивный"}
