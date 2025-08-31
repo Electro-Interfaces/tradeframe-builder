@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { MoreHorizontal, Plus, Edit, Trash2, Copy, History, Play, Pause, Timer, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { WorkflowForm } from "@/components/workflows/WorkflowForm";
@@ -139,6 +140,7 @@ export default function Workflows() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const formatLastRun = (lastRun?: Workflow['lastRun']) => {
     if (!lastRun) return "Никогда";
@@ -253,11 +255,23 @@ export default function Workflows() {
     });
   };
 
+  const visibleWorkflows = workflows.filter((w) => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      w.name.toLowerCase().includes(q) ||
+      (w.description || "").toLowerCase().includes(q) ||
+      (w.schedule || "").toLowerCase().includes(q)
+    );
+  });
+
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="page-toolbar">
           <h1 className="text-3xl font-bold text-foreground">Регламенты (Workflows)</h1>
+          <div className="flex items-center gap-2">
+            <Input className="input-surface w-64" placeholder="Поиск регламентов..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -265,17 +279,22 @@ export default function Workflows() {
                 Создать регламент
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="dialog-surface max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Создать новый регламент</DialogTitle>
               </DialogHeader>
               <WorkflowForm onSubmit={handleCreateWorkflow} onCancel={() => setIsCreateDialogOpen(false)} />
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
-        <div className="border rounded-lg">
-          <Table>
+        <div className="text-sm text-muted-foreground">
+          Создавайте и запускайте регламентные сценарии по расписанию (CRON) или вручную, отслеживайте историю запусков и статусы.
+        </div>
+
+        <div className="table-wrap">
+          <Table className="w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>Название регламента</TableHead>
@@ -286,7 +305,7 @@ export default function Workflows() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {workflows.map((workflow) => (
+              {visibleWorkflows.map((workflow) => (
                 <TableRow key={workflow.id}>
                   <TableCell>
                     <div>
@@ -313,8 +332,8 @@ export default function Workflows() {
                     <div className="flex items-center gap-2">
                       {workflow.lastRun && (
                         <div className={`w-2 h-2 rounded-full ${
-                          workflow.lastRun.status === 'success' ? 'bg-green-500' :
-                          workflow.lastRun.status === 'error' ? 'bg-red-500' : 'bg-yellow-500'
+                          workflow.lastRun.status === 'success' ? 'bg-success' :
+                          workflow.lastRun.status === 'error' ? 'bg-error' : 'bg-warning'
                         }`} />
                       )}
                       <span className="text-sm">{formatLastRun(workflow.lastRun)}</span>
@@ -385,7 +404,7 @@ export default function Workflows() {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="dialog-surface max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Редактировать регламент</DialogTitle>
             </DialogHeader>
@@ -404,7 +423,7 @@ export default function Workflows() {
 
         {/* History Dialog */}
         <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="dialog-surface max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>История запусков: {selectedWorkflow?.name}</DialogTitle>
             </DialogHeader>

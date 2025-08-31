@@ -39,6 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Copy, Trash2, X } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -120,6 +121,7 @@ export default function ComponentTypes() {
   const [editingItem, setEditingItem] = useState<ComponentTypeWithId | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ComponentTypeWithId | null>(null);
   const [statusInput, setStatusInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   const {
@@ -138,6 +140,14 @@ export default function ComponentTypes() {
   });
 
   const watchedStatusValues = watch("statusValues") || [];
+
+  // Фильтрация компонентов по поиску
+  const filteredComponentTypes = componentTypes.filter(component =>
+    component.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    component.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    component.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    getSystemTypeLabel(component.systemType).toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleCreate = () => {
     setEditingItem(null);
@@ -268,75 +278,233 @@ export default function ComponentTypes() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Справочник типов компонентов</h1>
-          <Button onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Добавить шаблон компонента
-          </Button>
+      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+        {/* Заголовок страницы */}
+        <div className="mb-6 px-6 pt-4">
+          <h1 className="text-2xl font-semibold text-white">Справочник типов компонентов</h1>
+          <p className="text-slate-400 mt-2">Создавайте и управляйте шаблонами компонентов оборудования с настройкой статусов и системных типов</p>
         </div>
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Название шаблона</TableHead>
-                <TableHead>Технический код</TableHead>
-                <TableHead>Системный тип</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead className="text-right">Действия</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {componentTypes.map((componentType) => (
-                <TableRow key={componentType.id}>
-                  <TableCell className="font-medium">{componentType.name}</TableCell>
-                  <TableCell>
-                    <code className="bg-muted px-2 py-1 rounded text-sm">
-                      {componentType.code}
-                    </code>
-                  </TableCell>
-                  <TableCell>{getSystemTypeLabel(componentType.systemType)}</TableCell>
-                  <TableCell>
-                    <Badge variant={componentType.isActive ? "default" : "secondary"}>
-                      {componentType.isActive ? "Активен" : "Неактивен"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
+      {/* Панель типов компонентов */}
+      <div className="bg-slate-800 mb-6 w-full">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-sm">⚙️</span>
+              </div>
+              <h2 className="text-lg font-semibold text-white">Типы компонентов</h2>
+            </div>
+            <Button 
+              onClick={handleCreate}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+            >
+              + Создать компонент
+            </Button>
+          </div>
+          
+          {/* Поиск компонентов */}
+          <div className="mt-4">
+            <Input
+              placeholder="Поиск компонентов..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+            />
+          </div>
+        </div>
+
+        {componentTypes.length === 0 ? (
+          <div className="px-6 pb-6">
+            <EmptyState 
+              title="Нет типов компонентов" 
+              description="Создайте первый шаблон компонента для начала работы"
+              cta={
+                <Button 
+                  onClick={handleCreate}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  + Создать компонент
+                </Button>
+              }
+              className="py-16"
+            />
+          </div>
+        ) : filteredComponentTypes.length === 0 ? (
+          <div className="px-6 pb-6">
+            <EmptyState 
+              title="Ничего не найдено" 
+              description="Попробуйте изменить условия поиска"
+              className="py-16"
+            />
+          </div>
+        ) : (
+          <>
+            {/* Десктоп: таблица на всю ширину */}
+            <div className="hidden md:block w-full">
+              <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+                <table className="w-full text-sm min-w-full table-fixed">
+                  <thead className="bg-slate-700">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '35%'}}>НАЗВАНИЕ ШАБЛОНА</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>ТЕХНИЧЕСКИЙ КОД</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>СИСТЕМНЫЙ ТИП</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>СТАТУС</th>
+                      <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-slate-800">
+                    {filteredComponentTypes.map((componentType) => (
+                      <tr
+                        key={componentType.id}
+                        className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="font-medium text-white text-base">{componentType.name}</div>
+                            {componentType.description && (
+                              <div className="text-sm text-slate-400">{componentType.description}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <code className="bg-slate-600 text-slate-200 px-2 py-1 rounded text-xs">
+                            {componentType.code}
+                          </code>
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge variant="secondary" className="bg-slate-600 text-slate-200">
+                            {getSystemTypeLabel(componentType.systemType)}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge variant={componentType.isActive ? "default" : "secondary"}>
+                            {componentType.isActive ? "Активен" : "Неактивен"}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                              onClick={() => handleEdit(componentType)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                              onClick={() => handleClone(componentType)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                              onClick={() => handleDeleteConfirm(componentType)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Мобайл: карточки */}
+            <div className="md:hidden space-y-3 px-6 pb-6">
+              {filteredComponentTypes.map((componentType) => (
+                <div
+                  key={componentType.id}
+                  className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-white text-base mb-1">{componentType.name}</div>
+                      {componentType.description && (
+                        <div className="text-sm text-slate-400 mb-2">{componentType.description}</div>
+                      )}
+                      <div className="flex flex-col gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400">Код:</span>
+                          <code className="bg-slate-600 text-slate-200 px-2 py-1 rounded text-xs">
+                            {componentType.code}
+                          </code>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400">Тип:</span>
+                          <Badge variant="secondary" className="bg-slate-600 text-slate-200">
+                            {getSystemTypeLabel(componentType.systemType)}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400">Статус:</span>
+                          <Badge variant={componentType.isActive ? "default" : "secondary"}>
+                            {componentType.isActive ? "Активен" : "Неактивен"}
+                          </Badge>
+                        </div>
+                        {componentType.statusValues && componentType.statusValues.length > 0 && (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-slate-400">Значения статуса:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {componentType.statusValues.slice(0, 3).map((value) => (
+                                <Badge key={value} variant="outline" className="text-xs border-slate-500 text-slate-300">
+                                  {value}
+                                </Badge>
+                              ))}
+                              {componentType.statusValues.length > 3 && (
+                                <Badge variant="outline" className="text-xs border-slate-500 text-slate-300">
+                                  +{componentType.statusValues.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 ml-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 w-9 p-0 text-slate-400 hover:text-white"
                         onClick={() => handleEdit(componentType)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 w-9 p-0 text-slate-400 hover:text-white"
                         onClick={() => handleClone(componentType)}
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-9 w-9 p-0 text-slate-400 hover:text-red-400"
                         onClick={() => handleDeleteConfirm(componentType)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
+          </>
+        )}
+      </div>
 
         {/* Диалог создания/редактирования */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto sm:w-full">
             <DialogHeader>
               <DialogTitle>
                 {editingItem ? "Редактировать шаблон компонента" : "Создать шаблон компонента"}
@@ -350,7 +518,7 @@ export default function ComponentTypes() {
             </DialogHeader>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Название шаблона *</Label>
                   <Input

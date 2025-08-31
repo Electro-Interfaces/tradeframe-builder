@@ -105,7 +105,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
                   <FormItem>
                     <FormLabel>Название регламента</FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input className="input-surface" 
                         placeholder="Например: Ежедневное закрытие смены" 
                         {...field} 
                       />
@@ -122,7 +122,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
                   <FormItem>
                     <FormLabel>Описание</FormLabel>
                     <FormControl>
-                      <Textarea 
+                      <Textarea className="input-surface" 
                         placeholder="Подробное описание того, что делает этот регламент"
                         rows={3}
                         {...field}
@@ -174,7 +174,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
                     <FormLabel>Тип триггера</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="input-surface">
                           <SelectValue placeholder="Выберите тип триггера" />
                         </SelectTrigger>
                       </FormControl>
@@ -196,7 +196,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
                     <FormItem>
                       <FormLabel>Расписание (CRON)</FormLabel>
                       <FormControl>
-                        <Input 
+                        <Input className="input-surface" 
                           placeholder="Например: 55 23 * * * (каждый день в 23:55)"
                           {...field}
                         />

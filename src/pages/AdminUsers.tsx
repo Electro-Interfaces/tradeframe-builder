@@ -419,19 +419,32 @@ export default function AdminUsers() {
   };
 
   const onSubmitRole = (data: RoleFormData) => {
-    const newRole = {
-      id: allRoles.length + 1,
-      name: data.name,
-      code: data.code,
-      scope: data.scope,
-      description: data.description || "",
-      isSystem: false,
-      permissions: []
-    };
-    setAllRoles(prev => [...prev, newRole]);
+    if (selectedRole && !selectedRole.isSystem) {
+      // Редактирование существующей роли
+      setAllRoles(prev => prev.map(role => 
+        role.id === selectedRole.id 
+          ? { ...role, name: data.name, code: data.code, scope: data.scope, description: data.description || "" }
+          : role
+      ));
+      toast({ title: "Роль обновлена" });
+    } else {
+      // Создание новой роли
+      const newRole = {
+        id: allRoles.length + 1,
+        name: data.name,
+        code: data.code,
+        scope: data.scope,
+        description: data.description || "",
+        isSystem: false,
+        permissions: []
+      };
+      setAllRoles(prev => [...prev, newRole]);
+      toast({ title: "Роль создана" });
+    }
+    
     setRoleDialogOpen(false);
+    setSelectedRole(null);
     roleForm.reset();
-    toast({ title: "Роль создана" });
   };
 
   const selectedRoleForAssignment = roleAssignmentForm.watch("roleId");
@@ -439,33 +452,67 @@ export default function AdminUsers() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-foreground`}>
-            Пользователи и роли
-          </h1>
-          <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
-            Управление пользователями и ролями системы
-          </p>
+      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+        {/* Заголовок страницы */}
+        <div className="mb-6 px-6 pt-4">
+          <h1 className="text-2xl font-semibold text-white">Пользователи и роли</h1>
+          <p className="text-slate-400 mt-2">Управление пользователями и ролями системы</p>
         </div>
 
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className={`grid w-full grid-cols-2 ${isMobile ? 'h-10' : 'h-12'}`}>
-            <TabsTrigger value="users" className={isMobile ? 'text-sm' : ''}>
-              <Users className="w-4 h-4 mr-2" />
+        <Tabs defaultValue="users" className="space-y-6 w-full">
+          <TabsList className="px-6 grid w-full grid-cols-2 h-14 bg-slate-800 border border-slate-700">
+            <TabsTrigger 
+              value="users" 
+              className="text-base font-medium h-12 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-400 data-[state=inactive]:hover:text-white transition-all"
+            >
+              <Users className="w-5 h-5 mr-2" />
               Пользователи
             </TabsTrigger>
-            <TabsTrigger value="roles" className={isMobile ? 'text-sm' : ''}>
-              <Shield className="w-4 h-4 mr-2" />
+            <TabsTrigger 
+              value="roles" 
+              className="text-base font-medium h-12 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-slate-400 data-[state=inactive]:hover:text-white transition-all"
+            >
+              <Shield className="w-5 h-5 mr-2" />
               Роли
             </TabsTrigger>
           </TabsList>
 
           {/* Users Tab */}
-          <TabsContent value="users" className="space-y-6">
-            {/* KPI Cards */}
-            <div className={`grid gap-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
+          <TabsContent value="users" className="space-y-0">
+            {/* Панель пользователей */}
+            <div className="bg-slate-800 w-full">
+              <div className="px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-sm">👥</span>
+                    </div>
+                    <h2 className="text-lg font-semibold text-white">Пользователи</h2>
+                  </div>
+                  <Button 
+                    onClick={handleCreateUser}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                  >
+                    + Добавить пользователя
+                  </Button>
+                </div>
+                
+                {/* Поиск пользователей */}
+                <div className="mt-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input 
+                      placeholder="Поиск пользователей..."
+                      className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* KPI Cards */}
+              <div className={`px-6 pb-4 grid gap-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
               <Card 
                 className={`cursor-pointer transition-colors hover:bg-accent/50 ${statusFilter === null ? 'ring-2 ring-primary' : ''}`}
                 onClick={() => handleKPICardClick(null)}
@@ -525,23 +572,7 @@ export default function AdminUsers() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-
-            {/* Users Control Panel */}
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="relative flex-1 lg:max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Поиск пользователей..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
               </div>
-              <Button onClick={handleCreateUser}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Добавить пользователя
-              </Button>
             </div>
 
             {/* Users Table/Cards */}
@@ -599,82 +630,106 @@ export default function AdminUsers() {
                 ))}
               </div>
             ) : (
-              <Card>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Пользователь</TableHead>
-                      <TableHead>Роли</TableHead>
-                      <TableHead>Статус</TableHead>
-                      <TableHead className="text-right">Действия</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{user.name} {user.surname}</div>
-                            <div className="text-sm text-muted-foreground">{user.email}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {user.roles.map((role, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {role.roleName}
-                                {role.scopeValue && <span className="ml-1">({role.scopeValue})</span>}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={`${getStatusColor(user.status)}`}>
-                            {getStatusText(user.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
+              <div className="w-full">
+                <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+                  <table className="w-full text-sm min-w-full table-fixed">
+                    <thead className="bg-slate-700">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '30%'}}>ПОЛЬЗОВАТЕЛЬ</th>
+                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '35%'}}>РОЛИ</th>
+                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>СТАТУС</th>
+                        <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-slate-800">
+                      {filteredUsers.map((user) => (
+                        <tr key={user.id} className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-white">{user.name} {user.surname}</div>
+                            <div className="text-sm text-slate-400">{user.email}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-wrap gap-1">
+                              {user.roles.map((role, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {role.roleName}
+                                  {role.scopeValue && <span className="ml-1">({role.scopeValue})</span>}
+                                </Badge>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant={user.status === 'active' ? "success" : user.status === 'pending' ? "secondary" : "destructive"}>
+                              {getStatusText(user.status)}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditUser(user)}
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
+                                title="Редактировать"
+                              >
+                                <Edit className="h-4 w-4" />
                               </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Редактировать
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleManageUserRoles(user)}>
-                                <Settings className="h-4 w-4 mr-2" />
-                                Управление ролями
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteUser(user)} className="text-destructive">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Удалить
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Card>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleManageUserRoles(user)}
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-yellow-400 hover:bg-yellow-500/10"
+                                title="Управление ролями"
+                              >
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteUser(user)}
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                                title="Удалить"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
           </TabsContent>
 
           {/* Roles Tab */}
-          <TabsContent value="roles" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-semibold">Роли системы</h2>
-                <p className="text-muted-foreground text-sm">Системные и пользовательские роли</p>
+          <TabsContent value="roles" className="space-y-0">
+            {/* Панель ролей */}
+            <div className="bg-slate-800 w-full">
+              <div className="px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-sm">🛡️</span>
+                    </div>
+                    <h2 className="text-lg font-semibold text-white">Роли системы</h2>
+                    <div className="text-sm text-slate-400">
+                      Всего ролей: {allRoles.length}
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      setSelectedRole(null);
+                      roleForm.reset();
+                      setRoleDialogOpen(true);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                  >
+                    + Создать роль
+                  </Button>
+                </div>
               </div>
-              <Button onClick={() => setRoleDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Создать роль
-              </Button>
             </div>
 
             {isMobile ? (
@@ -704,9 +759,34 @@ export default function AdminUsers() {
                             Права
                           </Button>
                           {!role.isSystem && (
-                            <Button size="sm" variant="ghost" className="text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedRole(role);
+                                  roleForm.setValue("name", role.name);
+                                  roleForm.setValue("code", role.code);
+                                  roleForm.setValue("scope", role.scope);
+                                  roleForm.setValue("description", role.description);
+                                  setRoleDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Изменить
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="text-destructive"
+                                onClick={() => {
+                                  setAllRoles(prev => prev.filter(r => r.id !== role.id));
+                                  toast({ title: "Роль удалена" });
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -715,55 +795,93 @@ export default function AdminUsers() {
                 ))}
               </div>
             ) : (
-              <Card>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Название роли</TableHead>
-                      <TableHead>Код</TableHead>
-                      <TableHead>Область действия</TableHead>
-                      <TableHead>Тип</TableHead>
-                      <TableHead className="text-right">Действия</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allRoles.map((role) => (
-                      <TableRow key={role.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{role.name}</div>
-                            <div className="text-sm text-muted-foreground">{role.description}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">{role.code}</TableCell>
-                        <TableCell>{role.scope}</TableCell>
-                        <TableCell>
-                          <Badge className={getRoleTypeColor(role.isSystem)}>
-                            {role.isSystem ? 'Системная' : 'Кастомная'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="outline" onClick={() => handleViewPermissions(role)}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {!role.isSystem && (
-                              <>
-                                <Button size="sm" variant="ghost">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button size="sm" variant="ghost" className="text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Card>
+              <div className="w-full">
+                <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+                  <table className="w-full text-sm min-w-full table-fixed">
+                    <thead className="bg-slate-700">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '30%'}}>НАЗВАНИЕ РОЛИ</th>
+                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>КОД</th>
+                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>ОБЛАСТЬ ДЕЙСТВИЯ</th>
+                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ТИП</th>
+                        <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-slate-800">
+                      {allRoles.map((role) => (
+                        <tr key={role.id} className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-white">{role.name}</div>
+                            <div className="text-sm text-slate-400">{role.description}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <code className="bg-slate-700 text-slate-300 px-2 py-1 rounded text-sm font-mono">
+                              {role.code}
+                            </code>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-slate-300">{role.scope}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant={role.isSystem ? "secondary" : "default"}>
+                              {role.isSystem ? 'Системная' : 'Кастомная'}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="flex justify-end gap-1 min-w-fit">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewPermissions(role)}
+                                className="h-8 w-8 min-w-[32px] p-0 flex-shrink-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 flex items-center justify-center"
+                                title="Просмотр прав"
+                              >
+                                <Eye className="h-4 w-4 flex-shrink-0" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={role.isSystem ? undefined : () => {
+                                  setSelectedRole(role);
+                                  roleForm.setValue("name", role.name);
+                                  roleForm.setValue("code", role.code);
+                                  roleForm.setValue("scope", role.scope);
+                                  roleForm.setValue("description", role.description);
+                                  setRoleDialogOpen(true);
+                                }}
+                                className={`h-8 w-8 min-w-[32px] p-0 flex-shrink-0 flex items-center justify-center ${
+                                  role.isSystem 
+                                    ? 'text-slate-600 cursor-default' 
+                                    : 'text-slate-400 hover:text-yellow-400 hover:bg-yellow-500/10'
+                                }`}
+                                title={role.isSystem ? "" : "Редактировать"}
+                                disabled={role.isSystem}
+                              >
+                                <Edit className="h-4 w-4 flex-shrink-0" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={role.isSystem ? undefined : () => {
+                                  setAllRoles(prev => prev.filter(r => r.id !== role.id));
+                                  toast({ title: "Роль удалена" });
+                                }}
+                                className={`h-8 w-8 min-w-[32px] p-0 flex-shrink-0 flex items-center justify-center ${
+                                  role.isSystem 
+                                    ? 'text-slate-600 cursor-default' 
+                                    : 'text-slate-400 hover:text-red-400 hover:bg-red-500/10'
+                                }`}
+                                title={role.isSystem ? "" : "Удалить"}
+                                disabled={role.isSystem}
+                              >
+                                <Trash2 className="h-4 w-4 flex-shrink-0" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
           </TabsContent>
         </Tabs>
@@ -969,7 +1087,9 @@ export default function AdminUsers() {
         <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
           <DialogContent className={isMobile ? "w-[95vw]" : ""}>
             <DialogHeader>
-              <DialogTitle>Создать роль</DialogTitle>
+              <DialogTitle>
+                {selectedRole ? 'Редактировать роль' : 'Создать роль'}
+              </DialogTitle>
             </DialogHeader>
             <form onSubmit={roleForm.handleSubmit(onSubmitRole)} className="space-y-4">
               <div>
@@ -1027,7 +1147,9 @@ export default function AdminUsers() {
                 <Button type="button" variant="outline" onClick={() => setRoleDialogOpen(false)}>
                   Отмена
                 </Button>
-                <Button type="submit">Создать</Button>
+                <Button type="submit">
+                  {selectedRole ? 'Сохранить' : 'Создать'}
+                </Button>
               </div>
             </form>
           </DialogContent>

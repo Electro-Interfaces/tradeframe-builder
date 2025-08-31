@@ -236,7 +236,7 @@ function StepForm({ step, onSave, onCancel }: StepFormProps) {
       <div>
         <Label htmlFor="command">Команда</Label>
         <Select value={selectedCommandId} onValueChange={setSelectedCommandId}>
-          <SelectTrigger>
+          <SelectTrigger className="input-surface">
             <SelectValue placeholder="Выберите команду" />
           </SelectTrigger>
           <SelectContent>
@@ -258,7 +258,7 @@ function StepForm({ step, onSave, onCancel }: StepFormProps) {
             <Label htmlFor="target">Цель выполнения</Label>
             <div className="space-y-4">
               <Select value={targetType} onValueChange={(value: any) => setTargetType(value)}>
-                <SelectTrigger>
+                <SelectTrigger className="input-surface">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -273,6 +273,7 @@ function StepForm({ step, onSave, onCancel }: StepFormProps) {
 
               {(targetType.includes('specific') || targetType === 'equipment_type') && (
                 <Input
+                  className="input-surface"
                   placeholder={
                     targetType === 'specific_network' ? 'Введите название сети' :
                     targetType === 'specific_trading_point' ? 'Введите название торговой точки' :
@@ -407,7 +408,7 @@ export function WorkflowSteps({ steps, onStepsChange }: WorkflowStepsProps) {
             Добавить шаг
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="dialog-surface max-w-2xl">
           <DialogHeader>
             <DialogTitle>Добавить новый шаг</DialogTitle>
           </DialogHeader>
@@ -419,7 +420,7 @@ export function WorkflowSteps({ steps, onStepsChange }: WorkflowStepsProps) {
       </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="dialog-surface max-w-2xl">
           <DialogHeader>
             <DialogTitle>Редактировать шаг</DialogTitle>
           </DialogHeader>

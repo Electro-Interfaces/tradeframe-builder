@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
+import { SelectionProvider } from "./context/SelectionContext";
 import Index from "./pages/Index";
 import AdminUsersAndRoles from "./pages/AdminUsersAndRoles";
 import AdminUsers from "./pages/AdminUsers";
@@ -32,8 +33,9 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
+      <SelectionProvider>
+        <BrowserRouter>
+          <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/admin/users-and-roles" element={<AdminUsersAndRoles />} />
           <Route path="/admin/users" element={<AdminUsers />} />
@@ -56,6 +58,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+      </SelectionProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

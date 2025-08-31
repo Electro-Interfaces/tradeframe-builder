@@ -168,13 +168,13 @@ export function WorkflowHistory({ workflowId, onClose }: WorkflowHistoryProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-4 h-4 text-success" />;
       case 'error':
-        return <XCircle className="w-4 h-4 text-red-500" />;
+        return <XCircle className="w-4 h-4 text-error" />;
       case 'running':
-        return <Clock className="w-4 h-4 text-yellow-500" />;
+        return <Clock className="w-4 h-4 text-warning" />;
       default:
-        return <Clock className="w-4 h-4 text-gray-400" />;
+        return <Clock className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -243,12 +243,12 @@ export function WorkflowHistory({ workflowId, onClose }: WorkflowHistoryProps) {
                               </div>
                             )}
                             {step.result && (
-                              <div className="text-sm text-green-700 mt-1">
+                              <div className="text-sm text-success mt-1">
                                 ✓ {step.result}
                               </div>
                             )}
                             {step.error && (
-                              <div className="text-sm text-red-700 mt-1">
+                              <div className="text-sm text-error mt-1">
                                 ✗ {step.error}
                               </div>
                             )}

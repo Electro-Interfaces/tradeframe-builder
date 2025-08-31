@@ -23,7 +23,9 @@ import {
   MapPin,
   Shield,
   Cog,
-  MessageSquare
+  MessageSquare,
+  HardDrive,
+  Component
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -81,15 +83,8 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
 
   const settingsMenuItems = [
     { title: "Настройки подключения", url: "/settings/connections", icon: Wifi },
-    { 
-      title: "Справочники", 
-      url: "/settings/references", 
-      icon: Book,
-      submenu: [
-        { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types" },
-        { title: "Типы компонентов", url: "/settings/dictionaries/component-types" },
-      ]
-    },
+    { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types", icon: HardDrive },
+    { title: "Типы компонентов", url: "/settings/dictionaries/component-types", icon: Component },
     { title: "Команды", url: "/settings/commands", icon: Wrench },
     { title: "Регламенты", url: "/settings/workflows", icon: Clock },
   ];
@@ -246,45 +241,14 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
             <div className="space-y-1">
               {settingsMenuItems.map((item) => (
                 <div key={item.title}>
-                  {item.submenu ? (
-                    <div>
-                      <div 
-                        className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
-                        onClick={() => toggleGroup(item.title)}
-                      >
-                        <item.icon className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{item.title}</span>
-                        <ChevronRight 
-                          className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                            openGroups.includes(item.title) ? "rotate-90" : ""
-                          }`} 
-                        />
-                      </div>
-                      {openGroups.includes(item.title) && (
-                        <div className="ml-6 mt-1 space-y-1">
-                          {item.submenu.map((subItem) => (
-                            <NavLink 
-                              key={subItem.title}
-                              to={subItem.url}
-                              className={`block px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(subItem.url))}`}
-                              onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                            >
-                              <span className="truncate">{subItem.title}</span>
-                            </NavLink>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <NavLink 
-                      to={item.url} 
-                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
-                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                    >
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{item.title}</span>
-                    </NavLink>
-                  )}
+                  <NavLink 
+                    to={item.url} 
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
+                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                  >
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{item.title}</span>
+                  </NavLink>
                 </div>
               ))}
             </div>
