@@ -72,6 +72,7 @@ export interface TradingPointInput {
   email?: string;
   website?: string;
   isActive: boolean;
+  isBlocked?: boolean;
   schedule?: TradingPointSchedule;
   services?: TradingPointServices;
 }

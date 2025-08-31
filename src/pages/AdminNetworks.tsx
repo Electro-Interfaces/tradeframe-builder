@@ -352,19 +352,36 @@ const AdminNetworks = () => {
         ) : (
           <>
             {/* Мобильная версия - карточки */}
-            <div className="md:hidden space-y-2">
+            <div className="md:hidden space-y-3">
               {filteredAndSortedNetworks.map(network => (
-                <Card key={network.id} className="p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{network.name}</div>
-                      <div className="text-xs text-slate-400 truncate">{network.description}</div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge variant="secondary">{network.type}</Badge>
-                        <span className="text-xs text-slate-400">Точек: {network.pointsCount}</span>
+                <Card 
+                  key={network.id} 
+                  className="p-4 bg-card border-border hover:bg-accent/10 transition-colors cursor-pointer"
+                  onClick={() => setSelectedId(network.id)}
+                >
+                  <div className="space-y-3">
+                    {/* Заголовок с действиями */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-foreground truncate">{network.name}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                          {network.description}
+                        </p>
+                      </div>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <RowActions id={network.id.toString()} />
                       </div>
                     </div>
-                    <RowActions id={network.id.toString()} />
+                    
+                    {/* Метаданные */}
+                    <div className="flex items-center justify-between text-sm">
+                      <Badge variant="secondary" className="text-xs">
+                        {network.type}
+                      </Badge>
+                      <span className="text-muted-foreground font-medium">
+                        {network.pointsCount} точек
+                      </span>
+                    </div>
                   </div>
                 </Card>
               ))}
@@ -445,30 +462,55 @@ const AdminNetworks = () => {
           {!selectedId ? (
             <EmptyState title="Выберите сеть выше" />
           ) : (
-            <div className="w-full min-w-0 max-w-none overflow-x-auto scroll-thin">
-              <table className="w-full table-fixed text-sm">
-                <thead>
-                  <tr className="h-11 border-b border-slate-700">
-                    <th className="text-left">Наименование</th>
-                    <th className="text-left">Код</th>
-                    <th className="text-left">Адрес</th>
-                    <th className="text-left">Статус</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[1, 2, 3].map((i) => (
-                    <tr key={i} className="h-11 border-b border-slate-800">
-                      <td>АЗС №{String(i).padStart(3, '0')}</td>
-                      <td>A0{i}</td>
-                      <td>Город, Ул. Примерная, д. {i}</td>
-                      <td>
-                        <span className="badge success">Активна</span>
-                      </td>
+            <>
+              {/* Мобильная версия ТТ - карточки */}
+              <div className="md:hidden space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="p-4 bg-card border-border">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-medium text-foreground">АЗС №{String(i).padStart(3, '0')}</h4>
+                          <p className="text-sm text-muted-foreground">Код: A0{i}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            Город, Ул. Примерная, д. {i}
+                          </p>
+                        </div>
+                        <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
+                          Активна
+                        </Badge>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Десктопная версия ТТ - таблица */}
+              <div className="hidden md:block w-full min-w-0 max-w-none overflow-x-auto scroll-thin">
+                <table className="w-full table-fixed text-sm">
+                  <thead>
+                    <tr className="h-11 border-b border-slate-700">
+                      <th className="text-left">Наименование</th>
+                      <th className="text-left">Код</th>
+                      <th className="text-left">Адрес</th>
+                      <th className="text-left">Статус</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {[1, 2, 3].map((i) => (
+                      <tr key={i} className="h-11 border-b border-slate-800">
+                        <td>АЗС №{String(i).padStart(3, '0')}</td>
+                        <td>A0{i}</td>
+                        <td>Город, Ул. Примерная, д. {i}</td>
+                        <td>
+                          <span className="badge success">Активна</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
