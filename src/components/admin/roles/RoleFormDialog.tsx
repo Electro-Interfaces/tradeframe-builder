@@ -219,7 +219,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-slate-900 border-slate-700 text-white">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
         <DialogHeader>
           <DialogTitle>
             {role ? 'Редактирование роли' : 'Создание новой роли'}
@@ -229,7 +229,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
               <TabsTrigger value="basic">
@@ -417,7 +417,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg text-slate-200">Список разрешений</CardTitle>
                       <Badge variant="outline">
-                        {permissions.reduce((sum, p) => sum + p.actions.length, 0)} разрешений
+                        {permissions.reduce((sum, p) => sum + p.actions.length, 0)} из {Object.values(PERMISSION_SECTIONS).reduce((total, section) => total + Object.keys(section.resources).length * 4, 0)} возможных
                       </Badge>
                     </div>
                     <CardDescription className="text-slate-400">
@@ -467,7 +467,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                             </div>
                           </div>
                         ))
-                      })}
+                      )}
                     </div>
                   </CardContent>
                 </Card>
