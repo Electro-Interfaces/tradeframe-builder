@@ -168,8 +168,8 @@ export default function PriceHistoryPage() {
   const formatPrice = (price: number) => price.toFixed(2) + " ₽";
 
   return (
-    <MainLayout>
-      <div className="w-full space-y-6">
+    <MainLayout fullWidth={true}>
+      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-white">История цен</h1>

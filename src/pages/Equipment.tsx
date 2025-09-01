@@ -263,7 +263,7 @@ export default function Equipment() {
   // Если торговая точка не выбрана
   if (!selectedTradingPoint) {
     return (
-      <MainLayout>
+      <MainLayout fullWidth={true}>
         <EmptyState
           icon={MapPin}
           title="Выберите торговую точку" 
@@ -277,7 +277,7 @@ export default function Equipment() {
   // Мобильная версия - карточки
   if (isMobile) {
     return (
-      <MainLayout>
+      <MainLayout fullWidth={true}>
         <div className="px-4 pt-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-1">
@@ -422,10 +422,10 @@ export default function Equipment() {
 
   // Десктопная версия - таблица
   return (
-    <MainLayout>
-      <div className="w-full space-y-6">
+    <MainLayout fullWidth={true}>
+      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
-        <div className="mb-6">
+        <div className="mb-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
           <p className="text-slate-400 mt-1">
             {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
@@ -530,7 +530,7 @@ export default function Equipment() {
                           key={item.id}
                           className="border-b border-slate-600 hover:bg-slate-700 transition-colors"
                         >
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -556,7 +556,7 @@ export default function Equipment() {
                           <td className="px-6 py-4 text-slate-400">
                             {item.serial_number || "—"}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             {componentsCount > 0 ? (
                               <div className="flex items-center gap-2">
                                 <Layers3 className="w-4 h-4 text-slate-400" />
@@ -566,7 +566,7 @@ export default function Equipment() {
                               <span className="text-slate-500">—</span>
                             )}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <Badge variant="secondary" className="bg-slate-600 text-slate-200 flex items-center gap-2 w-fit">
                               <div className={cn("w-2 h-2 rounded-full", getStatusColor(item.status))} />
                               {getStatusText(item.status)}

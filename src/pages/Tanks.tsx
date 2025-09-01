@@ -619,7 +619,7 @@ export default function Tanks() {
   // Empty state if no trading point selected
   if (!selectedTradingPoint) {
     return (
-      <MainLayout>
+      <MainLayout fullWidth={true}>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <Gauge className="h-16 w-16 text-slate-400 mx-auto mb-4" />
@@ -636,10 +636,10 @@ export default function Tanks() {
   }
 
   return (
-    <MainLayout>
-      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+    <MainLayout fullWidth={true}>
+      <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
-        <div className="mb-6 px-6 pt-4">
+        <div className="mb-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">
             Резервуары{selectedTradingPoint ? ` на ${getTradingPointName(selectedTradingPoint)}` : ""}
           </h1>
@@ -648,7 +648,7 @@ export default function Tanks() {
 
         {/* Панель управления */}
         <div className="bg-slate-800 mb-6 w-full">
-          <div className="px-6 py-4">
+          <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -715,38 +715,38 @@ export default function Tanks() {
                                     key={drain.id}
                                     className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
                                   >
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                       <div className="text-white font-mono text-sm">
                                         {drain.date}
                                       </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                       <div>
                                         <div className="font-medium text-white text-base">{drain.tankName}</div>
                                         <div className="text-sm text-blue-400">{drain.fuelType}</div>
                                       </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                       <div className="text-white font-semibold text-base">
                                         {drain.volume.toLocaleString()}
                                       </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                       <div className="text-white">
                                         {drain.driverName}
                                       </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                       <div className="text-white">
                                         {drain.truckNumber}
                                       </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                       <div className="text-slate-300">
                                         {drain.reason}
                                       </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                       <Badge variant="secondary" className={`${
                                         drain.source === 'sensor' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
                                         drain.source === 'mobile_app' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
@@ -756,7 +756,7 @@ export default function Tanks() {
                                          drain.source === 'mobile_app' ? 'Мобильное' : 'API'}
                                       </Badge>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                       <Badge variant="secondary" className={`${
                                         drain.status === 'confirmed' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                                         drain.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
@@ -766,7 +766,7 @@ export default function Tanks() {
                                          drain.status === 'pending' ? '⏳ Ожидает' : '✗ Ошибка'}
                                       </Badge>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 md:px-6 py-4">
                                       <div className="flex justify-end gap-1">
                                         <Button
                                           variant="ghost"

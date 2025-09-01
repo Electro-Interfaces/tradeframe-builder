@@ -244,16 +244,16 @@ export default function Connections() {
   return (
     <>
       <MainLayout>
-        <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+        <div className="w-full h-full px-4 md:px-6 lg:px-8">
           {/* Заголовок страницы */}
-          <div className="mb-6 px-6 pt-4">
+          <div className="mb-6 pt-4">
             <h1 className="text-2xl font-semibold text-white">Настройки подключения</h1>
             <p className="text-slate-400 mt-2">Управление подключениями к внешним системам и сервисам</p>
           </div>
 
           {/* Панель подключений */}
           <div className="bg-slate-800 mb-6 w-full">
-            <div className="px-6 py-4">
+            <div className="px-4 md:px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -287,7 +287,7 @@ export default function Connections() {
               <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
             </div>
           ) : connections.length === 0 ? (
-            <div className="px-6 pb-6">
+            <div className="px-4 md:px-6 pb-6">
               <EmptyState 
                 title="Нет подключений" 
                 description="Создайте первое подключение для интеграции с внешними системами"
@@ -303,7 +303,7 @@ export default function Connections() {
               />
             </div>
           ) : filteredConnections.length === 0 ? (
-            <div className="px-6 pb-6">
+            <div className="px-4 md:px-6 pb-6">
               <EmptyState 
                 title="Ничего не найдено" 
                 description="Попробуйте изменить условия поиска"
@@ -331,7 +331,7 @@ export default function Connections() {
                           key={connection.id}
                           className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
                         >
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <div>
                               <div className="font-medium text-white text-base flex items-center gap-2">
                                 {connection.name}
@@ -360,22 +360,22 @@ export default function Connections() {
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <Badge variant="secondary" className="bg-slate-600 text-slate-200">
                               {connection.connectionType}
                             </Badge>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <code className="bg-slate-600 text-slate-200 px-2 py-1 rounded text-xs">
                               {connection.baseUrl}
                             </code>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <Badge variant={connection.isEnabled ? "default" : "secondary"}>
                               {connection.isEnabled ? "Включено" : "Выключено"}
                             </Badge>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <div className="flex items-center gap-2">
                               {getStatusIcon(connection)}
                               <span className="text-sm text-slate-200">{getStatusText(connection)}</span>

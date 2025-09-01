@@ -246,8 +246,8 @@ export default function OperationsTransactionsPage() {
   };
 
   return (
-    <MainLayout>
-      <div className="w-full space-y-6">
+    <MainLayout fullWidth={true}>
+      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6">
           <div className="flex items-center gap-4">
