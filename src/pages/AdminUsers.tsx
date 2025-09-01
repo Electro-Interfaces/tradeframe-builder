@@ -451,7 +451,7 @@ export default function AdminUsers() {
   const roleForScopeSelection = allRoles.find(r => r.id === selectedRoleForAssignment);
 
   return (
-    <MainLayout>
+    <MainLayout fullWidth={true}>
       <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
         {/* Заголовок страницы */}
         <div className="mb-6 px-6 pt-4">

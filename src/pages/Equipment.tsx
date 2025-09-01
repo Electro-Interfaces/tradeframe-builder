@@ -263,7 +263,7 @@ export default function Equipment() {
   // Если торговая точка не выбрана
   if (!selectedTradingPoint) {
     return (
-      <MainLayout>
+      <MainLayout fullWidth={true}>
         <EmptyState
           icon={MapPin}
           title="Выберите торговую точку" 
@@ -277,7 +277,7 @@ export default function Equipment() {
   // Мобильная версия - карточки
   if (isMobile) {
     return (
-      <MainLayout>
+      <MainLayout fullWidth={true}>
         <div className="px-4 pt-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-1">
@@ -422,10 +422,10 @@ export default function Equipment() {
 
   // Десктопная версия - таблица
   return (
-    <MainLayout>
-      <div className="w-full space-y-6">
+    <MainLayout fullWidth={true}>
+      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
-        <div className="mb-6">
+        <div className="mb-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
           <p className="text-slate-400 mt-1">
             {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}

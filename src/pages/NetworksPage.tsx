@@ -369,16 +369,16 @@ export default function NetworksPage() {
   }
 
   return (
-    <MainLayout>
-      <div className="w-full h-full">
+    <MainLayout fullWidth={true}>
+      <div className="w-full h-full px-4 md:px-6 lg:px-8">
       {/* Заголовок страницы */}
-      <div className="mb-6 px-6 pt-4">
+      <div className="mb-6 pt-4">
         <h1 className="text-2xl font-semibold text-white">Настройки сетей и торговых точек</h1>
       </div>
 
       {/* Панель торговых сетей */}
-      <div className="bg-slate-800 mb-6 w-full">
-        <div className="px-6 py-4">
+      <div className="bg-slate-800 mb-6 w-full rounded-lg">
+        <div className="px-4 md:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">

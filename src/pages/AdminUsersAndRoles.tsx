@@ -421,7 +421,7 @@ export default function AdminUsersAndRoles() {
   const roleForScopeSelection = allRoles.find(r => r.id === selectedRoleForAssignment);
 
   return (
-    <MainLayout>
+    <MainLayout fullWidth={true}>
       <div className="space-y-6">
         {/* Header */}
         <div>

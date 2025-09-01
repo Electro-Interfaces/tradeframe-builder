@@ -619,7 +619,7 @@ export default function Tanks() {
   // Empty state if no trading point selected
   if (!selectedTradingPoint) {
     return (
-      <MainLayout>
+      <MainLayout fullWidth={true}>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <Gauge className="h-16 w-16 text-slate-400 mx-auto mb-4" />
@@ -636,10 +636,10 @@ export default function Tanks() {
   }
 
   return (
-    <MainLayout>
-      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+    <MainLayout fullWidth={true}>
+      <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
-        <div className="mb-6 px-6 pt-4">
+        <div className="mb-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">
             Резервуары{selectedTradingPoint ? ` на ${getTradingPointName(selectedTradingPoint)}` : ""}
           </h1>
