@@ -295,16 +295,16 @@ export default function Messages() {
 
   return (
     <MainLayout>
-      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+      <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
-        <div className="mb-6 px-6 pt-4">
+        <div className="mb-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">Коммуникации и поддержка</h1>
           <p className="text-slate-400 mt-1">Управление тикетами техподдержки и настройка Telegram-интеграции</p>
         </div>
 
         {/* Секция техподдержки */}
         <div className="bg-slate-800 mb-6 w-full">
-          <div className="px-6 py-4">
+          <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -346,7 +346,7 @@ export default function Messages() {
             </div>
           </div>
           
-          <div className="px-6 pb-6">
+          <div className="px-4 md:px-6 pb-6">
             <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-600">
               <table className="w-full text-sm">
                 <thead className="bg-slate-700">
@@ -362,25 +362,25 @@ export default function Messages() {
                 <tbody className="divide-y divide-slate-700 bg-slate-800">
                   {filteredTickets.map((ticket) => (
                     <tr key={ticket.id} className="hover:bg-slate-700 transition-colors">
-                      <td className="px-6 py-4">
+                      <td className="px-4 md:px-6 py-4">
                         <div className="font-medium text-white">{ticket.subject}</div>
                         <div className="text-sm text-slate-400 truncate max-w-xs">
                           {ticket.description.substring(0, 80)}...
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 md:px-6 py-4">
                         <Badge variant="secondary" className={getStatusColor(ticket.status)}>
                           {getStatusText(ticket.status)}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 md:px-6 py-4">
                         <Badge variant="secondary" className={getPriorityColor(ticket.priority)}>
                           {getPriorityText(ticket.priority)}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-slate-300">{ticket.email}</td>
                       <td className="px-6 py-4 text-slate-400">{ticket.createdAt}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 md:px-6 py-4">
                         <span className="text-white font-medium">{ticket.responses}</span>
                       </td>
                     </tr>
@@ -418,7 +418,7 @@ export default function Messages() {
 
         {/* Секция Telegram-ботов */}
         <div className="bg-slate-800 w-full">
-          <div className="px-6 py-4">
+          <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">

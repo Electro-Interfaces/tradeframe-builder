@@ -294,13 +294,13 @@ export default function ShiftReports() {
   // Проверка выбора торговой точки
   if (!selectedTradingPoint) {
     return (
-      <MainLayout>
-        <div className="w-full h-full">
-          <div className="mb-6 px-6 pt-4">
+      <MainLayout fullWidth={true}>
+        <div className="w-full h-full px-4 md:px-6 lg:px-8">
+          <div className="mb-6 pt-4">
             <h1 className="text-2xl font-semibold text-white">Сменные отчёты</h1>
           </div>
-          <div className="bg-slate-800 mb-6 w-full">
-            <div className="px-6 py-4">
+          <div className="bg-slate-800 mb-6 w-full rounded-lg">
+            <div className="px-4 md:px-6 py-4">
               <EmptyState 
                 title="Выберите торговую точку" 
                 description="Для просмотра сменных отчётов необходимо выбрать торговую точку из выпадающего списка выше"
@@ -482,7 +482,7 @@ export default function ShiftReports() {
 
           {/* Таблица отчётов */}
           {filteredReports.length === 0 ? (
-            <div className="px-6 pb-6">
+            <div className="px-4 md:px-6 pb-6">
               <EmptyState 
                 title="Отчёты не найдены" 
                 description="По заданным фильтрам не найдено ни одного сменного отчёта"
@@ -570,7 +570,7 @@ export default function ShiftReports() {
               </div>
 
               {/* Мобайл: карточки */}
-              <div className="md:hidden space-y-3 px-6 pb-6">
+              <div className="md:hidden space-y-3 px-4 pb-6">
                 {filteredReports.map((report) => {
                   const statusInfo = getStatusInfo(report.status);
                   const StatusIcon = statusInfo.icon;

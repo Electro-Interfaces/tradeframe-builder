@@ -393,12 +393,12 @@ export default function Prices() {
   if (!selectedTradingPoint) {
     return (
       <MainLayout fullWidth={true}>
-        <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
-          <div className="mb-6 px-6 pt-4">
+        <div className="w-full h-full px-4 md:px-6 lg:px-8">
+          <div className="mb-6 pt-4">
             <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
           </div>
-          <div className="bg-slate-800 mb-6 w-full">
-            <div className="px-6 py-4">
+          <div className="bg-slate-800 mb-6 w-full rounded-lg">
+            <div className="px-4 md:px-6 py-4">
               <EmptyState 
                 title="Выберите торговую точку" 
                 description="Для управления ценами на топливо необходимо выбрать торговую точку из выпадающего списка выше"
@@ -538,7 +538,7 @@ export default function Prices() {
             </div>
           </div>
         ) : (
-          <div className="px-6 pb-6">
+          <div className="px-4 md:px-6 pb-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredPrices.map((price) => (
                 <div key={price.id} className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:shadow-xl transition-all duration-200">

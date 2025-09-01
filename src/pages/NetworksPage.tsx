@@ -355,16 +355,18 @@ export default function NetworksPage() {
 
   if (loading) {
     return (
-      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
-        <div className="mb-6 px-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Настройки сетей и торговых точек</h1>
-        </div>
-        <div className="bg-slate-800 mb-6 w-full">
-          <div className="px-6 py-4">
-            <div className="text-white">Загрузка...</div>
+      <MainLayout fullWidth={true}>
+        <div className="w-full h-full px-4 md:px-6 lg:px-8">
+          <div className="mb-6 pt-4">
+            <h1 className="text-2xl font-semibold text-white">Настройки сетей и торговых точек</h1>
+          </div>
+          <div className="bg-slate-800 mb-6 w-full rounded-lg">
+            <div className="px-4 md:px-6 py-4">
+              <div className="text-white">Загрузка...</div>
+            </div>
           </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
@@ -397,7 +399,7 @@ export default function NetworksPage() {
         </div>
 
         {networks.length === 0 && !loading ? (
-          <div className="px-6 pb-6">
+          <div className="px-4 md:px-6 pb-6">
             <EmptyState 
               title="Нет торговых сетей" 
               description="Создайте первую торговую сеть для начала работы"
@@ -436,13 +438,13 @@ export default function NetworksPage() {
                       selectedNetworkId === network.id ? 'bg-blue-600/20 border-blue-500' : ''
                     }`}
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 md:px-6 py-4">
                       <div>
                         <div className="font-medium text-white text-base">{network.name}</div>
                         <div className="text-sm text-slate-400">{network.description}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 md:px-6 py-4">
                       <Badge variant="secondary" className="bg-slate-600 text-slate-200">
                         {network.type}
                       </Badge>
@@ -479,7 +481,7 @@ export default function NetworksPage() {
             </div>
 
             {/* Мобайл: карточки */}
-            <div className="md:hidden space-y-3 px-6 pb-6">
+            <div className="md:hidden space-y-3 px-4 pb-6">
               {networks.map((network) => (
                 <div
                   key={network.id}
@@ -529,8 +531,8 @@ export default function NetworksPage() {
       </div>
 
       {/* Панель торговых точек */}
-      <div className="bg-slate-800 w-full">
-        <div className="px-6 py-4">
+      <div className="bg-slate-800 w-full rounded-lg">
+        <div className="px-4 md:px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
@@ -565,14 +567,14 @@ export default function NetworksPage() {
         </div>
 
         {!selectedNetworkId ? (
-          <div className="px-6 pb-6">
+          <div className="px-4 md:px-6 pb-6">
             <EmptyState 
               title="В этой сети пока нет торговых точек" 
               className="py-16"
             />
           </div>
         ) : tradingPoints.length === 0 ? (
-          <div className="px-6 pb-6">
+          <div className="px-4 md:px-6 pb-6">
             <EmptyState 
               title="В этой сети пока нет торговых точек" 
               className="py-16"
@@ -609,7 +611,7 @@ export default function NetworksPage() {
                     ) : (
                       tradingPoints.map((point) => (
                         <tr key={point.id} className="border-b border-slate-600 hover:bg-slate-700 transition-colors">
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <div>
                               <div className="text-white font-medium text-base">{point.name}</div>
                               {point.description && (
@@ -653,7 +655,7 @@ export default function NetworksPage() {
             </div>
 
             {/* Мобайл: карточки */}
-            <div className="md:hidden space-y-3 px-6 pb-6">
+            <div className="md:hidden space-y-3 px-4 pb-6">
               {pointsLoading ? (
                 <div className="text-center text-slate-400 py-8">
                   Загрузка торговых точек...

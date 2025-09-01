@@ -530,7 +530,7 @@ export default function Equipment() {
                           key={item.id}
                           className="border-b border-slate-600 hover:bg-slate-700 transition-colors"
                         >
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -556,7 +556,7 @@ export default function Equipment() {
                           <td className="px-6 py-4 text-slate-400">
                             {item.serial_number || "—"}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             {componentsCount > 0 ? (
                               <div className="flex items-center gap-2">
                                 <Layers3 className="w-4 h-4 text-slate-400" />
@@ -566,7 +566,7 @@ export default function Equipment() {
                               <span className="text-slate-500">—</span>
                             )}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <Badge variant="secondary" className="bg-slate-600 text-slate-200 flex items-center gap-2 w-fit">
                               <div className={cn("w-2 h-2 rounded-full", getStatusColor(item.status))} />
                               {getStatusText(item.status)}

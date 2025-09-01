@@ -452,9 +452,9 @@ export default function AdminUsers() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+      <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
-        <div className="mb-6 px-6 pt-4">
+        <div className="mb-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">Пользователи и роли</h1>
           <p className="text-slate-400 mt-2">Управление пользователями и ролями системы</p>
         </div>
@@ -481,7 +481,7 @@ export default function AdminUsers() {
           <TabsContent value="users" className="space-y-0">
             {/* Панель пользователей */}
             <div className="bg-slate-800 w-full">
-              <div className="px-6 py-4">
+              <div className="px-4 md:px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -647,13 +647,13 @@ export default function AdminUsers() {
                           key={user.id}
                           className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
                         >
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <div>
                               <div className="font-medium text-white text-base">{user.name} {user.surname}</div>
                               <div className="text-sm text-slate-400">{user.email}</div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <div className="flex flex-wrap gap-1">
                               {user.roles.length === 0 ? (
                                 <span className="text-slate-500 text-sm">Роли не назначены</span>
@@ -667,7 +667,7 @@ export default function AdminUsers() {
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <Badge variant={user.status === 'active' ? "default" : "secondary"}>
                               {getStatusText(user.status)}
                             </Badge>
@@ -716,7 +716,7 @@ export default function AdminUsers() {
           <TabsContent value="roles" className="space-y-0">
             {/* Панель ролей */}
             <div className="bg-slate-800 w-full">
-              <div className="px-6 py-4">
+              <div className="px-4 md:px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -822,7 +822,7 @@ export default function AdminUsers() {
                           key={role.id}
                           className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
                         >
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <div>
                               <div className="font-medium text-white text-base">{role.name}</div>
                               {role.description && (
@@ -830,17 +830,17 @@ export default function AdminUsers() {
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <code className="bg-slate-600 text-slate-200 px-2 py-1 rounded text-xs">
                               {role.code}
                             </code>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <Badge variant="secondary" className="bg-slate-600 text-slate-200">
                               {role.scope}
                             </Badge>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 md:px-6 py-4">
                             <Badge variant={role.isSystem ? "default" : "secondary"}>
                               {role.isSystem ? 'Системная' : 'Кастомная'}
                             </Badge>

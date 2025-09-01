@@ -214,16 +214,16 @@ const Commands = () => {
 
   return (
     <MainLayout>
-      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+      <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
-        <div className="mb-6 px-6 pt-4">
+        <div className="mb-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">Команды</h1>
           <p className="text-slate-400 mt-2">Управление шаблонами команд для взаимодействия с оборудованием</p>
         </div>
 
         {/* Панель команд */}
         <div className="bg-slate-800 mb-6 w-full">
-          <div className="px-6 py-4">
+          <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -260,7 +260,7 @@ const Commands = () => {
           </div>
 
         {commands.length === 0 ? (
-          <div className="px-6 pb-6">
+          <div className="px-4 md:px-6 pb-6">
             <EmptyState 
               title="Нет команд" 
               description="Создайте первый шаблон команды для начала работы"
@@ -276,7 +276,7 @@ const Commands = () => {
             />
           </div>
         ) : filteredCommands.length === 0 ? (
-          <div className="px-6 pb-6">
+          <div className="px-4 md:px-6 pb-6">
             <EmptyState 
               title="Ничего не найдено" 
               description="Попробуйте изменить условия поиска"
@@ -302,7 +302,7 @@ const Commands = () => {
                 <tbody className="bg-slate-800">
                   {filteredCommands.map((command) => (
                     <tr key={command.id} className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors">
-                      <td className="px-6 py-4">
+                      <td className="px-4 md:px-6 py-4">
                         <div className="font-medium text-white truncate" title={command.name}>{command.name}</div>
                         {command.description && (
                           <div className="text-sm text-slate-400 mt-1 line-clamp-2" title={command.description}>{command.description}</div>
