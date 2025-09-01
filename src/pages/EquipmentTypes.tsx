@@ -235,28 +235,33 @@ export default function EquipmentTypes() {
     watch,
     getValues,
     setError,
-    formState: { errors, isValid },
+    formState: { errors, isValid, isSubmitting },
   } = useForm<EquipmentType>({
     resolver: zodResolver(equipmentTypeSchema),
+    mode: "onChange", // Валидация на каждом изменении
     defaultValues: {
       name: "",
       code: "",
       description: "",
-      systemType: "",
+      systemType: systemTypeOptions[0]?.value || "fuel_tank", // Устанавливаем первый доступный тип с fallback
       isActive: true,
       availableCommandIds: [],
     },
   });
 
   const handleCreate = () => {
-    reset({
+    const defaultValues = {
       name: "",
       code: "",
       description: "",
-      systemType: "",
+      systemType: systemTypeOptions[0]?.value || "fuel_tank", // Устанавливаем первый доступный тип с fallback
       isActive: true,
       availableCommandIds: [],
-    });
+    };
+    
+    console.log("Creating new form with default values:", defaultValues);
+    
+    reset(defaultValues);
     setEditingItem(null);
     setIsDialogOpen(true);
   };
@@ -356,7 +361,7 @@ export default function EquipmentTypes() {
                 onClick={handleCreate}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
               >
-                + Создать оборудование
+                + Создать шаблон оборудования
               </Button>
             </div>
             
@@ -381,7 +386,7 @@ export default function EquipmentTypes() {
                   onClick={handleCreate}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  + Создать оборудование
+                  + Создать шаблон оборудования
                 </Button>
               }
               className="py-16"
@@ -726,9 +731,9 @@ export default function EquipmentTypes() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!isValid}
+                  disabled={!isValid || isSubmitting}
                 >
-                  {editingItem ? "Сохранить" : "Создать"}
+                  {editingItem ? "Сохранить" : "Создать шаблон"}
                 </Button>
               </DialogFooter>
             </form>

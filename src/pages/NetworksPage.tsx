@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -368,7 +369,8 @@ export default function NetworksPage() {
   }
 
   return (
-    <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+    <MainLayout>
+      <div className="w-full h-full">
       {/* Заголовок страницы */}
       <div className="mb-6 px-6 pt-4">
         <h1 className="text-2xl font-semibold text-white">Настройки сетей и торговых точек</h1>
@@ -765,6 +767,7 @@ export default function NetworksPage() {
         loading={pointActionLoading === 'delete'}
         onConfirm={handlePointDeleteConfirm}
       />
-    </div>
+      </div>
+    </MainLayout>
   );
 }

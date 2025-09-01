@@ -12,7 +12,7 @@ type SelectionContextValue = {
 const SelectionContext = createContext<SelectionContextValue | undefined>(undefined);
 
 export function SelectionProvider({ children }: { children: React.ReactNode }) {
-  const [selectedNetworkId, setSelectedNetworkId] = useState<string>("");
+  const [selectedNetworkId, setSelectedNetworkId] = useState<string>("1");
   const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>("");
 
   // Получаем объект сети по ID
@@ -32,19 +32,25 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     // Проверяем, что мы в браузере
     if (typeof window !== 'undefined') {
       try {
-        const n = localStorage.getItem("tc:selectedNetwork") || "1";
-        const p = localStorage.getItem("tc:selectedTradingPoint") || "";
-        setSelectedNetworkId(n);
-        if (p) setSelectedTradingPoint(p);
+        const savedNetwork = localStorage.getItem("tc:selectedNetwork");
+        const savedTradingPoint = localStorage.getItem("tc:selectedTradingPoint");
+        
+        // Если есть сохраненная сеть, используем её, иначе оставляем "1"
+        if (savedNetwork && savedNetwork !== selectedNetworkId) {
+          setSelectedNetworkId(savedNetwork);
+        }
+        
+        // Если есть сохраненная торговая точка, используем её
+        if (savedTradingPoint) {
+          setSelectedTradingPoint(savedTradingPoint);
+        }
       } catch (e) {
         console.warn('LocalStorage не доступен:', e);
-        setSelectedNetworkId("1");
+        // Начальное значение уже "1", ничего менять не нужно
       }
-    } else {
-      // На сервере устанавливаем значения по умолчанию
-      setSelectedNetworkId("1");
     }
-  }, []);
+    // На сервере начальное значение уже "1", ничего менять не нужно
+  }, [selectedNetworkId]);
 
   // Persist to localStorage
   useEffect(() => {

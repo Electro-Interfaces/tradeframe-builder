@@ -3,7 +3,16 @@
     "allow": [
       "Bash(find:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run dev)"
+      "Bash(npm run dev)",
+      "Bash(npm run build:*)",
+      "Bash(git checkout:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(powershell:*)",
+      "Bash(del \"C:\\Users\\localadm\\Documents\\tradeframe-builder\\src\\TestComponent.tsx\")",
+      "Bash(del \"src\\components\\layout\\FullWidthLayout.tsx\")",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

@@ -3,12 +3,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/context/SelectionContext";
 import { SalesAnalysisSimple } from "@/components/reports/SalesAnalysisSimple";
 import { SalesAnalysisChartsSimple } from "@/components/reports/SalesAnalysisChartsSimple";
-import { FullWidthLayout } from "@/components/layout/FullWidthLayout";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { DollarSign, Users, Fuel, Monitor, CreditCard, Store, Database, UserCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const MetricCard = ({ title, value, icon: IconComponent, color, status, trend }: {
   title: string;
@@ -65,18 +66,19 @@ export default function NetworkOverview() {
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
 
   return (
-    <FullWidthLayout>
-      <div className="w-full h-full px-4 md:px-6 lg:px-8">
-        {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
-          <p className="text-slate-400 mt-2">Общая информация и аналитика по торговой сети</p>
-        </div>
+    <MainLayout>
+      <div className="w-full space-y-6">
+        <div className="w-full">
+          {/* Заголовок страницы */}
+          <div>
+            <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
+            <p className="text-slate-400 mt-2">Общая информация и аналитика по торговой сети</p>
+          </div>
 
-      <div className="space-y-6">
+          <div className="w-full space-y-6 mt-6">
 
         {/* Главная сетка плиток */}
-        <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'}`}>
+        <div className={`w-full grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'}`}>
           <MetricCard
             title="Точки торговли"
             value="0"
@@ -166,7 +168,7 @@ export default function NetworkOverview() {
 
         {/* Компоненты анализа продаж - только если выбрана сеть */}
         {selectedNetwork && (
-          <div className="space-y-8">
+          <div className="w-full space-y-8">
             <SalesAnalysisSimple 
               selectedNetwork={selectedNetwork}
               selectedTradingPoint={selectedTradingPoint}
@@ -188,8 +190,9 @@ export default function NetworkOverview() {
             <p className="text-slate-400">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
           </div>
         )}
+          </div>
+        </div>
       </div>
-      </div>
-    </FullWidthLayout>
+    </MainLayout>
   );
 }

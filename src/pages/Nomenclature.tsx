@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MainLayout } from '@/components/layout/MainLayout';
 import { NomenclatureList } from '@/components/nomenclature/NomenclatureList';
 import { NomenclatureForm } from '@/components/nomenclature/NomenclatureForm';
 import { FuelNomenclature } from '@/types/nomenclature';
@@ -27,7 +28,7 @@ const Nomenclature: React.FC = () => {
   };
 
   return (
-    <>
+    <MainLayout>
       <NomenclatureList 
         onEdit={handleEdit}
         onCreate={handleCreate}
@@ -39,7 +40,7 @@ const Nomenclature: React.FC = () => {
         item={editingItem}
         onSave={handleSave}
       />
-    </>
+    </MainLayout>
   );
 };
 

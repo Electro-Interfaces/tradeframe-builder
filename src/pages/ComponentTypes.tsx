@@ -519,7 +519,7 @@ export default function ComponentTypes() {
               onClick={handleCreate}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
             >
-              + Создать компонент
+              + Создать шаблон компонента
             </Button>
           </div>
           
@@ -544,7 +544,7 @@ export default function ComponentTypes() {
                   onClick={handleCreate}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  + Создать компонент
+                  + Создать шаблон компонента
                 </Button>
               }
               className="py-16"
@@ -850,7 +850,7 @@ export default function ComponentTypes() {
                   Отмена
                 </Button>
                 <Button type="submit" disabled={!isValid}>
-                  {editingItem ? "Сохранить" : "Создать"}
+                  {editingItem ? "Сохранить" : "Создать шаблон"}
                 </Button>
               </DialogFooter>
             </form>

@@ -4,18 +4,41 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useSelection } from "@/context/SelectionContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, MapPin, ChevronDown, ChevronRight, Layers3, MoreHorizontal, Settings, AlertCircle, CheckCircle2, XCircle, Power, PowerOff, Archive, Loader2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { 
+  Plus, 
+  Edit, 
+  MoreHorizontal, 
+  Settings, 
+  AlertCircle, 
+  CheckCircle2, 
+  XCircle, 
+  PowerOff, 
+  Archive, 
+  Loader2, 
+  MapPin,
+  ChevronDown,
+  ChevronRight,
+  Power,
+  Trash2,
+  Layers3
+} from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator 
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-// Новые компоненты
+// Компоненты оборудования
 import { EquipmentFilters } from "@/components/equipment/EquipmentFilters";
 import { EquipmentWizard } from "@/components/equipment/EquipmentWizard";
 import { EquipmentDetailCard } from "@/components/equipment/EquipmentDetailCard";
 
-// Новые типы и API
+// Типы и API
 import { 
   Equipment, 
   EquipmentTemplate,
@@ -65,17 +88,10 @@ const getStatusColor = (status: EquipmentStatus) => {
   }
 };
 
-
-
-
-
-
-
-
-
 export default function Equipment() {
   const { selectedTradingPoint } = useSelection();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   // Основное состояние
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -88,15 +104,13 @@ export default function Equipment() {
   
   // Модальные окна
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [isDetailCardOpen, setIsDetailCardOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   
   // Расширенные ряды таблицы
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
   
   // ID выбранной торговой точки
-  const selectedTradingPointId = selectedTradingPoint?.id;
-
+  const selectedTradingPointId = selectedTradingPoint;
 
   // Загрузка шаблонов при монтировании
   useEffect(() => {
@@ -162,6 +176,7 @@ export default function Equipment() {
         description: "Оборудование успешно создано"
       });
       loadEquipment();
+      setIsWizardOpen(false);
     } catch (error) {
       console.error('Failed to create equipment:', error);
       toast({
@@ -181,6 +196,7 @@ export default function Equipment() {
         description: "Оборудование успешно обновлено"
       });
       loadEquipment();
+      setSelectedEquipment(null);
     } catch (error) {
       console.error('Failed to update equipment:', error);
       toast({
@@ -206,6 +222,7 @@ export default function Equipment() {
         description: `Оборудование ${actionText}`
       });
       loadEquipment();
+      setSelectedEquipment(null);
     } catch (error) {
       console.error('Failed to change status:', error);
       toast({
@@ -231,19 +248,6 @@ export default function Equipment() {
     }
   };
   
-  const handleEquipmentClick = (equipment: Equipment) => {
-    setSelectedEquipment(equipment);
-    setIsDetailCardOpen(true);
-  };
-  
-  const handleDeleteEquipment = async (equipment: Equipment) => {
-    try {
-      await handleStatusChange(equipment.id, 'archive');
-    } catch (error) {
-      // Ошибка уже обработана в handleStatusChange
-    }
-  };
-  
   const toggleRowExpansion = (equipmentId: string) => {
     setExpandedRows(prev => 
       prev.includes(equipmentId) 
@@ -251,13 +255,6 @@ export default function Equipment() {
         : [...prev, equipmentId]
     );
   };
-
-
-
-
-
-
-
 
   // Если торговая точка не выбрана
   if (!selectedTradingPoint) {
@@ -273,16 +270,160 @@ export default function Equipment() {
     );
   }
 
+  // Мобильная версия - карточки
+  if (isMobile) {
+    return (
+      <MainLayout>
+        <div className="px-4 pt-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-xl font-bold">Оборудование</h1>
+              <p className="text-sm text-muted-foreground">{selectedTradingPoint}</p>
+            </div>
+            <Button size="sm" onClick={() => setIsWizardOpen(true)} disabled={loading}>
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <div className="mb-4">
+            <EquipmentFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              templates={templates}
+              loading={loading}
+            />
+          </div>
+
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-destructive/10 text-destructive rounded-lg p-4 mb-4">
+              {error}
+            </div>
+          )}
+
+          {!loading && !error && equipment.length === 0 && (
+            <EmptyState
+              icon={Settings}
+              title="Нет оборудования"
+              description="На этой торговой точке пока нет оборудования"
+              className="py-8"
+            />
+          )}
+
+          {!loading && !error && equipment.length > 0 && (
+            <div className="space-y-3">
+              {equipment.map(item => {
+                const template = templates.find(t => t.id === item.template_id);
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-slate-800 rounded-lg p-4 border border-slate-700"
+                    onClick={() => setSelectedEquipment(item)}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="font-medium text-white">{item.display_name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {template?.name || "Неизвестный тип"}
+                        </p>
+                      </div>
+                      {getStatusIcon(item.status)}
+                    </div>
+                    
+                    {item.serial_number && (
+                      <p className="text-xs text-muted-foreground">
+                        S/N: {item.serial_number}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center justify-between mt-3">
+                      <Badge variant="secondary" className="text-xs">
+                        {getStatusText(item.status)}
+                      </Badge>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setSelectedEquipment(item)}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Редактировать
+                          </DropdownMenuItem>
+                          {item.status !== 'archived' && (
+                            <>
+                              <DropdownMenuSeparator />
+                              {item.status === 'disabled' ? (
+                                <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'enable')}>
+                                  <Power className="w-4 h-4 mr-2" />
+                                  Включить
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'disable')}>
+                                  <PowerOff className="w-4 h-4 mr-2" />
+                                  Отключить
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem 
+                                onClick={() => handleStatusChange(item.id, 'archive')}
+                                className="text-destructive"
+                              >
+                                <Archive className="w-4 h-4 mr-2" />
+                                Архивировать
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Wizard для создания */}
+        <EquipmentWizard
+          open={isWizardOpen}
+          onOpenChange={setIsWizardOpen}
+          tradingPointId={selectedTradingPointId}
+          templates={templates}
+          onSubmit={handleCreateEquipment}
+          loading={loading}
+        />
+
+        {/* Карточка детальной информации */}
+        {selectedEquipment && (
+          <EquipmentDetailCard
+            equipment={selectedEquipment}
+            template={templates.find(t => t.id === selectedEquipment.template_id)}
+            onClose={() => setSelectedEquipment(null)}
+            onUpdate={handleUpdateEquipment}
+            onStatusChange={handleStatusChange}
+            onLoadEvents={handleLoadEvents}
+          />
+        )}
+      </MainLayout>
+    );
+  }
+
+  // Десктопная версия - таблица
   return (
     <MainLayout>
       <div className="px-6 pt-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">
-              Оборудование на ТТ "{selectedTradingPoint.name}"
-            </h1>
+            <h1 className="text-3xl font-bold">Оборудование</h1>
             <p className="text-muted-foreground mt-1">
-              Управление оборудованием торговой точки
+              Торговая точка: {selectedTradingPoint}
             </p>
           </div>
           
@@ -302,632 +443,202 @@ export default function Equipment() {
           />
         </div>
 
+        {/* Состояния загрузки и ошибки */}
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
 
+        {error && (
+          <div className="bg-destructive/10 text-destructive rounded-lg p-4 mb-6">
+            {error}
+          </div>
+        )}
 
+        {/* Пустое состояние */}
+        {!loading && !error && equipment.length === 0 && (
+          <EmptyState
+            icon={Settings}
+            title="Нет оборудования"
+            description="На этой торговой точке пока нет оборудования. Нажмите 'Добавить из шаблона', чтобы создать первое."
+            className="py-16"
+          />
+        )}
 
-
-
-
-        <div className="w-full h-full -mx-4 md:-mx-6 lg:-mx-8">
-          <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
-            <table className="w-full text-sm min-w-full table-fixed">
-              <thead className="bg-slate-700">
-                <tr>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '5%'}}></th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '30%'}}>НАЗВАНИЕ</th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>ТИП</th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>СЕРИЙНЫЙ НОМЕР</th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>КОМПОНЕНТЫ</th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>СТАТУС</th>
-                  <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
-                </tr>
-              </thead>
-              <tbody className="bg-slate-800">
-                {filteredEquipment.length === 0 ? (
+        {/* Таблица с оборудованием */}
+        {!loading && !error && equipment.length > 0 && (
+          <div className="w-full h-full -mx-4 md:-mx-6 lg:-mx-8">
+            <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+              <table className="w-full text-sm min-w-full table-fixed">
+                <thead className="bg-slate-700">
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-slate-400">
-                      На этой торговой точке пока нет оборудования.
-                      <br />
-                      Нажмите "Добавить оборудование", чтобы создать первое.
-                    </td>
+                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '5%'}}></th>
+                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '30%'}}>НАЗВАНИЕ</th>
+                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>ТИП</th>
+                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>СЕРИЙНЫЙ НОМЕР</th>
+                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>КОМПОНЕНТЫ</th>
+                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>СТАТУС</th>
+                    <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
                   </tr>
-                ) : (
-                filteredEquipment.map((equipment) => {
-                  const template = mockEquipmentTemplates.find(t => t.id === equipment.template_id);
-                  const isExpanded = expandedEquipment.includes(equipment.id);
-                  const componentsCount = equipment.components?.length || 0;
-                  
-                  return (
-                    <>
-                      <tr
-                        key={equipment.id}
-                        className={`border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors`}
-                      >
-                        <td className="px-6 py-4">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleEquipmentExpansion(equipment.id)}
-                            className="p-0 h-6 w-6 text-slate-400 hover:text-white"
-                          >
-                            {isExpanded ? (
-                              <ChevronDown className="w-4 h-4" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </td>
-                        <td className="px-6 py-4 font-medium text-white">{equipment.name}</td>
-                        <td className="px-6 py-4 text-slate-400">{template?.name || "Неизвестный тип"}</td>
-                        <td className="px-6 py-4 text-slate-400">{equipment.serial_number || "—"}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Layers3 className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm text-white">{componentsCount}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <Badge variant="secondary" className="bg-slate-600 text-slate-200 flex items-center gap-2 w-fit">
-                            <div className={`w-2 h-2 rounded-full ${getStatusColor(equipment.status)}`} />
-                            {getStatusText(equipment.status)}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 text-slate-400 hover:text-white"
-                              onClick={() => openEditModal(equipment)}
+                </thead>
+                <tbody className="bg-slate-800">
+                  {equipment.map((item) => {
+                    const template = templates.find(t => t.id === item.template_id);
+                    const isExpanded = expandedRows.includes(item.id);
+                    const componentsCount = item.components?.length || 0;
+                    
+                    return (
+                      <>
+                        <tr
+                          key={item.id}
+                          className="border-b border-slate-600 hover:bg-slate-700 transition-colors"
+                        >
+                          <td className="px-6 py-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleRowExpansion(item.id)}
+                              className="p-0 h-6 w-6 text-slate-400 hover:text-white"
                             >
-                              <Edit className="h-4 w-4" />
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4" />
+                              )}
                             </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-8 w-8 p-0 text-slate-400 hover:text-white"
-                                >
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {getAvailableCommands(equipment.template_id).length > 0 && (
-                                  <>
-                                    {getAvailableCommands(equipment.template_id).map((command) => (
-                                      <DropdownMenuItem 
-                                        key={command.id}
-                                        onClick={() => handleExecuteCommand(equipment, command)}
-                                      >
-                                        <Play className="w-4 h-4 mr-2" />
-                                        {command.name}
-                                      </DropdownMenuItem>
-                                    ))}
-                                    <div className="h-px bg-border my-1" />
-                                  </>
-                                )}
-                                <DropdownMenuItem 
-                                  onClick={() => handleDeleteEquipment(equipment)}
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Удалить
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </td>
-                      </tr>
-                      
-                      {/* Раскрывающийся контент с компонентами */}
-                      {isExpanded && (
-                        <tr>
-                          <td colSpan={7} className="p-0">
-                            <div className="bg-muted/20 border-l-4 border-primary/20 ml-6 mr-2 mb-2">
-                              <div className="p-4">
-                                <div className="flex items-center justify-between mb-4">
-                                  <h4 className="font-medium text-sm">
-                                    Компоненты в составе "{equipment.name}"
-                                  </h4>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => openCreateComponentModal(equipment.id)}
-                                  >
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Добавить компонент
-                                  </Button>
-                                </div>
-                                
-                                {equipment.components && equipment.components.length > 0 ? (
-                                  <div className="border rounded-md bg-background">
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead className="text-xs">Название</TableHead>
-                                          <TableHead className="text-xs">Тип</TableHead>
-                                          <TableHead className="text-xs">Серийный номер</TableHead>
-                                          <TableHead className="text-xs">Статус</TableHead>
-                                          <TableHead className="text-xs text-right">Действия</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {equipment.components.map((component) => {
-                                          const componentTemplate = mockComponentTemplates.find(t => t.id === component.template_id);
-                                          return (
-                                            <TableRow key={component.id}>
-                                              <TableCell className="text-sm">{component.name}</TableCell>
-                                              <TableCell className="text-sm">{componentTemplate?.name || "Неизвестный тип"}</TableCell>
-                                              <TableCell className="text-sm">{component.serial_number || "—"}</TableCell>
-                                              <TableCell>
-                                                <Badge variant="secondary" className="text-xs">
-                                                  <div className={`w-1.5 h-1.5 rounded-full mr-1 ${getStatusColor(component.status)}`} />
-                                                  {getStatusText(component.status)}
-                                                </Badge>
-                                              </TableCell>
-                                              <TableCell className="text-right">
-                                                <div className="flex items-center justify-end gap-1">
-                                                  <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => openEditComponentModal(component)}
-                                                  >
-                                                    <Edit className="w-3 h-3" />
-                                                  </Button>
-                                                  
-                                                  <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                      <Button variant="outline" size="sm">
-                                                        <Trash2 className="w-3 h-3" />
-                                                      </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                      <AlertDialogHeader>
-                                                        <AlertDialogTitle>Подтверждение удаления</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                          Вы уверены, что хотите удалить компонент "{component.name}"?
-                                                        </AlertDialogDescription>
-                                                      </AlertDialogHeader>
-                                                      <AlertDialogFooter>
-                                                        <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDeleteComponent(component)}>
-                                                          Удалить
-                                                        </AlertDialogAction>
-                                                      </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                  </AlertDialog>
-                                                </div>
-                                              </TableCell>
-                                            </TableRow>
-                                          );
-                                        })}
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-                                ) : (
-                                  <div className="text-center py-4 text-muted-foreground text-sm">
-                                    В составе этого оборудования пока нет компонентов.
-                                  </div>
-                                )}
+                          </td>
+                          <td 
+                            className="px-6 py-4 font-medium text-white cursor-pointer"
+                            onClick={() => setSelectedEquipment(item)}
+                          >
+                            {item.display_name}
+                          </td>
+                          <td className="px-6 py-4 text-slate-400">
+                            {template?.name || "Неизвестный тип"}
+                          </td>
+                          <td className="px-6 py-4 text-slate-400">
+                            {item.serial_number || "—"}
+                          </td>
+                          <td className="px-6 py-4">
+                            {componentsCount > 0 ? (
+                              <div className="flex items-center gap-2">
+                                <Layers3 className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-white">{componentsCount}</span>
                               </div>
+                            ) : (
+                              <span className="text-slate-500">—</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge variant="secondary" className="bg-slate-600 text-slate-200 flex items-center gap-2 w-fit">
+                              <div className={cn("w-2 h-2 rounded-full", getStatusColor(item.status))} />
+                              {getStatusText(item.status)}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                                onClick={() => setSelectedEquipment(item)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                                  >
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {item.status !== 'archived' && (
+                                    <>
+                                      {item.status === 'disabled' ? (
+                                        <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'enable')}>
+                                          <Power className="w-4 h-4 mr-2" />
+                                          Включить
+                                        </DropdownMenuItem>
+                                      ) : (
+                                        <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'disable')}>
+                                          <PowerOff className="w-4 h-4 mr-2" />
+                                          Отключить
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem 
+                                        onClick={() => handleStatusChange(item.id, 'archive')}
+                                        className="text-destructive"
+                                      >
+                                        <Archive className="w-4 h-4 mr-2" />
+                                        Архивировать
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </td>
                         </tr>
-                      )}
-                    </>
-                  );
-                })
-              )}
-              </tbody>
-            </table>
+                        
+                        {/* Раскрывающийся контент с компонентами */}
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={7} className="p-0">
+                              <div className="bg-slate-900/50 border-l-4 border-blue-500/20 ml-6 mr-2 mb-2">
+                                <div className="p-6">
+                                  <div className="flex items-center justify-center py-8">
+                                    <div className="text-center">
+                                      <Layers3 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                                      <p className="text-slate-400 text-sm">
+                                        Компоненты будут доступны в следующей версии
+                                      </p>
+                                      <Badge variant="outline" className="mt-2">
+                                        Скоро
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-
-        {/* Модальное окно редактирования */}
-        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Редактирование оборудования</DialogTitle>
-            </DialogHeader>
-
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleEditEquipment)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Название</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Например: ТРК-1 у въезда" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="serial_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Серийный номер</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Серийный номер" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="external_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Внешний ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Уникальный ID во внешней системе" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="installation_date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Дата установки</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "dd.MM.yyyy")
-                              ) : (
-                                <span>Выберите дату</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date > new Date()}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="is_active"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Статус</FormLabel>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
-                    Отмена
-                  </Button>
-                  <Button type="submit">Сохранить</Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Модальное окно создания компонента */}
-        <Dialog open={isCreateComponentModalOpen} onOpenChange={(open) => {
-          setIsCreateComponentModalOpen(open);
-          if (!open) resetCreateComponentModal();
-        }}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {currentComponentStep === 1 ? "Выбор типа компонента" : "Данные экземпляра компонента"}
-              </DialogTitle>
-            </DialogHeader>
-
-            {currentComponentStep === 1 ? (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="component-template-select">Выберите тип компонента</Label>
-                  <Select value={selectedComponentTemplateId} onValueChange={setSelectedComponentTemplateId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите тип компонента" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockComponentTemplates
-                        .filter(template => template.status)
-                        .map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex justify-end space-x-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsCreateComponentModalOpen(false)}
-                  >
-                    Отмена
-                  </Button>
-                  <Button 
-                    onClick={handleNextComponentStep}
-                    disabled={!selectedComponentTemplateId}
-                  >
-                    Далее
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Form {...componentForm}>
-                <form onSubmit={componentForm.handleSubmit(handleCreateComponent)} className="space-y-4">
-                  <FormField
-                    control={componentForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Название</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Например: Датчик уровня топлива" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={componentForm.control}
-                    name="serial_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Серийный номер</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Серийный номер" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={componentForm.control}
-                    name="external_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Внешний ID</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Уникальный ID во внешней системе" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={componentForm.control}
-                    name="is_active"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <div className="space-y-0.5">
-                          <FormLabel>Статус</FormLabel>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={handlePrevComponentStep}>
-                      Назад
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => setIsCreateComponentModalOpen(false)}>
-                      Отмена
-                    </Button>
-                    <Button type="submit">Сохранить</Button>
-                  </div>
-                </form>
-              </Form>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Модальное окно редактирования компонента */}
-        <Dialog open={isEditComponentModalOpen} onOpenChange={setIsEditComponentModalOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Редактирование компонента</DialogTitle>
-            </DialogHeader>
-
-            <Form {...componentForm}>
-              <form onSubmit={componentForm.handleSubmit(handleEditComponent)} className="space-y-4">
-                <FormField
-                  control={componentForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Название</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Например: Датчик уровня топлива" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={componentForm.control}
-                  name="serial_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Серийный номер</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Серийный номер" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={componentForm.control}
-                  name="external_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Внешний ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Уникальный ID во внешней системе" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={componentForm.control}
-                  name="is_active"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Статус</FormLabel>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsEditComponentModalOpen(false)}>
-                    Отмена
-                  </Button>
-                  <Button type="submit">Сохранить</Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-        {/* Модальное окно выполнения команды */}
-        <Dialog open={isCommandModalOpen} onOpenChange={setIsCommandModalOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Play className="h-5 w-5" />
-                Выполнить команду: {selectedCommand?.name}
-              </DialogTitle>
-            </DialogHeader>
-            
-            {selectedCommand && targetEquipment && (
-              <div className="space-y-4">
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <div className="text-sm text-muted-foreground">Целевое оборудование:</div>
-                  <div className="font-medium">{targetEquipment.name}</div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    ID: {targetEquipment.external_id}
-                  </div>
-                </div>
-                
-                <DynamicForm
-                  jsonSchema={selectedCommand.jsonSchema || '{"type": "object", "properties": {}, "required": []}'}
-                  onSubmit={executeCommand}
-                  onCancel={() => setIsCommandModalOpen(false)}
-                  isLoading={isExecutingCommand}
-                  submitText="Выполнить команду"
-                />
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Обновленное модальное окно редактирования с вкладками */}
-        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Редактировать оборудование</DialogTitle>
-            </DialogHeader>
-
-            <Tabs defaultValue="basic" className="mt-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="basic">Основные данные</TabsTrigger>
-                <TabsTrigger value="history">История команд</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="basic" className="mt-6">
-                {editingEquipment && (
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleEditEquipment)} className="space-y-4">
-                      {/* ... существующие поля формы ... */}
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsEditModalOpen(false)}
-                        >
-                          Отмена
-                        </Button>
-                        <Button type="submit">Сохранить</Button>
-                      </div>
-                    </form>
-                  </Form>
-                )}
-              </TabsContent>
-
-              <TabsContent value="history" className="mt-6">
-                {editingEquipment && (
-                  <CommandHistory 
-                    history={getEquipmentHistory(editingEquipment.id)}
-                    equipmentId={editingEquipment.id}
-                    equipmentName={editingEquipment.name}
-                  />
-                )}
-              </TabsContent>
-            </Tabs>
-          </DialogContent>
-        </Dialog>
-
-        {/* ... остальные модальные окна ... */}
+        )}
       </div>
+
+      {/* Wizard для создания */}
+      <EquipmentWizard
+        open={isWizardOpen}
+        onOpenChange={setIsWizardOpen}
+        tradingPointId={selectedTradingPointId}
+        templates={templates}
+        onSubmit={handleCreateEquipment}
+        loading={loading}
+      />
+
+      {/* Карточка детальной информации */}
+      {selectedEquipment && (
+        <EquipmentDetailCard
+          equipment={selectedEquipment}
+          template={templates.find(t => t.id === selectedEquipment.template_id)}
+          onClose={() => setSelectedEquipment(null)}
+          onUpdate={handleUpdateEquipment}
+          onStatusChange={handleStatusChange}
+          onLoadEvents={handleLoadEvents}
+        />
+      )}
     </MainLayout>
   );
 }

@@ -22,11 +22,12 @@ const statusOptions: Array<{ value: EquipmentStatus; label: string; color: strin
 ];
 
 const systemTypeOptions = [
-  { value: "fuel_dispenser", label: "ТРК" },
   { value: "fuel_tank", label: "Резервуары" },
-  { value: "pos_system", label: "POS-терминалы" },
-  { value: "sensor", label: "Датчики" },
-  { value: "controller", label: "Контроллеры" },
+  { value: "self_service_terminal", label: "Терминалы самообслуживания" },
+  { value: "control_system", label: "Системы управления" },
+  { value: "price_display", label: "Табло цен" },
+  { value: "surveillance", label: "Видеонаблюдение" },
+  { value: "audio_system", label: "Звуковое сопровождение" },
 ];
 
 export function EquipmentFilters({ 

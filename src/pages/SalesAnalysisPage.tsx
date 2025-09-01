@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { SalesAnalysisSimple } from "@/components/reports/SalesAnalysisSimple";
 import { SalesAnalysisChartsSimple } from "@/components/reports/SalesAnalysisChartsSimple";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -12,8 +13,8 @@ export default function SalesAnalysisPage() {
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
 
   return (
-    <div className={`${isMobile ? 'w-full' : 'fixed top-16 left-64 right-0 bottom-0 overflow-y-auto'}`}>
-      <div className={`space-y-6 w-full ${isMobile ? 'p-2' : 'p-4'}`}>
+    <MainLayout>
+      <div className="space-y-6 w-full">
         {/* Заголовок страницы */}
         <div className="mb-6 px-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">Анализ продаж</h1>
@@ -49,6 +50,6 @@ export default function SalesAnalysisPage() {
           </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }

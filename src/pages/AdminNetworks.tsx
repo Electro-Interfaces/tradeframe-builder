@@ -49,24 +49,17 @@ const AdminNetworks = () => {
   const [networks, setNetworks] = useState<TradingNetwork[]>([
     {
       id: 1,
-      name: "Ромашка-Нефть",
-      description: "Крупнейшая сеть АЗС в регионе",
+      name: "Демо сеть АЗС",
+      description: "Демонстрационная сеть автозаправочных станций",
       type: "АЗС",
-      pointsCount: 15
+      pointsCount: 12
     },
     {
       id: 2,
-      name: "ГазПром Газ",
-      description: "Сеть автомобильных газовых заправочных станций",
-      type: "АГЗС",
+      name: "Норд Лайн",
+      description: "Сеть автозаправочных станций Норд Лайн",
+      type: "АЗС",
       pointsCount: 8
-    },
-    {
-      id: 3,
-      name: "Автомойка Люкс",
-      description: "Премиальные автомойки",
-      type: "Мойка",
-      pointsCount: 5
     }
   ]);
 

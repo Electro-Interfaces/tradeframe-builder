@@ -295,7 +295,7 @@ export default function ShiftReports() {
   if (!selectedTradingPoint) {
     return (
       <MainLayout>
-        <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+        <div className="w-full h-full">
           <div className="mb-6 px-6 pt-4">
             <h1 className="text-2xl font-semibold text-white">Сменные отчёты</h1>
           </div>
@@ -315,7 +315,7 @@ export default function ShiftReports() {
 
   return (
     <MainLayout>
-      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+      <div className="w-full h-full">
         {/* Заголовок страницы */}
         <div className="mb-6 px-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">Сменные отчёты АЗС</h1>

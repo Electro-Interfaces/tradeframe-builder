@@ -191,7 +191,7 @@ export function SalesAnalysisChartsSimple({ selectedNetwork, selectedTradingPoin
   return (
     <div className="space-y-6">
       {/* Основные графики */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
