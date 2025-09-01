@@ -9,6 +9,7 @@ import {
   EquipmentEvent
 } from '@/types/equipment';
 import { currentComponentsAPI } from './components';
+import { PersistentStorage } from '@/utils/persistentStorage';
 
 // Импорт сервиса для синхронизации с типами оборудования
 import { equipmentTemplatesFromTypesAPI } from './equipmentTypes';
@@ -248,29 +249,48 @@ const mockEquipmentTemplates: EquipmentTemplate[] = [
   }
 ];
 
-// Mock данные оборудования для демо (в production заменить на API)
-const mockEquipment: Equipment[] = [
+// Загружаем сохраненные данные из localStorage или используем начальные
+const initialEquipment: Equipment[] = [
+  // Оборудование для АЗС №001 - Центральная (point1)
   {
     id: "eq_1",
-    trading_point_id: "1",
-    template_id: "1", // Резервуар
+    trading_point_id: "point1",
+    
+    // Данные скопированные из шаблона при создании
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    
+    // Пользовательские данные экземпляра
     display_name: "Резервуар №1 (АИ-95)",
     serial_number: "RES001",
     external_id: "TANK_001",
     status: "online",
     installation_date: "2024-01-15T00:00:00Z",
+    
+    // Параметры экземпляра (скопированы из шаблона и настроены)
+    params: {
+      fuelType: "АИ-95",
+      currentLevelLiters: 42000,
+      capacityLiters: 50000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      temperature: 15.2,
+      waterLevelMm: 2
+    },
+    
     created_at: "2024-01-15T12:00:00Z",
     updated_at: "2024-08-30T10:30:00Z",
+    created_from_template: "1",
     components: []
   },
   {
     id: "eq_2", 
-    trading_point_id: "1",
+    trading_point_id: "point1",
     template_id: "1", // Резервуар
     display_name: "Резервуар №2 (АИ-92)",
     serial_number: "RES002",
     external_id: "TANK_002", 
-    status: "offline",
+    status: "online",
     installation_date: "2024-02-20T00:00:00Z",
     created_at: "2024-02-20T12:00:00Z",
     updated_at: "2024-08-30T09:15:00Z",
@@ -278,9 +298,22 @@ const mockEquipment: Equipment[] = [
   },
   {
     id: "eq_3",
-    trading_point_id: "1", 
+    trading_point_id: "point1",
+    template_id: "1", // Резервуар
+    display_name: "Резервуар №3 (ДТ)",
+    serial_number: "RES003",
+    external_id: "TANK_003",
+    status: "online",
+    installation_date: "2024-01-20T00:00:00Z",
+    created_at: "2024-01-20T12:00:00Z",
+    updated_at: "2024-08-30T09:00:00Z",
+    components: []
+  },
+  {
+    id: "eq_4",
+    trading_point_id: "point1", 
     template_id: "2", // Терминал самообслуживания
-    display_name: "Терминал у касс",
+    display_name: "ТРК №1 - Терминал самообслуживания",
     serial_number: "TSO001",
     external_id: "TSO_001",
     status: "online",
@@ -290,10 +323,23 @@ const mockEquipment: Equipment[] = [
     components: []
   },
   {
-    id: "eq_4",
-    trading_point_id: "1", 
+    id: "eq_5",
+    trading_point_id: "point1", 
+    template_id: "2", // Терминал самообслуживания
+    display_name: "ТРК №2 - Терминал самообслуживания",
+    serial_number: "TSO002",
+    external_id: "TSO_002",
+    status: "online",
+    installation_date: "2024-01-12T00:00:00Z",
+    created_at: "2024-01-12T12:00:00Z",
+    updated_at: "2024-08-30T08:30:00Z",
+    components: []
+  },
+  {
+    id: "eq_6",
+    trading_point_id: "point1", 
     template_id: "3", // Система управления
-    display_name: "Центральный сервер",
+    display_name: "Система управления АЗС",
     serial_number: "SRV001",
     external_id: "CTRL_001",
     status: "online",
@@ -303,23 +349,23 @@ const mockEquipment: Equipment[] = [
     components: []
   },
   {
-    id: "eq_5",
-    trading_point_id: "1", 
+    id: "eq_7",
+    trading_point_id: "point1", 
     template_id: "4", // Табло цен
-    display_name: "Табло у трассы",
+    display_name: "Табло цен - главное",
     serial_number: "LED001",
     external_id: "BOARD_001",
-    status: "error",
+    status: "online",
     installation_date: "2024-03-01T00:00:00Z",
     created_at: "2024-03-01T12:00:00Z",
     updated_at: "2024-08-30T07:30:00Z",
     components: []
   },
   {
-    id: "eq_6",
-    trading_point_id: "1", 
+    id: "eq_8",
+    trading_point_id: "point1", 
     template_id: "5", // Видеонаблюдение
-    display_name: "Камеры периметра",
+    display_name: "Система видеонаблюдения",
     serial_number: "CAM001",
     external_id: "CCTV_001",
     status: "online",
@@ -327,11 +373,223 @@ const mockEquipment: Equipment[] = [
     created_at: "2024-02-15T12:00:00Z",
     updated_at: "2024-08-30T07:00:00Z",
     components: []
+  },
+  
+  // Оборудование для АЗС №002 - Северная (point2)
+  {
+    id: "eq_9",
+    trading_point_id: "point2",
+    template_id: "1", // Резервуар
+    display_name: "Резервуар №1 (ДТ)",
+    serial_number: "RES101",
+    external_id: "TANK_101",
+    status: "online",
+    installation_date: "2024-02-01T00:00:00Z",
+    created_at: "2024-02-01T12:00:00Z",
+    updated_at: "2024-08-30T10:00:00Z",
+    components: []
+  },
+  {
+    id: "eq_10",
+    trading_point_id: "point2",
+    template_id: "1", // Резервуар
+    display_name: "Резервуар №2 (АИ-95)",
+    serial_number: "RES102",
+    external_id: "TANK_102",
+    status: "online",
+    installation_date: "2024-02-05T00:00:00Z",
+    created_at: "2024-02-05T12:00:00Z",
+    updated_at: "2024-08-30T09:45:00Z",
+    components: []
+  },
+  {
+    id: "eq_11",
+    trading_point_id: "point2",
+    template_id: "2", // Терминал самообслуживания
+    display_name: "ТРК №1 - Коммерческая",
+    serial_number: "TSO101",
+    external_id: "TSO_101",
+    status: "online",
+    installation_date: "2024-02-10T00:00:00Z",
+    created_at: "2024-02-10T12:00:00Z",
+    updated_at: "2024-08-30T08:20:00Z",
+    components: []
+  },
+  {
+    id: "eq_12",
+    trading_point_id: "point2",
+    template_id: "2", // Терминал самообслуживания
+    display_name: "ТРК №2 - Коммерческая",
+    serial_number: "TSO102",
+    external_id: "TSO_102",
+    status: "maintenance",
+    installation_date: "2024-02-12T00:00:00Z",
+    created_at: "2024-02-12T12:00:00Z",
+    updated_at: "2024-08-25T14:00:00Z",
+    components: []
+  },
+  {
+    id: "eq_13",
+    trading_point_id: "point2",
+    template_id: "3", // Система управления
+    display_name: "Система управления АЗС",
+    serial_number: "SRV101",
+    external_id: "CTRL_101",
+    status: "online",
+    installation_date: "2024-02-01T00:00:00Z",
+    created_at: "2024-02-01T12:00:00Z",
+    updated_at: "2024-08-30T07:45:00Z",
+    components: []
+  },
+  
+  // Оборудование для остальных точек
+  {
+    id: "eq_14",
+    trading_point_id: "point3",
+    template_id: "1", // Резервуар
+    display_name: "Резервуар №1 (АИ-92)",
+    serial_number: "RES201",
+    external_id: "TANK_201",
+    status: "online",
+    installation_date: "2024-03-01T00:00:00Z",
+    created_at: "2024-03-01T12:00:00Z",
+    updated_at: "2024-08-30T09:30:00Z",
+    components: []
+  },
+  {
+    id: "eq_15",
+    trading_point_id: "point3",
+    template_id: "2", // Терминал самообслуживания
+    display_name: "ТРК №1 - Стандартная",
+    serial_number: "TSO201",
+    external_id: "TSO_201", 
+    status: "online",
+    installation_date: "2024-03-05T00:00:00Z",
+    created_at: "2024-03-05T12:00:00Z",
+    updated_at: "2024-08-30T08:15:00Z",
+    components: []
+  },
+  {
+    id: "eq_16",
+    trading_point_id: "point4",
+    template_id: "1", // Резервуар
+    display_name: "Резервуар №1 (ДТ)",
+    serial_number: "RES301",
+    external_id: "TANK_301",
+    status: "error",
+    installation_date: "2024-03-10T00:00:00Z",
+    created_at: "2024-03-10T12:00:00Z",
+    updated_at: "2024-08-28T16:00:00Z",
+    components: []
+  },
+  {
+    id: "eq_17",
+    trading_point_id: "point5",
+    template_id: "2", // Терминал самообслуживания
+    display_name: "ТРК №1 - Мультитопливная",
+    serial_number: "TSO401",
+    external_id: "TSO_401",
+    status: "offline",
+    installation_date: "2024-03-15T00:00:00Z",
+    created_at: "2024-03-15T12:00:00Z",
+    updated_at: "2024-08-29T11:30:00Z",
+    components: []
+  },
+  {
+    id: "eq_18",
+    trading_point_id: "point5",
+    template_id: "4", // Табло цен
+    display_name: "Табло цен",
+    serial_number: "LED401",
+    external_id: "BOARD_401",
+    status: "online",
+    installation_date: "2024-03-20T00:00:00Z",
+    created_at: "2024-03-20T12:00:00Z",
+    updated_at: "2024-08-30T07:15:00Z",
+    components: []
   }
 ];
 
-// Mock API для оборудования (в production заменить на HTTP клиент к реальному API)
-// ВНИМАНИЕ: Данные не сохраняются между сессиями - это только для демо интерфейса
+// Загружаем данные из localStorage при инициализации
+let mockEquipment: Equipment[] = PersistentStorage.load<Equipment>('equipment', initialEquipment);
+
+// Функция для сохранения изменений
+const saveEquipment = () => {
+  PersistentStorage.save('equipment', mockEquipment);
+};
+
+// Проверяем, нужно ли обновить данные (если в localStorage старая версия или пустые данные)
+const checkAndUpdateData = () => {
+  if (!mockEquipment.length || mockEquipment.length < initialEquipment.length) {
+    console.log('🔄 Обновляем данные оборудования до актуальной версии...');
+    mockEquipment = [...initialEquipment];
+    saveEquipment();
+  }
+};
+
+// Выполняем проверку при инициализации
+checkAndUpdateData();
+
+// Функция для сброса данных к исходному состоянию (для разработки)
+const resetEquipmentData = () => {
+  mockEquipment = [...initialEquipment];
+  saveEquipment();
+  console.log('🔄 Equipment data reset to initial state');
+};
+
+// Функция агрегации статусов компонентов для оборудования
+export type ComponentHealthStatus = 'healthy' | 'warning' | 'error';
+
+export async function getEquipmentComponentsHealth(equipmentId: string): Promise<{
+  aggregatedStatus: ComponentHealthStatus;
+  componentCount: number;
+  statusBreakdown: Record<string, number>;
+}> {
+  const components = await currentComponentsAPI.list({ equipment_id: equipmentId });
+  
+  if (!components.data.length) {
+    return {
+      aggregatedStatus: 'healthy',
+      componentCount: 0,
+      statusBreakdown: {}
+    };
+  }
+
+  // Подсчитываем статусы
+  const statusBreakdown: Record<string, number> = {};
+  let hasError = false;
+  let hasWarning = false;
+
+  for (const component of components.data) {
+    statusBreakdown[component.status] = (statusBreakdown[component.status] || 0) + 1;
+    
+    // Определяем приоритет статусов: error > offline/disabled > online/archived
+    if (component.status === 'error') {
+      hasError = true;
+    } else if (component.status === 'offline' || component.status === 'disabled') {
+      hasWarning = true;
+    }
+  }
+
+  // Логика агрегации: красный > желтый > зеленый
+  let aggregatedStatus: ComponentHealthStatus;
+  if (hasError) {
+    aggregatedStatus = 'error';
+  } else if (hasWarning) {
+    aggregatedStatus = 'warning';
+  } else {
+    aggregatedStatus = 'healthy';
+  }
+
+  return {
+    aggregatedStatus,
+    componentCount: components.data.length,
+    statusBreakdown
+  };
+}
+
+// Mock API для оборудования с персистентным хранением
+// Все изменения сохраняются в localStorage и доступны после перезагрузки
 export const mockEquipmentAPI = {
   async list(params: ListEquipmentParams): Promise<ListEquipmentResponse> {
     // Симуляция задержки сети
@@ -346,19 +604,24 @@ export const mockEquipmentAPI = {
       const search = params.search.toLowerCase();
       filtered = filtered.filter(eq => 
         eq.display_name.toLowerCase().includes(search) ||
+        eq.name.toLowerCase().includes(search) ||
         (eq.serial_number && eq.serial_number.toLowerCase().includes(search))
       );
     }
 
-    if (params.template_id) {
-      filtered = filtered.filter(eq => eq.template_id === params.template_id);
+    if (params.system_type) {
+      filtered = filtered.filter(eq => eq.system_type === params.system_type);
+    }
+    
+    if (params.name) {
+      filtered = filtered.filter(eq => eq.name === params.name);
     }
 
     if (params.status) {
       filtered = filtered.filter(eq => eq.status === params.status);
     }
 
-    // Добавляем шаблоны и подгружаем количество компонентов
+    // Подгружаем количество компонентов для каждого оборудования
     const result = await Promise.all(filtered.map(async (eq) => {
       let componentsCount = 0;
       try {
@@ -374,7 +637,6 @@ export const mockEquipmentAPI = {
 
       return {
         ...eq,
-        template: mockEquipmentTemplates.find(t => t.id === eq.template_id),
         componentsCount // Добавляем количество компонентов
       };
     }));
@@ -391,25 +653,44 @@ export const mockEquipmentAPI = {
   async create(data: CreateEquipmentRequest): Promise<Equipment> {
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    // Получаем шаблон для копирования данных
+    const template = mockEquipmentTemplates.find(t => t.id === data.template_id);
+    if (!template) {
+      throw new ApiError(404, 'Equipment template not found');
+    }
+    
+    // Создаем независимый экземпляр оборудования
     const newEquipment: Equipment = {
-      id: `eq_${Date.now()}`,
+      id: `eq_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       trading_point_id: data.trading_point_id,
-      template_id: data.template_id,
-      display_name: data.overrides.display_name,
-      serial_number: data.overrides.serial_number,
-      external_id: data.overrides.external_id,
+      
+      // Копируем основную информацию из шаблона
+      name: template.name,
+      system_type: template.system_type,
+      
+      // Пользовательские данные экземпляра
+      display_name: data.display_name,
+      serial_number: data.serial_number,
+      external_id: data.external_id,
       status: "offline",
-      installation_date: data.overrides.installation_date,
-      bindings: data.overrides.bindings,
-      params: data.overrides.params,
+      installation_date: data.installation_date,
+      bindings: data.bindings,
+      
+      // Объединяем параметры по умолчанию с пользовательскими
+      params: {
+        ...template.default_params,
+        ...(data.custom_params || {})
+      },
+      
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      created_from_template: template.id, // Для истории
       components: []
     };
 
-    // В DEMO режиме НЕ сохраняем данные - только имитируем успешный ответ
-    // В production здесь будет HTTP POST запрос к серверу
-    // mockEquipment.push(newEquipment); // УБРАНО - данные не сохраняются
+    // Сохраняем новое оборудование в localStorage
+    mockEquipment.push(newEquipment);
+    saveEquipment();
     return newEquipment;
   },
 
@@ -421,10 +702,8 @@ export const mockEquipmentAPI = {
       throw new ApiError(404, 'Equipment not found');
     }
 
-    return {
-      ...equipment,
-      template: mockEquipmentTemplates.find(t => t.id === equipment.template_id)
-    };
+    // Возвращаем независимый экземпляр (без ссылки на шаблон)
+    return equipment;
   },
 
   async update(id: string, data: UpdateEquipmentRequest): Promise<Equipment> {
@@ -435,16 +714,15 @@ export const mockEquipmentAPI = {
       throw new ApiError(404, 'Equipment not found');
     }
 
-    // В DEMO режиме НЕ изменяем данные - только имитируем успешный ответ
-    // В production здесь будет HTTP PATCH запрос к серверу
+    // Обновляем данные и сохраняем в localStorage
     const updatedEquipment = {
       ...mockEquipment[index],
       ...data,
       updated_at: new Date().toISOString()
     };
 
-    // НЕ сохраняем изменения
-    // mockEquipment[index] = updatedEquipment; // УБРАНО
+    mockEquipment[index] = updatedEquipment;
+    saveEquipment();
     return updatedEquipment;
   },
 
@@ -456,23 +734,21 @@ export const mockEquipmentAPI = {
       throw new ApiError(404, 'Equipment not found');
     }
 
-    // В DEMO режиме НЕ изменяем статус - только имитируем успешный ответ
-    // В production здесь будет HTTP POST запрос к серверу
-    // switch (action) {
-    //   case 'enable':
-    //     equipment.status = 'online';
-    //     break;
-    //   case 'disable':
-    //     equipment.status = 'disabled';
-    //     break;
-    //   case 'archive':
-    //     equipment.status = 'archived';
-    //     equipment.deleted_at = new Date().toISOString();
-    //     break;
-    // }
-    // equipment.updated_at = new Date().toISOString();
-    
-    // Просто имитируем задержку и успех, без изменения данных
+    // Изменяем статус и сохраняем в localStorage
+    switch (action) {
+      case 'enable':
+        equipment.status = 'online';
+        break;
+      case 'disable':
+        equipment.status = 'disabled';
+        break;
+      case 'archive':
+        equipment.status = 'archived';
+        equipment.deleted_at = new Date().toISOString();
+        break;
+    }
+    equipment.updated_at = new Date().toISOString();
+    saveEquipment();
   },
 
   async getEvents(id: string): Promise<EquipmentEvent[]> {
@@ -499,6 +775,11 @@ export const mockEquipmentAPI = {
         details: { from: 'offline', to: 'online' }
       }
     ];
+  },
+
+  // Функция для сброса данных (только для разработки)
+  async resetData(): Promise<void> {
+    resetEquipmentData();
   }
 };
 

@@ -22,6 +22,7 @@ export function TradingPointCreateDialog({
 }: TradingPointCreateDialogProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<TradingPointInput>({
+    networkId: networkId,
     name: "",
     description: "",
     geolocation: {
@@ -34,7 +35,7 @@ export function TradingPointCreateDialog({
     phone: "",
     email: "",
     website: "",
-    isActive: true,
+    isBlocked: false,
     schedule: {
       monday: "",
       tuesday: "",
@@ -106,7 +107,7 @@ export function TradingPointCreateDialog({
         phone: "",
         email: "",
         website: "",
-        isActive: true,
+        isBlocked: false,
         schedule: {
           monday: "",
           tuesday: "",

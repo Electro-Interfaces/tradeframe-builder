@@ -14,8 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -56,7 +57,8 @@ const templateSelectionSchema = z.object({
 const componentDetailsSchema = z.object({
   display_name: z.string().min(1, "Название обязательно"),
   serial_number: z.string().optional(),
-  params: z.record(z.any()).optional()
+  params: z.record(z.any()).optional(),
+  config: z.record(z.any()).optional()
 });
 
 type TemplateSelectionData = z.infer<typeof templateSelectionSchema>;
@@ -88,9 +90,51 @@ export function ComponentWizard({
     defaultValues: {
       display_name: "",
       serial_number: "",
-      params: {}
+      params: {},
+      config: {}
     }
   });
+
+  // Функции для локализации полей
+  const getFieldLabel = (key: string): string => {
+    const labels: Record<string, string> = {
+      'capacityLiters': 'Объем резервуара (литры)',
+      'minLevelPercent': 'Минимальный уровень (%)',
+      'criticalLevelPercent': 'Критический уровень (%)',
+      'maxLevelPercent': 'Максимальный уровень (%)',
+      'fuelType': 'Тип топлива',
+      'temperatureSensorEnabled': 'Датчик температуры',
+      'densitySensorEnabled': 'Датчик плотности',
+      'waterSensorEnabled': 'Датчик воды',
+      'pressureMax': 'Максимальное давление (бар)',
+      'temperatureMin': 'Мин. температура (°C)',
+      'temperatureMax': 'Макс. температура (°C)',
+      'productCode': 'Код продукта',
+      'calibrationDate': 'Дата калибровки',
+      'warrantyExpiry': 'Конец гарантии',
+      'manufacturer': 'Производитель',
+      'model': 'Модель',
+      'location': 'Расположение'
+    };
+    return labels[key] || key.charAt(0).toUpperCase() + key.slice(1);
+  };
+
+  const getFieldDescription = (key: string): string => {
+    const descriptions: Record<string, string> = {
+      'capacityLiters': 'Максимальный объем резервуара в литрах',
+      'minLevelPercent': 'Уровень для уведомления о необходимости заправки',
+      'criticalLevelPercent': 'Критически низкий уровень топлива',
+      'maxLevelPercent': 'Максимально допустимый уровень заполнения',
+      'fuelType': 'Тип топлива (АИ-92, АИ-95, ДТ и т.д.)',
+      'temperatureSensorEnabled': 'Включить контроль температуры топлива',
+      'densitySensorEnabled': 'Включить контроль плотности топлива',
+      'waterSensorEnabled': 'Включить контроль наличия воды в топливе',
+      'pressureMax': 'Максимально допустимое давление в системе',
+      'temperatureMin': 'Минимально допустимая температура',
+      'temperatureMax': 'Максимально допустимая температура'
+    };
+    return descriptions[key] || '';
+  };
 
   // Загружаем совместимые шаблоны при открытии
   useEffect(() => {
@@ -143,11 +187,9 @@ export function ComponentWizard({
       trading_point_id: tradingPointId,
       equipment_id: equipmentId,
       template_id: selectedTemplate.id,
-      overrides: {
-        display_name: detailsData.display_name,
-        serial_number: detailsData.serial_number,
-        params: detailsData.params
-      }
+      display_name: detailsData.display_name,
+      serial_number: detailsData.serial_number,
+      custom_params: detailsData.config || {}
     };
 
     setIsSubmitting(true);
@@ -203,9 +245,6 @@ export function ComponentWizard({
             <DialogDescription>
               {getStepDescription(currentStep)}
             </DialogDescription>
-            <div className="mt-2 text-xs text-amber-500 bg-amber-900/20 px-2 py-1 rounded border border-amber-500/20">
-              ⚠️ ДЕМО РЕЖИМ: Данные не сохранятся на сервере
-            </div>
           </DialogHeader>
 
           {/* Прогресс-бар */}
@@ -362,24 +401,58 @@ export function ComponentWizard({
                           Настройте параметры компонента согласно шаблону
                         </CardDescription>
                       </CardHeader>
-                      <CardContent>
-                        <Alert className="mb-4">
-                          <Info className="h-4 w-4" />
-                          <AlertDescription>
-                            Детальное управление параметрами будет добавлено в следующей версии.
-                            Пока используются значения по умолчанию.
-                          </AlertDescription>
-                        </Alert>
+                      <CardContent className="space-y-4">
+                        {/* Динамическое создание полей на основе defaults */}
+                        {Object.entries(selectedTemplate.defaults).map(([key, value]) => {
+                          // Пропускаем системные поля
+                          if (key === 'id' || key === 'equipment_id' || key === 'created_at' || key === 'updated_at') {
+                            return null;
+                          }
 
-                        {/* Показываем defaults */}
-                        <div className="space-y-3">
-                          <Label className="text-sm font-medium">Параметры по умолчанию:</Label>
-                          <div className="bg-muted rounded-lg p-3">
-                            <pre className="text-xs text-muted-foreground">
-                              {JSON.stringify(selectedTemplate.defaults, null, 2)}
-                            </pre>
-                          </div>
-                        </div>
+                          return (
+                            <FormField
+                              key={key}
+                              control={detailsForm.control}
+                              name={`config.${key}`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{getFieldLabel(key)}</FormLabel>
+                                  <FormControl>
+                                    {typeof value === 'number' ? (
+                                      <Input
+                                        {...field}
+                                        type="number"
+                                        placeholder={String(value)}
+                                        onChange={(e) => field.onChange(Number(e.target.value) || value)}
+                                        defaultValue={String(value)}
+                                      />
+                                    ) : typeof value === 'boolean' ? (
+                                      <div className="flex items-center space-x-2">
+                                        <Switch
+                                          checked={field.value ?? value}
+                                          onCheckedChange={field.onChange}
+                                        />
+                                        <Label className="text-sm text-muted-foreground">
+                                          {field.value ?? value ? 'Включено' : 'Отключено'}
+                                        </Label>
+                                      </div>
+                                    ) : (
+                                      <Input
+                                        {...field}
+                                        placeholder={String(value)}
+                                        defaultValue={String(value)}
+                                      />
+                                    )}
+                                  </FormControl>
+                                  <FormDescription className="text-xs">
+                                    {getFieldDescription(key)}
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          );
+                        })}
                       </CardContent>
                     </Card>
                   )}
@@ -440,9 +513,21 @@ export function ComponentWizard({
                     Параметры компонента
                   </Label>
                   <div className="mt-2 bg-muted rounded-lg p-3">
-                    <pre className="text-xs text-muted-foreground">
-                      {JSON.stringify(detailsForm.getValues('params') || selectedTemplate.defaults, null, 2)}
-                    </pre>
+                    <div className="space-y-2">
+                      {Object.entries({
+                        ...selectedTemplate.defaults,
+                        ...(detailsForm.getValues('config') || {})
+                      }).filter(([key]) => 
+                        key !== 'id' && key !== 'equipment_id' && key !== 'created_at' && key !== 'updated_at'
+                      ).map(([key, value]) => (
+                        <div key={key} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">{getFieldLabel(key)}:</span>
+                          <span className="font-mono text-foreground">
+                            {typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : String(value)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </CardContent>

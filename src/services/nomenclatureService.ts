@@ -1,10 +1,12 @@
 import { FuelNomenclature, FuelNomenclatureFormData, FuelNomenclatureFilters, ExternalCodeMapping } from '../types/nomenclature';
+import { PersistentStorage } from '@/utils/persistentStorage';
 
 const API_BASE_URL = '/api/v1';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const mockNomenclature: FuelNomenclature[] = [
+// Начальные данные номенклатуры
+const initialNomenclature: FuelNomenclature[] = [
   {
     id: '1',
     networkId: '1',
@@ -182,6 +184,14 @@ const mockNomenclature: FuelNomenclature[] = [
   }
 ];
 
+// Загружаем данные из localStorage при инициализации
+let mockNomenclature: FuelNomenclature[] = PersistentStorage.load<FuelNomenclature>('nomenclature', initialNomenclature);
+
+// Функция для сохранения изменений
+const saveNomenclature = () => {
+  PersistentStorage.save('nomenclature', mockNomenclature);
+};
+
 export const nomenclatureService = {
   async getNomenclature(filters?: FuelNomenclatureFilters): Promise<FuelNomenclature[]> {
     await delay(500);
@@ -221,7 +231,7 @@ export const nomenclatureService = {
     await delay(500);
     
     const newItem: FuelNomenclature = {
-      id: Date.now().toString(),
+      id: `nom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       ...data,
       networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'Норд Лайн',
       externalCodes: data.externalCodes.map((code, index) => ({
@@ -238,6 +248,7 @@ export const nomenclatureService = {
     };
     
     mockNomenclature.push(newItem);
+    saveNomenclature();
     return newItem;
   },
 
@@ -268,6 +279,7 @@ export const nomenclatureService = {
     };
     
     mockNomenclature[index] = updated;
+    saveNomenclature();
     return updated;
   },
 
@@ -278,6 +290,7 @@ export const nomenclatureService = {
       throw new Error('Номенклатура не найдена');
     }
     mockNomenclature.splice(index, 1);
+    saveNomenclature();
   },
 
   async archiveNomenclature(id: string): Promise<FuelNomenclature> {
@@ -289,6 +302,7 @@ export const nomenclatureService = {
     item.status = 'archived';
     item.updatedAt = new Date();
     item.updatedBy = 'current_user';
+    saveNomenclature();
     return item;
   },
 
@@ -301,6 +315,7 @@ export const nomenclatureService = {
     item.status = 'active';
     item.updatedAt = new Date();
     item.updatedBy = 'current_user';
+    saveNomenclature();
     return item;
   },
 

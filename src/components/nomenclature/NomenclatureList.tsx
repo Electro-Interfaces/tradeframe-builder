@@ -100,12 +100,24 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
     }
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }).format(date);
+  const formatDate = (date: Date | string) => {
+    try {
+      const validDate = date instanceof Date ? date : new Date(date);
+      
+      // Проверяем, что дата валидна
+      if (isNaN(validDate.getTime())) {
+        return 'Нет данных';
+      }
+      
+      return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(validDate);
+    } catch (error) {
+      console.warn('Invalid date value:', date);
+      return 'Нет данных';
+    }
   };
 
   if (loading) {

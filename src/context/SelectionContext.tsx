@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { networksStore } from "@/mock/networksStore";
+import { networksService } from "@/services/networksService";
 import { Network } from "@/types/network";
 
 type SelectionContextValue = {
@@ -16,7 +16,29 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
   const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>("");
 
   // Получаем объект сети по ID
-  const selectedNetwork = selectedNetworkId ? networksStore.getById(selectedNetworkId) || null : null;
+  const [selectedNetwork, setSelectedNetworkState] = useState<Network | null>(null);
+  
+  useEffect(() => {
+    if (selectedNetworkId) {
+      networksService.getById(selectedNetworkId)
+        .then(network => {
+          setSelectedNetworkState(network);
+        })
+        .catch(error => {
+          console.error('Ошибка при загрузке сети:', error);
+          setSelectedNetworkState(null);
+          // Если сеть не найдена, сбрасываем выбор на первую доступную
+          networksService.getAll().then(networks => {
+            if (networks.length > 0) {
+              console.log('Переключаем на первую доступную сеть:', networks[0]);
+              setSelectedNetworkId(networks[0].id);
+            }
+          });
+        });
+    } else {
+      setSelectedNetworkState(null);
+    }
+  }, [selectedNetworkId]);
 
   // Обертка для setSelectedNetwork, которая сбрасывает торговую точку при смене сети
   const handleSetSelectedNetwork = (networkId: string) => {

@@ -28,7 +28,8 @@ import {
   Receipt,
   TrendingUp,
   Fuel,
-  FileText as FuelIcon
+  FileText as FuelIcon,
+  Database
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -65,8 +66,10 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
     { title: "История цен", url: "/network/price-history", icon: TrendingUp },
     { title: "Остатки топлива", url: "/network/fuel-stocks", icon: Fuel },
+    { title: "Журнал оборудования", url: "/network/equipment-log", icon: Database },
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
     { title: "Сообщения", url: "/network/messages", icon: MessageSquare },
+    { title: "Инспектор данных", url: "/admin/data-inspector", icon: HardDrive },
   ];
 
   const tradingPointMenuItems = [
@@ -78,7 +81,9 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
 
   const adminMenuItems = [
     { title: "Сети и ТТ", url: "/admin/networks", icon: Network },
-    { title: "Пользователи и роли", url: "/admin/users", icon: Users },
+    { title: "Пользователи (простая)", url: "/admin/users", icon: Users },
+    { title: "Пользователи и роли", url: "/admin/users-and-roles", icon: Shield },
+    { title: "Управление ролями", url: "/admin/users-and-roles-new", icon: Settings },
     { title: "Журнал аудита", url: "/admin/audit", icon: FileText },
   ];
 

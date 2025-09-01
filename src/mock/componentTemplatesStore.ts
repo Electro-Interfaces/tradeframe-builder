@@ -1,11 +1,12 @@
 import { ComponentTemplate, ComponentTemplateId, EquipmentComponentCompatibility } from '@/types/component';
 
-// Mock данные шаблонов компонентов
+// Полный набор шаблонов компонентов согласно системным требованиям
 const componentTemplatesData: ComponentTemplate[] = [
+  // Компоненты резервуаров
   {
     id: "comp_sensor_level_1",
-    code: "SENSOR_LEVEL_DUT",
-    name: "Датчик уровня топлива DUT-E",
+    code: "CMP_RES_LEVEL",
+    name: "Датчик уровня",
     params_schema: {
       type: "object",
       properties: {
@@ -25,6 +26,476 @@ const componentTemplatesData: ComponentTemplate[] = [
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   },
+  {
+    id: "comp_sensor_temp_1",
+    code: "CMP_RES_TEMP",
+    name: "Датчик температуры",
+    params_schema: {
+      type: "object",
+      properties: {
+        accuracy: { type: "number", minimum: 0.1, maximum: 2.0 },
+        range_min: { type: "number", minimum: -50 },
+        range_max: { type: "number", minimum: 50, maximum: 150 },
+        alarm_threshold: { type: "number" }
+      },
+      required: ["accuracy", "range_min", "range_max"]
+    },
+    defaults: {
+      accuracy: 0.5,
+      range_min: -40,
+      range_max: 80,
+      alarm_threshold: 45
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_sensor_water_1",
+    code: "CMP_RES_WATER",
+    name: "Датчик товарной воды",
+    params_schema: {
+      type: "object",
+      properties: {
+        sensitivity: { type: "number", minimum: 0.1, maximum: 5.0 },
+        detection_level_mm: { type: "number", minimum: 0, maximum: 100 },
+        alarm_enabled: { type: "boolean" }
+      },
+      required: ["sensitivity", "detection_level_mm"]
+    },
+    defaults: {
+      sensitivity: 1.0,
+      detection_level_mm: 10,
+      alarm_enabled: true
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_sensor_leak_1",
+    code: "CMP_RES_LEAK",
+    name: "Датчик утечки",
+    params_schema: {
+      type: "object",
+      properties: {
+        sensitivity: { type: "number", minimum: 0.01, maximum: 1.0 },
+        response_time: { type: "number", minimum: 1, maximum: 60 },
+        auto_shutdown: { type: "boolean" }
+      },
+      required: ["sensitivity", "response_time"]
+    },
+    defaults: {
+      sensitivity: 0.1,
+      response_time: 5,
+      auto_shutdown: true
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  
+  // Компоненты терминала самообслуживания
+  {
+    id: "comp_tso_display_1",
+    code: "CMP_TSO_DISPLAY",
+    name: "Дисплей",
+    params_schema: {
+      type: "object",
+      properties: {
+        resolution: { type: "string" },
+        brightness: { type: "number", minimum: 0, maximum: 100 },
+        touchscreen: { type: "boolean" },
+        size_inch: { type: "number" }
+      },
+      required: ["resolution"]
+    },
+    defaults: {
+      resolution: "1920x1080",
+      brightness: 75,
+      touchscreen: true,
+      size_inch: 21.5
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_tso_sw_1",
+    code: "CMP_TSO_SW",
+    name: "Программный модуль",
+    params_schema: {
+      type: "object",
+      properties: {
+        version: { type: "string" },
+        license_type: { type: "string" },
+        modules: { type: "array", items: { type: "string" } }
+      },
+      required: ["version"]
+    },
+    defaults: {
+      version: "2.5.0",
+      license_type: "commercial",
+      modules: ["payment", "loyalty", "reporting"]
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_tso_fuelcr_1",
+    code: "CMP_TSO_FUELCR",
+    name: "Картридер топливных карт",
+    params_schema: {
+      type: "object",
+      properties: {
+        card_types: { type: "array", items: { type: "string" } },
+        encryption: { type: "string" },
+        connection_type: { type: "string" }
+      },
+      required: ["card_types"]
+    },
+    defaults: {
+      card_types: ["mifare", "em-marine"],
+      encryption: "AES256",
+      connection_type: "USB"
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_tso_bankcr_1",
+    code: "CMP_TSO_BANKCR",
+    name: "Картридер банковских карт",
+    params_schema: {
+      type: "object",
+      properties: {
+        card_types: { type: "array", items: { type: "string" } },
+        contactless: { type: "boolean" },
+        pci_compliant: { type: "boolean" }
+      },
+      required: ["card_types"]
+    },
+    defaults: {
+      card_types: ["visa", "mastercard", "mir"],
+      contactless: true,
+      pci_compliant: true
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_tso_kkt_1",
+    code: "CMP_TSO_KKT",
+    name: "ККТ",
+    params_schema: {
+      type: "object",
+      properties: {
+        model: { type: "string" },
+        fiscal_memory: { type: "boolean" },
+        ofd_connection: { type: "string" }
+      },
+      required: ["model"]
+    },
+    defaults: {
+      model: "АТОЛ 91Ф",
+      fiscal_memory: true,
+      ofd_connection: "ethernet"
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_tso_cashin_1",
+    code: "CMP_TSO_CASHIN",
+    name: "Купюроприёмник",
+    params_schema: {
+      type: "object",
+      properties: {
+        currency: { type: "array", items: { type: "string" } },
+        capacity: { type: "number" },
+        recycling: { type: "boolean" }
+      },
+      required: ["currency", "capacity"]
+    },
+    defaults: {
+      currency: ["RUB"],
+      capacity: 600,
+      recycling: false
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_tso_butrk_1",
+    code: "CMP_TSO_BUTRK",
+    name: "БУТРК",
+    params_schema: {
+      type: "object",
+      properties: {
+        channels: { type: "number" },
+        protocol: { type: "string" },
+        max_flow_rate: { type: "number" }
+      },
+      required: ["channels"]
+    },
+    defaults: {
+      channels: 8,
+      protocol: "IFSF",
+      max_flow_rate: 130
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  
+  // Компоненты системы управления
+  {
+    id: "comp_sys_display_1",
+    code: "CMP_SYS_DISPLAY",
+    name: "Дисплей системы управления",
+    params_schema: {
+      type: "object",
+      properties: {
+        resolution: { type: "string" },
+        multi_touch: { type: "boolean" },
+        size_inch: { type: "number" }
+      },
+      required: ["resolution"]
+    },
+    defaults: {
+      resolution: "1920x1080",
+      multi_touch: true,
+      size_inch: 24
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_sys_sw_1",
+    code: "CMP_SYS_SW",
+    name: "Программный модуль системы управления",
+    params_schema: {
+      type: "object",
+      properties: {
+        version: { type: "string" },
+        database: { type: "string" },
+        max_users: { type: "number" }
+      },
+      required: ["version"]
+    },
+    defaults: {
+      version: "3.0.0",
+      database: "PostgreSQL",
+      max_users: 50
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_sys_fuelcr_1",
+    code: "CMP_SYS_FUELCR",
+    name: "Картридер топливных карт системы управления",
+    params_schema: {
+      type: "object",
+      properties: {
+        card_types: { type: "array", items: { type: "string" } },
+        encryption: { type: "string" }
+      },
+      required: ["card_types"]
+    },
+    defaults: {
+      card_types: ["mifare", "em-marine"],
+      encryption: "AES256"
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_sys_bankcr_1",
+    code: "CMP_SYS_BANKCR",
+    name: "Картридер банковских карт системы управления",
+    params_schema: {
+      type: "object",
+      properties: {
+        card_types: { type: "array", items: { type: "string" } },
+        contactless: { type: "boolean" }
+      },
+      required: ["card_types"]
+    },
+    defaults: {
+      card_types: ["visa", "mastercard", "mir"],
+      contactless: true
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_sys_kkt_1",
+    code: "CMP_SYS_KKT",
+    name: "ККТ системы управления",
+    params_schema: {
+      type: "object",
+      properties: {
+        model: { type: "string" },
+        fiscal_memory: { type: "boolean" }
+      },
+      required: ["model"]
+    },
+    defaults: {
+      model: "Эвотор 7.3",
+      fiscal_memory: true
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_sys_cashin_1",
+    code: "CMP_SYS_CASHIN",
+    name: "Купюроприёмник системы управления",
+    params_schema: {
+      type: "object",
+      properties: {
+        currency: { type: "array", items: { type: "string" } },
+        capacity: { type: "number" }
+      },
+      required: ["currency"]
+    },
+    defaults: {
+      currency: ["RUB"],
+      capacity: 1000
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_sys_butrk_1",
+    code: "CMP_SYS_BUTRK",
+    name: "БУТРК системы управления",
+    params_schema: {
+      type: "object",
+      properties: {
+        channels: { type: "number" },
+        protocol: { type: "string" }
+      },
+      required: ["channels"]
+    },
+    defaults: {
+      channels: 16,
+      protocol: "IFSF"
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  
+  // Компоненты табло цен
+  {
+    id: "comp_price_ctrl_1",
+    code: "CMP_PRICE_CTRL",
+    name: "Контроллер табло цен",
+    params_schema: {
+      type: "object",
+      properties: {
+        channels: { type: "number" },
+        protocol: { type: "string" },
+        update_interval: { type: "number" }
+      },
+      required: ["channels"]
+    },
+    defaults: {
+      channels: 4,
+      protocol: "RS485",
+      update_interval: 60
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_price_panel_1",
+    code: "CMP_PRICE_PANEL",
+    name: "Панель отображения",
+    params_schema: {
+      type: "object",
+      properties: {
+        brightness: { type: "number" },
+        digits: { type: "number" },
+        color: { type: "string" }
+      },
+      required: ["brightness", "digits"]
+    },
+    defaults: {
+      brightness: 5000,
+      digits: 4,
+      color: "red"
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  
+  // Компоненты видеонаблюдения
+  {
+    id: "comp_cam_camera_1",
+    code: "CMP_CAM_CAMERA",
+    name: "Камера видеонаблюдения",
+    params_schema: {
+      type: "object",
+      properties: {
+        resolution: { type: "string" },
+        fps: { type: "number" },
+        night_vision: { type: "boolean" },
+        ptz: { type: "boolean" }
+      },
+      required: ["resolution", "fps"]
+    },
+    defaults: {
+      resolution: "4K",
+      fps: 30,
+      night_vision: true,
+      ptz: false
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: "comp_cam_ctrl_1",
+    code: "CMP_CAM_CTRL",
+    name: "Контроллер видеонаблюдения",
+    params_schema: {
+      type: "object",
+      properties: {
+        channels: { type: "number" },
+        storage_tb: { type: "number" },
+        retention_days: { type: "number" }
+      },
+      required: ["channels"]
+    },
+    defaults: {
+      channels: 16,
+      storage_tb: 8,
+      retention_days: 30
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  
+  // Компоненты звукового сопровождения
+  {
+    id: "comp_sound_ctrl_1",
+    code: "CMP_SOUND_CTRL",
+    name: "Контроллер звукового сопровождения",
+    params_schema: {
+      type: "object",
+      properties: {
+        channels: { type: "number" },
+        power_watts: { type: "number" },
+        zones: { type: "number" }
+      },
+      required: ["channels"]
+    },
+    defaults: {
+      channels: 4,
+      power_watts: 100,
+      zones: 3
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  
+  // Оставляем старые для совместимости
   {
     id: "comp_printer_1",
     code: "PRINTER_THERMAL_58",

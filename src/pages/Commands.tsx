@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Edit, Copy, Trash2, Play, Search } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Plus, Edit, Copy, Trash2, Play, Search, Settings, Cog } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,10 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,499 +17,291 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/ui/empty-state';
 
-// Types and schemas
-const commandSchema = z.object({
-  name: z.string().min(1, 'Название команды обязательно'),
-  code: z.string().min(1, 'Код команды обязателен').regex(/^[A-Z_]+$/, 'Код должен содержать только заглавные буквы и подчеркивания'),
-  description: z.string().optional(),
-  targetType: z.enum(['trading_point', 'equipment', 'component']),
-  isActive: z.boolean(),
-  adapter: z.enum(['http', 'broker']),
-  endpoint: z.string().min(1, 'Endpoint/Topic обязателен'),
-  httpMethod: z.enum(['GET', 'POST', 'PUT']).optional(),
-  httpHeaders: z.string().optional(),
-  timeout: z.number().optional(),
-  jsonSchema: z.string().optional(),
-  jsonTemplate: z.string().optional(),
+// Import new types and services
+import { 
+  Command, 
+  CommandTemplate, 
+  CreateCommandRequest,
+  CommandStatusAction 
+} from '@/types/command';
+import { commandsAPI, commandTemplatesStore } from '@/services/commandsService';
+
+// Schema for creating command from template
+const createCommandSchema = z.object({
+  template_id: z.string().min(1, 'Выберите шаблон команды'),
+  display_name: z.string().min(1, 'Название команды обязательно'),
+  trading_point_id: z.string().optional(),
+  custom_endpoint: z.string().optional(),
+  custom_timeout: z.number().optional(),
+  custom_json_template: z.string().optional(),
 });
 
-type Command = z.infer<typeof commandSchema> & {
-  id: string;
-  createdAt: string;
-};
+type CreateCommandForm = z.infer<typeof createCommandSchema>;
 
-// Mock data
-const mockCommands: Command[] = [
-  {
-    id: '1',
-    name: 'Перезагрузить устройство',
-    code: 'REBOOT_DEVICE',
-    description: 'Команда для перезагрузки оборудования',
-    targetType: 'equipment',
-    isActive: true,
-    adapter: 'http',
-    endpoint: '{{target.external_api_url}}/reboot',
-    httpMethod: 'POST',
-    httpHeaders: '{"Authorization": "Bearer {{secrets.api_key}}"}',
-    timeout: 5000,
-    jsonSchema: '{"type": "object", "properties": {"force": {"type": "boolean"}}, "required": []}',
-    jsonTemplate: '{"device": "{{target.external_id}}", "force": {{params.force}}}',
-    createdAt: '2024-01-15',
-  },
-  {
-    id: '2',
-    name: 'Установить цену топлива',
-    code: 'SET_FUEL_PRICE',
-    description: 'Команда для изменения цены топлива на ТРК',
-    targetType: 'equipment',
-    isActive: true,
-    adapter: 'broker',
-    endpoint: 'commands.fuel.price',
-    timeout: 3000,
-    jsonSchema: '{"type": "object", "properties": {"price": {"type": "number"}, "fuel_type": {"type": "string"}}, "required": ["price", "fuel_type"]}',
-    jsonTemplate: '{"device": "{{target.external_id}}", "price": {{params.price}}, "fuel_type": "{{params.fuel_type}}"}',
-    createdAt: '2024-01-10',
-  },
-  {
-    id: '3',
-    name: 'Запуск диагностики',
-    code: 'RUN_DIAGNOSTICS',
-    description: 'Команда для запуска диагностики системы',
-    targetType: 'equipment',
-    isActive: false,
-    adapter: 'http',
-    endpoint: '{{target.external_api_url}}/diagnostics',
-    httpMethod: 'POST',
-    timeout: 10000,
-    jsonSchema: '{"type": "object", "properties": {"deep": {"type": "boolean"}}, "required": []}',
-    jsonTemplate: '{"device": "{{target.external_id}}", "deep": {{params.deep}}}',
-    createdAt: '2024-01-12',
-  },
-  {
-    id: '4',
-    name: 'Обновить конфигурацию',
-    code: 'UPDATE_CONFIG',
-    description: 'Команда для обновления конфигурации устройства',
-    targetType: 'trading_point',
-    isActive: true,
-    adapter: 'broker',
-    endpoint: 'commands.config.update',
-    timeout: 5000,
-    jsonSchema: '{"type": "object", "properties": {"config": {"type": "object"}}, "required": ["config"]}',
-    jsonTemplate: '{"point_id": "{{target.external_id}}", "config": {{params.config}}}',
-    createdAt: '2024-01-08',
-  },
-];
-
-const Commands = () => {
-  const [commands, setCommands] = useState<Command[]>(mockCommands);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCommand, setEditingCommand] = useState<Command | null>(null);
+export default function Commands() {
+  const [commands, setCommands] = useState<Command[]>([]);
+  const [commandTemplates, setCommandTemplates] = useState<CommandTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof commandSchema>>({
-    resolver: zodResolver(commandSchema),
+  const createForm = useForm<CreateCommandForm>({
+    resolver: zodResolver(createCommandSchema),
     defaultValues: {
-      name: '',
-      code: '',
-      description: '',
-      targetType: 'equipment',
-      isActive: true,
-      adapter: 'http',
-      endpoint: '',
-      httpMethod: 'POST',
-      httpHeaders: '',
-      timeout: 5000,
-      jsonSchema: '',
-      jsonTemplate: '',
-    },
+      template_id: '',
+      display_name: '',
+      trading_point_id: '',
+      custom_endpoint: '',
+      custom_timeout: undefined,
+      custom_json_template: '',
+    }
   });
 
-  const handleCreateCommand = () => {
-    setEditingCommand(null);
-    form.reset();
-    setIsDialogOpen(true);
-  };
-
-  const handleEditCommand = (command: Command) => {
-    setEditingCommand(command);
-    form.reset(command);
-    setIsDialogOpen(true);
-  };
-
-  const handleCloneCommand = (command: Command) => {
-    setEditingCommand(null);
-    form.reset({
-      ...command,
-      name: `${command.name} (копия)`,
-      code: `${command.code}_COPY`,
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleDeleteCommand = (commandId: string) => {
-    setCommands(commands.filter(cmd => cmd.id !== commandId));
-    toast({
-      title: "Команда удалена",
-      description: "Шаблон команды успешно удален из системы.",
-    });
-  };
-
-  const onSubmit = (data: z.infer<typeof commandSchema>) => {
-    if (editingCommand) {
-      setCommands(commands.map(cmd => 
-        cmd.id === editingCommand.id 
-          ? { ...cmd, ...data }
-          : cmd
-      ));
+  // Load commands and templates
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [commandsResponse] = await Promise.all([
+        commandsAPI.list({ limit: 100 })
+      ]);
+      
+      setCommands(commandsResponse.data);
+      setCommandTemplates(commandTemplatesStore.getAll());
+    } catch (error) {
       toast({
-        title: "Команда обновлена",
-        description: "Шаблон команды успешно обновлен.",
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить данные команд",
+        variant: "destructive",
       });
-    } else {
-      const newCommand: Command = {
-        ...data,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString().split('T')[0],
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Filtered commands
+  const filteredCommands = useMemo(() => {
+    return commands.filter(command => {
+      const matchesSearch = searchQuery === '' || 
+        command.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        command.name.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || command.status === statusFilter;
+      const matchesCategory = categoryFilter === 'all' || command.category === categoryFilter;
+      
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+  }, [commands, searchQuery, statusFilter, categoryFilter]);
+
+  const handleCreateCommand = async (data: CreateCommandForm) => {
+    try {
+      const request: CreateCommandRequest = {
+        template_id: data.template_id,
+        display_name: data.display_name,
+        trading_point_id: data.trading_point_id || undefined,
+        custom_params: {
+          endpoint: data.custom_endpoint || undefined,
+          timeout: data.custom_timeout || undefined,
+          json_template: data.custom_json_template || undefined,
+        }
       };
-      setCommands([...commands, newCommand]);
+
+      const newCommand = await commandsAPI.create(request);
+      setCommands(prev => [...prev, newCommand]);
+      setIsCreateDialogOpen(false);
+      createForm.reset();
+      
       toast({
         title: "Команда создана",
-        description: "Новый шаблон команды успешно создан.",
+        description: `Команда "${newCommand.display_name}" успешно создана`,
+      });
+    } catch (error) {
+      toast({
+        title: "Ошибка создания",
+        description: error instanceof Error ? error.message : "Не удалось создать команду",
+        variant: "destructive",
       });
     }
-    setIsDialogOpen(false);
   };
 
-  const getTargetTypeLabel = (type: string) => {
-    switch (type) {
+  const handleStatusChange = async (commandId: string, action: CommandStatusAction) => {
+    try {
+      const updatedCommand = await commandsAPI.updateStatus(commandId, action);
+      if (updatedCommand) {
+        setCommands(prev => prev.map(cmd => 
+          cmd.id === commandId ? updatedCommand : cmd
+        ));
+        
+        const statusText = action === 'activate' ? 'активирована' : 
+                          action === 'deactivate' ? 'деактивирована' : 'архивирована';
+        
+        toast({
+          title: "Статус изменен",
+          description: `Команда ${statusText}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка изменения статуса",
+        description: error instanceof Error ? error.message : "Не удалось изменить статус команды",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const executeCommand = async (commandId: string) => {
+    try {
+      await commandsAPI.execute({ command_id: commandId });
+      toast({
+        title: "Команда запущена",
+        description: "Команда отправлена на выполнение",
+      });
+    } catch (error) {
+      toast({
+        title: "Ошибка выполнения",
+        description: error instanceof Error ? error.message : "Не удалось выполнить команду",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'active': return 'default';
+      case 'inactive': return 'secondary';
+      case 'archived': return 'outline';
+      default: return 'secondary';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return 'Активна';
+      case 'inactive': return 'Неактивна'; 
+      case 'archived': return 'Архивирована';
+      default: return status;
+    }
+  };
+
+  const getCategoryText = (category: string) => {
+    switch (category) {
+      case 'system': return 'Система';
+      case 'control': return 'Управление';
+      case 'diagnostic': return 'Диагностика';
+      case 'maintenance': return 'Обслуживание';
+      default: return category;
+    }
+  };
+
+  const getTargetTypeText = (targetType: string) => {
+    switch (targetType) {
       case 'trading_point': return 'Торговая точка';
       case 'equipment': return 'Оборудование';
       case 'component': return 'Компонент';
-      default: return type;
+      default: return targetType;
     }
   };
 
-  const getAdapterLabel = (adapter: string) => {
-    switch (adapter) {
-      case 'http': return 'Direct HTTP';
-      case 'broker': return 'Broker (Очередь)';
-      default: return adapter;
-    }
-  };
+  // Selected template for form
+  const selectedTemplate = commandTemplates.find(t => t.id === createForm.watch('template_id'));
 
-  const filteredCommands = useMemo(() => {
-    if (!searchQuery) return commands;
-    const query = searchQuery.toLowerCase();
-    return commands.filter(command => 
-      command.name.toLowerCase().includes(query) ||
-      command.code.toLowerCase().includes(query) ||
-      command.description?.toLowerCase().includes(query) ||
-      getTargetTypeLabel(command.targetType).toLowerCase().includes(query)
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </MainLayout>
     );
-  }, [commands, searchQuery]);
+  }
 
   return (
     <MainLayout>
-      <div className="w-full h-full px-4 md:px-6 lg:px-8">
-        {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Команды</h1>
-          <p className="text-slate-400 mt-2">Управление шаблонами команд для взаимодействия с оборудованием</p>
-        </div>
-
-        {/* Панель команд */}
-        <div className="bg-slate-800 mb-6 w-full">
-          <div className="px-4 md:px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm">⚡</span>
-                </div>
-                <h2 className="text-lg font-semibold text-white">Список команд</h2>
-                <div className="text-sm text-slate-400">
-                  {filteredCommands.length === commands.length 
-                    ? `Всего команд: ${commands.length}`
-                    : `Найдено: ${filteredCommands.length} из ${commands.length}`
-                  }
-                </div>
-              </div>
-              <Button 
-                onClick={handleCreateCommand} 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
-              >
-                + Создать команду
+      <div className="p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Команды</h1>
+            <p className="text-gray-600">
+              Управление командами для оборудования и торговых точек
+            </p>
+          </div>
+          
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Добавить команду
               </Button>
-            </div>
-            
-            {/* Поиск команд */}
-            <div className="mt-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  placeholder="Поиск по названию, коду или описанию..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                />
-              </div>
-            </div>
-          </div>
-
-        {commands.length === 0 ? (
-          <div className="px-4 md:px-6 pb-6">
-            <EmptyState 
-              title="Нет команд" 
-              description="Создайте первый шаблон команды для начала работы"
-              cta={
-                <Button 
-                  onClick={handleCreateCommand}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  + Создать команду
-                </Button>
-              }
-              className="py-16"
-            />
-          </div>
-        ) : filteredCommands.length === 0 ? (
-          <div className="px-4 md:px-6 pb-6">
-            <EmptyState 
-              title="Ничего не найдено" 
-              description="Попробуйте изменить условия поиска"
-              className="py-16"
-            />
-          </div>
-        ) : (
-          <>
-            {/* Десктопная таблица */}
-          <div className="hidden md:block w-full">
-            <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
-              <table className="w-full text-sm min-w-full table-fixed">
-                <thead className="bg-slate-700">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '25%'}}>НАЗВАНИЕ КОМАНДЫ</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>КОД</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ОБЛАСТЬ</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>АДАПТЕР</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>СТАТУС</th>
-                    <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '20%'}}>ДЕЙСТВИЯ</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-slate-800">
-                  {filteredCommands.map((command) => (
-                    <tr key={command.id} className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors">
-                      <td className="px-4 md:px-6 py-4">
-                        <div className="font-medium text-white truncate" title={command.name}>{command.name}</div>
-                        {command.description && (
-                          <div className="text-sm text-slate-400 mt-1 line-clamp-2" title={command.description}>{command.description}</div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <code className="bg-slate-700 text-slate-300 px-2 py-1 rounded text-sm font-mono">
-                          {command.code}
-                        </code>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                        {getTargetTypeLabel(command.targetType)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                        {getAdapterLabel(command.adapter)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={command.isActive ? "success" : "secondary"}>
-                          {command.isActive ? 'Активна' : 'Неактивна'}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="flex justify-end gap-1 min-w-fit">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditCommand(command)}
-                            className="h-8 w-8 min-w-[32px] p-0 flex-shrink-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 flex items-center justify-center"
-                            title="Редактировать"
-                          >
-                            <Edit className="h-4 w-4 flex-shrink-0" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCloneCommand(command)}
-                            className="h-8 w-8 min-w-[32px] p-0 flex-shrink-0 text-slate-400 hover:text-yellow-400 hover:bg-yellow-500/10 flex items-center justify-center"
-                            title="Клонировать"
-                          >
-                            <Copy className="h-4 w-4 flex-shrink-0" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 min-w-[32px] p-0 flex-shrink-0 text-slate-400 hover:text-green-400 hover:bg-green-500/10 flex items-center justify-center"
-                            title="Запустить"
-                          >
-                            <Play className="h-4 w-4 flex-shrink-0" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 min-w-[32px] p-0 flex-shrink-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10 flex items-center justify-center"
-                                title="Удалить"
-                              >
-                                <Trash2 className="h-4 w-4 flex-shrink-0" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="bg-slate-800 border-slate-700">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle className="text-white">Удалить команду</AlertDialogTitle>
-                                <AlertDialogDescription className="text-slate-400">
-                                  Вы уверены, что хотите удалить команду "{command.name}"? 
-                                  Это действие нельзя отменить.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
-                                  Отмена
-                                </AlertDialogCancel>
-                                <AlertDialogAction 
-                                  onClick={() => handleDeleteCommand(command.id)}
-                                  className="bg-red-600 hover:bg-red-700 text-white"
-                                >
-                                  Удалить
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Создать команду из шаблона</DialogTitle>
+              </DialogHeader>
+              
+              <Form {...createForm}>
+                <form onSubmit={createForm.handleSubmit(handleCreateCommand)} className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4">
+                    <FormField
+                      control={createForm.control}
+                      name="template_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Шаблон команды</FormLabel>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Выберите шаблон команды" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {commandTemplates
+                                .filter(template => template.status)
+                                .map(template => (
+                                <SelectItem key={template.id} value={template.id}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{template.display_name}</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {getCategoryText(template.category)}
+                                    </Badge>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {selectedTemplate && (
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium mb-2">Информация о шаблоне</h4>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          <p><span className="font-medium">Описание:</span> {selectedTemplate.description}</p>
+                          <p><span className="font-medium">Цель:</span> {getTargetTypeText(selectedTemplate.target_type)}</p>
+                          <p><span className="font-medium">Адаптер:</span> {selectedTemplate.defaults.adapter}</p>
+                          <p><span className="font-medium">Endpoint:</span> {selectedTemplate.defaults.endpoint}</p>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Мобильные карточки */}
-          <div className="md:hidden space-y-3">
-            {filteredCommands.map((command) => (
-              <div key={command.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:bg-slate-700/50 transition-colors">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-white text-base mb-1">{command.name}</div>
-                    {command.description && (
-                      <div className="text-sm text-slate-300 mb-2">{command.description}</div>
+                      </div>
                     )}
-                    <div className="flex flex-wrap items-center gap-2 text-xs mb-2">
-                      <code className="bg-slate-700 text-slate-300 px-2 py-1 rounded font-mono">
-                        {command.code}
-                      </code>
-                      <span className="text-slate-400">{getTargetTypeLabel(command.targetType)}</span>
-                      <span className="text-slate-400">•</span>
-                      <span className="text-slate-400">{getAdapterLabel(command.adapter)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <Badge variant={command.isActive ? "success" : "secondary"}>
-                        {command.isActive ? 'Активна' : 'Неактивна'}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 min-w-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditCommand(command)}
-                      className="h-9 w-9 min-w-[2.25rem] p-0 flex-shrink-0 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
-                    >
-                      <Edit className="h-4 w-4 flex-shrink-0" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCloneCommand(command)}
-                      className="h-9 w-9 min-w-[2.25rem] p-0 flex-shrink-0 text-slate-400 hover:text-yellow-400 hover:bg-yellow-500/10"
-                    >
-                      <Copy className="h-4 w-4 flex-shrink-0" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 w-9 min-w-[2.25rem] p-0 flex-shrink-0 text-slate-400 hover:text-green-400 hover:bg-green-500/10"
-                    >
-                      <Play className="h-4 w-4 flex-shrink-0" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-9 w-9 min-w-[2.25rem] p-0 flex-shrink-0 text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                        >
-                          <Trash2 className="h-4 w-4 flex-shrink-0" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="w-[95vw] max-w-md bg-slate-800 border-slate-700">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="text-white">Удалить команду</AlertDialogTitle>
-                          <AlertDialogDescription className="text-slate-400">
-                            Вы уверены, что хотите удалить команду "{command.name}"? 
-                            Это действие нельзя отменить.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
-                            Отмена
-                          </AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDeleteCommand(command.id)}
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                          >
-                            Удалить
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          </>
-        )}
-        </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto md:w-full bg-slate-800 border-slate-700">
-            <DialogHeader>
-              <DialogTitle className="text-white">
-                {editingCommand ? 'Редактировать команду' : 'Создать команду'}
-              </DialogTitle>
-            </DialogHeader>
-
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                <Tabs defaultValue="basic" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 bg-slate-700">
-                    <TabsTrigger value="basic">Основное</TabsTrigger>
-                    <TabsTrigger value="delivery">Доставка</TabsTrigger>
-                    <TabsTrigger value="payload">Полезная нагрузка</TabsTrigger>
-                    <TabsTrigger value="preview">Предпросмотр</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="basic" className="space-y-4">
                     <FormField
-                      control={form.control}
-                      name="name"
+                      control={createForm.control}
+                      name="display_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-white">Название команды</FormLabel>
+                          <FormLabel>Название команды</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="Перезагрузить устройство" 
-                              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                              {...field} 
-                            />
+                            <Input placeholder="Например: Перезагрузить резервуар №1" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -519,312 +309,220 @@ const Commands = () => {
                     />
 
                     <FormField
-                      control={form.control}
-                      name="code"
+                      control={createForm.control}
+                      name="trading_point_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-white">Код</FormLabel>
+                          <FormLabel>Торговая точка (опционально)</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="REBOOT_DEVICE" 
-                              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 font-mono"
-                              {...field} 
-                            />
+                            <Input placeholder="point1" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-white">Описание</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Описание команды..."
-                              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="targetType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-white">Область применения</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                                <SelectValue placeholder="Выберите область применения" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="bg-slate-700 border-slate-600">
-                              <SelectItem value="trading_point">Торговая точка</SelectItem>
-                              <SelectItem value="equipment">Оборудование</SelectItem>
-                              <SelectItem value="component">Компонент</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="isActive"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base text-white">Статус</FormLabel>
-                            <div className="text-sm text-slate-400">
-                              Активные команды доступны для выполнения
-                            </div>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="delivery" className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="adapter"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-white">Адаптер</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                                <SelectValue placeholder="Выберите адаптер" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="bg-slate-700 border-slate-600">
-                              <SelectItem value="http">Direct HTTP</SelectItem>
-                              <SelectItem value="broker">Broker (Очередь)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="endpoint"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-white">Endpoint / Topic</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="{{target.external_api_url}}/reboot"
-                              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {form.watch('adapter') === 'http' && (
+                    {/* Custom parameters section */}
+                    <div className="space-y-4 border-t pt-4">
+                      <h4 className="font-medium text-sm">Настройка параметров (опционально)</h4>
+                      
                       <FormField
-                        control={form.control}
-                        name="httpMethod"
+                        control={createForm.control}
+                        name="custom_endpoint"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-white">HTTP Метод</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                                  <SelectValue placeholder="Выберите HTTP метод" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="bg-slate-700 border-slate-600">
-                                <SelectItem value="GET">GET</SelectItem>
-                                <SelectItem value="POST">POST</SelectItem>
-                                <SelectItem value="PUT">PUT</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <FormLabel>Свой Endpoint</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Переопределить endpoint из шаблона" {...field} />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    )}
 
-                    <FormField
-                      control={form.control}
-                      name="httpHeaders"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-white">HTTP Заголовки (JSON)</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder='{"Authorization": "Bearer {{secrets.api_key}}"}'
-                              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 font-mono"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={createForm.control}
+                        name="custom_timeout"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Таймаут (мс)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="30000" 
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={form.control}
-                      name="timeout"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-white">Таймаут (мс)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              placeholder="5000"
-                              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                              {...field}
-                              onChange={e => field.onChange(Number(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TabsContent>
+                      <FormField
+                        control={createForm.control}
+                        name="custom_json_template"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>JSON шаблон</FormLabel>
+                            <FormControl>
+                              <Input placeholder='{"action": "custom"}' {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-                  <TabsContent value="payload" className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="jsonSchema"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-white">JSON Schema (для валидации параметров)</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder='{"type": "object", "properties": {"price": {"type": "number"}}, "required": ["price"]}'
-                              className="min-h-[150px] font-mono text-sm bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                      Отмена
+                    </Button>
+                    <Button type="submit">
+                      Создать команду
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-                    <FormField
-                      control={form.control}
-                      name="jsonTemplate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-white">JSON Template (шаблон)</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder='{"device": "{{target.external_id}}", "new_price": {{params.price}}}'
-                              className="min-h-[150px] font-mono text-sm bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TabsContent>
+        {/* Filters */}
+        <div className="flex gap-4 items-center">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Поиск команд..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все статусы</SelectItem>
+              <SelectItem value="active">Активные</SelectItem>
+              <SelectItem value="inactive">Неактивные</SelectItem>
+              <SelectItem value="archived">Архивированные</SelectItem>
+            </SelectContent>
+          </Select>
 
-                  <TabsContent value="preview" className="space-y-4">
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-white">Форма для ввода параметров</Label>
-                        <div className="mt-2 p-4 border border-slate-600 rounded-lg bg-slate-700/50">
-                          <p className="text-sm text-slate-400">
-                            Динамическая форма будет сгенерирована на основе JSON Schema
-                          </p>
-                        </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все категории</SelectItem>
+              <SelectItem value="system">Система</SelectItem>
+              <SelectItem value="control">Управление</SelectItem>
+              <SelectItem value="diagnostic">Диагностика</SelectItem>
+              <SelectItem value="maintenance">Обслуживание</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Commands List */}
+        {filteredCommands.length === 0 ? (
+          <EmptyState
+            title="Команды не найдены"
+            description="Нет команд, соответствующих выбранным фильтрам."
+            action={
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Создать первую команду
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
+            }
+          />
+        ) : (
+          <div className="grid gap-4">
+            {filteredCommands.map((command) => (
+              <Card key={command.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">{command.display_name}</CardTitle>
+                        <Badge variant={getStatusBadgeVariant(command.status)}>
+                          {getStatusText(command.status)}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {getCategoryText(command.category)}
+                        </Badge>
                       </div>
-
-                      <div>
-                        <Label className="text-white">Выбор цели для теста</Label>
-                        <div className="mt-2 grid grid-cols-3 gap-4">
-                          <Select>
-                            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                              <SelectValue placeholder="Сеть" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-700 border-slate-600">
-                              <SelectItem value="network1">Лукойл</SelectItem>
-                              <SelectItem value="network2">Роснефть</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select>
-                            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                              <SelectValue placeholder="Точка" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-700 border-slate-600">
-                              <SelectItem value="point1">АЗС-1</SelectItem>
-                              <SelectItem value="point2">АЗС-5</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select>
-                            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                              <SelectValue placeholder="Оборудование" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-700 border-slate-600">
-                              <SelectItem value="eq1">ТРК-1</SelectItem>
-                              <SelectItem value="eq2">Касса-1</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label className="text-white">Предпросмотр Payload</Label>
-                        <div className="mt-2">
-                          <Textarea 
-                            readOnly
-                            value={form.watch('jsonTemplate') || ''}
-                            className="min-h-[100px] font-mono text-sm bg-slate-700 border-slate-600 text-white"
-                          />
-                        </div>
-                      </div>
-
-                      <Button type="button" className="w-full bg-green-600 hover:bg-green-700 text-white">
-                        <Play className="mr-2 h-4 w-4" />
-                        Запустить тест
+                      <p className="text-sm text-gray-600">
+                        {command.name} • {getTargetTypeText(command.target_type)}
+                      </p>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      {command.status === 'active' && (
+                        <Button
+                          size="sm"
+                          onClick={() => executeCommand(command.id)}
+                        >
+                          <Play className="w-4 h-4 mr-1" />
+                          Выполнить
+                        </Button>
+                      )}
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleStatusChange(
+                          command.id, 
+                          command.status === 'active' ? 'deactivate' : 'activate'
+                        )}
+                      >
+                        {command.status === 'active' ? 'Деактивировать' : 'Активировать'}
+                      </Button>
+                      
+                      <Button size="sm" variant="outline">
+                        <Edit className="w-4 h-4" />
                       </Button>
                     </div>
-                  </TabsContent>
-                </Tabs>
-
-                <div className="flex justify-end gap-2 mt-6 pt-6 border-t border-slate-600">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setIsDialogOpen(false)}
-                    className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                  >
-                    Отмена
-                  </Button>
-                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-                    {editingCommand ? 'Обновить' : 'Создать'}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-500">Endpoint:</span>
+                      <p className="font-mono text-xs bg-gray-100 p-1 rounded mt-1">
+                        {command.endpoint}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-500">Адаптер:</span>
+                      <p>{command.adapter}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-500">Таймаут:</span>
+                      <p>{command.timeout ? `${command.timeout}ms` : 'Не задан'}</p>
+                    </div>
+                  </div>
+                  
+                  {command.created_from_template && (
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-xs text-gray-500">
+                        Создано из шаблона: {commandTemplates.find(t => t.id === command.created_from_template)?.display_name || command.created_from_template}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </MainLayout>
   );
-};
-
-export default Commands;
+}

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { tradingPointsStore } from "@/mock/tradingPointsStore";
+import { tradingPointsService } from "@/services/tradingPointsService";
+import { TradingPoint } from "@/types/tradingpoint";
 import { Menu, MapPin } from "lucide-react";
 import { Header } from "./Header";
 import { AppSidebar } from "./AppSidebar";
@@ -18,7 +19,21 @@ interface MainLayoutProps {
 export function MainLayout({ children, fullWidth = false }: MainLayoutProps) {
   const { selectedNetwork, setSelectedNetwork, selectedTradingPoint, setSelectedTradingPoint } = useSelection();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [tradingPoints, setTradingPoints] = useState<TradingPoint[]>([]);
   const isMobile = useIsMobile();
+  
+  useEffect(() => {
+    if (selectedNetwork?.id) {
+      console.log('🏢 MainLayout: выбрана сеть', selectedNetwork);
+      tradingPointsService.getByNetworkId(selectedNetwork.id).then(points => {
+        console.log('📍 MainLayout: найденные точки для сети', selectedNetwork.id, ':', points.map(p => ({id: p.id, name: p.name, networkId: p.networkId})));
+        setTradingPoints(points);
+      });
+    } else {
+      console.log('🏢 MainLayout: сеть не выбрана');
+      setTradingPoints([]);
+    }
+  }, [selectedNetwork?.id]);
 
   const handleNetworkChange = (value: string) => {
     setSelectedNetwork(value);
@@ -65,7 +80,7 @@ export function MainLayout({ children, fullWidth = false }: MainLayoutProps) {
                   />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-700 border-gray-600">
-                  {tradingPointsStore.getByNetworkId(selectedNetwork?.id || "").map((point) => (
+                  {tradingPoints.map((point) => (
                     <SelectItem 
                       key={point.id} 
                       value={point.id}

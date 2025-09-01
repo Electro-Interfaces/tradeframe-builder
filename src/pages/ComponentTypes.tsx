@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,10 +41,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Copy, Trash2, X } from "lucide-react";
+import { Plus, Edit, Copy, Trash2, X, Settings, Power } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { componentSystemTypesAPI, ComponentSystemType } from "@/services/componentSystemTypesService";
+import { ComponentSystemTypeDialog } from "@/components/dialogs/ComponentSystemTypeDialog";
 
 // Схема валидации
 const componentTypeSchema = z.object({
@@ -295,12 +297,22 @@ const systemTypeOptions = [
 
 export default function ComponentTypes() {
   const [componentTypes, setComponentTypes] = useState<ComponentTypeWithId[]>(mockComponentTypes);
+  const [componentSystemTypes, setComponentSystemTypes] = useState<ComponentSystemType[]>([]);
+  const [systemTypesLoading, setSystemTypesLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ComponentTypeWithId | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ComponentTypeWithId | null>(null);
   const [statusInput, setStatusInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Состояния для управления системными типами компонентов
+  const [isComponentSystemTypesDialogOpen, setIsComponentSystemTypesDialogOpen] = useState(false);
+  const [isComponentSystemTypeDialogOpen, setIsComponentSystemTypeDialogOpen] = useState(false);
+  const [editingComponentSystemType, setEditingComponentSystemType] = useState<ComponentSystemType | null>(null);
+  const [isSystemTypeDeleteDialogOpen, setIsSystemTypeDeleteDialogOpen] = useState(false);
+  const [systemTypeToDelete, setSystemTypeToDelete] = useState<ComponentSystemType | null>(null);
+  
   const { toast } = useToast();
 
   const {
@@ -317,7 +329,7 @@ export default function ComponentTypes() {
       name: "",
       code: "",
       description: "",
-      systemType: systemTypeOptions[0]?.value || "SENSOR",
+      systemType: "",
       isActive: true,
       statusValues: [],
     },
@@ -325,13 +337,41 @@ export default function ComponentTypes() {
 
   const watchedStatusValues = watch("statusValues") || [];
 
-  // Функция получения метки системного типа
+  // Загружаем системные типы компонентов при монтировании
+  useEffect(() => {
+    loadComponentSystemTypes();
+  }, []);
+
+  const loadComponentSystemTypes = async () => {
+    try {
+      setSystemTypesLoading(true);
+      const types = await componentSystemTypesAPI.list();
+      setComponentSystemTypes(types);
+    } catch (error) {
+      console.error('Error loading component system types:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить системные типы компонентов",
+        variant: "destructive"
+      });
+    } finally {
+      setSystemTypesLoading(false);
+    }
+  };
+
+  // Функция получения метки системного типа (обновлена для использования динамических типов)
   const getSystemTypeLabel = (value: string) => {
     if (!value || typeof value !== 'string') {
       return '';
     }
-    const option = systemTypeOptions.find(option => option.value === value);
-    return option?.label || value;
+    // Ищем в динамических системных типах
+    const dynamicType = componentSystemTypes.find(type => type.value === value);
+    if (dynamicType) {
+      return dynamicType.label;
+    }
+    // Fallback на старые статичные типы для обратной совместимости
+    const staticOption = systemTypeOptions.find(option => option.value === value);
+    return staticOption?.label || value;
   };
 
   // Фильтрация компонентов по поиску с использованием useMemo для оптимизации
@@ -380,11 +420,15 @@ export default function ComponentTypes() {
 
   const handleCreate = () => {
     setEditingItem(null);
+    const firstSystemType = componentSystemTypes.length > 0 
+      ? componentSystemTypes[0].value 
+      : (systemTypeOptions[0]?.value || "SENSOR");
+    
     reset({
       name: "",
       code: "",
       description: "",
-      systemType: systemTypeOptions[0]?.value || "SENSOR",
+      systemType: firstSystemType,
       statusValues: [],
       isActive: true,
     });
@@ -501,6 +545,41 @@ export default function ComponentTypes() {
     }
   };
 
+  // Обработка удаления/восстановления системного типа
+  const handleSystemTypeDeleteConfirm = (systemType: ComponentSystemType) => {
+    setSystemTypeToDelete(systemType);
+    setIsSystemTypeDeleteDialogOpen(true);
+  };
+
+  const handleSystemTypeDelete = async () => {
+    if (!systemTypeToDelete) return;
+    
+    try {
+      if (systemTypeToDelete.isActive) {
+        await componentSystemTypesAPI.delete(systemTypeToDelete.id);
+        toast({
+          title: "Успешно",
+          description: "Системный тип компонента деактивирован"
+        });
+      } else {
+        await componentSystemTypesAPI.restore(systemTypeToDelete.id);
+        toast({
+          title: "Успешно",
+          description: "Системный тип компонента восстановлен"
+        });
+      }
+      loadComponentSystemTypes();
+      setIsSystemTypeDeleteDialogOpen(false);
+      setSystemTypeToDelete(null);
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось изменить статус системного типа",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <MainLayout>
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
@@ -520,12 +599,22 @@ export default function ComponentTypes() {
               </div>
               <h2 className="text-lg font-semibold text-white">Типы компонентов</h2>
             </div>
-            <Button 
-              onClick={handleCreate}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
-            >
-              + Создать шаблон компонента
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsComponentSystemTypesDialogOpen(true)}
+                className="bg-slate-700 hover:bg-slate-600 text-white border-slate-600 px-3 py-2 rounded-lg font-medium flex-shrink-0"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Системные типы
+              </Button>
+              <Button 
+                onClick={handleCreate}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+              >
+                + Создать шаблон компонента
+              </Button>
+            </div>
           </div>
           
           {/* Поиск компонентов */}
@@ -785,11 +874,21 @@ export default function ComponentTypes() {
                     <SelectValue placeholder="Выберите системный тип" />
                   </SelectTrigger>
                   <SelectContent>
-                    {systemTypeOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
+                    {!systemTypesLoading && componentSystemTypes.length > 0 ? (
+                      componentSystemTypes.map((systemType) => (
+                        <SelectItem key={systemType.value} value={systemType.value}>
+                          {systemType.label}
+                        </SelectItem>
+                      ))
+                    ) : systemTypesLoading ? (
+                      <div className="px-2 py-1 text-slate-400">Загрузка...</div>
+                    ) : (
+                      systemTypeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.systemType && (
@@ -901,6 +1000,156 @@ export default function ComponentTypes() {
             <AlertDialogFooter>
               <AlertDialogCancel>Отмена</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete}>Удалить</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Диалог управления системными типами компонентов */}
+        <Dialog open={isComponentSystemTypesDialogOpen} onOpenChange={setIsComponentSystemTypesDialogOpen}>
+          <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] max-w-2xl h-[90vh] max-h-[90vh] sm:w-full flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
+              <DialogTitle>Управление системными типами компонентов</DialogTitle>
+              <DialogDescription>
+                Добавляйте, редактируйте и управляйте системными типами компонентов
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex flex-col flex-1 min-h-0 px-6">
+              <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                <span className="text-sm text-slate-400">
+                  Всего типов: {componentSystemTypes.length}
+                </span>
+                <Button
+                  onClick={() => {
+                    setEditingComponentSystemType(null);
+                    setIsComponentSystemTypeDialogOpen(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить тип
+                </Button>
+              </div>
+
+              {systemTypesLoading ? (
+                <div className="flex items-center justify-center py-8 flex-1">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <span className="ml-2 text-slate-400">Загрузка...</span>
+                </div>
+              ) : (
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <div className="h-full overflow-y-auto pr-2 space-y-2">
+                    {componentSystemTypes.map((systemType) => (
+                      <div
+                        key={systemType.id}
+                        className="flex items-center justify-between p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-white">{systemType.label}</span>
+                            <Badge variant="outline" className="text-xs border-slate-500 text-slate-300">
+                              {systemType.category}
+                            </Badge>
+                            {!systemType.isActive && (
+                              <Badge variant="secondary" className="text-xs">
+                                Неактивен
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-slate-400 font-mono">{systemType.value}</div>
+                          {systemType.description && (
+                            <div className="text-sm text-slate-500 mt-1">{systemType.description}</div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 ml-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                            onClick={() => {
+                              setEditingComponentSystemType(systemType);
+                              setIsComponentSystemTypeDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                            onClick={() => handleSystemTypeDeleteConfirm(systemType)}
+                          >
+                            {systemType.isActive ? <Trash2 className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="px-6 pb-6 pt-4 flex-shrink-0">
+              <Button
+                variant="outline"
+                onClick={() => setIsComponentSystemTypesDialogOpen(false)}
+              >
+                Закрыть
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Диалог создания/редактирования системного типа компонента */}
+        <ComponentSystemTypeDialog
+          open={isComponentSystemTypeDialogOpen}
+          onOpenChange={setIsComponentSystemTypeDialogOpen}
+          systemType={editingComponentSystemType}
+          onSuccess={() => {
+            loadComponentSystemTypes();
+            setEditingComponentSystemType(null);
+          }}
+        />
+
+        {/* Диалог подтверждения удаления системного типа */}
+        <AlertDialog open={isSystemTypeDeleteDialogOpen} onOpenChange={setIsSystemTypeDeleteDialogOpen}>
+          <AlertDialogContent className="bg-slate-800 border-slate-700">
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {systemTypeToDelete?.isActive ? 'Деактивировать системный тип?' : 'Восстановить системный тип?'}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {systemTypeToDelete?.isActive ? (
+                  <>
+                    Вы уверены, что хотите деактивировать системный тип компонента <strong>"{systemTypeToDelete?.label}"</strong>?
+                    <br />
+                    <br />
+                    Деактивированный тип перестанет отображаться в списке доступных типов при создании новых компонентов, 
+                    но существующие компоненты с этим типом продолжат работать.
+                  </>
+                ) : (
+                  <>
+                    Вы хотите восстановить системный тип компонента <strong>"{systemTypeToDelete?.label}"</strong>?
+                    <br />
+                    <br />
+                    После восстановления тип снова станет доступен для создания новых компонентов.
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-slate-700 hover:bg-slate-600 text-white border-slate-600">
+                Отмена
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleSystemTypeDelete}
+                className={systemTypeToDelete?.isActive 
+                  ? "bg-red-600 hover:bg-red-700 text-white" 
+                  : "bg-green-600 hover:bg-green-700 text-white"
+                }
+              >
+                {systemTypeToDelete?.isActive ? 'Деактивировать' : 'Восстановить'}
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

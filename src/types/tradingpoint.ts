@@ -64,6 +64,7 @@ export interface TradingPoint {
 }
 
 export interface TradingPointInput {
+  networkId: NetworkId;
   name: string;
   description?: string;
   geolocation: TradingPointGeolocation;

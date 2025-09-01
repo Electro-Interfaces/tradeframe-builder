@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { Network, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Network as NetworkIcon, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { networksStore } from "@/mock/networksStore";
+import { networksService } from "@/services/networksService";
+import type { Network } from "@/types/network";
 
 interface NetworkSelectProps {
   value?: string;
@@ -12,8 +13,29 @@ interface NetworkSelectProps {
 
 export function NetworkSelect({ value, onValueChange, className }: NetworkSelectProps) {
   const [open, setOpen] = useState(false);
-  const networks = networksStore.getAll();
+  const [networks, setNetworks] = useState<Network[]>([]);
   const selectedNetwork = networks.find(n => n.id === value);
+  
+  const loadNetworks = async () => {
+    try {
+      const data = await networksService.getAll();
+      setNetworks(data);
+    } catch (error) {
+      console.error('Error loading networks:', error);
+    }
+  };
+  
+  useEffect(() => {
+    loadNetworks();
+  }, []);
+  
+  // Обновляем данные при открытии селектора
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (newOpen) {
+      loadNetworks(); // Обновляем данные при каждом открытии
+    }
+  };
   
   const handleSelect = (networkId: string) => {
     onValueChange?.(networkId);
@@ -21,10 +43,10 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
   };
   
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button className={cn("sel", className)}>
-          <Network className="inline h-4 w-4 mr-2 opacity-70" />
+          <NetworkIcon className="inline h-4 w-4 mr-2 opacity-70" />
           <span className="truncate">
             {selectedNetwork?.name || "Выберите сеть"}
           </span>

@@ -21,8 +21,11 @@ interface OperationRecord {
   tradingPoint?: string;
   deviceId?: string;
   transactionId?: string;
-  amount?: number;
   fuelType?: string;
+  quantity?: number;
+  price?: number;
+  totalCost?: number;
+  paymentType?: string;
   details: string;
   progress?: number;
   lastUpdated: string;
@@ -38,8 +41,11 @@ const generateMockOperations = (): OperationRecord[] => [
     tradingPoint: "АЗС №001 - Московское шоссе",
     deviceId: "ТРК-01",
     transactionId: "TXN-240001",
-    amount: 45.67,
     fuelType: "АИ-95",
+    quantity: 45.67,
+    price: 55.90,
+    totalCost: 2552.95,
+    paymentType: "Банковские карты",
     details: "Заправка в процессе",
     progress: 78,
     lastUpdated: new Date().toLocaleTimeString('ru-RU')
@@ -51,6 +57,7 @@ const generateMockOperations = (): OperationRecord[] => [
     startTime: "14:30:00",
     tradingPoint: "АЗС №001 - Московское шоссе",
     deviceId: "Касса-01",
+    paymentType: "Наличные",
     details: "Ожидание кассира",
     lastUpdated: new Date().toLocaleTimeString('ru-RU')
   },
@@ -63,8 +70,8 @@ const generateMockOperations = (): OperationRecord[] => [
     duration: 30.25,
     tradingPoint: "АЗС №001 - Московское шоссе",
     deviceId: "Резервуар-01",
-    amount: 15000,
     fuelType: "АИ-92",
+    quantity: 15000,
     details: "Загружено 15,000 л АИ-92",
     lastUpdated: "14:15:30"
   },
@@ -90,8 +97,11 @@ const generateMockOperations = (): OperationRecord[] => [
     tradingPoint: "АЗС №002 - Ленинградский проспект",
     deviceId: "ТРК-02",
     transactionId: "TXN-240002",
-    amount: 32.15,
     fuelType: "ДТ",
+    quantity: 32.15,
+    price: 59.20,
+    totalCost: 1903.28,
+    paymentType: "Топливные карты",
     details: "Заправка завершена",
     lastUpdated: "14:22:10"
   },
@@ -104,6 +114,58 @@ const generateMockOperations = (): OperationRecord[] => [
     deviceId: "Датчик-05",
     details: "Калибровка датчика уровня",
     progress: 45,
+    lastUpdated: new Date().toLocaleTimeString('ru-RU')
+  },
+  {
+    id: "op-7",
+    operationType: "Заправка",
+    status: 'completed',
+    startTime: "13:55:10",
+    endTime: "14:01:30",
+    duration: 6.33,
+    tradingPoint: "АЗС №003 - Садовое кольцо",
+    deviceId: "ТРК-04",
+    transactionId: "TXN-240003",
+    fuelType: "АИ-98",
+    quantity: 28.90,
+    price: 62.50,
+    totalCost: 1806.25,
+    paymentType: "Наличные",
+    details: "Заправка завершена",
+    lastUpdated: "14:01:30"
+  },
+  {
+    id: "op-8",
+    operationType: "Заправка",
+    status: 'completed',
+    startTime: "13:30:45",
+    endTime: "13:35:20",
+    duration: 4.58,
+    tradingPoint: "АЗС №001 - Московское шоссе",
+    deviceId: "ТРК-02",
+    transactionId: "TXN-240004",
+    fuelType: "АИ-95",
+    quantity: 50.00,
+    price: 55.90,
+    totalCost: 2795.00,
+    paymentType: "Онлайн заказы",
+    details: "Мобильный заказ выполнен",
+    lastUpdated: "13:35:20"
+  },
+  {
+    id: "op-9",
+    operationType: "Заправка",
+    status: 'pending',
+    startTime: "14:35:00",
+    tradingPoint: "АЗС №002 - Ленинградский проспект",
+    deviceId: "ТРК-01",
+    transactionId: "TXN-240005",
+    fuelType: "ДТ",
+    quantity: 40.00,
+    price: 59.20,
+    totalCost: 2368.00,
+    paymentType: "Топливные карты",
+    details: "Ожидание подключения карты",
     lastUpdated: new Date().toLocaleTimeString('ru-RU')
   }
 ];
@@ -176,7 +238,8 @@ export default function OperationsTransactionsPage() {
           record.details.toLowerCase().includes(query) ||
           (record.deviceId && record.deviceId.toLowerCase().includes(query)) ||
           (record.transactionId && record.transactionId.toLowerCase().includes(query)) ||
-          (record.tradingPoint && record.tradingPoint.toLowerCase().includes(query))
+          (record.tradingPoint && record.tradingPoint.toLowerCase().includes(query)) ||
+          (record.paymentType && record.paymentType.toLowerCase().includes(query))
         );
       }
       
@@ -229,13 +292,6 @@ export default function OperationsTransactionsPage() {
     }
   };
 
-  const formatAmount = (amount?: number, fuelType?: string) => {
-    if (!amount) return '';
-    if (fuelType) {
-      return `${amount.toFixed(2)} л`;
-    }
-    return amount > 1000 ? `${amount.toLocaleString('ru-RU')} л` : `${amount.toFixed(2)} ₽`;
-  };
 
   const formatDuration = (duration?: number) => {
     if (!duration) return '';
@@ -420,14 +476,40 @@ export default function OperationsTransactionsPage() {
                               <span className="text-white font-mono ml-1">{record.startTime}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400">
-                                {record.fuelType ? 'Объем:' : 'Сумма:'}
-                              </span>
-                              <span className="text-white font-mono ml-1">
-                                {formatAmount(record.amount, record.fuelType) || '—'}
-                              </span>
+                              <span className="text-slate-400">Топливо:</span>
+                              <span className="text-white ml-1">{record.fuelType || '—'}</span>
                             </div>
                           </div>
+                          
+                          {(record.quantity || record.price || record.totalCost) && (
+                            <div className="grid grid-cols-3 gap-2 text-sm">
+                              <div>
+                                <span className="text-slate-400">Кол-во:</span>
+                                <div className="text-white font-mono">
+                                  {record.quantity ? `${record.quantity.toFixed(2)} л` : '—'}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-slate-400">Цена:</span>
+                                <div className="text-white font-mono">
+                                  {record.price ? `${record.price.toFixed(2)} ₽/л` : '—'}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-slate-400">Сумма:</span>
+                                <div className="text-white font-mono">
+                                  {record.totalCost ? `${record.totalCost.toFixed(2)} ₽` : '—'}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {record.paymentType && (
+                            <div className="text-sm">
+                              <span className="text-slate-400">Вид оплаты:</span>
+                              <span className="text-white ml-1">{record.paymentType}</span>
+                            </div>
+                          )}
 
                           {record.status === 'in_progress' && record.progress !== undefined && (
                             <div className="space-y-1">
@@ -488,7 +570,11 @@ export default function OperationsTransactionsPage() {
                           <TableHead className="text-slate-300">Устройство</TableHead>
                           <TableHead className="text-slate-300">Время начала</TableHead>
                           <TableHead className="text-slate-300">Прогресс</TableHead>
-                          <TableHead className="text-slate-300">Объем/Сумма</TableHead>
+                          <TableHead className="text-slate-300">Вид топлива</TableHead>
+                          <TableHead className="text-slate-300">Количество</TableHead>
+                          <TableHead className="text-slate-300">Цена</TableHead>
+                          <TableHead className="text-slate-300">Стоимость</TableHead>
+                          <TableHead className="text-slate-300">Вид оплаты</TableHead>
                           <TableHead className="text-slate-300">Длительность</TableHead>
                           {isNetworkOnly && <TableHead className="text-slate-300">Торговая точка</TableHead>}
                           <TableHead className="text-slate-300">Детали</TableHead>
@@ -535,8 +621,20 @@ export default function OperationsTransactionsPage() {
                                 <span className="text-slate-500">—</span>
                               )}
                             </TableCell>
+                            <TableCell className="text-slate-300">
+                              {record.fuelType || '—'}
+                            </TableCell>
                             <TableCell className="text-white font-mono">
-                              {formatAmount(record.amount, record.fuelType) || '—'}
+                              {record.quantity ? `${record.quantity.toFixed(2)} л` : '—'}
+                            </TableCell>
+                            <TableCell className="text-white font-mono">
+                              {record.price ? `${record.price.toFixed(2)} ₽/л` : '—'}
+                            </TableCell>
+                            <TableCell className="text-white font-mono">
+                              {record.totalCost ? `${record.totalCost.toFixed(2)} ₽` : '—'}
+                            </TableCell>
+                            <TableCell className="text-slate-300">
+                              {record.paymentType || '—'}
                             </TableCell>
                             <TableCell className="text-slate-300 font-mono text-sm">
                               {record.status === 'in_progress' ? (

@@ -260,6 +260,32 @@ export function TradingPointEditDialog({
               {/* Basic Information */}
               <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">Основная информация</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="id" className="text-slate-200 block">
+                  ID торговой точки
+                </Label>
+                <Input
+                  id="id"
+                  value={tradingPoint?.id || ""}
+                  readOnly
+                  className="bg-slate-900 border-slate-700 text-slate-500 font-mono text-sm cursor-not-allowed"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="networkId" className="text-slate-200 block">
+                  ID сети
+                </Label>
+                <Input
+                  id="networkId"
+                  value={tradingPoint?.networkId || ""}
+                  readOnly
+                  className="bg-slate-900 border-slate-700 text-slate-500 font-mono text-sm cursor-not-allowed"
+                />
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">

@@ -9,7 +9,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   Plus, 
   Edit, 
-  MoreHorizontal, 
   Settings, 
   AlertCircle, 
   CheckCircle2, 
@@ -24,18 +23,12 @@ import {
   Trash2,
   Layers3
 } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator 
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 // Компоненты оборудования
 import { EquipmentWizard } from "@/components/equipment/EquipmentWizard";
 import { EquipmentDetailCard } from "@/components/equipment/EquipmentDetailCard";
+import { EquipmentComponentsList } from "@/components/equipment/EquipmentComponentsList";
 
 // Типы и API
 import { 
@@ -49,9 +42,13 @@ import {
 } from "@/types/equipment";
 import { 
   currentEquipmentAPI, 
-  currentEquipmentTemplatesAPI 
+  currentEquipmentTemplatesAPI,
+  getEquipmentComponentsHealth,
+  ComponentHealthStatus
 } from "@/services/equipment";
-import { tradingPointsStore } from "@/mock/tradingPointsStore";
+import { tradingPointsService } from "@/services/tradingPointsService";
+import ComponentHealthIndicator from "@/components/ui/ComponentHealthIndicator";
+import { Component } from "@/types/component";
 
 // Утилиты для статусов
 const getStatusIcon = (status: EquipmentStatus) => {
@@ -93,10 +90,14 @@ export default function Equipment() {
   const isMobile = useIsMobile();
   
   // Получаем информацию о торговой точке с мемоизацией
-  const tradingPointInfo = useMemo(() => {
-    return selectedTradingPoint 
-      ? tradingPointsStore.getById(selectedTradingPoint) 
-      : null;
+  const [tradingPointInfo, setTradingPointInfo] = useState(null);
+  
+  useEffect(() => {
+    if (selectedTradingPoint) {
+      tradingPointsService.getById(selectedTradingPoint).then(setTradingPointInfo);
+    } else {
+      setTradingPointInfo(null);
+    }
   }, [selectedTradingPoint]);
     
   
@@ -113,6 +114,13 @@ export default function Equipment() {
   
   // Расширенные ряды таблицы
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
+  
+  // Состояние для статусов компонентов
+  const [componentHealths, setComponentHealths] = useState<Record<string, {
+    aggregatedStatus: ComponentHealthStatus;
+    componentCount: number;
+    statusBreakdown: Record<string, number>;
+  }>>({});
   
   // ID выбранной торговой точки
   const selectedTradingPointId = useMemo(() => selectedTradingPoint, [selectedTradingPoint]);
@@ -146,6 +154,35 @@ export default function Equipment() {
     }
   }, [toast]);
   
+  // Загрузка статусов компонентов для оборудования
+  const loadComponentHealths = useCallback(async (equipmentList: Equipment[]) => {
+    const healthPromises = equipmentList.map(async (eq) => {
+      try {
+        const health = await getEquipmentComponentsHealth(eq.id);
+        return { equipmentId: eq.id, health };
+      } catch (error) {
+        console.warn(`Failed to load component health for equipment ${eq.id}:`, error);
+        return { 
+          equipmentId: eq.id, 
+          health: { 
+            aggregatedStatus: 'healthy' as ComponentHealthStatus, 
+            componentCount: 0, 
+            statusBreakdown: {} 
+          } 
+        };
+      }
+    });
+
+    const results = await Promise.all(healthPromises);
+    const healthMap: Record<string, any> = {};
+    
+    results.forEach(({ equipmentId, health }) => {
+      healthMap[equipmentId] = health;
+    });
+    
+    setComponentHealths(healthMap);
+  }, []);
+
   // Загрузка оборудования с мемоизацией
   const loadEquipment = useCallback(async () => {
     if (!selectedTradingPointId) return;
@@ -158,6 +195,9 @@ export default function Equipment() {
         trading_point_id: selectedTradingPointId
       });
       setEquipment(response.data);
+      
+      // Загружаем статусы компонентов для каждого оборудования
+      await loadComponentHealths(response.data);
     } catch (error) {
       console.error('Failed to load equipment:', error);
       setError('Не удалось загрузить оборудование');
@@ -260,6 +300,24 @@ export default function Equipment() {
     );
   };
 
+  // Обработчики для компонентов
+  const handleEditComponent = (component: Component) => {
+    console.log('Редактирование компонента:', component);
+    toast({
+      title: "Редактирование компонента",
+      description: `Функция редактирования компонента "${component.display_name}" будет доступна в следующей версии.`
+    });
+  };
+
+  const handleDeleteComponent = (component: Component) => {
+    console.log('Удаление компонента:', component);
+    toast({
+      title: "Удаление компонента", 
+      description: `Функция удаления компонента "${component.display_name}" будет доступна в следующей версии.`,
+      variant: "destructive"
+    });
+  };
+
   // Если торговая точка не выбрана
   if (!selectedTradingPoint) {
     return (
@@ -285,10 +343,6 @@ export default function Equipment() {
               <p className="text-sm text-slate-400">
                 {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
               </p>
-              {/* Предупреждение о демо режиме */}
-              <div className="mt-2 text-xs text-amber-400 bg-amber-900/20 px-2 py-1 rounded border border-amber-500/20">
-                ⚠️ ДЕМО: Данные не сохраняются
-              </div>
             </div>
             <Button 
               size="sm" 
@@ -348,47 +402,62 @@ export default function Equipment() {
                       </p>
                     )}
                     
+                    {componentHealths[item.id] && (
+                      <div className="mt-2">
+                        <ComponentHealthIndicator
+                          status={componentHealths[item.id].aggregatedStatus}
+                          componentCount={componentHealths[item.id].componentCount}
+                          statusBreakdown={componentHealths[item.id].statusBreakdown}
+                          size="sm"
+                        />
+                      </div>
+                    )}
+                    
                     <div className="flex items-center justify-between mt-3">
                       <Badge variant="secondary" className="text-xs bg-slate-600 text-slate-200">
                         {getStatusText(item.status)}
                       </Badge>
                       
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="w-4 h-4" />
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                          onClick={() => setSelectedEquipment(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        {item.status !== 'archived' && item.status === 'disabled' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-green-400"
+                            onClick={() => handleStatusChange(item.id, 'enable')}
+                          >
+                            <Power className="h-4 w-4" />
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setSelectedEquipment(item)}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Редактировать
-                          </DropdownMenuItem>
-                          {item.status !== 'archived' && (
-                            <>
-                              <DropdownMenuSeparator />
-                              {item.status === 'disabled' ? (
-                                <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'enable')}>
-                                  <Power className="w-4 h-4 mr-2" />
-                                  Включить
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'disable')}>
-                                  <PowerOff className="w-4 h-4 mr-2" />
-                                  Отключить
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusChange(item.id, 'archive')}
-                                className="text-destructive"
-                              >
-                                <Archive className="w-4 h-4 mr-2" />
-                                Архивировать
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        )}
+                        {item.status !== 'archived' && item.status !== 'disabled' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-yellow-400"
+                            onClick={() => handleStatusChange(item.id, 'disable')}
+                          >
+                            <PowerOff className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {item.status !== 'archived' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                            onClick={() => handleStatusChange(item.id, 'archive')}
+                          >
+                            <Archive className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -430,10 +499,6 @@ export default function Equipment() {
           <p className="text-slate-400 mt-1">
             {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
           </p>
-          {/* Предупреждение о демо режиме */}
-          <div className="mt-3 text-xs text-amber-400 bg-amber-900/20 px-3 py-1 rounded border border-amber-500/20">
-            ⚠️ ДЕМО РЕЖИМ: Данные не сохраняются между сессиями (в production заменить на реальное API)
-          </div>
         </div>
 
         {/* Секция оборудования */}
@@ -557,13 +622,20 @@ export default function Equipment() {
                             {item.serial_number || "—"}
                           </td>
                           <td className="px-4 md:px-6 py-4">
-                            {componentsCount > 0 ? (
-                              <div className="flex items-center gap-2">
-                                <Layers3 className="w-4 h-4 text-slate-400" />
-                                <span className="text-sm text-white">{componentsCount}</span>
-                              </div>
+                            {componentHealths[item.id] ? (
+                              <ComponentHealthIndicator
+                                status={componentHealths[item.id].aggregatedStatus}
+                                componentCount={componentHealths[item.id].componentCount}
+                                statusBreakdown={componentHealths[item.id].statusBreakdown}
+                                size="sm"
+                              />
                             ) : (
-                              <span className="text-slate-500">—</span>
+                              <div className="flex items-center gap-2">
+                                <div className="rounded-full p-1 bg-slate-700 border border-slate-600">
+                                  <div className="h-3 w-3 rounded-full bg-slate-600 animate-pulse" />
+                                </div>
+                                <span className="text-xs font-medium text-slate-500">...</span>
+                              </div>
                             )}
                           </td>
                           <td className="px-4 md:px-6 py-4">
@@ -573,7 +645,7 @@ export default function Equipment() {
                             </Badge>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1">
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
@@ -582,42 +654,36 @@ export default function Equipment() {
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0 text-slate-400 hover:text-white"
-                                  >
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {item.status !== 'archived' && (
-                                    <>
-                                      {item.status === 'disabled' ? (
-                                        <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'enable')}>
-                                          <Power className="w-4 h-4 mr-2" />
-                                          Включить
-                                        </DropdownMenuItem>
-                                      ) : (
-                                        <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'disable')}>
-                                          <PowerOff className="w-4 h-4 mr-2" />
-                                          Отключить
-                                        </DropdownMenuItem>
-                                      )}
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem 
-                                        onClick={() => handleStatusChange(item.id, 'archive')}
-                                        className="text-destructive"
-                                      >
-                                        <Archive className="w-4 h-4 mr-2" />
-                                        Архивировать
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              {item.status !== 'archived' && item.status === 'disabled' && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 text-slate-400 hover:text-green-400"
+                                  onClick={() => handleStatusChange(item.id, 'enable')}
+                                >
+                                  <Power className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {item.status !== 'archived' && item.status !== 'disabled' && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 text-slate-400 hover:text-yellow-400"
+                                  onClick={() => handleStatusChange(item.id, 'disable')}
+                                >
+                                  <PowerOff className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {item.status !== 'archived' && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                                  onClick={() => handleStatusChange(item.id, 'archive')}
+                                >
+                                  <Archive className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -628,17 +694,11 @@ export default function Equipment() {
                             <td colSpan={7} className="p-0">
                               <div className="bg-slate-900/50 border-l-4 border-blue-500/20 ml-6 mr-2 mb-2">
                                 <div className="p-6">
-                                  <div className="flex items-center justify-center py-8">
-                                    <div className="text-center">
-                                      <Layers3 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                                      <p className="text-slate-400 text-sm">
-                                        Компоненты будут доступны в следующей версии
-                                      </p>
-                                      <Badge variant="outline" className="mt-2">
-                                        Скоро
-                                      </Badge>
-                                    </div>
-                                  </div>
+                                  <EquipmentComponentsList 
+                                    equipmentId={item.id}
+                                    onEditComponent={handleEditComponent}
+                                    onDeleteComponent={handleDeleteComponent}
+                                  />
                                 </div>
                               </div>
                             </td>

@@ -35,11 +35,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Copy, Trash2, Command, X } from "lucide-react";
+import { Plus, Edit, Copy, Trash2, Command, X, Settings, Power } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { equipmentTypesAPI } from "@/services/equipmentTypes";
+import { systemTypesAPI, SystemType } from "@/services/systemTypesService";
+import { SystemTypeDialog } from "@/components/dialogs/SystemTypeDialog";
 
 // Схема валидации
 const equipmentTypeSchema = z.object({
@@ -101,29 +103,29 @@ const mockAvailableCommands = [
 
 // Удаляем mock данные - теперь используем localStorage через API
 
-const systemTypeOptions = [
-  { value: "fuel_tank", label: "Топливный резервуар" },
-  { value: "self_service_terminal", label: "Терминал самообслуживания" },
-  { value: "control_system", label: "Система управления" },
-  { value: "price_display", label: "Табло цен" },
-  { value: "surveillance", label: "Видеонаблюдение" },
-  { value: "audio_system", label: "Звуковое сопровождение" },
-];
-
 export default function EquipmentTypes() {
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentTypeWithId[]>([]);
+  const [systemTypes, setSystemTypes] = useState<SystemType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [systemTypesLoading, setSystemTypesLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EquipmentTypeWithId | null>(null);
   const [itemToDelete, setItemToDelete] = useState<EquipmentTypeWithId | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [defaultParams, setDefaultParams] = useState<Record<string, any>>({});
+  
+  // Состояния для управления системными типами
+  const [isSystemTypesDialogOpen, setIsSystemTypesDialogOpen] = useState(false);
+  const [isSystemTypeDialogOpen, setIsSystemTypeDialogOpen] = useState(false);
+  const [editingSystemType, setEditingSystemType] = useState<SystemType | null>(null);
+  
   const { toast } = useToast();
 
   // Загружаем данные при монтировании компонента
   useEffect(() => {
     loadEquipmentTypes();
+    loadSystemTypes();
   }, []);
 
   const loadEquipmentTypes = async () => {
@@ -143,13 +145,30 @@ export default function EquipmentTypes() {
     }
   };
 
+  const loadSystemTypes = async () => {
+    try {
+      setSystemTypesLoading(true);
+      const types = await systemTypesAPI.list();
+      setSystemTypes(types);
+    } catch (error) {
+      console.error('Error loading system types:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить системные типы",
+        variant: "destructive"
+      });
+    } finally {
+      setSystemTypesLoading(false);
+    }
+  };
+
   // Функция получения метки системного типа
   const getSystemTypeLabel = (value: string) => {
     if (!value || typeof value !== 'string') {
       return '';
     }
-    const option = systemTypeOptions.find(option => option.value === value);
-    return option?.label || value;
+    const systemType = systemTypes.find(type => type.value === value);
+    return systemType?.label || value;
   };
 
   // Фильтрация оборудования по поиску с использованием useMemo для оптимизации
@@ -213,7 +232,7 @@ export default function EquipmentTypes() {
       name: "",
       code: "",
       description: "",
-      systemType: systemTypeOptions[0]?.value || "fuel_tank", // Устанавливаем первый доступный тип с fallback
+      systemType: systemTypes[0]?.value || "fuel_tank", // Устанавливаем первый доступный тип с fallback
       isActive: true,
       availableCommandIds: [],
       defaultParams: {},
@@ -225,7 +244,7 @@ export default function EquipmentTypes() {
       name: "",
       code: "",
       description: "",
-      systemType: systemTypeOptions[0]?.value || "fuel_tank", // Устанавливаем первый доступный тип с fallback
+      systemType: systemTypes[0]?.value || "fuel_tank", // Устанавливаем первый доступный тип с fallback
       isActive: true,
       availableCommandIds: [],
       defaultParams: {},
@@ -353,12 +372,22 @@ export default function EquipmentTypes() {
                 </div>
                 <h2 className="text-lg font-semibold text-white">Типы оборудования</h2>
               </div>
-              <Button 
-                onClick={handleCreate}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
-              >
-                + Создать шаблон оборудования
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button 
+                  onClick={() => setIsSystemTypesDialogOpen(true)}
+                  variant="outline"
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white flex-shrink-0"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Системные типы
+                </Button>
+                <Button 
+                  onClick={handleCreate}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                >
+                  + Создать шаблон оборудования
+                </Button>
+              </div>
             </div>
             
             {/* Поиск оборудования */}
@@ -552,9 +581,9 @@ export default function EquipmentTypes() {
 
         {/* Диалог создания/редактирования */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] overflow-hidden sm:w-full flex flex-col">
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <DialogHeader>
+          <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] sm:w-full flex flex-col p-0">
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
+              <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
                 <DialogTitle>
                   {editingItem ? "Редактировать шаблон" : "Создать шаблон"}
                 </DialogTitle>
@@ -566,30 +595,33 @@ export default function EquipmentTypes() {
                 </DialogDescription>
               </DialogHeader>
 
-              <Tabs defaultValue="basic" className="mt-6 flex flex-col flex-1">
-                <TabsList className="grid w-full grid-cols-3 h-12 bg-slate-800 border border-slate-600 flex-shrink-0">
-                  <TabsTrigger 
-                    value="basic" 
-                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-all duration-200 font-medium"
-                  >
-                    Основные параметры
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="defaults" 
-                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-all duration-200 font-medium"
-                  >
-                    Значения по умолчанию
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="commands" 
-                    className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-all duration-200 font-medium"
-                  >
-                    Доступные команды
-                  </TabsTrigger>
-                </TabsList>
+              <div className="flex flex-col flex-1 min-h-0 px-6">
+                <Tabs defaultValue="basic" className="flex flex-col flex-1 min-h-0">
+                  <TabsList className="grid w-full grid-cols-3 h-12 bg-slate-800 border border-slate-600 flex-shrink-0 mb-4">
+                    <TabsTrigger 
+                      value="basic" 
+                      className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-all duration-200 font-medium"
+                    >
+                      Основные параметры
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="defaults" 
+                      className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-all duration-200 font-medium"
+                    >
+                      Значения по умолчанию
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="commands" 
+                      className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-300 hover:text-white hover:bg-slate-700 transition-all duration-200 font-medium"
+                    >
+                      Доступные команды
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="basic" className="space-y-4 mt-6 flex-1 overflow-y-auto">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <TabsContent value="basic" className="h-full overflow-y-auto pr-2 space-y-4 data-[state=active]:block" style={{scrollbarWidth: 'thin'}}>
+                      <div className="pb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Название шаблона *</Label>
                       <Input
@@ -630,9 +662,9 @@ export default function EquipmentTypes() {
                         <SelectValue placeholder="Выберите тип оборудования" />
                       </SelectTrigger>
                       <SelectContent>
-                        {systemTypeOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                        {systemTypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -661,11 +693,12 @@ export default function EquipmentTypes() {
                       onCheckedChange={(checked) => setValue("isActive", checked)}
                     />
                     <Label htmlFor="isActive">Активен</Label>
-                  </div>
-                </TabsContent>
+                        </div>
+                      </div>
+                    </TabsContent>
 
-                <TabsContent value="defaults" className="space-y-4 mt-6 flex-1 overflow-y-auto">
-                  <div className="space-y-4">
+                    <TabsContent value="defaults" className="h-full overflow-y-auto pr-2 space-y-4 data-[state=active]:block" style={{scrollbarWidth: 'thin'}}>
+                      <div className="pb-6 space-y-4">
                     <div>
                       <Label>Параметры по умолчанию для типа оборудования</Label>
                       <p className="text-sm text-muted-foreground mt-1">
@@ -919,11 +952,11 @@ export default function EquipmentTypes() {
                         </div>
                       )}
                     </div>
-                  </div>
-                </TabsContent>
+                      </div>
+                    </TabsContent>
 
-                <TabsContent value="commands" className="space-y-4 mt-6 flex-1 overflow-y-auto">
-                  <div className="space-y-4">
+                    <TabsContent value="commands" className="h-full overflow-y-auto pr-2 space-y-4 data-[state=active]:block" style={{scrollbarWidth: 'thin'}}>
+                      <div className="pb-6 space-y-4">
                     <div>
                       <Label>Доступные команды для данного типа оборудования</Label>
                       <p className="text-sm text-muted-foreground mt-1">
@@ -994,11 +1027,13 @@ export default function EquipmentTypes() {
                         </div>
                       </div>
                     )}
+                      </div>
+                    </TabsContent>
                   </div>
-                </TabsContent>
-              </Tabs>
+                </Tabs>
+              </div>
 
-              <DialogFooter className="mt-6 flex-shrink-0">
+              <DialogFooter className="px-6 py-4 flex-shrink-0 border-t border-slate-700">
                 <Button
                   type="button"
                   variant="outline"
@@ -1045,6 +1080,145 @@ export default function EquipmentTypes() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Диалог управления системными типами */}
+        <Dialog open={isSystemTypesDialogOpen} onOpenChange={setIsSystemTypesDialogOpen}>
+          <DialogContent className="bg-slate-800 border-slate-700 w-[95vw] max-w-2xl max-h-[80vh] sm:w-full flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
+              <DialogTitle>Управление системными типами</DialogTitle>
+              <DialogDescription>
+                Добавляйте, редактируйте и удаляйте системные типы оборудования
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex-1 min-h-0 px-6 pb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-white">Системные типы</h3>
+                <Button
+                  onClick={() => {
+                    setEditingSystemType(null);
+                    setIsSystemTypeDialogOpen(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить тип
+                </Button>
+              </div>
+
+              <div className="space-y-2 overflow-y-auto max-h-96">
+                {systemTypesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      <p className="text-slate-400 text-sm">Загрузка...</p>
+                    </div>
+                  </div>
+                ) : systemTypes.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-slate-400">Системные типы не найдены</p>
+                  </div>
+                ) : (
+                  systemTypes.map((type) => (
+                    <div
+                      key={type.id}
+                      className="flex items-center justify-between p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <div className="font-medium text-white">{type.label}</div>
+                          <code className="bg-slate-600 text-slate-200 px-2 py-1 rounded text-xs">
+                            {type.value}
+                          </code>
+                          <Badge variant={type.isActive ? "default" : "secondary"}>
+                            {type.isActive ? "Активен" : "Неактивен"}
+                          </Badge>
+                        </div>
+                        {type.description && (
+                          <div className="text-sm text-slate-400 mt-1">{type.description}</div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
+                          onClick={() => {
+                            setEditingSystemType(type);
+                            setIsSystemTypeDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        {type.isActive ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
+                            onClick={async () => {
+                              try {
+                                await systemTypesAPI.delete(type.id);
+                                toast({
+                                  title: "Успешно",
+                                  description: `Системный тип "${type.label}" отключен`
+                                });
+                                loadSystemTypes();
+                              } catch (error) {
+                                toast({
+                                  title: "Ошибка",
+                                  description: "Не удалось отключить системный тип",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-green-400"
+                            onClick={async () => {
+                              try {
+                                await systemTypesAPI.restore(type.id);
+                                toast({
+                                  title: "Успешно",
+                                  description: `Системный тип "${type.label}" восстановлен`
+                                });
+                                loadSystemTypes();
+                              } catch (error) {
+                                toast({
+                                  title: "Ошибка",
+                                  description: "Не удалось восстановить системный тип",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                          >
+                            <Power className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Диалог создания/редактирования системного типа */}
+        <SystemTypeDialog
+          open={isSystemTypeDialogOpen}
+          onOpenChange={setIsSystemTypeDialogOpen}
+          systemType={editingSystemType}
+          onSuccess={() => {
+            loadSystemTypes();
+            // Обновляем основной список после изменений в системных типах
+            loadEquipmentTypes();
+          }}
+        />
       </div>
     </MainLayout>
   );

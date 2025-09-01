@@ -6,15 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NetworkCreateDialog } from "@/components/dialogs/NetworkCreateDialog";
 import { NetworkEditDialog } from "@/components/dialogs/NetworkEditDialog";
-import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import { NameConfirmationDialog } from "@/components/dialogs/NameConfirmationDialog";
 import { TradingPointCreateDialog } from "@/components/dialogs/TradingPointCreateDialog";
 import { TradingPointEditDialog } from "@/components/dialogs/TradingPointEditDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Edit, Trash2, MapPin, MoreHorizontal, Plus } from "lucide-react";
 import { Network, NetworkInput } from "@/types/network";
 import { TradingPoint, TradingPointInput, TradingPointUpdateInput } from "@/types/tradingpoint";
-import { networksRepo } from "@/repositories";
-import { tradingPointsRepo } from "@/repositories/tradingPointsRepo";
+import { networksService } from "@/services/networksService";
+import { tradingPointsService } from "@/services/tradingPointsService";
 import { useToast } from "@/hooks/use-toast";
 
 export default function NetworksPage() {
@@ -29,7 +29,7 @@ export default function NetworksPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingNetwork, setEditingNetwork] = useState<Network | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [nameConfirmDeleteDialogOpen, setNameConfirmDeleteDialogOpen] = useState(false);
   const [deletingNetwork, setDeletingNetwork] = useState<Network | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   
@@ -37,7 +37,7 @@ export default function NetworksPage() {
   const [pointCreateDialogOpen, setPointCreateDialogOpen] = useState(false);
   const [pointEditDialogOpen, setPointEditDialogOpen] = useState(false);
   const [editingTradingPoint, setEditingTradingPoint] = useState<TradingPoint | null>(null);
-  const [pointDeleteDialogOpen, setPointDeleteDialogOpen] = useState(false);
+  const [pointNameConfirmDeleteDialogOpen, setPointNameConfirmDeleteDialogOpen] = useState(false);
   const [deletingTradingPoint, setDeletingTradingPoint] = useState<TradingPoint | null>(null);
   const [pointActionLoading, setPointActionLoading] = useState<string | null>(null);
 
@@ -58,7 +58,7 @@ export default function NetworksPage() {
   const loadNetworks = async () => {
     try {
       setLoading(true);
-      const data = await networksRepo.list();
+      const data = await networksService.getAll();
       setNetworks(data);
       
       // Set first network as selected if none selected
@@ -80,7 +80,7 @@ export default function NetworksPage() {
   const loadTradingPoints = async (networkId: string) => {
     try {
       setPointsLoading(true);
-      const points = await tradingPointsRepo.getByNetworkId(networkId);
+      const points = await tradingPointsService.getByNetworkId(networkId);
       setTradingPoints(points);
     } catch (error) {
       console.error('Error loading trading points:', error);
@@ -97,7 +97,7 @@ export default function NetworksPage() {
   const handleCreate = async (input: NetworkInput) => {
     setActionLoading('create');
     try {
-      const created = await networksRepo.create(input);
+      const created = await networksService.create(input);
       setNetworks(prev => [created, ...prev]);
       
       toast({
@@ -128,7 +128,7 @@ export default function NetworksPage() {
   const handleUpdate = async (id: string, input: NetworkInput) => {
     setActionLoading(`update-${id}`);
     try {
-      const updated = await networksRepo.update(id, input);
+      const updated = await networksService.update(id, input);
       setNetworks(prev => prev.map(n => n.id === id ? updated : n));
       
       toast({
@@ -150,7 +150,7 @@ export default function NetworksPage() {
 
   const handleDelete = (network: Network) => {
     setDeletingNetwork(network);
-    setDeleteDialogOpen(true);
+    setNameConfirmDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
@@ -159,10 +159,18 @@ export default function NetworksPage() {
     setDeleteLoading(true);
     setActionLoading(`delete-${deletingNetwork.id}`);
     try {
-      await networksRepo.remove(deletingNetwork.id);
+      // First remove all trading points from this network
+      await tradingPointsService.removeByNetworkId(deletingNetwork.id);
+      
+      // Then remove the network
+      await networksService.delete(deletingNetwork.id);
       
       // Remove from list and reset selection if it was selected
       setNetworks(prev => prev.filter(n => n.id !== deletingNetwork.id));
+      
+      // Remove trading points from the UI
+      setTradingPoints(prev => prev.filter(p => p.networkId !== deletingNetwork.id));
+      
       if (selectedNetworkId === deletingNetwork.id) {
         // Auto-select first remaining network if any
         const remainingNetworks = networks.filter(n => n.id !== deletingNetwork.id);
@@ -173,6 +181,10 @@ export default function NetworksPage() {
         title: "Успешно",
         description: "Сеть и её торговые точки удалены"
       });
+      
+      // Close dialog and reset state
+      setNameConfirmDeleteDialogOpen(false);
+      setDeletingNetwork(null);
     } catch (error) {
       console.error('Error deleting network:', error);
       toast({
@@ -184,7 +196,6 @@ export default function NetworksPage() {
     } finally {
       setDeleteLoading(false);
       setActionLoading(null);
-      setDeletingNetwork(null);
     }
   };
 
@@ -194,7 +205,7 @@ export default function NetworksPage() {
 
     setPointActionLoading('create');
     try {
-      const created = await tradingPointsRepo.create(selectedNetworkId, input);
+      const created = await tradingPointsService.create({...input, networkId: selectedNetworkId});
       setTradingPoints(prev => [created, ...prev]);
       
       // Update network points count
@@ -225,7 +236,7 @@ export default function NetworksPage() {
   const handlePointUpdate = async (id: string, input: TradingPointUpdateInput) => {
     setPointActionLoading('edit');
     try {
-      const updated = await tradingPointsRepo.update(id, input);
+      const updated = await tradingPointsService.update(id, input);
       setTradingPoints(prev => prev.map(p => p.id === id ? updated : p));
       
       toast({
@@ -248,7 +259,7 @@ export default function NetworksPage() {
 
   const handlePointDelete = (point: TradingPoint) => {
     setDeletingTradingPoint(point);
-    setPointDeleteDialogOpen(true);
+    setPointNameConfirmDeleteDialogOpen(true);
   };
 
   const handlePointDeleteConfirm = async () => {
@@ -256,7 +267,7 @@ export default function NetworksPage() {
 
     setPointActionLoading('delete');
     try {
-      await tradingPointsRepo.delete(deletingTradingPoint.id);
+      await tradingPointsService.delete(deletingTradingPoint.id);
       setTradingPoints(prev => prev.filter(p => p.id !== deletingTradingPoint.id));
       
       // Update network points count
@@ -266,6 +277,10 @@ export default function NetworksPage() {
         title: "Успешно",
         description: "Торговая точка удалена"
       });
+      
+      // Close dialog and reset state
+      setPointNameConfirmDeleteDialogOpen(false);
+      setDeletingTradingPoint(null);
     } catch (error) {
       console.error('Error deleting trading point:', error);
       toast({
@@ -276,14 +291,15 @@ export default function NetworksPage() {
       throw error;
     } finally {
       setPointActionLoading(null);
-      setDeletingTradingPoint(null);
     }
   };
 
   // External codes handlers
   const handlePointAddExternalCode = async (pointId: string, system: string, code: string, description?: string) => {
     try {
-      const updated = await tradingPointsRepo.addExternalCode(pointId, system, code, description);
+      // TODO: External codes functionality needs to be implemented in service
+      // const updated = await tradingPointsService.addExternalCode(pointId, system, code, description);
+      throw new Error('External codes functionality not implemented in service yet');
       setTradingPoints(prev => prev.map(p => p.id === pointId ? updated : p));
       
       toast({
@@ -333,7 +349,9 @@ export default function NetworksPage() {
 
   const handlePointRemoveExternalCode = async (pointId: string, codeId: string) => {
     try {
-      const updated = await tradingPointsRepo.removeExternalCode(pointId, codeId);
+      // TODO: External codes functionality needs to be implemented in service
+      // const updated = await tradingPointsService.removeExternalCode(pointId, codeId);
+      throw new Error('External codes functionality not implemented in service yet');
       setTradingPoints(prev => prev.map(p => p.id === pointId ? updated : p));
       
       toast({
@@ -422,11 +440,12 @@ export default function NetworksPage() {
             <table className="w-full text-sm min-w-full table-fixed">
               <thead className="bg-slate-700">
                 <tr>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '40%'}}>НАЗВАНИЕ</th>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ТИП</th>
-                  <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ТОЧЕК</th>
-                  <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '20%'}}>ОБНОВЛЕНО</th>
-                  <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
+                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '8%'}}>ID</th>
+                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '35%'}}>НАЗВАНИЕ</th>
+                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '12%'}}>ТИП</th>
+                  <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '12%'}}>ТОЧЕК</th>
+                  <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '18%'}}>ОБНОВЛЕНО</th>
+                  <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
                 </tr>
               </thead>
               <tbody className="bg-slate-800">
@@ -438,6 +457,11 @@ export default function NetworksPage() {
                       selectedNetworkId === network.id ? 'bg-blue-600/20 border-blue-500' : ''
                     }`}
                   >
+                    <td className="px-4 md:px-6 py-4">
+                      <span className="text-xs bg-slate-800 text-slate-500 px-2 py-1 rounded font-mono">
+                        {network.id}
+                      </span>
+                    </td>
                     <td className="px-4 md:px-6 py-4">
                       <div>
                         <div className="font-medium text-white text-base">{network.name}</div>
@@ -588,29 +612,35 @@ export default function NetworksPage() {
                 <table className="w-full text-sm min-w-full table-fixed">
                   <thead className="bg-slate-700">
                     <tr>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '30%'}}>НАЗВАНИЕ</th>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '25%'}}>АДРЕС</th>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ТЕЛЕФОН</th>
-                      <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ОБНОВЛЕНО</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '8%'}}>ID</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '34%'}}>НАЗВАНИЕ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>АДРЕС</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '13%'}}>ТЕЛЕФОН</th>
+                      <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '10%'}}>ОБНОВЛЕНО</th>
                       <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
                     </tr>
                   </thead>
                   <tbody className="bg-slate-800">
                     {pointsLoading ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                        <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
                           Загрузка торговых точек...
                         </td>
                       </tr>
                     ) : tradingPoints.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                        <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
                           Нет торговых точек в этой сети
                         </td>
                       </tr>
                     ) : (
                       tradingPoints.map((point) => (
                         <tr key={point.id} className="border-b border-slate-600 hover:bg-slate-700 transition-colors">
+                          <td className="px-4 md:px-6 py-4">
+                            <span className="text-xs bg-slate-800 text-slate-500 px-2 py-1 rounded font-mono">
+                              {point.id}
+                            </span>
+                          </td>
                           <td className="px-4 md:px-6 py-4">
                             <div>
                               <div className="text-white font-medium text-base">{point.name}</div>
@@ -619,10 +649,13 @@ export default function NetworksPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-slate-400">{point.geolocation.address || `${point.geolocation.city}`}</td>
+                          <td className="px-6 py-4 text-slate-400">
+                            {point.geolocation?.address || point.geolocation?.city || point.address || '—'}
+                          </td>
                           <td className="px-6 py-4 text-slate-400">{point.phone || '—'}</td>
                           <td className="px-6 py-4 text-right text-slate-400">
-                            {point.updatedAt ? new Date(point.updatedAt).toLocaleDateString('ru-RU') : new Date(point.createdAt).toLocaleDateString('ru-RU')}
+                            {point.updatedAt ? new Date(point.updatedAt).toLocaleDateString('ru-RU') : 
+                             point.createdAt ? new Date(point.createdAt).toLocaleDateString('ru-RU') : '—'}
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
@@ -728,16 +761,15 @@ export default function NetworksPage() {
         onSubmit={handleUpdate}
       />
       
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title="Удалить сеть?"
-        description={`Вы действительно хотите удалить сеть "${deletingNetwork?.name}" и все её торговые точки? Это действие необратимо.`}
-        confirmText="Удалить"
-        cancelText="Отмена"
-        variant="destructive"
-        loading={deleteLoading}
+      <NameConfirmationDialog
+        open={nameConfirmDeleteDialogOpen}
+        onOpenChange={setNameConfirmDeleteDialogOpen}
         onConfirm={confirmDelete}
+        itemName={deletingNetwork?.name || ""}
+        itemType="сеть"
+        title="Удалить торговую сеть"
+        description="Это действие удалит торговую сеть и все её торговые точки. Данное действие нельзя отменить."
+        loading={deleteLoading}
       />
 
       {/* Trading Point Dialogs */}
@@ -758,16 +790,15 @@ export default function NetworksPage() {
         onRemoveExternalCode={handlePointRemoveExternalCode}
       />
       
-      <ConfirmDialog
-        open={pointDeleteDialogOpen}
-        onOpenChange={setPointDeleteDialogOpen}
-        title="Удалить торговую точку?"
-        description={`Вы действительно хотите удалить торговую точку "${deletingTradingPoint?.name}"? Это действие необратимо.`}
-        confirmText="Удалить"
-        cancelText="Отмена"
-        variant="destructive"
-        loading={pointActionLoading === 'delete'}
+      <NameConfirmationDialog
+        open={pointNameConfirmDeleteDialogOpen}
+        onOpenChange={setPointNameConfirmDeleteDialogOpen}
         onConfirm={handlePointDeleteConfirm}
+        itemName={deletingTradingPoint?.name || ""}
+        itemType="торговую точку"
+        title="Удалить торговую точку"
+        description="Это действие безвозвратно удалит торговую точку и все её данные."
+        loading={pointActionLoading === 'delete'}
       />
       </div>
     </MainLayout>

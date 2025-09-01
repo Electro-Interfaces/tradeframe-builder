@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { tradingPointsStore } from "@/mock/tradingPointsStore";
+import { tradingPointsService } from "@/services/tradingPointsService";
+import { TradingPoint } from "@/types/tradingpoint";
 
 interface PointSelectProps {
   value?: string;
@@ -14,12 +15,38 @@ interface PointSelectProps {
 
 export function PointSelect({ value, onValueChange, className, disabled, networkId }: PointSelectProps) {
   const [open, setOpen] = useState(false);
-  const allTradingPoints = tradingPointsStore.getAll();
-  const tradingPoints = networkId 
-    ? tradingPointsStore.getByNetworkId(networkId)
-    : allTradingPoints;
-  
+  const [tradingPoints, setTradingPoints] = useState<TradingPoint[]>([]);
   const selectedPoint = tradingPoints.find(p => p.id === value);
+  
+  const loadTradingPoints = async () => {
+    try {
+      let data;
+      if (networkId) {
+        console.log('🔍 PointSelect: загружаем точки для сети', networkId);
+        data = await tradingPointsService.getByNetworkId(networkId);
+        console.log('📍 PointSelect: найденные точки:', data.map(p => ({id: p.id, name: p.name, networkId: p.networkId})));
+      } else {
+        data = await tradingPointsService.getAll();
+        console.log('📍 PointSelect: все точки:', data.map(p => ({id: p.id, name: p.name, networkId: p.networkId})));
+      }
+      setTradingPoints(data);
+    } catch (error) {
+      console.error('Error loading trading points:', error);
+      setTradingPoints([]);
+    }
+  };
+  
+  useEffect(() => {
+    loadTradingPoints();
+  }, [networkId]);
+  
+  // Обновляем данные при открытии селектора
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (newOpen) {
+      loadTradingPoints(); // Обновляем данные при каждом открытии
+    }
+  };
   
   const handleSelect = (pointId: string) => {
     onValueChange?.(pointId);
@@ -27,7 +54,7 @@ export function PointSelect({ value, onValueChange, className, disabled, network
   };
   
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button 
           className={cn("sel", className, disabled && "opacity-50 cursor-not-allowed")}

@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import AdminUsersAndRoles from "./pages/AdminUsersAndRoles";
 import AdminUsers from "./pages/AdminUsers";
+import NewUsersAndRoles from "./pages/admin/UsersAndRoles";
 import NetworksPage from "./pages/NetworksPage";
 import Nomenclature from "./pages/Nomenclature";
 import SalesAnalysisPage from "./pages/SalesAnalysisPage";
@@ -30,6 +31,12 @@ import OperationsTransactionsPage from "./pages/OperationsTransactionsPage";
 import PriceHistoryPage from "./pages/PriceHistoryPage";
 import FuelStocksPage from "./pages/FuelStocksPage";
 import Profile from "./pages/Profile";
+import DataMigration from "./pages/DataMigration";
+import TestServices from "./pages/TestServices";
+import TestServicesSimple from "./pages/TestServicesSimple";
+import TestDebug from "./pages/TestDebug";
+import DataInspector from "./pages/DataInspector";
+import NetworkEquipmentLog from "./pages/NetworkEquipmentLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +52,7 @@ const App = () => (
           <Routes>
           <Route path="/" element={<NetworkOverview />} />
           <Route path="/admin/users-and-roles" element={<AdminUsersAndRoles />} />
+          <Route path="/admin/users-and-roles-new" element={<NewUsersAndRoles />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/networks" element={<NetworksPage />} />
           <Route path="/admin/audit" element={<AuditLog />} />
@@ -59,6 +67,7 @@ const App = () => (
           <Route path="/network/operations-transactions" element={<OperationsTransactionsPage />} />
           <Route path="/network/price-history" element={<PriceHistoryPage />} />
           <Route path="/network/fuel-stocks" element={<FuelStocksPage />} />
+          <Route path="/network/equipment-log" element={<NetworkEquipmentLog />} />
           <Route path="/network/notifications" element={<NotificationRules />} />
           <Route path="/network/messages" element={<Messages />} />
           <Route path="/point/prices" element={<Prices />} />
@@ -66,6 +75,11 @@ const App = () => (
           <Route path="/point/shift-reports" element={<ShiftReports />} />
           <Route path="/point/equipment" element={<Equipment />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/admin/data-migration" element={<DataMigration />} />
+          <Route path="/admin/test-services" element={<TestServices />} />
+          <Route path="/admin/test-simple" element={<TestServicesSimple />} />
+          <Route path="/admin/test-debug" element={<TestDebug />} />
+          <Route path="/admin/data-inspector" element={<DataInspector />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

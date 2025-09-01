@@ -81,6 +81,18 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
         
         <div className="space-y-6">
           <div className="space-y-2">
+            <Label htmlFor="id" className="text-slate-200 block">
+              ID сети
+            </Label>
+            <Input
+              id="id"
+              value={network?.id || ""}
+              readOnly
+              className="bg-slate-900 border-slate-700 text-slate-500 font-mono text-sm cursor-not-allowed"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="name" className="text-slate-200 block">
               Название сети <span className="text-red-400">*</span>
             </Label>
