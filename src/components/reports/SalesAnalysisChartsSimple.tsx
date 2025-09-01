@@ -27,10 +27,10 @@ const mockTrendData = [
 // Простая круговая диаграмма с CSS
 const FuelChart = () => {
   return (
-    <div className="w-full h-64 flex items-center justify-center">
-      <div className="relative">
-        {/* Основная диаграмма */}
-        <div className="w-40 h-40 rounded-full relative overflow-hidden">
+    <div className="w-full h-64 flex flex-col items-center justify-center px-2">
+      {/* Диаграмма */}
+      <div className="flex items-center justify-center gap-4 flex-wrap">
+        <div className="w-32 h-32 rounded-full relative overflow-hidden flex-shrink-0">
           {/* Сегменты */}
           <div 
             className="absolute inset-0 rounded-full"
@@ -43,25 +43,25 @@ const FuelChart = () => {
             }}
           />
           {/* Центральный круг */}
-          <div className="absolute inset-6 bg-slate-800 rounded-full flex items-center justify-center border-4 border-slate-700">
+          <div className="absolute inset-5 bg-slate-800 rounded-full flex items-center justify-center border-2 border-slate-700">
             <div className="text-center text-white">
-              <div className="text-lg font-bold">100%</div>
+              <div className="text-base font-bold">100%</div>
               <div className="text-xs text-slate-400">Топливо</div>
             </div>
           </div>
         </div>
         
         {/* Легенда */}
-        <div className="absolute left-48 top-4 space-y-3">
+        <div className="space-y-2 min-w-0 flex-1">
           {mockFuelData.map((item, index) => (
-            <div key={index} className="flex items-center gap-3">
+            <div key={index} className="flex items-center gap-2">
               <div 
-                className="w-4 h-4 rounded"
+                className="w-3 h-3 rounded flex-shrink-0"
                 style={{ backgroundColor: item.color }}
               ></div>
-              <div className="text-white">
-                <div className="text-sm font-medium">{item.name}</div>
-                <div className="text-xs text-slate-400">{item.value}% • {item.amount.toLocaleString()} ₽</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-white truncate">{item.name}</div>
+                <div className="text-xs text-slate-400 truncate">{item.value}% • {item.amount.toLocaleString()} ₽</div>
               </div>
             </div>
           ))}
@@ -74,10 +74,10 @@ const FuelChart = () => {
 // Диаграмма способов оплаты
 const PaymentChart = () => {
   return (
-    <div className="w-full h-64 flex items-center justify-center">
-      <div className="relative">
-        {/* Основная диаграмма */}
-        <div className="w-40 h-40 rounded-full relative overflow-hidden">
+    <div className="w-full h-64 flex flex-col items-center justify-center px-2">
+      {/* Диаграмма */}
+      <div className="flex items-center justify-center gap-4 flex-wrap">
+        <div className="w-32 h-32 rounded-full relative overflow-hidden flex-shrink-0">
           {/* Сегменты */}
           <div 
             className="absolute inset-0 rounded-full"
@@ -90,25 +90,25 @@ const PaymentChart = () => {
             }}
           />
           {/* Центральный круг */}
-          <div className="absolute inset-6 bg-slate-800 rounded-full flex items-center justify-center border-4 border-slate-700">
+          <div className="absolute inset-5 bg-slate-800 rounded-full flex items-center justify-center border-2 border-slate-700">
             <div className="text-center text-white">
-              <div className="text-lg font-bold">100%</div>
+              <div className="text-base font-bold">100%</div>
               <div className="text-xs text-slate-400">Оплата</div>
             </div>
           </div>
         </div>
         
         {/* Легенда */}
-        <div className="absolute left-48 top-4 space-y-3">
+        <div className="space-y-2 min-w-0 flex-1">
           {mockPaymentData.map((item, index) => (
-            <div key={index} className="flex items-center gap-3">
+            <div key={index} className="flex items-center gap-2">
               <div 
-                className="w-4 h-4 rounded"
+                className="w-3 h-3 rounded flex-shrink-0"
                 style={{ backgroundColor: item.color }}
               ></div>
-              <div className="text-white">
-                <div className="text-sm font-medium">{item.name}</div>
-                <div className="text-xs text-slate-400">{item.value}% • {item.amount.toLocaleString()} ₽</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-white truncate">{item.name}</div>
+                <div className="text-xs text-slate-400 truncate">{item.value}% • {item.amount.toLocaleString()} ₽</div>
               </div>
             </div>
           ))}
@@ -193,38 +193,38 @@ export function SalesAnalysisChartsSimple({ selectedNetwork, selectedTradingPoin
       {/* Основные графики */}
       <div className="w-full">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+        <Card className="bg-slate-800 border-slate-700 overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white flex items-center gap-2 text-base lg:text-lg">
               <span>⛽</span>
               Продажи по видам топлива
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4">
             <FuelChart />
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+        <Card className="bg-slate-800 border-slate-700 overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white flex items-center gap-2 text-base lg:text-lg">
               <span>📊</span>
               Динамика продаж
             </CardTitle>
           </CardHeader>
-          <CardContent className="relative">
+          <CardContent className="relative p-4">
             <TrendChart />
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+        <Card className="bg-slate-800 border-slate-700 overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white flex items-center gap-2 text-base lg:text-lg">
               <span>💳</span>
               Продажи по видам оплаты
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4">
             <PaymentChart />
           </CardContent>
         </Card>
