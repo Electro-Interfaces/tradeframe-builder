@@ -47,68 +47,15 @@ interface Command {
   jsonSchema: string;
 }
 
-// Mock commands data
-const mockCommands: Command[] = [
-  {
-    id: "cmd1",
-    name: "Сформировать отчет смены",
-    description: "Создает отчет о работе смены",
-    jsonSchema: JSON.stringify({
-      type: "object",
-      properties: {},
-      required: []
-    })
-  },
-  {
-    id: "cmd2",
-    name: "Закрыть смену",
-    description: "Завершает текущую смену",
-    jsonSchema: JSON.stringify({
-      type: "object",
-      properties: {},
-      required: []
-    })
-  },
-  {
-    id: "cmd3",
-    name: "Установить цену",
-    description: "Устанавливает новую цену на топливо",
-    jsonSchema: JSON.stringify({
-      type: "object",
-      properties: {
-        fuel_type: {
-          type: "string",
-          title: "Тип топлива",
-          enum: ["АИ-92", "АИ-95", "АИ-98", "ДТ"]
-        },
-        new_price: {
-          type: "number",
-          title: "Новая цена",
-          minimum: 0,
-          description: "Цена в рублях за литр"
-        }
-      },
-      required: ["fuel_type", "new_price"]
-    })
-  },
-  {
-    id: "cmd4",
-    name: "Создать резервную копию",
-    description: "Создает резервную копию данных",
-    jsonSchema: JSON.stringify({
-      type: "object",
-      properties: {
-        backup_type: {
-          type: "string",
-          title: "Тип копирования",
-          enum: ["full", "incremental"],
-          description: "Полное или инкрементальное копирование"
-        }
-      },
-      required: ["backup_type"]
-    })
-  }
-];
+import { commandTemplatesStore } from "@/mock/commandTemplatesStore";
+
+// Адаптируем шаблоны команд для использования в WorkflowSteps
+const mockCommands: Command[] = commandTemplatesStore.getActive().map(template => ({
+  id: template.id,
+  name: template.display_name,
+  description: template.description,
+  jsonSchema: JSON.stringify(template.param_schema)
+}));
 
 interface SortableStepProps {
   step: WorkflowStep;

@@ -81,9 +81,8 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
 
   const adminMenuItems = [
     { title: "Сети и ТТ", url: "/admin/networks", icon: Network },
-    { title: "Пользователи (простая)", url: "/admin/users", icon: Users },
-    { title: "Пользователи и роли", url: "/admin/users-and-roles", icon: Shield },
-    { title: "Управление ролями", url: "/admin/users-and-roles-new", icon: Settings },
+    { title: "Пользователи", url: "/admin/users-and-roles", icon: Users },
+    { title: "Роли", url: "/admin/roles", icon: Shield },
     { title: "Журнал аудита", url: "/admin/audit", icon: FileText },
   ];
 
@@ -92,6 +91,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     { title: "Номенклатура", url: "/settings/nomenclature", icon: FuelIcon },
     { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types", icon: HardDrive },
     { title: "Типы компонентов", url: "/settings/dictionaries/component-types", icon: Component },
+    { title: "Шаблоны команд", url: "/settings/dictionaries/command-templates", icon: Cog },
     { title: "Команды", url: "/settings/commands", icon: Wrench },
     { title: "Регламенты", url: "/settings/workflows", icon: Clock },
   ];
