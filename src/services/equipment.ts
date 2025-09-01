@@ -8,6 +8,7 @@ import {
   EquipmentStatusAction,
   EquipmentEvent
 } from '@/types/equipment';
+import { currentComponentsAPI } from './components';
 
 // Импорт сервиса для синхронизации с типами оборудования
 import { equipmentTemplatesFromTypesAPI } from './equipmentTypes';
@@ -156,7 +157,31 @@ const mockEquipmentTemplates: EquipmentTemplate[] = [
     system_type: "fuel_tank",
     status: true,
     description: "Топливный резервуар для хранения нефтепродуктов",
-    default_params: { volume: 50000, material: "steel" },
+    default_params: { 
+      // Обязательные поля
+      id: null,
+      name: "",
+      fuelType: "",
+      currentLevelLiters: 0,
+      
+      // Не обязательные поля - параметры емкости
+      capacityLiters: 50000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      
+      // Не обязательные поля - физические параметры
+      temperature: null,
+      waterLevelMm: null,
+      
+      // Не обязательные поля - пороговые значения
+      thresholds: {
+        criticalTemp: {
+          min: -10,
+          max: 40
+        },
+        maxWaterLevel: 15
+      }
+    },
     allow_component_template_ids: ["comp_sensor_level_1"],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -223,6 +248,7 @@ const mockEquipmentTemplates: EquipmentTemplate[] = [
   }
 ];
 
+// Mock данные оборудования для демо (в production заменить на API)
 const mockEquipment: Equipment[] = [
   {
     id: "eq_1",
@@ -304,7 +330,8 @@ const mockEquipment: Equipment[] = [
   }
 ];
 
-// Mock сервисы для разработки
+// Mock API для оборудования (в production заменить на HTTP клиент к реальному API)
+// ВНИМАНИЕ: Данные не сохраняются между сессиями - это только для демо интерфейса
 export const mockEquipmentAPI = {
   async list(params: ListEquipmentParams): Promise<ListEquipmentResponse> {
     // Симуляция задержки сети
@@ -331,10 +358,25 @@ export const mockEquipmentAPI = {
       filtered = filtered.filter(eq => eq.status === params.status);
     }
 
-    // Добавляем шаблоны
-    const result = filtered.map(eq => ({
-      ...eq,
-      template: mockEquipmentTemplates.find(t => t.id === eq.template_id)
+    // Добавляем шаблоны и подгружаем количество компонентов
+    const result = await Promise.all(filtered.map(async (eq) => {
+      let componentsCount = 0;
+      try {
+        const componentsResponse = await currentComponentsAPI.list({ 
+          equipment_id: eq.id,
+          limit: 1 // Нам нужен только count, не сами данные
+        });
+        componentsCount = componentsResponse.total;
+      } catch (error) {
+        // Игнорируем ошибки при загрузке компонентов
+        console.warn(`Failed to load components count for equipment ${eq.id}:`, error);
+      }
+
+      return {
+        ...eq,
+        template: mockEquipmentTemplates.find(t => t.id === eq.template_id),
+        componentsCount // Добавляем количество компонентов
+      };
     }));
 
     return {
@@ -365,7 +407,9 @@ export const mockEquipmentAPI = {
       components: []
     };
 
-    mockEquipment.push(newEquipment);
+    // В DEMO режиме НЕ сохраняем данные - только имитируем успешный ответ
+    // В production здесь будет HTTP POST запрос к серверу
+    // mockEquipment.push(newEquipment); // УБРАНО - данные не сохраняются
     return newEquipment;
   },
 
@@ -391,13 +435,17 @@ export const mockEquipmentAPI = {
       throw new ApiError(404, 'Equipment not found');
     }
 
-    mockEquipment[index] = {
+    // В DEMO режиме НЕ изменяем данные - только имитируем успешный ответ
+    // В production здесь будет HTTP PATCH запрос к серверу
+    const updatedEquipment = {
       ...mockEquipment[index],
       ...data,
       updated_at: new Date().toISOString()
     };
 
-    return mockEquipment[index];
+    // НЕ сохраняем изменения
+    // mockEquipment[index] = updatedEquipment; // УБРАНО
+    return updatedEquipment;
   },
 
   async setStatus(id: string, action: EquipmentStatusAction): Promise<void> {
@@ -408,20 +456,23 @@ export const mockEquipmentAPI = {
       throw new ApiError(404, 'Equipment not found');
     }
 
-    switch (action) {
-      case 'enable':
-        equipment.status = 'online';
-        break;
-      case 'disable':
-        equipment.status = 'disabled';
-        break;
-      case 'archive':
-        equipment.status = 'archived';
-        equipment.deleted_at = new Date().toISOString();
-        break;
-    }
-
-    equipment.updated_at = new Date().toISOString();
+    // В DEMO режиме НЕ изменяем статус - только имитируем успешный ответ
+    // В production здесь будет HTTP POST запрос к серверу
+    // switch (action) {
+    //   case 'enable':
+    //     equipment.status = 'online';
+    //     break;
+    //   case 'disable':
+    //     equipment.status = 'disabled';
+    //     break;
+    //   case 'archive':
+    //     equipment.status = 'archived';
+    //     equipment.deleted_at = new Date().toISOString();
+    //     break;
+    // }
+    // equipment.updated_at = new Date().toISOString();
+    
+    // Просто имитируем задержку и успех, без изменения данных
   },
 
   async getEvents(id: string): Promise<EquipmentEvent[]> {
@@ -493,3 +544,6 @@ export const dynamicEquipmentTemplatesAPI = {
 // Используем динамическую версию для синхронизации с разделом "Типы оборудования"
 export const currentEquipmentAPI = mockEquipmentAPI;
 export const currentEquipmentTemplatesAPI = dynamicEquipmentTemplatesAPI;
+
+// 🔄 ДЛЯ PRODUCTION: Заменить на импорт из apiSwitch.ts:
+// import { currentEquipmentAPI, currentEquipmentTemplatesAPI } from './apiSwitch';

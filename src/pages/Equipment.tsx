@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSelection } from "@/context/SelectionContext";
@@ -34,7 +34,6 @@ import {
 import { cn } from "@/lib/utils";
 
 // Компоненты оборудования
-import { EquipmentFilters } from "@/components/equipment/EquipmentFilters";
 import { EquipmentWizard } from "@/components/equipment/EquipmentWizard";
 import { EquipmentDetailCard } from "@/components/equipment/EquipmentDetailCard";
 
@@ -42,7 +41,6 @@ import { EquipmentDetailCard } from "@/components/equipment/EquipmentDetailCard"
 import { 
   Equipment, 
   EquipmentTemplate,
-  EquipmentFilters as IEquipmentFilters, 
   CreateEquipmentRequest, 
   UpdateEquipmentRequest,
   EquipmentStatusAction,
@@ -53,6 +51,7 @@ import {
   currentEquipmentAPI, 
   currentEquipmentTemplatesAPI 
 } from "@/services/equipment";
+import { tradingPointsStore } from "@/mock/tradingPointsStore";
 
 // Утилиты для статусов
 const getStatusIcon = (status: EquipmentStatus) => {
@@ -93,14 +92,20 @@ export default function Equipment() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
+  // Получаем информацию о торговой точке с мемоизацией
+  const tradingPointInfo = useMemo(() => {
+    return selectedTradingPoint 
+      ? tradingPointsStore.getById(selectedTradingPoint) 
+      : null;
+  }, [selectedTradingPoint]);
+    
+  
   // Основное состояние
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [templates, setTemplates] = useState<EquipmentTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Фильтры
-  const [filters, setFilters] = useState<IEquipmentFilters>({});
   
   // Модальные окна
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -110,7 +115,7 @@ export default function Equipment() {
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
   
   // ID выбранной торговой точки
-  const selectedTradingPointId = selectedTradingPoint;
+  const selectedTradingPointId = useMemo(() => selectedTradingPoint, [selectedTradingPoint]);
 
   // Загрузка шаблонов при монтировании
   useEffect(() => {
@@ -124,10 +129,10 @@ export default function Equipment() {
     } else {
       setEquipment([]);
     }
-  }, [selectedTradingPointId, filters]);
+  }, [selectedTradingPointId]);
   
-  // Загрузка шаблонов
-  const loadTemplates = async () => {
+  // Загрузка шаблонов с мемоизацией
+  const loadTemplates = useCallback(async () => {
     try {
       const templatesData = await currentEquipmentTemplatesAPI.list();
       setTemplates(templatesData);
@@ -139,10 +144,10 @@ export default function Equipment() {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
   
-  // Загрузка оборудования
-  const loadEquipment = async () => {
+  // Загрузка оборудования с мемоизацией
+  const loadEquipment = useCallback(async () => {
     if (!selectedTradingPointId) return;
     
     setLoading(true);
@@ -150,8 +155,7 @@ export default function Equipment() {
     
     try {
       const response = await currentEquipmentAPI.list({
-        trading_point_id: selectedTradingPointId,
-        ...filters
+        trading_point_id: selectedTradingPointId
       });
       setEquipment(response.data);
     } catch (error) {
@@ -165,7 +169,7 @@ export default function Equipment() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedTradingPointId, toast]);
 
   // Обработчики событий
   const handleCreateEquipment = async (data: CreateEquipmentRequest) => {
@@ -276,23 +280,26 @@ export default function Equipment() {
       <MainLayout>
         <div className="px-4 pt-4">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-xl font-bold">Оборудование</h1>
-              <p className="text-sm text-muted-foreground">{selectedTradingPoint}</p>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-white">Оборудование</h1>
+              <p className="text-sm text-slate-400">
+                {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
+              </p>
+              {/* Предупреждение о демо режиме */}
+              <div className="mt-2 text-xs text-amber-400 bg-amber-900/20 px-2 py-1 rounded border border-amber-500/20">
+                ⚠️ ДЕМО: Данные не сохраняются
+              </div>
             </div>
-            <Button size="sm" onClick={() => setIsWizardOpen(true)} disabled={loading}>
+            <Button 
+              size="sm" 
+              onClick={() => setIsWizardOpen(true)} 
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               <Plus className="w-4 h-4" />
             </Button>
           </div>
           
-          <div className="mb-4">
-            <EquipmentFilters
-              filters={filters}
-              onFiltersChange={setFilters}
-              templates={templates}
-              loading={loading}
-            />
-          </div>
 
           {loading && (
             <div className="flex items-center justify-center py-8">
@@ -328,7 +335,7 @@ export default function Equipment() {
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <h3 className="font-medium text-white">{item.display_name}</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-slate-400">
                           {template?.name || "Неизвестный тип"}
                         </p>
                       </div>
@@ -336,13 +343,13 @@ export default function Equipment() {
                     </div>
                     
                     {item.serial_number && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-slate-400">
                         S/N: {item.serial_number}
                       </p>
                     )}
                     
                     <div className="flex items-center justify-between mt-3">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs bg-slate-600 text-slate-200">
                         {getStatusText(item.status)}
                       </Badge>
                       
@@ -401,16 +408,14 @@ export default function Equipment() {
         />
 
         {/* Карточка детальной информации */}
-        {selectedEquipment && (
-          <EquipmentDetailCard
-            equipment={selectedEquipment}
-            template={templates.find(t => t.id === selectedEquipment.template_id)}
-            onClose={() => setSelectedEquipment(null)}
-            onUpdate={handleUpdateEquipment}
-            onStatusChange={handleStatusChange}
-            onLoadEvents={handleLoadEvents}
-          />
-        )}
+        <EquipmentDetailCard
+          open={!!selectedEquipment}
+          onOpenChange={(open) => !open && setSelectedEquipment(null)}
+          equipment={selectedEquipment}
+          onUpdate={handleUpdateEquipment}
+          onStatusChange={handleStatusChange}
+          onLoadEvents={handleLoadEvents}
+        />
       </MainLayout>
     );
   }
@@ -418,58 +423,89 @@ export default function Equipment() {
   // Десктопная версия - таблица
   return (
     <MainLayout>
-      <div className="px-6 pt-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Оборудование</h1>
-            <p className="text-muted-foreground mt-1">
-              Торговая точка: {selectedTradingPoint}
-            </p>
-          </div>
-          
-          <Button onClick={() => setIsWizardOpen(true)} disabled={loading}>
-            <Plus className="w-4 h-4 mr-2" />
-            Добавить из шаблона
-          </Button>
-        </div>
-        
-        {/* Фильтры */}
+      <div className="w-full space-y-6">
+        {/* Заголовок страницы */}
         <div className="mb-6">
-          <EquipmentFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            templates={templates}
-            loading={loading}
-          />
+          <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
+          <p className="text-slate-400 mt-1">
+            {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
+          </p>
+          {/* Предупреждение о демо режиме */}
+          <div className="mt-3 text-xs text-amber-400 bg-amber-900/20 px-3 py-1 rounded border border-amber-500/20">
+            ⚠️ ДЕМО РЕЖИМ: Данные не сохраняются между сессиями (в production заменить на реальное API)
+          </div>
         </div>
 
-        {/* Состояния загрузки и ошибки */}
-        {loading && (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        {/* Секция оборудования */}
+        <div className="bg-slate-800 border border-slate-600 rounded-lg w-full">
+          {/* Заголовок секции с кнопкой добавления */}
+          <div className="px-6 py-4 border-b border-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-sm">⚙️</span>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Установленное оборудование</h2>
+                  {!loading && equipment.length > 0 && (
+                    <p className="text-sm text-slate-400">
+                      Всего единиц: {equipment.length}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Button 
+                onClick={() => setIsWizardOpen(true)} 
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Добавить из шаблона
+              </Button>
+            </div>
           </div>
-        )}
 
-        {error && (
-          <div className="bg-destructive/10 text-destructive rounded-lg p-4 mb-6">
-            {error}
-          </div>
-        )}
+          {/* Состояния загрузки, ошибки и пустого списка */}
+          {loading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+              <span className="ml-2 text-slate-400">Загрузка оборудования...</span>
+            </div>
+          )}
 
-        {/* Пустое состояние */}
-        {!loading && !error && equipment.length === 0 && (
-          <EmptyState
-            icon={Settings}
-            title="Нет оборудования"
-            description="На этой торговой точке пока нет оборудования. Нажмите 'Добавить из шаблона', чтобы создать первое."
-            className="py-16"
-          />
-        )}
+          {error && (
+            <div className="px-6 py-8 text-center">
+              <div className="text-red-400 mb-2">{error}</div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => loadEquipment()}
+              >
+                Попробовать снова
+              </Button>
+            </div>
+          )}
 
-        {/* Таблица с оборудованием */}
-        {!loading && !error && equipment.length > 0 && (
-          <div className="w-full h-full -mx-4 md:-mx-6 lg:-mx-8">
-            <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+          {!loading && !error && equipment.length === 0 && (
+            <div className="px-6 py-16 text-center">
+              <Settings className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-white mb-2">Нет оборудования</h3>
+              <p className="text-slate-400 mb-4">
+                На этой торговой точке пока нет оборудования.
+              </p>
+              <Button 
+                onClick={() => setIsWizardOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Добавить первое оборудование
+              </Button>
+            </div>
+          )}
+
+          {/* Таблица с оборудованием */}
+          {!loading && !error && equipment.length > 0 && (
+            <div className="overflow-x-auto w-full">
               <table className="w-full text-sm min-w-full table-fixed">
                 <thead className="bg-slate-700">
                   <tr>
@@ -486,7 +522,7 @@ export default function Equipment() {
                   {equipment.map((item) => {
                     const template = templates.find(t => t.id === item.template_id);
                     const isExpanded = expandedRows.includes(item.id);
-                    const componentsCount = item.components?.length || 0;
+                    const componentsCount = item.componentsCount || 0;
                     
                     return (
                       <>
@@ -614,8 +650,8 @@ export default function Equipment() {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Wizard для создания */}
@@ -629,16 +665,14 @@ export default function Equipment() {
       />
 
       {/* Карточка детальной информации */}
-      {selectedEquipment && (
-        <EquipmentDetailCard
-          equipment={selectedEquipment}
-          template={templates.find(t => t.id === selectedEquipment.template_id)}
-          onClose={() => setSelectedEquipment(null)}
-          onUpdate={handleUpdateEquipment}
-          onStatusChange={handleStatusChange}
-          onLoadEvents={handleLoadEvents}
-        />
-      )}
+      <EquipmentDetailCard
+        open={!!selectedEquipment}
+        onOpenChange={(open) => !open && setSelectedEquipment(null)}
+        equipment={selectedEquipment}
+        onUpdate={handleUpdateEquipment}
+        onStatusChange={handleStatusChange}
+        onLoadEvents={handleLoadEvents}
+      />
     </MainLayout>
   );
 }

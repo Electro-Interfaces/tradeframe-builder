@@ -43,6 +43,7 @@ import {
   EquipmentEvent,
   EquipmentStatus 
 } from "@/types/equipment";
+import { ComponentsTab } from "./ComponentsTab";
 
 // Схема валидации для редактирования
 const updateEquipmentSchema = z.object({
@@ -493,20 +494,13 @@ export function EquipmentDetailCard({
             </div>
           </TabsContent>
 
-          {/* Вкладка "Компоненты" - заглушка для Шага 2 */}
+          {/* Вкладка "Компоненты" */}
           <TabsContent value="components" className="mt-6">
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Layers3 className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-center mb-2">
-                  Управление компонентами
-                </h3>
-                <p className="text-muted-foreground text-center mb-4 max-w-md">
-                  Функция управления компонентами оборудования будет доступна в следующем обновлении
-                </p>
-                <Badge variant="secondary">Скоро</Badge>
-              </CardContent>
-            </Card>
+            <ComponentsTab 
+              equipmentId={equipment.id}
+              equipmentTemplateId={equipment.template_id}
+              tradingPointId={equipment.trading_point_id}
+            />
           </TabsContent>
 
           {/* Вкладка "Журнал событий" */}

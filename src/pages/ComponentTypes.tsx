@@ -312,7 +312,12 @@ export default function ComponentTypes() {
     formState: { errors, isValid },
   } = useForm<ComponentType>({
     resolver: zodResolver(componentTypeSchema),
+    mode: "onChange", // Валидация при каждом изменении
     defaultValues: {
+      name: "",
+      code: "",
+      description: "",
+      systemType: systemTypeOptions[0]?.value || "SENSOR",
       isActive: true,
       statusValues: [],
     },
@@ -379,7 +384,7 @@ export default function ComponentTypes() {
       name: "",
       code: "",
       description: "",
-      systemType: "",
+      systemType: systemTypeOptions[0]?.value || "SENSOR",
       statusValues: [],
       isActive: true,
     });
@@ -767,8 +772,14 @@ export default function ComponentTypes() {
               <div className="space-y-2">
                 <Label htmlFor="systemType">Системный тип *</Label>
                 <Select
-                  value={watch("systemType")}
-                  onValueChange={(value) => setValue("systemType", value)}
+                  value={watch("systemType") || ""}
+                  onValueChange={(value) => {
+                    setValue("systemType", value);
+                    // Принудительно триггерим валидацию
+                    setTimeout(() => {
+                      setValue("systemType", value, { shouldValidate: true });
+                    }, 0);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Выберите системный тип" />
@@ -849,7 +860,27 @@ export default function ComponentTypes() {
                 >
                   Отмена
                 </Button>
-                <Button type="submit" disabled={!isValid}>
+                <Button 
+                  type="submit" 
+                  disabled={(() => {
+                    const data = watch();
+                    const isFormValid = data.name?.trim() && data.code?.trim() && data.systemType;
+                    console.log('Button validation:', {
+                      name: data.name,
+                      code: data.code,
+                      systemType: data.systemType,
+                      isFormValid,
+                      isValid,
+                      errors
+                    });
+                    return !isFormValid;
+                  })()}
+                  onClick={() => {
+                    console.log('Form data:', watch());
+                    console.log('Form errors:', errors);
+                    console.log('Form isValid:', isValid);
+                  }}
+                >
                   {editingItem ? "Сохранить" : "Создать шаблон"}
                 </Button>
               </DialogFooter>

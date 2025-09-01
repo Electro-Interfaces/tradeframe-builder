@@ -25,6 +25,7 @@ export interface Equipment {
   // Расширенные поля для UI
   template?: EquipmentTemplate;
   components?: EquipmentComponent[];
+  componentsCount?: number;
 }
 
 // Шаблон оборудования

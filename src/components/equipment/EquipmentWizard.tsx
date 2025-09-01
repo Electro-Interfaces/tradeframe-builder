@@ -165,31 +165,31 @@ export function EquipmentWizard({
           <Card
             key={template.id}
             className={cn(
-              "cursor-pointer transition-all hover:shadow-md",
+              "cursor-pointer transition-all hover:shadow-md bg-slate-800 border-slate-700",
               selectedTemplate?.id === template.id
-                ? "ring-2 ring-blue-500 bg-blue-50"
-                : "hover:bg-gray-50"
+                ? "ring-2 ring-blue-500 bg-slate-700 border-blue-500"
+                : "hover:bg-slate-700 hover:border-slate-600"
             )}
             onClick={() => handleTemplateSelect(template)}
           >
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <Settings className="w-5 h-5 text-gray-600" />
+                <div className="p-2 bg-slate-600 rounded-lg">
+                  <Settings className="w-5 h-5 text-slate-300" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="font-medium">{template.name}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <h4 className="font-medium text-white">{template.name}</h4>
+                      <p className="text-sm text-slate-400 mt-1">
                         {template.description || "Описание не указано"}
                       </p>
                     </div>
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge variant="secondary" className="ml-2 bg-slate-600 text-slate-200">
                       {template.system_type}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
                     <span>Код: {template.technical_code}</span>
                     {template.allow_component_template_ids && 
                      template.allow_component_template_ids.length > 0 && (

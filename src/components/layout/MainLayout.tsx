@@ -12,9 +12,10 @@ import { useSelection } from "@/context/SelectionContext";
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  fullWidth?: boolean;
 }
 
-export function MainLayout({ children }: MainLayoutProps) {
+export function MainLayout({ children, fullWidth = false }: MainLayoutProps) {
   const { selectedNetwork, setSelectedNetwork, selectedTradingPoint, setSelectedTradingPoint } = useSelection();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -77,7 +78,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               </Select>
             </div>
             
-            <main className="flex-1 w-full min-w-0 px-4 md:px-6 lg:px-8">
+            <main className={`flex-1 w-full min-w-0 ${fullWidth ? '' : 'px-4 md:px-6 lg:px-8'}`}>
               {children}
             </main>
           </>
@@ -86,7 +87,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           <div className="flex w-full pt-header">
             <AppSidebar selectedTradingPoint={selectedTradingPoint} />
             
-            <main className="flex-1 min-w-0 px-4 md:px-6 lg:px-8">
+            <main className={`flex-1 min-w-0 ${fullWidth ? '' : 'px-4 md:px-6 lg:px-8'}`}>
               {children}
             </main>
           </div>

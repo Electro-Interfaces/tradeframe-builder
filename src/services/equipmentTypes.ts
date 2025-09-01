@@ -9,6 +9,7 @@ export interface EquipmentType {
   systemType: string;
   isActive: boolean;
   availableCommandIds?: string[];
+  defaultParams?: Record<string, any>;
 }
 
 export interface EquipmentTemplate {
@@ -24,8 +25,11 @@ export interface EquipmentTemplate {
   updated_at: string;
 }
 
-// Mock данные из EquipmentTypes.tsx (должны быть синхронизированы)
-const mockEquipmentTypes: EquipmentType[] = [
+// Функции для работы с localStorage
+const EQUIPMENT_TYPES_KEY = 'equipmentTypes';
+
+// Базовые типы оборудования (по умолчанию)
+const defaultEquipmentTypes: EquipmentType[] = [
   {
     id: "1",
     name: "Резервуар",
@@ -82,6 +86,30 @@ const mockEquipmentTypes: EquipmentType[] = [
   },
 ];
 
+// Функции для работы с данными
+function getEquipmentTypesFromStorage(): EquipmentType[] {
+  try {
+    const stored = localStorage.getItem(EQUIPMENT_TYPES_KEY);
+    if (!stored) {
+      // Если данных нет, сохраняем базовые типы
+      localStorage.setItem(EQUIPMENT_TYPES_KEY, JSON.stringify(defaultEquipmentTypes));
+      return defaultEquipmentTypes;
+    }
+    return JSON.parse(stored);
+  } catch (error) {
+    console.error('Error reading equipment types from storage:', error);
+    return defaultEquipmentTypes;
+  }
+}
+
+function saveEquipmentTypesToStorage(types: EquipmentType[]): void {
+  try {
+    localStorage.setItem(EQUIPMENT_TYPES_KEY, JSON.stringify(types));
+  } catch (error) {
+    console.error('Error saving equipment types to storage:', error);
+  }
+}
+
 // Конвертер из EquipmentType в EquipmentTemplate
 export function convertToEquipmentTemplate(equipmentType: EquipmentType): EquipmentTemplate {
   return {
@@ -91,7 +119,7 @@ export function convertToEquipmentTemplate(equipmentType: EquipmentType): Equipm
     system_type: equipmentType.systemType,
     status: equipmentType.isActive,
     description: equipmentType.description,
-    default_params: getDefaultParamsBySystemType(equipmentType.systemType),
+    default_params: equipmentType.defaultParams || getDefaultParamsBySystemType(equipmentType.systemType),
     allow_component_template_ids: getComponentTemplateIds(equipmentType.systemType),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -102,7 +130,35 @@ export function convertToEquipmentTemplate(equipmentType: EquipmentType): Equipm
 function getDefaultParamsBySystemType(systemType: string): Record<string, any> {
   switch (systemType) {
     case 'fuel_tank':
-      return { volume: 50000, material: "steel" };
+      return { 
+        // Обязательные поля
+        id: null,
+        name: "",
+        fuelType: "",
+        currentLevelLiters: 0,
+        
+        // Параметры емкости
+        capacityLiters: 50000,
+        minLevelPercent: 20,
+        criticalLevelPercent: 10,
+        
+        // Физические параметры
+        temperature: null,
+        waterLevelMm: null,
+        
+        // Пороговые значения
+        thresholds: {
+          criticalTemp: {
+            min: -10,
+            max: 40
+          },
+          maxWaterLevel: 15
+        },
+        
+        // Дополнительные технические параметры
+        volume: 50000, 
+        material: "steel"
+      };
     case 'self_service_terminal':
       return { touch_screen: true, payment_methods: ["card", "cash"] };
     case 'control_system':
@@ -142,12 +198,50 @@ function getComponentTemplateIds(systemType: string): string[] {
 export const equipmentTypesAPI = {
   async list(): Promise<EquipmentType[]> {
     await new Promise(resolve => setTimeout(resolve, 100));
-    return mockEquipmentTypes.filter(type => type.isActive);
+    const allTypes = getEquipmentTypesFromStorage();
+    console.log('equipmentTypesAPI.list() - all types from storage:', allTypes);
+    const activeTypes = allTypes.filter(type => type.isActive);
+    console.log('equipmentTypesAPI.list() - active types:', activeTypes);
+    return activeTypes;
   },
 
   async get(id: string): Promise<EquipmentType | null> {
     await new Promise(resolve => setTimeout(resolve, 50));
-    return mockEquipmentTypes.find(type => type.id === id) || null;
+    return getEquipmentTypesFromStorage().find(type => type.id === id) || null;
+  },
+
+  async create(type: Omit<EquipmentType, 'id'>): Promise<EquipmentType> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const newType: EquipmentType = {
+      ...type,
+      id: Date.now().toString(),
+    };
+    const types = getEquipmentTypesFromStorage();
+    const updatedTypes = [...types, newType];
+    saveEquipmentTypesToStorage(updatedTypes);
+    return newType;
+  },
+
+  async update(id: string, updates: Partial<EquipmentType>): Promise<EquipmentType | null> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const types = getEquipmentTypesFromStorage();
+    const index = types.findIndex(type => type.id === id);
+    if (index === -1) return null;
+    
+    const updatedType = { ...types[index], ...updates };
+    types[index] = updatedType;
+    saveEquipmentTypesToStorage(types);
+    return updatedType;
+  },
+
+  async delete(id: string): Promise<boolean> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const types = getEquipmentTypesFromStorage();
+    const filteredTypes = types.filter(type => type.id !== id);
+    if (filteredTypes.length === types.length) return false;
+    
+    saveEquipmentTypesToStorage(filteredTypes);
+    return true;
   }
 };
 
@@ -155,7 +249,10 @@ export const equipmentTypesAPI = {
 export const equipmentTemplatesFromTypesAPI = {
   async list(): Promise<EquipmentTemplate[]> {
     const equipmentTypes = await equipmentTypesAPI.list();
-    return equipmentTypes.map(convertToEquipmentTemplate);
+    console.log('equipmentTemplatesFromTypesAPI.list() - equipment types:', equipmentTypes);
+    const templates = equipmentTypes.map(convertToEquipmentTemplate);
+    console.log('equipmentTemplatesFromTypesAPI.list() - converted templates:', templates);
+    return templates;
   },
 
   async get(id: string): Promise<EquipmentTemplate | null> {

@@ -66,16 +66,15 @@ export default function NetworkOverview() {
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
 
   return (
-    <MainLayout>
-      <div className="w-full space-y-6">
-        <div className="w-full">
-          {/* Заголовок страницы */}
-          <div>
-            <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
-            <p className="text-slate-400 mt-2">Общая информация и аналитика по торговой сети</p>
-          </div>
+    <MainLayout fullWidth={true}>
+      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
+        {/* Заголовок страницы */}
+        <div className="mb-6 pt-4">
+          <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
+          <p className="text-slate-400 mt-2">Общая информация и аналитика по торговой сети</p>
+        </div>
 
-          <div className="w-full space-y-6 mt-6">
+        <div className="space-y-6">
 
         {/* Главная сетка плиток */}
         <div className={`w-full grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'}`}>
@@ -168,7 +167,7 @@ export default function NetworkOverview() {
 
         {/* Компоненты анализа продаж - только если выбрана сеть */}
         {selectedNetwork && (
-          <div className="w-full space-y-8">
+          <div className="space-y-8">
             <SalesAnalysisSimple 
               selectedNetwork={selectedNetwork}
               selectedTradingPoint={selectedTradingPoint}
@@ -190,7 +189,6 @@ export default function NetworkOverview() {
             <p className="text-slate-400">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
           </div>
         )}
-          </div>
         </div>
       </div>
     </MainLayout>

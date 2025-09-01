@@ -62,8 +62,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
 
   const networkMenuItems = [
     { title: "Обзор", url: "/network/overview", icon: Network },
-    { title: "Анализ продаж", url: "/network/sales-analysis", icon: BarChart3 },
-    { title: "Операции и транзакции", url: "/network/operations-transactions", icon: Receipt },
+    { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
     { title: "История цен", url: "/network/price-history", icon: TrendingUp },
     { title: "Остатки топлива", url: "/network/fuel-stocks", icon: Fuel },
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell },

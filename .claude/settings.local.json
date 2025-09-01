@@ -12,7 +12,8 @@
       "Bash(powershell:*)",
       "Bash(del \"C:\\Users\\localadm\\Documents\\tradeframe-builder\\src\\TestComponent.tsx\")",
       "Bash(del \"src\\components\\layout\\FullWidthLayout.tsx\")",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []

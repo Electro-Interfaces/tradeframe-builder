@@ -50,7 +50,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       }
     }
     // На сервере начальное значение уже "1", ничего менять не нужно
-  }, [selectedNetworkId]);
+  }, []); // Убираем зависимость selectedNetworkId
 
   // Persist to localStorage
   useEffect(() => {
