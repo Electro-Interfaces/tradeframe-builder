@@ -67,17 +67,18 @@ export default function NetworkOverview() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
-        {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
-          <p className="text-slate-400 mt-2">Общая информация и аналитика по торговой сети</p>
-        </div>
+      <div className="w-full px-4 md:px-6 lg:px-8">
+        <div className="w-full space-y-6">
+          {/* Заголовок страницы */}
+          <div className="mb-6 pt-4">
+            <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
+            <p className="text-slate-400 mt-2">Общая информация и аналитика по торговой сети</p>
+          </div>
 
-        <div className="space-y-6">
+          <div className="space-y-6">
 
-        {/* Главная сетка плиток */}
-        <div className={`w-full grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'}`}>
+          {/* Главная сетка плиток */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
           <MetricCard
             title="Точки торговли"
             value="0"
@@ -109,11 +110,11 @@ export default function NetworkOverview() {
             color="orange"
             trend="Текущий остаток в резервуарах"
           />
-        </div>
-        
-        {/* Фильтры - только если выбрана сеть */}
-        {selectedNetwork && (
-          <div className={`bg-slate-800 border border-slate-600 rounded-lg ${isMobile ? 'p-4' : 'p-6'}`}>
+          </div>
+          
+            {/* Фильтры - только если выбрана сеть */}
+          {selectedNetwork && (
+          <div className={`bg-slate-800 border border-slate-600 rounded-lg ${isMobile ? 'p-4' : 'p-6'} w-full`}>
             <div className={`flex items-center gap-3 ${isMobile ? 'mb-3' : 'mb-4'}`}>
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-sm">⚙️</span>
@@ -165,8 +166,8 @@ export default function NetworkOverview() {
           </div>
         )}
 
-        {/* Компоненты анализа продаж - только если выбрана сеть */}
-        {selectedNetwork && (
+          {/* Компоненты анализа продаж - только если выбрана сеть */}
+          {selectedNetwork && (
           <div className="space-y-8">
             <SalesAnalysisSimple 
               selectedNetwork={selectedNetwork}
@@ -179,16 +180,17 @@ export default function NetworkOverview() {
           </div>
         )}
 
-        {/* Сообщение о выборе сети */}
-        {!selectedNetwork && (
-          <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center">
-            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-slate-400 text-2xl">📊</span>
+          {/* Сообщение о выборе сети */}
+          {!selectedNetwork && (
+            <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center w-full">
+              <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-slate-400 text-2xl">📊</span>
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Выберите сеть для просмотра отчетов</h3>
+              <p className="text-slate-400">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Выберите сеть для просмотра отчетов</h3>
-            <p className="text-slate-400">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
+          )}
           </div>
-        )}
         </div>
       </div>
     </MainLayout>

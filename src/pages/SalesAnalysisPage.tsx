@@ -13,8 +13,8 @@ export default function SalesAnalysisPage() {
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
 
   return (
-    <MainLayout>
-      <div className="space-y-6 w-full">
+    <MainLayout fullWidth={true}>
+      <div className="space-y-6 w-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 px-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">Анализ продаж</h1>
