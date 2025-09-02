@@ -30,7 +30,9 @@ import {
   TrendingUp,
   Fuel,
   FileText as FuelIcon,
-  Database
+  Database,
+  Box,
+  Wrench as Tool
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -42,7 +44,7 @@ interface AppSidebarProps {
 export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMenuOpen }: AppSidebarProps) {
   const location = useLocation();
   const { state } = useSidebar();
-  const [openGroups, setOpenGroups] = useState<string[]>(["main", "networks", "trading-point", "admin", "settings"]);
+  const [openGroups, setOpenGroups] = useState<string[]>(["main", "networks", "trading-point", "admin", "settings", "service", "misc"]);
   const menuVisibility = useMenuVisibility();
   
   // В мобильном режиме никогда не сворачиваем меню
@@ -71,7 +73,6 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     { title: "Журнал оборудования", url: "/network/equipment-log", icon: Database },
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
     { title: "Сообщения", url: "/network/messages", icon: MessageSquare },
-    { title: "Инспектор данных", url: "/admin/data-inspector", icon: HardDrive },
   ];
 
   const tradingPointMenuItems = [
@@ -90,15 +91,21 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
 
   const settingsMenuItems = [
     { title: "Настройки подключения", url: "/settings/connections", icon: Wifi },
-    { title: "Настройки БД", url: "/settings/database", icon: Database },
-    { title: "Частичная миграция", url: "/settings/partial-migration", icon: Cog },
-    { title: "Шаблоны API команд", url: "/settings/templates/command-templates", icon: Cog },
     { title: "Номенклатура", url: "/settings/nomenclature", icon: FuelIcon },
     { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types", icon: HardDrive },
     { title: "Типы компонентов", url: "/settings/dictionaries/component-types", icon: Component },
-    { title: "Шаблоны команд", url: "/settings/dictionaries/command-templates", icon: Cog },
     { title: "Команды", url: "/settings/commands", icon: Wrench },
     { title: "Регламенты", url: "/settings/workflows", icon: Clock },
+  ];
+
+  const serviceMenuItems = [
+    { title: "Частичная миграция", url: "/settings/partial-migration", icon: Cog },
+    { title: "Настройки БД", url: "/settings/database", icon: Database },
+    { title: "Инспектор данных", url: "/admin/data-inspector", icon: HardDrive },
+  ];
+
+  const miscMenuItems = [
+    { title: "Шаблоны команд", url: "/settings/dictionaries/command-templates", icon: Cog },
   ];
 
   function renderMenuContent() {
@@ -228,19 +235,86 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
             />
           </div>
           {openGroups.includes("settings") && (
-            <div className="space-y-1">
-              {settingsMenuItems.map((item) => (
-                <div key={item.title}>
-                  <NavLink 
-                    to={item.url} 
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
-                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                  >
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">{item.title}</span>
-                  </NavLink>
+            <div className="space-y-3">
+              {/* Основные настройки */}
+              <div className="space-y-1">
+                {settingsMenuItems.map((item) => (
+                  <div key={item.title}>
+                    <NavLink 
+                      to={item.url} 
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
+                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                    >
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{item.title}</span>
+                    </NavLink>
+                  </div>
+                ))}
+              </div>
+
+              {/* Сервис */}
+              <div>
+                <div 
+                  className="text-slate-300 text-xs font-medium tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-2 px-1"
+                  onClick={() => toggleGroup("service")}
+                >
+                  <Tool className="w-3 h-3 flex-shrink-0" />
+                  СЕРВИС
+                  <ChevronRight 
+                    className={`w-3 h-3 ml-auto transition-transform duration-200 ${
+                      openGroups.includes("service") ? "rotate-90" : ""
+                    }`} 
+                  />
                 </div>
-              ))}
+                {openGroups.includes("service") && (
+                  <div className="space-y-1 ml-2">
+                    {serviceMenuItems.map((item) => (
+                      <div key={item.title}>
+                        <NavLink 
+                          to={item.url} 
+                          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
+                          onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                        >
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{item.title}</span>
+                        </NavLink>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Разное */}
+              <div>
+                <div 
+                  className="text-slate-300 text-xs font-medium tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-2 px-1"
+                  onClick={() => toggleGroup("misc")}
+                >
+                  <Box className="w-3 h-3 flex-shrink-0" />
+                  РАЗНОЕ
+                  <ChevronRight 
+                    className={`w-3 h-3 ml-auto transition-transform duration-200 ${
+                      openGroups.includes("misc") ? "rotate-90" : ""
+                    }`} 
+                  />
+                </div>
+                {openGroups.includes("misc") && (
+                  <div className="space-y-1 ml-2">
+                    {miscMenuItems.map((item) => (
+                      <div key={item.title}>
+                        <NavLink 
+                          to={item.url} 
+                          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
+                          onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                        >
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{item.title}</span>
+                        </NavLink>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

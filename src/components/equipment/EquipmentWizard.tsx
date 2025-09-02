@@ -39,7 +39,7 @@ interface EquipmentWizardProps {
   loading?: boolean;
 }
 
-type WizardStep = 1 | 2 | 3;
+type WizardStep = 1 | 2 | 3 | 4;
 
 export function EquipmentWizard({
   open,
@@ -52,6 +52,7 @@ export function EquipmentWizard({
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [selectedTemplate, setSelectedTemplate] = useState<EquipmentTemplate | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [templateParams, setTemplateParams] = useState<Record<string, string | number | boolean | null>>({});
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentFormSchema),
@@ -66,6 +67,7 @@ export function EquipmentWizard({
   const resetWizard = () => {
     setCurrentStep(1);
     setSelectedTemplate(null);
+    setTemplateParams({});
     form.reset();
   };
 
@@ -81,10 +83,14 @@ export function EquipmentWizard({
     // Предзаполняем название на основе шаблона
     const defaultName = `${template.name} #${Date.now().toString().slice(-4)}`;
     form.setValue("display_name", defaultName);
+    // Инициализируем параметры из шаблона
+    if (template.default_params) {
+      setTemplateParams({ ...template.default_params });
+    }
   };
 
   const handleNextStep = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep((prev) => (prev + 1) as WizardStep);
     }
   };
@@ -108,7 +114,8 @@ export function EquipmentWizard({
           serial_number: data.serial_number || undefined,
           external_id: data.external_id || undefined,
           installation_date: data.installation_date?.toISOString(),
-        }
+        },
+        custom_params: templateParams
       };
 
       await onSubmit(createRequest);
@@ -124,7 +131,7 @@ export function EquipmentWizard({
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-6">
-      {[1, 2, 3].map((step) => (
+      {[1, 2, 3, 4].map((step) => (
         <div key={step} className="flex items-center">
           <div
             className={cn(
@@ -138,7 +145,7 @@ export function EquipmentWizard({
           >
             {step < currentStep ? <Check className="w-4 h-4" /> : step}
           </div>
-          {step < 3 && (
+          {step < 4 && (
             <div
               className={cn(
                 "w-12 h-0.5 mx-2",
@@ -386,7 +393,129 @@ export function EquipmentWizard({
     </div>
   );
 
-  const renderStep3 = () => {
+  const renderStep3 = () => (
+    <div className="space-y-4">
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-semibold">Параметры резервуара</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Настройте специфические параметры резервуара
+        </p>
+      </div>
+
+      {selectedTemplate && selectedTemplate.system_type === "fuel_tank" && (
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="fuelType">Тип топлива *</Label>
+              <Input
+                id="fuelType"
+                value={templateParams.fuelType || ""}
+                onChange={(e) => setTemplateParams({...templateParams, fuelType: e.target.value})}
+                placeholder="Например: АИ-95"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currentLevelLiters">Текущий уровень (л)</Label>
+              <Input
+                id="currentLevelLiters"
+                type="number"
+                value={templateParams.currentLevelLiters || 0}
+                onChange={(e) => setTemplateParams({...templateParams, currentLevelLiters: Number(e.target.value)})}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="capacityLiters">Объем резервуара (л) *</Label>
+              <Input
+                id="capacityLiters"
+                type="number"
+                value={templateParams.capacityLiters || 50000}
+                onChange={(e) => setTemplateParams({...templateParams, capacityLiters: Number(e.target.value)})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="volume">Общий объем (л)</Label>
+              <Input
+                id="volume"
+                type="number"
+                value={templateParams.volume || templateParams.capacityLiters || 50000}
+                onChange={(e) => setTemplateParams({...templateParams, volume: Number(e.target.value)})}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="minLevelPercent">Мин. уровень (%)</Label>
+              <Input
+                id="minLevelPercent"
+                type="number"
+                value={templateParams.minLevelPercent || 20}
+                onChange={(e) => setTemplateParams({...templateParams, minLevelPercent: Number(e.target.value)})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="criticalLevelPercent">Крит. уровень (%)</Label>
+              <Input
+                id="criticalLevelPercent"
+                type="number"
+                value={templateParams.criticalLevelPercent || 10}
+                onChange={(e) => setTemplateParams({...templateParams, criticalLevelPercent: Number(e.target.value)})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="material">Материал</Label>
+              <Input
+                id="material"
+                value={templateParams.material || "steel"}
+                onChange={(e) => setTemplateParams({...templateParams, material: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="temperature">Температура (°C)</Label>
+              <Input
+                id="temperature"
+                type="number"
+                step="0.1"
+                value={templateParams.temperature || ""}
+                onChange={(e) => setTemplateParams({...templateParams, temperature: e.target.value ? Number(e.target.value) : null})}
+                placeholder="Текущая температура"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="waterLevelMm">Уровень воды (мм)</Label>
+              <Input
+                id="waterLevelMm"
+                type="number"
+                step="0.1"
+                value={templateParams.waterLevelMm || ""}
+                onChange={(e) => setTemplateParams({...templateParams, waterLevelMm: e.target.value ? Number(e.target.value) : null})}
+                placeholder="Уровень воды"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-between gap-2 pt-4">
+        <Button variant="outline" onClick={handlePrevStep} disabled={loading}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Назад
+        </Button>
+        <Button onClick={handleNextStep} disabled={loading}>
+          Далее
+          <ArrowRight className="w-4 h-4 ml-2" />
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderStep4 = () => {
     const formData = getFormData();
     
     return (
@@ -459,6 +588,56 @@ export function EquipmentWizard({
               )}
             </CardContent>
           </Card>
+
+          {selectedTemplate && selectedTemplate.system_type === "fuel_tank" && Object.keys(templateParams).length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Параметры резервуара</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-3">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {templateParams.fuelType && (
+                    <div>
+                      <span className="text-muted-foreground">Тип топлива:</span>
+                      <p className="font-medium">{templateParams.fuelType}</p>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground">Объем резервуара:</span>
+                    <p className="font-medium">{templateParams.capacityLiters?.toLocaleString() || 0} л</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Текущий уровень:</span>
+                    <p className="font-medium">{templateParams.currentLevelLiters?.toLocaleString() || 0} л</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Материал:</span>
+                    <p className="font-medium">{templateParams.material || "steel"}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Мин. уровень:</span>
+                    <p className="font-medium">{templateParams.minLevelPercent || 20}%</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Крит. уровень:</span>
+                    <p className="font-medium">{templateParams.criticalLevelPercent || 10}%</p>
+                  </div>
+                  {templateParams.temperature !== null && templateParams.temperature !== undefined && (
+                    <div>
+                      <span className="text-muted-foreground">Температура:</span>
+                      <p className="font-medium">{templateParams.temperature}°C</p>
+                    </div>
+                  )}
+                  {templateParams.waterLevelMm !== null && templateParams.waterLevelMm !== undefined && (
+                    <div>
+                      <span className="text-muted-foreground">Уровень воды:</span>
+                      <p className="font-medium">{templateParams.waterLevelMm} мм</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="flex justify-between pt-4">
@@ -495,6 +674,7 @@ export function EquipmentWizard({
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
+          {currentStep === 4 && renderStep4()}
         </div>
       </DialogContent>
     </Dialog>

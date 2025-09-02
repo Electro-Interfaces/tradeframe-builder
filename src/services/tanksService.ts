@@ -72,105 +72,106 @@ export interface TankCalibration {
 }
 
 // Начальные данные резервуаров
+// Резервуары демо сети - соответствуют оборудованию с полными параметрами из шаблона
 const initialTanks: Tank[] = [
   {
     id: 1,
-    name: "Резервуар №1",
+    name: "Резервуар №1 (АИ-95) - Демо",
     fuelType: "АИ-95",
-    currentLevelLiters: 25000,
+    currentLevelLiters: 42000,
     capacityLiters: 50000,
     minLevelPercent: 20,
     criticalLevelPercent: 10,
     temperature: 15.2,
-    waterLevel: 0.5,
+    waterLevel: 2, // из waterLevelMm оборудования
     density: 0.725,
     status: 'active',
-    location: "Северная зона",
-    installationDate: "2022-03-15",
-    lastCalibration: "2024-01-15",
-    supplier: "НефтеГазИнвест",
+    location: "Северная зона - Демо сеть",
+    installationDate: "2024-01-15",
+    lastCalibration: "2024-08-15",
+    supplier: "НефтеГазИнвест Демо",
     thresholds: {
-      criticalTemp: 40,
-      maxWaterLevel: 10,
+      criticalTemp: 40, // из thresholds.criticalTemp.max оборудования
+      maxWaterLevel: 15, // из thresholds.maxWaterLevel оборудования
       notifications: true
     },
-    trading_point_id: "1",
-    created_at: new Date('2022-03-15').toISOString(),
+    trading_point_id: "point1",
+    created_at: new Date('2024-01-15').toISOString(),
     updated_at: new Date().toISOString()
   },
   {
     id: 2,
-    name: "Резервуар №2",
+    name: "Резервуар №2 (АИ-92) - Демо",
     fuelType: "АИ-92",
-    currentLevelLiters: 18000,
-    capacityLiters: 45000,
-    minLevelPercent: 15,
-    criticalLevelPercent: 8,
+    currentLevelLiters: 35000,
+    capacityLiters: 50000,
+    minLevelPercent: 20,
+    criticalLevelPercent: 10,
     temperature: 14.8,
-    waterLevel: 1.2,
+    waterLevel: 1, // из waterLevelMm оборудования
     density: 0.715,
     status: 'active',
-    location: "Центральная зона",
-    installationDate: "2022-03-20",
-    lastCalibration: "2024-02-10",
-    supplier: "Лукойл-Нефтепродукт",
+    location: "Центральная зона - Демо сеть",
+    installationDate: "2024-02-20",
+    lastCalibration: "2024-08-20",
+    supplier: "Лукойл-Нефтепродукт Демо",
     thresholds: {
-      criticalTemp: 38,
-      maxWaterLevel: 12,
+      criticalTemp: 40, // из thresholds.criticalTemp.max оборудования
+      maxWaterLevel: 15, // из thresholds.maxWaterLevel оборудования
       notifications: true
     },
-    trading_point_id: "1",
-    created_at: new Date('2022-03-20').toISOString(),
+    trading_point_id: "point1",
+    created_at: new Date('2024-02-20').toISOString(),
     updated_at: new Date().toISOString()
   },
   {
     id: 3,
-    name: "Резервуар №3",
+    name: "Резервуар №3 (ДТ) - Демо",
     fuelType: "ДТ",
-    currentLevelLiters: 32000,
-    capacityLiters: 60000,
-    minLevelPercent: 25,
-    criticalLevelPercent: 12,
-    temperature: 16.1,
-    waterLevel: 0.8,
+    currentLevelLiters: 28000,
+    capacityLiters: 45000,
+    minLevelPercent: 15,
+    criticalLevelPercent: 8,
+    temperature: 12.8,
+    waterLevel: 1, // из waterLevelMm оборудования
     density: 0.835,
     status: 'active',
-    location: "Южная зона",
-    installationDate: "2022-04-10",
-    lastCalibration: "2024-01-28",
-    supplier: "Роснефть",
+    location: "Южная зона - Демо сеть",
+    installationDate: "2024-03-10",
+    lastCalibration: "2024-08-25",
+    supplier: "Роснефть Демо",
     thresholds: {
-      criticalTemp: 42,
-      maxWaterLevel: 8,
+      criticalTemp: 40, // из thresholds.criticalTemp.max оборудования
+      maxWaterLevel: 15, // из thresholds.maxWaterLevel оборудования
       notifications: true
     },
-    trading_point_id: "1",
-    created_at: new Date('2022-04-10').toISOString(),
+    trading_point_id: "point1",
+    created_at: new Date('2024-03-10').toISOString(),
     updated_at: new Date().toISOString()
   },
   {
     id: 4,
-    name: "Резервуар №4",
+    name: "Резервуар №4 (АИ-98) - Демо",
     fuelType: "АИ-98",
     currentLevelLiters: 8500,
     capacityLiters: 25000,
     minLevelPercent: 18,
     criticalLevelPercent: 9,
-    temperature: 15.5,
-    waterLevel: 0.3,
+    temperature: 16.1,
+    waterLevel: 0.5, // из waterLevelMm оборудования
     density: 0.735,
-    status: 'maintenance',
-    location: "Восточная зона",
-    installationDate: "2023-01-12",
-    lastCalibration: "2024-03-05",
-    supplier: "Татнефть",
+    status: 'maintenance', // соответствует статусу в оборудовании
+    location: "Восточная зона - Демо сеть",
+    installationDate: "2024-04-05",
+    lastCalibration: "2024-11-01",
+    supplier: "Татнефть Демо",
     thresholds: {
-      criticalTemp: 39,
-      maxWaterLevel: 6,
-      notifications: false
+      criticalTemp: 40, // из thresholds.criticalTemp.max оборудования
+      maxWaterLevel: 15, // из thresholds.maxWaterLevel оборудования
+      notifications: true
     },
-    trading_point_id: "1",
-    created_at: new Date('2023-01-12').toISOString(),
+    trading_point_id: "point1",
+    created_at: new Date('2024-04-05').toISOString(),
     updated_at: new Date().toISOString()
   }
 ];
@@ -301,6 +302,29 @@ const saveTanks = () => PersistentStorage.save('tanks', mockTanks);
 const saveTankEvents = () => PersistentStorage.save('tankEvents', mockTankEvents);
 const saveDrains = () => PersistentStorage.save('drainOperations', mockDrains);
 const saveCalibrations = () => PersistentStorage.save('tankCalibrations', mockCalibrations);
+
+// Функция для сброса и обновления данных резервуаров (для связанной схемы)
+const resetTanksData = () => {
+  PersistentStorage.remove('tanks');
+  PersistentStorage.remove('tankEvents');
+  PersistentStorage.remove('drainOperations');
+  PersistentStorage.remove('tankCalibrations');
+  
+  mockTanks = [...initialTanks];
+  mockTankEvents = [...initialTankEvents];
+  mockDrains = [...initialDrains];
+  mockCalibrations = [...initialCalibrations];
+  
+  saveTanks();
+  saveTankEvents();
+  saveDrains();
+  saveCalibrations();
+  
+  console.log('🔄 Tanks data reset to match Equipment schema');
+};
+
+// Для демонстрации связанной схемы - раскомментируйте следующую строку
+resetTanksData();
 
 // API сервис с персистентным хранением
 export const tanksService = {
@@ -441,5 +465,151 @@ export const tanksService = {
     }
     
     return newCalibration;
+  },
+
+  // Создать резервуар на основе оборудования
+  async createTankFromEquipment(equipmentId: string, equipmentData: {
+    name: string;
+    display_name: string;
+    trading_point_id: string;
+    params: Record<string, any>;
+  }): Promise<Tank> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Извлекаем параметры резервуара из параметров оборудования
+    const {
+      fuelType = 'АИ-92',
+      capacity = 50000,
+      minLevelPercent = 20,
+      criticalLevelPercent = 10,
+      location = 'Зона не указана'
+    } = equipmentData.params;
+
+    // Найдём следующий доступный ID
+    const maxId = Math.max(0, ...mockTanks.map(t => t.id));
+    const newId = maxId + 1;
+    
+    const newTank: Tank = {
+      id: newId,
+      name: equipmentData.display_name || equipmentData.name,
+      fuelType: fuelType,
+      currentLevelLiters: 0, // Начальный уровень
+      capacityLiters: capacity,
+      minLevelPercent: minLevelPercent,
+      criticalLevelPercent: criticalLevelPercent,
+      temperature: 15.0,
+      waterLevel: 0.0,
+      density: fuelType.includes('ДТ') ? 0.835 : 0.725, // Плотность в зависимости от типа топлива
+      status: 'active',
+      location: location,
+      installationDate: new Date().toISOString().split('T')[0],
+      thresholds: {
+        criticalTemp: 40,
+        maxWaterLevel: 10,
+        notifications: true
+      },
+      trading_point_id: equipmentData.trading_point_id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    mockTanks.push(newTank);
+    saveTanks();
+
+    // Создаём событие о создании резервуара
+    await this.addTankEvent({
+      tankId: newId,
+      type: 'maintenance',
+      title: 'Резервуар создан',
+      description: `Резервуар создан на основе оборудования: ${equipmentData.display_name}`,
+      timestamp: new Date().toISOString(),
+      operatorName: 'Система',
+      severity: 'info',
+      metadata: { equipmentId, source: 'equipment_sync' }
+    });
+    
+    return newTank;
+  },
+
+  // Удалить резервуар (при удалении оборудования)
+  async deleteTankByEquipment(equipmentId: string): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Находим резервуар, созданный из данного оборудования
+    // (можно использовать поиск по событиям или добавить поле equipment_id в Tank)
+    const tankEvents = mockTankEvents.filter(event => 
+      event.metadata?.equipmentId === equipmentId && 
+      event.metadata?.source === 'equipment_sync'
+    );
+    
+    for (const event of tankEvents) {
+      const tankIndex = mockTanks.findIndex(tank => tank.id === event.tankId);
+      if (tankIndex >= 0) {
+        // Добавляем событие об удалении
+        await this.addTankEvent({
+          tankId: event.tankId,
+          type: 'maintenance',
+          title: 'Резервуар удалён',
+          description: `Резервуар удалён из-за удаления связанного оборудования`,
+          timestamp: new Date().toISOString(),
+          operatorName: 'Система',
+          severity: 'warning',
+          metadata: { equipmentId, source: 'equipment_sync' }
+        });
+
+        // Удаляем резервуар
+        mockTanks.splice(tankIndex, 1);
+        saveTanks();
+      }
+    }
+  },
+
+  // Синхронизация с оборудованием - получить резервуары по торговой точке
+  async syncWithEquipment(tradingPointId: string, equipmentList: Array<{
+    id: string;
+    name: string;
+    display_name: string;
+    system_type: string;
+    params: Record<string, any>;
+  }>): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
+    // Находим оборудование типа "резервуар"
+    const tankEquipment = equipmentList.filter(eq => 
+      eq.system_type === 'fuel_tank' || 
+      eq.system_type === 'tank' || 
+      eq.name.toLowerCase().includes('резервуар') ||
+      eq.name.toLowerCase().includes('tank')
+    );
+
+    // Получаем существующие резервуары для данной торговой точки
+    const existingTanks = await this.getTanks(tradingPointId);
+    
+    // Находим резервуары, которые были созданы из оборудования
+    const syncedTankIds = new Set<number>();
+    
+    for (const event of mockTankEvents) {
+      if (event.metadata?.source === 'equipment_sync') {
+        syncedTankIds.add(event.tankId);
+      }
+    }
+
+    // Создаём резервуары для нового оборудования
+    for (const equipment of tankEquipment) {
+      // Проверяем, есть ли уже резервуар для этого оборудования
+      const hasExistingTank = mockTankEvents.some(event => 
+        event.metadata?.equipmentId === equipment.id && 
+        event.metadata?.source === 'equipment_sync'
+      );
+      
+      if (!hasExistingTank) {
+        await this.createTankFromEquipment(equipment.id, {
+          name: equipment.name,
+          display_name: equipment.display_name,
+          trading_point_id: tradingPointId,
+          params: equipment.params
+        });
+      }
+    }
   }
 };

@@ -76,36 +76,37 @@ export interface FuelType {
   created_at: string;
 }
 
-// Начальные типы топлива
+// Начальные типы топлива демо сети (основаны на резервуарах с шаблоном)
 const initialFuelTypes: FuelType[] = [
   { 
     id: "ai95", 
     name: "АИ-95", 
     code: "AI95", 
     isActive: true,
-    created_at: new Date('2024-01-01').toISOString()
+    created_at: new Date('2024-01-15').toISOString()
   },
   { 
     id: "ai92", 
     name: "АИ-92", 
     code: "AI92", 
     isActive: true,
-    created_at: new Date('2024-01-01').toISOString()
-  },
-  { 
-    id: "ai98", 
-    name: "АИ-98", 
-    code: "AI98", 
-    isActive: true,
-    created_at: new Date('2024-01-01').toISOString()
+    created_at: new Date('2024-02-20').toISOString()
   },
   { 
     id: "dt", 
     name: "ДТ", 
     code: "DT", 
     isActive: true,
-    created_at: new Date('2024-01-01').toISOString()
+    created_at: new Date('2024-03-10').toISOString()
   },
+  { 
+    id: "ai98", 
+    name: "АИ-98", 
+    code: "AI98", 
+    isActive: true, // Активен - есть резервуар в демо сети
+    created_at: new Date('2024-04-05').toISOString()
+  },
+  // Деактивированные виды топлива (нет резервуаров)
   { 
     id: "gas", 
     name: "Газ", 
@@ -115,74 +116,75 @@ const initialFuelTypes: FuelType[] = [
   }
 ];
 
-// Начальные текущие цены
+// Начальные цены демо сети (соответствуют всем резервуарам из шаблона)
 const initialCurrentPrices: FuelPrice[] = [
   {
-    id: "price_1",
+    id: "demo_price_1",
     fuelType: "АИ-95",
     fuelCode: "AI95",
-    priceNet: 5000, // 50.00 руб
+    priceNet: 5320, // 53.20 руб
     vatRate: 20,
-    priceGross: 6000, // 60.00 руб
+    priceGross: 6384, // 63.84 руб
     unit: "Л",
-    appliedFrom: "2024-12-15T08:00:00Z",
+    appliedFrom: "2024-12-07T08:00:00Z",
     status: "active",
-    tradingPoint: "АЗС-1 на Московской",
-    tradingPointId: "1",
+    tradingPoint: "АЗС №001 - Центральная (Демо)",
+    tradingPointId: "point1",
     networkId: "1",
-    packageId: "pkg_1",
-    created_at: new Date('2024-12-15').toISOString(),
-    updated_at: new Date('2024-12-15').toISOString()
+    packageId: "demo_pkg_1",
+    created_at: new Date('2024-01-15').toISOString(),
+    updated_at: new Date('2024-12-07').toISOString()
   },
   {
-    id: "price_2",
+    id: "demo_price_2",
     fuelType: "АИ-92",
     fuelCode: "AI92",
-    priceNet: 4750,
+    priceNet: 5045, // 50.45 руб
     vatRate: 20,
-    priceGross: 5700,
+    priceGross: 6054, // 60.54 руб
     unit: "Л",
-    appliedFrom: "2024-12-16T12:00:00Z",
-    status: "scheduled",
-    tradingPoint: "АЗС-1 на Московской",
-    tradingPointId: "1",
+    appliedFrom: "2024-12-07T08:00:00Z",
+    status: "active",
+    tradingPoint: "АЗС №001 - Центральная (Демо)",
+    tradingPointId: "point1",
     networkId: "1",
-    packageId: "pkg_2",
-    created_at: new Date('2024-12-16').toISOString(),
-    updated_at: new Date('2024-12-16').toISOString()
+    packageId: "demo_pkg_2",
+    created_at: new Date('2024-02-20').toISOString(),
+    updated_at: new Date('2024-12-07').toISOString()
   },
   {
-    id: "price_3",
+    id: "demo_price_3",
     fuelType: "ДТ",
     fuelCode: "DT",
-    priceNet: 5200,
+    priceNet: 5195, // 51.95 руб
     vatRate: 20,
-    priceGross: 6240,
+    priceGross: 6234, // 62.34 руб
     unit: "Л",
-    appliedFrom: "2024-12-14T06:00:00Z",
-    status: "expired",
-    tradingPoint: "АЗС-1 на Московской",
-    tradingPointId: "1",
+    appliedFrom: "2024-12-06T14:30:00Z",
+    status: "active",
+    tradingPoint: "АЗС №001 - Центральная (Демо)",
+    tradingPointId: "point1",
     networkId: "1",
-    packageId: "pkg_3",
-    created_at: new Date('2024-12-14').toISOString(),
-    updated_at: new Date('2024-12-14').toISOString()
+    packageId: "demo_pkg_3",
+    created_at: new Date('2024-03-10').toISOString(),
+    updated_at: new Date('2024-12-06').toISOString()
   },
   {
-    id: "price_4",
+    id: "demo_price_4",
     fuelType: "АИ-98",
     fuelCode: "AI98",
-    priceNet: 5500,
+    priceNet: 5820, // 58.20 руб
     vatRate: 20,
-    priceGross: 6600,
+    priceGross: 6984, // 69.84 руб
     unit: "Л",
-    appliedFrom: "2024-12-15T10:00:00Z",
-    status: "active",
-    tradingPoint: "АЗС-1 на Московской",
-    tradingPointId: "1",
+    appliedFrom: "2024-12-05T16:00:00Z",
+    status: "scheduled", // так как резервуар в maintenance
+    tradingPoint: "АЗС №001 - Центральная (Демо)",
+    tradingPointId: "point1",
     networkId: "1",
-    created_at: new Date('2024-12-15').toISOString(),
-    updated_at: new Date('2024-12-15').toISOString()
+    packageId: "demo_pkg_4",
+    created_at: new Date('2024-04-05').toISOString(),
+    updated_at: new Date('2024-12-05').toISOString()
   }
 ];
 
@@ -238,59 +240,61 @@ const initialPricePackages: PricePackage[] = [
   }
 ];
 
-// Начальная история изменений цен
+// Начальная история изменений цен (соответствует резервуарам)
 const initialPriceJournal: PriceJournalEntry[] = [
   {
     id: "journal_1",
-    timestamp: "2024-12-15T08:00:00Z",
+    timestamp: "2024-12-07T08:00:00Z",
     fuelType: "АИ-95",
     fuelCode: "AI95",
-    priceNet: 5000,
-    priceGross: 6000,
+    priceNet: 5320,
+    priceGross: 6384,
     vatRate: 20,
     source: "package",
     packageId: "pkg_1",
     status: "applied",
-    authorName: "Менеджер Иванов И.И.",
+    authorName: "Администратор сети",
     authorId: "user_1",
-    tradingPoint: "АЗС-1 на Московской",
-    tradingPointId: "1",
+    tradingPoint: "АЗС №001 - Центральная",
+    tradingPointId: "point1",
     networkId: "1",
-    notes: "Применен утренний пакет цен"
+    notes: "Изменение оптовых цен - Резервуар №1"
   },
   {
     id: "journal_2",
-    timestamp: "2024-12-14T16:30:00Z",
-    fuelType: "АИ-98",
-    fuelCode: "AI98",
-    priceNet: 5500,
-    priceGross: 6600,
+    timestamp: "2024-12-07T08:00:00Z",
+    fuelType: "АИ-92",
+    fuelCode: "AI92",
+    priceNet: 5045,
+    priceGross: 6054,
     vatRate: 20,
-    source: "manual",
+    source: "package",
+    packageId: "pkg_2",
     status: "applied",
-    authorName: "Администратор Сидоров С.С.",
-    authorId: "admin_1",
-    tradingPoint: "АЗС-1 на Московской",
-    tradingPointId: "1",
+    authorName: "Администратор сети",
+    authorId: "user_1",
+    tradingPoint: "АЗС №001 - Центральная",
+    tradingPointId: "point1",
     networkId: "1",
-    notes: "Ручная корректировка по запросу"
+    notes: "Изменение оптовых цен - Резервуар №2"
   },
   {
     id: "journal_3",
-    timestamp: "2024-12-14T06:00:00Z",
+    timestamp: "2024-12-06T14:30:00Z",
     fuelType: "ДТ",
     fuelCode: "DT",
-    priceNet: 5200,
-    priceGross: 6240,
+    priceNet: 5195,
+    priceGross: 6234,
     vatRate: 20,
-    source: "import",
+    source: "manual",
+    packageId: "pkg_3",
     status: "applied",
-    authorName: "Система импорта",
-    authorId: "system",
-    tradingPoint: "АЗС-1 на Московской",
-    tradingPointId: "1",
+    authorName: "Менеджер АЗС №001",
+    authorId: "manager_1",
+    tradingPoint: "АЗС №001 - Центральная",
+    tradingPointId: "point1",
     networkId: "1",
-    notes: "Импорт из внешней системы"
+    notes: "Корректировка маржи - Резервуар №3"
   }
 ];
 
@@ -305,6 +309,29 @@ const saveFuelTypes = () => PersistentStorage.save('fuelTypes', mockFuelTypes);
 const saveCurrentPrices = () => PersistentStorage.save('currentPrices', mockCurrentPrices);
 const savePricePackages = () => PersistentStorage.save('pricePackages', mockPricePackages);
 const savePriceJournal = () => PersistentStorage.save('priceJournal', mockPriceJournal);
+
+// Функция для сброса и обновления всех данных о ценах (для обновления связанной схемы)
+const resetPricesData = () => {
+  PersistentStorage.remove('fuelTypes');
+  PersistentStorage.remove('currentPrices');
+  PersistentStorage.remove('pricePackages');
+  PersistentStorage.remove('priceJournal');
+  
+  mockFuelTypes = [...initialFuelTypes];
+  mockCurrentPrices = [...initialCurrentPrices];
+  mockPricePackages = [...initialPricePackages];
+  mockPriceJournal = [...initialPriceJournal];
+  
+  saveFuelTypes();
+  saveCurrentPrices();
+  savePricePackages();
+  savePriceJournal();
+  
+  console.log('🔄 Prices data reset to new connected schema (Equipment → Tanks → Prices)');
+};
+
+// Для демонстрации связанной схемы - раскомментируйте следующую строку
+resetPricesData();
 
 // Вспомогательные функции
 const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
