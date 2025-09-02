@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
+import { CommandParametersEditor } from './CommandParametersEditor';
 
 interface EquipmentCommandsPanelProps {
   equipment: Equipment;
@@ -104,6 +105,8 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [availableCommands, setAvailableCommands] = useState<EquipmentCommand[]>([]);
   const [commandsLoading, setCommandsLoading] = useState(false);
+  const [editingCommand, setEditingCommand] = useState<EquipmentCommand | null>(null);
+  const [showParametersEditor, setShowParametersEditor] = useState(false);
   const { toast } = useToast();
 
   // Загрузка доступных команд для оборудования
@@ -186,8 +189,8 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
     }
   };
 
-  // Выполнение команды
-  const executeCommand = async (command: EquipmentCommand) => {
+  // Выполнение команды напрямую (без параметров)
+  const executeCommandDirect = async (command: EquipmentCommand) => {
     try {
       setLoading(true);
 
@@ -219,6 +222,36 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Открытие редактора параметров команды
+  const editCommand = (command: EquipmentCommand, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setEditingCommand(command);
+    setShowParametersEditor(true);
+  };
+
+  // Обработка успешного выполнения команды из редактора
+  const handleCommandSuccess = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
+    setEditingCommand(null);
+    setShowParametersEditor(false);
+  };
+
+  // Проверяем, имеет ли команда параметры
+  const hasParameters = (command: EquipmentCommand) => {
+    if (!command.template?.schemas) return false;
+    
+    const hasRequestBody = command.template.schemas.request_body?.properties && 
+      Object.keys(command.template.schemas.request_body.properties).length > 0;
+    const hasQueryParams = command.template.schemas.query_params?.properties && 
+      Object.keys(command.template.schemas.query_params.properties).length > 0;
+    const hasPathParams = command.template.schemas.path_params?.properties && 
+      Object.keys(command.template.schemas.path_params.properties).length > 0;
+    
+    return hasRequestBody || hasQueryParams || hasPathParams;
   };
 
 
@@ -257,19 +290,37 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
         ) : (
           availableCommands.map((command) => {
             const IconComponent = command.icon;
+            const hasParams = hasParameters(command);
+            
             return (
-              <Button
-                key={command.id}
-                variant="outline"
-                size="sm"
-                className="h-8 px-2 text-xs border-slate-600 hover:bg-slate-700 hover:text-slate-200"
-                onClick={() => executeCommand(command)}
-                disabled={loading}
-                title={command.description}
-              >
-                <IconComponent className="w-3 h-3 mr-1" />
-                {command.name}
-              </Button>
+              <div key={command.id} className="flex items-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs border-slate-600 hover:bg-slate-700 hover:text-slate-200"
+                  onClick={() => hasParams ? editCommand(command) : executeCommandDirect(command)}
+                  disabled={loading}
+                  title={command.description + (hasParams ? ' (с параметрами)' : ' (без параметров)')}
+                >
+                  <IconComponent className="w-3 h-3 mr-1" />
+                  {command.name}
+                  {hasParams && <ChevronDown className="w-3 h-3 ml-1 opacity-60" />}
+                </Button>
+                
+                {/* Кнопка быстрого выполнения для команд с параметрами */}
+                {hasParams && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 ml-1 text-slate-400 hover:text-slate-200"
+                    onClick={() => executeCommandDirect(command)}
+                    disabled={loading}
+                    title="Выполнить с параметрами по умолчанию"
+                  >
+                    <Play className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
             );
           })
         )}
@@ -327,6 +378,20 @@ export const EquipmentCommandsPanel: React.FC<EquipmentCommandsPanelProps> = ({
           </div>
         </div>
       )}
+
+      {/* Диалог редактирования параметров команды */}
+      <CommandParametersEditor
+        open={showParametersEditor}
+        onClose={() => {
+          setShowParametersEditor(false);
+          setEditingCommand(null);
+        }}
+        template={editingCommand?.template}
+        targetType="equipment"
+        targetId={equipment.id}
+        targetName={equipment.display_name}
+        onSuccess={handleCommandSuccess}
+      />
     </div>
   );
 };

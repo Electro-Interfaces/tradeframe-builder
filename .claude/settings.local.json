@@ -27,7 +27,18 @@
       "Bash(git pull:*)",
       "Bash(git commit:*)",
       "Bash(npm run lint)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npm install)",
+      "Bash(dir dist)",
+      "Bash(start http://localhost:3001)",
+      "Bash(start reset_component_templates.html)",
+      "Bash(start http://localhost:3002)",
+      "Bash(start http://localhost:3002/point/equipment)",
+      "Bash(start http://localhost:3000/point/equipment)",
+      "Bash(start http://localhost:3003/point/equipment)",
+      "Bash(start http://localhost:3000/settings/templates/command-templates)",
+      "Bash(del \"C:\\Users\\magsp\\Documents\\tradeframe-builder\\src\\pages\\Commands.tsx\")",
+      "Bash(start:*)"
     ],
     "deny": [],
     "ask": []

@@ -8,8 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, AlertCircle, CircleCheck, XCircle, Power, Archive, Layers3, Edit, Trash2, Settings, Play, Terminal, Plus, X } from 'lucide-react';
 import { currentComponentsAPI } from '@/services/components';
 import { Component, ComponentStatus } from '@/types/component';
-import { CommandTemplate, CommandInstance, CreateCommandInstanceRequest } from '@/types/commandTemplate';
-import { currentCommandTemplatesAPI } from '@/services/commandTemplates';
+import { CommandInstance, CreateCommandInstanceRequest } from '@/types/commandTemplate';
+import { NewCommandTemplate } from '@/types/connections';
+import { currentNewTemplatesAPI } from '@/services/newConnectionsService';
 import { commandsAPI } from '@/services/commandsService';
 import { cn } from '@/lib/utils';
 import {
@@ -33,6 +34,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useToast } from '@/hooks/use-toast';
+import { CommandParametersEditor } from './CommandParametersEditor';
 
 interface EquipmentComponentsListProps {
   equipmentId: string;
@@ -107,7 +109,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
   const [components, setComponents] = useState<Component[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [commandTemplates, setCommandTemplates] = useState<CommandTemplate[]>([]);
+  const [commandTemplates, setCommandTemplates] = useState<NewCommandTemplate[]>([]);
   const [componentCommands, setComponentCommands] = useState<Record<string, CommandInstance[]>>({});
   const [addCommandDialogOpen, setAddCommandDialogOpen] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
@@ -117,6 +119,9 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
   const [commandParams, setCommandParams] = useState<Record<string, any>>({});
   const [showParamsForm, setShowParamsForm] = useState(false);
   const [editingCommand, setEditingCommand] = useState<CommandInstance | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<NewCommandTemplate | null>(null);
+  const [editingComponent, setEditingComponent] = useState<Component | null>(null);
+  const [showParametersEditor, setShowParametersEditor] = useState(false);
   const [componentCommandsData, setComponentCommandsData] = useState<Record<string, CommandInstance[]>>({});
   const { toast } = useToast();
 
@@ -149,15 +154,16 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
     const loadCommandTemplates = async () => {
       try {
         setLoadingTemplates(true);
-        const response = await currentCommandTemplatesAPI.list({ 
+        const response = await currentNewTemplatesAPI.list({ 
           status: 'active',
           limit: 100 
         });
         
         // Фильтруем шаблоны для компонентов
         const componentTemplates = response.data.filter(template => 
-          template.allowed_targets.includes('specific_component') ||
-          template.allowed_targets.includes('component_type')
+          template.scope === 'component' ||
+          template.scope === 'equipment' ||
+          template.scope === 'trading_point'
         );
         
         setCommandTemplates(componentTemplates);
@@ -179,12 +185,27 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
   // Обработка выбора шаблона
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
-    const template = commandTemplates.find(t => t.id === templateId);
+    const template = commandTemplates.find(t => t.template_id === templateId || t.id === templateId);
     if (template) {
       // Инициализируем параметры значениями по умолчанию
-      setCommandParams(template.default_params || {});
+      setCommandParams({});
       setShowParamsForm(true);
     }
+  };
+
+  // Открытие редактора параметров для компонента
+  const openParametersEditor = (component: Component, template: NewCommandTemplate) => {
+    setEditingComponent(component);
+    setEditingTemplate(template);
+    setShowParametersEditor(true);
+  };
+
+  // Обработка успешного выполнения команды из редактора
+  const handleComponentCommandSuccess = () => {
+    setEditingComponent(null);
+    setEditingTemplate(null);
+    setShowParametersEditor(false);
+    // Можно добавить обновление истории команд компонента
   };
 
   // Добавление команды к компоненту
@@ -576,15 +597,16 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                             variant="ghost"
                             size="sm"
                             className="w-full justify-start h-8 px-2 text-slate-200 hover:text-white hover:bg-slate-700"
-                            onClick={() => handleExecuteCommand(component, template)}
+                            onClick={() => openParametersEditor(component, template)}
                             disabled={isExecuting}
+                            title="Настроить и выполнить команду"
                           >
                             {isExecuting ? (
                               <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                             ) : (
-                              <Play className="h-3 w-3 mr-2" />
+                              <Settings className="h-3 w-3 mr-2" />
                             )}
-                            {template.display_name}
+                            {template.name}
                           </Button>
                         );
                       })}
@@ -653,9 +675,9 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
                     {commandTemplates.map(template => (
-                      <SelectItem key={template.id} value={template.id} className="text-white hover:bg-slate-700">
+                      <SelectItem key={template.template_id || template.id} value={template.template_id || template.id} className="text-white hover:bg-slate-700">
                         <div className="flex flex-col">
-                          <span className="font-medium">{template.display_name}</span>
+                          <span className="font-medium">{template.name}</span>
                           <span className="text-xs text-slate-400">{template.description}</span>
                         </div>
                       </SelectItem>
@@ -729,6 +751,21 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Диалог редактирования параметров команды для компонента */}
+      <CommandParametersEditor
+        open={showParametersEditor}
+        onClose={() => {
+          setShowParametersEditor(false);
+          setEditingTemplate(null);
+          setEditingComponent(null);
+        }}
+        template={editingTemplate}
+        targetType="component"
+        targetId={editingComponent?.id || ''}
+        targetName={editingComponent?.display_name}
+        onSuccess={handleComponentCommandSuccess}
+      />
     </div>
   );
 };

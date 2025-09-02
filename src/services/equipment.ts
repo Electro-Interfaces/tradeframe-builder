@@ -254,42 +254,29 @@ const mockEquipmentTemplates: EquipmentTemplate[] = [
 
 // Загружаем сохраненные данные из localStorage или используем начальные
 const initialEquipment: Equipment[] = [
-  // РЕЗЕРВУАРЫ ДЕМО СЕТИ "Демо сеть АЗС" - созданы по шаблону с полными параметрами
+  // РЕЗЕРВУАРЫ ДЕМО СЕТИ "Демо сеть АЗС"
   {
     id: "demo_tank_1",
     trading_point_id: "point1",
-    
-    // Данные скопированы из шаблона резервуара
     name: "Резервуар",
     system_type: "fuel_tank",
-    
-    // Пользовательские данные экземпляра
     display_name: "Резервуар №1 (АИ-95) - Демо",
     serial_number: "DEMO-TANK-001",
     external_id: "DEMO_TANK_001",
     status: "online",
     installation_date: "2024-01-15T00:00:00Z",
-    
-    // Полные параметры из обновленного шаблона резервуара
     params: {
-      // Обязательные поля
       id: 1,
       name: "Резервуар №1 (АИ-95) - Демо",
       fuelType: "АИ-95",
       currentLevelLiters: 42000,
-      
-      // Параметры емкости
       capacityLiters: 50000,
       minLevelPercent: 20,
       criticalLevelPercent: 10,
       volume: 50000,
-      
-      // Физические параметры
       temperature: 15.2,
       waterLevelMm: 2,
       material: "steel",
-      
-      // Пороговые значения из шаблона
       thresholds: {
         criticalTemp: {
           min: -10,
@@ -298,7 +285,6 @@ const initialEquipment: Equipment[] = [
         maxWaterLevel: 15
       }
     },
-    
     created_at: "2024-01-15T12:00:00Z",
     updated_at: "2024-12-08T10:30:00Z",
     created_from_template: "1",
@@ -315,27 +301,18 @@ const initialEquipment: Equipment[] = [
     external_id: "DEMO_TANK_002",
     status: "online",
     installation_date: "2024-02-20T00:00:00Z",
-    
-    // Полные параметры из обновленного шаблона
     params: {
-      // Обязательные поля
       id: 2,
       name: "Резервуар №2 (АИ-92) - Демо", 
       fuelType: "АИ-92",
       currentLevelLiters: 35000,
-      
-      // Параметры емкости
       capacityLiters: 50000,
       minLevelPercent: 20,
       criticalLevelPercent: 10,
       volume: 50000,
-      
-      // Физические параметры
       temperature: 14.8,
       waterLevelMm: 1,
       material: "steel",
-      
-      // Пороговые значения из шаблона
       thresholds: {
         criticalTemp: {
           min: -10,
@@ -344,7 +321,6 @@ const initialEquipment: Equipment[] = [
         maxWaterLevel: 15
       }
     },
-    
     created_at: "2024-02-20T12:00:00Z",
     updated_at: "2024-12-08T09:15:00Z",
     created_from_template: "1",
@@ -361,27 +337,18 @@ const initialEquipment: Equipment[] = [
     external_id: "DEMO_TANK_003",
     status: "online",
     installation_date: "2024-03-10T00:00:00Z",
-    
-    // Полные параметры из обновленного шаблона
     params: {
-      // Обязательные поля
       id: 3,
       name: "Резервуар №3 (ДТ) - Демо",
       fuelType: "ДТ", 
       currentLevelLiters: 28000,
-      
-      // Параметры емкости
       capacityLiters: 45000,
       minLevelPercent: 15,
       criticalLevelPercent: 8,
       volume: 45000,
-      
-      // Физические параметры
       temperature: 12.8,
       waterLevelMm: 1,
       material: "steel",
-      
-      // Пороговые значения из шаблона
       thresholds: {
         criticalTemp: {
           min: -10,
@@ -390,7 +357,6 @@ const initialEquipment: Equipment[] = [
         maxWaterLevel: 15
       }
     },
-    
     created_at: "2024-03-10T12:00:00Z",
     updated_at: "2024-12-08T11:45:00Z",
     created_from_template: "1",
@@ -405,29 +371,20 @@ const initialEquipment: Equipment[] = [
     display_name: "Резервуар №4 (АИ-98) - Демо",
     serial_number: "DEMO-TANK-004",
     external_id: "DEMO_TANK_004",
-    status: "maintenance",
+    status: "deleted",
     installation_date: "2024-04-05T00:00:00Z",
-    
-    // Полные параметры из обновленного шаблона
     params: {
-      // Обязательные поля
       id: 4,
       name: "Резервуар №4 (АИ-98) - Демо",
       fuelType: "АИ-98",
       currentLevelLiters: 8500,
-      
-      // Параметры емкости
       capacityLiters: 25000,
       minLevelPercent: 18,
       criticalLevelPercent: 9,
       volume: 25000,
-      
-      // Физические параметры
       temperature: 16.1,
       waterLevelMm: 0.5,
       material: "steel",
-      
-      // Пороговые значения из шаблона
       thresholds: {
         criticalTemp: {
           min: -10,
@@ -436,75 +393,20 @@ const initialEquipment: Equipment[] = [
         maxWaterLevel: 15
       }
     },
-    
     created_at: "2024-04-05T12:00:00Z",
     updated_at: "2024-12-08T08:30:00Z", 
     created_from_template: "1",
     availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
     components: []
   },
-  {
-    id: "eq_3",
-    trading_point_id: "point1",
-    name: "Резервуар",
-    system_type: "fuel_tank",
-    display_name: "Резервуар №3 (ДТ)",
-    serial_number: "RES003",
-    external_id: "TANK_003",
-    status: "online",
-    installation_date: "2024-01-20T00:00:00Z",
-    params: {
-      fuelType: "ДТ",
-      currentLevelLiters: 38000,
-      capacityLiters: 50000,
-      minLevelPercent: 20,
-      criticalLevelPercent: 10,
-      temperature: 16.1,
-      waterLevelMm: 3
-    },
-    created_at: "2024-01-20T12:00:00Z",
-    updated_at: "2024-08-30T09:00:00Z",
-    created_from_template: "1",
-    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
-    components: []
-  },
-  {
-    id: "eq_4",
-    trading_point_id: "point1",
-    name: "Терминал самообслуживания",
-    system_type: "self_service_terminal",
-    display_name: "ТРК №1 - Терминал самообслуживания",
-    serial_number: "TSO001",
-    external_id: "TSO_001",
-    status: "online",
-    installation_date: "2024-01-10T00:00:00Z",
-    params: {
-      touch_screen: true,
-      payment_methods: ["card", "cash", "nfc"]
-    },
-    created_at: "2024-01-10T12:00:00Z",
-    updated_at: "2024-08-30T08:45:00Z",
-    created_from_template: "2",
-    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_get_prices", "autooplata_set_prices", "autooplata_get_services"],
-    components: []
-  },
-  {
-    id: "eq_5",
-    trading_point_id: "point1", 
-    template_id: "2", // Терминал самообслуживания
-    display_name: "ТРК №2 - Терминал самообслуживания",
-    serial_number: "TSO002",
-    external_id: "TSO_002",
-    status: "online",
-    installation_date: "2024-01-12T00:00:00Z",
-    created_at: "2024-01-12T12:00:00Z",
-    updated_at: "2024-08-30T08:30:00Z",
-    components: []
-  },
+  
+  // СИСТЕМА УПРАВЛЕНИЯ ДЕМО СЕТИ
   {
     id: "eq_6",
     trading_point_id: "point1", 
-    template_id: "3", // Система управления
+    name: "Система управления",
+    system_type: "control_system",
+    template_id: "3",
     display_name: "Система управления АЗС",
     serial_number: "SRV001",
     external_id: "CTRL_001",
@@ -512,40 +414,17 @@ const initialEquipment: Equipment[] = [
     installation_date: "2024-01-05T00:00:00Z",
     created_at: "2024-01-05T12:00:00Z",
     updated_at: "2024-08-30T08:00:00Z",
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_get_prices", "autooplata_set_prices", "autooplata_get_services"],
     components: []
   },
-  {
-    id: "eq_7",
-    trading_point_id: "point1", 
-    template_id: "4", // Табло цен
-    display_name: "Табло цен - главное",
-    serial_number: "LED001",
-    external_id: "BOARD_001",
-    status: "online",
-    installation_date: "2024-03-01T00:00:00Z",
-    created_at: "2024-03-01T12:00:00Z",
-    updated_at: "2024-08-30T07:30:00Z",
-    components: []
-  },
-  {
-    id: "eq_8",
-    trading_point_id: "point1", 
-    template_id: "5", // Видеонаблюдение
-    display_name: "Система видеонаблюдения",
-    serial_number: "CAM001",
-    external_id: "CCTV_001",
-    status: "online",
-    installation_date: "2024-02-15T00:00:00Z",
-    created_at: "2024-02-15T12:00:00Z",
-    updated_at: "2024-08-30T07:00:00Z",
-    components: []
-  },
-  
-  // Оборудование для АЗС №002 - Северная (point2)
+
+  // Оборудование для других АЗС (только резервуары и системы управления)
   {
     id: "eq_9",
     trading_point_id: "point2",
-    template_id: "1", // Резервуар
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
     display_name: "Резервуар №1 (ДТ)",
     serial_number: "RES101",
     external_id: "TANK_101",
@@ -553,12 +432,15 @@ const initialEquipment: Equipment[] = [
     installation_date: "2024-02-01T00:00:00Z",
     created_at: "2024-02-01T12:00:00Z",
     updated_at: "2024-08-30T10:00:00Z",
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
     components: []
   },
   {
     id: "eq_10",
     trading_point_id: "point2",
-    template_id: "1", // Резервуар
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
     display_name: "Резервуар №2 (АИ-95)",
     serial_number: "RES102",
     external_id: "TANK_102",
@@ -566,38 +448,15 @@ const initialEquipment: Equipment[] = [
     installation_date: "2024-02-05T00:00:00Z",
     created_at: "2024-02-05T12:00:00Z",
     updated_at: "2024-08-30T09:45:00Z",
-    components: []
-  },
-  {
-    id: "eq_11",
-    trading_point_id: "point2",
-    template_id: "2", // Терминал самообслуживания
-    display_name: "ТРК №1 - Коммерческая",
-    serial_number: "TSO101",
-    external_id: "TSO_101",
-    status: "online",
-    installation_date: "2024-02-10T00:00:00Z",
-    created_at: "2024-02-10T12:00:00Z",
-    updated_at: "2024-08-30T08:20:00Z",
-    components: []
-  },
-  {
-    id: "eq_12",
-    trading_point_id: "point2",
-    template_id: "2", // Терминал самообслуживания
-    display_name: "ТРК №2 - Коммерческая",
-    serial_number: "TSO102",
-    external_id: "TSO_102",
-    status: "maintenance",
-    installation_date: "2024-02-12T00:00:00Z",
-    created_at: "2024-02-12T12:00:00Z",
-    updated_at: "2024-08-25T14:00:00Z",
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
     components: []
   },
   {
     id: "eq_13",
     trading_point_id: "point2",
-    template_id: "3", // Система управления
+    name: "Система управления",
+    system_type: "control_system",
+    template_id: "3",
     display_name: "Система управления АЗС",
     serial_number: "SRV101",
     external_id: "CTRL_101",
@@ -605,73 +464,7 @@ const initialEquipment: Equipment[] = [
     installation_date: "2024-02-01T00:00:00Z",
     created_at: "2024-02-01T12:00:00Z",
     updated_at: "2024-08-30T07:45:00Z",
-    components: []
-  },
-  
-  // Оборудование для остальных точек
-  {
-    id: "eq_14",
-    trading_point_id: "point3",
-    template_id: "1", // Резервуар
-    display_name: "Резервуар №1 (АИ-92)",
-    serial_number: "RES201",
-    external_id: "TANK_201",
-    status: "online",
-    installation_date: "2024-03-01T00:00:00Z",
-    created_at: "2024-03-01T12:00:00Z",
-    updated_at: "2024-08-30T09:30:00Z",
-    components: []
-  },
-  {
-    id: "eq_15",
-    trading_point_id: "point3",
-    template_id: "2", // Терминал самообслуживания
-    display_name: "ТРК №1 - Стандартная",
-    serial_number: "TSO201",
-    external_id: "TSO_201", 
-    status: "online",
-    installation_date: "2024-03-05T00:00:00Z",
-    created_at: "2024-03-05T12:00:00Z",
-    updated_at: "2024-08-30T08:15:00Z",
-    components: []
-  },
-  {
-    id: "eq_16",
-    trading_point_id: "point4",
-    template_id: "1", // Резервуар
-    display_name: "Резервуар №1 (ДТ)",
-    serial_number: "RES301",
-    external_id: "TANK_301",
-    status: "error",
-    installation_date: "2024-03-10T00:00:00Z",
-    created_at: "2024-03-10T12:00:00Z",
-    updated_at: "2024-08-28T16:00:00Z",
-    components: []
-  },
-  {
-    id: "eq_17",
-    trading_point_id: "point5",
-    template_id: "2", // Терминал самообслуживания
-    display_name: "ТРК №1 - Мультитопливная",
-    serial_number: "TSO401",
-    external_id: "TSO_401",
-    status: "offline",
-    installation_date: "2024-03-15T00:00:00Z",
-    created_at: "2024-03-15T12:00:00Z",
-    updated_at: "2024-08-29T11:30:00Z",
-    components: []
-  },
-  {
-    id: "eq_18",
-    trading_point_id: "point5",
-    template_id: "4", // Табло цен
-    display_name: "Табло цен",
-    serial_number: "LED401",
-    external_id: "BOARD_401",
-    status: "online",
-    installation_date: "2024-03-20T00:00:00Z",
-    created_at: "2024-03-20T12:00:00Z",
-    updated_at: "2024-08-30T07:15:00Z",
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_get_prices", "autooplata_set_prices", "autooplata_get_services"],
     components: []
   }
 ];

@@ -211,10 +211,11 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
                 <table className="w-full text-sm min-w-full table-fixed">
                   <thead className="bg-slate-700">
                     <tr>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '25%'}}>НАЗВАНИЕ</th>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ВНУТРЕННИЙ КОД</th>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>СЕТЬ</th>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ВНЕШНИЕ КОДЫ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>НАЗВАНИЕ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '12%'}}>ВНУТРЕННИЙ КОД</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>СЕТЬ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>API ТОРГ. СЕТИ</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '13%'}}>ВНЕШНИЕ КОДЫ</th>
                       <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>СТАТУС</th>
                       <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
                     </tr>
@@ -236,6 +237,28 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
                           </code>
                         </td>
                         <td className="px-6 py-4 text-slate-400">{item.networkName}</td>
+                        <td className="px-6 py-4">
+                          {item.networkApiSettings?.enabled ? (
+                            <div className="flex flex-col gap-1">
+                              {item.networkApiCode && (
+                                <code className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs font-mono">
+                                  {item.networkApiCode}
+                                </code>
+                              )}
+                              <Badge className={
+                                item.networkApiSettings.syncStatus === 'success' ? "bg-green-600 text-white" :
+                                item.networkApiSettings.syncStatus === 'error' ? "bg-red-600 text-white" :
+                                "bg-yellow-600 text-white"
+                              }>
+                                {item.networkApiSettings.syncStatus === 'success' ? 'Синхронизирован' :
+                                 item.networkApiSettings.syncStatus === 'error' ? 'Ошибка' :
+                                 'Ожидает синхронизации'}
+                              </Badge>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-sm">—</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4">
                           {item.externalCodes.length > 0 ? (
                             <div className="flex flex-wrap gap-1">

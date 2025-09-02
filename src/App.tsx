@@ -18,7 +18,6 @@ import AuditLog from "./pages/AuditLog";
 import EquipmentTypes from "./pages/EquipmentTypes";
 import ComponentTypes from "./pages/ComponentTypes";
 import Equipment from "./pages/Equipment";
-import Commands from "./pages/Commands";
 import CommandTemplates from "./pages/CommandTemplates";
 import NewCommandTemplates from "./pages/NewCommandTemplates";
 import Connections from "./pages/Connections";
@@ -65,7 +64,6 @@ const App = () => (
           <Route path="/admin/audit" element={<AuditLog />} />
           <Route path="/settings/dictionaries/equipment-types" element={<EquipmentTypes />} />
           <Route path="/settings/dictionaries/component-types" element={<ComponentTypes />} />
-          <Route path="/settings/commands" element={<Commands />} />
           <Route path="/settings/dictionaries/command-templates" element={<CommandTemplates />} />
           <Route path="/settings/templates/command-templates" element={<NewCommandTemplates />} />
           <Route path="/settings/connections" element={<Connections />} />

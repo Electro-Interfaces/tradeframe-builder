@@ -122,15 +122,15 @@ export default function OperationsTransactionsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-green-600 text-white">Завершено</Badge>;
+        return <Badge className="bg-slate-600 text-slate-200">Завершено</Badge>;
       case 'in_progress':
-        return <Badge className="bg-blue-600 text-white">Выполняется</Badge>;
+        return <Badge className="bg-slate-600 text-slate-200">Выполняется</Badge>;
       case 'failed':
-        return <Badge className="bg-red-600 text-white">Ошибка</Badge>;
+        return <Badge className="bg-slate-700 text-slate-300">Ошибка</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-600 text-white">Ожидание</Badge>;
+        return <Badge className="bg-slate-600 text-slate-200">Ожидание</Badge>;
       case 'cancelled':
-        return <Badge className="bg-gray-600 text-white">Отменено</Badge>;
+        return <Badge className="bg-slate-600 text-slate-200">Отменено</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -139,15 +139,15 @@ export default function OperationsTransactionsPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-400" />;
+        return <CheckCircle className="w-4 h-4 text-slate-400" />;
       case 'in_progress':
-        return <PlayCircle className="w-4 h-4 text-blue-400" />;
+        return <PlayCircle className="w-4 h-4 text-slate-400" />;
       case 'failed':
-        return <XCircle className="w-4 h-4 text-red-400" />;
+        return <XCircle className="w-4 h-4 text-slate-400" />;
       case 'pending':
-        return <PauseCircle className="w-4 h-4 text-yellow-400" />;
+        return <PauseCircle className="w-4 h-4 text-slate-400" />;
       case 'cancelled':
-        return <XCircle className="w-4 h-4 text-gray-400" />;
+        return <XCircle className="w-4 h-4 text-slate-400" />;
       default:
         return <Clock className="w-4 h-4 text-slate-400" />;
     }
@@ -164,9 +164,9 @@ export default function OperationsTransactionsPage() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
+      <div className="w-full space-y-6 report-full-width">
         {/* Заголовок страницы */}
-        <div className="mb-6">
+        <div className="mb-6 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-2xl font-semibold text-white">Операции</h1>
@@ -190,6 +190,7 @@ export default function OperationsTransactionsPage() {
         {selectedNetwork && (
           <>
             {/* Фильтры */}
+            <div className="mx-4 md:mx-6 lg:mx-8">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
@@ -246,13 +247,15 @@ export default function OperationsTransactionsPage() {
                 </div>
               </CardContent>
             </Card>
+            </div>
 
             {/* KPI - Статусы операций */}
+            <div className="mx-4 md:mx-6 lg:mx-8">
             <div className={`grid ${isMobile ? 'grid-cols-2 gap-3' : 'grid-cols-2 md:grid-cols-4 gap-4'}`}>
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-200">Завершено</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-400" />
+                  <CheckCircle className="h-4 w-4 text-slate-400" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-white">{statusKpis.completed}</div>
@@ -263,7 +266,7 @@ export default function OperationsTransactionsPage() {
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-200">В процессе</CardTitle>
-                  <PlayCircle className="h-4 w-4 text-blue-400" />
+                  <PlayCircle className="h-4 w-4 text-slate-400" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-white">{statusKpis.in_progress}</div>
@@ -274,7 +277,7 @@ export default function OperationsTransactionsPage() {
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-200">Ошибки</CardTitle>
-                  <XCircle className="h-4 w-4 text-red-400" />
+                  <XCircle className="h-4 w-4 text-slate-400" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-white">{statusKpis.failed}</div>
@@ -285,7 +288,7 @@ export default function OperationsTransactionsPage() {
               <Card className="bg-slate-800 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-200">Ожидание</CardTitle>
-                  <PauseCircle className="h-4 w-4 text-yellow-400" />
+                  <PauseCircle className="h-4 w-4 text-slate-400" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-white">{statusKpis.pending}</div>
@@ -293,9 +296,11 @@ export default function OperationsTransactionsPage() {
                 </CardContent>
               </Card>
             </div>
+            </div>
 
             {/* Таблица операций */}
-            <Card className="bg-slate-800 border-slate-700">
+            <div className="mx-4 md:mx-6 lg:mx-8">
+            <Card className="bg-slate-800 border-slate-700 w-full max-w-none">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Activity className="w-5 h-5" />
@@ -331,10 +336,27 @@ export default function OperationsTransactionsPage() {
                             <span className="text-xs text-slate-400 font-mono">{record.lastUpdated}</span>
                           </div>
                           
-                          <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="grid grid-cols-3 gap-2 text-sm">
+                            <div>
+                              <span className="text-slate-400">Дата:</span>
+                              <span className="text-white font-mono ml-1">{new Date(record.startTime).toLocaleDateString('ru-RU')}</span>
+                            </div>
                             <div>
                               <span className="text-slate-400">Начало:</span>
                               <span className="text-white font-mono ml-1">{new Date(record.startTime).toLocaleTimeString('ru-RU')}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400">Завершение:</span>
+                              <span className="text-white font-mono ml-1">{record.endTime ? new Date(record.endTime).toLocaleTimeString('ru-RU') : '—'}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-slate-400">Тип записи:</span>
+                              <Badge className="ml-1 bg-slate-600 text-slate-200">
+                                {record.status === 'completed' ? 'Транзакция' : 'Операция'}
+                              </Badge>
                             </div>
                             <div>
                               <span className="text-slate-400">Топливо:</span>
@@ -368,7 +390,13 @@ export default function OperationsTransactionsPage() {
                           {record.paymentMethod && (
                             <div className="text-sm">
                               <span className="text-slate-400">Вид оплаты:</span>
-                              <span className="text-white ml-1">{record.paymentMethod}</span>
+                              <span className="text-white ml-1">
+                                {record.paymentMethod === 'bank_card' ? 'Банковская карта' :
+                                 record.paymentMethod === 'cash' ? 'Наличные' :
+                                 record.paymentMethod === 'fuel_card' ? 'Топливная карта' :
+                                 record.paymentMethod === 'corporate_card' ? 'Корпоративная карта' :
+                                 record.paymentMethod}
+                              </span>
                             </div>
                           )}
 
@@ -422,65 +450,52 @@ export default function OperationsTransactionsPage() {
                   </div>
                 ) : (
                   // Desktop table layout
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto w-full">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-slate-700">
+                          {isNetworkOnly && <TableHead className="text-slate-300">Торговая точка</TableHead>}
                           <TableHead className="text-slate-300">Статус</TableHead>
-                          <TableHead className="text-slate-300">Операция</TableHead>
-                          <TableHead className="text-slate-300">Устройство</TableHead>
+                          <TableHead className="text-slate-300">Тип записи</TableHead>
+                          <TableHead className="text-slate-300">Дата</TableHead>
                           <TableHead className="text-slate-300">Время начала</TableHead>
-                          <TableHead className="text-slate-300">Прогресс</TableHead>
+                          <TableHead className="text-slate-300">Время завершения</TableHead>
                           <TableHead className="text-slate-300">Вид топлива</TableHead>
                           <TableHead className="text-slate-300">Количество</TableHead>
                           <TableHead className="text-slate-300">Цена</TableHead>
                           <TableHead className="text-slate-300">Стоимость</TableHead>
                           <TableHead className="text-slate-300">Вид оплаты</TableHead>
-                          <TableHead className="text-slate-300">Длительность</TableHead>
-                          {isNetworkOnly && <TableHead className="text-slate-300">Торговая точка</TableHead>}
-                          <TableHead className="text-slate-300">Детали</TableHead>
-                          <TableHead className="text-slate-300">Обновлено</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredOperations.map((record) => (
                           <TableRow key={record.id} className="border-slate-700 hover:bg-slate-700/50">
+                            {isNetworkOnly && (
+                              <TableCell className="text-slate-300 max-w-xs">
+                                <div className="truncate" title={record.tradingPointName}>
+                                  {record.tradingPointName}
+                                </div>
+                              </TableCell>
+                            )}
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 {getStatusIcon(record.status)}
                                 {getStatusBadge(record.status)}
                               </div>
                             </TableCell>
-                            <TableCell className="text-white font-medium">
-                              <div>
-                                {operationTypeMap[record.operationType] || record.operationType}
-                                {record.transactionId && (
-                                  <div className="text-xs text-slate-400">{record.transactionId}</div>
-                                )}
-                              </div>
-                            </TableCell>
                             <TableCell className="text-slate-300">
-                              <Badge variant="outline" className="text-blue-400 border-blue-400">
-                                {record.deviceId || 'N/A'}
+                              <Badge className="bg-slate-600 text-slate-200">
+                                {record.status === 'completed' ? 'Транзакция' : 'Операция'}
                               </Badge>
+                            </TableCell>
+                            <TableCell className="text-white font-mono text-sm">
+                              {new Date(record.startTime).toLocaleDateString('ru-RU')}
                             </TableCell>
                             <TableCell className="text-white font-mono text-sm">
                               {new Date(record.startTime).toLocaleTimeString('ru-RU')}
                             </TableCell>
-                            <TableCell>
-                              {record.status === 'in_progress' && record.progress !== undefined ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-16 bg-slate-600 rounded-full h-2 overflow-hidden">
-                                    <div 
-                                      className="h-full bg-blue-500"
-                                      style={{ width: `${record.progress}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-sm text-blue-400">{Math.round(record.progress)}%</span>
-                                </div>
-                              ) : (
-                                <span className="text-slate-500">—</span>
-                              )}
+                            <TableCell className="text-white font-mono text-sm">
+                              {record.endTime ? new Date(record.endTime).toLocaleTimeString('ru-RU') : '—'}
                             </TableCell>
                             <TableCell className="text-slate-300">
                               {record.fuelType || '—'}
@@ -495,30 +510,12 @@ export default function OperationsTransactionsPage() {
                               {record.totalCost ? `${record.totalCost.toFixed(2)} ₽` : '—'}
                             </TableCell>
                             <TableCell className="text-slate-300">
-                              {record.paymentMethod || '—'}
-                            </TableCell>
-                            <TableCell className="text-slate-300 font-mono text-sm">
-                              {record.status === 'in_progress' ? (
-                                <span className="text-blue-400">Выполняется...</span>
-                              ) : (
-                                formatDuration(record.duration) || '—'
-                              )}
-                            </TableCell>
-                            {isNetworkOnly && (
-                              <TableCell className="text-slate-300 max-w-xs">
-                                <div className="truncate" title={record.tradingPointName}>
-                                  {record.tradingPointName}
-                                </div>
-                              </TableCell>
-                            )}
-                            <TableCell className="text-slate-300 max-w-xs">
-                              <div className="truncate" title={record.details}>
-                                {record.details}
-                                {record.status === 'failed' && <AlertTriangle className="w-4 h-4 text-red-400 inline ml-1" />}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-slate-300 text-sm font-mono">
-                              {record.lastUpdated}
+                              {record.paymentMethod ? 
+                                (record.paymentMethod === 'bank_card' ? 'Банковская карта' :
+                                 record.paymentMethod === 'cash' ? 'Наличные' :
+                                 record.paymentMethod === 'fuel_card' ? 'Топливная карта' :
+                                 record.paymentMethod === 'corporate_card' ? 'Корпоративная карта' :
+                                 record.paymentMethod) : '—'}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -534,11 +531,13 @@ export default function OperationsTransactionsPage() {
                 )}
               </CardContent>
             </Card>
+            </div>
           </>
         )}
 
         {/* Сообщение о выборе сети */}
         {!selectedNetwork && (
+          <div className="mx-4 md:mx-6 lg:mx-8">
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-8 text-center">
               <Activity className="w-12 h-12 text-slate-600 mx-auto mb-4" />
@@ -546,6 +545,7 @@ export default function OperationsTransactionsPage() {
               <p className="text-slate-400">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
             </CardContent>
           </Card>
+          </div>
         )}
       </div>
     </MainLayout>

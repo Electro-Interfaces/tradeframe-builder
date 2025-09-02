@@ -200,6 +200,37 @@
     background: transparent;
   }
   
+  /* Force full width for report pages */
+  .report-full-width {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+  
+  .report-full-width * {
+    max-width: none !important;
+  }
+  
+  /* Standard margins for report content */
+  .report-margins {
+    margin-left: 1rem;
+    margin-right: 1rem;
+  }
+  
+  @media (min-width: 768px) {
+    .report-margins {
+      margin-left: 1.5rem;
+      margin-right: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .report-margins {
+      margin-left: 2rem;
+      margin-right: 2rem;
+    }
+  }
+  
   /* Badge component styles */
   .badge {
     @apply px-2 py-0.5 rounded-md text-xs border;

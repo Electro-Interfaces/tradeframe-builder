@@ -85,15 +85,15 @@ interface NetworkCommandItem {
 // Утилиты для статусов
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'online': return <CheckCircle2 className="w-4 h-4 text-green-400" />;
-    case 'offline': return <AlertCircle className="w-4 h-4 text-yellow-400" />;
-    case 'error': return <XCircle className="w-4 h-4 text-red-400" />;
+    case 'online': return <CheckCircle2 className="w-4 h-4 text-slate-400" />;
+    case 'offline': return <AlertCircle className="w-4 h-4 text-slate-400" />;
+    case 'error': return <XCircle className="w-4 h-4 text-slate-400" />;
     case 'disabled': return <PowerOff className="w-4 h-4 text-slate-400" />;
-    case 'archived': return <Archive className="w-4 h-4 text-slate-500" />;
-    case 'pending': return <AlertCircle className="w-4 h-4 text-yellow-400" />;
-    case 'executing': return <RefreshCw className="w-4 h-4 text-blue-400 animate-spin" />;
-    case 'completed': return <CheckCircle2 className="w-4 h-4 text-green-400" />;
-    case 'failed': return <XCircle className="w-4 h-4 text-red-400" />;
+    case 'archived': return <Archive className="w-4 h-4 text-slate-400" />;
+    case 'pending': return <AlertCircle className="w-4 h-4 text-slate-400" />;
+    case 'executing': return <RefreshCw className="w-4 h-4 text-slate-400 animate-spin" />;
+    case 'completed': return <CheckCircle2 className="w-4 h-4 text-slate-400" />;
+    case 'failed': return <XCircle className="w-4 h-4 text-slate-400" />;
     default: return <Settings className="w-4 h-4 text-slate-400" />;
   }
 };
@@ -101,15 +101,15 @@ const getStatusIcon = (status: string) => {
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'online':
-    case 'completed': return 'bg-green-500/20 text-green-400 border-green-500/30';
+    case 'completed': return 'bg-slate-600 text-slate-200';
     case 'offline':
-    case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    case 'pending': return 'bg-slate-600 text-slate-200';
     case 'error':
-    case 'failed': return 'bg-red-500/20 text-red-400 border-red-500/30';
-    case 'executing': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-    case 'disabled': return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
-    case 'archived': return 'bg-slate-600/20 text-slate-500 border-slate-600/30';
-    default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+    case 'failed': return 'bg-slate-700 text-slate-300';
+    case 'executing': return 'bg-slate-600 text-slate-200';
+    case 'disabled': return 'bg-slate-700 text-slate-300';
+    case 'archived': return 'bg-slate-700 text-slate-300';
+    default: return 'bg-slate-600 text-slate-200';
   }
 };
 
@@ -315,16 +315,16 @@ export default function NetworkEquipmentLog() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full space-y-6">
+      <div className="w-full space-y-6 report-full-width">
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4 px-6">
+        <div className="mb-6 pt-4 px-4 md:px-6 lg:px-8">
           <h1 className="text-2xl font-semibold text-white">Журнал оборудования</h1>
           <p className="text-slate-400 mt-2">
             {networkInfo ? `${networkInfo.name} - Просмотр оборудования, компонентов и команд по всем торговым точкам` : 'Загрузка информации о сети...'}
           </p>
         </div>
 
-        <div className="px-6">
+        <div className="px-4 md:px-6 lg:px-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className={`grid w-full grid-cols-3 ${isMobile ? 'h-10' : 'h-12'}`}>
             <TabsTrigger value="equipment" className={isMobile ? 'text-sm' : ''}>

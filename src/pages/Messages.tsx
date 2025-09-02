@@ -253,12 +253,12 @@ export default function Messages() {
   // Вспомогательные функции для стилизации
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "new": return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-      case "in_progress": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-      case "waiting_response": return "bg-orange-500/20 text-orange-400 border-orange-500/30";
-      case "resolved": return "bg-green-500/20 text-green-400 border-green-500/30";
-      case "closed": return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-      default: return "bg-slate-500/20 text-slate-400 border-slate-500/30";
+      case "new": return "bg-slate-600 text-slate-200";
+      case "in_progress": return "bg-slate-600 text-slate-200";
+      case "waiting_response": return "bg-slate-600 text-slate-200";
+      case "resolved": return "bg-slate-700 text-slate-300";
+      case "closed": return "bg-slate-700 text-slate-300";
+      default: return "bg-slate-600 text-slate-200";
     }
   };
 
@@ -275,11 +275,11 @@ export default function Messages() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "low": return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-      case "medium": return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-      case "high": return "bg-orange-500/20 text-orange-400 border-orange-500/30";
-      case "urgent": return "bg-red-500/20 text-red-400 border-red-500/30";
-      default: return "bg-slate-500/20 text-slate-400 border-slate-500/30";
+      case "low": return "bg-slate-600 text-slate-200";
+      case "medium": return "bg-slate-600 text-slate-200";
+      case "high": return "bg-slate-700 text-slate-300";
+      case "urgent": return "bg-slate-700 text-slate-300";
+      default: return "bg-slate-600 text-slate-200";
     }
   };
 
@@ -294,10 +294,10 @@ export default function Messages() {
   };
 
   return (
-    <MainLayout>
-      <div className="w-full h-full px-4 md:px-6 lg:px-8">
+    <MainLayout fullWidth={true}>
+      <div className="w-full h-full report-full-width">
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
+        <div className="mb-6 pt-4 px-4 md:px-6 lg:px-8">
           <h1 className="text-2xl font-semibold text-white">Коммуникации и поддержка</h1>
           <p className="text-slate-400 mt-1">Управление тикетами техподдержки и настройка Telegram-интеграции</p>
         </div>
@@ -441,16 +441,16 @@ export default function Messages() {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                        <Bot className="h-5 w-5 text-blue-400" />
+                      <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center">
+                        <Bot className="h-5 w-5 text-slate-400" />
                       </div>
                       <div>
                         <CardTitle className="text-white text-lg">{bot.name}</CardTitle>
                         <CardDescription className="flex items-center gap-2">
                           <Badge variant="secondary" className={
                             bot.isActive 
-                              ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                              : "bg-red-500/20 text-red-400 border-red-500/30"
+                              ? "bg-slate-600 text-slate-200" 
+                              : "bg-slate-700 text-slate-300"
                           }>
                             {bot.isActive ? "Активен" : "Неактивен"}
                           </Badge>
@@ -506,7 +506,7 @@ export default function Messages() {
                         {bot.channels.length > 0 ? (
                           <div className="space-y-1">
                             {bot.channels.slice(0, 2).map((channel, idx) => (
-                              <div key={idx} className="text-xs text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
+                              <div key={idx} className="text-xs text-slate-300 bg-slate-700 px-2 py-1 rounded">
                                 {channel}
                               </div>
                             ))}

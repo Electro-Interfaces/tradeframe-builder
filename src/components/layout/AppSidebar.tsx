@@ -94,7 +94,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     { title: "Номенклатура", url: "/settings/nomenclature", icon: FuelIcon },
     { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types", icon: HardDrive },
     { title: "Типы компонентов", url: "/settings/dictionaries/component-types", icon: Component },
-    { title: "Команды", url: "/settings/commands", icon: Wrench },
+    { title: "Шаблоны API команд", url: "/settings/templates/command-templates", icon: Book },
     { title: "Регламенты", url: "/settings/workflows", icon: Clock },
   ];
 

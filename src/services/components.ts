@@ -88,131 +88,103 @@ class ApiError extends Error {
 
 const apiClient = new ApiClient();
 
-// Mock данные компонентов для демо - обновленная структура
+// Mock данные компонентов для POS-терминалов согласно API торговой сети
 const initialComponents: Component[] = [
-  // Компоненты АЗС №001 - Центральная
+  // Компоненты POS-терминала №1 на АЗС №001
   {
     id: "comp_001",
     trading_point_id: "point1",
-    equipment_id: "eq_1",
-    name: "Датчик уровня топлива",
-    display_name: "Датчик уровня топлива ПМП-201",
-    system_type: "sensor",
-    category: "level",
-    serial_number: "DUT2024001",
+    equipment_id: "eq_2", // POS-терминал
+    name: "Фискальный регистратор",
+    display_name: "Фискальный регистратор АТОЛ 91Ф",
+    system_type: "terminal",
+    category: "fiscal",
+    serial_number: "FR2024001",
     params: {
-      accuracy: 2.0,
-      range_min: 0,
-      range_max: 50000,
-      calibration_factor: 1.0,
-      current_level: 32500
+      model: "АТОЛ 91Ф",
+      fiscal_memory: true,
+      ofd_connection: "ethernet"
     },
     status: 'online',
     created_at: new Date('2024-01-15').toISOString(),
     updated_at: new Date('2024-08-30').toISOString(),
-    created_from_template: "comp_sensor_level_1"
+    created_from_template: "comp_tso_kkt_1"
   },
   {
     id: "comp_002",
     trading_point_id: "point1",
-    equipment_id: "eq_1",
-    name: "Датчик температуры",
-    display_name: "Датчик температуры резервуара",
-    system_type: "sensor",
-    category: "temperature",
-    serial_number: "TEMP2024001",
+    equipment_id: "eq_2", // POS-терминал
+    name: "Купюроприёмник",
+    display_name: "Купюроприёмник CashCode MSM",
+    system_type: "terminal",
+    category: "payment",
+    serial_number: "MSM2024001",
     params: {
-      accuracy: 0.5,
-      range_min: -40,
-      range_max: 80,
-      alarm_threshold: 45,
-      current_temp: 18.5
+      currency: ["RUB"],
+      capacity: 600,
+      recycling: false
     },
-    status: 'online',
+    status: 'offline', // Офлайн для демонстрации
     created_at: new Date('2024-01-15').toISOString(),
     updated_at: new Date('2024-08-30').toISOString(),
-    created_from_template: "comp_sensor_temp_1"
+    created_from_template: "comp_tso_cashin_1"
   },
   {
     id: "comp_003",
     trading_point_id: "point1",
-    equipment_id: "eq_1",
-    name: "Датчик воды",
-    display_name: "Датчик товарной воды",
-    system_type: "sensor",
-    category: "water",
-    serial_number: "WATER2024001",
+    equipment_id: "eq_2", // POS-терминал
+    name: "Картридер банковских карт",
+    display_name: "Картридер банковских карт",
+    system_type: "terminal",
+    category: "payment",
+    serial_number: "BCR2024001",
     params: {
-      threshold_mm: 15,
-      current_level_mm: 0,
-      alarm_enabled: true
+      payment_types: ["Visa", "Mastercard", "Мир"],
+      nfc_enabled: true,
+      pin_pad: true
     },
     status: 'online',
     created_at: new Date('2024-01-15').toISOString(),
     updated_at: new Date('2024-08-30').toISOString(),
-    created_from_template: "comp_sensor_water_1"
+    created_from_template: "comp_tso_bankcr_1"
   },
-
-  // Компоненты с разными статусами для демонстрации агрегации
   {
     id: "comp_004",
     trading_point_id: "point1",
-    equipment_id: "eq_1", // К резервуару №1 добавим компонент с ошибкой
-    name: "Контроллер управления",
-    display_name: "Контроллер управления резервуаром",
-    system_type: "controller",
-    category: "control",
-    serial_number: "CTRL2024001",
+    equipment_id: "eq_2", // POS-терминал
+    name: "Картридер топливных карт",
+    display_name: "Картридер топливных карт",
+    system_type: "terminal",
+    category: "payment",
+    serial_number: "FCR2024001",
     params: {
-      version: "2.1.4",
-      connection_type: "ethernet",
-      ip_address: "192.168.1.15"
+      supported_cards: ["Petrol Plus", "Shell Card", "BP Card"],
+      interface: "USB",
+      encryption: true
     },
-    status: 'error', // Ошибка
+    status: 'error', // Ошибка для демонстрации
     created_at: new Date('2024-01-15').toISOString(),
     updated_at: new Date('2024-08-30').toISOString(),
-    created_from_template: "comp_controller_1"
+    created_from_template: "comp_tso_fuelcr_1"
   },
-
   {
     id: "comp_005",
     trading_point_id: "point1",
-    equipment_id: "eq_2", // К резервуару №2 добавим отключенный компонент
-    name: "Датчик давления",
-    display_name: "Датчик давления в резервуаре",
-    system_type: "sensor",
-    category: "pressure",
-    serial_number: "PRESS2024001",
+    equipment_id: "eq_2", // POS-терминал
+    name: "МПС-ридер",
+    display_name: "МПС-ридер мобильных платежей",
+    system_type: "terminal",
+    category: "payment",
+    serial_number: "MPS2024001",
     params: {
-      accuracy: 1.0,
-      range_min: 0,
-      range_max: 10,
-      current_pressure: 2.1
+      supported_systems: ["NFC", "QR-код", "Apple Pay", "Google Pay", "Samsung Pay"],
+      connection_status: "connected",
+      protocol_version: "2.0"
     },
-    status: 'offline', // Офлайн (желтый)
-    created_at: new Date('2024-02-20').toISOString(),
+    status: 'online',
+    created_at: new Date('2024-01-15').toISOString(),
     updated_at: new Date('2024-08-30').toISOString(),
-    created_from_template: "comp_sensor_pressure_1"
-  },
-
-  {
-    id: "comp_006",
-    trading_point_id: "point1",
-    equipment_id: "eq_3", // К резервуару №3 добавим нормальные компоненты
-    name: "Система вентиляции",
-    display_name: "Система вентиляции резервуара",
-    system_type: "ventilation",
-    category: "safety",
-    serial_number: "VENT2024001",
-    params: {
-      fan_speed: 75,
-      automatic: true,
-      temp_threshold: 40
-    },
-    status: 'online', // Нормальный
-    created_at: new Date('2024-01-20').toISOString(),
-    updated_at: new Date('2024-08-30').toISOString(),
-    created_from_template: "comp_ventilation_1"
+    created_from_template: "comp_tso_mpsr_1"
   }
 ];
 

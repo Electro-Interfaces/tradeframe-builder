@@ -250,10 +250,72 @@ export default function EquipmentTypes() {
       defaultParams: {},
     };
     
+    // Автоматически загружаем все поля резервуара если выбран fuel_tank
+    const initialDefaultParams = defaultValues.systemType === "fuel_tank" ? {
+      // Обязательные поля (соответствуют Tank интерфейсу)
+      id: null,
+      name: "",
+      fuelType: "",
+      currentLevelLiters: 0,
+      
+      // Параметры емкости
+      capacityLiters: 50000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      
+      // Физические параметры (синхронизировано с tanksService)
+      temperature: 15.0,
+      waterLevelMm: 0.0,
+      density: 0.725,
+      
+      // Статус и операционные данные (добавлено из tanksService)
+      status: 'active',
+      location: "Зона не указана",
+      installationDate: new Date().toISOString().split('T')[0],
+      lastCalibration: null,
+      supplier: null,
+      
+      // Поля из UI (добавлено)
+      sensors: [
+        { name: "Уровень", status: "ok" },
+        { name: "Температура", status: "ok" }
+      ],
+      linkedPumps: [],
+      notifications: {
+        enabled: true,
+        drainAlerts: true,
+        levelAlerts: true
+      },
+      
+      // Пороговые значения (синхронизировано с tanksService и UI)
+      thresholds: {
+        criticalTemp: {
+          min: -10,
+          max: 40
+        },
+        maxWaterLevel: 15,
+        notifications: {
+          critical: true,
+          minimum: true,
+          temperature: true,
+          water: true
+        }
+      },
+      
+      // Системные поля
+      trading_point_id: "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      
+      // Дополнительные технические параметры
+      material: "steel"
+    } : {};
+    
     console.log("Creating new form with default values:", defaultValues);
+    console.log("Auto-loading default params for fuel_tank:", initialDefaultParams);
     
     reset(defaultValues);
-    setDefaultParams({});
+    setDefaultParams(initialDefaultParams);
     setEditingItem(null);
     setIsDialogOpen(true);
   };
@@ -656,7 +718,76 @@ export default function EquipmentTypes() {
                     <Label htmlFor="systemType">Системный тип *</Label>
                     <Select
                       value={watch("systemType")}
-                      onValueChange={(value) => setValue("systemType", value)}
+                      onValueChange={(value) => {
+                        setValue("systemType", value);
+                        
+                        // Автоматически загружаем все поля резервуара при выборе fuel_tank
+                        if (value === "fuel_tank") {
+                          const fuelTankParams = {
+                            // Обязательные поля (соответствуют Tank интерфейсу)
+                            id: null,
+                            name: "",
+                            fuelType: "",
+                            currentLevelLiters: 0,
+                            
+                            // Параметры емкости
+                            capacityLiters: 50000,
+                            minLevelPercent: 20,
+                            criticalLevelPercent: 10,
+                            
+                            // Физические параметры (синхронизировано с tanksService)
+                            temperature: 15.0,
+                            waterLevelMm: 0.0,
+                            density: 0.725,
+                            
+                            // Статус и операционные данные (добавлено из tanksService)
+                            status: 'active',
+                            location: "Зона не указана",
+                            installationDate: new Date().toISOString().split('T')[0],
+                            lastCalibration: null,
+                            supplier: null,
+                            
+                            // Поля из UI (добавлено)
+                            sensors: [
+                              { name: "Уровень", status: "ok" },
+                              { name: "Температура", status: "ok" }
+                            ],
+                            linkedPumps: [],
+                            notifications: {
+                              enabled: true,
+                              drainAlerts: true,
+                              levelAlerts: true
+                            },
+                            
+                            // Пороговые значения (синхронизировано с tanksService и UI)
+                            thresholds: {
+                              criticalTemp: {
+                                min: -10,
+                                max: 40
+                              },
+                              maxWaterLevel: 15,
+                              notifications: {
+                                critical: true,
+                                minimum: true,
+                                temperature: true,
+                                water: true
+                              }
+                            },
+                            
+                            // Системные поля
+                            trading_point_id: "",
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                            
+                            // Дополнительные технические параметры
+                            material: "steel"
+                          };
+                          setDefaultParams(prev => ({ ...prev, ...fuelTankParams }));
+                        } else {
+                          // Для других типов очищаем или устанавливаем соответствующие параметры
+                          setDefaultParams({});
+                        }
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Выберите тип оборудования" />
@@ -806,147 +937,62 @@ export default function EquipmentTypes() {
 
                       {watch("systemType") === "fuel_tank" && (
                         <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-3">
-                            <div className="text-sm text-blue-400 font-medium">💡 Рекомендуемые параметры для резервуара</div>
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const basicParams = {
-                                    id: null,
-                                    name: "",
-                                    fuelType: "",
-                                    currentLevelLiters: 0,
-                                  };
-                                  setDefaultParams(prev => ({ ...prev, ...basicParams }));
-                                }}
-                                className="text-blue-400 border-blue-500/50 hover:bg-blue-500/20 text-xs px-2 py-1"
-                              >
-                                + Обязательные
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const capacityParams = {
-                                    capacityLiters: 50000,
-                                    minLevelPercent: 20,
-                                    criticalLevelPercent: 10,
-                                  };
-                                  setDefaultParams(prev => ({ ...prev, ...capacityParams }));
-                                }}
-                                className="text-blue-400 border-blue-500/50 hover:bg-blue-500/20 text-xs px-2 py-1"
-                              >
-                                + Емкость
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const physicalParams = {
-                                    temperature: null,
-                                    waterLevelMm: null,
-                                  };
-                                  setDefaultParams(prev => ({ ...prev, ...physicalParams }));
-                                }}
-                                className="text-blue-400 border-blue-500/50 hover:bg-blue-500/20 text-xs px-2 py-1"
-                              >
-                                + Физические
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const thresholds = {
-                                    thresholds: {
-                                      criticalTemp: {
-                                        min: -10,
-                                        max: 40
-                                      },
-                                      maxWaterLevel: 15
-                                    }
-                                  };
-                                  setDefaultParams(prev => ({ ...prev, ...thresholds }));
-                                }}
-                                className="text-blue-400 border-blue-500/50 hover:bg-blue-500/20 text-xs px-2 py-1"
-                              >
-                                + Пороговые
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const allParams = {
-                                    // Обязательные поля
-                                    id: null,
-                                    name: "",
-                                    fuelType: "",
-                                    currentLevelLiters: 0,
-                                    
-                                    // Параметры емкости
-                                    capacityLiters: 50000,
-                                    minLevelPercent: 20,
-                                    criticalLevelPercent: 10,
-                                    
-                                    // Физические параметры
-                                    temperature: null,
-                                    waterLevelMm: null,
-                                    
-                                    // Пороговые значения
-                                    thresholds: {
-                                      criticalTemp: {
-                                        min: -10,
-                                        max: 40
-                                      },
-                                      maxWaterLevel: 15
-                                    },
-                                    
-                                    // Дополнительные технические параметры
-                                    volume: 50000,
-                                    material: "steel"
-                                  };
-                                  setDefaultParams(allParams);
-                                }}
-                                className="text-white bg-blue-600 hover:bg-blue-700 border-blue-600 text-xs px-3 py-1"
-                              >
-                                Загрузить ВСЕ
-                              </Button>
-                            </div>
-                          </div>
+                          <div className="text-sm text-blue-400 font-medium mb-3">💡 Поля резервуара (автоматически загружены)</div>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-blue-300">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-blue-300">
                             <div className="space-y-1">
-                              <div className="font-medium text-blue-200">Обязательные:</div>
-                              <div>• id: null (уникальный идентификатор)</div>
-                              <div>• name: "" (наименование резервуара)</div>
-                              <div>• fuelType: "" (тип топлива)</div>
-                              <div>• currentLevelLiters: 0 (текущий остаток)</div>
+                              <div className="font-medium text-blue-200">Базовые характеристики:</div>
+                              <div>• id - ID резервуара</div>
+                              <div>• name - Название резервуара</div>
+                              <div>• fuelType - Тип топлива</div>
+                              <div>• currentLevelLiters - Текущий уровень (литры)</div>
+                              <div>• capacityLiters - Объем резервуара (литры)</div>
+                              <div>• minLevelPercent - Минимальный уровень (%)</div>
+                              <div>• criticalLevelPercent - Критический уровень (%)</div>
                             </div>
                             
                             <div className="space-y-1">
-                              <div className="font-medium text-blue-200">Параметры емкости:</div>
-                              <div>• capacityLiters: 50000 (общая емкость)</div>
-                              <div>• minLevelPercent: 20 (минимальный уровень)</div>
-                              <div>• criticalLevelPercent: 10 (критический уровень)</div>
+                              <div className="font-medium text-blue-200">Физические параметры:</div>
+                              <div>• temperature - Температура (°C)</div>
+                              <div>• waterLevelMm - Уровень воды (мм)</div>
+                              <div>• density - Плотность</div>
+                              <div>• material - Материал</div>
                             </div>
                             
                             <div className="space-y-1">
-                              <div className="font-medium text-blue-200">Физические:</div>
-                              <div>• temperature: null (температура топлива °C)</div>
-                              <div>• waterLevelMm: null (уровень воды мм)</div>
+                              <div className="font-medium text-blue-200">Статус и местоположение:</div>
+                              <div>• status - Статус ('active'|'maintenance'|'offline')</div>
+                              <div>• location - Местоположение</div>
+                              <div>• installationDate - Дата установки</div>
+                              <div>• lastCalibration - Последняя калибровка</div>
+                              <div>• supplier - Поставщик</div>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <div className="font-medium text-blue-200">Датчики и связи:</div>
+                              <div>• sensors - Массив датчиков (name, status)</div>
+                              <div>• linkedPumps - Связанные насосы (id, name)</div>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <div className="font-medium text-blue-200">Уведомления:</div>
+                              <div>• notifications.enabled - Включены ли уведомления</div>
+                              <div>• notifications.drainAlerts - Оповещения о сливе</div>
+                              <div>• notifications.levelAlerts - Оповещения об уровне</div>
                             </div>
                             
                             <div className="space-y-1">
                               <div className="font-medium text-blue-200">Пороговые значения:</div>
-                              <div>• thresholds.criticalTemp.min: -10</div>
-                              <div>• thresholds.criticalTemp.max: 40</div>
-                              <div>• thresholds.maxWaterLevel: 15</div>
+                              <div>• thresholds.criticalTemp.min/max - Критическая температура</div>
+                              <div>• thresholds.maxWaterLevel - Макс. уровень воды</div>
+                              <div>• thresholds.notifications.* - Настройки уведомлений</div>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <div className="font-medium text-blue-200">Системные поля:</div>
+                              <div>• trading_point_id - ID торговой точки</div>
+                              <div>• created_at - Дата создания</div>
+                              <div>• updated_at - Дата обновления</div>
                             </div>
                           </div>
                         </div>

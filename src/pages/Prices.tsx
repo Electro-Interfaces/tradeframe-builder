@@ -34,10 +34,28 @@ import {
   Download,
   AlertCircle,
   TrendingUp,
-  Archive
+  Archive,
+  RefreshCw,
+  Upload,
+  AlertTriangle
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSelection } from "@/context/SelectionContext";
+import { 
+  tradingNetworkAPI, 
+  TradingNetworkPrice, 
+  TradingNetworkService 
+} from "@/services/tradingNetworkAPI";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Types
 interface FuelPrice {
@@ -223,6 +241,14 @@ export default function Prices() {
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isJournalDialogOpen, setIsJournalDialogOpen] = useState(false);
   const [selectedPrice, setSelectedPrice] = useState<FuelPrice | null>(null);
+  
+  // Состояния для работы с API торговой сети
+  const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
+  const [isApplyingPrices, setIsApplyingPrices] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
+  const [pendingPrices, setPendingPrices] = useState<FuelPrice[]>([]);
+  const [networkServices, setNetworkServices] = useState<TradingNetworkService[]>([]);
 
   const form = useForm<PriceFormData>({
     resolver: zodResolver(priceFormSchema),
@@ -237,7 +263,10 @@ export default function Prices() {
 
   // Filtering
   const filteredPrices = useMemo(() => {
-    return currentPrices.filter(price => {
+    // Используем pending цены, если есть несохранённые изменения, иначе текущие
+    const pricesToFilter = hasUnsavedChanges ? pendingPrices : currentPrices;
+    
+    return pricesToFilter.filter(price => {
       const matchesSearch = searchTerm === "" || 
         price.fuelType.toLowerCase().includes(searchTerm.toLowerCase()) ||
         price.fuelCode.toLowerCase().includes(searchTerm.toLowerCase());
@@ -247,7 +276,7 @@ export default function Prices() {
       
       return matchesSearch && matchesStatus && matchesFuel;
     });
-  }, [currentPrices, searchTerm, selectedStatus, selectedFuel]);
+  }, [currentPrices, pendingPrices, hasUnsavedChanges, searchTerm, selectedStatus, selectedFuel]);
 
   // Utility functions
   const formatPrice = (kopecks: number) => {
@@ -389,6 +418,177 @@ export default function Prices() {
     setIsFormDialogOpen(false);
   };
 
+  // Функция сопоставления типов топлива из API с локальными
+  const mapNetworkFuelToLocal = (networkFuel: TradingNetworkPrice): string => {
+    // Преобразование названий из API в локальные
+    const fuelMapping: Record<string, string> = {
+      'АИ-92': 'АИ-92',
+      'АИ-95': 'АИ-95', 
+      'АИ-98': 'АИ-98',
+      'ДТ': 'ДТ',
+      'Газ': 'Газ'
+    };
+    return fuelMapping[networkFuel.service_name] || networkFuel.service_name;
+  };
+
+  // Функция получения service_code по типу топлива
+  const getServiceCode = (fuelType: string): number | null => {
+    const service = networkServices.find(s => s.service_name === fuelType);
+    return service?.service_code || null;
+  };
+
+  // Обновление цен с АЗС через API торговой сети
+  const handleUpdatePricesFromNetwork = async () => {
+    if (!selectedTradingPoint) {
+      toast({
+        title: "Ошибка",
+        description: "Выберите торговую точку",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUpdatingPrices(true);
+    
+    try {
+      // Получаем справочник услуг, если его нет
+      if (networkServices.length === 0) {
+        const services = await tradingNetworkAPI.getServices();
+        setNetworkServices(services);
+      }
+
+      // Получаем цены с торговой точки
+      // Используем номер станции из торговой точки (примерное значение)
+      const stationNumber = parseInt(selectedTradingPoint.id.replace(/\D/g, '')) || 77;
+      const networkPricesResponse = await tradingNetworkAPI.getPrices(stationNumber);
+      
+      if (!networkPricesResponse.prices || networkPricesResponse.prices.length === 0) {
+        toast({
+          title: "Цены не найдены",
+          description: "На торговой точке нет актуальных цен",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Преобразуем сетевые цены в локальный формат
+      const updatedPrices: FuelPrice[] = networkPricesResponse.prices.map((netPrice) => {
+        const localFuelType = mapNetworkFuelToLocal(netPrice);
+        const existingPrice = currentPrices.find(p => p.fuelType === localFuelType);
+        
+        return {
+          id: existingPrice?.id || `net_${netPrice.service_code}`,
+          fuelType: localFuelType,
+          fuelCode: localFuelType.replace('-', ''),
+          priceNet: Math.round(netPrice.price * 100 / 1.2), // Примерное извлечение цены без НДС
+          vatRate: 20,
+          priceGross: Math.round(netPrice.price * 100), // Цена в копейках
+          unit: "Л",
+          appliedFrom: format(new Date(), "dd.MM.yyyy HH:mm"),
+          status: 'active' as const,
+          tradingPoint: selectedTradingPoint.name,
+          networkId: selectedTradingPoint.id
+        };
+      });
+
+      // Обновляем состояние с новыми ценами
+      setPendingPrices(updatedPrices);
+      setHasUnsavedChanges(true);
+
+      toast({
+        title: "Цены обновлены",
+        description: `Получено ${updatedPrices.length} цен с торговой точки. Нажмите "Применить" для сохранения.`,
+      });
+
+    } catch (error) {
+      console.error('Ошибка при обновлении цен:', error);
+      toast({
+        title: "Ошибка обновления",
+        description: error instanceof Error ? error.message : "Не удалось обновить цены",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingPrices(false);
+    }
+  };
+
+  // Применение новых цен (сохранение в базе и отправка на АЗС)
+  const handleApplyPrices = async () => {
+    if (!selectedTradingPoint || pendingPrices.length === 0) {
+      toast({
+        title: "Ошибка",
+        description: "Нет изменений для применения",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsApplyingPrices(true);
+    
+    try {
+      // 1. Сохраняем цены в локальном состоянии (имитация сохранения в базе)
+      setCurrentPrices(pendingPrices);
+
+      // 2. Подготавливаем данные для отправки на АЗС
+      const pricesForNetwork: Record<string, number> = {};
+      
+      for (const price of pendingPrices) {
+        const serviceCode = getServiceCode(price.fuelType);
+        if (serviceCode) {
+          pricesForNetwork[serviceCode.toString()] = price.priceGross / 100; // Конвертируем в рубли
+        }
+      }
+
+      // 3. Отправляем цены на торговую точку через API
+      const stationNumber = parseInt(selectedTradingPoint.id.replace(/\D/g, '')) || 77;
+      const effectiveDate = new Date().toISOString();
+      
+      await tradingNetworkAPI.setPrices(
+        stationNumber,
+        pricesForNetwork,
+        effectiveDate
+      );
+
+      // 4. Добавляем записи в журнал
+      const journalEntries: PriceJournalEntry[] = pendingPrices.map(price => ({
+        id: `apply_${Date.now()}_${Math.random()}`,
+        timestamp: format(new Date(), "dd.MM.yyyy HH:mm"),
+        fuelType: price.fuelType,
+        fuelCode: price.fuelCode,
+        priceNet: price.priceNet,
+        priceGross: price.priceGross,
+        vatRate: price.vatRate,
+        source: 'api',
+        packageId: `api_pkg_${Date.now()}`,
+        status: 'applied',
+        authorName: "Система (API торговой сети)",
+        tradingPoint: selectedTradingPoint.name
+      }));
+      
+      setJournalEntries(prev => [...journalEntries, ...prev]);
+
+      // 5. Очищаем состояние
+      setPendingPrices([]);
+      setHasUnsavedChanges(false);
+      setIsApplyDialogOpen(false);
+
+      toast({
+        title: "Цены применены",
+        description: `${pendingPrices.length} цен успешно сохранены и отправлены на торговую точку.`,
+      });
+
+    } catch (error) {
+      console.error('Ошибка при применении цен:', error);
+      toast({
+        title: "Ошибка применения",
+        description: error instanceof Error ? error.message : "Не удалось применить цены",
+        variant: "destructive"
+      });
+    } finally {
+      setIsApplyingPrices(false);
+    }
+  };
+
   // Проверка выбора торговой точки
   if (!selectedTradingPoint) {
     return (
@@ -418,6 +618,21 @@ export default function Prices() {
         <div className="mb-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
           <p className="text-slate-400 mt-2">Управление ценами на топливо с отложенным применением и журналом изменений</p>
+          
+          {/* Уведомление о несохранённых изменениях */}
+          {hasUnsavedChanges && (
+            <div className="mt-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-orange-400" />
+                <span className="text-orange-300 text-sm font-medium">
+                  Обнаружены новые цены с торговой точки ({pendingPrices.length} цен)
+                </span>
+              </div>
+              <p className="text-orange-300/80 text-xs mt-1">
+                Нажмите "Применить" для сохранения в базе и отправки на АЗС
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Панель управления */}
@@ -443,12 +658,40 @@ export default function Prices() {
                   Журнал
                 </Button>
                 <Button 
-                  onClick={handleCreatePrice}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={handleUpdatePricesFromNetwork}
+                  variant="outline"
+                  disabled={isUpdatingPrices}
+                  className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Новая цена
+                  {isUpdatingPrices ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  Обновить
                 </Button>
+                {hasUnsavedChanges ? (
+                  <Button 
+                    onClick={() => setIsApplyDialogOpen(true)}
+                    disabled={isApplyingPrices}
+                    className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+                  >
+                    {isApplyingPrices ? (
+                      <Upload className="w-4 h-4 mr-2 animate-pulse" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    Применить ({pendingPrices.length})
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleCreatePrice}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Новая цена
+                  </Button>
+                )}
               </div>
             </div>
             
@@ -864,6 +1107,67 @@ export default function Prices() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Диалог подтверждения применения цен */}
+        <AlertDialog open={isApplyDialogOpen} onOpenChange={setIsApplyDialogOpen}>
+          <AlertDialogContent className="max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-orange-500">
+                <AlertTriangle className="w-5 h-5" />
+                Применить новые цены?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>
+                  Вы собираетесь применить <strong>{pendingPrices.length} новых цен</strong> на топливо.
+                </p>
+                <p>
+                  Это действие выполнит следующее:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  <li>Сохранит новые цены в базе данных</li>
+                  <li>Отправит цены на торговую точку через API</li>
+                  <li>Цены вступят в силу немедленно</li>
+                  <li>Добавит запись в журнал изменений</li>
+                </ul>
+                <div className="bg-slate-700 p-3 rounded-lg mt-3">
+                  <p className="text-xs text-slate-300">
+                    <strong>Торговая точка:</strong> {selectedTradingPoint?.name}
+                  </p>
+                  {pendingPrices.slice(0, 3).map(price => (
+                    <p key={price.id} className="text-xs text-slate-300">
+                      {price.fuelType}: {formatPrice(price.priceGross)}
+                    </p>
+                  ))}
+                  {pendingPrices.length > 3 && (
+                    <p className="text-xs text-slate-400">...и ещё {pendingPrices.length - 3} цен</p>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isApplyingPrices}>
+                Отмена
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleApplyPrices}
+                disabled={isApplyingPrices}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                {isApplyingPrices ? (
+                  <>
+                    <Upload className="w-4 h-4 mr-2 animate-pulse" />
+                    Применение...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Применить цены
+                  </>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   );

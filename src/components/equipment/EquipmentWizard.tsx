@@ -87,6 +87,44 @@ export function EquipmentWizard({
     if (template.default_params) {
       setTemplateParams({ ...template.default_params });
     }
+    
+    // Для резервуаров дополнительно инициализируем системные поля
+    if (template.system_type === "fuel_tank" && template.default_params) {
+      const now = new Date().toISOString();
+      const enhancedParams = {
+        ...template.default_params,
+        // Добавляем системные поля если их нет
+        trading_point_id: template.default_params.trading_point_id || tradingPointId,
+        created_at: template.default_params.created_at || now,
+        updated_at: template.default_params.updated_at || now,
+        installationDate: template.default_params.installationDate || new Date().toISOString().split('T')[0],
+        // Инициализируем сложные объекты если они не определены
+        sensors: template.default_params.sensors || [
+          { name: "Уровень", status: "ok" },
+          { name: "Температура", status: "ok" }
+        ],
+        linkedPumps: template.default_params.linkedPumps || [],
+        notifications: template.default_params.notifications || {
+          enabled: true,
+          drainAlerts: true,
+          levelAlerts: true
+        },
+        thresholds: template.default_params.thresholds || {
+          criticalTemp: {
+            min: -10,
+            max: 40
+          },
+          maxWaterLevel: 15,
+          notifications: {
+            critical: true,
+            minimum: true,
+            temperature: true,
+            water: true
+          }
+        }
+      };
+      setTemplateParams(enhancedParams);
+    }
   };
 
   const handleNextStep = () => {
@@ -403,100 +441,267 @@ export function EquipmentWizard({
       </div>
 
       {selectedTemplate && selectedTemplate.system_type === "fuel_tank" && (
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="fuelType">Тип топлива *</Label>
-              <Input
-                id="fuelType"
-                value={templateParams.fuelType || ""}
-                onChange={(e) => setTemplateParams({...templateParams, fuelType: e.target.value})}
-                placeholder="Например: АИ-95"
-              />
+        <div className="space-y-6 max-h-96 overflow-y-auto">
+          {/* Базовые характеристики */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-slate-200">Базовые характеристики</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="fuelType">Тип топлива *</Label>
+                <Input
+                  id="fuelType"
+                  value={templateParams.fuelType || ""}
+                  onChange={(e) => setTemplateParams({...templateParams, fuelType: e.target.value})}
+                  placeholder="Например: АИ-95"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currentLevelLiters">Текущий уровень (л)</Label>
+                <Input
+                  id="currentLevelLiters"
+                  type="number"
+                  value={templateParams.currentLevelLiters || 0}
+                  onChange={(e) => setTemplateParams({...templateParams, currentLevelLiters: Number(e.target.value)})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="capacityLiters">Объем резервуара (л) *</Label>
+                <Input
+                  id="capacityLiters"
+                  type="number"
+                  value={templateParams.capacityLiters || 50000}
+                  onChange={(e) => setTemplateParams({...templateParams, capacityLiters: Number(e.target.value)})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="material">Материал</Label>
+                <Input
+                  id="material"
+                  value={templateParams.material || "steel"}
+                  onChange={(e) => setTemplateParams({...templateParams, material: e.target.value})}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="currentLevelLiters">Текущий уровень (л)</Label>
-              <Input
-                id="currentLevelLiters"
-                type="number"
-                value={templateParams.currentLevelLiters || 0}
-                onChange={(e) => setTemplateParams({...templateParams, currentLevelLiters: Number(e.target.value)})}
-              />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="capacityLiters">Объем резервуара (л) *</Label>
-              <Input
-                id="capacityLiters"
-                type="number"
-                value={templateParams.capacityLiters || 50000}
-                onChange={(e) => setTemplateParams({...templateParams, capacityLiters: Number(e.target.value)})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="volume">Общий объем (л)</Label>
-              <Input
-                id="volume"
-                type="number"
-                value={templateParams.volume || templateParams.capacityLiters || 50000}
-                onChange={(e) => setTemplateParams({...templateParams, volume: Number(e.target.value)})}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="minLevelPercent">Мин. уровень (%)</Label>
-              <Input
-                id="minLevelPercent"
-                type="number"
-                value={templateParams.minLevelPercent || 20}
-                onChange={(e) => setTemplateParams({...templateParams, minLevelPercent: Number(e.target.value)})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="criticalLevelPercent">Крит. уровень (%)</Label>
-              <Input
-                id="criticalLevelPercent"
-                type="number"
-                value={templateParams.criticalLevelPercent || 10}
-                onChange={(e) => setTemplateParams({...templateParams, criticalLevelPercent: Number(e.target.value)})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="material">Материал</Label>
-              <Input
-                id="material"
-                value={templateParams.material || "steel"}
-                onChange={(e) => setTemplateParams({...templateParams, material: e.target.value})}
-              />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="minLevelPercent">Мин. уровень (%)</Label>
+                <Input
+                  id="minLevelPercent"
+                  type="number"
+                  value={templateParams.minLevelPercent || 20}
+                  onChange={(e) => setTemplateParams({...templateParams, minLevelPercent: Number(e.target.value)})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="criticalLevelPercent">Крит. уровень (%)</Label>
+                <Input
+                  id="criticalLevelPercent"
+                  type="number"
+                  value={templateParams.criticalLevelPercent || 10}
+                  onChange={(e) => setTemplateParams({...templateParams, criticalLevelPercent: Number(e.target.value)})}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="temperature">Температура (°C)</Label>
-              <Input
-                id="temperature"
-                type="number"
-                step="0.1"
-                value={templateParams.temperature || ""}
-                onChange={(e) => setTemplateParams({...templateParams, temperature: e.target.value ? Number(e.target.value) : null})}
-                placeholder="Текущая температура"
-              />
+          {/* Физические параметры */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-slate-200">Физические параметры</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="temperature">Температура (°C)</Label>
+                <Input
+                  id="temperature"
+                  type="number"
+                  step="0.1"
+                  value={templateParams.temperature || ""}
+                  onChange={(e) => setTemplateParams({...templateParams, temperature: e.target.value ? Number(e.target.value) : null})}
+                  placeholder="15.0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waterLevelMm">Уровень воды (мм)</Label>
+                <Input
+                  id="waterLevelMm"
+                  type="number"
+                  step="0.1"
+                  value={templateParams.waterLevelMm || ""}
+                  onChange={(e) => setTemplateParams({...templateParams, waterLevelMm: e.target.value ? Number(e.target.value) : null})}
+                  placeholder="0.0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="density">Плотность</Label>
+                <Input
+                  id="density"
+                  type="number"
+                  step="0.001"
+                  value={templateParams.density || ""}
+                  onChange={(e) => setTemplateParams({...templateParams, density: e.target.value ? Number(e.target.value) : null})}
+                  placeholder="0.725"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="waterLevelMm">Уровень воды (мм)</Label>
-              <Input
-                id="waterLevelMm"
-                type="number"
-                step="0.1"
-                value={templateParams.waterLevelMm || ""}
-                onChange={(e) => setTemplateParams({...templateParams, waterLevelMm: e.target.value ? Number(e.target.value) : null})}
-                placeholder="Уровень воды"
-              />
+          </div>
+
+          {/* Статус и местоположение */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-slate-200">Статус и местоположение</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="status">Статус</Label>
+                <select
+                  id="status"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white"
+                  value={templateParams.status || "active"}
+                  onChange={(e) => setTemplateParams({...templateParams, status: e.target.value})}
+                >
+                  <option value="active">Активен</option>
+                  <option value="maintenance">Техобслуживание</option>
+                  <option value="offline">Не в сети</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Местоположение</Label>
+                <Input
+                  id="location"
+                  value={templateParams.location || ""}
+                  onChange={(e) => setTemplateParams({...templateParams, location: e.target.value})}
+                  placeholder="Зона не указана"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier">Поставщик</Label>
+                <Input
+                  id="supplier"
+                  value={templateParams.supplier || ""}
+                  onChange={(e) => setTemplateParams({...templateParams, supplier: e.target.value})}
+                  placeholder="Не указан"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastCalibration">Последняя калибровка</Label>
+                <Input
+                  id="lastCalibration"
+                  type="date"
+                  value={templateParams.lastCalibration || ""}
+                  onChange={(e) => setTemplateParams({...templateParams, lastCalibration: e.target.value})}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Пороговые значения */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-slate-200">Пороговые значения</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="criticalTempMin">Мин. температура (°C)</Label>
+                <Input
+                  id="criticalTempMin"
+                  type="number"
+                  value={templateParams.thresholds?.criticalTemp?.min || -10}
+                  onChange={(e) => setTemplateParams({
+                    ...templateParams, 
+                    thresholds: {
+                      ...templateParams.thresholds,
+                      criticalTemp: {
+                        ...(templateParams.thresholds?.criticalTemp || {}),
+                        min: Number(e.target.value)
+                      }
+                    }
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="criticalTempMax">Макс. температура (°C)</Label>
+                <Input
+                  id="criticalTempMax"
+                  type="number"
+                  value={templateParams.thresholds?.criticalTemp?.max || 40}
+                  onChange={(e) => setTemplateParams({
+                    ...templateParams, 
+                    thresholds: {
+                      ...templateParams.thresholds,
+                      criticalTemp: {
+                        ...(templateParams.thresholds?.criticalTemp || {}),
+                        max: Number(e.target.value)
+                      }
+                    }
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxWaterLevel">Макс. уровень воды (мм)</Label>
+                <Input
+                  id="maxWaterLevel"
+                  type="number"
+                  value={templateParams.thresholds?.maxWaterLevel || 15}
+                  onChange={(e) => setTemplateParams({
+                    ...templateParams, 
+                    thresholds: {
+                      ...templateParams.thresholds,
+                      maxWaterLevel: Number(e.target.value)
+                    }
+                  })}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Уведомления */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-slate-200">Настройки уведомлений</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="notificationsEnabled"
+                  checked={templateParams.notifications?.enabled !== false}
+                  onChange={(e) => setTemplateParams({
+                    ...templateParams,
+                    notifications: {
+                      ...templateParams.notifications,
+                      enabled: e.target.checked
+                    }
+                  })}
+                  className="rounded"
+                />
+                <Label htmlFor="notificationsEnabled">Уведомления включены</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="drainAlerts"
+                  checked={templateParams.notifications?.drainAlerts !== false}
+                  onChange={(e) => setTemplateParams({
+                    ...templateParams,
+                    notifications: {
+                      ...templateParams.notifications,
+                      drainAlerts: e.target.checked
+                    }
+                  })}
+                  className="rounded"
+                />
+                <Label htmlFor="drainAlerts">Оповещения о сливе</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="levelAlerts"
+                  checked={templateParams.notifications?.levelAlerts !== false}
+                  onChange={(e) => setTemplateParams({
+                    ...templateParams,
+                    notifications: {
+                      ...templateParams.notifications,
+                      levelAlerts: e.target.checked
+                    }
+                  })}
+                  className="rounded"
+                />
+                <Label htmlFor="levelAlerts">Оповещения об уровне</Label>
+              </div>
             </div>
           </div>
         </div>

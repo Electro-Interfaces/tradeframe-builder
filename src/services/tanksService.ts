@@ -15,17 +15,39 @@ export interface Tank {
   minLevelPercent: number;
   criticalLevelPercent: number;
   temperature: number;
-  waterLevel: number;
+  waterLevelMm: number; // изменено обратно на waterLevelMm для совместимости с UI
   density: number;
   status: 'active' | 'maintenance' | 'offline';
   location: string;
   installationDate: string;
   lastCalibration?: string;
   supplier?: string;
+  // Добавлены недостающие поля из UI
+  sensors: Array<{
+    name: string;
+    status: 'ok' | 'error';
+  }>;
+  linkedPumps: Array<{
+    id: number;
+    name: string;
+  }>;
+  notifications: {
+    enabled: boolean;
+    drainAlerts: boolean;
+    levelAlerts: boolean;
+  };
   thresholds: {
-    criticalTemp: number;
+    criticalTemp: {
+      min: number;
+      max: number;
+    };
     maxWaterLevel: number;
-    notifications: boolean;
+    notifications: {
+      critical: boolean;
+      minimum: boolean;
+      temperature: boolean;
+      water: boolean;
+    };
   };
   trading_point_id: string;
   created_at: string;
@@ -83,17 +105,38 @@ const initialTanks: Tank[] = [
     minLevelPercent: 20,
     criticalLevelPercent: 10,
     temperature: 15.2,
-    waterLevel: 2, // из waterLevelMm оборудования
+    waterLevelMm: 2, // изменено на waterLevelMm
     density: 0.725,
     status: 'active',
     location: "Северная зона - Демо сеть",
     installationDate: "2024-01-15",
     lastCalibration: "2024-08-15",
     supplier: "НефтеГазИнвест Демо",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [
+      { id: 1, name: "ТРК-1" },
+      { id: 2, name: "ТРК-3" }
+    ],
+    notifications: {
+      enabled: true,
+      drainAlerts: true,
+      levelAlerts: true
+    },
     thresholds: {
-      criticalTemp: 40, // из thresholds.criticalTemp.max оборудования
-      maxWaterLevel: 15, // из thresholds.maxWaterLevel оборудования
-      notifications: true
+      criticalTemp: {
+        min: -10,
+        max: 40
+      },
+      maxWaterLevel: 15,
+      notifications: {
+        critical: true,
+        minimum: true,
+        temperature: true,
+        water: true
+      }
     },
     trading_point_id: "point1",
     created_at: new Date('2024-01-15').toISOString(),
@@ -108,17 +151,37 @@ const initialTanks: Tank[] = [
     minLevelPercent: 20,
     criticalLevelPercent: 10,
     temperature: 14.8,
-    waterLevel: 1, // из waterLevelMm оборудования
+    waterLevelMm: 1, // изменено на waterLevelMm
     density: 0.715,
     status: 'active',
     location: "Центральная зона - Демо сеть",
     installationDate: "2024-02-20",
     lastCalibration: "2024-08-20",
     supplier: "Лукойл-Нефтепродукт Демо",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "error" }
+    ],
+    linkedPumps: [
+      { id: 4, name: "ТРК-2" }
+    ],
+    notifications: {
+      enabled: true,
+      drainAlerts: true,
+      levelAlerts: true
+    },
     thresholds: {
-      criticalTemp: 40, // из thresholds.criticalTemp.max оборудования
-      maxWaterLevel: 15, // из thresholds.maxWaterLevel оборудования
-      notifications: true
+      criticalTemp: {
+        min: -10,
+        max: 40
+      },
+      maxWaterLevel: 15,
+      notifications: {
+        critical: true,
+        minimum: true,
+        temperature: false,
+        water: true
+      }
     },
     trading_point_id: "point1",
     created_at: new Date('2024-02-20').toISOString(),
@@ -133,17 +196,39 @@ const initialTanks: Tank[] = [
     minLevelPercent: 15,
     criticalLevelPercent: 8,
     temperature: 12.8,
-    waterLevel: 1, // из waterLevelMm оборудования
+    waterLevelMm: 1, // изменено на waterLevelMm
     density: 0.835,
     status: 'active',
     location: "Южная зона - Демо сеть",
     installationDate: "2024-03-10",
     lastCalibration: "2024-08-25",
     supplier: "Роснефть Демо",
+    sensors: [
+      { name: "Уровень", status: "error" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [
+      { id: 5, name: "ТРК-4" },
+      { id: 6, name: "ТРК-5" },
+      { id: 7, name: "ТРК-6" }
+    ],
+    notifications: {
+      enabled: false,
+      drainAlerts: false,
+      levelAlerts: true
+    },
     thresholds: {
-      criticalTemp: 40, // из thresholds.criticalTemp.max оборудования
-      maxWaterLevel: 15, // из thresholds.maxWaterLevel оборудования
-      notifications: true
+      criticalTemp: {
+        min: -15,
+        max: 50
+      },
+      maxWaterLevel: 15,
+      notifications: {
+        critical: true,
+        minimum: true,
+        temperature: true,
+        water: false
+      }
     },
     trading_point_id: "point1",
     created_at: new Date('2024-03-10').toISOString(),
@@ -158,17 +243,37 @@ const initialTanks: Tank[] = [
     minLevelPercent: 18,
     criticalLevelPercent: 9,
     temperature: 16.1,
-    waterLevel: 0.5, // из waterLevelMm оборудования
+    waterLevelMm: 0.5, // изменено на waterLevelMm
     density: 0.735,
     status: 'maintenance', // соответствует статусу в оборудовании
     location: "Восточная зона - Демо сеть",
     installationDate: "2024-04-05",
     lastCalibration: "2024-11-01",
     supplier: "Татнефть Демо",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [
+      { id: 8, name: "ТРК-7" }
+    ],
+    notifications: {
+      enabled: true,
+      drainAlerts: true,
+      levelAlerts: true
+    },
     thresholds: {
-      criticalTemp: 40, // из thresholds.criticalTemp.max оборудования
-      maxWaterLevel: 15, // из thresholds.maxWaterLevel оборудования
-      notifications: true
+      criticalTemp: {
+        min: -10,
+        max: 40
+      },
+      maxWaterLevel: 15,
+      notifications: {
+        critical: true,
+        minimum: true,
+        temperature: true,
+        water: true
+      }
     },
     trading_point_id: "point1",
     created_at: new Date('2024-04-05').toISOString(),
@@ -476,41 +581,69 @@ export const tanksService = {
   }): Promise<Tank> {
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Извлекаем параметры резервуара из параметров оборудования
-    const {
-      fuelType = 'АИ-92',
-      capacity = 50000,
-      minLevelPercent = 20,
-      criticalLevelPercent = 10,
-      location = 'Зона не указана'
-    } = equipmentData.params;
+    // Извлекаем ВСЕ параметры резервуара из параметров оборудования (синхронизировано с шаблоном)
+    const params = equipmentData.params;
+    const now = new Date().toISOString();
 
     // Найдём следующий доступный ID
     const maxId = Math.max(0, ...mockTanks.map(t => t.id));
     const newId = maxId + 1;
     
     const newTank: Tank = {
+      // Базовые характеристики
       id: newId,
       name: equipmentData.display_name || equipmentData.name,
-      fuelType: fuelType,
-      currentLevelLiters: 0, // Начальный уровень
-      capacityLiters: capacity,
-      minLevelPercent: minLevelPercent,
-      criticalLevelPercent: criticalLevelPercent,
-      temperature: 15.0,
-      waterLevel: 0.0,
-      density: fuelType.includes('ДТ') ? 0.835 : 0.725, // Плотность в зависимости от типа топлива
-      status: 'active',
-      location: location,
-      installationDate: new Date().toISOString().split('T')[0],
-      thresholds: {
-        criticalTemp: 40,
-        maxWaterLevel: 10,
-        notifications: true
+      fuelType: params.fuelType || 'АИ-92',
+      currentLevelLiters: params.currentLevelLiters || 0,
+      capacityLiters: params.capacityLiters || 50000,
+      minLevelPercent: params.minLevelPercent || 20,
+      criticalLevelPercent: params.criticalLevelPercent || 10,
+      
+      // Физические параметры (берем из оборудования)
+      temperature: params.temperature || 15.0,
+      waterLevelMm: params.waterLevelMm || 0.0,
+      density: params.density || (params.fuelType?.includes('ДТ') ? 0.835 : 0.725),
+      
+      // Статус и местоположение (берем из оборудования)
+      status: params.status || 'active',
+      location: params.location || 'Зона не указана',
+      installationDate: params.installationDate || new Date().toISOString().split('T')[0],
+      lastCalibration: params.lastCalibration || undefined,
+      supplier: params.supplier || undefined,
+      
+      // Датчики и связи (берем из оборудования)
+      sensors: params.sensors || [
+        { name: "Уровень", status: "ok" },
+        { name: "Температура", status: "ok" }
+      ],
+      linkedPumps: params.linkedPumps || [],
+      
+      // Уведомления (берем из оборудования)
+      notifications: params.notifications || {
+        enabled: true,
+        drainAlerts: true,
+        levelAlerts: true
       },
+      
+      // Пороговые значения (берем из оборудования)
+      thresholds: params.thresholds || {
+        criticalTemp: {
+          min: -10,
+          max: 40
+        },
+        maxWaterLevel: 15,
+        notifications: {
+          critical: true,
+          minimum: true,
+          temperature: true,
+          water: true
+        }
+      },
+      
+      // Системные поля
       trading_point_id: equipmentData.trading_point_id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: params.created_at || now,
+      updated_at: params.updated_at || now
     };
 
     mockTanks.push(newTank);

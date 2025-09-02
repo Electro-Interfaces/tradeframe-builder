@@ -1,6 +1,67 @@
 // Сервис для работы с API торговой сети (pos.autooplata.ru/tms)
 const BASE_URL = 'https://pos.autooplata.ru/tms';
 
+// Импорт для получения данных о резервуарах
+import { mockEquipmentAPI } from './equipment';
+
+// Стандартные цены по типам топлива (базовые значения)
+const DEFAULT_FUEL_PRICES: Record<string, number> = {
+  'АИ-92': 56.20,
+  'АИ-95': 59.80,
+  'АИ-98': 65.40,
+  'ДТ': 61.90,
+  'АИ-100': 68.50
+};
+
+// Маппинг типов топлива на коды услуг
+const FUEL_SERVICE_CODES: Record<string, number> = {
+  'АИ-92': 1,
+  'АИ-95': 2,
+  'АИ-98': 3,
+  'ДТ': 4,
+  'АИ-100': 5
+};
+
+// Хранилище установленных цен (имитация базы данных)
+const STORED_PRICES: Record<string, Record<string, number>> = {};
+
+// Проверка на демо режим (если нет реального токена или API недоступен)
+const USE_MOCK_MODE = true; // Для демо всегда используем mock данные
+
+// Функция для получения видов топлива из резервуаров торговой точки
+async function getFuelTypesFromTanks(stationNumber: number): Promise<string[]> {
+  try {
+    // Определяем trading_point_id по номеру станции
+    // Маппинг: номер станции -> ID торговой точки
+    const stationMapping: Record<number, string> = {
+      77: 'point1',  // АЗС №001 - Центральная
+      78: 'point2',  // АЗС №002 - Северная  
+      79: 'point3',  // АЗС №003 - Южная
+      80: 'point4',  // АЗС №004 - Московское шоссе
+      81: 'point5',  // АЗС №005 - Промзона
+    };
+    
+    const tradingPointId = stationMapping[stationNumber] || `point${stationNumber}`;
+
+    // Получаем оборудование для торговой точки
+    const equipmentResponse = await mockEquipmentAPI.list({
+      trading_point_id: tradingPointId,
+      limit: 100
+    });
+
+    // Фильтруем только активные резервуары и извлекаем типы топлива
+    const fuelTypes = equipmentResponse.data
+      .filter(eq => eq.system_type === 'fuel_tank' && eq.params?.fuelType && eq.status !== 'deleted')
+      .map(eq => eq.params.fuelType)
+      .filter((fuelType, index, array) => array.indexOf(fuelType) === index); // убираем дубликаты
+
+    return fuelTypes;
+  } catch (error) {
+    console.error('Ошибка получения типов топлива из резервуаров:', error);
+    return ['АИ-92', 'АИ-95', 'ДТ']; // Fallback
+  }
+}
+
 // Типы для работы с API
 export interface TradingNetworkPrice {
   service_code: number;
@@ -66,6 +127,30 @@ class TradingNetworkAPIService {
     systemId: number = 15,
     date?: string
   ): Promise<TradingNetworkPricesResponse> {
+    // В демо режиме возвращаем данные на основе резервуаров
+    if (USE_MOCK_MODE) {
+      await new Promise(resolve => setTimeout(resolve, 300)); // Имитация задержки сети
+      
+      // Получаем виды топлива из резервуаров
+      const fuelTypes = await getFuelTypesFromTanks(stationNumber);
+      
+      // Формируем цены на основе резервуаров
+      const prices: TradingNetworkPrice[] = fuelTypes.map(fuelType => {
+        const serviceCode = FUEL_SERVICE_CODES[fuelType] || 1;
+        const stationKey = `station_${stationNumber}`;
+        const storedPrice = STORED_PRICES[stationKey]?.[fuelType];
+        const price = storedPrice || DEFAULT_FUEL_PRICES[fuelType] || 50.0;
+        
+        return {
+          service_code: serviceCode,
+          service_name: fuelType,
+          price
+        };
+      });
+      
+      return { prices };
+    }
+
     await this.ensureAuth();
 
     try {
@@ -110,6 +195,33 @@ class TradingNetworkAPIService {
     effectiveDate: string,
     systemId: number = 15
   ): Promise<void> {
+    // В демо режиме имитируем успешную установку цен
+    if (USE_MOCK_MODE) {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Имитация задержки сети
+      
+      const stationKey = `station_${stationNumber}`;
+      if (!STORED_PRICES[stationKey]) {
+        STORED_PRICES[stationKey] = {};
+      }
+      
+      // Получаем виды топлива из резервуаров для валидации
+      const availableFuelTypes = await getFuelTypesFromTanks(stationNumber);
+      
+      // Сохраняем цены только для доступных видов топлива
+      for (const [serviceCodeStr, price] of Object.entries(prices)) {
+        const serviceCode = parseInt(serviceCodeStr);
+        // Находим тип топлива по коду услуги
+        const fuelType = Object.entries(FUEL_SERVICE_CODES).find(([fuel, code]) => code === serviceCode)?.[0];
+        
+        if (fuelType && availableFuelTypes.includes(fuelType)) {
+          STORED_PRICES[stationKey][fuelType] = price;
+        }
+      }
+      
+      console.log(`Mock: Цены установлены для АЗС ${stationNumber}:`, STORED_PRICES[stationKey]);
+      return;
+    }
+
     await this.ensureAuth();
 
     try {
@@ -155,7 +267,27 @@ class TradingNetworkAPIService {
   }
 
   // Получение справочника услуг
-  async getServices(systemId: number = 15): Promise<TradingNetworkService[]> {
+  async getServices(systemId: number = 15, stationNumber?: number): Promise<TradingNetworkService[]> {
+    // В демо режиме возвращаем данные на основе всех возможных видов топлива
+    if (USE_MOCK_MODE) {
+      await new Promise(resolve => setTimeout(resolve, 200)); // Имитация задержки сети
+      
+      // Если указан номер станции, получаем топливо только для этой станции
+      if (stationNumber) {
+        const fuelTypes = await getFuelTypesFromTanks(stationNumber);
+        return fuelTypes.map(fuelType => ({
+          service_code: FUEL_SERVICE_CODES[fuelType] || 1,
+          service_name: fuelType
+        }));
+      }
+      
+      // Иначе возвращаем все доступные виды топлива
+      return Object.entries(FUEL_SERVICE_CODES).map(([fuelType, serviceCode]) => ({
+        service_code: serviceCode,
+        service_name: fuelType
+      }));
+    }
+
     await this.ensureAuth();
 
     try {

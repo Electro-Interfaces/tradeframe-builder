@@ -243,9 +243,9 @@ export default function NotificationRules() {
 
   const getPriorityBadge = (priority: NotificationRule['priority']) => {
     const variants = {
-      info: { label: "Информация", color: "bg-blue-600 text-blue-200" },
-      warning: { label: "Предупреждение", color: "bg-yellow-600 text-yellow-200" },
-      critical: { label: "Критическое", color: "bg-red-600 text-red-200" }
+      info: { label: "Информация", color: "bg-slate-600 text-slate-200" },
+      warning: { label: "Предупреждение", color: "bg-slate-600 text-slate-200" },
+      critical: { label: "Критическое", color: "bg-slate-700 text-slate-300" }
     };
     
     const config = variants[priority];
@@ -358,10 +358,10 @@ export default function NotificationRules() {
   };
 
   return (
-    <MainLayout>
-      <div className="w-full h-full px-4 md:px-6 lg:px-8">
+    <MainLayout fullWidth={true}>
+      <div className="w-full h-full report-full-width">
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
+        <div className="mb-6 pt-4 px-4 md:px-6 lg:px-8">
           <h1 className="text-2xl font-semibold text-white">Правила оповещений</h1>
           <p className="text-slate-400 mt-2">Создавайте и управляйте правилами автоматических оповещений для торговых сетей</p>
         </div>
@@ -403,7 +403,7 @@ export default function NotificationRules() {
                   <Filter className="h-4 w-4 mr-2" />
                   Фильтры
                   {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="ml-2 bg-blue-600 text-blue-200">
+                    <Badge variant="secondary" className="ml-2 bg-slate-600 text-slate-200">
                       {activeFiltersCount}
                     </Badge>
                   )}
@@ -625,7 +625,7 @@ export default function NotificationRules() {
                       {getChannelIcons(rule.channels)}
                     </td>
                     <td className="px-4 md:px-6 py-4">
-                      <Badge variant={rule.isActive ? "default" : "secondary"}>
+                      <Badge className="bg-slate-600 text-slate-200">
                         {rule.isActive ? "Активно" : "Приостановлено"}
                       </Badge>
                     </td>
@@ -633,7 +633,7 @@ export default function NotificationRules() {
                       <div className="flex items-center gap-2">
                         {rule.lastTriggered && (
                           <div className={`w-2 h-2 rounded-full ${
-                            rule.lastTriggered.status === 'sent' ? 'bg-green-500' : 'bg-red-500'
+                            rule.lastTriggered.status === 'sent' ? 'bg-slate-400' : 'bg-slate-500'
                           }`} />
                         )}
                         <span className="text-sm text-slate-200">{formatLastTriggered(rule.lastTriggered)}</span>
@@ -726,7 +726,7 @@ export default function NotificationRules() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-slate-400">Статус:</span>
-                          <Badge variant={rule.isActive ? "default" : "secondary"}>
+                          <Badge className="bg-slate-600 text-slate-200">
                             {rule.isActive ? "Активно" : "Приостановлено"}
                           </Badge>
                         </div>

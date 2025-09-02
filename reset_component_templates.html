@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Component Templates</title>
+</head>
+<body>
+    <h1>Сброс кэша шаблонов компонентов</h1>
+    <button onclick="resetCache()">Очистить кэш и перезагрузить</button>
+    
+    <script>
+        function resetCache() {
+            // Очищаем правильные ключи localStorage
+            localStorage.removeItem('component_templates');
+            localStorage.removeItem('components_v2');
+            localStorage.removeItem('tradeframe_componentTemplates');
+            
+            console.log('Кэш очищен!');
+            alert('Кэш очищен! Сейчас перейдем на страницу типов компонентов.');
+            
+            // Переходим на страницу с типами компонентов
+            window.location.href = 'http://localhost:3001/settings/dictionaries/component-types';
+        }
+    </script>
+</body>
+</html>

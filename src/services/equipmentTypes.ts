@@ -131,7 +131,7 @@ function getDefaultParamsBySystemType(systemType: string): Record<string, any> {
   switch (systemType) {
     case 'fuel_tank':
       return { 
-        // Обязательные поля
+        // Обязательные поля (соответствуют Tank интерфейсу)
         id: null,
         name: "",
         fuelType: "",
@@ -142,21 +142,51 @@ function getDefaultParamsBySystemType(systemType: string): Record<string, any> {
         minLevelPercent: 20,
         criticalLevelPercent: 10,
         
-        // Физические параметры
-        temperature: null,
-        waterLevelMm: null,
+        // Физические параметры (синхронизировано с tanksService)
+        temperature: 15.0,
+        waterLevelMm: 0.0, // возвращено обратно на waterLevelMm
+        density: 0.725,
         
-        // Пороговые значения
+        // Статус и операционные данные (добавлено из tanksService)
+        status: 'active',
+        location: "Зона не указана",
+        installationDate: new Date().toISOString().split('T')[0],
+        lastCalibration: null,
+        supplier: null,
+        
+        // Поля из UI (добавлено)
+        sensors: [
+          { name: "Уровень", status: "ok" },
+          { name: "Температура", status: "ok" }
+        ],
+        linkedPumps: [],
+        notifications: {
+          enabled: true,
+          drainAlerts: true,
+          levelAlerts: true
+        },
+        
+        // Пороговые значения (синхронизировано с tanksService и UI)
         thresholds: {
           criticalTemp: {
             min: -10,
             max: 40
           },
-          maxWaterLevel: 15
+          maxWaterLevel: 15,
+          notifications: {
+            critical: true,
+            minimum: true,
+            temperature: true,
+            water: true
+          }
         },
         
+        // Системные поля
+        trading_point_id: "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        
         // Дополнительные технические параметры
-        volume: 50000, 
         material: "steel"
       };
     case 'self_service_terminal':

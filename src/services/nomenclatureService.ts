@@ -14,6 +14,14 @@ const initialNomenclature: FuelNomenclature[] = [
     networkName: 'Демо сеть АЗС',
     name: 'АИ-92',
     internalCode: 'AI92',
+    networkApiCode: 'FUEL_AI92_REGULAR',
+    networkApiSettings: {
+      enabled: true,
+      endpoint: '/api/v1/fuel-types/regular',
+      priority: 1,
+      lastSync: new Date('2024-01-15T10:00:00'),
+      syncStatus: 'success'
+    },
     externalCodes: [
       {
         id: '1',
@@ -47,6 +55,14 @@ const initialNomenclature: FuelNomenclature[] = [
     networkName: 'Демо сеть АЗС',
     name: 'АИ-95',
     internalCode: 'AI95',
+    networkApiCode: 'FUEL_AI95_PREMIUM',
+    networkApiSettings: {
+      enabled: true,
+      endpoint: '/api/v1/fuel-types/premium',
+      priority: 2,
+      lastSync: new Date('2024-01-15T10:30:00'),
+      syncStatus: 'success'
+    },
     externalCodes: [
       {
         id: '3',
@@ -235,6 +251,14 @@ export const nomenclatureService = {
       id: `nom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       ...data,
       networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'Норд Лайн',
+      // Обрабатываем настройки API торговой сети
+      networkApiSettings: data.networkApiEnabled ? {
+        enabled: true,
+        endpoint: data.networkApiCode ? `/api/v1/fuel-types/${data.networkApiCode.toLowerCase()}` : undefined,
+        priority: mockNomenclature.length + 1,
+        lastSync: undefined,
+        syncStatus: 'pending'
+      } : undefined,
       externalCodes: data.externalCodes.map((code, index) => ({
         ...code,
         id: `${Date.now()}_${index}`,
@@ -267,6 +291,20 @@ export const nomenclatureService = {
       ...data,
       id: existing.id,
       networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'Норд Лайн',
+      // Обновляем настройки API торговой сети
+      networkApiSettings: data.networkApiEnabled ? {
+        enabled: true,
+        endpoint: data.networkApiCode ? `/api/v1/fuel-types/${data.networkApiCode.toLowerCase()}` : existing.networkApiSettings?.endpoint,
+        priority: existing.networkApiSettings?.priority || index + 1,
+        lastSync: existing.networkApiSettings?.lastSync,
+        syncStatus: (existing.networkApiCode !== data.networkApiCode) ? 'pending' : existing.networkApiSettings?.syncStatus || 'pending'
+      } : {
+        enabled: false,
+        endpoint: undefined,
+        priority: undefined,
+        lastSync: undefined,
+        syncStatus: undefined
+      },
       externalCodes: data.externalCodes.map((code, index) => ({
         ...code,
         id: code.id || `${Date.now()}_${index}`,

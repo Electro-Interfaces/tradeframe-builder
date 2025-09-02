@@ -181,12 +181,21 @@ export interface CommandInstance {
   
   // Основная информация (скопированная из шаблона)
   name: string;
-  display_name: string;
+  display_name?: string;
+  template_name?: string; // Название шаблона команды
   category: CommandCategory;
   
   // Данные экземпляра
   params: Record<string, any>; // Конкретные параметры
-  target: CommandTarget; // Конкретная цель выполнения
+  target?: CommandTarget; // Конкретная цель выполнения
+  
+  // Поля для поддержки команд уровня оборудования и компонентов
+  templateId: string; // ID шаблона команды
+  targetType: 'equipment' | 'component'; // Тип цели
+  targetId: string; // ID оборудования или компонента
+  parameters?: Record<string, any>; // Параметры выполнения
+  priority?: 'low' | 'normal' | 'high' | 'urgent'; // Приоритет выполнения
+  scheduledFor?: string; // Время запланированного выполнения
   
   // Статус выполнения
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
@@ -207,21 +216,25 @@ export interface CommandInstance {
   // Метаданные
   created_at: string;
   updated_at: string;
-  created_from_template: CommandTemplateId; // Ссылка на исходный шаблон
+  created_from_template?: CommandTemplateId; // Ссылка на исходный шаблон
   executed_by?: string; // ID пользователя или системы
 }
 
 // DTO для создания экземпляра команды
 export interface CreateCommandInstanceRequest {
-  template_id: CommandTemplateId;
-  workflow_id?: string;
+  templateId: string; // ID шаблона команды
+  targetType: 'equipment' | 'component'; // Тип цели
+  targetId: string; // ID оборудования или компонента
+  parameters?: Record<string, any>; // Параметры выполнения
+  priority?: 'low' | 'normal' | 'high' | 'urgent'; // Приоритет выполнения
+  scheduledFor?: string; // Время запланированного выполнения
   
-  // Кастомизация экземпляра
+  // Дополнительные опции (совместимость с существующим интерфейсом)
+  template_id?: CommandTemplateId;
+  workflow_id?: string;
   display_name?: string; // Переопределить отображаемое название
   custom_params?: Record<string, any>; // Дополнить/переопределить параметры
-  target: CommandTarget; // Обязательная цель выполнения
-  
-  // Опции выполнения
+  target?: CommandTarget; // Обязательная цель выполнения
   execution_timeout?: number; // Переопределить таймаут
   retry_count?: number; // Переопределить количество повторов
 }

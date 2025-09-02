@@ -27,6 +27,8 @@ const formSchema = z.object({
   networkId: z.string().min(1, 'Выберите сеть'),
   name: z.string().min(1, 'Название обязательно').max(100, 'Максимум 100 символов'),
   internalCode: z.string().min(1, 'Внутренний код обязателен').max(20, 'Максимум 20 символов'),
+  networkApiCode: z.string().max(50, 'Максимум 50 символов').optional(),
+  networkApiEnabled: z.boolean().optional(),
   description: z.string().max(500, 'Максимум 500 символов').optional(),
   status: z.enum(['active', 'archived']),
   externalCodes: z.array(externalCodeSchema)
@@ -69,6 +71,8 @@ export const NomenclatureForm: React.FC<NomenclatureFormProps> = ({
       networkId: selectedNetwork?.id || '',
       name: '',
       internalCode: '',
+      networkApiCode: '',
+      networkApiEnabled: false,
       description: '',
       status: 'active',
       externalCodes: []
@@ -86,6 +90,8 @@ export const NomenclatureForm: React.FC<NomenclatureFormProps> = ({
         networkId: item.networkId,
         name: item.name,
         internalCode: item.internalCode,
+        networkApiCode: item.networkApiCode || '',
+        networkApiEnabled: item.networkApiSettings?.enabled || false,
         description: item.description || '',
         status: item.status,
         externalCodes: item.externalCodes.map(code => ({
@@ -99,12 +105,14 @@ export const NomenclatureForm: React.FC<NomenclatureFormProps> = ({
         networkId: selectedNetwork?.id || '',
         name: '',
         internalCode: '',
+        networkApiCode: '',
+        networkApiEnabled: false,
         description: '',
         status: 'active',
         externalCodes: []
       });
     }
-  }, [item, open, form]);
+  }, [item, open, form, selectedNetwork?.id]);
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -275,6 +283,70 @@ export const NomenclatureForm: React.FC<NomenclatureFormProps> = ({
                     </FormItem>
                   )}
                 />
+              </CardContent>
+            </Card>
+
+            {/* API торговой сети */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ExternalLink className="h-5 w-5" />
+                  API торговой сети
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Настройки для интеграции с API торговой сети
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <FormField
+                    control={form.control}
+                    name="networkApiEnabled"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Включить интеграцию с API торговой сети
+                          </FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Автоматическая синхронизация данных номенклатуры
+                          </p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {form.watch('networkApiEnabled') && (
+                  <FormField
+                    control={form.control}
+                    name="networkApiCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Код в API торговой сети</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            placeholder="Например: FUEL_AI95_PREMIUM"
+                            className="font-mono"
+                          />
+                        </FormControl>
+                        <p className="text-sm text-muted-foreground">
+                          Уникальный код для идентификации номенклатуры в API торговой сети
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </CardContent>
             </Card>
 

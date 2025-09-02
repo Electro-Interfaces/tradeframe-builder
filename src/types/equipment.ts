@@ -26,6 +26,9 @@ export interface Equipment {
   params: Record<string, any>; // Все параметры хранятся здесь
   bindings?: EquipmentBindings;
   
+  // Доступные команды для данного оборудования
+  availableCommandIds?: string[];
+  
   // Метаданные
   created_at: string; // ISO 8601
   updated_at: string; // ISO 8601
@@ -58,6 +61,7 @@ export interface EquipmentTemplate {
   
   // Связи
   allow_component_template_ids?: string[];
+  available_command_ids?: string[]; // Доступные команды для оборудования данного типа
   
   // Метаданные
   created_at: string;

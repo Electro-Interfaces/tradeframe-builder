@@ -141,25 +141,24 @@ export default function PriceHistoryPage() {
   }, [dateFrom, dateTo, selectedFuelType, selectedReason, searchQuery]);
 
   const getPriceChangeIcon = (oldPrice: number, newPrice: number) => {
-    if (newPrice > oldPrice) return <TrendingUp className="w-4 h-4 text-red-500" />;
-    if (newPrice < oldPrice) return <TrendingDown className="w-4 h-4 text-green-500" />;
-    return <Minus className="w-4 h-4 text-gray-500" />;
+    if (newPrice > oldPrice) return <TrendingUp className="w-4 h-4 text-slate-400" />;
+    if (newPrice < oldPrice) return <TrendingDown className="w-4 h-4 text-slate-400" />;
+    return <Minus className="w-4 h-4 text-slate-400" />;
   };
 
   const getPriceChangeColor = (oldPrice: number, newPrice: number) => {
-    if (newPrice > oldPrice) return "text-red-500";
-    if (newPrice < oldPrice) return "text-green-500";
-    return "text-gray-500";
+    if (newPrice < oldPrice) return "text-slate-300";
+    return "text-slate-400";
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'applied':
-        return <Badge className="bg-green-600 text-white">Применено</Badge>;
+        return <Badge className="bg-slate-600 text-slate-200">Применено</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-600 text-white">Ожидает</Badge>;
+        return <Badge className="bg-slate-600 text-slate-200">Ожидает</Badge>;
       case 'cancelled':
-        return <Badge className="bg-red-600 text-white">Отменено</Badge>;
+        return <Badge className="bg-slate-700 text-slate-300">Отменено</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -169,9 +168,9 @@ export default function PriceHistoryPage() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
+      <div className="w-full space-y-6 report-full-width">
         {/* Заголовок страницы */}
-        <div className="mb-6">
+        <div className="mb-6 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <h1 className="text-2xl font-semibold text-white">История цен</h1>
           <p className="text-slate-400 mt-2">
             {isNetworkOnly && "История изменений цен по торговой сети"}
@@ -183,6 +182,7 @@ export default function PriceHistoryPage() {
         {selectedNetwork && (
           <>
             {/* Фильтры */}
+            <div className="mx-4 md:mx-6 lg:mx-8">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
@@ -255,8 +255,10 @@ export default function PriceHistoryPage() {
                 </div>
               </CardContent>
             </Card>
+            </div>
 
             {/* Таблица истории */}
+            <div className="mx-4 md:mx-6 lg:mx-8">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
@@ -276,7 +278,7 @@ export default function PriceHistoryPage() {
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-blue-400 border-blue-400">
+                              <Badge className="bg-slate-600 text-slate-200">
                                 {record.fuelType}
                               </Badge>
                               <span className="text-xs text-slate-400">
@@ -337,7 +339,7 @@ export default function PriceHistoryPage() {
                   </div>
                 ) : (
                   // Desktop table layout
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto w-full">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-slate-700">
@@ -360,7 +362,7 @@ export default function PriceHistoryPage() {
                               <div className="text-sm text-slate-400">{record.time}</div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="text-blue-400 border-blue-400">
+                              <Badge className="bg-slate-600 text-slate-200">
                                 {record.fuelType}
                               </Badge>
                             </TableCell>
@@ -409,11 +411,13 @@ export default function PriceHistoryPage() {
                 )}
               </CardContent>
             </Card>
+            </div>
           </>
         )}
 
         {/* Сообщение о выборе сети */}
         {!selectedNetwork && (
+          <div className="mx-4 md:mx-6 lg:mx-8">
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-8 text-center">
               <Calendar className="w-12 h-12 text-slate-600 mx-auto mb-4" />
@@ -421,6 +425,7 @@ export default function PriceHistoryPage() {
               <p className="text-slate-400">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
             </CardContent>
           </Card>
+          </div>
         )}
       </div>
     </MainLayout>

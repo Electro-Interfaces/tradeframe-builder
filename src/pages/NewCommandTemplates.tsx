@@ -21,7 +21,8 @@ import {
   Globe,
   MapPin,
   Wrench,
-  Component
+  Component,
+  RefreshCw
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { 
@@ -33,6 +34,10 @@ import {
 import { newCommandTemplatesStore, TEMPLATE_SCOPE_OPTIONS, TEMPLATE_STATUS_OPTIONS } from "@/mock/newCommandTemplatesStore";
 import { currentNewTemplatesAPI } from "@/services/newConnectionsService";
 import { NewTemplateForm } from "@/components/templates/NewTemplateForm";
+import { 
+  tradingNetworkAPI, 
+  TradingNetworkAPIMethod 
+} from "@/services/tradingNetworkAPI";
 
 export default function NewCommandTemplates() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,6 +50,7 @@ export default function NewCommandTemplates() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [templates, setTemplates] = useState<NewCommandTemplate[]>([]);
   const [loading, setLoading] = useState(false);
+  const [updatingAPI, setUpdatingAPI] = useState(false);
 
   // Загружаем шаблоны при монтировании компонента
   React.useEffect(() => {
@@ -292,6 +298,100 @@ export default function NewCommandTemplates() {
     }
   };
 
+  const handleUpdateAPI = async () => {
+    setUpdatingAPI(true);
+    try {
+      // Получаем доступные API методы из торговой сети
+      const apiMethods = await tradingNetworkAPI.getAvailableAPIMethods();
+      
+      // Получаем существующие шаблоны
+      const existingTemplates = templates;
+      const existingAPINames = new Set(
+        existingTemplates
+          .filter(t => t.scope === 'network' && t.template_id.startsWith('api_'))
+          .map(t => t.template_id.toLowerCase())
+      );
+
+      // Находим новые методы, которых нет в существующих шаблонах
+      const newMethods = apiMethods.filter(method => {
+        const methodId = `api_${method.id}`.toLowerCase();
+        return !existingAPINames.has(methodId);
+      });
+
+      if (newMethods.length === 0) {
+        toast({
+          title: "API актуальное",
+          description: "Все доступные API методы уже добавлены в шаблоны команд.",
+        });
+        return;
+      }
+
+      // Создаем новые шаблоны для недостающих методов
+      let createdCount = 0;
+      for (const method of newMethods) {
+        try {
+          const templateData = {
+            template_id: `api_${method.id}`,
+            name: method.name,
+            description: method.description,
+            scope: 'network' as TemplateScope,
+            method: method.method,
+            mode: method.method === 'GET' ? 'pull' as TemplateMode : 'push' as TemplateMode,
+            endpoint: method.endpoint,
+            request_headers: {
+              'Authorization': 'Bearer {{JWT_TOKEN}}',
+              'Content-Type': 'application/json'
+            },
+            request_parameters: method.parameters.reduce((acc, param) => {
+              acc[param.name] = {
+                type: param.type,
+                required: param.required,
+                description: param.description,
+                default_value: param.type === 'number' ? '15' : undefined
+              };
+              return acc;
+            }, {} as Record<string, any>),
+            response_mapping: {},
+            version: '1.0.0',
+            status: 'active' as TemplateStatus,
+            is_system: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
+          await currentNewTemplatesAPI.create(templateData);
+          createdCount++;
+        } catch (error) {
+          console.error(`Failed to create template for method ${method.name}:`, error);
+        }
+      }
+
+      if (createdCount > 0) {
+        toast({
+          title: "API обновлено",
+          description: `Добавлено ${createdCount} новых шаблонов API команд из торговой сети.`,
+        });
+        loadTemplates(); // Перезагружаем список шаблонов
+      } else {
+        toast({
+          title: "Ошибка обновления",
+          description: "Не удалось добавить новые шаблоны API команд.",
+          variant: "destructive",
+        });
+      }
+
+    } catch (error) {
+      console.error('Failed to update API:', error);
+      toast({
+        title: "Ошибка обновления API",
+        description: error instanceof Error ? error.message : "Не удалось получить методы из торговой сети",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingAPI(false);
+    }
+  };
+
   return (
     <MainLayout>
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
@@ -316,27 +416,41 @@ export default function NewCommandTemplates() {
                   Всего: {filteredTemplates.length} из {templates.length}
                 </div>
               </div>
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
-                    disabled={loading}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Создать шаблон
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Создать новый шаблон API команды</DialogTitle>
-                  </DialogHeader>
-                  <NewTemplateForm
-                    mode="create"
-                    onSubmit={handleCreateTemplate}
-                    onCancel={() => setIsCreateDialogOpen(false)}
-                  />
-                </DialogContent>
-              </Dialog>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleUpdateAPI}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                  disabled={loading || updatingAPI}
+                >
+                  {updatingAPI ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  {updatingAPI ? 'Обновление...' : 'Обновить API'}
+                </Button>
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                      disabled={loading}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Создать шаблон
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Создать новый шаблон API команды</DialogTitle>
+                    </DialogHeader>
+                    <NewTemplateForm
+                      mode="create"
+                      onSubmit={handleCreateTemplate}
+                      onCancel={() => setIsCreateDialogOpen(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
             
             {/* Фильтры */}

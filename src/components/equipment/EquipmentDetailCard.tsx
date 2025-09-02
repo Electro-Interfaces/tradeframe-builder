@@ -121,6 +121,9 @@ export function EquipmentDetailCard({
   const [events, setEvents] = useState<EquipmentEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Состояние для параметров резервуара (отдельно от основной формы)
+  const [tankParams, setTankParams] = useState<Record<string, any>>({});
 
   const form = useForm<UpdateEquipmentFormData>({
     resolver: zodResolver(updateEquipmentSchema),
@@ -142,6 +145,12 @@ export function EquipmentDetailCard({
           ? new Date(equipment.installation_date) 
           : undefined,
       });
+      
+      // Инициализируем параметры резервуара
+      if (equipment.system_type === "fuel_tank" && equipment.params) {
+        setTankParams(equipment.params);
+      }
+      
       setIsEditing(false);
     }
   }, [open, equipment, form]);
@@ -170,6 +179,10 @@ export function EquipmentDetailCard({
         serial_number: data.serial_number || undefined,
         external_id: data.external_id || undefined,
         installation_date: data.installation_date?.toISOString(),
+        // Если это топливный резервуар, включаем обновленные параметры
+        ...(equipment.system_type === "fuel_tank" && {
+          params: tankParams
+        })
       };
 
       await onUpdate(equipment.id, updateData);
@@ -211,11 +224,9 @@ export function EquipmentDetailCard({
                   <div className={`w-2 h-2 rounded-full ${getStatusColor(equipment.status)}`} />
                   {getStatusText(equipment.status)}
                 </Badge>
-                {equipment.template && (
-                  <Badge variant="outline">
-                    {equipment.template.name}
-                  </Badge>
-                )}
+                <Badge variant="outline">
+                  {equipment.name}
+                </Badge>
                 {equipment.serial_number && (
                   <span className="text-sm text-muted-foreground">
                     SN: {equipment.serial_number}
@@ -446,48 +457,452 @@ export function EquipmentDetailCard({
                 </CardContent>
               </Card>
 
-              {/* Информация о шаблоне */}
-              {equipment.template && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Шаблон оборудования</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">
-                            Название
-                          </Label>
-                          <p className="mt-1">{equipment.template.name}</p>
-                        </div>
-
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">
-                            Технический код
-                          </Label>
-                          <p className="mt-1">{equipment.template.technical_code}</p>
-                        </div>
+              {/* Информация об оборудовании */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Технические характеристики</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          Название
+                        </Label>
+                        <p className="mt-1">{equipment.name}</p>
                       </div>
 
-                      <div className="space-y-4">
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">
-                            Тип системы
-                          </Label>
-                          <p className="mt-1">{equipment.template.system_type}</p>
-                        </div>
-
-                        {equipment.template.description && (
-                          <div>
-                            <Label className="text-sm font-medium text-muted-foreground">
-                              Описание
-                            </Label>
-                            <p className="mt-1 text-sm">{equipment.template.description}</p>
-                          </div>
-                        )}
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          Тип системы
+                        </Label>
+                        <p className="mt-1">{equipment.system_type}</p>
                       </div>
                     </div>
+
+                    <div className="space-y-4">
+                      {equipment.created_from_template && (
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Шаблон
+                          </Label>
+                          <p className="mt-1">Шаблон #{equipment.created_from_template}</p>
+                        </div>
+                      )}
+
+                      {equipment.external_id && (
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">
+                            Внешний ID
+                          </Label>
+                          <p className="mt-1">{equipment.external_id}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Параметры резервуара - только для fuel_tank */}
+              {equipment.system_type === "fuel_tank" && equipment.params && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Параметры резервуара</CardTitle>
+                    <CardDescription>
+                      Настройки и характеристики резервуара
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isEditing ? (
+                      <div className="space-y-6">
+                        {/* Форма редактирования параметров резервуара */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* Базовые характеристики */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-semibold text-slate-700">Базовые характеристики</h4>
+                            <div className="space-y-3">
+                              <div>
+                                <Label className="text-sm font-medium">Тип топлива</Label>
+                                <Input
+                                  value={tankParams.fuelType || ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, fuelType: e.target.value}))}
+                                  placeholder="Например: АИ-95, ДТ"
+                                />
+                              </div>
+                              
+                              <div>
+                                <Label className="text-sm font-medium">Объем резервуара (л)</Label>
+                                <Input
+                                  type="number"
+                                  value={tankParams.capacityLiters || ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, capacityLiters: Number(e.target.value)}))}
+                                  placeholder="10000"
+                                />
+                              </div>
+
+                              <div>
+                                <Label className="text-sm font-medium">Текущий уровень (л)</Label>
+                                <Input
+                                  type="number"
+                                  value={tankParams.currentLevelLiters || ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, currentLevelLiters: Number(e.target.value)}))}
+                                  placeholder="5000"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label className="text-sm font-medium">Мин. уровень (%)</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={tankParams.minLevelPercent || ""}
+                                    onChange={(e) => setTankParams(prev => ({...prev, minLevelPercent: Number(e.target.value)}))}
+                                    placeholder="10"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm font-medium">Крит. уровень (%)</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={tankParams.criticalLevelPercent || ""}
+                                    onChange={(e) => setTankParams(prev => ({...prev, criticalLevelPercent: Number(e.target.value)}))}
+                                    placeholder="5"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Физические параметры */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-semibold text-slate-700">Физические параметры</h4>
+                            <div className="space-y-3">
+                              <div>
+                                <Label className="text-sm font-medium">Температура (°C)</Label>
+                                <Input
+                                  type="number"
+                                  value={tankParams.temperature !== null && tankParams.temperature !== undefined ? tankParams.temperature : ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, temperature: e.target.value ? Number(e.target.value) : null}))}
+                                  placeholder="15"
+                                />
+                              </div>
+                              
+                              <div>
+                                <Label className="text-sm font-medium">Уровень воды (мм)</Label>
+                                <Input
+                                  type="number"
+                                  value={tankParams.waterLevelMm !== null && tankParams.waterLevelMm !== undefined ? tankParams.waterLevelMm : ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, waterLevelMm: e.target.value ? Number(e.target.value) : null}))}
+                                  placeholder="0"
+                                />
+                              </div>
+
+                              <div>
+                                <Label className="text-sm font-medium">Плотность</Label>
+                                <Input
+                                  type="number"
+                                  step="0.001"
+                                  value={tankParams.density || ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, density: e.target.value ? Number(e.target.value) : null}))}
+                                  placeholder="0.740"
+                                />
+                              </div>
+
+                              <div>
+                                <Label className="text-sm font-medium">Материал</Label>
+                                <Input
+                                  value={tankParams.material || ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, material: e.target.value}))}
+                                  placeholder="Сталь, Алюминий"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Статус и местоположение */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-semibold text-slate-700">Статус и местоположение</h4>
+                            <div className="space-y-3">
+                              <div>
+                                <Label className="text-sm font-medium">Статус</Label>
+                                <select 
+                                  className="w-full p-2 border border-input rounded-md"
+                                  value={tankParams.status || ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, status: e.target.value}))}
+                                >
+                                  <option value="">Выберите статус</option>
+                                  <option value="active">Активен</option>
+                                  <option value="maintenance">Техобслуживание</option>
+                                  <option value="offline">Не в сети</option>
+                                </select>
+                              </div>
+                              
+                              <div>
+                                <Label className="text-sm font-medium">Местоположение</Label>
+                                <Input
+                                  value={tankParams.location || ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, location: e.target.value}))}
+                                  placeholder="Резервуарный парк #1"
+                                />
+                              </div>
+
+                              <div>
+                                <Label className="text-sm font-medium">Поставщик</Label>
+                                <Input
+                                  value={tankParams.supplier || ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, supplier: e.target.value}))}
+                                  placeholder="ООО Поставщик"
+                                />
+                              </div>
+
+                              <div>
+                                <Label className="text-sm font-medium">Последняя калибровка</Label>
+                                <Input
+                                  type="date"
+                                  value={tankParams.lastCalibration || ""}
+                                  onChange={(e) => setTankParams(prev => ({...prev, lastCalibration: e.target.value}))}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Пороговые значения */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-semibold text-slate-700">Пороговые значения</h4>
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label className="text-sm font-medium">Мин. температура (°C)</Label>
+                                  <Input
+                                    type="number"
+                                    value={tankParams.thresholds?.criticalTemp?.min || ""}
+                                    onChange={(e) => setTankParams(prev => ({
+                                      ...prev, 
+                                      thresholds: {
+                                        ...prev.thresholds,
+                                        criticalTemp: {
+                                          ...prev.thresholds?.criticalTemp,
+                                          min: e.target.value ? Number(e.target.value) : null
+                                        }
+                                      }
+                                    }))}
+                                    placeholder="-10"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-sm font-medium">Макс. температура (°C)</Label>
+                                  <Input
+                                    type="number"
+                                    value={tankParams.thresholds?.criticalTemp?.max || ""}
+                                    onChange={(e) => setTankParams(prev => ({
+                                      ...prev, 
+                                      thresholds: {
+                                        ...prev.thresholds,
+                                        criticalTemp: {
+                                          ...prev.thresholds?.criticalTemp,
+                                          max: e.target.value ? Number(e.target.value) : null
+                                        }
+                                      }
+                                    }))}
+                                    placeholder="50"
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <Label className="text-sm font-medium">Макс. уровень воды (мм)</Label>
+                                <Input
+                                  type="number"
+                                  value={tankParams.thresholds?.maxWaterLevel || ""}
+                                  onChange={(e) => setTankParams(prev => ({
+                                    ...prev, 
+                                    thresholds: {
+                                      ...prev.thresholds,
+                                      maxWaterLevel: e.target.value ? Number(e.target.value) : null
+                                    }
+                                  }))}
+                                  placeholder="10"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Режим просмотра - без изменений */}
+                        {/* Базовые характеристики */}
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-semibold text-slate-700">Базовые характеристики</h4>
+                          <div className="space-y-3">
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Тип топлива
+                              </Label>
+                              <p className="mt-1">{equipment.params.fuelType || "—"}</p>
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Объем резервуара (л)
+                              </Label>
+                              <p className="mt-1">{equipment.params.capacityLiters?.toLocaleString() || "—"}</p>
+                            </div>
+
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Текущий уровень (л)
+                              </Label>
+                              <p className="mt-1">{equipment.params.currentLevelLiters?.toLocaleString() || "0"}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <Label className="text-sm font-medium text-muted-foreground">
+                                  Мин. уровень (%)
+                                </Label>
+                                <p className="mt-1">{equipment.params.minLevelPercent || "—"}</p>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium text-muted-foreground">
+                                  Крит. уровень (%)
+                                </Label>
+                                <p className="mt-1">{equipment.params.criticalLevelPercent || "—"}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Физические параметры */}
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-semibold text-slate-700">Физические параметры</h4>
+                          <div className="space-y-3">
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Температура (°C)
+                              </Label>
+                              <p className="mt-1">{equipment.params.temperature !== null && equipment.params.temperature !== undefined ? equipment.params.temperature : "—"}</p>
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Уровень воды (мм)
+                              </Label>
+                              <p className="mt-1">{equipment.params.waterLevelMm !== null && equipment.params.waterLevelMm !== undefined ? equipment.params.waterLevelMm : "—"}</p>
+                            </div>
+
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Плотность
+                              </Label>
+                              <p className="mt-1">{equipment.params.density || "—"}</p>
+                            </div>
+
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Материал
+                              </Label>
+                              <p className="mt-1">{equipment.params.material || "—"}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Статус и местоположение */}
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-semibold text-slate-700">Статус и местоположение</h4>
+                          <div className="space-y-3">
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Статус
+                              </Label>
+                              <p className="mt-1">
+                                <Badge variant={equipment.params.status === 'active' ? 'default' : 'secondary'}>
+                                  {equipment.params.status === 'active' ? 'Активен' : 
+                                   equipment.params.status === 'maintenance' ? 'Техобслуживание' :
+                                   equipment.params.status === 'offline' ? 'Не в сети' : equipment.params.status || '—'}
+                                </Badge>
+                              </p>
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Местоположение
+                              </Label>
+                              <p className="mt-1">{equipment.params.location || "—"}</p>
+                            </div>
+
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Поставщик
+                              </Label>
+                              <p className="mt-1">{equipment.params.supplier || "—"}</p>
+                            </div>
+
+                            <div>
+                              <Label className="text-sm font-medium text-muted-foreground">
+                                Последняя калибровка
+                              </Label>
+                              <p className="mt-1">{equipment.params.lastCalibration || "—"}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Пороговые значения и уведомления */}
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-semibold text-slate-700">Пороговые значения</h4>
+                          <div className="space-y-3">
+                            {equipment.params.thresholds && (
+                              <>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <Label className="text-sm font-medium text-muted-foreground">
+                                      Мин. температура (°C)
+                                    </Label>
+                                    <p className="mt-1">{equipment.params.thresholds.criticalTemp?.min || "—"}</p>
+                                  </div>
+                                  <div>
+                                    <Label className="text-sm font-medium text-muted-foreground">
+                                      Макс. температура (°C)
+                                    </Label>
+                                    <p className="mt-1">{equipment.params.thresholds.criticalTemp?.max || "—"}</p>
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-sm font-medium text-muted-foreground">
+                                    Макс. уровень воды (мм)
+                                  </Label>
+                                  <p className="mt-1">{equipment.params.thresholds.maxWaterLevel || "—"}</p>
+                                </div>
+                              </>
+                            )}
+                            
+                            {equipment.params.notifications && (
+                              <div>
+                                <Label className="text-sm font-medium text-muted-foreground">
+                                  Настройки уведомлений
+                                </Label>
+                                <div className="mt-2 flex gap-2 flex-wrap">
+                                  <Badge variant={equipment.params.notifications.enabled ? 'default' : 'secondary'}>
+                                    {equipment.params.notifications.enabled ? 'Включены' : 'Отключены'}
+                                  </Badge>
+                                  {equipment.params.notifications.drainAlerts && (
+                                    <Badge variant="outline">Слив</Badge>
+                                  )}
+                                  {equipment.params.notifications.levelAlerts && (
+                                    <Badge variant="outline">Уровень</Badge>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
@@ -498,7 +913,7 @@ export function EquipmentDetailCard({
           <TabsContent value="components" className="mt-6">
             <ComponentsTab 
               equipmentId={equipment.id}
-              equipmentTemplateId={equipment.template_id}
+              equipmentTemplateId={equipment.created_from_template}
               tradingPointId={equipment.trading_point_id}
             />
           </TabsContent>

@@ -15,6 +15,15 @@ export interface FuelNomenclature {
   name: string;
   internalCode: string;
   externalCodes: ExternalCodeMapping[];
+  // Поле для взаимодействия с API торговой сети
+  networkApiCode?: string;
+  networkApiSettings?: {
+    enabled: boolean;
+    endpoint?: string;
+    priority?: number;
+    lastSync?: Date;
+    syncStatus?: 'success' | 'error' | 'pending';
+  };
   description?: string;
   status: 'active' | 'archived';
   createdAt: Date;
@@ -27,6 +36,8 @@ export interface FuelNomenclatureFormData {
   networkId: string;
   name: string;
   internalCode: string;
+  networkApiCode?: string;
+  networkApiEnabled?: boolean;
   description?: string;
   status: 'active' | 'archived';
   externalCodes: Omit<ExternalCodeMapping, 'id' | 'nomenclatureId' | 'createdAt' | 'updatedAt'>[];

@@ -111,31 +111,31 @@ export default function ShiftReports() {
       case "synchronized": 
         return { 
           label: "Синхронизирован", 
-          color: "bg-green-100 text-green-800 border-green-200",
+          color: "bg-green-500/10 text-green-400 border-green-500",
           icon: CheckCircle
         };
       case "closed": 
         return { 
           label: "Закрыт", 
-          color: "bg-blue-100 text-blue-800 border-blue-200",
+          color: "bg-blue-500/10 text-blue-400 border-blue-500",
           icon: StopCircle
         };
       case "draft": 
         return { 
           label: "Черновик", 
-          color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+          color: "bg-yellow-500/10 text-yellow-400 border-yellow-500",
           icon: Clock
         };
       case "archived": 
         return { 
           label: "Архив", 
-          color: "bg-gray-100 text-gray-800 border-gray-200",
+          color: "bg-slate-500/10 text-slate-400 border-slate-500",
           icon: FileX
         };
       default: 
         return { 
           label: "Неизвестно", 
-          color: "bg-gray-100 text-gray-800 border-gray-200",
+          color: "bg-slate-500/10 text-slate-400 border-slate-500",
           icon: FileText
         };
     }
@@ -213,14 +213,17 @@ export default function ShiftReports() {
         </div>
 
         {/* Панель фильтров */}
-        <div className="bg-slate-800 mb-6 w-full rounded-lg">
+        <div className="bg-slate-800 mb-6 w-full rounded-lg border border-slate-700">
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                   <FileText className="w-4 h-4 text-white" />
                 </div>
                 <h2 className="text-lg font-semibold text-white">История смен</h2>
+                <div className="text-sm text-slate-400">
+                  Всего: {filteredReports.length} из {shiftReports.length}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button 
@@ -382,16 +385,16 @@ export default function ShiftReports() {
               {/* Десктоп: таблица */}
               <div className="hidden md:block w-full">
                 <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-700">
+                  <table className="w-full text-sm min-w-full table-fixed">
+                    <thead className="bg-slate-700/80">
                       <tr>
-                        <th className="px-4 py-3 text-left text-slate-200 font-medium">СМЕНА</th>
-                        <th className="px-4 py-3 text-left text-slate-200 font-medium">ЗАКРЫТА</th>
-                        <th className="px-4 py-3 text-left text-slate-200 font-medium">ОПЕРАТОР</th>
-                        <th className="px-4 py-3 text-left text-slate-200 font-medium">ВЫРУЧКА</th>
-                        <th className="px-4 py-3 text-left text-slate-200 font-medium">ОТПУСК</th>
-                        <th className="px-4 py-3 text-left text-slate-200 font-medium">СТАТУС</th>
-                        <th className="px-4 py-3 text-right text-slate-200 font-medium">ДЕЙСТВИЯ</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>СМЕНА</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>ЗАКРЫТА</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>ОПЕРАТОР</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>ВЫРУЧКА</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '10%'}}>ОТПУСК</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>СТАТУС</th>
+                        <th className="px-6 py-4 text-right text-slate-100 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
                       </tr>
                     </thead>
                     <tbody className="bg-slate-800">
@@ -400,36 +403,36 @@ export default function ShiftReports() {
                         const StatusIcon = statusInfo.icon;
                         
                         return (
-                          <tr key={report.id} className="border-b border-slate-600 hover:bg-slate-700 transition-colors">
-                            <td className="px-4 py-4">
-                              <div className="font-medium text-white">№{report.shiftNumber}</div>
-                              <div className="text-xs text-slate-400">{report.receiptCount} чеков</div>
+                          <tr key={report.id} className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors">
+                            <td className="px-4 md:px-6 py-4">
+                              <div className="font-medium text-white text-base">№{report.shiftNumber}</div>
+                              <div className="text-sm text-slate-400">{report.receiptCount} чеков</div>
                             </td>
-                            <td className="px-4 py-4">
+                            <td className="px-4 md:px-6 py-4">
                               <div className="text-white">{report.closedAt ? formatDate(report.closedAt) : '—'}</div>
                             </td>
-                            <td className="px-4 py-4">
+                            <td className="px-4 md:px-6 py-4">
                               <div className="flex items-center gap-2">
                                 <User className="w-4 h-4 text-slate-400" />
                                 <span className="text-white">{report.operator}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-4">
+                            <td className="px-4 md:px-6 py-4">
                               <div className="font-medium text-white">{formatPrice(report.totalRevenue)}</div>
-                              <div className="text-xs text-slate-400">
+                              <div className="text-sm text-slate-400">
                                 Нал: {formatPrice(report.payments.cash)}
                               </div>
                             </td>
-                            <td className="px-4 py-4">
+                            <td className="px-4 md:px-6 py-4">
                               <div className="text-white">{formatVolume(report.totalVolume)}</div>
                             </td>
-                            <td className="px-4 py-4">
+                            <td className="px-4 md:px-6 py-4">
                               <Badge className={`${statusInfo.color} flex items-center gap-1 w-fit`}>
                                 <StatusIcon className="w-3 h-3" />
                                 {statusInfo.label}
                               </Badge>
                             </td>
-                            <td className="px-4 py-4 text-right">
+                            <td className="px-6 py-4 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <Button 
                                   variant="ghost" 
@@ -458,7 +461,7 @@ export default function ShiftReports() {
               </div>
 
               {/* Мобайл: карточки */}
-              <div className="md:hidden space-y-3 px-4 pb-6">
+              <div className="md:hidden space-y-3 px-6 pb-6">
                 {filteredReports.map((report) => {
                   const statusInfo = getStatusInfo(report.status);
                   const StatusIcon = statusInfo.icon;
@@ -469,7 +472,7 @@ export default function ShiftReports() {
                       className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="font-medium text-white text-base mb-1">Смена №{report.shiftNumber}</div>
                           <div className="text-sm text-slate-400 mb-1">{report.operator}</div>
                           <div className="text-sm text-slate-400">{report.closedAt ? formatDate(report.closedAt) : formatDate(report.openedAt)}</div>
@@ -491,24 +494,28 @@ export default function ShiftReports() {
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="flex-1 h-8 text-slate-400 hover:text-white"
-                          onClick={() => handleViewReport(report)}
-                        >
-                          <Eye className="h-3 w-3 mr-2" />
-                          Просмотр
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
-                          onClick={() => handleExportReport(report)}
-                        >
-                          <Download className="h-3 w-3" />
-                        </Button>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="flex-1 h-8 text-slate-400 hover:text-white"
+                            onClick={() => handleViewReport(report)}
+                          >
+                            <Eye className="h-3 w-3 mr-2" />
+                            Просмотр
+                          </Button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-9 w-9 p-0 text-slate-400 hover:text-white"
+                            onClick={() => handleExportReport(report)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );

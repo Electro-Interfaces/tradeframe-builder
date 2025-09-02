@@ -1,84 +1,71 @@
 import { ComponentTemplate, ComponentTemplateId } from '@/types/componentTemplate';
 import { PersistentStorage } from '@/utils/persistentStorage';
 
-// Начальные данные шаблонов компонентов
+// Шаблоны компонентов для POS-терминалов согласно API торговой сети
 const initialComponentTemplates: ComponentTemplate[] = [
-  // Компоненты резервуара
   {
     id: "1",
-    name: "Датчик уровня",
-    code: "CMP_RES_LEVEL",
-    description: "Датчик измерения уровня топлива в резервуаре",
-    systemType: "SENSOR",
-    statusValues: ["OK", "WARNING", "ERROR", "OFFLINE"],
+    name: "Картридер топливных карт",
+    code: "CMP_TSO_FUELCR",
+    description: "Картридер для чтения топливных карт в POS-терминале",
+    systemType: "PAYMENT",
+    statusValues: ["OK", "CARD_ERROR", "READER_ERROR", "OFFLINE"],
     isActive: true,
     created_at: new Date('2024-01-01').toISOString(),
     updated_at: new Date('2024-01-01').toISOString()
   },
   {
     id: "2",
-    name: "Датчик температуры",
-    code: "CMP_RES_TEMP", 
-    description: "Датчик измерения температуры топлива в резервуаре",
-    systemType: "SENSOR",
-    statusValues: ["OK", "WARNING", "ERROR", "OFFLINE"],
+    name: "Картридер банковских карт",
+    code: "CMP_TSO_BANKCR",
+    description: "Картридер для банковских карт с поддержкой NFC",
+    systemType: "PAYMENT",
+    statusValues: ["OK", "CARD_ERROR", "NFC_ERROR", "PIN_ERROR", "OFFLINE"],
     isActive: true,
     created_at: new Date('2024-01-01').toISOString(),
     updated_at: new Date('2024-01-01').toISOString()
   },
   {
     id: "3",
-    name: "Датчик товарной воды",
-    code: "CMP_RES_WATER",
-    description: "Датчик контроля наличия воды в топливе",
-    systemType: "SENSOR",
-    statusValues: ["OK", "WARNING", "ERROR", "OFFLINE"],
+    name: "Фискальный регистратор",
+    code: "CMP_TSO_KKT",
+    description: "Фискальный регистратор для печати чеков и отправки данных в ОФД",
+    systemType: "FISCAL",
+    statusValues: ["OK", "FISCAL_ERROR", "OFD_ERROR", "PAPER_ERROR", "OFFLINE"],
     isActive: true,
     created_at: new Date('2024-01-01').toISOString(),
     updated_at: new Date('2024-01-01').toISOString()
   },
   {
     id: "4",
-    name: "Датчик утечки",
-    code: "CMP_RES_LEAK",
-    description: "Датчик обнаружения утечки топлива из резервуара",
-    systemType: "SENSOR", 
-    statusValues: ["OK", "LEAK_DETECTED", "ERROR", "OFFLINE"],
+    name: "Купюроприёмник",
+    code: "CMP_TSO_CASHIN",
+    description: "Купюроприёмник для приёма наличных платежей",
+    systemType: "PAYMENT",
+    statusValues: ["OK", "CASH_ERROR", "JAM_ERROR", "FULL_ERROR", "OFFLINE"],
     isActive: true,
     created_at: new Date('2024-01-01').toISOString(),
     updated_at: new Date('2024-01-01').toISOString()
   },
-  // Компоненты терминала самообслуживания
   {
     id: "5",
-    name: "Сенсорный экран",
-    code: "CMP_SELFSERV_SCREEN",
-    description: "Сенсорный экран терминала самообслуживания",
-    systemType: "INTERFACE",
-    statusValues: ["OK", "TOUCH_ERROR", "DISPLAY_ERROR", "OFFLINE"],
-    isActive: true,
-    created_at: new Date('2024-01-01').toISOString(),
-    updated_at: new Date('2024-01-01').toISOString()
-  },
-  {
-    id: "6",
-    name: "Терминал оплаты",
-    code: "CMP_SELFSERV_PAYMENT",
-    description: "Терминал оплаты картами и наличными",
+    name: "МПС-ридер",
+    code: "CMP_TSO_MPSR",
+    description: "Ридер мобильных платёжных систем (NFC, QR-код, Apple Pay, Google Pay)",
     systemType: "PAYMENT",
-    statusValues: ["OK", "CARD_ERROR", "CASH_ERROR", "OFFLINE"],
+    statusValues: ["OK", "NFC_ERROR", "QR_ERROR", "CONNECTION_ERROR", "OFFLINE"],
     isActive: true,
     created_at: new Date('2024-01-01').toISOString(),
     updated_at: new Date('2024-01-01').toISOString()
   }
 ];
 
-// Загружаем данные из localStorage
-let componentTemplatesData: ComponentTemplate[] = PersistentStorage.load<ComponentTemplate>('component_templates', initialComponentTemplates);
+// Загружаем данные из localStorage (используем новый ключ для принудительного обновления)
+let componentTemplatesData: ComponentTemplate[] = PersistentStorage.load<ComponentTemplate>('component_templates_v2', initialComponentTemplates);
 
 // Функция для сохранения изменений
 const saveComponentTemplates = () => {
-  PersistentStorage.save('component_templates', componentTemplatesData);
+  PersistentStorage.save('component_templates_v2', componentTemplatesData);
 };
 
 // API для работы с шаблонами компонентов

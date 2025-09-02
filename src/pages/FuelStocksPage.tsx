@@ -178,31 +178,31 @@ export default function FuelStocksPage() {
   const getStatusBadge = (status: string, percentage: number) => {
     switch (status) {
       case 'normal':
-        return <Badge className="bg-green-600 text-white">Норма</Badge>;
+        return <Badge className="bg-slate-600 text-slate-200">Норма</Badge>;
       case 'low':
-        return <Badge className="bg-yellow-600 text-white">Низкий</Badge>;
+        return <Badge className="bg-slate-600 text-slate-200">Низкий</Badge>;
       case 'critical':
-        return <Badge className="bg-red-600 text-white">Критичный</Badge>;
+        return <Badge className="bg-slate-700 text-slate-300">Критичный</Badge>;
       case 'overfill':
-        return <Badge className="bg-purple-600 text-white">Переполнение</Badge>;
+        return <Badge className="bg-slate-700 text-slate-300">Переполнение</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
   const getPercentageColor = (percentage: number) => {
-    if (percentage >= 50) return "text-green-400";
-    if (percentage >= 20) return "text-yellow-400";
-    return "text-red-400";
+    if (percentage >= 50) return "text-slate-300";
+    if (percentage >= 20) return "text-slate-300";
+    return "text-slate-400";
   };
 
   const formatVolume = (volume: number) => volume.toLocaleString('ru-RU') + " л";
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
+      <div className="w-full space-y-6 report-full-width">
         {/* Заголовок страницы */}
-        <div className="mb-6">
+        <div className="mb-6 px-4 md:px-6 lg:px-8">
           <h1 className="text-2xl font-semibold text-white">Остатки топлива</h1>
           <p className="text-slate-400 mt-2">
             {isNetworkOnly && "Отчет по остаткам топлива торговой сети"}
@@ -214,6 +214,7 @@ export default function FuelStocksPage() {
         {selectedNetwork && (
           <>
             {/* Фильтры */}
+            <div className="report-margins">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
@@ -270,8 +271,10 @@ export default function FuelStocksPage() {
 
               </CardContent>
             </Card>
+            </div>
 
             {/* KPI - Объемы топлива */}
+            <div className="report-margins">
             <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'}`}>
               {fuelKpis.map(({ fuelType, volume }) => (
                 <Card key={fuelType} className="bg-slate-800 border-slate-700">
@@ -279,7 +282,7 @@ export default function FuelStocksPage() {
                     <CardTitle className="text-sm font-medium text-slate-200">
                       {fuelType}
                     </CardTitle>
-                    <Fuel className="h-4 w-4 text-blue-400" />
+                    <Fuel className="h-4 w-4 text-slate-400" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-white">
@@ -301,8 +304,10 @@ export default function FuelStocksPage() {
                 </Card>
               )}
             </div>
+            </div>
 
             {/* Таблица остатков */}
+            <div className="report-margins">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
@@ -322,19 +327,19 @@ export default function FuelStocksPage() {
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Gauge className="w-4 h-4 text-blue-400" />
+                              <Gauge className="w-4 h-4 text-slate-400" />
                               <span className="font-medium text-white">{record.tankNumber}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              {record.status === 'critical' && <AlertTriangle className="w-4 h-4 text-red-400" />}
-                              {record.status === 'low' && <Droplets className="w-4 h-4 text-yellow-400" />}
+                              {record.status === 'critical' && <AlertTriangle className="w-4 h-4 text-slate-400" />}
+                              {record.status === 'low' && <Droplets className="w-4 h-4 text-slate-400" />}
                               {getStatusBadge(record.status, record.percentage)}
                             </div>
                           </div>
                         </CardHeader>
                         <CardContent className="pt-0 space-y-3">
                           <div className="flex items-center justify-between">
-                            <Badge variant="outline" className="text-blue-400 border-blue-400">
+                            <Badge className="bg-slate-600 text-slate-200">
                               {record.fuelType}
                             </Badge>
                             <span className="text-xs text-slate-400">{record.lastUpdated}</span>
@@ -358,8 +363,8 @@ export default function FuelStocksPage() {
                               <div className="w-full bg-slate-600 rounded-full h-2 overflow-hidden">
                                 <div 
                                   className={`h-full ${
-                                    record.percentage >= 50 ? 'bg-green-500' :
-                                    record.percentage >= 20 ? 'bg-yellow-500' : 'bg-red-500'
+                                    record.percentage >= 50 ? 'bg-slate-400' :
+                                    record.percentage >= 20 ? 'bg-slate-500' : 'bg-slate-600'
                                   }`}
                                   style={{ width: `${Math.min(record.percentage, 100)}%` }}
                                 />
@@ -396,7 +401,7 @@ export default function FuelStocksPage() {
                   </div>
                 ) : (
                   // Desktop table layout
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto w-full">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-slate-700">
@@ -417,7 +422,7 @@ export default function FuelStocksPage() {
                           <TableRow key={record.id} className="border-slate-700 hover:bg-slate-700/50">
                             <TableCell className="text-white font-medium">
                               <div className="flex items-center gap-2">
-                                <Gauge className="w-4 h-4 text-blue-400" />
+                                <Gauge className="w-4 h-4 text-slate-400" />
                                 {record.tankNumber}
                               </div>
                             </TableCell>
@@ -485,11 +490,13 @@ export default function FuelStocksPage() {
                 )}
               </CardContent>
             </Card>
+            </div>
           </>
         )}
 
         {/* Сообщение о выборе сети */}
         {!selectedNetwork && (
+          <div className="report-margins">
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-8 text-center">
               <Fuel className="w-12 h-12 text-slate-600 mx-auto mb-4" />
@@ -497,6 +504,7 @@ export default function FuelStocksPage() {
               <p className="text-slate-400">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
             </CardContent>
           </Card>
+          </div>
         )}
       </div>
     </MainLayout>

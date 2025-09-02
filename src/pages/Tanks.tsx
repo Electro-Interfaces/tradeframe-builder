@@ -19,6 +19,8 @@ import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth, usePermissions } from "@/contexts/AuthContext";
 import { useSelection } from "@/context/SelectionContext";
+import { currentEquipmentAPI } from "@/services/equipment";
+import { Equipment } from "@/types/equipment";
 import { 
   Gauge, 
   Plus, 
@@ -430,6 +432,12 @@ export default function Tanks() {
     source: '',
     searchTerm: ''
   });
+  
+  // Состояния для синхронизации с оборудованием
+  const [tanks, setTanks] = useState(mockTanks);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  
   const isMobile = useIsMobile();
 
 
@@ -440,6 +448,105 @@ export default function Tanks() {
   const calibrationForm = useForm<CalibrationData>({
     resolver: zodResolver(calibrationSchema)
   });
+
+  // Загружаем оборудование при смене торговой точки
+  useEffect(() => {
+    const loadEquipment = async () => {
+      if (!selectedTradingPoint) {
+        setEquipment([]);
+        setTanks([]);
+        return;
+      }
+
+      setSyncing(true);
+      try {
+        // Загружаем оборудование для торговой точки
+        const response = await currentEquipmentAPI.list({
+          trading_point_id: selectedTradingPoint
+        });
+        
+        setEquipment(response.data);
+
+        // Синхронизируем резервуары с оборудованием
+        await syncTanksWithEquipment(response.data);
+        
+      } catch (error) {
+        console.error('Ошибка при загрузке оборудования:', error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить данные оборудования",
+          variant: "destructive"
+        });
+      } finally {
+        setSyncing(false);
+      }
+    };
+
+    loadEquipment();
+  }, [selectedTradingPoint]);
+
+  // Функция синхронизации резервуаров с оборудованием
+  const syncTanksWithEquipment = async (equipmentList: Equipment[]) => {
+    try {
+      // Находим оборудование типа резервуар
+      const tankEquipment = equipmentList.filter(eq => 
+        eq.system_type === 'fuel_tank' || 
+        eq.name.toLowerCase().includes('резервуар')
+      );
+
+      // Преобразуем оборудование в резервуары
+      const tanksFromEquipment = tankEquipment.map(eq => {
+        const {
+          fuelType = 'АИ-92',
+          currentLevelLiters = 0,
+          capacityLiters = 50000,
+          minLevelPercent = 20,
+          criticalLevelPercent = 10,
+          temperature = 15.0,
+          waterLevelMm = 0
+        } = eq.params;
+
+        return {
+          id: parseInt(eq.id.replace(/\D/g, '')) || Math.floor(Math.random() * 1000),
+          name: eq.display_name,
+          fuelType: fuelType,
+          currentLevelLiters: currentLevelLiters,
+          capacityLiters: capacityLiters,
+          minLevelPercent: minLevelPercent,
+          criticalLevelPercent: criticalLevelPercent,
+          temperature: temperature,
+          waterLevelMm: waterLevelMm,
+          sensors: [
+            { name: "Уровень", status: eq.status === 'online' ? 'ok' : 'error' },
+            { name: "Температура", status: eq.status === 'online' ? 'ok' : 'error' }
+          ],
+          lastCalibration: new Date().toLocaleDateString('ru-RU'),
+          linkedPumps: [],
+          notifications: {
+            enabled: true,
+            drainAlerts: true,
+            levelAlerts: true
+          },
+          thresholds: {
+            criticalTemp: { min: -10, max: 40 },
+            maxWaterLevel: 10,
+            notifications: {
+              critical: true,
+              minimum: true,
+              temperature: true,
+              water: true
+            }
+          },
+          equipmentId: eq.id // Связь с оборудованием
+        };
+      });
+
+      setTanks(tanksFromEquipment);
+
+    } catch (error) {
+      console.error('Ошибка при синхронизации резервуаров:', error);
+    }
+  };
 
   // Load tank events and calibration history on component mount
   useEffect(() => {
@@ -529,9 +636,16 @@ export default function Tanks() {
         }));
         
         // Update tank's last calibration
-        const tankIndex = mockTanks.findIndex(t => t.id === selectedTank.id);
+        const tankIndex = tanks.findIndex(t => t.id === selectedTank.id);
         if (tankIndex >= 0) {
-          mockTanks[tankIndex].lastCalibration = newCalibration.date;
+          setTanks(prev => {
+            const updated = [...prev];
+            updated[tankIndex] = {
+              ...updated[tankIndex],
+              lastCalibration: newCalibration.date
+            };
+            return updated;
+          });
         }
         
         toast({
@@ -560,19 +674,23 @@ export default function Tanks() {
       await mockAPI.updateTankSettings(selectedTank.id, data);
       
       // Update local state
-      const tankIndex = mockTanks.findIndex(t => t.id === selectedTank.id);
+      const tankIndex = tanks.findIndex(t => t.id === selectedTank.id);
       if (tankIndex >= 0) {
-        mockTanks[tankIndex] = {
-          ...mockTanks[tankIndex],
-          minLevelPercent: data.minLevelPercent,
-          criticalLevelPercent: data.criticalLevelPercent,
-          thresholds: {
-            ...mockTanks[tankIndex].thresholds,
-            criticalTemp: data.criticalTemp,
-            maxWaterLevel: data.maxWaterLevel,
-            notifications: data.notifications
-          }
-        };
+        setTanks(prev => {
+          const updated = [...prev];
+          updated[tankIndex] = {
+            ...updated[tankIndex],
+            minLevelPercent: data.minLevelPercent,
+            criticalLevelPercent: data.criticalLevelPercent,
+            thresholds: {
+              ...updated[tankIndex].thresholds,
+              criticalTemp: data.criticalTemp,
+              maxWaterLevel: data.maxWaterLevel,
+              notifications: data.notifications
+            }
+          };
+          return updated;
+        });
       }
       
       toast({
@@ -823,7 +941,21 @@ export default function Tanks() {
         </div>
 
         {/* Tanks Grid */}
-        {mockTanks.length === 0 ? (
+        {syncing ? (
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <Gauge className="h-16 w-16 text-blue-400 mx-auto mb-4 animate-spin" />
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Синхронизация с оборудованием...
+                </h3>
+                <p className="text-slate-400">
+                  Загружаем данные резервуаров из раздела "Оборудование"
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : tanks.length === 0 ? (
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="pt-6">
               <div className="text-center py-8">
@@ -840,7 +972,7 @@ export default function Tanks() {
           </Card>
         ) : (
           <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
-            {mockTanks.map((tank) => {
+            {tanks.map((tank) => {
               const percentage = getPercentage(tank.currentLevelLiters, tank.capacityLiters);
               
               return (
@@ -889,7 +1021,7 @@ export default function Tanks() {
                       <div className="flex-1 flex flex-col space-y-4">
                         {/* Temperature */}
                         <div className="flex items-center gap-3">
-                          <Thermometer className="h-5 w-5 text-orange-400 flex-shrink-0" />
+                          <Thermometer className="h-5 w-5 text-slate-400 flex-shrink-0" />
                           <div className="flex-1">
                             <div className="text-slate-400 text-sm">Температура</div>
                             <div className="font-semibold text-white">{tank.temperature} °C</div>
@@ -898,7 +1030,7 @@ export default function Tanks() {
                         
                         {/* Water Level */}
                         <div className="flex items-center gap-3">
-                          <Droplets className="h-5 w-5 text-cyan-400 flex-shrink-0" />
+                          <Droplets className="h-5 w-5 text-slate-400 flex-shrink-0" />
                           <div className="flex-1">
                             <div className="text-slate-400 text-sm">Подтоварная вода</div>
                             <div className="font-semibold text-white">{tank.waterLevelMm} мм</div>
@@ -912,9 +1044,9 @@ export default function Tanks() {
                               <TooltipTrigger asChild>
                                 <div className="flex items-center gap-3 cursor-help">
                                   {sensor.status === "ok" ? (
-                                    <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
+                                    <CheckCircle className="h-5 w-5 text-slate-400 flex-shrink-0" />
                                   ) : (
-                                    <XCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
+                                    <XCircle className="h-5 w-5 text-slate-400 flex-shrink-0" />
                                   )}
                                   <div className="flex-1">
                                     <div className="text-slate-400 text-sm">{sensor.name}</div>
@@ -935,7 +1067,7 @@ export default function Tanks() {
 
                         {/* Last Calibration */}
                         <div className="flex items-center gap-3">
-                          <Calendar className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                          <Calendar className="h-5 w-5 text-slate-400 flex-shrink-0" />
                           <div className="flex-1">
                             <div className="text-slate-400 text-sm">Последняя калибровка</div>
                             <div className="font-semibold text-white">{tank.lastCalibration}</div>
@@ -944,7 +1076,7 @@ export default function Tanks() {
 
                         {/* Linked Pumps */}
                         <div className="flex items-start gap-3">
-                          <Fuel className="h-5 w-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                          <Fuel className="h-5 w-5 text-slate-400 flex-shrink-0 mt-0.5" />
                           <div className="flex-1">
                             <div className="text-slate-400 text-sm">Привязанные ТРК ({tank.linkedPumps.length})</div>
                             <div className="flex flex-wrap gap-1 mt-1">
@@ -1061,7 +1193,7 @@ export default function Tanks() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-blue-400" />
+                <Settings className="h-5 w-5 text-slate-400" />
                 Настройки резервуара
               </DialogTitle>
             </DialogHeader>
@@ -1071,7 +1203,7 @@ export default function Tanks() {
                   {/* Tank Info */}
                   <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
                     <div className="flex items-center gap-3">
-                      <Gauge className="h-5 w-5 text-blue-400" />
+                      <Gauge className="h-5 w-5 text-slate-400" />
                       <span className="font-semibold text-white">{selectedTank.name}</span>
                       <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                         {selectedTank.fuelType}
@@ -1082,7 +1214,7 @@ export default function Tanks() {
                   {/* Level Settings */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Droplets className="h-5 w-5 text-blue-400" />
+                      <Droplets className="h-5 w-5 text-slate-400" />
                       Уровни топлива
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
@@ -1132,7 +1264,7 @@ export default function Tanks() {
                   {/* Temperature Settings */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Thermometer className="h-5 w-5 text-orange-400" />
+                      <Thermometer className="h-5 w-5 text-slate-400" />
                       Температурные пределы
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
@@ -1178,7 +1310,7 @@ export default function Tanks() {
                   {/* Water Level Settings */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Droplets className="h-5 w-5 text-blue-400" />
+                      <Droplets className="h-5 w-5 text-slate-400" />
                       Содержание воды
                     </h3>
                     <FormField
@@ -1205,7 +1337,7 @@ export default function Tanks() {
                   {/* Notification Settings */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Bell className="h-5 w-5 text-yellow-400" />
+                      <Bell className="h-5 w-5 text-slate-400" />
                       Уведомления
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
@@ -1317,7 +1449,7 @@ export default function Tanks() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5 text-blue-400" />
+                <Upload className="h-5 w-5 text-slate-400" />
                 Калибровка резервуара
               </DialogTitle>
             </DialogHeader>
@@ -1327,7 +1459,7 @@ export default function Tanks() {
                 {/* Tank Info */}
                 <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
                   <div className="flex items-center gap-3 mb-2">
-                    <Gauge className="h-5 w-5 text-blue-400" />
+                    <Gauge className="h-5 w-5 text-slate-400" />
                     <span className="font-semibold text-white">{selectedTank.name}</span>
                     <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                       {selectedTank.fuelType}

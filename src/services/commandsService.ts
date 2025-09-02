@@ -560,6 +560,77 @@ export const commandsAPI = {
     return filteredExecutions.sort((a, b) => 
       new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
     );
+  },
+
+  // Новые методы для поддержки команд уровня оборудования/компонентов
+  async create(request: import('@/types/commandTemplate').CreateCommandInstanceRequest): Promise<import('@/types/commandTemplate').CommandInstance> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    const instance: import('@/types/commandTemplate').CommandInstance = {
+      id: `cmd_inst_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: `Command ${request.templateId}`,
+      template_name: `Template ${request.templateId}`,
+      category: 'system' as any,
+      templateId: request.templateId,
+      targetType: request.targetType,
+      targetId: request.targetId,
+      parameters: request.parameters || {},
+      priority: request.priority || 'normal',
+      scheduledFor: request.scheduledFor || new Date().toISOString(),
+      status: 'pending',
+      params: request.parameters || {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Симуляция выполнения команды
+    setTimeout(() => {
+      instance.status = 'running';
+      setTimeout(() => {
+        const success = Math.random() > 0.1; // 90% успеха
+        instance.status = success ? 'completed' : 'failed';
+        if (!success) {
+          instance.error_message = 'Simulation error';
+        }
+        instance.completed_at = new Date().toISOString();
+      }, 2000 + Math.random() * 3000);
+    }, 500);
+
+    return instance;
+  },
+
+  async getHistory(params: {
+    targetType: 'equipment' | 'component';
+    targetId: string;
+    limit?: number;
+  }): Promise<import('@/types/commandTemplate').CommandInstance[]> {
+    await new Promise(resolve => setTimeout(resolve, 150));
+    
+    // Симуляция истории команд
+    const mockHistory: import('@/types/commandTemplate').CommandInstance[] = [];
+    const limit = params.limit || 10;
+    
+    for (let i = 0; i < Math.min(limit, 5); i++) {
+      const statuses = ['completed', 'failed', 'running'] as const;
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+      
+      mockHistory.push({
+        id: `hist_${params.targetId}_${i}`,
+        name: `History Command ${i + 1}`,
+        template_name: `Template Command ${i + 1}`,
+        category: 'system' as any,
+        templateId: `tpl_${i}`,
+        targetType: params.targetType,
+        targetId: params.targetId,
+        parameters: {},
+        status,
+        params: {},
+        created_at: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+        updated_at: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+      });
+    }
+    
+    return mockHistory;
   }
 };
 

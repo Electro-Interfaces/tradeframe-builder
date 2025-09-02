@@ -21,7 +21,8 @@ import {
   ChevronRight,
   Power,
   Trash2,
-  Layers3
+  Layers3,
+  Scan
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,8 @@ import { cn } from "@/lib/utils";
 import { EquipmentWizard } from "@/components/equipment/EquipmentWizard";
 import { EquipmentDetailCard } from "@/components/equipment/EquipmentDetailCard";
 import { EquipmentComponentsList } from "@/components/equipment/EquipmentComponentsList";
+import { EquipmentCommandsPanel } from "@/components/equipment/EquipmentCommandsPanel";
+import { EquipmentCommandsEditor } from "@/components/equipment/EquipmentCommandsEditor";
 
 // Типы и API
 import { 
@@ -47,6 +50,8 @@ import {
   ComponentHealthStatus
 } from "@/services/equipment";
 import { tradingPointsService } from "@/services/tradingPointsService";
+import { tradingPointScanService } from "@/services/tradingPointScanService";
+import { tanksService } from "@/services/tanksService";
 import ComponentHealthIndicator from "@/components/ui/ComponentHealthIndicator";
 import { Component } from "@/types/component";
 
@@ -106,6 +111,8 @@ export default function Equipment() {
   const [templates, setTemplates] = useState<EquipmentTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scanningTradingPoint, setScanningTradingPoint] = useState(false);
+  const [editingCommandsEquipmentId, setEditingCommandsEquipmentId] = useState<string | null>(null);
   
   
   // Модальные окна
@@ -234,7 +241,46 @@ export default function Equipment() {
   
   const handleUpdateEquipment = async (id: string, data: UpdateEquipmentRequest) => {
     try {
+      // Получаем текущие данные оборудования перед обновлением
+      const currentEquipment = equipment.find(eq => eq.id === id);
+      
+      // Обновляем оборудование
       await currentEquipmentAPI.update(id, data);
+      
+      // Если это топливный резервуар и были изменены параметры, синхронизируем с резервуарами
+      if (currentEquipment?.system_type === "fuel_tank" && data.params) {
+        try {
+          // Ищем связанный резервуар по названию оборудования
+          const tanks = await tanksService.getTanks();
+          const linkedTank = tanks.find(tank => 
+            tank.name === (data.display_name || currentEquipment.display_name)
+          );
+          
+          if (linkedTank) {
+            // Обновляем резервуар с новыми параметрами
+            await tanksService.updateTank(linkedTank.id, {
+              name: data.display_name || linkedTank.name,
+              fuelType: data.params.fuelType || linkedTank.fuelType,
+              currentLevelLiters: data.params.currentLevelLiters || linkedTank.currentLevelLiters,
+              capacityLiters: data.params.capacityLiters || linkedTank.capacityLiters,
+              minLevelPercent: data.params.minLevelPercent || linkedTank.minLevelPercent,
+              criticalLevelPercent: data.params.criticalLevelPercent || linkedTank.criticalLevelPercent,
+              temperature: data.params.temperature || linkedTank.temperature,
+              waterLevelMm: data.params.waterLevelMm || linkedTank.waterLevelMm,
+              density: data.params.density || linkedTank.density,
+              material: data.params.material || linkedTank.material,
+              status: data.params.status || linkedTank.status,
+              location: data.params.location || linkedTank.location,
+              supplier: data.params.supplier || linkedTank.supplier,
+              lastCalibration: data.params.lastCalibration || linkedTank.lastCalibration
+            });
+          }
+        } catch (tankError) {
+          console.warn('Failed to sync tank data:', tankError);
+          // Не блокируем основной процесс, только логируем предупреждение
+        }
+      }
+      
       toast({
         title: "Успех",
         description: "Оборудование успешно обновлено"
@@ -318,6 +364,91 @@ export default function Equipment() {
     });
   };
 
+  // Получение данных от торговой точки через торговое API
+  const handleScanTradingPoint = async () => {
+    if (!selectedTradingPointId) return;
+    
+    try {
+      setScanningTradingPoint(true);
+
+      toast({
+        title: "Запуск сканирования",
+        description: "Опрашиваем торговую точку через торговое API...",
+      });
+
+      // Сканируем торговую точку
+      const scanResult = await tradingPointScanService.scanTradingPoint(selectedTradingPointId);
+      
+      if (!scanResult.success) {
+        throw new Error(scanResult.errors?.join(', ') || 'Неизвестная ошибка сканирования');
+      }
+
+      if (scanResult.equipment_found.length === 0) {
+        toast({
+          title: "Сканирование завершено",
+          description: "Новое оборудование не найдено",
+        });
+        return;
+      }
+
+      toast({
+        title: "Найдено оборудование",
+        description: `Найдено ${scanResult.equipment_found.length} единиц оборудования. Добавляем к торговой точке...`,
+      });
+
+      // Добавляем найденное оборудование
+      const addResult = await tradingPointScanService.addDiscoveredEquipment(
+        selectedTradingPointId, 
+        scanResult.equipment_found
+      );
+
+      // Показываем результат
+      if (addResult.added.length > 0) {
+        const totalComponents = scanResult.components_found.length;
+        toast({
+          title: "Сканирование завершено успешно",
+          description: `Добавлено ${addResult.added.length} единиц оборудования и ${totalComponents} компонентов`,
+        });
+      }
+
+      // Показываем ошибки, если есть
+      if (addResult.errors.length > 0) {
+        console.warn('Ошибки при добавлении:', addResult.errors);
+        toast({
+          title: "Частичные ошибки",
+          description: `${addResult.errors.length} ошибок при добавлении. Смотрите консоль.`,
+          variant: "destructive",
+        });
+      }
+
+      // Обновляем список оборудования
+      loadEquipment();
+
+    } catch (error: any) {
+      console.error('Ошибка сканирования:', error);
+      toast({
+        title: "Ошибка сканирования",
+        description: error.message || "Не удалось опросить торговую точку",
+        variant: "destructive",
+      });
+    } finally {
+      setScanningTradingPoint(false);
+    }
+  };
+
+  // Обработчик редактирования команд
+  const handleEditCommands = (equipmentId: string) => {
+    setEditingCommandsEquipmentId(equipmentId);
+  };
+
+  const handleCloseCommandsEditor = () => {
+    setEditingCommandsEquipmentId(null);
+  };
+
+  const handleCommandsSaved = () => {
+    loadEquipment(); // Перезагружаем список оборудования
+  };
+
   // Если торговая точка не выбрана
   if (!selectedTradingPoint) {
     return (
@@ -344,14 +475,29 @@ export default function Equipment() {
                 {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
               </p>
             </div>
-            <Button 
-              size="sm" 
-              onClick={() => setIsWizardOpen(true)} 
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleScanTradingPoint}
+                disabled={scanningTradingPoint || loading}
+                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white text-xs"
+              >
+                {scanningTradingPoint ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Scan className="w-3 h-3" />
+                )}
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={() => setIsWizardOpen(true)} 
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
           
 
@@ -485,6 +631,14 @@ export default function Equipment() {
           onStatusChange={handleStatusChange}
           onLoadEvents={handleLoadEvents}
         />
+
+        {/* Редактор команд оборудования */}
+        <EquipmentCommandsEditor
+          open={!!editingCommandsEquipmentId}
+          onClose={handleCloseCommandsEditor}
+          equipment={equipment.find(eq => eq.id === editingCommandsEquipmentId)}
+          onSave={handleCommandsSaved}
+        />
       </MainLayout>
     );
   }
@@ -495,10 +649,29 @@ export default function Equipment() {
       <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
-          <p className="text-slate-400 mt-1">
-            {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
+              <p className="text-slate-400 mt-1">
+                {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={handleScanTradingPoint}
+                disabled={scanningTradingPoint || loading}
+                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+              >
+                {scanningTradingPoint ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Scan className="w-4 h-4 mr-2" />
+                )}
+                Получить данные от ТТ
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Секция оборудования */}
@@ -688,12 +861,29 @@ export default function Equipment() {
                           </td>
                         </tr>
                         
-                        {/* Раскрывающийся контент с компонентами */}
+                        {/* Раскрывающийся контент с управлением оборудованием и компонентами */}
                         {isExpanded && (
                           <tr>
                             <td colSpan={7} className="p-0">
                               <div className="bg-slate-900/50 border-l-4 border-blue-500/20 ml-6 mr-2 mb-2">
-                                <div className="p-6">
+                                <div className="space-y-4 p-6">
+                                  {/* Панель управления оборудованием */}
+                                  <EquipmentCommandsPanel 
+                                    equipment={item}
+                                    onRefresh={() => loadEquipment()}
+                                    onEditCommands={handleEditCommands}
+                                  />
+                                  
+                                  {/* Разделитель */}
+                                  <div className="border-t border-slate-700"></div>
+                                  
+                                  {/* Заголовок для компонентов */}
+                                  <div className="flex items-center gap-2">
+                                    <Layers3 className="w-5 h-5 text-slate-400" />
+                                    <h4 className="font-medium text-slate-100">Компоненты оборудования</h4>
+                                  </div>
+                                  
+                                  {/* Список компонентов */}
                                   <EquipmentComponentsList 
                                     equipmentId={item.id}
                                     onEditComponent={handleEditComponent}
@@ -732,6 +922,14 @@ export default function Equipment() {
         onUpdate={handleUpdateEquipment}
         onStatusChange={handleStatusChange}
         onLoadEvents={handleLoadEvents}
+      />
+
+      {/* Редактор команд оборудования */}
+      <EquipmentCommandsEditor
+        open={!!editingCommandsEquipmentId}
+        onClose={handleCloseCommandsEditor}
+        equipment={equipment.find(eq => eq.id === editingCommandsEquipmentId)}
+        onSave={handleCommandsSaved}
       />
     </MainLayout>
   );
