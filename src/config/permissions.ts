@@ -210,6 +210,60 @@ export const PERMISSION_SECTIONS: Record<string, PermissionSection> = {
         description: 'Удаленная помощь пользователям'
       }
     }
+  },
+
+  MENU_VISIBILITY: {
+    code: 'menu_visibility',
+    name: 'Видимость меню',
+    description: 'Контроль видимости разделов меню и навигации',
+    icon: 'Eye',
+    resources: {
+      NETWORKS_MENU: {
+        code: 'networks_menu',
+        name: 'Меню "Торговые сети"',
+        description: 'Видимость раздела торговых сетей в меню'
+      },
+      TRADING_POINT_MENU: {
+        code: 'trading_point_menu', 
+        name: 'Меню "Торговая точка"',
+        description: 'Видимость раздела торговой точки в меню'
+      },
+      ADMIN_MENU: {
+        code: 'admin_menu',
+        name: 'Меню "Администрирование"',
+        description: 'Видимость раздела администрирования в меню'
+      },
+      SETTINGS_MENU: {
+        code: 'settings_menu',
+        name: 'Меню "Настройки"',
+        description: 'Видимость раздела настроек в меню'
+      },
+      PRICES_MENU: {
+        code: 'prices_menu',
+        name: 'Подменю "Цены"',
+        description: 'Видимость пункта "Цены" в меню'
+      },
+      TANKS_MENU: {
+        code: 'tanks_menu',
+        name: 'Подменю "Резервуары"',
+        description: 'Видимость пункта "Резервуары" в меню'
+      },
+      EQUIPMENT_MENU: {
+        code: 'equipment_menu',
+        name: 'Подменю "Оборудование"',
+        description: 'Видимость пункта "Оборудование" в меню'
+      },
+      REPORTS_MENU: {
+        code: 'reports_menu',
+        name: 'Подменю "Отчеты"',
+        description: 'Видимость пунктов отчетов в меню'
+      },
+      ANALYTICS_MENU: {
+        code: 'analytics_menu',
+        name: 'Подменю "Аналитика"',
+        description: 'Видимость аналитических разделов в меню'
+      }
+    }
   }
 } as const
 

@@ -9,6 +9,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import AdminUsersAndRoles from "./pages/AdminUsersAndRoles";
 import AdminUsers from "./pages/AdminUsers";
 import NewUsersAndRoles from "./pages/admin/UsersAndRoles";
+import Users from "./pages/admin/Users";
+import Roles from "./pages/admin/Roles";
 import NetworksPage from "./pages/NetworksPage";
 import Nomenclature from "./pages/Nomenclature";
 import SalesAnalysisPage from "./pages/SalesAnalysisPage";
@@ -17,6 +19,8 @@ import EquipmentTypes from "./pages/EquipmentTypes";
 import ComponentTypes from "./pages/ComponentTypes";
 import Equipment from "./pages/Equipment";
 import Commands from "./pages/Commands";
+import CommandTemplates from "./pages/CommandTemplates";
+import NewCommandTemplates from "./pages/NewCommandTemplates";
 import Connections from "./pages/Connections";
 import Workflows from "./pages/Workflows";
 import NetworkOverview from "./pages/NetworkOverview";
@@ -31,6 +35,8 @@ import OperationsTransactionsPage from "./pages/OperationsTransactionsPage";
 import PriceHistoryPage from "./pages/PriceHistoryPage";
 import FuelStocksPage from "./pages/FuelStocksPage";
 import Profile from "./pages/Profile";
+import DatabaseSettings from "./pages/DatabaseSettings";
+import PartialMigrationSettings from "./pages/PartialMigrationSettings";
 import DataMigration from "./pages/DataMigration";
 import TestServices from "./pages/TestServices";
 import TestServicesSimple from "./pages/TestServicesSimple";
@@ -51,15 +57,20 @@ const App = () => (
           <BrowserRouter>
           <Routes>
           <Route path="/" element={<NetworkOverview />} />
-          <Route path="/admin/users-and-roles" element={<AdminUsersAndRoles />} />
+          <Route path="/admin/users-and-roles" element={<Users />} />
           <Route path="/admin/users-and-roles-new" element={<NewUsersAndRoles />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/roles" element={<Roles />} />
           <Route path="/admin/networks" element={<NetworksPage />} />
           <Route path="/admin/audit" element={<AuditLog />} />
           <Route path="/settings/dictionaries/equipment-types" element={<EquipmentTypes />} />
           <Route path="/settings/dictionaries/component-types" element={<ComponentTypes />} />
           <Route path="/settings/commands" element={<Commands />} />
+          <Route path="/settings/dictionaries/command-templates" element={<CommandTemplates />} />
+          <Route path="/settings/templates/command-templates" element={<NewCommandTemplates />} />
           <Route path="/settings/connections" element={<Connections />} />
+          <Route path="/settings/database" element={<DatabaseSettings />} />
+          <Route path="/settings/partial-migration" element={<PartialMigrationSettings />} />
           <Route path="/settings/nomenclature" element={<Nomenclature />} />
           <Route path="/settings/workflows" element={<Workflows />} />
           <Route path="/network/overview" element={<NetworkOverview />} />

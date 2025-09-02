@@ -10,165 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Activity, Download, Filter, Clock, CheckCircle, XCircle, PlayCircle, PauseCircle, AlertTriangle, RefreshCw } from "lucide-react";
+import { operationsService, Operation } from "@/services/operationsService";
 
-interface OperationRecord {
-  id: string;
-  operationType: string;
-  status: 'completed' | 'in_progress' | 'failed' | 'pending' | 'cancelled';
-  startTime: string;
-  endTime?: string;
-  duration?: number;
-  tradingPoint?: string;
-  deviceId?: string;
-  transactionId?: string;
-  fuelType?: string;
-  quantity?: number;
-  price?: number;
-  totalCost?: number;
-  paymentType?: string;
-  details: string;
-  progress?: number;
-  lastUpdated: string;
-}
-
-// Mock данные операций с real-time состоянием
-const generateMockOperations = (): OperationRecord[] => [
-  {
-    id: "op-1",
-    operationType: "Заправка",
-    status: 'in_progress',
-    startTime: "14:25:30",
-    tradingPoint: "АЗС №001 - Московское шоссе",
-    deviceId: "ТРК-01",
-    transactionId: "TXN-240001",
-    fuelType: "АИ-95",
-    quantity: 45.67,
-    price: 55.90,
-    totalCost: 2552.95,
-    paymentType: "Банковские карты",
-    details: "Заправка в процессе",
-    progress: 78,
-    lastUpdated: new Date().toLocaleTimeString('ru-RU')
-  },
-  {
-    id: "op-2",
-    operationType: "Инкассация",
-    status: 'pending',
-    startTime: "14:30:00",
-    tradingPoint: "АЗС №001 - Московское шоссе",
-    deviceId: "Касса-01",
-    paymentType: "Наличные",
-    details: "Ожидание кассира",
-    lastUpdated: new Date().toLocaleTimeString('ru-RU')
-  },
-  {
-    id: "op-3",
-    operationType: "Загрузка резервуара",
-    status: 'completed',
-    startTime: "13:45:15",
-    endTime: "14:15:30",
-    duration: 30.25,
-    tradingPoint: "АЗС №001 - Московское шоссе",
-    deviceId: "Резервуар-01",
-    fuelType: "АИ-92",
-    quantity: 15000,
-    details: "Загружено 15,000 л АИ-92",
-    lastUpdated: "14:15:30"
-  },
-  {
-    id: "op-4",
-    operationType: "Диагностика",
-    status: 'failed',
-    startTime: "14:10:00",
-    endTime: "14:20:45",
-    duration: 10.75,
-    tradingPoint: "АЗС №002 - Ленинградский проспект",
-    deviceId: "ТРК-03",
-    details: "Ошибка связи с контроллером",
-    lastUpdated: "14:20:45"
-  },
-  {
-    id: "op-5",
-    operationType: "Заправка",
-    status: 'completed',
-    startTime: "14:18:22",
-    endTime: "14:22:10",
-    duration: 3.8,
-    tradingPoint: "АЗС №002 - Ленинградский проспект",
-    deviceId: "ТРК-02",
-    transactionId: "TXN-240002",
-    fuelType: "ДТ",
-    quantity: 32.15,
-    price: 59.20,
-    totalCost: 1903.28,
-    paymentType: "Топливные карты",
-    details: "Заправка завершена",
-    lastUpdated: "14:22:10"
-  },
-  {
-    id: "op-6",
-    operationType: "Калибровка датчиков",
-    status: 'in_progress',
-    startTime: "14:00:00",
-    tradingPoint: "АЗС №003 - Садовое кольцо",
-    deviceId: "Датчик-05",
-    details: "Калибровка датчика уровня",
-    progress: 45,
-    lastUpdated: new Date().toLocaleTimeString('ru-RU')
-  },
-  {
-    id: "op-7",
-    operationType: "Заправка",
-    status: 'completed',
-    startTime: "13:55:10",
-    endTime: "14:01:30",
-    duration: 6.33,
-    tradingPoint: "АЗС №003 - Садовое кольцо",
-    deviceId: "ТРК-04",
-    transactionId: "TXN-240003",
-    fuelType: "АИ-98",
-    quantity: 28.90,
-    price: 62.50,
-    totalCost: 1806.25,
-    paymentType: "Наличные",
-    details: "Заправка завершена",
-    lastUpdated: "14:01:30"
-  },
-  {
-    id: "op-8",
-    operationType: "Заправка",
-    status: 'completed',
-    startTime: "13:30:45",
-    endTime: "13:35:20",
-    duration: 4.58,
-    tradingPoint: "АЗС №001 - Московское шоссе",
-    deviceId: "ТРК-02",
-    transactionId: "TXN-240004",
-    fuelType: "АИ-95",
-    quantity: 50.00,
-    price: 55.90,
-    totalCost: 2795.00,
-    paymentType: "Онлайн заказы",
-    details: "Мобильный заказ выполнен",
-    lastUpdated: "13:35:20"
-  },
-  {
-    id: "op-9",
-    operationType: "Заправка",
-    status: 'pending',
-    startTime: "14:35:00",
-    tradingPoint: "АЗС №002 - Ленинградский проспект",
-    deviceId: "ТРК-01",
-    transactionId: "TXN-240005",
-    fuelType: "ДТ",
-    quantity: 40.00,
-    price: 59.20,
-    totalCost: 2368.00,
-    paymentType: "Топливные карты",
-    details: "Ожидание подключения карты",
-    lastUpdated: new Date().toLocaleTimeString('ru-RU')
-  }
-];
+// Получение правильных типов операций из сервиса
+const operationTypeMap = {
+  'sale': 'Заправка',
+  'refund': 'Возврат',
+  'correction': 'Коррекция',
+  'maintenance': 'Обслуживание',
+  'fuel_loading': 'Заправка',
+  'cash_collection': 'Инкассация',
+  'tank_loading': 'Загрузка резервуара',
+  'diagnostics': 'Диагностика',
+  'sensor_calibration': 'Калибровка датчиков'
+};
 
 const operationTypes = ["Все", "Заправка", "Инкассация", "Загрузка резервуара", "Диагностика", "Калибровка датчиков"];
 const statusTypes = ["Все", "completed", "in_progress", "failed", "pending", "cancelled"];
@@ -177,8 +32,9 @@ export default function OperationsTransactionsPage() {
   const isMobile = useIsMobile();
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   
-  // Состояние данных операций с автообновлением
-  const [operations, setOperations] = useState<OperationRecord[]>(generateMockOperations());
+  // Состояние данных операций
+  const [operations, setOperations] = useState<Operation[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // Фильтры
   const [selectedOperationType, setSelectedOperationType] = useState("Все");
@@ -189,34 +45,35 @@ export default function OperationsTransactionsPage() {
   const isNetworkOnly = selectedNetwork && !selectedTradingPoint;
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
 
-  // Автообновление данных каждые 3 секунды
+  // Загрузка операций при монтировании компонента
+  useEffect(() => {
+    const loadOperations = async () => {
+      try {
+        setLoading(true);
+        const data = await operationsService.getAll();
+        setOperations(data);
+      } catch (error) {
+        console.error('Ошибка загрузки операций:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOperations();
+  }, []);
+
+  // Автообновление данных каждые 5 секунд
   useEffect(() => {
     if (!autoRefresh) return;
     
-    const interval = setInterval(() => {
-      setOperations(prev => prev.map(op => {
-        if (op.status === 'in_progress') {
-          // Обновляем прогресс и время
-          const newProgress = Math.min((op.progress || 0) + Math.random() * 5, 100);
-          if (newProgress >= 100) {
-            return {
-              ...op,
-              status: 'completed' as const,
-              endTime: new Date().toLocaleTimeString('ru-RU'),
-              progress: 100,
-              details: op.operationType === 'Заправка' ? 'Заправка завершена' : 'Операция завершена',
-              lastUpdated: new Date().toLocaleTimeString('ru-RU')
-            };
-          }
-          return {
-            ...op,
-            progress: newProgress,
-            lastUpdated: new Date().toLocaleTimeString('ru-RU')
-          };
-        }
-        return op;
-      }));
-    }, 3000);
+    const interval = setInterval(async () => {
+      try {
+        const data = await operationsService.getAll();
+        setOperations(data);
+      } catch (error) {
+        console.error('Ошибка обновления операций:', error);
+      }
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [autoRefresh]);
@@ -224,8 +81,11 @@ export default function OperationsTransactionsPage() {
   // Фильтрация данных
   const filteredOperations = useMemo(() => {
     return operations.filter(record => {
+      // Получаем отображаемый тип операции
+      const displayType = operationTypeMap[record.operationType] || record.operationType;
+      
       // Фильтр по типу операции
-      if (selectedOperationType !== "Все" && record.operationType !== selectedOperationType) return false;
+      if (selectedOperationType !== "Все" && displayType !== selectedOperationType) return false;
       
       // Фильтр по статусу
       if (selectedStatus !== "Все" && record.status !== selectedStatus) return false;
@@ -234,12 +94,13 @@ export default function OperationsTransactionsPage() {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         return (
-          record.operationType.toLowerCase().includes(query) ||
+          record.id.toLowerCase().includes(query) ||
+          displayType.toLowerCase().includes(query) ||
           record.details.toLowerCase().includes(query) ||
           (record.deviceId && record.deviceId.toLowerCase().includes(query)) ||
           (record.transactionId && record.transactionId.toLowerCase().includes(query)) ||
-          (record.tradingPoint && record.tradingPoint.toLowerCase().includes(query)) ||
-          (record.paymentType && record.paymentType.toLowerCase().includes(query))
+          (record.tradingPointName && record.tradingPointName.toLowerCase().includes(query)) ||
+          (record.operatorName && record.operatorName.toLowerCase().includes(query))
         );
       }
       
@@ -454,7 +315,7 @@ export default function OperationsTransactionsPage() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               {getStatusIcon(record.status)}
-                              <span className="font-medium text-white">{record.operationType}</span>
+                              <span className="font-medium text-white">{operationTypeMap[record.operationType] || record.operationType}</span>
                             </div>
                             {getStatusBadge(record.status)}
                           </div>
@@ -473,7 +334,7 @@ export default function OperationsTransactionsPage() {
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <div>
                               <span className="text-slate-400">Начало:</span>
-                              <span className="text-white font-mono ml-1">{record.startTime}</span>
+                              <span className="text-white font-mono ml-1">{new Date(record.startTime).toLocaleTimeString('ru-RU')}</span>
                             </div>
                             <div>
                               <span className="text-slate-400">Топливо:</span>
@@ -504,10 +365,10 @@ export default function OperationsTransactionsPage() {
                             </div>
                           )}
 
-                          {record.paymentType && (
+                          {record.paymentMethod && (
                             <div className="text-sm">
                               <span className="text-slate-400">Вид оплаты:</span>
-                              <span className="text-white ml-1">{record.paymentType}</span>
+                              <span className="text-white ml-1">{record.paymentMethod}</span>
                             </div>
                           )}
 
@@ -543,10 +404,10 @@ export default function OperationsTransactionsPage() {
                             </div>
                           </div>
                           
-                          {isNetworkOnly && record.tradingPoint && (
+                          {isNetworkOnly && record.tradingPointName && (
                             <div className="text-sm border-t border-slate-600 pt-2">
                               <span className="text-slate-400">Торговая точка:</span>
-                              <div className="text-slate-300 font-medium">{record.tradingPoint}</div>
+                              <div className="text-slate-300 font-medium">{record.tradingPointName}</div>
                             </div>
                           )}
                         </CardContent>
@@ -592,7 +453,7 @@ export default function OperationsTransactionsPage() {
                             </TableCell>
                             <TableCell className="text-white font-medium">
                               <div>
-                                {record.operationType}
+                                {operationTypeMap[record.operationType] || record.operationType}
                                 {record.transactionId && (
                                   <div className="text-xs text-slate-400">{record.transactionId}</div>
                                 )}
@@ -604,7 +465,7 @@ export default function OperationsTransactionsPage() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-white font-mono text-sm">
-                              {record.startTime}
+                              {new Date(record.startTime).toLocaleTimeString('ru-RU')}
                             </TableCell>
                             <TableCell>
                               {record.status === 'in_progress' && record.progress !== undefined ? (
@@ -634,7 +495,7 @@ export default function OperationsTransactionsPage() {
                               {record.totalCost ? `${record.totalCost.toFixed(2)} ₽` : '—'}
                             </TableCell>
                             <TableCell className="text-slate-300">
-                              {record.paymentType || '—'}
+                              {record.paymentMethod || '—'}
                             </TableCell>
                             <TableCell className="text-slate-300 font-mono text-sm">
                               {record.status === 'in_progress' ? (
@@ -645,8 +506,8 @@ export default function OperationsTransactionsPage() {
                             </TableCell>
                             {isNetworkOnly && (
                               <TableCell className="text-slate-300 max-w-xs">
-                                <div className="truncate" title={record.tradingPoint}>
-                                  {record.tradingPoint}
+                                <div className="truncate" title={record.tradingPointName}>
+                                  {record.tradingPointName}
                                 </div>
                               </TableCell>
                             )}

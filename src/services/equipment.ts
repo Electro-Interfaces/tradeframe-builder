@@ -16,7 +16,8 @@ import { equipmentTemplatesFromTypesAPI } from './equipmentTypes';
 
 // Базовый URL для API (должен браться из конфигурации)
 // В Vite используется import.meta.env вместо process.env
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { getApiBaseUrl, isApiMockMode } from '@/services/apiConfigService';
+const API_BASE_URL = getApiBaseUrl();
 
 // Утилита для HTTP запросов с трейсингом
 class ApiClient {

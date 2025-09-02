@@ -1,6 +1,6 @@
 /**
- * Визуальный конструктор разрешений
- * Показывает матрицу разрешений по разделам и ресурсам
+ * Простой редактор разрешений для ролей
+ * Показывает список всех разрешений с возможностью редактирования
  */
 
 import React, { useState, useEffect } from 'react'
@@ -14,38 +14,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RoleService } from '@/services/roleService'
 import { PERMISSION_SECTIONS } from '@/config/permissions'
-import type { Role, PermissionAction } from '@/types/auth'
+import type { Role, PermissionAction, Permission } from '@/types/auth'
 
 const ACTION_LABELS: Record<PermissionAction, string> = {
   'read': 'Чтение',
   'write': 'Запись', 
   'delete': 'Удаление',
-  'manage': 'Управление'
-}
-
-const ACTION_COLORS: Record<PermissionAction, string> = {
-  'read': 'bg-green-100 text-green-800',
-  'write': 'bg-blue-100 text-blue-800',
-  'delete': 'bg-red-100 text-red-800',
-  'manage': 'bg-purple-100 text-purple-800'
+  'manage': 'Управление',
+  'view_menu': 'Видимость меню'
 }
 
 export function PermissionBuilder() {
   const [roles, setRoles] = useState<Role[]>([])
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
-  const [selectedSection, setSelectedSection] = useState<string>('networks')
+  const [editedPermissions, setEditedPermissions] = useState<Permission[]>([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     loadRoles()
@@ -57,7 +44,9 @@ export function PermissionBuilder() {
       const rolesData = await RoleService.getAllRoles()
       setRoles(rolesData)
       if (rolesData.length > 0) {
-        setSelectedRole(rolesData[0])
+        const firstRole = rolesData[0]
+        setSelectedRole(firstRole)
+        setEditedPermissions([...firstRole.permissions])
       }
     } catch (error) {
       console.error('Ошибка загрузки ролей:', error)
@@ -66,17 +55,110 @@ export function PermissionBuilder() {
     }
   }
 
-  const hasPermission = (role: Role, section: string, resource: string, action: PermissionAction): boolean => {
-    const permission = role.permissions.find(p => p.section === section && p.resource === resource)
+  const handleRoleChange = (roleId: string) => {
+    const role = roles.find(r => r.id === roleId)
+    if (role) {
+      setSelectedRole(role)
+      setEditedPermissions([...role.permissions])
+    }
+  }
+
+  const hasPermission = (section: string, resource: string, action: PermissionAction): boolean => {
+    const permission = editedPermissions.find(p => p.section === section && p.resource === resource)
     return permission?.actions.includes(action) || false
   }
 
-  const getSectionPermissions = (role: Role, sectionCode: string) => {
-    return role.permissions.filter(p => p.section === sectionCode)
+  const togglePermission = (section: string, resource: string, action: PermissionAction) => {
+    console.log('🔄 PermissionBuilder - Toggling permission:', section, resource, action);
+    if (!selectedRole) {
+      console.log('❌ No selected role');
+      return;
+    }
+
+    setEditedPermissions(current => {
+      const existing = current.find(p => p.section === section && p.resource === resource)
+      
+      if (existing) {
+        if (existing.actions.includes(action)) {
+          // Убираем действие
+          const newActions = existing.actions.filter(a => a !== action)
+          if (newActions.length === 0) {
+            // Убираем разрешение полностью
+            return current.filter(p => !(p.section === section && p.resource === resource))
+          } else {
+            // Обновляем действия
+            return current.map(p => 
+              p.section === section && p.resource === resource
+                ? { ...p, actions: newActions }
+                : p
+            )
+          }
+        } else {
+          // Добавляем действие
+          return current.map(p => 
+            p.section === section && p.resource === resource
+              ? { ...p, actions: [...p.actions, action] }
+              : p
+          )
+        }
+      } else {
+        // Создаем новое разрешение
+        return [...current, {
+          section,
+          resource,
+          actions: [action]
+        }]
+      }
+    })
+  }
+
+  const savePermissions = async () => {
+    if (!selectedRole) return
+
+    try {
+      setSaving(true)
+      await RoleService.updateRole(selectedRole.id, {
+        name: selectedRole.name,
+        description: selectedRole.description,
+        permissions: editedPermissions,
+        scope: selectedRole.scope,
+        is_active: selectedRole.is_active
+      })
+      
+      // Обновляем локальное состояние
+      setRoles(current => current.map(role => 
+        role.id === selectedRole.id 
+          ? { ...role, permissions: editedPermissions }
+          : role
+      ))
+      setSelectedRole(prev => prev ? { ...prev, permissions: editedPermissions } : null)
+      
+      alert('Разрешения успешно сохранены')
+    } catch (error) {
+      console.error('Ошибка сохранения разрешений:', error)
+      alert('Не удалось сохранить разрешения: ' + error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const resetPermissions = () => {
+    if (selectedRole) {
+      setEditedPermissions([...selectedRole.permissions])
+    }
   }
 
   const getRolePermissionCount = (role: Role): number => {
     return role.permissions.reduce((sum, p) => sum + p.actions.length, 0)
+  }
+
+  const getEditedPermissionCount = (): number => {
+    return editedPermissions.reduce((sum, p) => sum + p.actions.length, 0)
+  }
+
+  const hasChanges = (): boolean => {
+    if (!selectedRole) return false
+    return JSON.stringify(editedPermissions) !== JSON.stringify(selectedRole.permissions)
   }
 
   if (loading) {
@@ -87,73 +169,57 @@ export function PermissionBuilder() {
     )
   }
 
-  const currentSection = PERMISSION_SECTIONS[selectedSection.toUpperCase()]
-
   return (
     <div className="space-y-6">
-      {/* Селекторы */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Роль для анализа</label>
-          <Select 
-            value={selectedRole?.id || ''} 
-            onValueChange={(value) => {
-              const role = roles.find(r => r.id === value)
-              setSelectedRole(role || null)
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Выберите роль" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map(role => (
-                <SelectItem key={role.id} value={role.id}>
-                  <div className="flex items-center space-x-2">
-                    <span>{role.name}</span>
-                    <Badge variant={role.is_system ? 'secondary' : 'default'} className="text-xs">
-                      {getRolePermissionCount(role)}
-                    </Badge>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Раздел системы</label>
-          <Select value={selectedSection} onValueChange={setSelectedSection}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.values(PERMISSION_SECTIONS).map(section => (
-                <SelectItem key={section.code} value={section.code}>
-                  {section.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {selectedRole && currentSection && (
-        <div className="space-y-6">
-          {/* Информация о роли */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+      {/* Селектор роли */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-200">Роль для редактирования</label>
+        <Select 
+          value={selectedRole?.id || ''} 
+          onValueChange={handleRoleChange}
+        >
+          <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+            <SelectValue placeholder="Выберите роль" />
+          </SelectTrigger>
+          <SelectContent className="bg-slate-800 border-slate-700">
+            {roles.map(role => (
+              <SelectItem key={role.id} value={role.id} className="text-white hover:bg-slate-700">
                 <div className="flex items-center space-x-2">
-                  <span>{selectedRole.name}</span>
-                  <Badge variant={selectedRole.is_system ? 'secondary' : 'default'}>
-                    {selectedRole.is_system ? 'Системная' : 'Пользовательская'}
+                  <span>{role.name}</span>
+                  <Badge variant="default" className="text-xs">
+                    {getRolePermissionCount(role)}
                   </Badge>
                 </div>
-                <Badge variant="outline">
-                  {getRolePermissionCount(selectedRole)} разрешений
-                </Badge>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {selectedRole && (
+        <div className="space-y-6">
+          {/* Информация о роли */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between text-slate-200">
+                <div className="flex items-center space-x-2">
+                  <span>{selectedRole.name}</span>
+                  <Badge variant="default">
+                    Пользовательская
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="outline">
+                    {getEditedPermissionCount()} разрешений
+                  </Badge>
+                  {hasChanges() && (
+                    <Badge className="bg-yellow-600">
+                      Есть изменения
+                    </Badge>
+                  )}
+                </div>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-slate-400">
                 {selectedRole.description} • Область: {
                   selectedRole.scope === 'global' ? 'Глобальная' :
                   selectedRole.scope === 'network' ? 'Сеть' :
@@ -164,101 +230,97 @@ export function PermissionBuilder() {
             </CardHeader>
           </Card>
 
-          {/* Таблица разрешений по разделу */}
-          <Card>
+          {/* Редактор разрешений */}
+          <Card className="bg-slate-800 border-slate-700">
             <CardHeader>
-              <CardTitle>Разрешения в разделе: {currentSection.name}</CardTitle>
-              <CardDescription>{currentSection.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Ресурс</TableHead>
-                    <TableHead>Описание</TableHead>
-                    <TableHead className="text-center">Чтение</TableHead>
-                    <TableHead className="text-center">Запись</TableHead>
-                    <TableHead className="text-center">Удаление</TableHead>
-                    <TableHead className="text-center">Управление</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Object.values(currentSection.resources).map(resource => (
-                    <TableRow key={resource.code}>
-                      <TableCell className="font-medium">{resource.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {resource.description}
-                      </TableCell>
-                      {(['read', 'write', 'delete', 'manage'] as PermissionAction[]).map(action => (
-                        <TableCell key={action} className="text-center">
-                          {hasPermission(selectedRole, currentSection.code, resource.code, action) ? (
-                            <Badge className={ACTION_COLORS[action]} variant="secondary">
-                              ✓
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Матрица всех разрешений роли */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Полная матрица разрешений</CardTitle>
-              <CardDescription>
-                Все разрешения роли по разделам системы
+              <CardTitle className="text-slate-200 flex items-center justify-between">
+                <span>Редактирование разрешений</span>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetPermissions}
+                    disabled={!hasChanges()}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    Сбросить
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={savePermissions}
+                    disabled={!hasChanges() || saving}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {saving ? 'Сохранение...' : 'Сохранить'}
+                  </Button>
+                </div>
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Выберите разрешения для данной роли по разделам системы
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {Object.values(PERMISSION_SECTIONS).map(section => {
-                  const sectionPermissions = getSectionPermissions(selectedRole, section.code)
-                  
-                  if (sectionPermissions.length === 0) {
-                    return null
-                  }
-
-                  return (
-                    <div key={section.code} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium">{section.name}</h4>
-                        <Badge variant="outline">
-                          {sectionPermissions.length} ресурсов
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {sectionPermissions.map(permission => {
-                          const resource = Object.values(section.resources).find(r => r.code === permission.resource)
-                          if (!resource) return null
-
-                          return (
-                            <div key={permission.resource} className="border rounded p-3">
-                              <div className="font-medium text-sm mb-2">{resource.name}</div>
-                              <div className="flex flex-wrap gap-1">
-                                {permission.actions.map(action => (
-                                  <Badge 
-                                    key={action}
-                                    className={`text-xs ${ACTION_COLORS[action]}`}
-                                    variant="secondary"
-                                  >
-                                    {ACTION_LABELS[action]}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        })}
+                {Object.values(PERMISSION_SECTIONS).map(section => (
+                  <div key={section.code} className="border border-slate-600 rounded-lg p-4 bg-slate-700">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="font-medium text-slate-200">{section.name}</h3>
+                        <p className="text-sm text-slate-400">{section.description}</p>
                       </div>
                     </div>
-                  )
-                })}
+                    
+                    <div className="space-y-3">
+                      {Object.values(section.resources).map(resource => (
+                        <div key={resource.code} className="border border-slate-600 rounded p-3 bg-slate-600">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h4 className="font-medium text-slate-200">{resource.name}</h4>
+                              <p className="text-sm text-slate-400">{resource.description}</p>
+                            </div>
+                          </div>
+                          <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : 'grid-cols-4'}`}>
+                            {(section.code === 'menu_visibility' ? 
+                              ['view_menu'] : 
+                              ['read', 'write', 'delete', 'manage']
+                            ).map(action => {
+                              const isChecked = hasPermission(section.code, resource.code, action)
+                              const colorClasses = {
+                                read: isChecked ? 'border-green-500 bg-green-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-green-400',
+                                write: isChecked ? 'border-blue-500 bg-blue-900 text-blue-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-blue-400',
+                                delete: isChecked ? 'border-red-500 bg-red-900 text-red-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-red-400',
+                                manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-purple-400',
+                                view_menu: isChecked ? 'border-yellow-500 bg-yellow-900 text-yellow-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-yellow-400'
+                              }
+                              
+                              return (
+                                <label 
+                                  key={action} 
+                                  className={`
+                                    flex items-center justify-center space-x-2 cursor-pointer p-2 rounded border-2 transition-all hover:shadow-sm
+                                    ${colorClasses[action]}
+                                  `}
+                                  onClick={() => {
+                                    console.log('🖱️ Label clicked:', section.code, resource.code, action);
+                                    togglePermission(section.code, resource.code, action);
+                                  }}
+                                >
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={() => togglePermission(section.code, resource.code, action)}
+                                    disabled={false}
+                                    className="data-[state=checked]:bg-current data-[state=checked]:border-current border-2 border-current"
+                                  />
+                                  <span className="text-sm font-medium">{ACTION_LABELS[action]}</span>
+                                </label>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

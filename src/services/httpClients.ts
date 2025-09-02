@@ -25,7 +25,8 @@ import {
 } from '@/types/component';
 
 // Конфигурация API
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+import { getApiBaseUrl, isApiMockMode } from '@/services/apiConfigService';
+const API_BASE_URL = getApiBaseUrl();
 
 // Утилита для HTTP запросов с полной поддержкой заголовков
 class HttpApiClient {

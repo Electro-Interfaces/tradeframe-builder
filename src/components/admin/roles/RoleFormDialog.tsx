@@ -50,7 +50,8 @@ const ACTION_LABELS: Record<PermissionAction, string> = {
   'read': 'Чтение',
   'write': 'Запись',
   'delete': 'Удаление', 
-  'manage': 'Управление'
+  'manage': 'Управление',
+  'view_menu': 'Видимость меню'
 }
 
 export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDialogProps) {
@@ -64,6 +65,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('basic')
+
 
   // Инициализация формы при изменении роли
   useEffect(() => {
@@ -126,7 +128,10 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
   // Обработчики разрешений
   const togglePermission = (section: string, resource: string, action: PermissionAction) => {
+    console.log('🔄 Toggling permission:', section, resource, action);
+    console.log('🔍 Current permissions:', permissions);
     setPermissions(current => {
+      console.log('📝 Updating permissions state...');
       const existing = current.find(p => p.section === section && p.resource === resource)
       
       if (existing) {
@@ -168,40 +173,6 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
     return permission?.actions.includes(action) || false
   }
 
-  const toggleSectionAll = (sectionCode: string, enabled: boolean) => {
-    const section = PermissionHelpers.getSection(sectionCode)
-    if (!section) return
-
-    if (enabled) {
-      // Добавляем все разрешения для секции
-      const newPermissions = Object.values(section.resources).map(resource => ({
-        section: sectionCode,
-        resource: resource.code,
-        actions: ['read', 'write', 'delete', 'manage'] as PermissionAction[]
-      }))
-
-      setPermissions(current => {
-        // Убираем существующие разрешения для этой секции
-        const filtered = current.filter(p => p.section !== sectionCode)
-        return [...filtered, ...newPermissions]
-      })
-    } else {
-      // Убираем все разрешения для секции
-      setPermissions(current => current.filter(p => p.section !== sectionCode))
-    }
-  }
-
-  const getSectionPermissionCount = (sectionCode: string): { total: number, granted: number } => {
-    const section = PermissionHelpers.getSection(sectionCode)
-    if (!section) return { total: 0, granted: 0 }
-
-    const totalActions = Object.keys(section.resources).length * 4 // 4 действия на ресурс
-    const grantedActions = permissions
-      .filter(p => p.section === sectionCode)
-      .reduce((sum, p) => sum + p.actions.length, 0)
-
-    return { total: totalActions, granted: grantedActions }
-  }
 
   const applyRoleTemplate = (template: 'admin' | 'manager' | 'readonly') => {
     let newPermissions: Permission[] = []
@@ -215,33 +186,41 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
             Object.values(section.resources).map(resource => ({
               section: section.code,
               resource: resource.code,
-              actions: ['read', 'write', 'delete', 'manage'] as PermissionAction[]
+              actions: section.code === 'menu_visibility' ? 
+                ['view_menu'] as PermissionAction[] : 
+                ['read', 'write', 'delete', 'manage'] as PermissionAction[]
             }))
           )
         break
 
       case 'manager':
-        // Менеджер: операции, отчеты, цены, резервуары
-        const managerSections = ['networks', 'operations', 'equipment', 'finance']
+        // Менеджер: операции, отчеты, цены, резервуары + видимость основных меню
+        const managerSections = ['networks', 'operations', 'equipment', 'finance', 'menu_visibility']
         newPermissions = Object.values(PERMISSION_SECTIONS)
           .filter(section => managerSections.includes(section.code))
           .flatMap(section => 
             Object.values(section.resources).map(resource => ({
               section: section.code,
               resource: resource.code,
-              actions: section.code === 'finance' ? ['read', 'write'] as PermissionAction[] : ['read', 'write'] as PermissionAction[]
+              actions: section.code === 'menu_visibility' ? 
+                ['view_menu'] as PermissionAction[] :
+                section.code === 'finance' ? 
+                ['read', 'write'] as PermissionAction[] : 
+                ['read', 'write'] as PermissionAction[]
             }))
           )
         break
 
       case 'readonly':
-        // Только чтение: все разделы только на чтение
+        // Только чтение: все разделы только на чтение + видимость всех меню
         newPermissions = Object.values(PERMISSION_SECTIONS)
           .flatMap(section => 
             Object.values(section.resources).map(resource => ({
               section: section.code,
               resource: resource.code,
-              actions: ['read'] as PermissionAction[]
+              actions: section.code === 'menu_visibility' ? 
+                ['view_menu'] as PermissionAction[] : 
+                ['read'] as PermissionAction[]
             }))
           )
         break
@@ -252,7 +231,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
         <DialogHeader>
           <DialogTitle>
             {role ? 'Редактирование роли' : 'Создание новой роли'}
@@ -262,9 +241,9 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
               <TabsTrigger value="basic">
                 Основные настройки
               </TabsTrigger>
@@ -282,7 +261,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
             <TabsContent value="basic" className="space-y-4 overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="code">Код роли *</Label>
+                  <Label htmlFor="code" className="text-slate-200">Код роли *</Label>
                   <Input
                     id="code"
                     value={formData.code}
@@ -290,47 +269,50 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                     placeholder="network_admin"
                     disabled={!!role} // Код нельзя менять при редактировании
                     required
+                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name">Название роли *</Label>
+                  <Label htmlFor="name" className="text-slate-200">Название роли *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Администратор сети"
                     required
+                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Описание</Label>
+                <Label htmlFor="description" className="text-slate-200">Описание</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Описание роли и её назначения"
                   rows={3}
+                  className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Область действия</Label>
+                <Label className="text-slate-200">Область действия</Label>
                 <Select 
                   value={formData.scope} 
                   onValueChange={(value: RoleScope) => setFormData(prev => ({ ...prev, scope: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-800 border-slate-700">
                     {SCOPE_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <SelectItem key={option.value} value={option.value} className="text-white hover:bg-slate-700">
                         <div>
                           <div className="font-medium">{option.label}</div>
-                          <div className="text-sm text-muted-foreground">{option.description}</div>
+                          <div className="text-sm text-slate-400">{option.description}</div>
                         </div>
                       </SelectItem>
                     ))}
@@ -344,26 +326,39 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   checked={formData.is_active}
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
                 />
-                <Label htmlFor="is_active">Роль активна</Label>
+                <Label htmlFor="is_active" className="text-slate-200">Роль активна</Label>
               </div>
 
               {/* Подсказка о следующем шаге */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
-                  <div className="text-blue-500">ℹ️</div>
+                  <div className="text-blue-400">ℹ️</div>
                   <div>
-                    <h4 className="font-medium text-blue-900">Следующий шаг: Настройка разрешений</h4>
-                    <p className="text-sm text-blue-700 mt-1">
+                    <h4 className="font-medium text-slate-200">Следующий шаг: Настройка разрешений</h4>
+                    <p className="text-sm text-slate-400 mt-1">
                       После заполнения основных данных перейдите на вкладку "Разрешения", чтобы настроить права доступа по разделам системы.
                     </p>
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="p-0 h-auto text-blue-600 hover:text-blue-800"
-                      onClick={() => setActiveTab('permissions')}
-                    >
-                      Перейти к настройке разрешений →
-                    </Button>
+                    {permissions.length > 0 && (
+                      <p className="text-sm text-green-400 mt-2">
+                        ✓ Настроено {permissions.reduce((sum, p) => sum + p.actions.length, 0)} разрешений
+                      </p>
+                    )}
+                    <div className="flex justify-between items-center mt-3">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="p-0 h-auto text-blue-400 hover:text-blue-300"
+                        onClick={() => setActiveTab('permissions')}
+                      >
+                        Перейти к настройке разрешений →
+                      </Button>
+                      {formData.name && formData.code && permissions.length > 0 && (
+                        <div className="flex items-center space-x-2 text-green-400">
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <span className="text-xs">Готово к сохранению</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -372,34 +367,38 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
             {/* Разрешения */}
             <TabsContent value="permissions" className="flex-1 overflow-y-auto space-y-4">
               {/* Заголовок с инструкцией */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-2">Настройка разрешений по разделам системы</h3>
-                <p className="text-sm text-gray-600 mb-3">
+              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                <h3 className="font-medium text-slate-200 mb-2">Настройка разрешений по разделам системы</h3>
+                <p className="text-sm text-slate-400 mb-3">
                   Выберите разделы и действия, которые будут доступны пользователям с этой ролью:
                 </p>
-                <div className="grid grid-cols-4 gap-4 text-xs">
+                <div className="grid grid-cols-5 gap-4 text-xs">
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
-                    <span className="text-green-700 font-medium">Чтение</span> - просмотр данных
+                    <div className="w-3 h-3 bg-green-800 border border-green-600 rounded"></div>
+                    <span className="text-green-300 font-medium">Чтение</span> - просмотр данных
                   </div>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-blue-100 border border-blue-300 rounded"></div>
-                    <span className="text-blue-700 font-medium">Запись</span> - создание и редактирование
+                    <div className="w-3 h-3 bg-blue-800 border border-blue-600 rounded"></div>
+                    <span className="text-blue-300 font-medium">Запись</span> - создание и редактирование
                   </div>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
-                    <span className="text-red-700 font-medium">Удаление</span> - удаление записей
+                    <div className="w-3 h-3 bg-red-800 border border-red-600 rounded"></div>
+                    <span className="text-red-300 font-medium">Удаление</span> - удаление записей
                   </div>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-purple-100 border border-purple-300 rounded"></div>
-                    <span className="text-purple-700 font-medium">Управление</span> - полные права
+                    <div className="w-3 h-3 bg-purple-800 border border-purple-600 rounded"></div>
+                    <span className="text-purple-300 font-medium">Управление</span> - полные права
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 bg-yellow-800 border border-yellow-600 rounded"></div>
+                    <span className="text-yellow-300 font-medium">Видимость меню</span> - показывать в меню
                   </div>
                 </div>
               </div>
 
               {/* Быстрые шаблоны */}
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <h4 className="font-medium text-amber-900 mb-3">🚀 Быстрые шаблоны ролей</h4>
+              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                <h4 className="font-medium text-slate-200 mb-3">🚀 Быстрые шаблоны ролей</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <Button
                     type="button"
@@ -410,7 +409,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   >
                     <div>
                       <div className="font-medium">👑 Администратор</div>
-                      <div className="text-xs text-muted-foreground">Полные права кроме системных настроек</div>
+                      <div className="text-xs text-slate-400">Полные права кроме системных настроек</div>
                     </div>
                   </Button>
                   <Button
@@ -422,7 +421,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   >
                     <div>
                       <div className="font-medium">🏢 Менеджер</div>
-                      <div className="text-xs text-muted-foreground">Управление операциями и отчеты</div>
+                      <div className="text-xs text-slate-400">Управление операциями и отчеты</div>
                     </div>
                   </Button>
                   <Button
@@ -434,81 +433,77 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   >
                     <div>
                       <div className="font-medium">👀 Только чтение</div>
-                      <div className="text-xs text-muted-foreground">Просмотр данных без изменения</div>
+                      <div className="text-xs text-slate-400">Просмотр данных без изменения</div>
                     </div>
                   </Button>
                 </div>
               </div>
 
+              {/* Единый список всех разрешений */}
               <div className="space-y-4">
-                {Object.values(PERMISSION_SECTIONS).map(section => {
-                  const stats = getSectionPermissionCount(section.code)
-                  const hasAnyPermissions = stats.granted > 0
-                  
-                  return (
-                    <Card key={section.code}>
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Checkbox
-                              checked={hasAnyPermissions}
-                              onCheckedChange={(checked) => toggleSectionAll(section.code, !!checked)}
-                            />
-                            <div>
-                              <CardTitle className="text-lg">{section.name}</CardTitle>
-                              <CardDescription>{section.description}</CardDescription>
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg text-slate-200">Список разрешений</CardTitle>
+                      <Badge variant="outline">
+                        {permissions.reduce((sum, p) => sum + p.actions.length, 0)} из {Object.values(PERMISSION_SECTIONS).reduce((total, section) => total + Object.keys(section.resources).length * 4, 0)} возможных
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-slate-400">
+                      Выберите необходимые разрешения для данной роли
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {Object.values(PERMISSION_SECTIONS).flatMap(section => 
+                        Object.values(section.resources).map(resource => (
+                          <div key={`${section.code}-${resource.code}`} className="border border-slate-600 rounded-lg p-4 bg-slate-700">
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <h4 className="font-medium text-slate-200">
+                                  {section.name} → {resource.name}
+                                </h4>
+                                <p className="text-sm text-slate-400 mt-1">{resource.description}</p>
+                              </div>
+                            </div>
+                            <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : 'grid-cols-4'}`}>
+                              {(section.code === 'menu_visibility' ? 
+                                ['view_menu'] : 
+                                ['read', 'write', 'delete', 'manage']
+                              ).map(action => {
+                                const isChecked = hasPermission(section.code, resource.code, action)
+                                const colorClasses = {
+                                  read: isChecked ? 'border-green-500 bg-green-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-400',
+                                  write: isChecked ? 'border-blue-500 bg-blue-900 text-blue-300' : 'border-slate-600 bg-slate-700 text-slate-400', 
+                                  delete: isChecked ? 'border-red-500 bg-red-900 text-red-300' : 'border-slate-600 bg-slate-700 text-slate-400',
+                                  manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-600 bg-slate-700 text-slate-400',
+                                  view_menu: isChecked ? 'border-yellow-500 bg-yellow-900 text-yellow-300' : 'border-slate-600 bg-slate-700 text-slate-400'
+                                }
+                                
+                                return (
+                                  <label 
+                                    key={action} 
+                                    className={`
+                                      flex items-center justify-center space-x-2 cursor-pointer p-2 rounded border-2 transition-all hover:shadow-sm
+                                      ${colorClasses[action]}
+                                    `}
+                                  >
+                                    <Checkbox
+                                      checked={isChecked}
+                                      onCheckedChange={() => togglePermission(section.code, resource.code, action)}
+                                      className="data-[state=checked]:bg-current data-[state=checked]:border-current"
+                                    />
+                                    <span className="text-sm font-medium">{ACTION_LABELS[action]}</span>
+                                  </label>
+                                )
+                              })}
                             </div>
                           </div>
-                          <Badge variant="outline">
-                            {stats.granted} / {stats.total}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {Object.values(section.resources).map(resource => (
-                            <div key={resource.code} className="border rounded-lg p-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <div>
-                                  <h4 className="font-medium">{resource.name}</h4>
-                                  <p className="text-sm text-muted-foreground">{resource.description}</p>
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-4 gap-2">
-                                {(['read', 'write', 'delete', 'manage'] as PermissionAction[]).map(action => {
-                                  const isChecked = hasPermission(section.code, resource.code, action)
-                                  const colorClasses = {
-                                    read: isChecked ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-600',
-                                    write: isChecked ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600', 
-                                    delete: isChecked ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-600',
-                                    manage: isChecked ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 bg-white text-gray-600'
-                                  }
-                                  
-                                  return (
-                                    <label 
-                                      key={action} 
-                                      className={`
-                                        flex items-center justify-center space-x-2 cursor-pointer p-2 rounded border-2 transition-all hover:shadow-sm
-                                        ${colorClasses[action]}
-                                      `}
-                                    >
-                                      <Checkbox
-                                        checked={isChecked}
-                                        onCheckedChange={() => togglePermission(section.code, resource.code, action)}
-                                        className="data-[state=checked]:bg-current data-[state=checked]:border-current"
-                                      />
-                                      <span className="text-sm font-medium">{ACTION_LABELS[action]}</span>
-                                    </label>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
           </Tabs>
