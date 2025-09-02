@@ -30,7 +30,9 @@
       "Bash(start http://localhost:3002/point/equipment)",
       "Bash(resetDemoData)",
       "Bash(grep:*)",
-      "Bash(start http://localhost:3015/equipment)"
+      "Bash(start http://localhost:3015/equipment)",
+      "Bash(git pull:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
