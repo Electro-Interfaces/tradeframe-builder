@@ -50,7 +50,8 @@ const ACTION_LABELS: Record<PermissionAction, string> = {
   'read': 'Чтение',
   'write': 'Запись',
   'delete': 'Удаление', 
-  'manage': 'Управление'
+  'manage': 'Управление',
+  'view_menu': 'Видимость меню'
 }
 
 export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDialogProps) {
@@ -127,7 +128,10 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
   // Обработчики разрешений
   const togglePermission = (section: string, resource: string, action: PermissionAction) => {
+    console.log('🔄 Toggling permission:', section, resource, action);
+    console.log('🔍 Current permissions:', permissions);
     setPermissions(current => {
+      console.log('📝 Updating permissions state...');
       const existing = current.find(p => p.section === section && p.resource === resource)
       
       if (existing) {
@@ -182,33 +186,41 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
             Object.values(section.resources).map(resource => ({
               section: section.code,
               resource: resource.code,
-              actions: ['read', 'write', 'delete', 'manage'] as PermissionAction[]
+              actions: section.code === 'menu_visibility' ? 
+                ['view_menu'] as PermissionAction[] : 
+                ['read', 'write', 'delete', 'manage'] as PermissionAction[]
             }))
           )
         break
 
       case 'manager':
-        // Менеджер: операции, отчеты, цены, резервуары
-        const managerSections = ['networks', 'operations', 'equipment', 'finance']
+        // Менеджер: операции, отчеты, цены, резервуары + видимость основных меню
+        const managerSections = ['networks', 'operations', 'equipment', 'finance', 'menu_visibility']
         newPermissions = Object.values(PERMISSION_SECTIONS)
           .filter(section => managerSections.includes(section.code))
           .flatMap(section => 
             Object.values(section.resources).map(resource => ({
               section: section.code,
               resource: resource.code,
-              actions: section.code === 'finance' ? ['read', 'write'] as PermissionAction[] : ['read', 'write'] as PermissionAction[]
+              actions: section.code === 'menu_visibility' ? 
+                ['view_menu'] as PermissionAction[] :
+                section.code === 'finance' ? 
+                ['read', 'write'] as PermissionAction[] : 
+                ['read', 'write'] as PermissionAction[]
             }))
           )
         break
 
       case 'readonly':
-        // Только чтение: все разделы только на чтение
+        // Только чтение: все разделы только на чтение + видимость всех меню
         newPermissions = Object.values(PERMISSION_SECTIONS)
           .flatMap(section => 
             Object.values(section.resources).map(resource => ({
               section: section.code,
               resource: resource.code,
-              actions: ['read'] as PermissionAction[]
+              actions: section.code === 'menu_visibility' ? 
+                ['view_menu'] as PermissionAction[] : 
+                ['read'] as PermissionAction[]
             }))
           )
         break
@@ -326,14 +338,27 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                     <p className="text-sm text-slate-400 mt-1">
                       После заполнения основных данных перейдите на вкладку "Разрешения", чтобы настроить права доступа по разделам системы.
                     </p>
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="p-0 h-auto text-blue-400 hover:text-blue-300"
-                      onClick={() => setActiveTab('permissions')}
-                    >
-                      Перейти к настройке разрешений →
-                    </Button>
+                    {permissions.length > 0 && (
+                      <p className="text-sm text-green-400 mt-2">
+                        ✓ Настроено {permissions.reduce((sum, p) => sum + p.actions.length, 0)} разрешений
+                      </p>
+                    )}
+                    <div className="flex justify-between items-center mt-3">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="p-0 h-auto text-blue-400 hover:text-blue-300"
+                        onClick={() => setActiveTab('permissions')}
+                      >
+                        Перейти к настройке разрешений →
+                      </Button>
+                      {formData.name && formData.code && permissions.length > 0 && (
+                        <div className="flex items-center space-x-2 text-green-400">
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <span className="text-xs">Готово к сохранению</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -347,7 +372,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                 <p className="text-sm text-slate-400 mb-3">
                   Выберите разделы и действия, которые будут доступны пользователям с этой ролью:
                 </p>
-                <div className="grid grid-cols-4 gap-4 text-xs">
+                <div className="grid grid-cols-5 gap-4 text-xs">
                   <div className="flex items-center space-x-1">
                     <div className="w-3 h-3 bg-green-800 border border-green-600 rounded"></div>
                     <span className="text-green-300 font-medium">Чтение</span> - просмотр данных
@@ -363,6 +388,10 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   <div className="flex items-center space-x-1">
                     <div className="w-3 h-3 bg-purple-800 border border-purple-600 rounded"></div>
                     <span className="text-purple-300 font-medium">Управление</span> - полные права
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 bg-yellow-800 border border-yellow-600 rounded"></div>
+                    <span className="text-yellow-300 font-medium">Видимость меню</span> - показывать в меню
                   </div>
                 </div>
               </div>
@@ -426,7 +455,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {Object.values(PERMISSION_SECTIONS).map(section => 
+                      {Object.values(PERMISSION_SECTIONS).flatMap(section => 
                         Object.values(section.resources).map(resource => (
                           <div key={`${section.code}-${resource.code}`} className="border border-slate-600 rounded-lg p-4 bg-slate-700">
                             <div className="flex items-start justify-between mb-3">
@@ -437,14 +466,18 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                                 <p className="text-sm text-slate-400 mt-1">{resource.description}</p>
                               </div>
                             </div>
-                            <div className="grid grid-cols-4 gap-2">
-                              {(['read', 'write', 'delete', 'manage'] as PermissionAction[]).map(action => {
+                            <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : 'grid-cols-4'}`}>
+                              {(section.code === 'menu_visibility' ? 
+                                ['view_menu'] : 
+                                ['read', 'write', 'delete', 'manage']
+                              ).map(action => {
                                 const isChecked = hasPermission(section.code, resource.code, action)
                                 const colorClasses = {
                                   read: isChecked ? 'border-green-500 bg-green-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-400',
                                   write: isChecked ? 'border-blue-500 bg-blue-900 text-blue-300' : 'border-slate-600 bg-slate-700 text-slate-400', 
                                   delete: isChecked ? 'border-red-500 bg-red-900 text-red-300' : 'border-slate-600 bg-slate-700 text-slate-400',
-                                  manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-600 bg-slate-700 text-slate-400'
+                                  manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-600 bg-slate-700 text-slate-400',
+                                  view_menu: isChecked ? 'border-yellow-500 bg-yellow-900 text-yellow-300' : 'border-slate-600 bg-slate-700 text-slate-400'
                                 }
                                 
                                 return (

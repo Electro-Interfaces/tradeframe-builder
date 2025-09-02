@@ -173,21 +173,6 @@ export const networksService = {
       averagePointsPerNetwork,
       networksByType
     };
-  },
-
-  // Обновить счетчик торговых точек у сети
-  async updatePointsCount(id: NetworkId, pointsCount: number): Promise<boolean> {
-    const index = networksData.findIndex(n => n.id === id);
-    if (index === -1) return false;
-
-    networksData[index] = {
-      ...networksData[index],
-      pointsCount,
-      updated_at: new Date().toISOString()
-    };
-
-    saveNetworks();
-    return true;
   }
 };
 

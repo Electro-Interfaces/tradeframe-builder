@@ -1,9 +1,10 @@
 /**
  * Сервис для работы с операциями и транзакциями торговых точек
- * Включает персистентное хранение в localStorage
+ * Включает персистентное хранение в localStorage и поддержку частичной миграции
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { getApiBaseUrl } from '@/services/apiConfigService';
 
 export type OperationType = 'sale' | 'refund' | 'correction' | 'maintenance' | 'fuel_loading' | 'cash_collection' | 'tank_loading' | 'diagnostics' | 'sensor_calibration';
 export type OperationStatus = 'completed' | 'in_progress' | 'failed' | 'pending' | 'cancelled';
@@ -162,6 +163,9 @@ const initialOperations: Operation[] = [
 // Загружаем данные из localStorage
 let operationsData: Operation[] = PersistentStorage.load<Operation>('operations', initialOperations);
 let nextId = Math.max(...operationsData.map(op => parseInt(op.id.replace('OP-', '')) || 0)) + 1;
+
+// API Base URL для централизованного управления
+const getApiUrl = () => getApiBaseUrl();
 
 // Функция для сохранения изменений
 const saveOperations = () => {

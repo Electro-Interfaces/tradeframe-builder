@@ -22,21 +22,14 @@ import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   Users, 
-  UserPlus, 
   Edit, 
   Trash2, 
-  Shield, 
-  ShieldCheck,
-  Eye,
+  Shield,
   Settings,
   Plus,
   Search,
   MoreHorizontal,
-  UserCheck,
-  Clock,
-  UserX,
-  X,
-  Grid3X3
+  X
 } from "lucide-react";
 
 // Mock system roles
@@ -268,15 +261,6 @@ export default function AdminUsers() {
     });
   }, [users, searchTerm, statusFilter]);
 
-  // Calculate KPI statistics
-  const userStats = useMemo(() => {
-    return {
-      total: users.length,
-      active: users.filter(u => u.status === "active").length,
-      pending: users.filter(u => u.status === "pending").length,
-      blocked: users.filter(u => u.status === "blocked").length,
-    };
-  }, [users]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -414,9 +398,6 @@ export default function AdminUsers() {
     }));
   };
 
-  const handleKPICardClick = (status: string | null) => {
-    setStatusFilter(status);
-  };
 
   const onSubmitRole = (data: RoleFormData) => {
     if (selectedRole && !selectedRole.isSystem) {
@@ -456,7 +437,9 @@ export default function AdminUsers() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <h1 className="text-2xl font-semibold text-white">Пользователи и роли</h1>
-          <p className="text-slate-400 mt-2">Управление пользователями и ролями системы</p>
+          <p className="text-slate-400 mt-2">
+            Управление пользователями, ролями и правами доступа в системе
+          </p>
         </div>
 
         <Tabs defaultValue="users" className="space-y-6 w-full">
@@ -479,101 +462,55 @@ export default function AdminUsers() {
 
           {/* Users Tab */}
           <TabsContent value="users" className="space-y-0">
-            {/* Панель пользователей */}
-            <div className="bg-slate-800 w-full">
+            {/* Панель управления */}
+            <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700">
               <div className="px-4 md:px-6 py-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-sm">👥</span>
+                      <Users className="w-4 h-4 text-white" />
                     </div>
                     <h2 className="text-lg font-semibold text-white">Пользователи</h2>
+                    <div className="text-sm text-slate-400">
+                      Всего: {filteredUsers.length} из {users.length}
+                    </div>
                   </div>
                   <Button 
                     onClick={handleCreateUser}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                    disabled={false}
                   >
-                    + Добавить пользователя
+                    <Plus className="w-4 h-4 mr-2" />
+                    Добавить пользователя
                   </Button>
                 </div>
                 
-                {/* Поиск пользователей */}
-                <div className="mt-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                {/* Фильтры */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                     <Input 
-                      placeholder="Поиск пользователей..."
-                      className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                      value={searchTerm}
+                      placeholder="Поиск пользователей по имени, фамилии или email..." 
+                      value={searchTerm} 
                       onChange={(e) => setSearchTerm(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 pl-10"
                     />
                   </div>
+                  <Select value={statusFilter || "all"} onValueChange={(value: any) => setStatusFilter(value === "all" ? null : value)}>
+                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white w-full md:w-48">
+                      <SelectValue placeholder="Все статусы" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Все статусы</SelectItem>
+                      <SelectItem value="active">Активные</SelectItem>
+                      <SelectItem value="pending">Ожидающие</SelectItem>
+                      <SelectItem value="blocked">Заблокированные</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              
-              {/* KPI Cards */}
-              <div className={`px-6 pb-4 grid gap-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
-              <Card 
-                className={`cursor-pointer transition-colors hover:bg-accent/50 ${statusFilter === null ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => handleKPICardClick(null)}
-              >
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    <span className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Всего</span>
-                  </div>
-                  <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-foreground`}>
-                    {userStats.total}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className={`cursor-pointer transition-colors hover:bg-accent/50 ${statusFilter === 'active' ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => handleKPICardClick('active')}
-              >
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4 text-success" />
-                    <span className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Активных</span>
-                  </div>
-                  <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-foreground`}>
-                    {userStats.active}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className={`cursor-pointer transition-colors hover:bg-accent/50 ${statusFilter === 'pending' ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => handleKPICardClick('pending')}
-              >
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-warning" />
-                    <span className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Ожидают</span>
-                  </div>
-                  <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-foreground`}>
-                    {userStats.pending}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className={`cursor-pointer transition-colors hover:bg-accent/50 ${statusFilter === 'blocked' ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => handleKPICardClick('blocked')}
-              >
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <UserX className="h-4 w-4 text-destructive" />
-                    <span className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Заблокированы</span>
-                  </div>
-                  <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-foreground`}>
-                    {userStats.blocked}
-                  </div>
-                </CardContent>
-              </Card>
-              </div>
             </div>
+
 
             {/* Users Table/Cards */}
             {isMobile ? (
@@ -633,24 +570,31 @@ export default function AdminUsers() {
               <div className="w-full">
                 <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
                   <table className="w-full text-sm min-w-full table-fixed">
-                    <thead className="bg-slate-700">
+                    <thead className="bg-slate-700/80">
                       <tr>
-                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '30%'}}>ПОЛЬЗОВАТЕЛЬ</th>
-                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '35%'}}>РОЛИ</th>
-                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>СТАТУС</th>
-                        <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '30%'}}>ПОЛЬЗОВАТЕЛЬ</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '35%'}}>РОЛИ</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '20%'}}>СТАТУС</th>
+                        <th className="px-6 py-4 text-right text-slate-100 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
                       </tr>
                     </thead>
                     <tbody className="bg-slate-800">
                       {filteredUsers.map((user) => (
                         <tr
                           key={user.id}
-                          className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
+                          className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors"
                         >
                           <td className="px-4 md:px-6 py-4">
-                            <div>
-                              <div className="font-medium text-white text-base">{user.name} {user.surname}</div>
-                              <div className="text-sm text-slate-400">{user.email}</div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-600">
+                                <Users className="w-4 h-4 text-slate-300" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-white text-base truncate">
+                                  {user.name} {user.surname}
+                                </div>
+                                <div className="text-sm text-slate-300 truncate">{user.email}</div>
+                              </div>
                             </div>
                           </td>
                           <td className="px-4 md:px-6 py-4">
@@ -714,17 +658,17 @@ export default function AdminUsers() {
 
           {/* Roles Tab */}
           <TabsContent value="roles" className="space-y-0">
-            {/* Панель ролей */}
-            <div className="bg-slate-800 w-full">
+            {/* Панель управления */}
+            <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700">
               <div className="px-4 md:px-6 py-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-sm">🛡️</span>
+                      <Shield className="w-4 h-4 text-white" />
                     </div>
                     <h2 className="text-lg font-semibold text-white">Роли системы</h2>
                     <div className="text-sm text-slate-400">
-                      Всего ролей: {allRoles.length}
+                      Всего: {allRoles.length}
                     </div>
                   </div>
                   <Button 
@@ -734,8 +678,10 @@ export default function AdminUsers() {
                       setRoleDialogOpen(true);
                     }}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                    disabled={false}
                   >
-                    + Создать роль
+                    <Plus className="w-4 h-4 mr-2" />
+                    Создать роль
                   </Button>
                 </div>
               </div>
@@ -807,27 +753,34 @@ export default function AdminUsers() {
               <div className="w-full">
                 <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
                   <table className="w-full text-sm min-w-full table-fixed">
-                    <thead className="bg-slate-700">
+                    <thead className="bg-slate-700/80">
                       <tr>
-                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '30%'}}>НАЗВАНИЕ РОЛИ</th>
-                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>КОД</th>
-                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>ОБЛАСТЬ ДЕЙСТВИЯ</th>
-                        <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>ТИП</th>
-                        <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '30%'}}>НАЗВАНИЕ РОЛИ</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '20%'}}>КОД</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '20%'}}>ОБЛАСТЬ ДЕЙСТВИЯ</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>ТИП</th>
+                        <th className="px-6 py-4 text-right text-slate-100 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
                       </tr>
                     </thead>
                     <tbody className="bg-slate-800">
                       {allRoles.map((role) => (
                         <tr
                           key={role.id}
-                          className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
+                          className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors"
                         >
                           <td className="px-4 md:px-6 py-4">
-                            <div>
-                              <div className="font-medium text-white text-base">{role.name}</div>
-                              {role.description && (
-                                <div className="text-sm text-slate-400">{role.description}</div>
-                              )}
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-600">
+                                <Shield className="w-4 h-4 text-slate-300" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-white text-base truncate">
+                                  {role.name}
+                                </div>
+                                {role.description && (
+                                  <div className="text-sm text-slate-300 truncate">{role.description}</div>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="px-4 md:px-6 py-4">

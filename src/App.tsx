@@ -20,6 +20,7 @@ import ComponentTypes from "./pages/ComponentTypes";
 import Equipment from "./pages/Equipment";
 import Commands from "./pages/Commands";
 import CommandTemplates from "./pages/CommandTemplates";
+import NewCommandTemplates from "./pages/NewCommandTemplates";
 import Connections from "./pages/Connections";
 import Workflows from "./pages/Workflows";
 import NetworkOverview from "./pages/NetworkOverview";
@@ -34,6 +35,8 @@ import OperationsTransactionsPage from "./pages/OperationsTransactionsPage";
 import PriceHistoryPage from "./pages/PriceHistoryPage";
 import FuelStocksPage from "./pages/FuelStocksPage";
 import Profile from "./pages/Profile";
+import DatabaseSettings from "./pages/DatabaseSettings";
+import PartialMigrationSettings from "./pages/PartialMigrationSettings";
 import DataMigration from "./pages/DataMigration";
 import TestServices from "./pages/TestServices";
 import TestServicesSimple from "./pages/TestServicesSimple";
@@ -64,7 +67,10 @@ const App = () => (
           <Route path="/settings/dictionaries/component-types" element={<ComponentTypes />} />
           <Route path="/settings/commands" element={<Commands />} />
           <Route path="/settings/dictionaries/command-templates" element={<CommandTemplates />} />
+          <Route path="/settings/templates/command-templates" element={<NewCommandTemplates />} />
           <Route path="/settings/connections" element={<Connections />} />
+          <Route path="/settings/database" element={<DatabaseSettings />} />
+          <Route path="/settings/partial-migration" element={<PartialMigrationSettings />} />
           <Route path="/settings/nomenclature" element={<Nomenclature />} />
           <Route path="/settings/workflows" element={<Workflows />} />
           <Route path="/network/overview" element={<NetworkOverview />} />

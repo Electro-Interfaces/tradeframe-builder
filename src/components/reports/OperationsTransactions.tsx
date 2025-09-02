@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,92 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { Download, Search, Filter } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { operationsService, Operation } from "@/services/operationsService";
 
-interface Operation {
-  id: string;
-  date: string;
-  station?: string;
-  type: 'sale' | 'refund' | 'correction' | 'maintenance';
-  status: 'completed' | 'pending' | 'failed' | 'cancelled';
-  amount: number;
-  fuelType?: string;
-  volume?: number;
-  paymentMethod: string;
-  operator: string;
-}
-
-const mockOperations: Operation[] = [
-  {
-    id: "OP-001234",
-    date: "2024-08-30T14:23:15Z",
-    station: "АЗС-001",
-    type: "sale",
-    status: "completed",
-    amount: 2716,
-    fuelType: "АИ-95",
-    volume: 45.2,
-    paymentMethod: "Банковская карта",
-    operator: "Иван Петров"
-  },
-  {
-    id: "OP-001235",
-    date: "2024-08-30T14:19:42Z",
-    station: "АЗС-002",
-    type: "sale",
-    status: "completed",
-    amount: 3458,
-    fuelType: "ДТ",
-    volume: 67.8,
-    paymentMethod: "Наличные",
-    operator: "Мария Сидорова"
-  },
-  {
-    id: "OP-001236",
-    date: "2024-08-30T14:15:33Z",
-    station: "АЗС-001",
-    type: "refund",
-    status: "completed",
-    amount: -2002,
-    fuelType: "АИ-92",
-    volume: -38.5,
-    paymentMethod: "Корпоративная карта",
-    operator: "Иван Петров"
-  },
-  {
-    id: "OP-001237",
-    date: "2024-08-30T14:12:18Z",
-    station: "АЗС-003",
-    type: "sale",
-    status: "failed",
-    amount: 0,
-    fuelType: "АИ-95",
-    volume: 0,
-    paymentMethod: "Банковская карта",
-    operator: "Анна Козлова"
-  },
-  {
-    id: "OP-001238",
-    date: "2024-08-30T14:08:55Z",
-    station: "АЗС-004",
-    type: "maintenance",
-    status: "pending",
-    amount: 0,
-    paymentMethod: "Не применимо",
-    operator: "Сергей Техник"
-  },
-  {
-    id: "OP-001239",
-    date: "2024-08-30T13:55:22Z",
-    station: "АЗС-005",
-    type: "sale",
-    status: "completed",
-    amount: 4125,
-    fuelType: "АИ-98",
-    volume: 55.8,
-    paymentMethod: "Банковская карта",
-    operator: "Елена Новикова"
-  }
-];
+// Типы операций для отображения
+const operationTypeMap = {
+  'sale': 'Продажа',
+  'refund': 'Возврат',
+  'correction': 'Коррекция',
+  'maintenance': 'Обслуживание',
+  'fuel_loading': 'Заправка',
+  'cash_collection': 'Инкассация',
+  'tank_loading': 'Загрузка резервуара',
+  'diagnostics': 'Диагностика',
+  'sensor_calibration': 'Калибровка датчиков'
+};
 
 interface OperationsTransactionsProps {
   isNetworkOnly: boolean;
@@ -110,16 +38,29 @@ export function OperationsTransactions({ isNetworkOnly, isTradingPointSelected }
   const [operationStatus, setOperationStatus] = useState("all");
   const [fuelType, setFuelType] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [operations, setOperations] = useState<Operation[]>([]);
+  const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
 
-  const getTypeLabel = (type: string) => {
-    const labels = {
-      sale: "Продажа",
-      refund: "Возврат",
-      correction: "Коррекция",
-      maintenance: "Обслуживание"
+  // Загрузка операций при монтировании
+  useEffect(() => {
+    const loadOperations = async () => {
+      try {
+        setLoading(true);
+        const data = await operationsService.getAll();
+        setOperations(data);
+      } catch (error) {
+        console.error('Ошибка загрузки операций:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-    return labels[type as keyof typeof labels] || type;
+
+    loadOperations();
+  }, []);
+
+  const getTypeLabel = (type: string) => {
+    return operationTypeMap[type as keyof typeof operationTypeMap] || type;
   };
 
   const getStatusBadge = (status: string) => {
@@ -158,8 +99,8 @@ export function OperationsTransactions({ isNetworkOnly, isTradingPointSelected }
     });
   };
 
-  const filteredOperations = mockOperations.filter(operation => {
-    if (operationType !== "all" && operation.type !== operationType) return false;
+  const filteredOperations = operations.filter(operation => {
+    if (operationType !== "all" && operation.operationType !== operationType) return false;
     if (operationStatus !== "all" && operation.status !== operationStatus) return false;
     if (fuelType !== "all" && operation.fuelType !== fuelType) return false;
     if (searchQuery && !operation.id.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -338,19 +279,19 @@ export function OperationsTransactions({ isNetworkOnly, isTradingPointSelected }
                 {filteredOperations.map((operation) => (
                   <TableRow key={operation.id}>
                     <TableCell className="font-mono text-sm">{operation.id}</TableCell>
-                    <TableCell>{formatDateTime(operation.date)}</TableCell>
-                    {isNetworkOnly && <TableCell>{operation.station}</TableCell>}
-                    <TableCell>{getTypeLabel(operation.type)}</TableCell>
+                    <TableCell>{formatDateTime(operation.startTime)}</TableCell>
+                    {isNetworkOnly && <TableCell>{operation.tradingPointName || '—'}</TableCell>}
+                    <TableCell>{getTypeLabel(operation.operationType)}</TableCell>
                     <TableCell>{getStatusBadge(operation.status)}</TableCell>
-                    <TableCell className={`text-right ${operation.amount < 0 ? 'text-red-600' : ''}`}>
-                      {operation.amount !== 0 ? formatCurrency(operation.amount) : '—'}
+                    <TableCell className={`text-right ${operation.totalCost && operation.totalCost < 0 ? 'text-red-600' : ''}`}>
+                      {operation.totalCost ? formatCurrency(operation.totalCost) : '—'}
                     </TableCell>
                     <TableCell>{operation.fuelType || '—'}</TableCell>
-                    <TableCell className={`text-right ${operation.volume && operation.volume < 0 ? 'text-red-600' : ''}`}>
-                      {operation.volume ? operation.volume.toFixed(1) : '—'}
+                    <TableCell className={`text-right ${operation.quantity && operation.quantity < 0 ? 'text-red-600' : ''}`}>
+                      {operation.quantity ? operation.quantity.toFixed(1) : '—'}
                     </TableCell>
-                    <TableCell>{operation.paymentMethod}</TableCell>
-                    <TableCell>{operation.operator}</TableCell>
+                    <TableCell>{operation.paymentMethod || '—'}</TableCell>
+                    <TableCell>{operation.operatorName || '—'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

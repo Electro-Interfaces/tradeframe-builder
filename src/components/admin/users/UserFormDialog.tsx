@@ -26,7 +26,8 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Users as UsersIcon } from 'lucide-react'
 import { UserService } from '@/services/userService'
 import { RoleService } from '@/services/roleService'
 import type { User, Role, UserStatus } from '@/types/auth'
@@ -54,7 +55,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
     confirmPassword: '',
     status: 'active' as UserStatus
   })
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([])
+  const [selectedRole, setSelectedRole] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('basic')
   const [showResetPassword, setShowResetPassword] = useState(false)
@@ -70,7 +71,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         confirmPassword: '',
         status: user.status
       })
-      setSelectedRoles(user.roles.map(r => r.role_id))
+      setSelectedRole(user.roles.length > 0 ? user.roles[0].role_id : '')
       setShowResetPassword(false)
     } else {
       setFormData({
@@ -81,7 +82,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         confirmPassword: '',
         status: 'active'
       })
-      setSelectedRoles([])
+      setSelectedRole('')
       setShowResetPassword(false)
     }
   }, [user])
@@ -113,22 +114,22 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
           status: formData.status
         })
 
-        // Обновляем роли
-        const currentRoleIds = user.roles.map(r => r.role_id)
-        const rolesToAdd = selectedRoles.filter(id => !currentRoleIds.includes(id))
-        const rolesToRemove = currentRoleIds.filter(id => !selectedRoles.includes(id))
-
-        // Добавляем новые роли
-        for (const roleId of rolesToAdd) {
-          await RoleService.assignRoleToUser({
-            user_id: user.id,
-            role_id: roleId
-          })
-        }
-
-        // Убираем старые роли
-        for (const roleId of rolesToRemove) {
-          await RoleService.unassignRoleFromUser(user.id, roleId)
+        // Обновляем роль пользователя
+        const currentRoleId = user.roles.length > 0 ? user.roles[0].role_id : null
+        
+        if (currentRoleId !== selectedRole) {
+          // Убираем старую роль если есть
+          if (currentRoleId) {
+            await RoleService.unassignRoleFromUser(user.id, currentRoleId)
+          }
+          
+          // Назначаем новую роль если выбрана
+          if (selectedRole) {
+            await RoleService.assignRoleToUser({
+              user_id: user.id,
+              role_id: selectedRole
+            })
+          }
         }
 
         // Сброс пароля если нужно
@@ -145,7 +146,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
           phone: formData.phone || undefined,
           password: formData.password,
           status: formData.status,
-          roles: selectedRoles
+          roles: selectedRole ? [selectedRole] : []
         })
       }
 
@@ -158,15 +159,6 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
     }
   }
 
-  const handleRoleToggle = (roleId: string, checked: boolean) => {
-    setSelectedRoles(current => {
-      if (checked) {
-        return [...current, roleId]
-      } else {
-        return current.filter(id => id !== roleId)
-      }
-    })
-  }
 
   const handleGeneratePassword = () => {
     const password = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
@@ -177,21 +169,31 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-slate-900 border-slate-700 text-white">
         <DialogHeader>
           <DialogTitle>
             {user ? 'Редактирование пользователя' : 'Создание нового пользователя'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-slate-400">
             {user ? 'Измените данные пользователя и назначьте роли' : 'Введите данные нового пользователя и назначьте роли'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList>
-              <TabsTrigger value="basic">Основные данные</TabsTrigger>
-              <TabsTrigger value="roles">Роли</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700">
+              <TabsTrigger value="basic" className="relative">
+                Основные данные
+                {(!formData.name || !formData.email) && (
+                  <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="roles" className="relative">
+                Роли
+                <Badge className="ml-2 h-5 px-1 text-xs" variant="secondary">
+                  {selectedRole ? '1' : '0'}
+                </Badge>
+              </TabsTrigger>
               {user && <TabsTrigger value="security">Безопасность</TabsTrigger>}
             </TabsList>
 
@@ -199,7 +201,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
             <TabsContent value="basic" className="space-y-4 overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email" className="text-slate-200">Email *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -207,46 +209,49 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="user@company.com"
                     required
+                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name">Имя *</Label>
+                  <Label htmlFor="name" className="text-slate-200">Имя *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Иван Петров"
                     required
+                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Телефон</Label>
+                <Label htmlFor="phone" className="text-slate-200">Телефон</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="+7 (999) 123-45-67"
+                  className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Статус</Label>
+                <Label className="text-slate-200">Статус</Label>
                 <Select 
                   value={formData.status} 
                   onValueChange={(value: UserStatus) => setFormData(prev => ({ ...prev, status: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-800 border-slate-700">
                     {STATUS_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <SelectItem key={option.value} value={option.value} className="text-white hover:bg-slate-700">
                         <div>
                           <div className="font-medium">{option.label}</div>
-                          <div className="text-sm text-muted-foreground">{option.description}</div>
+                          <div className="text-sm text-slate-400">{option.description}</div>
                         </div>
                       </SelectItem>
                     ))}
@@ -259,12 +264,13 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                 <>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Пароль *</Label>
+                      <Label htmlFor="password" className="text-slate-200">Пароль *</Label>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={handleGeneratePassword}
+                        className="text-slate-400 hover:text-white hover:bg-slate-700"
                       >
                         Сгенерировать
                       </Button>
@@ -276,11 +282,12 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                       onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                       placeholder="Введите пароль"
                       required
+                      className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Подтвердите пароль *</Label>
+                    <Label htmlFor="confirmPassword" className="text-slate-200">Подтвердите пароль *</Label>
                     <Input
                       id="confirmPassword"
                       type="password"
@@ -288,71 +295,150 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                       onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                       placeholder="Повторите пароль"
                       required
+                      className={`bg-slate-800 border-slate-700 text-white placeholder-slate-400 ${
+                        formData.confirmPassword && formData.password !== formData.confirmPassword 
+                          ? 'border-red-500' : ''
+                      }`}
                     />
+                    {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                      <p className="text-sm text-red-400">Пароли не совпадают</p>
+                    )}
                   </div>
                 </>
               )}
+
+              {/* Навигация */}
+              <div className="flex justify-between pt-4 border-t border-slate-600">
+                <div></div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setActiveTab('roles')}
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                >
+                  Далее: Роли →
+                </Button>
+              </div>
             </TabsContent>
 
             {/* Роли */}
             <TabsContent value="roles" className="flex-1 overflow-y-auto space-y-4">
-              <Card>
+              <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
-                  <CardTitle>Назначение ролей</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-slate-200">Назначение ролей</CardTitle>
+                  <CardDescription className="text-slate-400">
                     Выберите роли для пользователя. Разрешения будут объединены.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {activeRoles.map(role => (
-                    <div key={role.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          checked={selectedRoles.includes(role.id)}
-                          onCheckedChange={(checked) => handleRoleToggle(role.id, !!checked)}
-                        />
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">{role.name}</span>
-                            <Badge variant={role.is_system ? 'secondary' : 'default'}>
-                              {role.is_system ? 'Системная' : 'Пользовательская'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{role.description}</p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
-                              {role.scope === 'global' ? 'Глобальная' :
-                               role.scope === 'network' ? 'Сеть' :
-                               role.scope === 'trading_point' ? 'Торговая точка' :
-                               'Назначенная'}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {role.permissions.length} разрешений
-                            </span>
-                          </div>
-                        </div>
+                  {activeRoles.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <UsersIcon className="w-6 h-6 text-slate-400" />
                       </div>
+                      <h3 className="text-sm font-medium text-slate-200 mb-1">Роли не найдены</h3>
+                      <p className="text-xs text-slate-400">
+                        В системе нет доступных ролей. Создайте роли в разделе администрирования.
+                      </p>
                     </div>
-                  ))}
+                  ) : (
+                    <RadioGroup value={selectedRole} onValueChange={setSelectedRole} className="space-y-2">
+                      {/* Пустой вариант для сброса выбора */}
+                      <div className="flex items-center space-x-3 p-3 border border-slate-600 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">
+                        <RadioGroupItem value="" id="no-role" className="border-slate-400 text-slate-400" />
+                        <Label htmlFor="no-role" className="text-slate-200 cursor-pointer flex-1">
+                          <span className="font-medium">Без роли</span>
+                          <p className="text-sm text-slate-400">Пользователь не будет иметь специальных прав</p>
+                        </Label>
+                      </div>
+                      
+                      {/* Роли */}
+                      {activeRoles.map(role => (
+                        <div key={role.id} className="flex items-center space-x-3 p-3 border border-slate-600 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">
+                          <RadioGroupItem value={role.id} id={role.id} className="border-slate-400 text-blue-400" />
+                          <Label htmlFor={role.id} className="text-slate-200 cursor-pointer flex-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium">{role.name}</span>
+                              <Badge variant={role.is_system ? 'secondary' : 'default'} className="bg-slate-600 text-slate-300">
+                                {role.is_system ? 'Системная' : 'Пользовательская'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-slate-400">{role.description}</p>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <Badge variant="outline" className="text-xs border-slate-500 text-slate-300">
+                                {role.scope === 'global' ? 'Глобальная' :
+                                 role.scope === 'network' ? 'Сеть' :
+                                 role.scope === 'trading_point' ? 'Торговая точка' :
+                                 'Назначенная'}
+                              </Badge>
+                              <span className="text-xs text-slate-400">
+                                {role.permissions.length} разрешений
+                              </span>
+                            </div>
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  )}
                 </CardContent>
               </Card>
+
+              {/* Подсказка и навигация */}
+              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                <div className="flex items-start space-x-3 mb-4">
+                  <div className="text-blue-400">ℹ️</div>
+                  <div>
+                    <h4 className="font-medium text-slate-200">
+                      {selectedRole ? 'Выбрана роль' : 'Роль не выбрана'}
+                    </h4>
+                    <p className="text-sm text-slate-400 mt-1">
+                      {!selectedRole 
+                        ? 'Выберите роль для пользователя'
+                        : 'Пользователь получит права доступа согласно выбранной роли'
+                      }
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Навигация */}
+                <div className="flex justify-between pt-4 border-t border-slate-600">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setActiveTab('basic')}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                  >
+                    ← Назад: Основные данные
+                  </Button>
+                  {user && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setActiveTab('security')}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                    >
+                      Далее: Безопасность →
+                    </Button>
+                  )}
+                </div>
+              </div>
             </TabsContent>
 
             {/* Безопасность (только для редактирования) */}
             {user && (
               <TabsContent value="security" className="space-y-4">
-                <Card>
+                <Card className="bg-slate-800 border-slate-700">
                   <CardHeader>
-                    <CardTitle>Безопасность</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-slate-200">Безопасность</CardTitle>
+                    <CardDescription className="text-slate-400">
                       Настройки безопасности учетной записи
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label>Сброс пароля</Label>
-                        <p className="text-sm text-muted-foreground">
+                        <Label className="text-slate-200">Сброс пароля</Label>
+                        <p className="text-sm text-slate-400">
                           Установить новый пароль для пользователя
                         </p>
                       </div>
@@ -363,15 +449,16 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                     </div>
 
                     {showResetPassword && (
-                      <div className="space-y-4 border-t pt-4">
+                      <div className="space-y-4 border-t border-slate-600 pt-4">
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <Label htmlFor="newPassword">Новый пароль</Label>
+                            <Label htmlFor="newPassword" className="text-slate-200">Новый пароль</Label>
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               onClick={handleGeneratePassword}
+                              className="text-slate-400 hover:text-white hover:bg-slate-700"
                             >
                               Сгенерировать
                             </Button>
@@ -382,30 +469,45 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                             value={formData.password}
                             onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                             placeholder="Введите новый пароль"
+                            className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="confirmNewPassword">Подтвердите новый пароль</Label>
+                          <Label htmlFor="confirmNewPassword" className="text-slate-200">Подтвердите новый пароль</Label>
                           <Input
                             id="confirmNewPassword"
                             type="password"
                             value={formData.confirmPassword}
                             onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                             placeholder="Повторите новый пароль"
+                            className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
                           />
                         </div>
                       </div>
                     )}
 
                     {user.last_login && (
-                      <div className="border-t pt-4">
-                        <Label>Последний вход</Label>
-                        <p className="text-sm text-muted-foreground">
+                      <div className="border-t border-slate-600 pt-4">
+                        <Label className="text-slate-200">Последний вход</Label>
+                        <p className="text-sm text-slate-400">
                           {new Date(user.last_login).toLocaleString('ru-RU')}
                         </p>
                       </div>
                     )}
+
+                    {/* Навигация */}
+                    <div className="flex justify-between pt-4 border-t border-slate-600">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setActiveTab('roles')}
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                      >
+                        ← Назад: Роли
+                      </Button>
+                      <div></div>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -418,10 +520,11 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
             >
               Отмена
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
               {loading ? 'Сохранение...' : (user ? 'Сохранить' : 'Создать')}
             </Button>
           </DialogFooter>

@@ -2,97 +2,79 @@
  * Страница управления пользователями
  */
 
-import React, { useState, useEffect } from 'react'
-import { UserPlus, Edit, Trash2, Users } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table'
-import { MainLayout } from '@/components/layout/MainLayout'
-import { UserService, type UserStatistics } from '@/services/userService'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Plus, Users as UsersIcon, Search, Edit, Trash2, User } from 'lucide-react'
+import { User as UserType, UserStatus } from '@/types/auth'
+import { UserService } from '@/services/userService'
 import { RoleService } from '@/services/roleService'
-import type { User, Role } from '@/types/auth'
 import { UserFormDialog } from '@/components/admin/users/UserFormDialog'
+import { useDeleteConfirmDialog } from '@/hooks/useDeleteConfirmDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { EmptyState } from '@/components/ui/empty-state'
+import { MainLayout } from '@/components/layout/MainLayout'
 
-export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [roles, setRoles] = useState<Role[]>([])
-  const [statistics, setStatistics] = useState<UserStatistics | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [showUserDialog, setShowUserDialog] = useState(false)
+export default function Users() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all')
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  // Загрузка данных
-  useEffect(() => {
-    loadData()
-  }, [])
+  const { data: users = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => UserService.getAllUsers()
+  })
 
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      const [usersData, rolesData, statsData] = await Promise.all([
-        UserService.getAllUsers(),
-        RoleService.getAllRoles(),
-        UserService.getUserStatistics()
-      ])
-      
-      setUsers(usersData)
-      setRoles(rolesData)
-      setStatistics(statsData)
-    } catch (error) {
-      console.error('Ошибка загрузки данных:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data: roles = [] } = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => RoleService.getAllRoles()
+  })
 
-  // Обработчики для пользователей
-  const handleCreateUser = () => {
-    setSelectedUser(null)
-    setShowUserDialog(true)
-  }
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = statusFilter === 'all' || user.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [users, searchTerm, statusFilter])
 
-  const handleEditUser = (user: User) => {
+  const handleEdit = (user: UserType) => {
     setSelectedUser(user)
-    setShowUserDialog(true)
+    setIsDialogOpen(true)
   }
 
-  const handleDeleteUser = async (userId: string) => {
-    if (window.confirm('Вы уверены, что хотите удалить этого пользователя?')) {
-      try {
-        await UserService.deleteUser(userId)
-        await loadData()
-      } catch (error) {
-        console.error('Ошибка удаления пользователя:', error)
-        alert('Не удалось удалить пользователя: ' + error)
-      }
+  const handleCreate = () => {
+    setSelectedUser(null)
+    setIsDialogOpen(true)
+  }
+
+  const handleDelete = async (userId: string) => {
+    try {
+      await UserService.deleteUser(userId)
+      await refetch()
+    } catch (error) {
+      console.error('Failed to delete user:', error)
     }
   }
 
-  const handleUserSaved = async () => {
-    setShowUserDialog(false)
-    setSelectedUser(null)
-    await loadData()
+  const formatDate = (date: string | Date | null | undefined): string => {
+    if (!date) return 'Никогда'
+    const d = new Date(date)
+    return d.toLocaleDateString('ru-RU')
   }
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-slate-400">Загрузка данных...</p>
-          </div>
-        </div>
-      </MainLayout>
-    )
+  const confirmDelete = useDeleteConfirmDialog(handleDelete)
+
+  const handleUserSaved = () => {
+    setIsDialogOpen(false)
+    setSelectedUser(null)
+    refetch()
   }
 
   return (
@@ -100,174 +82,197 @@ export default function UsersPage() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Пользователи</h1>
-              <p className="text-slate-400 mt-2">Управление учетными записями пользователей системы</p>
+          <h1 className="text-2xl font-semibold text-white">Пользователи</h1>
+          <p className="text-slate-400 mt-2">
+            Управление учетными записями пользователей системы
+          </p>
+        </div>
+
+        {/* Панель управления */}
+        <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700">
+          <div className="px-4 md:px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                  <UsersIcon className="w-4 h-4 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold text-white">Пользователи</h2>
+                <div className="text-sm text-slate-400">
+                  Всего: {filteredUsers.length} из {users.length}
+                </div>
+              </div>
+              <Button 
+                onClick={handleCreate}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Новый пользователь
+              </Button>
             </div>
-            <Button onClick={handleCreateUser} className="bg-blue-600 hover:bg-blue-700">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Новый пользователь
-            </Button>
+
+            {/* Фильтры */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Поиск пользователей..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[180px] bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Статус" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="all">Все статусы</SelectItem>
+                  <SelectItem value="active">Активные</SelectItem>
+                  <SelectItem value="inactive">Неактивные</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
-        {/* Статистика */}
-        {statistics && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-200">Всего пользователей</CardTitle>
-                <Users className="h-4 w-4 text-slate-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">{statistics.totalUsers}</div>
-                <p className="text-xs text-slate-400">
-                  Активных: {statistics.activeUsers}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-200">Новых за месяц</CardTitle>
-                <UserPlus className="h-4 w-4 text-slate-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">{statistics.newUsersThisMonth}</div>
-                <p className="text-xs text-slate-400">
-                  Пользователей
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-200">Активные</CardTitle>
-                <Users className="h-4 w-4 text-green-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">{statistics.usersByStatus.active || 0}</div>
-                <p className="text-xs text-slate-400">
-                  Пользователей
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-200">Заблокированные</CardTitle>
-                <Users className="h-4 w-4 text-red-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">{statistics.usersByStatus.blocked || 0}</div>
-                <p className="text-xs text-slate-400">
-                  Пользователей
-                </p>
-              </CardContent>
-            </Card>
+        {/* Таблица пользователей */}
+        {filteredUsers.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UsersIcon className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              {searchTerm || statusFilter !== "all" ? 'Пользователи не найдены' : 'Нет пользователей'}
+            </h3>
+            <p className="text-slate-400">
+              {searchTerm || statusFilter !== "all"
+                ? 'Попробуйте изменить критерии поиска'
+                : 'Создайте первого пользователя системы'
+              }
+            </p>
+          </div>
+        ) : (
+          <div className="w-full">
+            <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+              <table className="w-full text-sm min-w-full table-fixed">
+                <thead className="bg-slate-700/80">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '25%'}}>ПОЛЬЗОВАТЕЛЬ</th>
+                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '20%'}}>EMAIL</th>
+                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '10%'}}>СТАТУС</th>
+                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '20%'}}>РОЛИ</th>
+                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>ПОСЛЕДНИЙ ВХОД</th>
+                    <th className="px-6 py-4 text-right text-slate-100 font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-slate-800">
+                  {isLoading ? (
+                    [...Array(5)].map((_, i) => (
+                      <tr key={i} className="border-b border-slate-600">
+                        <td className="px-4 md:px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-8 h-8 rounded-full bg-slate-700" />
+                            <Skeleton className="h-4 w-32 bg-slate-700" />
+                          </div>
+                        </td>
+                        <td className="px-4 md:px-6 py-4"><Skeleton className="h-4 w-40 bg-slate-700" /></td>
+                        <td className="px-4 md:px-6 py-4"><Skeleton className="h-6 w-16 bg-slate-700" /></td>
+                        <td className="px-4 md:px-6 py-4"><Skeleton className="h-6 w-20 bg-slate-700" /></td>
+                        <td className="px-4 md:px-6 py-4"><Skeleton className="h-4 w-24 bg-slate-700" /></td>
+                        <td className="px-4 md:px-6 py-4"><Skeleton className="h-8 w-16 bg-slate-700" /></td>
+                      </tr>
+                    ))
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <tr
+                        key={user.id}
+                        className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors"
+                      >
+                        <td className="px-4 md:px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-600">
+                              <User className="w-4 h-4 text-slate-300" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-white text-base truncate">
+                                {user.name}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 md:px-6 py-4">
+                          <div className="text-slate-300 truncate">
+                            {user.email}
+                          </div>
+                        </td>
+                        <td className="px-4 md:px-6 py-4">
+                          <Badge 
+                            variant={user.status === 'active' ? 'default' : 'secondary'}
+                            className={user.status === 'active' ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-600 hover:bg-slate-700'}
+                          >
+                            {user.status === 'active' ? 'Активен' : 'Неактивен'}
+                          </Badge>
+                        </td>
+                        <td className="px-4 md:px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {user.roles?.map(role => (
+                              <Badge key={role.role_id} variant="outline" className="text-xs border-slate-500 text-slate-300">
+                                {role.role_name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 md:px-6 py-4">
+                          <div className="text-slate-300">
+                            {user.last_login ? formatDate(user.last_login) : 'Никогда'}
+                          </div>
+                        </td>
+                        <td className="px-4 md:px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(user)}
+                              className="text-slate-400 hover:text-white hover:bg-slate-700"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => confirmDelete.openDialog(user.id, `пользователя "${user.name}"`)}
+                              className="text-slate-400 hover:text-red-400 hover:bg-slate-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* Таблица пользователей */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Список пользователей
-              <Badge variant="secondary" className="ml-auto">
-                {users.length} пользователей
-              </Badge>
-            </CardTitle>
-            <CardDescription className="text-slate-400">
-              Управление учетными записями пользователей системы
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-slate-700">
-                    <TableHead className="text-slate-300">Имя</TableHead>
-                    <TableHead className="text-slate-300">Email</TableHead>
-                    <TableHead className="text-slate-300">Роли</TableHead>
-                    <TableHead className="text-slate-300">Статус</TableHead>
-                    <TableHead className="text-slate-300">Последний вход</TableHead>
-                    <TableHead className="text-slate-300 text-right">Действия</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id} className="border-slate-700 hover:bg-slate-700/50">
-                      <TableCell className="text-white font-medium">{user.name}</TableCell>
-                      <TableCell className="text-slate-300">{user.email}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {user.roles.map((role) => (
-                            <Badge 
-                              key={role.role_id} 
-                              variant={role.role_code === 'super_admin' ? 'destructive' : 'secondary'}
-                              className="text-xs"
-                            >
-                              {role.role_name}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={
-                            user.status === 'active' ? 'default' : 
-                            user.status === 'blocked' ? 'destructive' : 'secondary'
-                          }
-                        >
-                          {user.status === 'active' ? 'Активен' : 
-                           user.status === 'blocked' ? 'Заблокирован' : 'Неактивен'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-300">
-                        {user.last_login 
-                          ? new Date(user.last_login).toLocaleDateString('ru-RU')
-                          : 'Никогда'
-                        }
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
-                            className="text-slate-400 hover:text-white"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteUser(user.id)}
-                            disabled={user.roles.some(r => r.role_code === 'super_admin')}
-                            className="text-slate-400 hover:text-red-400 disabled:opacity-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+      <UserFormDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        user={selectedUser}
+        roles={roles}
+        onSaved={handleUserSaved}
+      />
 
-        {/* Диалог пользователя */}
-        <UserFormDialog
-          open={showUserDialog}
-          onOpenChange={setShowUserDialog}
-          user={selectedUser}
-          roles={roles}
-          onSaved={handleUserSaved}
-        />
+      <ConfirmDialog
+        open={confirmDelete.isOpen}
+        onOpenChange={confirmDelete.closeDialog}
+        title="Подтвердите удаление"
+        description={confirmDelete.message}
+        onConfirm={confirmDelete.confirm}
+        confirmText="Удалить"
+        variant="destructive"
+      />
       </div>
     </MainLayout>
   )

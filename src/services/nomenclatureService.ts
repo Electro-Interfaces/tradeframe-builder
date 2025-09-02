@@ -1,7 +1,8 @@
 import { FuelNomenclature, FuelNomenclatureFormData, FuelNomenclatureFilters, ExternalCodeMapping } from '../types/nomenclature';
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { getApiBaseUrl, isApiMockMode } from '@/services/apiConfigService';
 
-const API_BASE_URL = '/api/v1';
+const API_BASE_URL = getApiBaseUrl();
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

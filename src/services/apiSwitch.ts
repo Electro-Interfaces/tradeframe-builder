@@ -22,12 +22,14 @@ import {
 } from './httpClients';
 
 // 🎛️ КОНФИГУРАЦИЯ ПЕРЕКЛЮЧЕНИЯ
+import { apiConfigService } from '@/services/apiConfigService';
+
 const API_CONFIG = {
   // Установить true для использования реального HTTP API
-  USE_HTTP_API: import.meta.env.VITE_USE_HTTP_API === 'true' || false,
+  USE_HTTP_API: !apiConfigService.isMockMode(),
   
   // URL реального API
-  API_BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1',
+  API_BASE_URL: apiConfigService.getCurrentApiUrl(),
   
   // Режим отладки
   DEBUG_MODE: import.meta.env.DEV || false

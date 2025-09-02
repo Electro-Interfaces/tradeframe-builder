@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation, NavLink } from "react-router-dom";
+import { useMenuVisibility } from "@/hooks/useMenuVisibility";
 import {
   Sidebar,
   SidebarContent,
@@ -42,6 +43,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
   const location = useLocation();
   const { state } = useSidebar();
   const [openGroups, setOpenGroups] = useState<string[]>(["main", "networks", "trading-point", "admin", "settings"]);
+  const menuVisibility = useMenuVisibility();
   
   // В мобильном режиме никогда не сворачиваем меню
   const collapsed = isMobile ? false : state === "collapsed";
@@ -88,6 +90,9 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
 
   const settingsMenuItems = [
     { title: "Настройки подключения", url: "/settings/connections", icon: Wifi },
+    { title: "Настройки БД", url: "/settings/database", icon: Database },
+    { title: "Частичная миграция", url: "/settings/partial-migration", icon: Cog },
+    { title: "Шаблоны API команд", url: "/settings/templates/command-templates", icon: Cog },
     { title: "Номенклатура", url: "/settings/nomenclature", icon: FuelIcon },
     { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types", icon: HardDrive },
     { title: "Типы компонентов", url: "/settings/dictionaries/component-types", icon: Component },
@@ -100,6 +105,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     return (
       <>
         {/* ТОРГОВЫЕ СЕТИ */}
+        {menuVisibility.networks && (
         <div className="px-4 py-3">
           <div 
             className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
@@ -130,8 +136,10 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
             </div>
           )}
         </div>
+        )}
 
         {/* ТОРГОВАЯ ТОЧКА */}
+        {menuVisibility.tradingPoint && (
         <div className="border-t border-slate-600 px-4 py-3">
           <div 
             className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
@@ -168,8 +176,10 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
             </div>
           )}
         </div>
+        )}
 
         {/* АДМИНИСТРИРОВАНИЕ */}
+        {menuVisibility.admin && (
         <div className="border-t border-slate-600 px-4 py-3">
           <div 
             className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
@@ -200,8 +210,10 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
             </div>
           )}
         </div>
+        )}
 
         {/* НАСТРОЙКИ */}
+        {menuVisibility.settings && (
         <div className="border-t border-slate-600 px-4 py-3">
           <div 
             className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
@@ -232,6 +244,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
             </div>
           )}
         </div>
+        )}
       </>
     );
   }

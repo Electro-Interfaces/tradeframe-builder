@@ -7,7 +7,8 @@ import {
   ApiError 
 } from '@/types/connections';
 
-const API_BASE_URL = '/api/v1';
+import { getApiBaseUrl, isApiMockMode } from '@/services/apiConfigService';
+const API_BASE_URL = getApiBaseUrl();
 
 class ConnectionsApiError extends Error {
   constructor(public statusCode: number, message: string) {

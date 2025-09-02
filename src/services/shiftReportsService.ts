@@ -1,9 +1,10 @@
 /**
  * Сервис для работы со сменными отчетами
- * Включает персистентное хранение в localStorage
+ * Включает персистентное хранение в localStorage и поддержку частичной миграции
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { getApiBaseUrl } from '@/services/apiConfigService';
 
 export type ShiftStatus = 'draft' | 'closed' | 'synchronized' | 'archived';
 export type DocumentType = 'z-report' | 'acceptance-act' | 'transfer-act' | 'correction' | 'invoice';
@@ -335,6 +336,9 @@ let shiftReportsData: ShiftReport[] = PersistentStorage.load<ShiftReport>('shift
 let nextShiftId = Math.max(...shiftReportsData.map(sr => parseInt(sr.id.replace('SHIFT-', '')) || 0)) + 1;
 let nextDocumentId = 1;
 let nextFuelPositionId = 1;
+
+// API Base URL для централизованного управления
+const getApiUrl = () => getApiBaseUrl();
 
 // Функция для сохранения изменений
 const saveShiftReports = () => {

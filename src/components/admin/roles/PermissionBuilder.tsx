@@ -23,7 +23,8 @@ const ACTION_LABELS: Record<PermissionAction, string> = {
   'read': 'Чтение',
   'write': 'Запись', 
   'delete': 'Удаление',
-  'manage': 'Управление'
+  'manage': 'Управление',
+  'view_menu': 'Видимость меню'
 }
 
 export function PermissionBuilder() {
@@ -68,7 +69,11 @@ export function PermissionBuilder() {
   }
 
   const togglePermission = (section: string, resource: string, action: PermissionAction) => {
-    if (!selectedRole || selectedRole.is_system) return
+    console.log('🔄 PermissionBuilder - Toggling permission:', section, resource, action);
+    if (!selectedRole) {
+      console.log('❌ No selected role');
+      return;
+    }
 
     setEditedPermissions(current => {
       const existing = current.find(p => p.section === section && p.resource === resource)
@@ -108,7 +113,7 @@ export function PermissionBuilder() {
   }
 
   const savePermissions = async () => {
-    if (!selectedRole || selectedRole.is_system) return
+    if (!selectedRole) return
 
     try {
       setSaving(true)
@@ -181,12 +186,9 @@ export function PermissionBuilder() {
               <SelectItem key={role.id} value={role.id} className="text-white hover:bg-slate-700">
                 <div className="flex items-center space-x-2">
                   <span>{role.name}</span>
-                  <Badge variant={role.is_system ? 'secondary' : 'default'} className="text-xs">
+                  <Badge variant="default" className="text-xs">
                     {getRolePermissionCount(role)}
                   </Badge>
-                  {role.is_system && (
-                    <Badge variant="destructive" className="text-xs">Системная</Badge>
-                  )}
                 </div>
               </SelectItem>
             ))}
@@ -202,8 +204,8 @@ export function PermissionBuilder() {
               <CardTitle className="flex items-center justify-between text-slate-200">
                 <div className="flex items-center space-x-2">
                   <span>{selectedRole.name}</span>
-                  <Badge variant={selectedRole.is_system ? 'secondary' : 'default'}>
-                    {selectedRole.is_system ? 'Системная' : 'Пользовательская'}
+                  <Badge variant="default">
+                    Пользовательская
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -233,33 +235,28 @@ export function PermissionBuilder() {
             <CardHeader>
               <CardTitle className="text-slate-200 flex items-center justify-between">
                 <span>Редактирование разрешений</span>
-                {!selectedRole.is_system && (
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={resetPermissions}
-                      disabled={!hasChanges()}
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                    >
-                      Сбросить
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={savePermissions}
-                      disabled={!hasChanges() || saving}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      {saving ? 'Сохранение...' : 'Сохранить'}
-                    </Button>
-                  </div>
-                )}
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetPermissions}
+                    disabled={!hasChanges()}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    Сбросить
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={savePermissions}
+                    disabled={!hasChanges() || saving}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {saving ? 'Сохранение...' : 'Сохранить'}
+                  </Button>
+                </div>
               </CardTitle>
               <CardDescription className="text-slate-400">
-                {selectedRole.is_system ? 
-                  'Системные роли нельзя изменять' : 
-                  'Выберите разрешения для данной роли по разделам системы'
-                }
+                Выберите разрешения для данной роли по разделам системы
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -282,14 +279,18 @@ export function PermissionBuilder() {
                               <p className="text-sm text-slate-400">{resource.description}</p>
                             </div>
                           </div>
-                          <div className="grid grid-cols-4 gap-2">
-                            {(['read', 'write', 'delete', 'manage'] as PermissionAction[]).map(action => {
+                          <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : 'grid-cols-4'}`}>
+                            {(section.code === 'menu_visibility' ? 
+                              ['view_menu'] : 
+                              ['read', 'write', 'delete', 'manage']
+                            ).map(action => {
                               const isChecked = hasPermission(section.code, resource.code, action)
                               const colorClasses = {
-                                read: isChecked ? 'border-green-500 bg-green-900 text-green-300' : 'border-slate-500 bg-slate-700 text-slate-400',
-                                write: isChecked ? 'border-blue-500 bg-blue-900 text-blue-300' : 'border-slate-500 bg-slate-700 text-slate-400',
-                                delete: isChecked ? 'border-red-500 bg-red-900 text-red-300' : 'border-slate-500 bg-slate-700 text-slate-400',
-                                manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-500 bg-slate-700 text-slate-400'
+                                read: isChecked ? 'border-green-500 bg-green-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-green-400',
+                                write: isChecked ? 'border-blue-500 bg-blue-900 text-blue-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-blue-400',
+                                delete: isChecked ? 'border-red-500 bg-red-900 text-red-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-red-400',
+                                manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-purple-400',
+                                view_menu: isChecked ? 'border-yellow-500 bg-yellow-900 text-yellow-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-yellow-400'
                               }
                               
                               return (
@@ -298,14 +299,17 @@ export function PermissionBuilder() {
                                   className={`
                                     flex items-center justify-center space-x-2 cursor-pointer p-2 rounded border-2 transition-all hover:shadow-sm
                                     ${colorClasses[action]}
-                                    ${selectedRole.is_system ? 'opacity-50 cursor-not-allowed' : ''}
                                   `}
+                                  onClick={() => {
+                                    console.log('🖱️ Label clicked:', section.code, resource.code, action);
+                                    togglePermission(section.code, resource.code, action);
+                                  }}
                                 >
                                   <Checkbox
                                     checked={isChecked}
                                     onCheckedChange={() => togglePermission(section.code, resource.code, action)}
-                                    disabled={selectedRole.is_system}
-                                    className="data-[state=checked]:bg-current data-[state=checked]:border-current"
+                                    disabled={false}
+                                    className="data-[state=checked]:bg-current data-[state=checked]:border-current border-2 border-current"
                                   />
                                   <span className="text-sm font-medium">{ACTION_LABELS[action]}</span>
                                 </label>

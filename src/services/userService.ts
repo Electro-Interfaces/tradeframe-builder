@@ -176,6 +176,96 @@ export class UserService {
   }
 
   /**
+   * Изменить пароль пользователя
+   */
+  static async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const users = await persistentStorage.getItem<User[]>(this.USERS_KEY) || []
+    const user = users.find(u => u.id === userId && !u.deleted_at)
+
+    if (!user) {
+      throw new Error('Пользователь не найден')
+    }
+
+    // Проверяем текущий пароль
+    const currentHash = await CryptoUtils.hashPassword(currentPassword, user.pwd_salt)
+    if (currentHash !== user.pwd_hash) {
+      throw new Error('Неверный текущий пароль')
+    }
+
+    // Генерируем новый хеш пароля
+    const newSalt = CryptoUtils.generateSalt()
+    const newHash = await CryptoUtils.hashPassword(newPassword, newSalt)
+
+    // Обновляем пароль
+    user.pwd_salt = newSalt
+    user.pwd_hash = newHash
+    user.updated_at = new Date()
+    user.version += 1
+
+    await persistentStorage.setItem(this.USERS_KEY, users)
+
+    await this.logAudit('User.PasswordChanged', 'User', user.id, {
+      email: user.email
+    })
+  }
+
+  /**
+   * Обновить email пользователя (логин)
+   */
+  static async changeEmail(userId: string, newEmail: string): Promise<User> {
+    const users = await persistentStorage.getItem<User[]>(this.USERS_KEY) || []
+    const user = users.find(u => u.id === userId && !u.deleted_at)
+
+    if (!user) {
+      throw new Error('Пользователь не найден')
+    }
+
+    // Проверяем уникальность email
+    const existingUser = users.find(u => u.email === newEmail && u.id !== userId && !u.deleted_at)
+    if (existingUser) {
+      throw new Error('Email уже используется')
+    }
+
+    const oldEmail = user.email
+    user.email = newEmail
+    user.updated_at = new Date()
+    user.version += 1
+
+    await persistentStorage.setItem(this.USERS_KEY, users)
+
+    await this.logAudit('User.EmailChanged', 'User', user.id, {
+      oldEmail,
+      newEmail
+    })
+
+    return user
+  }
+
+  /**
+   * Сохранить пользовательские предпочтения
+   */
+  static async updateUserPreferences(userId: string, preferences: Record<string, any>): Promise<User> {
+    const users = await persistentStorage.getItem<User[]>(this.USERS_KEY) || []
+    const user = users.find(u => u.id === userId && !u.deleted_at)
+
+    if (!user) {
+      throw new Error('Пользователь не найден')
+    }
+
+    // Объединяем с существующими предпочтениями
+    user.preferences = {
+      ...user.preferences,
+      ...preferences
+    }
+    user.updated_at = new Date()
+    user.version += 1
+
+    await persistentStorage.setItem(this.USERS_KEY, users)
+
+    return user
+  }
+
+  /**
    * Изменить статус пользователя
    */
   static async updateUserStatus(id: string, status: UserStatus): Promise<User> {

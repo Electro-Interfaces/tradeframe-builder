@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSelection } from "@/context/SelectionContext";
@@ -18,6 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { shiftReportsService, ShiftReport, FuelPosition, ShiftDocument } from "@/services/shiftReportsService";
 import { 
   FileText, 
   Eye, 
@@ -45,166 +46,14 @@ import {
   CheckCircle
 } from "lucide-react";
 
-// Типы данных для сменных отчётов по форме 25-НП
-interface ShiftReport {
-  id: string;
-  shiftNumber: number;
-  closedAt: string;
-  operator: string;
-  tradingPointId: string;
-  status: 'draft' | 'closed' | 'synchronized' | 'archived';
-  
-  // Итоги смены
-  totalRevenue: number; // общая выручка в копейках
-  totalVolume: number; // общий отпуск в литрах
-  receiptCount: number; // количество чеков
-  
-  // Способы оплаты
-  payments: {
-    cash: number;      // наличные
-    cards: number;     // банковские карты
-    sbp: number;       // СБП
-    fuelCards: number; // топливные карты
-    other: number;     // прочие способы
-  };
-  
-  // Позиции по видам топлива
-  fuelPositions: FuelPosition[];
-  
-  // Документы смены
-  documents: ShiftDocument[];
-}
-
-interface FuelPosition {
-  id: string;
-  fuelType: string;
-  fuelCode: string;
-  tankNumber: string;
-  
-  // Остатки в литрах
-  startBalance: number;        // остаток на начало
-  received: number;           // поступило за смену
-  dispensed: number;          // отпуск по ТРК
-  calculatedBalance: number;  // расчётный остаток (начало + приход - отпуск)
-  actualBalance: number;      // фактический остаток (по замеру)
-  difference: number;         // разница (факт - расчёт)
-  
-  // Показания ТРК
-  meterStart: number;         // показания ТРК на начало
-  meterEnd: number;          // показания ТРК на конец
-  
-  // Замеры резервуара
-  levelMm: number;           // уровень в мм
-  waterMm: number;           // вода в мм
-  temperature: number;       // температура
-  
-  // Допустимая погрешность ТРК
-  allowedErrorPercent: number;
-  hasExcessError: boolean;    // превышение допустимой погрешности
-  
-  // Кассовые итоги по виду топлива
-  revenue: number;           // выручка в копейках
-  receiptCount: number;      // количество чеков
-}
-
-interface ShiftDocument {
-  id: string;
-  type: 'z-report' | 'acceptance-act' | 'transfer-act' | 'correction' | 'invoice';
-  name: string;
-  createdAt: string;
-  fileSize?: number;
-  status: 'draft' | 'ready' | 'error';
-}
-
-// Mock данные по форме 25-НП
-const mockShiftReports: ShiftReport[] = [
-  {
-    id: "sr_001",
-    shiftNumber: 156,
-    closedAt: "2024-12-07T20:00:00",
-    operator: "Иванова М.А.",
-    tradingPointId: "tp_001",
-    status: "synchronized",
-    totalRevenue: 12567000, // 125,670.00 руб
-    totalVolume: 2850,      // 2,850 л
-    receiptCount: 47,
-    payments: {
-      cash: 3770100,    // 37,701.00 руб
-      cards: 8796900,   // 87,969.00 руб
-      sbp: 0,
-      fuelCards: 0,
-      other: 0
-    },
-    fuelPositions: [
-      {
-        id: "fp_001",
-        fuelType: "АИ-95",
-        fuelCode: "AI95",
-        tankNumber: "Резервуар №1",
-        startBalance: 45000,
-        received: 20000,
-        dispensed: 15000,
-        calculatedBalance: 50000,
-        actualBalance: 49950,
-        difference: -50, // недостача 50л
-        meterStart: 125670,
-        meterEnd: 140670,
-        levelMm: 1850,
-        waterMm: 5,
-        temperature: -2,
-        allowedErrorPercent: 0.25,
-        hasExcessError: false,
-        revenue: 7850000, // 78,500.00 руб
-        receiptCount: 23
-      },
-      {
-        id: "fp_002", 
-        fuelType: "АИ-92",
-        fuelCode: "AI92",
-        tankNumber: "Резервуар №2",
-        startBalance: 38000,
-        received: 25000,
-        dispensed: 12000,
-        calculatedBalance: 51000,
-        actualBalance: 51020,
-        difference: 20, // излишек 20л
-        meterStart: 89450,
-        meterEnd: 101450,
-        levelMm: 2100,
-        waterMm: 3,
-        temperature: -1,
-        allowedErrorPercent: 0.25,
-        hasExcessError: false,
-        revenue: 4717000, // 47,170.00 руб
-        receiptCount: 24
-      }
-    ],
-    documents: [
-      {
-        id: "doc_001",
-        type: "z-report",
-        name: "Z-отчёт смена 156",
-        createdAt: "2024-12-07T20:05:00",
-        fileSize: 245600,
-        status: "ready"
-      },
-      {
-        id: "doc_002",
-        type: "acceptance-act",
-        name: "Акт приёмки-передачи",
-        createdAt: "2024-12-07T20:10:00",
-        status: "ready"
-      }
-    ]
-  }
-];
 
 export default function ShiftReports() {
   const { selectedTradingPoint } = useSelection();
   const isMobile = useIsMobile();
   
   // Состояния
-  const [shiftReports] = useState<ShiftReport[]>(mockShiftReports);
+  const [shiftReports, setShiftReports] = useState<ShiftReport[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<ShiftReport | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
@@ -214,6 +63,32 @@ export default function ShiftReports() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [fuelFilter, setFuelFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
+
+  // Загрузка данных сменных отчетов
+  useEffect(() => {
+    const loadShiftReports = async () => {
+      try {
+        setLoading(true);
+        const data = selectedTradingPoint?.id 
+          ? await shiftReportsService.getShiftReportsByTradingPoint(selectedTradingPoint.id)
+          : await shiftReportsService.getAllShiftReports();
+        setShiftReports(data);
+      } catch (error) {
+        console.error('Ошибка загрузки сменных отчетов:', error);
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить сменные отчеты",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (selectedTradingPoint) {
+      loadShiftReports();
+    }
+  }, [selectedTradingPoint]);
 
   // Форматирование
   const formatPrice = (kopecks: number) => {
@@ -284,11 +159,21 @@ export default function ShiftReports() {
     setDetailDialogOpen(true);
   };
 
-  const handleExportReport = (report: ShiftReport) => {
-    toast({
-      title: "Экспорт отчёта",
-      description: `Отчёт смены №${report.shiftNumber} экспортирован в PDF`,
-    });
+  const handleExportReport = async (report: ShiftReport) => {
+    try {
+      // В будущем здесь будет реальный экспорт
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast({
+        title: "Экспорт отчёта",
+        description: `Отчёт смены №${report.shiftNumber} экспортирован в PDF`,
+      });
+    } catch (error) {
+      toast({
+        title: "Ошибка экспорта",
+        description: "Не удалось экспортировать отчёт",
+        variant: "destructive",
+      });
+    }
   };
 
   // Проверка выбора торговой точки
@@ -322,6 +207,9 @@ export default function ShiftReports() {
           <p className="text-slate-400 mt-2">
             Отчёты по форме 25-НП для торговой точки: {selectedTradingPoint?.name}
           </p>
+          {loading && (
+            <p className="text-slate-500 text-sm">Загрузка сменных отчетов...</p>
+          )}
         </div>
 
         {/* Панель фильтров */}
@@ -518,7 +406,7 @@ export default function ShiftReports() {
                               <div className="text-xs text-slate-400">{report.receiptCount} чеков</div>
                             </td>
                             <td className="px-4 py-4">
-                              <div className="text-white">{formatDate(report.closedAt)}</div>
+                              <div className="text-white">{report.closedAt ? formatDate(report.closedAt) : '—'}</div>
                             </td>
                             <td className="px-4 py-4">
                               <div className="flex items-center gap-2">
@@ -584,7 +472,7 @@ export default function ShiftReports() {
                         <div className="flex-1">
                           <div className="font-medium text-white text-base mb-1">Смена №{report.shiftNumber}</div>
                           <div className="text-sm text-slate-400 mb-1">{report.operator}</div>
-                          <div className="text-sm text-slate-400">{formatDate(report.closedAt)}</div>
+                          <div className="text-sm text-slate-400">{report.closedAt ? formatDate(report.closedAt) : formatDate(report.openedAt)}</div>
                         </div>
                         <Badge className={`${statusInfo.color} flex items-center gap-1`}>
                           <StatusIcon className="w-3 h-3" />
@@ -639,7 +527,7 @@ export default function ShiftReports() {
                 Сменный отчёт №{selectedReport?.shiftNumber} (форма 25-НП)
               </DialogTitle>
               <div className="text-sm text-slate-400">
-                Оператор: {selectedReport?.operator} • Закрыта: {selectedReport && formatDate(selectedReport.closedAt)}
+                Оператор: {selectedReport?.operator} • {selectedReport?.closedAt ? `Закрыта: ${formatDate(selectedReport.closedAt)}` : `Открыта: ${selectedReport && formatDate(selectedReport.openedAt)}`}
               </div>
             </DialogHeader>
             

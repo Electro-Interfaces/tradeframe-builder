@@ -10,39 +10,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Plus, 
   Search, 
-  Filter, 
   Eye,
   Edit,
   Copy,
   Archive,
-  Settings,
-  Clock,
-  Users,
-  AlertTriangle,
   CheckCircle,
-  Trash2
+  Trash2,
+  Settings,
+  AlertTriangle,
+  Globe,
+  MapPin,
+  Wrench,
+  Component
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { 
-  CommandTemplate, 
-  CommandCategory, 
-  CommandTemplateStatus,
-  CreateCommandTemplateRequest,
-  UpdateCommandTemplateRequest 
-} from "@/types/commandTemplate";
-import { commandTemplatesStore, COMMAND_CATEGORIES } from "@/mock/commandTemplatesStore";
-import { currentCommandTemplatesAPI } from "@/services/commandTemplates";
-import { CommandTemplateForm } from "@/components/commands/CommandTemplateForm";
+  NewCommandTemplate, 
+  TemplateScope, 
+  TemplateMode, 
+  TemplateStatus 
+} from "@/types/connections";
+import { newCommandTemplatesStore, TEMPLATE_SCOPE_OPTIONS, TEMPLATE_STATUS_OPTIONS } from "@/mock/newCommandTemplatesStore";
+import { currentNewTemplatesAPI } from "@/services/newConnectionsService";
+import { NewTemplateForm } from "@/components/templates/NewTemplateForm";
 
-export default function CommandTemplates() {
+export default function NewCommandTemplates() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<CommandCategory | "all">("all");
-  const [selectedStatus, setSelectedStatus] = useState<CommandTemplateStatus | "all">("all");
-  const [selectedTemplate, setSelectedTemplate] = useState<CommandTemplate | null>(null);
+  const [selectedScope, setSelectedScope] = useState<TemplateScope | "all">("all");
+  const [selectedMode, setSelectedMode] = useState<TemplateMode | "all">("all");
+  const [selectedStatus, setSelectedStatus] = useState<TemplateStatus | "all">("all");
+  const [selectedTemplate, setSelectedTemplate] = useState<NewCommandTemplate | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [templates, setTemplates] = useState<CommandTemplate[]>([]);
+  const [templates, setTemplates] = useState<NewCommandTemplate[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Загружаем шаблоны при монтировании компонента
@@ -53,8 +54,8 @@ export default function CommandTemplates() {
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const response = await currentCommandTemplatesAPI.list();
-      setTemplates(response.data);
+      const response = newCommandTemplatesStore.getAll();
+      setTemplates(response);
     } catch (error) {
       console.error('Failed to load templates:', error);
       toast({
@@ -76,14 +77,19 @@ export default function CommandTemplates() {
       const searchLower = searchTerm.toLowerCase();
       filteredList = filteredList.filter(t =>
         t.name.toLowerCase().includes(searchLower) ||
-        t.display_name.toLowerCase().includes(searchLower) ||
+        t.template_id.toLowerCase().includes(searchLower) ||
         t.description.toLowerCase().includes(searchLower)
       );
     }
 
-    // Фильтр по категории
-    if (selectedCategory !== "all") {
-      filteredList = filteredList.filter(t => t.category === selectedCategory);
+    // Фильтр по области применения
+    if (selectedScope !== "all") {
+      filteredList = filteredList.filter(t => t.scope === selectedScope);
+    }
+
+    // Фильтр по режиму
+    if (selectedMode !== "all") {
+      filteredList = filteredList.filter(t => t.mode === selectedMode);
     }
 
     // Фильтр по статусу
@@ -97,50 +103,78 @@ export default function CommandTemplates() {
         return a.is_system ? -1 : 1;
       }
       // Затем по названию
-      return a.display_name.localeCompare(b.display_name);
+      return a.name.localeCompare(b.name);
     });
-  }, [templates, searchTerm, selectedCategory, selectedStatus]);
+  }, [templates, searchTerm, selectedScope, selectedMode, selectedStatus]);
 
-  // Статистика по категориям
-  const categoryStats = useMemo(() => {
-    return commandTemplatesStore.getCategoriesWithCounts();
-  }, []);
+  // Статистика по областям применения
+  const scopeStats = useMemo(() => {
+    const stats: { scope: TemplateScope; count: number; info: any }[] = [];
+    
+    TEMPLATE_SCOPE_OPTIONS.forEach(option => {
+      const count = filteredTemplates.filter(t => t.scope === option.value).length;
+      stats.push({
+        scope: option.value as TemplateScope,
+        count,
+        info: option
+      });
+    });
+    
+    return stats.sort((a, b) => b.count - a.count);
+  }, [filteredTemplates]);
 
-  const getStatusColor = (status: CommandTemplateStatus) => {
+  const getStatusColor = (status: TemplateStatus) => {
     switch (status) {
       case 'active': return 'text-green-400 border-green-500 bg-green-500/10';
       case 'inactive': return 'text-slate-400 border-slate-500 bg-slate-500/10';
       case 'deprecated': return 'text-orange-400 border-orange-500 bg-orange-500/10';
+      case 'draft': return 'text-blue-400 border-blue-500 bg-blue-500/10';
       default: return 'text-gray-400 border-gray-500 bg-gray-500/10';
     }
   };
 
-  const getStatusText = (status: CommandTemplateStatus) => {
+  const getStatusText = (status: TemplateStatus) => {
     switch (status) {
-      case 'active': return 'Активен';
-      case 'inactive': return 'Неактивен';
+      case 'active': return 'Активный';
+      case 'inactive': return 'Неактивный';
       case 'deprecated': return 'Устарел';
+      case 'draft': return 'Черновик';
       default: return status;
     }
   };
 
-  const handleViewTemplate = (template: CommandTemplate) => {
+  const getScopeIcon = (scope: TemplateScope) => {
+    switch (scope) {
+      case 'network': return <Globe className="w-4 h-4" />;
+      case 'trading_point': return <MapPin className="w-4 h-4" />;
+      case 'equipment': return <Wrench className="w-4 h-4" />;
+      case 'component': return <Component className="w-4 h-4" />;
+      default: return <Settings className="w-4 h-4" />;
+    }
+  };
+
+  const getScopeName = (scope: TemplateScope) => {
+    const scopeOption = TEMPLATE_SCOPE_OPTIONS.find(s => s.value === scope);
+    return scopeOption ? scopeOption.label : scope;
+  };
+
+  const handleViewTemplate = (template: NewCommandTemplate) => {
     setSelectedTemplate(template);
     setIsViewDialogOpen(true);
   };
 
-  const handleEditTemplate = (template: CommandTemplate) => {
+  const handleEditTemplate = (template: NewCommandTemplate) => {
     setSelectedTemplate(template);
     setIsEditDialogOpen(true);
   };
 
-  const handleCreateTemplate = async (data: CreateCommandTemplateRequest) => {
+  const handleCreateTemplate = async (data: any) => {
     setLoading(true);
     try {
-      await currentCommandTemplatesAPI.create(data);
+      await currentNewTemplatesAPI.create(data);
       toast({
         title: "Шаблон создан",
-        description: `Шаблон "${data.display_name}" успешно создан.`,
+        description: `Шаблон "${data.name}" успешно создан.`,
       });
       setIsCreateDialogOpen(false);
       loadTemplates();
@@ -156,15 +190,15 @@ export default function CommandTemplates() {
     }
   };
 
-  const handleUpdateTemplate = async (data: UpdateCommandTemplateRequest) => {
+  const handleUpdateTemplate = async (data: any) => {
     if (!selectedTemplate) return;
     
     setLoading(true);
     try {
-      await currentCommandTemplatesAPI.update(selectedTemplate.id, data);
+      await currentNewTemplatesAPI.update(selectedTemplate.id, data);
       toast({
         title: "Шаблон обновлен",
-        description: `Шаблон "${data.display_name || selectedTemplate.display_name}" успешно обновлен.`,
+        description: `Шаблон "${selectedTemplate.name}" успешно обновлен.`,
       });
       setIsEditDialogOpen(false);
       setSelectedTemplate(null);
@@ -181,13 +215,17 @@ export default function CommandTemplates() {
     }
   };
 
-  const handleDuplicateTemplate = async (template: CommandTemplate) => {
+  const handleDuplicateTemplate = async (template: NewCommandTemplate) => {
     setLoading(true);
     try {
-      await currentCommandTemplatesAPI.duplicate(template.id);
+      await currentNewTemplatesAPI.clone(template.id, {
+        new_template_id: `${template.template_id}_copy`,
+        new_version: '1.0.0',
+        version_notes: `Копия шаблона ${template.template_id}`
+      });
       toast({
         title: "Шаблон скопирован",
-        description: `Создана копия шаблона "${template.display_name}".`,
+        description: `Создана копия шаблона "${template.name}".`,
       });
       loadTemplates();
     } catch (error) {
@@ -202,14 +240,14 @@ export default function CommandTemplates() {
     }
   };
 
-  const handleToggleStatus = async (template: CommandTemplate) => {
+  const handleToggleStatus = async (template: NewCommandTemplate) => {
     const newStatus = template.status === 'active' ? 'inactive' : 'active';
     setLoading(true);
     try {
-      await currentCommandTemplatesAPI.updateStatus(template.id, newStatus);
+      await currentNewTemplatesAPI.update(template.id, { status: newStatus });
       toast({
         title: `Шаблон ${newStatus === 'active' ? 'активирован' : 'деактивирован'}`,
-        description: `Шаблон "${template.display_name}" ${newStatus === 'active' ? 'активирован' : 'деактивирован'}.`,
+        description: `Шаблон "${template.name}" ${newStatus === 'active' ? 'активирован' : 'деактивирован'}.`,
       });
       loadTemplates();
     } catch (error) {
@@ -224,7 +262,7 @@ export default function CommandTemplates() {
     }
   };
 
-  const handleDeleteTemplate = async (template: CommandTemplate) => {
+  const handleDeleteTemplate = async (template: NewCommandTemplate) => {
     if (template.is_system) {
       toast({
         title: "Нельзя удалить",
@@ -236,10 +274,10 @@ export default function CommandTemplates() {
 
     setLoading(true);
     try {
-      await currentCommandTemplatesAPI.delete(template.id);
+      await currentNewTemplatesAPI.delete(template.id);
       toast({
         title: "Шаблон удален",
-        description: `Шаблон "${template.display_name}" был удален.`,
+        description: `Шаблон "${template.name}" был удален.`,
       });
       loadTemplates();
     } catch (error) {
@@ -259,9 +297,9 @@ export default function CommandTemplates() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Шаблоны команд</h1>
+          <h1 className="text-2xl font-semibold text-white">Шаблоны API команд</h1>
           <p className="text-slate-400 mt-2">
-            Управление шаблонами команд для автоматизации операций в системе
+            Управление шаблонами API команд для интеграции с внешними провайдерами
           </p>
         </div>
 
@@ -273,7 +311,7 @@ export default function CommandTemplates() {
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                   <Settings className="w-4 h-4 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-white">Шаблоны команд</h2>
+                <h2 className="text-lg font-semibold text-white">Шаблоны API команд</h2>
                 <div className="text-sm text-slate-400">
                   Всего: {filteredTemplates.length} из {templates.length}
                 </div>
@@ -290,9 +328,9 @@ export default function CommandTemplates() {
                 </DialogTrigger>
                 <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Создать новый шаблон команды</DialogTitle>
+                    <DialogTitle>Создать новый шаблон API команды</DialogTitle>
                   </DialogHeader>
-                  <CommandTemplateForm
+                  <NewTemplateForm
                     mode="create"
                     onSubmit={handleCreateTemplate}
                     onCancel={() => setIsCreateDialogOpen(false)}
@@ -306,26 +344,35 @@ export default function CommandTemplates() {
               <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                 <Input 
-                  placeholder="Поиск шаблонов по названию или описанию..." 
+                  placeholder="Поиск шаблонов по названию, ID или описанию..." 
                   value={searchTerm} 
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 pl-10"
                 />
               </div>
-              <Select value={selectedCategory} onValueChange={(value: any) => setSelectedCategory(value)}>
+              <Select value={selectedScope} onValueChange={(value: any) => setSelectedScope(value)}>
                 <SelectTrigger className="bg-slate-700 border-slate-600 text-white w-full md:w-48">
-                  <SelectValue placeholder="Все категории" />
+                  <SelectValue placeholder="Все области" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Все категории</SelectItem>
-                  {Object.entries(COMMAND_CATEGORIES).map(([key, category]) => (
-                    <SelectItem key={key} value={key}>
+                  <SelectItem value="all">Все области</SelectItem>
+                  {TEMPLATE_SCOPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
                       <div className="flex items-center gap-2">
-                        <span>{category.icon}</span>
-                        <span>{category.name}</span>
+                        <span>{option.label}</span>
                       </div>
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedMode} onValueChange={(value: any) => setSelectedMode(value)}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white w-full md:w-32">
+                  <SelectValue placeholder="Режим" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все режимы</SelectItem>
+                  <SelectItem value="pull">Pull</SelectItem>
+                  <SelectItem value="push">Push</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={selectedStatus} onValueChange={(value: any) => setSelectedStatus(value)}>
@@ -337,6 +384,7 @@ export default function CommandTemplates() {
                   <SelectItem value="active">Активные</SelectItem>
                   <SelectItem value="inactive">Неактивные</SelectItem>
                   <SelectItem value="deprecated">Устаревшие</SelectItem>
+                  <SelectItem value="draft">Черновики</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -346,7 +394,7 @@ export default function CommandTemplates() {
         <Tabs defaultValue="templates" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="templates">Шаблоны</TabsTrigger>
-            <TabsTrigger value="categories">Категории</TabsTrigger>
+            <TabsTrigger value="scopes">Области применения</TabsTrigger>
           </TabsList>
 
           {/* Список шаблонов */}
@@ -357,12 +405,15 @@ export default function CommandTemplates() {
                   <Settings className="w-8 h-8 text-slate-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">
-                  {searchTerm || selectedCategory !== "all" ? 'Шаблоны не найдены' : 'Нет шаблонов команд'}
+                  {searchTerm || selectedScope !== "all" || selectedMode !== "all" || selectedStatus !== "all" 
+                    ? 'Шаблоны не найдены' 
+                    : 'Нет шаблонов API команд'
+                  }
                 </h3>
                 <p className="text-slate-400">
-                  {searchTerm || selectedCategory !== "all" 
+                  {searchTerm || selectedScope !== "all" || selectedMode !== "all" || selectedStatus !== "all" 
                     ? 'Попробуйте изменить критерии поиска' 
-                    : 'Создайте первый шаблон команды для автоматизации операций'
+                    : 'Создайте первый шаблон API команды для интеграции с внешними провайдерами'
                   }
                 </p>
               </div>
@@ -373,10 +424,10 @@ export default function CommandTemplates() {
                     <thead className="bg-slate-700/80">
                       <tr>
                         <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '30%'}}>НАЗВАНИЕ ШАБЛОНА</th>
-                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>КАТЕГОРИЯ</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>ОБЛАСТЬ</th>
                         <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '10%'}}>СТАТУС</th>
                         <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '10%'}}>ВЕРСИЯ</th>
-                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '20%'}}>ВОЗМОЖНОСТИ</th>
+                        <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '20%'}}>МЕТОД/РЕЖИМ</th>
                         <th className="px-6 py-4 text-right text-slate-100 font-medium" style={{width: '15%'}}>ДЕЙСТВИЯ</th>
                       </tr>
                     </thead>
@@ -389,13 +440,11 @@ export default function CommandTemplates() {
                           <td className="px-4 md:px-6 py-4">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-600">
-                                <span className="text-sm text-slate-300">
-                                  {COMMAND_CATEGORIES[template.category]?.icon || '⚙️'}
-                                </span>
+                                {getScopeIcon(template.scope)}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="font-medium text-white text-base truncate">
-                                  {template.display_name}
+                                  {template.name}
                                 </div>
                                 <div className="text-sm text-slate-300 truncate">
                                   {template.description}
@@ -406,12 +455,9 @@ export default function CommandTemplates() {
                                       Системный
                                     </Badge>
                                   )}
-                                  {template.is_dangerous && (
-                                    <div className="flex items-center gap-1">
-                                      <AlertTriangle className="w-3 h-3 text-orange-400" />
-                                      <span className="text-xs text-orange-300">Опасная</span>
-                                    </div>
-                                  )}
+                                  <div className="text-xs text-slate-500">
+                                    ID: {template.template_id}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -419,7 +465,7 @@ export default function CommandTemplates() {
                           <td className="px-4 md:px-6 py-4">
                             <div className="flex items-center gap-2">
                               <span className="text-white text-sm">
-                                {COMMAND_CATEGORIES[template.category]?.name}
+                                {getScopeName(template.scope)}
                               </span>
                             </div>
                           </td>
@@ -436,24 +482,12 @@ export default function CommandTemplates() {
                           </td>
                           <td className="px-4 md:px-6 py-4">
                             <div className="flex flex-col gap-1">
-                              {template.supports_scheduling && (
-                                <div className="flex items-center gap-1 text-xs text-slate-400">
-                                  <Clock className="w-3 h-3" />
-                                  <span>Планирование</span>
-                                </div>
-                              )}
-                              {template.supports_batch_execution && (
-                                <div className="flex items-center gap-1 text-xs text-slate-400">
-                                  <Users className="w-3 h-3" />
-                                  <span>Пакетное выполнение</span>
-                                </div>
-                              )}
-                              {template.requires_confirmation && (
-                                <div className="flex items-center gap-1 text-xs text-slate-400">
-                                  <AlertTriangle className="w-3 h-3" />
-                                  <span>Требует подтверждения</span>
-                                </div>
-                              )}
+                              <Badge variant="outline" className="text-xs w-fit">
+                                {template.method}
+                              </Badge>
+                              <div className="text-xs text-slate-400">
+                                {template.mode === 'pull' ? 'Получение' : 'Отправка'}
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-right">
@@ -493,7 +527,11 @@ export default function CommandTemplates() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className={`h-8 w-8 p-0 ${template.status === 'active' ? 'text-slate-400 hover:text-yellow-400' : 'text-slate-400 hover:text-green-400'}`}
+                                className={`h-8 w-8 p-0 ${
+                                  template.status === 'active' 
+                                    ? 'text-slate-400 hover:text-yellow-400' 
+                                    : 'text-slate-400 hover:text-green-400'
+                                }`}
                                 onClick={() => handleToggleStatus(template)}
                                 title={template.status === 'active' ? "Деактивировать" : "Активировать"}
                                 disabled={loading}
@@ -527,15 +565,15 @@ export default function CommandTemplates() {
             )}
           </TabsContent>
 
-          {/* Категории */}
-          <TabsContent value="categories" className="mt-6">
+          {/* Области применения */}
+          <TabsContent value="scopes" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categoryStats.map(({ category, count, info }) => (
+              {scopeStats.map(({ scope, count, info }) => (
                 <Card 
-                  key={category} 
+                  key={scope} 
                   className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors cursor-pointer"
                   onClick={() => {
-                    setSelectedCategory(category);
+                    setSelectedScope(scope);
                     // Переключиться на вкладку шаблонов
                     const tabsTrigger = document.querySelector('[value="templates"]') as HTMLElement;
                     tabsTrigger?.click();
@@ -544,10 +582,10 @@ export default function CommandTemplates() {
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-slate-700 rounded-lg flex items-center justify-center border border-slate-600">
-                        <span className="text-2xl text-slate-300">{info.icon}</span>
+                        {getScopeIcon(scope)}
                       </div>
                       <div className="flex-1">
-                        <CardTitle className="text-white text-base">{info.name}</CardTitle>
+                        <CardTitle className="text-white text-base">{info.label}</CardTitle>
                         <div className="text-sm text-slate-400">
                           {count} {count === 1 ? 'шаблон' : count < 5 ? 'шаблона' : 'шаблонов'}
                         </div>
@@ -567,12 +605,12 @@ export default function CommandTemplates() {
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Просмотр шаблона: {selectedTemplate?.display_name}</DialogTitle>
+              <DialogTitle>Просмотр шаблона: {selectedTemplate?.name}</DialogTitle>
             </DialogHeader>
             {selectedTemplate && (
-              <CommandTemplateForm
+              <NewTemplateForm
                 mode="view"
-                initialData={selectedTemplate}
+                template={selectedTemplate}
                 onSubmit={() => {}}
                 onCancel={() => setIsViewDialogOpen(false)}
               />
@@ -584,12 +622,12 @@ export default function CommandTemplates() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Редактировать шаблон: {selectedTemplate?.display_name}</DialogTitle>
+              <DialogTitle>Редактировать шаблон: {selectedTemplate?.name}</DialogTitle>
             </DialogHeader>
             {selectedTemplate && (
-              <CommandTemplateForm
+              <NewTemplateForm
                 mode="edit"
-                initialData={selectedTemplate}
+                template={selectedTemplate}
                 onSubmit={handleUpdateTemplate}
                 onCancel={() => {
                   setIsEditDialogOpen(false);

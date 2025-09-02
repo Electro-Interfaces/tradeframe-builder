@@ -516,6 +516,137 @@ const commandTemplatesData: CommandTemplate[] = [
     supports_batch_execution: false,
     created_at: '2024-01-20T09:00:00Z',
     updated_at: '2024-08-30T16:00:00Z'
+  },
+
+  // === COMPONENT COMMANDS ===
+  {
+    id: 'cmd_component_restart',
+    name: 'component_restart',
+    display_name: 'Перезапустить компонент',
+    description: 'Выполняет перезапуск выбранного компонента с сохранением настроек',
+    category: 'system',
+    status: 'active',
+    is_system: true,
+    version: '1.0.0',
+    param_schema: {
+      type: 'object',
+      properties: {
+        safe_restart: {
+          type: 'boolean',
+          title: 'Безопасный перезапуск',
+          default: true,
+          description: 'Дождаться завершения текущих операций перед перезапуском'
+        },
+        timeout: {
+          type: 'number',
+          title: 'Таймаут (секунды)',
+          default: 30,
+          minimum: 5,
+          maximum: 300
+        }
+      }
+    },
+    default_params: {
+      safe_restart: true,
+      timeout: 30
+    },
+    required_params: [],
+    allowed_targets: ['specific_component', 'component_type'],
+    execution_timeout: 60,
+    retry_count: 2,
+    required_permissions: ['component:restart'],
+    is_dangerous: false,
+    requires_confirmation: true,
+    supports_scheduling: true,
+    supports_batch_execution: true,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-15T00:00:00Z'
+  },
+
+  {
+    id: 'cmd_component_diagnostic',
+    name: 'component_diagnostic',
+    display_name: 'Диагностика компонента',
+    description: 'Запускает полную диагностику компонента и возвращает отчет о состоянии',
+    category: 'maintenance',
+    status: 'active',
+    is_system: true,
+    version: '1.0.0',
+    param_schema: {
+      type: 'object',
+      properties: {
+        diagnostic_type: {
+          type: 'string',
+          title: 'Тип диагностики',
+          enum: ['quick', 'full', 'advanced'],
+          enumNames: ['Быстрая', 'Полная', 'Расширенная'],
+          default: 'quick'
+        },
+        include_logs: {
+          type: 'boolean',
+          title: 'Включить логи',
+          default: false,
+          description: 'Включить в отчет последние записи логов'
+        }
+      }
+    },
+    default_params: {
+      diagnostic_type: 'quick',
+      include_logs: false
+    },
+    required_params: ['diagnostic_type'],
+    allowed_targets: ['specific_component', 'component_type'],
+    execution_timeout: 120,
+    retry_count: 1,
+    required_permissions: ['component:diagnostic'],
+    is_dangerous: false,
+    requires_confirmation: false,
+    supports_scheduling: true,
+    supports_batch_execution: true,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-15T00:00:00Z'
+  },
+
+  {
+    id: 'cmd_component_calibrate',
+    name: 'component_calibrate',
+    display_name: 'Калибровка датчика',
+    description: 'Выполняет калибровку датчика для повышения точности измерений',
+    category: 'maintenance',
+    status: 'active',
+    is_system: true,
+    version: '1.0.0',
+    param_schema: {
+      type: 'object',
+      properties: {
+        calibration_type: {
+          type: 'string',
+          title: 'Тип калибровки',
+          enum: ['zero', 'span', 'full'],
+          enumNames: ['Нулевая точка', 'Диапазон', 'Полная'],
+          default: 'zero'
+        },
+        reference_value: {
+          type: 'number',
+          title: 'Эталонное значение',
+          description: 'Известное эталонное значение для калибровки'
+        }
+      }
+    },
+    default_params: {
+      calibration_type: 'zero'
+    },
+    required_params: ['calibration_type'],
+    allowed_targets: ['specific_component', 'component_type'],
+    execution_timeout: 300,
+    retry_count: 1,
+    required_permissions: ['component:calibrate'],
+    is_dangerous: false,
+    requires_confirmation: true,
+    supports_scheduling: true,
+    supports_batch_execution: true,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-15T00:00:00Z'
   }
 ];
 

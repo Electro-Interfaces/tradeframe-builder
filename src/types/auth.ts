@@ -3,7 +3,7 @@
  * Поддержка мультитенантности, гранулярных разрешений и soft-delete
  */
 
-export type PermissionAction = 'read' | 'write' | 'delete' | 'manage'
+export type PermissionAction = 'read' | 'write' | 'delete' | 'manage' | 'view_menu'
 export type RoleScope = 'global' | 'network' | 'trading_point' | 'assigned'
 export type UserStatus = 'active' | 'inactive' | 'blocked'
 
@@ -49,6 +49,15 @@ export interface UserRole {
   expires_at?: Date              // срок действия (опционально)
 }
 
+export interface UserPreferences {
+  lastSelectedNetwork?: string     // последняя выбранная сеть
+  lastSelectedTradingPoint?: string // последняя выбранная торговая точка
+  theme?: 'light' | 'dark' | 'auto' // тема интерфейса
+  language?: 'ru' | 'en'           // язык интерфейса
+  dashboardLayout?: string          // настройки дашборда
+  [key: string]: any                // дополнительные настройки
+}
+
 export interface User {
   id: string
   tenant_id: string
@@ -58,6 +67,7 @@ export interface User {
   status: UserStatus
   roles: UserRole[]               // множественные роли
   direct_permissions?: Permission[] // прямые разрешения (override ролей)
+  preferences?: UserPreferences   // пользовательские настройки
   pwd_salt: string
   pwd_hash: string
   last_login?: Date

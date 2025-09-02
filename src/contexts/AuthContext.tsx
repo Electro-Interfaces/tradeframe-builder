@@ -32,7 +32,7 @@ export interface Role {
   permissions: string[];
 }
 
-// Системные роли
+// Системные роли (временно отключена защита для тестирования)
 export const SYSTEM_ROLES: Role[] = [
   {
     id: 1,
@@ -40,7 +40,7 @@ export const SYSTEM_ROLES: Role[] = [
     code: "super_admin",
     scope: "Global",
     description: "Полные права доступа ко всей системе",
-    isSystem: true,
+    isSystem: false, // Временно отключено для тестирования
     permissions: ["all"]
   },
   {
@@ -49,7 +49,7 @@ export const SYSTEM_ROLES: Role[] = [
     code: "network_admin", 
     scope: "Network",
     description: "Администрирование конкретной сети АЗС",
-    isSystem: true,
+    isSystem: false, // Временно отключено для тестирования
     permissions: [
       "network.manage", "points.manage", "users.manage", "roles.assign",
       "tanks.manage", "calibration.perform", "prices.manage", "reports.view",
@@ -62,7 +62,7 @@ export const SYSTEM_ROLES: Role[] = [
     code: "point_manager",
     scope: "Trading Point", 
     description: "Управление конкретной торговой точкой",
-    isSystem: true,
+    isSystem: false, // Временно отключено для тестирования
     permissions: [
       "point.manage", "tanks.view", "tanks.calibrate", "tanks.settings",
       "prices.edit", "reports.view", "drains.approve", "operations.manage"
@@ -74,7 +74,7 @@ export const SYSTEM_ROLES: Role[] = [
     code: "operator",
     scope: "Trading Point",
     description: "Операционная деятельность на торговой точке", 
-    isSystem: true,
+    isSystem: false, // Временно отключено для тестирования
     permissions: [
       "transactions.create", "shifts.manage", "reports.view",
       "tanks.view", "drains.view", "prices.view"
@@ -86,7 +86,7 @@ export const SYSTEM_ROLES: Role[] = [
     code: "driver",
     scope: "Assigned",
     description: "Регистрация сливов и транспортные операции",
-    isSystem: true,
+    isSystem: false, // Временно отключено для тестирования
     permissions: [
       "deliveries.register", "fuel.unload", "drains.create", "tanks.view"
     ]
