@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Activity, Download, Filter, Clock, CheckCircle, XCircle, PlayCircle, PauseCircle, AlertTriangle, RefreshCw } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 import { operationsService, Operation } from "@/services/operationsService";
 
 // Получение правильных типов операций из сервиса
@@ -25,8 +26,15 @@ const operationTypeMap = {
   'sensor_calibration': 'Калибровка датчиков'
 };
 
-const operationTypes = ["Все", "Заправка", "Инкассация", "Загрузка резервуара", "Диагностика", "Калибровка датчиков"];
 const statusTypes = ["Все", "completed", "in_progress", "failed", "pending", "cancelled"];
+const allowedPaymentMethods = ["cash", "bank_card", "fuel_card", "online_order"];
+
+const paymentMethodMap = {
+  'bank_card': 'Банковские карты',
+  'cash': 'Наличные',
+  'fuel_card': 'Топливные карты',
+  'online_order': 'Онлайн заказы'
+};
 
 export default function OperationsTransactionsPage() {
   const isMobile = useIsMobile();
@@ -37,20 +45,38 @@ export default function OperationsTransactionsPage() {
   const [loading, setLoading] = useState(true);
   
   // Фильтры
-  const [selectedOperationType, setSelectedOperationType] = useState("Все");
   const [selectedStatus, setSelectedStatus] = useState("Все");
+  const [selectedFuelType, setSelectedFuelType] = useState("Все");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Все");
   const [searchQuery, setSearchQuery] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [dateFrom, setDateFrom] = useState("2025-08-01");
+  const [dateTo, setDateTo] = useState("2025-08-31");
 
-  const isNetworkOnly = selectedNetwork && !selectedTradingPoint;
-  const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
+  const isNetworkOnly = selectedNetwork && (!selectedTradingPoint || selectedTradingPoint === "all");
+  const isTradingPointSelected = selectedNetwork && selectedTradingPoint && selectedTradingPoint !== "all";
 
   // Загрузка операций при монтировании компонента
   useEffect(() => {
     const loadOperations = async () => {
       try {
         setLoading(true);
+        // Проверяем, есть ли данные в localStorage
+        const hasStoredData = localStorage.getItem('tradeframe_operations');
+        
+        if (!hasStoredData) {
+          // Если нет сохраненных данных, принудительно загружаем демо-данные
+          console.log('Нет сохраненных операций, загружаем демо-данные');
+          // Принудительно очищаем кэш и перезагружаем данные
+          localStorage.removeItem('tradeframe_operations');
+        }
+        
         const data = await operationsService.getAll();
+        console.log('Загружено операций:', data.length);
+        console.log('Данные операций:', data);
+        console.log('Уникальные виды топлива:', [...new Set(data.map(op => op.fuelType).filter(Boolean))]);
+        console.log('Уникальные способы оплаты:', [...new Set(data.map(op => op.paymentMethod).filter(Boolean))]);
+        console.log('localStorage tradeframe_operations:', localStorage.getItem('tradeframe_operations'));
         setOperations(data);
       } catch (error) {
         console.error('Ошибка загрузки операций:', error);
@@ -81,21 +107,47 @@ export default function OperationsTransactionsPage() {
   // Фильтрация данных
   const filteredOperations = useMemo(() => {
     return operations.filter(record => {
-      // Получаем отображаемый тип операции
-      const displayType = operationTypeMap[record.operationType] || record.operationType;
+      // Фильтр по торговой точке (если выбрана конкретная точка)
+      if (selectedTradingPoint && selectedTradingPoint !== "all") {
+        // Выбрана конкретная торговая точка - показываем только её операции
+        if (record.tradingPointId !== selectedTradingPoint) return false;
+      }
+      // Если выбрана только сеть или не выбрано ничего,
+      // показываем операции всех точек (все операции в демо-данных)
       
-      // Фильтр по типу операции
-      if (selectedOperationType !== "Все" && displayType !== selectedOperationType) return false;
       
       // Фильтр по статусу
       if (selectedStatus !== "Все" && record.status !== selectedStatus) return false;
+      
+      // Фильтр по виду топлива
+      if (selectedFuelType !== "Все" && record.fuelType !== selectedFuelType) return false;
+      
+      // Фильтр по виду оплаты - работает только для выбранных в фильтре типов
+      if (selectedPaymentMethod !== "Все") {
+        if (record.paymentMethod !== selectedPaymentMethod) return false;
+      }
+      
+      // Не фильтруем операции по способу оплаты - показываем все операции
+      
+      // Фильтр по датам
+      if (dateFrom || dateTo) {
+        const recordDate = new Date(record.startTime);
+        const recordDateStr = recordDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        if (dateFrom && recordDateStr < dateFrom) {
+          return false;
+        }
+        
+        if (dateTo && recordDateStr > dateTo) {
+          return false;
+        }
+      }
       
       // Поиск
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         return (
           record.id.toLowerCase().includes(query) ||
-          displayType.toLowerCase().includes(query) ||
           record.details.toLowerCase().includes(query) ||
           (record.deviceId && record.deviceId.toLowerCase().includes(query)) ||
           (record.transactionId && record.transactionId.toLowerCase().includes(query)) ||
@@ -106,18 +158,61 @@ export default function OperationsTransactionsPage() {
       
       return true;
     });
-  }, [operations, selectedOperationType, selectedStatus, searchQuery]);
+  }, [operations, selectedStatus, selectedFuelType, selectedPaymentMethod, searchQuery, dateFrom, dateTo, selectedNetwork, selectedTradingPoint]);
 
-  // KPI данные - подсчет по статусам
-  const statusKpis = useMemo(() => {
-    const counts = {
-      completed: filteredOperations.filter(op => op.status === 'completed').length,
-      in_progress: filteredOperations.filter(op => op.status === 'in_progress').length,
-      failed: filteredOperations.filter(op => op.status === 'failed').length,
-      pending: filteredOperations.filter(op => op.status === 'pending').length,
-    };
-    return counts;
+  // Отладочная информация
+  console.log('Всего операций:', operations.length);
+  console.log('Отфильтрованных операций:', filteredOperations.length);
+  console.log('Фильтры:', { selectedStatus, selectedFuelType, selectedPaymentMethod, searchQuery, dateFrom, dateTo });
+
+  // Получаем уникальные виды топлива из операций
+  const fuelTypes = useMemo(() => {
+    const types = new Set(operations.filter(op => op.fuelType).map(op => op.fuelType));
+    return ["Все", ...Array.from(types).sort()];
+  }, [operations]);
+
+  // Получаем только разрешенные способы оплаты для фильтра (но показываем все операции)
+  const paymentMethods = useMemo(() => {
+    const methods = new Set(operations.filter(op => op.paymentMethod && allowedPaymentMethods.includes(op.paymentMethod)).map(op => op.paymentMethod));
+    return ["Все", ...allowedPaymentMethods.filter(method => methods.has(method))];
+  }, [operations]);
+
+  // KPI данные - по видам операций (суммы денег)
+  const operationKpis = useMemo(() => {
+    const operationStats: Record<string, { revenue: number; operations: number }> = {};
+    
+    filteredOperations.forEach(op => {
+      if (op.operationType && op.status === 'completed' && op.totalCost) {
+        const displayType = operationTypeMap[op.operationType] || op.operationType;
+        if (!operationStats[displayType]) {
+          operationStats[displayType] = { revenue: 0, operations: 0 };
+        }
+        operationStats[displayType].revenue += op.totalCost;
+        operationStats[displayType].operations += 1;
+      }
+    });
+    
+    return operationStats;
   }, [filteredOperations]);
+
+  // KPI данные - по видам топлива
+  const fuelKpis = useMemo(() => {
+    const fuelStats: Record<string, { volume: number; revenue: number; operations: number }> = {};
+    
+    filteredOperations.forEach(op => {
+      if (op.fuelType && op.status === 'completed' && op.quantity) {
+        if (!fuelStats[op.fuelType]) {
+          fuelStats[op.fuelType] = { volume: 0, revenue: 0, operations: 0 };
+        }
+        fuelStats[op.fuelType].volume += op.quantity;
+        fuelStats[op.fuelType].revenue += op.totalCost || 0;
+        fuelStats[op.fuelType].operations += 1;
+      }
+    });
+    
+    return fuelStats;
+  }, [filteredOperations]);
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -126,9 +221,9 @@ export default function OperationsTransactionsPage() {
       case 'in_progress':
         return <Badge className="bg-slate-600 text-slate-200">Выполняется</Badge>;
       case 'failed':
-        return <Badge className="bg-slate-700 text-slate-300">Ошибка</Badge>;
+        return <Badge className="bg-red-600 text-white">Ошибка</Badge>;
       case 'pending':
-        return <Badge className="bg-slate-600 text-slate-200">Ожидание</Badge>;
+        return <Badge className="bg-yellow-600 text-white">Ожидание</Badge>;
       case 'cancelled':
         return <Badge className="bg-slate-600 text-slate-200">Отменено</Badge>;
       default:
@@ -167,56 +262,71 @@ export default function OperationsTransactionsPage() {
       <div className="w-full space-y-6 report-full-width">
         {/* Заголовок страницы */}
         <div className="mb-6 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-          <div className="flex items-center gap-4">
+          <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-white">Операции</h1>
               <p className="text-slate-400 mt-2">
-                {isNetworkOnly && "Real-time состояние операций торговой сети"}
-                {isTradingPointSelected && "Real-time состояние операций торговой точки"}
-                {!selectedNetwork && "Выберите сеть для просмотра операций"}
+                {isNetworkOnly && selectedNetwork && `Real-time состояние операций сети "${selectedNetwork.name}"`}
+                {isTradingPointSelected && `Real-time состояние операций торговой точки`}
+                {!selectedNetwork && "Real-time состояние операций демо сети АЗС"}
               </p>
             </div>
+            <HelpButton route="/network/operations-transactions" className="flex-shrink-0" />
+          </div>
+          <div className="flex items-center gap-4 mt-4">
             <Button
               variant={autoRefresh ? "default" : "outline"}
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className="ml-auto"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
               {autoRefresh ? 'Автообновление' : 'Включить автообновление'}
             </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                localStorage.removeItem('tradeframe_operations');
+                setOperations([]);
+                const data = await operationsService.getAll();
+                setOperations(data);
+                console.log('Данные операций принудительно перезагружены');
+              }}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Перезагрузить демо-данные
+            </Button>
           </div>
         </div>
 
-        {selectedNetwork && (
-          <>
-            {/* Фильтры */}
+        <>
+          {/* Фильтры */}
             <div className="mx-4 md:mx-6 lg:mx-8">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Filter className="w-5 h-5" />
                   Фильтры
-                  <Button variant="outline" className="ml-auto flex-shrink-0">
-                    <Download className="w-4 h-4 mr-2" />
-                    Экспорт
-                  </Button>
+                  <div className="ml-auto flex gap-2">
+                    <Button variant="outline" className="flex-shrink-0">
+                      <Download className="w-4 h-4 mr-2" />
+                      Экспорт
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      className="flex-shrink-0"
+                      onClick={() => {
+                        if (confirm('Очистить все сохраненные операции и вернуться к демо-данным?')) {
+                          localStorage.removeItem('tradeframe_operations');
+                          window.location.reload();
+                        }
+                      }}
+                    >
+                      Очистить данные
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 lg:grid-cols-3 gap-4'}`}>
-                  <div>
-                    <Label className="text-slate-300">Тип операции</Label>
-                    <Select value={selectedOperationType} onValueChange={setSelectedOperationType}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {operationTypes.map(type => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 lg:grid-cols-6 gap-4'}`}>
 
                   <div>
                     <Label className="text-slate-300">Статус</Label>
@@ -236,6 +346,56 @@ export default function OperationsTransactionsPage() {
                   </div>
 
                   <div>
+                    <Label className="text-slate-300">Вид топлива</Label>
+                    <Select value={selectedFuelType} onValueChange={setSelectedFuelType}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {fuelTypes.map(type => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-slate-300">Вид оплаты</Label>
+                    <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentMethods.map(method => (
+                          <SelectItem key={method} value={method}>
+                            {method === "Все" ? "Все" : (paymentMethodMap[method] || method)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-slate-300">Дата с</Label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-slate-300">Дата по</Label>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                    />
+                  </div>
+
+                  <div>
                     <Label className="text-slate-300">Поиск</Label>
                     <Input
                       placeholder="Поиск по операции, устройству, ID..."
@@ -249,54 +409,51 @@ export default function OperationsTransactionsPage() {
             </Card>
             </div>
 
-            {/* KPI - Статусы операций */}
+            {/* KPI - Суммы по видам операций */}
             <div className="mx-4 md:mx-6 lg:mx-8">
-            <div className={`grid ${isMobile ? 'grid-cols-2 gap-3' : 'grid-cols-2 md:grid-cols-4 gap-4'}`}>
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">Завершено</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{statusKpis.completed}</div>
-                  <p className="text-xs text-slate-400">Успешных операций</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">В процессе</CardTitle>
-                  <PlayCircle className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{statusKpis.in_progress}</div>
-                  <p className="text-xs text-slate-400">Активных операций</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">Ошибки</CardTitle>
-                  <XCircle className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{statusKpis.failed}</div>
-                  <p className="text-xs text-slate-400">Операций с ошибками</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">Ожидание</CardTitle>
-                  <PauseCircle className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{statusKpis.pending}</div>
-                  <p className="text-xs text-slate-400">В очереди</p>
-                </CardContent>
-              </Card>
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Суммы по видам операций
+              </h3>
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'}`}>
+                {Object.entries(operationKpis).map(([operationType, stats]) => (
+                  <Card key={operationType} className="bg-slate-800 border-slate-700">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-slate-200">{operationType}</CardTitle>
+                      <Activity className="h-4 w-4 text-slate-400" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-white">{stats.revenue.toFixed(0)} ₽</div>
+                      <p className="text-xs text-slate-400">{stats.operations} операций</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
+
+            {/* KPI - Объемы топлива */}
+            <div className="mx-4 md:mx-6 lg:mx-8">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Суммы по видам топлива
+              </h3>
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'}`}>
+                {Object.entries(fuelKpis).map(([fuelType, stats]) => (
+                  <Card key={fuelType} className="bg-slate-800 border-slate-700">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-slate-200">{fuelType}</CardTitle>
+                      <Activity className="h-4 w-4 text-slate-400" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-white">{stats.revenue.toFixed(0)} ₽</div>
+                      <p className="text-xs text-slate-400">{stats.volume.toFixed(0)} л</p>
+                      <p className="text-xs text-blue-400">{stats.operations} операций</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
+
 
             {/* Таблица операций */}
             <div className="mx-4 md:mx-6 lg:mx-8">
@@ -391,11 +548,7 @@ export default function OperationsTransactionsPage() {
                             <div className="text-sm">
                               <span className="text-slate-400">Вид оплаты:</span>
                               <span className="text-white ml-1">
-                                {record.paymentMethod === 'bank_card' ? 'Банковская карта' :
-                                 record.paymentMethod === 'cash' ? 'Наличные' :
-                                 record.paymentMethod === 'fuel_card' ? 'Топливная карта' :
-                                 record.paymentMethod === 'corporate_card' ? 'Корпоративная карта' :
-                                 record.paymentMethod}
+                                {paymentMethodMap[record.paymentMethod] || record.paymentMethod}
                               </span>
                             </div>
                           )}
@@ -442,11 +595,31 @@ export default function OperationsTransactionsPage() {
                       </Card>
                     ))}
                     
-                    {filteredOperations.length === 0 && (
+                    {loading ? (
                       <div className="text-center py-8 text-slate-400">
-                        Нет операций по выбранным фильтрам
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full"></div>
+                          Загрузка операций...
+                        </div>
                       </div>
-                    )}
+                    ) : filteredOperations.length === 0 ? (
+                      <div className="text-center py-8 text-slate-400">
+                        <div>Нет операций по выбранным фильтрам</div>
+                        {operations.length === 0 && (
+                          <div className="mt-2 text-sm">
+                            <button 
+                              onClick={() => {
+                                localStorage.removeItem('tradeframe_operations');
+                                window.location.reload();
+                              }}
+                              className="text-blue-400 hover:text-blue-300 underline"
+                            >
+                              Загрузить демо-данные
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   // Desktop table layout
@@ -510,43 +683,44 @@ export default function OperationsTransactionsPage() {
                               {record.totalCost ? `${record.totalCost.toFixed(2)} ₽` : '—'}
                             </TableCell>
                             <TableCell className="text-slate-300">
-                              {record.paymentMethod ? 
-                                (record.paymentMethod === 'bank_card' ? 'Банковская карта' :
-                                 record.paymentMethod === 'cash' ? 'Наличные' :
-                                 record.paymentMethod === 'fuel_card' ? 'Топливная карта' :
-                                 record.paymentMethod === 'corporate_card' ? 'Корпоративная карта' :
-                                 record.paymentMethod) : '—'}
+                              {record.paymentMethod ? (paymentMethodMap[record.paymentMethod] || record.paymentMethod) : '—'}
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                     
-                    {filteredOperations.length === 0 && (
+                    {loading ? (
                       <div className="text-center py-8 text-slate-400">
-                        Нет операций по выбранным фильтрам
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full"></div>
+                          Загрузка операций...
+                        </div>
                       </div>
-                    )}
+                    ) : filteredOperations.length === 0 ? (
+                      <div className="text-center py-8 text-slate-400">
+                        <div>Нет операций по выбранным фильтрам</div>
+                        {operations.length === 0 && (
+                          <div className="mt-2 text-sm">
+                            <button 
+                              onClick={() => {
+                                localStorage.removeItem('tradeframe_operations');
+                                window.location.reload();
+                              }}
+                              className="text-blue-400 hover:text-blue-300 underline"
+                            >
+                              Загрузить демо-данные
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </CardContent>
             </Card>
             </div>
-          </>
-        )}
-
-        {/* Сообщение о выборе сети */}
-        {!selectedNetwork && (
-          <div className="mx-4 md:mx-6 lg:mx-8">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-8 text-center">
-              <Activity className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Выберите сеть для просмотра операций</h3>
-              <p className="text-slate-400">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
-            </CardContent>
-          </Card>
-          </div>
-        )}
+        </>
       </div>
     </MainLayout>
   );

@@ -38,7 +38,9 @@
       "Bash(start http://localhost:3003/point/equipment)",
       "Bash(start http://localhost:3000/settings/templates/command-templates)",
       "Bash(del \"C:\\Users\\magsp\\Documents\\tradeframe-builder\\src\\pages\\Commands.tsx\")",
-      "Bash(start:*)"
+      "Bash(start:*)",
+      "Bash(git fetch:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
