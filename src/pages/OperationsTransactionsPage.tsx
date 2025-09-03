@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Download, Filter, Clock, CheckCircle, XCircle, PlayCircle, PauseCircle, AlertTriangle, RefreshCw } from "lucide-react";
+import { Activity, Download, Filter, Clock, CheckCircle, XCircle, PlayCircle, PauseCircle, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { operationsService, Operation } from "@/services/operationsService";
 
@@ -85,6 +85,23 @@ export default function OperationsTransactionsPage() {
 
     loadOperations();
   }, []);
+
+  // Функция для перезагрузки операций
+  const reloadOperations = async () => {
+    try {
+      setLoading(true);
+      await operationsService.forceReload();
+      const data = await operationsService.getAll();
+      setOperations(data);
+      
+      const statusStats = await operationsService.getStatusStatistics();
+      console.log('📊 Обновленная статистика по статусам:', statusStats);
+    } catch (error) {
+      console.error('Ошибка при перезагрузке операций:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Автообновление данных каждые 5 секунд
   useEffect(() => {
@@ -287,7 +304,28 @@ export default function OperationsTransactionsPage() {
                 {!selectedNetwork && "Real-time состояние операций демо сети АЗС"}
               </p>
             </div>
-            <HelpButton route="/network/operations-transactions" className="flex-shrink-0" />
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={reloadOperations}
+                disabled={loading}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    Обновление...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    Обновить данные
+                  </>
+                )}
+              </Button>
+              <HelpButton route="/network/operations-transactions" className="flex-shrink-0" />
+            </div>
           </div>
           <div className="flex items-center gap-4 mt-4">
             <Button
