@@ -130,8 +130,27 @@ const fuelTypes = ["Все", "АИ-95", "АИ-92", "ДТ"];
 const statusTypes = ["Все", "normal", "low", "critical", "overfill"];
 
 export default function FuelStocksPage() {
+  console.log('🔥 FuelStocksPage: Компонент загружается!');
+  
   const isMobile = useIsMobile();
   const { selectedNetwork, selectedTradingPoint } = useSelection();
+  
+  console.log('📊 FuelStocksPage: Контекст загружен:', {
+    selectedNetworkExists: !!selectedNetwork,
+    selectedNetworkId: selectedNetwork?.id,
+    selectedNetworkName: selectedNetwork?.name,
+    selectedTradingPoint,
+    isMobile
+  });
+  
+  // Добавим дополнительные логи для отслеживания состояния
+  console.log('🔍 FuelStocksPage: Детальное состояние:', {
+    hasSelectedNetwork: selectedNetwork !== null,
+    networkId: selectedNetwork?.id || 'НЕТ',
+    networkName: selectedNetwork?.name || 'НЕТ',
+    tradingPoint: selectedTradingPoint || 'НЕТ',
+    shouldLoadData: !!selectedNetwork
+  });
   
   // Состояние данных
   const [historicalData, setHistoricalData] = useState<FuelStockSnapshot[]>([]);
@@ -156,11 +175,14 @@ export default function FuelStocksPage() {
   }, [selectedDateTime, selectedNetwork, selectedTradingPoint]);
 
   const loadHistoricalData = async () => {
+    console.log('🔄 FuelStocksPage: Загрузка исторических данных...', selectedDateTime);
     try {
       setLoading(true);
       
+      console.log('📊 FuelStocksPage: Получаем снимки на', selectedDateTime);
       // Try to get historical snapshots
       let snapshots = await fuelStocksHistoryService.getSnapshotAtDateTime(selectedDateTime);
+      console.log('📊 FuelStocksPage: Получено снимков:', snapshots.length);
       
       // If no historical data, try to generate some or fall back to tank-based data
       if (snapshots.length === 0) {
@@ -172,8 +194,10 @@ export default function FuelStocksPage() {
         
         // If still no data, generate basic snapshots from current tank data
         if (snapshots.length === 0) {
+          console.log('🚑 FuelStocksPage: Нет снимков, генерируем из танков...');
           const { tanksService } = await import('@/services/tanksService');
           const tanks = await tanksService.getTanks();
+          console.log('📦 FuelStocksPage: Найдено танков:', tanks.length);
           
           // Generate snapshots from current tank data
           snapshots = tanks.map(tank => ({
@@ -197,6 +221,7 @@ export default function FuelStocksPage() {
         }
       }
       
+      console.log('📊 FuelStocksPage: Устанавливаем данные:', snapshots.length, 'снимков');
       setHistoricalData(snapshots);
     } catch (error) {
       console.error('❌ Ошибка загрузки исторических данных:', error);
@@ -293,6 +318,32 @@ export default function FuelStocksPage() {
   const currentFuelStocks = selectedNetwork 
     ? convertToFuelStockRecords(historicalData)
     : mockFuelStocks;
+  
+  console.log('📋 FuelStocksPage: Обработка данных:', {
+    selectedNetworkId: selectedNetwork?.id,
+    historicalDataLength: historicalData.length,
+    currentFuelStocksLength: currentFuelStocks.length,
+    usingMockData: !selectedNetwork,
+    mockDataLength: mockFuelStocks.length,
+    finalDataToShow: selectedNetwork ? convertToFuelStockRecords(historicalData) : mockFuelStocks
+  });
+  
+  // Дополнительные логи для понимания потока данных
+  if (selectedNetwork) {
+    console.log('🎯 FuelStocksPage: Используем исторические данные:', {
+      networkSelected: true,
+      networkName: selectedNetwork.name,
+      historicalSnapshots: historicalData.length,
+      convertedRecords: convertToFuelStockRecords(historicalData).length,
+      loading: loading
+    });
+  } else {
+    console.log('📁 FuelStocksPage: Используем mock данные:', {
+      networkSelected: false,
+      mockRecords: mockFuelStocks.length,
+      reason: 'Сеть не выбрана'
+    });
+  }
 
 
   // Фильтрация данных (убрали фильтр по статусу)
@@ -368,6 +419,21 @@ export default function FuelStocksPage() {
                 {isTradingPointSelected && "Отчет по остаткам топлива торговой точки"}
                 {!selectedNetwork && "Выберите сеть для просмотра остатков топлива"}
               </p>
+              
+              {/* Отладочная информация */}
+              <div className="mt-3 p-2 bg-blue-900/20 rounded-lg text-xs text-blue-300">
+                <div>🔍 Отладка: Компонент загружен</div>
+                <div>📊 Сеть: {selectedNetwork?.name || 'НЕТ'} (ID: {selectedNetwork?.id || 'НЕТ'})</div>
+                <div>🏪 Точка: {selectedTradingPoint || 'не выбрана'}</div>
+                <div>📅 Время: {selectedDateTime}</div>
+                <div>📈 Истор. данные: {historicalData.length} снимков</div>
+                <div>🏪 Тек. остатки: {currentFuelStocks.length} записей</div>
+                <div>📁 Mock данные: {mockFuelStocks.length} записей</div>
+                <div>🔄 Загрузка: {loading ? 'Да' : 'Нет'}</div>
+                <div>✅ Есть сеть: {selectedNetwork ? 'Да' : 'НЕТ'}</div>
+                <div>🎛️ Источник данных: {selectedNetwork ? 'Исторические' : 'Mock'}</div>
+                <div>📊 Фильтрованных: {filteredStocks.length} записей</div>
+              </div>
               
 
             </div>
