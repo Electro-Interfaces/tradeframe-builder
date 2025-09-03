@@ -1,4 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
+
+// Отладка загрузки модуля
+console.log('🚀 FuelStocksPage: Модуль загружается!');
+console.log('📅 FuelStocksPage: Время загрузки модуля:', new Date().toISOString());
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/context/SelectionContext";

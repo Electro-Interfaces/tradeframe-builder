@@ -33,7 +33,7 @@ import ShiftReports from "./pages/ShiftReports";
 import SalesAnalysisPageTest from "./pages/SalesAnalysisPageTest";
 import OperationsTransactionsPage from "./pages/OperationsTransactionsPage";
 import PriceHistoryPage from "./pages/PriceHistoryPage";
-import FuelStocksPage from "./pages/FuelStocksPage";
+import FuelStocksPage from "./pages/FuelStocksPageFixed";
 import Profile from "./pages/Profile";
 import DatabaseSettings from "./pages/DatabaseSettings";
 import PartialMigrationSettings from "./pages/PartialMigrationSettings";

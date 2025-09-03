@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+
+// Debug log for module loading
+console.log('🏠 NetworkOverview: Модуль загружается!');
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/context/SelectionContext";
 import { SalesAnalysisSimple } from "@/components/reports/SalesAnalysisSimple";
@@ -55,6 +58,8 @@ const MetricCard = ({ title, value, icon: IconComponent, color, status, trend }:
 };
 
 export default function NetworkOverview() {
+  console.log('🏠 NetworkOverview: КОМПОНЕНТ РЕНДЕРИТСЯ!');
+  
   const isMobile = useIsMobile();
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   
