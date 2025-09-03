@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 
 // Компоненты оборудования
 import { EquipmentWizard } from "@/components/equipment/EquipmentWizard";
+import { HelpButton } from "@/components/help/HelpButton";
 import { EquipmentDetailCard } from "@/components/equipment/EquipmentDetailCard";
 import { EquipmentComponentsList } from "@/components/equipment/EquipmentComponentsList";
 import { EquipmentCommandsPanel } from "@/components/equipment/EquipmentCommandsPanel";
@@ -49,6 +50,7 @@ import {
   getEquipmentComponentsHealth,
   ComponentHealthStatus
 } from "@/services/equipment";
+import { currentComponentsAPI } from "@/services/components";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { tradingPointScanService } from "@/services/tradingPointScanService";
 import { tanksService } from "@/services/tanksService";
@@ -355,13 +357,57 @@ export default function Equipment() {
     });
   };
 
-  const handleDeleteComponent = (component: Component) => {
-    console.log('Удаление компонента:', component);
-    toast({
-      title: "Удаление компонента", 
-      description: `Функция удаления компонента "${component.display_name}" будет доступна в следующей версии.`,
-      variant: "destructive"
-    });
+  const handleDeleteEquipment = async (equipmentId: string) => {
+    if (!confirm('Вы уверены, что хотите удалить это оборудование? Это действие необратимо.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await currentEquipmentAPI.delete(equipmentId);
+      
+      toast({
+        title: "Оборудование удалено",
+        description: "Оборудование успешно удалено из системы",
+      });
+      
+      // Перезагружаем список оборудования
+      await loadEquipment();
+    } catch (error) {
+      console.error('Ошибка удаления оборудования:', error);
+      toast({
+        title: "Ошибка удаления",
+        description: "Не удалось удалить оборудование. Попробуйте снова.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteComponent = async (component: Component) => {
+    if (!confirm(`Вы уверены, что хотите удалить компонент "${component.display_name}"? Это действие необратимо.`)) {
+      return;
+    }
+
+    try {
+      await currentComponentsAPI.delete(component.id);
+      
+      toast({
+        title: "Компонент удален",
+        description: `Компонент "${component.display_name}" успешно удален`,
+      });
+      
+      // Перезагружаем список оборудования чтобы обновить количество компонентов
+      await loadEquipment();
+    } catch (error) {
+      console.error('Ошибка удаления компонента:', error);
+      toast({
+        title: "Ошибка удаления",
+        description: "Не удалось удалить компонент. Попробуйте снова.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Получение данных от торговой точки через торговое API
@@ -603,6 +649,14 @@ export default function Equipment() {
                             <Archive className="h-4 w-4" />
                           </Button>
                         )}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-600"
+                          onClick={() => handleDeleteEquipment(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -657,6 +711,7 @@ export default function Equipment() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <HelpButton helpKey="equipment" />
               <Button
                 variant="outline"
                 onClick={handleScanTradingPoint}
@@ -857,6 +912,14 @@ export default function Equipment() {
                                   <Archive className="h-4 w-4" />
                                 </Button>
                               )}
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 text-slate-400 hover:text-red-600"
+                                onClick={() => handleDeleteEquipment(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </td>
                         </tr>

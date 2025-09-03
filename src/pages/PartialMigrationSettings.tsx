@@ -201,10 +201,10 @@ export default function PartialMigrationSettings() {
   const stats = partialMigrationService.getMigrationStats();
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <MainLayout fullWidth={true}>
+      <div className="w-full h-full report-full-width">
         {/* Заголовок */}
-        <div>
+        <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <h1 className="text-3xl font-bold text-foreground">
             Частичная миграция на БД
           </h1>
@@ -214,7 +214,7 @@ export default function PartialMigrationSettings() {
         </div>
 
         {/* Статистика */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-4 mx-4 md:mx-6 lg:mx-8 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Прогресс миграции</CardTitle>
@@ -272,7 +272,7 @@ export default function PartialMigrationSettings() {
         </div>
 
         {/* Настройки подключения */}
-        <Card>
+        <Card className="mx-4 md:mx-6 lg:mx-8">
           <CardHeader>
             <CardTitle>Настройки миграции</CardTitle>
             <CardDescription>
@@ -327,7 +327,7 @@ export default function PartialMigrationSettings() {
         </Card>
 
         {/* Список сервисов */}
-        <Card>
+        <Card className="mx-4 md:mx-6 lg:mx-8">
           <CardHeader>
             <CardTitle>Сервисы приложения</CardTitle>
             <CardDescription>

@@ -131,6 +131,11 @@ export const equipmentAPI = {
     return apiClient.post<void>(`/equipment/${id}:${action}`, {});
   },
 
+  // DELETE /equipment/{id} - удаление оборудования
+  async delete(id: string): Promise<void> {
+    return apiClient.delete<void>(`/equipment/${id}`);
+  },
+
   // GET /equipment/{id}/events - журнал событий
   async getEvents(id: string): Promise<EquipmentEvent[]> {
     return apiClient.get<EquipmentEvent[]>(`/equipment/${id}/events`);
@@ -160,8 +165,8 @@ const mockEquipmentTemplates: EquipmentTemplate[] = [
     status: true,
     description: "Топливный резервуар для хранения нефтепродуктов",
     default_params: { 
-      // Обязательные поля резервуара
-      id: null,
+      // Обязательные поля резервуара (синхронизировано с Tank interface)
+      id: 1,
       name: "",
       fuelType: "",
       currentLevelLiters: 0,
@@ -170,21 +175,50 @@ const mockEquipmentTemplates: EquipmentTemplate[] = [
       capacityLiters: 50000,
       minLevelPercent: 20,
       criticalLevelPercent: 10,
-      volume: 50000, // общий объем резервуара
       
-      // Физические параметры
-      temperature: null,
-      waterLevelMm: null,
-      material: "steel", // материал резервуара
+      // Физические параметры (синхронизировано с tanksService)
+      temperature: 15.0,
+      waterLevelMm: 0.0,
+      density: 0.725,
       
-      // Пороговые значения для мониторинга
+      // Статус и операционные данные
+      status: 'active',
+      location: "Зона не указана",
+      installationDate: new Date().toISOString().split('T')[0],
+      lastCalibration: null,
+      supplier: null,
+      
+      // Поля из UI (полная синхронизация)
+      sensors: [
+        { name: "Уровень", status: "ok" },
+        { name: "Температура", status: "ok" }
+      ],
+      linkedPumps: [],
+      notifications: {
+        enabled: true,
+        drainAlerts: true,
+        levelAlerts: true
+      },
+      
+      // Пороговые значения (полная синхронизация с tanksService)
       thresholds: {
         criticalTemp: {
           min: -10,
           max: 40
         },
-        maxWaterLevel: 15
-      }
+        maxWaterLevel: 15,
+        notifications: {
+          critical: true,
+          minimum: true,
+          temperature: true,
+          water: true
+        }
+      },
+      
+      // Системные поля
+      trading_point_id: "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     allow_component_template_ids: ["comp_sensor_level_1"],
     created_at: new Date().toISOString(),
@@ -371,7 +405,7 @@ const initialEquipment: Equipment[] = [
     display_name: "Резервуар №4 (АИ-98) - Демо",
     serial_number: "DEMO-TANK-004",
     external_id: "DEMO_TANK_004",
-    status: "deleted",
+    status: "online",
     installation_date: "2024-04-05T00:00:00Z",
     params: {
       id: 4,
@@ -425,29 +459,33 @@ const initialEquipment: Equipment[] = [
     name: "Резервуар",
     system_type: "fuel_tank",
     template_id: "1",
-    display_name: "Резервуар №1 (ДТ)",
+    display_name: "Резервуар №1 (АИ-92)",
     serial_number: "RES101",
     external_id: "TANK_101",
     status: "online",
     installation_date: "2024-02-01T00:00:00Z",
     created_at: "2024-02-01T12:00:00Z",
     updated_at: "2024-08-30T10:00:00Z",
-    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
-    components: []
-  },
-  {
-    id: "eq_10",
-    trading_point_id: "point2",
-    name: "Резервуар",
-    system_type: "fuel_tank",
-    template_id: "1",
-    display_name: "Резервуар №2 (АИ-95)",
-    serial_number: "RES102",
-    external_id: "TANK_102",
-    status: "online",
-    installation_date: "2024-02-05T00:00:00Z",
-    created_at: "2024-02-05T12:00:00Z",
-    updated_at: "2024-08-30T09:45:00Z",
+    params: {
+      id: 4,
+      name: "Резервуар №1 (АИ-92)",
+      fuelType: "АИ-92",
+      currentLevelLiters: 32000,
+      capacityLiters: 50000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      volume: 50000,
+      temperature: 18.5,
+      waterLevelMm: 0,
+      material: "steel",
+      thresholds: {
+        criticalTemp: {
+          min: -12,
+          max: 38
+        },
+        maxWaterLevel: 12
+      }
+    },
     availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
     components: []
   },
@@ -460,6 +498,540 @@ const initialEquipment: Equipment[] = [
     display_name: "Система управления АЗС",
     serial_number: "SRV101",
     external_id: "CTRL_101",
+    status: "online",
+    installation_date: "2024-02-01T00:00:00Z",
+    created_at: "2024-02-01T12:00:00Z",
+    updated_at: "2024-08-30T07:45:00Z",
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_get_prices", "autooplata_set_prices", "autooplata_get_services"],
+    components: []
+  },
+
+  // АЗС №003 - Южная (4 резервуара: АИ-95, АИ-92, ДТ, АИ-98)
+  {
+    id: "eq_tank_p3_1",
+    trading_point_id: "point3",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №1 (АИ-95)",
+    serial_number: "TANK-003-95",
+    external_id: "TANK_P3_95",
+    status: "online",
+    installation_date: "2024-03-15T00:00:00Z",
+    created_at: "2024-03-15T12:00:00Z",
+    updated_at: "2024-12-08T10:30:00Z",
+    params: {
+      id: 5,
+      name: "Резервуар №1 (АИ-95)",
+      fuelType: "АИ-95",
+      currentLevelLiters: 38000,
+      capacityLiters: 50000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      volume: 50000,
+      temperature: 16.5,
+      waterLevelMm: 1,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -10, max: 40 },
+        maxWaterLevel: 15
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p3_2",
+    trading_point_id: "point3",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №2 (АИ-92)",
+    serial_number: "TANK-003-92",
+    external_id: "TANK_P3_92",
+    status: "online",
+    installation_date: "2024-03-15T00:00:00Z",
+    created_at: "2024-03-15T12:00:00Z",
+    updated_at: "2024-12-08T09:15:00Z",
+    params: {
+      id: 6,
+      name: "Резервуар №2 (АИ-92)",
+      fuelType: "АИ-92",
+      currentLevelLiters: 41000,
+      capacityLiters: 50000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      volume: 50000,
+      temperature: 15.8,
+      waterLevelMm: 0,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -10, max: 40 },
+        maxWaterLevel: 15
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p3_3",
+    trading_point_id: "point3",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №3 (ДТ)",
+    serial_number: "TANK-003-DT",
+    external_id: "TANK_P3_DT",
+    status: "online",
+    installation_date: "2024-04-01T00:00:00Z",
+    created_at: "2024-04-01T12:00:00Z",
+    updated_at: "2024-12-08T11:45:00Z",
+    params: {
+      id: 7,
+      name: "Резервуар №3 (ДТ)",
+      fuelType: "ДТ",
+      currentLevelLiters: 29000,
+      capacityLiters: 45000,
+      minLevelPercent: 15,
+      criticalLevelPercent: 8,
+      volume: 45000,
+      temperature: 13.2,
+      waterLevelMm: 0,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -10, max: 40 },
+        maxWaterLevel: 15
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p3_4",
+    trading_point_id: "point3",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №4 (АИ-98)",
+    serial_number: "TANK-003-98",
+    external_id: "TANK_P3_98",
+    status: "online",
+    installation_date: "2024-04-15T00:00:00Z",
+    created_at: "2024-04-15T12:00:00Z",
+    updated_at: "2024-12-08T08:30:00Z",
+    params: {
+      id: 8,
+      name: "Резервуар №4 (АИ-98)",
+      fuelType: "АИ-98",
+      currentLevelLiters: 15000,
+      capacityLiters: 30000,
+      minLevelPercent: 18,
+      criticalLevelPercent: 9,
+      volume: 30000,
+      temperature: 17.1,
+      waterLevelMm: 0.5,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -10, max: 40 },
+        maxWaterLevel: 15
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+
+  // АЗС №004 - Московское шоссе (5 резервуаров: АИ-92, АИ-95, АИ-98, ДТ, АИ-100)
+  {
+    id: "eq_tank_p4_1",
+    trading_point_id: "point4",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №1 (АИ-92)",
+    serial_number: "TANK-004-92",
+    external_id: "TANK_P4_92",
+    status: "online",
+    installation_date: "2024-01-10T00:00:00Z",
+    created_at: "2024-01-10T12:00:00Z",
+    updated_at: "2024-12-08T10:30:00Z",
+    params: {
+      id: 9,
+      name: "Резервуар №1 (АИ-92)",
+      fuelType: "АИ-92",
+      currentLevelLiters: 45000,
+      capacityLiters: 50000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      volume: 50000,
+      temperature: 18.2,
+      waterLevelMm: 0,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -12, max: 38 },
+        maxWaterLevel: 12
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p4_2",
+    trading_point_id: "point4",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №2 (АИ-95)",
+    serial_number: "TANK-004-95",
+    external_id: "TANK_P4_95",
+    status: "online",
+    installation_date: "2024-01-10T00:00:00Z",
+    created_at: "2024-01-10T12:00:00Z",
+    updated_at: "2024-12-08T09:15:00Z",
+    params: {
+      id: 10,
+      name: "Резервуар №2 (АИ-95)",
+      fuelType: "АИ-95",
+      currentLevelLiters: 42000,
+      capacityLiters: 50000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      volume: 50000,
+      temperature: 17.5,
+      waterLevelMm: 1,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -12, max: 38 },
+        maxWaterLevel: 12
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p4_3",
+    trading_point_id: "point4",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №3 (АИ-98)",
+    serial_number: "TANK-004-98",
+    external_id: "TANK_P4_98",
+    status: "online",
+    installation_date: "2024-02-01T00:00:00Z",
+    created_at: "2024-02-01T12:00:00Z",
+    updated_at: "2024-12-08T11:45:00Z",
+    params: {
+      id: 11,
+      name: "Резервуар №3 (АИ-98)",
+      fuelType: "АИ-98",
+      currentLevelLiters: 22000,
+      capacityLiters: 30000,
+      minLevelPercent: 18,
+      criticalLevelPercent: 9,
+      volume: 30000,
+      temperature: 16.8,
+      waterLevelMm: 0,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -12, max: 38 },
+        maxWaterLevel: 12
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p4_4",
+    trading_point_id: "point4",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №4 (ДТ)",
+    serial_number: "TANK-004-DT",
+    external_id: "TANK_P4_DT",
+    status: "online",
+    installation_date: "2024-02-15T00:00:00Z",
+    created_at: "2024-02-15T12:00:00Z",
+    updated_at: "2024-12-08T08:30:00Z",
+    params: {
+      id: 12,
+      name: "Резервуар №4 (ДТ)",
+      fuelType: "ДТ",
+      currentLevelLiters: 38000,
+      capacityLiters: 45000,
+      minLevelPercent: 15,
+      criticalLevelPercent: 8,
+      volume: 45000,
+      temperature: 14.2,
+      waterLevelMm: 1,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -12, max: 38 },
+        maxWaterLevel: 12
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p4_5",
+    trading_point_id: "point4",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №5 (АИ-100)",
+    serial_number: "TANK-004-100",
+    external_id: "TANK_P4_100",
+    status: "online",
+    installation_date: "2024-03-01T00:00:00Z",
+    created_at: "2024-03-01T12:00:00Z",
+    updated_at: "2024-12-08T07:15:00Z",
+    params: {
+      id: 13,
+      name: "Резервуар №5 (АИ-100)",
+      fuelType: "АИ-100",
+      currentLevelLiters: 18000,
+      capacityLiters: 25000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      volume: 25000,
+      temperature: 18.5,
+      waterLevelMm: 0,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -12, max: 38 },
+        maxWaterLevel: 12
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+
+  // АЗС №005 - Промзона (5 резервуаров: АИ-92 x2, АИ-95, ДТ, АИ-98)
+  {
+    id: "eq_tank_p5_1",
+    trading_point_id: "point5",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №1 (АИ-92)",
+    serial_number: "TANK-005-92A",
+    external_id: "TANK_P5_92A",
+    status: "online",
+    installation_date: "2024-01-20T00:00:00Z",
+    created_at: "2024-01-20T12:00:00Z",
+    updated_at: "2024-12-08T10:30:00Z",
+    params: {
+      id: 14,
+      name: "Резервуар №1 (АИ-92)",
+      fuelType: "АИ-92",
+      currentLevelLiters: 32000,
+      capacityLiters: 40000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      volume: 40000,
+      temperature: 17.8,
+      waterLevelMm: 0,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -15, max: 35 },
+        maxWaterLevel: 10
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p5_2",
+    trading_point_id: "point5",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №2 (АИ-92)",
+    serial_number: "TANK-005-92B",
+    external_id: "TANK_P5_92B",
+    status: "online",
+    installation_date: "2024-02-10T00:00:00Z",
+    created_at: "2024-02-10T12:00:00Z",
+    updated_at: "2024-12-08T09:15:00Z",
+    params: {
+      id: 15,
+      name: "Резервуар №2 (АИ-92)",
+      fuelType: "АИ-92",
+      currentLevelLiters: 28000,
+      capacityLiters: 40000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      volume: 40000,
+      temperature: 16.9,
+      waterLevelMm: 1,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -15, max: 35 },
+        maxWaterLevel: 10
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p5_3",
+    trading_point_id: "point5",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №3 (АИ-95)",
+    serial_number: "TANK-005-95",
+    external_id: "TANK_P5_95",
+    status: "online",
+    installation_date: "2024-02-10T00:00:00Z",
+    created_at: "2024-02-10T12:00:00Z",
+    updated_at: "2024-12-08T11:45:00Z",
+    params: {
+      id: 16,
+      name: "Резервуар №3 (АИ-95)",
+      fuelType: "АИ-95",
+      currentLevelLiters: 35000,
+      capacityLiters: 45000,
+      minLevelPercent: 18,
+      criticalLevelPercent: 9,
+      volume: 45000,
+      temperature: 15.5,
+      waterLevelMm: 0,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -15, max: 35 },
+        maxWaterLevel: 10
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p5_4",
+    trading_point_id: "point5",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №4 (ДТ)",
+    serial_number: "TANK-005-DT",
+    external_id: "TANK_P5_DT",
+    status: "online",
+    installation_date: "2024-03-01T00:00:00Z",
+    created_at: "2024-03-01T12:00:00Z",
+    updated_at: "2024-12-08T08:30:00Z",
+    params: {
+      id: 17,
+      name: "Резервуар №4 (ДТ)",
+      fuelType: "ДТ",
+      currentLevelLiters: 33000,
+      capacityLiters: 40000,
+      minLevelPercent: 15,
+      criticalLevelPercent: 8,
+      volume: 40000,
+      temperature: 13.8,
+      waterLevelMm: 0,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -15, max: 35 },
+        maxWaterLevel: 10
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+  {
+    id: "eq_tank_p5_5",
+    trading_point_id: "point5",
+    name: "Резервуар",
+    system_type: "fuel_tank",
+    template_id: "1",
+    display_name: "Резервуар №5 (АИ-98)",
+    serial_number: "TANK-005-98",
+    external_id: "TANK_P5_98",
+    status: "maintenance",
+    installation_date: "2024-04-10T00:00:00Z",
+    created_at: "2024-04-10T12:00:00Z",
+    updated_at: "2024-12-08T07:15:00Z",
+    params: {
+      id: 18,
+      name: "Резервуар №5 (АИ-98)",
+      fuelType: "АИ-98",
+      currentLevelLiters: 12000,
+      capacityLiters: 25000,
+      minLevelPercent: 20,
+      criticalLevelPercent: 10,
+      volume: 25000,
+      temperature: 16.2,
+      waterLevelMm: 2,
+      material: "steel",
+      thresholds: {
+        criticalTemp: { min: -15, max: 35 },
+        maxWaterLevel: 10
+      }
+    },
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_login"],
+    components: []
+  },
+
+  // Системы управления для остальных торговых точек
+  {
+    id: "eq_14",
+    trading_point_id: "point3",
+    name: "Система управления",
+    system_type: "control_system",
+    template_id: "3",
+    display_name: "Система управления АЗС",
+    serial_number: "SRV201",
+    external_id: "CTRL_201",
+    status: "online",
+    installation_date: "2024-01-20T00:00:00Z",
+    created_at: "2024-01-20T12:00:00Z",
+    updated_at: "2024-08-30T07:45:00Z",
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_get_prices", "autooplata_set_prices", "autooplata_get_services"],
+    components: []
+  },
+  {
+    id: "eq_15",
+    trading_point_id: "point4",
+    name: "Система управления",
+    system_type: "control_system",
+    template_id: "3",
+    display_name: "Система управления АЗС",
+    serial_number: "SRV301",
+    external_id: "CTRL_301",
+    status: "online",
+    installation_date: "2024-02-01T00:00:00Z",
+    created_at: "2024-02-01T12:00:00Z",
+    updated_at: "2024-08-30T07:45:00Z",
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_get_prices", "autooplata_set_prices", "autooplata_get_services"],
+    components: []
+  },
+  {
+    id: "eq_16",
+    trading_point_id: "point5",
+    name: "Система управления",
+    system_type: "control_system",
+    template_id: "3",
+    display_name: "Система управления АЗС",
+    serial_number: "SRV401",
+    external_id: "CTRL_401",
+    status: "online",
+    installation_date: "2024-02-01T00:00:00Z",
+    created_at: "2024-02-01T12:00:00Z",
+    updated_at: "2024-08-30T07:45:00Z",
+    availableCommandIds: ["autooplata_restart_terminal", "autooplata_equipment_status", "autooplata_get_prices", "autooplata_set_prices", "autooplata_get_services"],
+    components: []
+  },
+  {
+    id: "eq_17",
+    trading_point_id: "point6",
+    name: "Система управления",
+    system_type: "control_system",
+    template_id: "3",
+    display_name: "Система управления АЗС",
+    serial_number: "SRV501",
+    external_id: "CTRL_501",
     status: "online",
     installation_date: "2024-02-01T00:00:00Z",
     created_at: "2024-02-01T12:00:00Z",
@@ -497,8 +1069,24 @@ const resetEquipmentData = () => {
   console.log('🔄 Equipment data reset to initial state');
 };
 
+// Принудительная очистка localStorage для синхронизации
+console.log('🧹 Очищаю localStorage для equipment...');
+PersistentStorage.remove('equipment');
+
+// Дополнительная очистка для полной синхронизации
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('equipment');
+    localStorage.removeItem('currentPrices');
+    localStorage.removeItem('fuelTypes');
+    localStorage.removeItem('tanks');
+    console.log('🧹 localStorage полностью очищен');
+  } catch (e) {
+    console.log('⚠️ Ошибка очистки localStorage:', e);
+  }
+}
+
 // Принудительный сброс данных при загрузке (для разработки)
-// Раскомментируйте для обновления структуры данных
 resetEquipmentData();
 
 // Функция агрегации статусов компонентов для оборудования
@@ -712,6 +1300,19 @@ export const mockEquipmentAPI = {
         break;
     }
     equipment.updated_at = new Date().toISOString();
+    saveEquipment();
+  },
+
+  async delete(id: string): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const equipmentIndex = mockEquipment.findIndex(eq => eq.id === id);
+    if (equipmentIndex === -1) {
+      throw new ApiError(404, 'Equipment not found');
+    }
+
+    // Удаляем оборудование из массива
+    mockEquipment.splice(equipmentIndex, 1);
     saveEquipment();
   },
 

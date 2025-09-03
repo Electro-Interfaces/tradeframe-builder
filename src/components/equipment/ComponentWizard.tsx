@@ -317,7 +317,7 @@ export function ComponentWizard({
                                             <div className="mt-1 space-y-1">
                                               {Object.entries(template.defaults).slice(0, 3).map(([key, value]) => (
                                                 <div key={key} className="flex justify-between">
-                                                  <span>{key}:</span>
+                                                  <span>{getFieldLabel(key)}:</span>
                                                   <span>{String(value)}</span>
                                                 </div>
                                               ))}

@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +44,9 @@ import {
   EquipmentEvent,
   EquipmentStatus 
 } from "@/types/equipment";
+import { nomenclatureService } from "@/services/nomenclatureService";
+import { FuelNomenclature } from "@/types/nomenclature";
+import { useSelection } from "@/context/SelectionContext";
 import { ComponentsTab } from "./ComponentsTab";
 
 // Схема валидации для редактирования
@@ -108,6 +112,29 @@ const getEventIcon = (eventType: string) => {
   }
 };
 
+// Функция для локализации полей резервуара
+const getFieldLabel = (key: string): string => {
+  const labels: Record<string, string> = {
+    'id': 'ID резервуара',
+    'name': 'Название резервуара',
+    'fuelType': 'Тип топлива',
+    'currentLevelLiters': 'Текущий уровень (литры)',
+    'capacityLiters': 'Объем резервуара (литры)',
+    'minLevelPercent': 'Минимальный уровень (%)',
+    'criticalLevelPercent': 'Критический уровень (%)',
+    'maxLevelPercent': 'Максимальный уровень (%)',
+    'temperature': 'Температура (°C)',
+    'waterLevelMm': 'Уровень воды (мм)',
+    'density': 'Плотность',
+    'material': 'Материал',
+    'status': 'Статус',
+    'location': 'Местоположение',
+    'supplier': 'Поставщик',
+    'lastCalibration': 'Последняя калибровка'
+  };
+  return labels[key] || key.charAt(0).toUpperCase() + key.slice(1);
+};
+
 export function EquipmentDetailCard({
   open,
   onOpenChange,
@@ -117,6 +144,7 @@ export function EquipmentDetailCard({
   onLoadEvents,
   loading = false
 }: EquipmentDetailCardProps) {
+  const { selectedNetwork } = useSelection();
   const [isEditing, setIsEditing] = useState(false);
   const [events, setEvents] = useState<EquipmentEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -124,6 +152,7 @@ export function EquipmentDetailCard({
   
   // Состояние для параметров резервуара (отдельно от основной формы)
   const [tankParams, setTankParams] = useState<Record<string, any>>({});
+  const [fuelNomenclature, setFuelNomenclature] = useState<FuelNomenclature[]>([]);
 
   const form = useForm<UpdateEquipmentFormData>({
     resolver: zodResolver(updateEquipmentSchema),
@@ -152,8 +181,35 @@ export function EquipmentDetailCard({
       }
       
       setIsEditing(false);
+
+      // Загружаем номенклатуру топлива если это резервуар
+      if (equipment.system_type === "fuel_tank") {
+        const loadFuelNomenclature = async () => {
+          try {
+            const filters = { 
+              status: 'active' as const,
+              ...(selectedNetwork?.id && { networkId: selectedNetwork.id })
+            };
+            const data = await nomenclatureService.getNomenclature(filters);
+            
+            // Удаляем дубликаты по названию топлива, оставляя только уникальные названия
+            const uniqueFuelTypes = data.reduce((acc, fuel) => {
+              if (!acc.some(item => item.name === fuel.name)) {
+                acc.push(fuel);
+              }
+              return acc;
+            }, [] as FuelNomenclature[]);
+            
+            setFuelNomenclature(uniqueFuelTypes);
+          } catch (error) {
+            console.error('Failed to load fuel nomenclature:', error);
+            setFuelNomenclature([]);
+          }
+        };
+        loadFuelNomenclature();
+      }
     }
-  }, [open, equipment, form]);
+  }, [open, equipment, form, selectedNetwork]);
 
   const loadEvents = async () => {
     if (!equipment) return;
@@ -523,11 +579,25 @@ export function EquipmentDetailCard({
                             <div className="space-y-3">
                               <div>
                                 <Label className="text-sm font-medium">Тип топлива</Label>
-                                <Input
-                                  value={tankParams.fuelType || ""}
-                                  onChange={(e) => setTankParams(prev => ({...prev, fuelType: e.target.value}))}
-                                  placeholder="Например: АИ-95, ДТ"
-                                />
+                                <Select 
+                                  value={tankParams.fuelType || ""} 
+                                  onValueChange={(value) => setTankParams(prev => ({...prev, fuelType: value}))}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Выберите тип топлива" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {fuelNomenclature.length === 0 ? (
+                                      <SelectItem value="" disabled>Загрузка...</SelectItem>
+                                    ) : (
+                                      fuelNomenclature.map((fuel) => (
+                                        <SelectItem key={fuel.id} value={fuel.name}>
+                                          {fuel.name}
+                                        </SelectItem>
+                                      ))
+                                    )}
+                                  </SelectContent>
+                                </Select>
                               </div>
                               
                               <div>

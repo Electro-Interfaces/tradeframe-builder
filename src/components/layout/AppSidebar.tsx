@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation, NavLink } from "react-router-dom";
+import { useState, useEffect, useRef, memo } from "react";
+import { NavLink } from "react-router-dom";
 import { useMenuVisibility } from "@/hooks/useMenuVisibility";
 import {
   Sidebar,
@@ -41,26 +41,78 @@ interface AppSidebarProps {
   setMobileMenuOpen?: (open: boolean) => void;
 }
 
-export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMenuOpen }: AppSidebarProps) {
-  const location = useLocation();
+const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobileMenuOpen }: AppSidebarProps) => {
   const { state } = useSidebar();
-  const [openGroups, setOpenGroups] = useState<string[]>(["main", "networks", "trading-point", "admin", "settings", "service", "misc"]);
+  
+  // Загружаем состояние открытых групп из localStorage
+  const getInitialOpenGroups = (): string[] => {
+    try {
+      const saved = localStorage.getItem('appSidebar_openGroups');
+      return saved ? JSON.parse(saved) : ["main", "networks", "trading-point", "admin", "settings", "service", "misc"];
+    } catch {
+      return ["main", "networks", "trading-point", "admin", "settings", "service", "misc"];
+    }
+  };
+  
+  const [openGroups, setOpenGroups] = useState<string[]>(getInitialOpenGroups);
   const menuVisibility = useMenuVisibility();
+  
+  // Сохраняем состояние в localStorage при изменении
+  useEffect(() => {
+    localStorage.setItem('appSidebar_openGroups', JSON.stringify(openGroups));
+  }, [openGroups]);
+  
+  // Простое сохранение позиции скролла
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Простое инициальное восстановление позиции скролла
+  useEffect(() => {
+    const savedScrollPos = localStorage.getItem('appSidebar_scrollPosition');
+    if (savedScrollPos && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = parseFloat(savedScrollPos);
+    }
+  }, []);
+  
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
+    
+    // Дебаунсинг для сохранения в localStorage
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    scrollTimeoutRef.current = setTimeout(() => {
+      localStorage.setItem('appSidebar_scrollPosition', scrollTop.toString());
+    }, 150);
+  };
+  
+  // Очищаем таймеры при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // В мобильном режиме никогда не сворачиваем меню
   const collapsed = isMobile ? false : state === "collapsed";
   
-  console.log("AppSidebar render:", { isMobile, collapsed, openGroups });
+  // console.log("AppSidebar render:", { isMobile, collapsed, openGroups });
 
   const toggleGroup = (groupId: string) => {
-    setOpenGroups(prev => 
-      prev.includes(groupId) 
+    console.log('🔄 AppSidebar: toggleGroup called for', groupId);
+    setOpenGroups(prev => {
+      const newGroups = prev.includes(groupId) 
         ? prev.filter(id => id !== groupId)
-        : [...prev, groupId]
-    );
+        : [...prev, groupId];
+      console.log('🔄 AppSidebar: openGroups changed from', prev, 'to', newGroups);
+      return newGroups;
+    });
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => window.location.pathname === path;
   const getNavCls = (active: boolean) => 
     active ? "bg-blue-600 text-white font-medium transition-colors duration-200" : "transition-colors duration-200 hover:bg-slate-700 text-gray-400 hover:text-white";
 
@@ -86,6 +138,8 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     { title: "Сети и ТТ", url: "/admin/networks", icon: Network },
     { title: "Пользователи", url: "/admin/users-and-roles", icon: Users },
     { title: "Роли", url: "/admin/roles", icon: Shield },
+    { title: "Инструкции", url: "/admin/instructions", icon: Book },
+    { title: "Правовые документы", url: "/admin/legal-documents", icon: FileText },
     { title: "Журнал аудита", url: "/admin/audit", icon: FileText },
   ];
 
@@ -104,9 +158,7 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     { title: "Инспектор данных", url: "/admin/data-inspector", icon: HardDrive },
   ];
 
-  const miscMenuItems = [
-    { title: "Шаблоны команд", url: "/settings/dictionaries/command-templates", icon: Cog },
-  ];
+  const miscMenuItems: any[] = [];
 
   function renderMenuContent() {
     return (
@@ -116,7 +168,11 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
         <div className="px-4 py-3">
           <div 
             className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
-            onClick={() => toggleGroup("networks")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleGroup("networks");
+            }}
           >
             <Network className="w-4 h-4 flex-shrink-0" />
             ТОРГОВЫЕ СЕТИ
@@ -150,7 +206,11 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
         <div className="border-t border-slate-600 px-4 py-3">
           <div 
             className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
-            onClick={() => toggleGroup("trading-point")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleGroup("trading-point");
+            }}
           >
             <MapPin className="w-4 h-4 flex-shrink-0" />
             ТОРГОВАЯ ТОЧКА
@@ -190,7 +250,11 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
         <div className="border-t border-slate-600 px-4 py-3">
           <div 
             className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
-            onClick={() => toggleGroup("admin")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleGroup("admin");
+            }}
           >
             <Shield className="w-4 h-4 flex-shrink-0" />
             АДМИНИСТРИРОВАНИЕ
@@ -224,7 +288,11 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
         <div className="border-t border-slate-600 px-4 py-3">
           <div 
             className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
-            onClick={() => toggleGroup("settings")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleGroup("settings");
+            }}
           >
             <Cog className="w-4 h-4 flex-shrink-0" />
             НАСТРОЙКИ
@@ -256,7 +324,11 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
               <div>
                 <div 
                   className="text-slate-300 text-xs font-medium tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-2 px-1"
-                  onClick={() => toggleGroup("service")}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleGroup("service");
+                  }}
                 >
                   <Tool className="w-3 h-3 flex-shrink-0" />
                   СЕРВИС
@@ -284,37 +356,6 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
                 )}
               </div>
 
-              {/* Разное */}
-              <div>
-                <div 
-                  className="text-slate-300 text-xs font-medium tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-2 px-1"
-                  onClick={() => toggleGroup("misc")}
-                >
-                  <Box className="w-3 h-3 flex-shrink-0" />
-                  РАЗНОЕ
-                  <ChevronRight 
-                    className={`w-3 h-3 ml-auto transition-transform duration-200 ${
-                      openGroups.includes("misc") ? "rotate-90" : ""
-                    }`} 
-                  />
-                </div>
-                {openGroups.includes("misc") && (
-                  <div className="space-y-1 ml-2">
-                    {miscMenuItems.map((item) => (
-                      <div key={item.title}>
-                        <NavLink 
-                          to={item.url} 
-                          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
-                          onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                        >
-                          <item.icon className="w-4 h-4 flex-shrink-0" />
-                          <span className="truncate">{item.title}</span>
-                        </NavLink>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           )}
         </div>
@@ -327,17 +368,27 @@ export function AppSidebar({ selectedTradingPoint, isMobile = false, setMobileMe
     <div className={`${isMobile ? 'h-full bg-sidebar' : ''}`}>
       {isMobile ? (
         // Mobile version without Sidebar wrapper
-        <div className="scrollbar-hide h-full overflow-y-auto bg-slate-800 text-slate-100">
+        <div 
+          className="scrollbar-hide h-full overflow-y-auto bg-slate-800 text-slate-100"
+          onScroll={handleScroll}
+          ref={scrollContainerRef}
+        >
           {renderMenuContent()}
         </div>
       ) : (
         // Desktop version with Sidebar wrapper
         <Sidebar className="border-r border-slate-600 shadow-md bg-slate-800">
-          <SidebarContent className="pt-header scrollbar-hide bg-slate-800">
+          <SidebarContent 
+            className="pt-header scrollbar-hide bg-slate-800"
+            onScroll={handleScroll}
+            ref={scrollContainerRef}
+          >
             {renderMenuContent()}
           </SidebarContent>
         </Sidebar>
       )}
     </div>
   );
-}
+};
+
+export const AppSidebar = memo(AppSidebarComponent);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ interface MainLayoutProps {
   fullWidth?: boolean;
 }
 
-export function MainLayout({ children, fullWidth = false }: MainLayoutProps) {
+const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) => {
   const { selectedNetwork, setSelectedNetwork, selectedTradingPoint, setSelectedTradingPoint } = useSelection();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [tradingPoints, setTradingPoints] = useState<TradingPoint[]>([]);
@@ -24,13 +24,10 @@ export function MainLayout({ children, fullWidth = false }: MainLayoutProps) {
   
   useEffect(() => {
     if (selectedNetwork?.id) {
-      console.log('🏢 MainLayout: выбрана сеть', selectedNetwork);
       tradingPointsService.getByNetworkId(selectedNetwork.id).then(points => {
-        console.log('📍 MainLayout: найденные точки для сети', selectedNetwork.id, ':', points.map(p => ({id: p.id, name: p.name, networkId: p.networkId})));
         setTradingPoints(points);
       });
     } else {
-      console.log('🏢 MainLayout: сеть не выбрана');
       setTradingPoints([]);
     }
   }, [selectedNetwork?.id]);
@@ -80,6 +77,12 @@ export function MainLayout({ children, fullWidth = false }: MainLayoutProps) {
                   />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-700 border-gray-600">
+                  <SelectItem 
+                    value="all"
+                    className="text-white hover:bg-gray-600 focus:bg-blue-600 font-medium border-b border-gray-600"
+                  >
+                    Все торговые точки
+                  </SelectItem>
                   {tradingPoints.map((point) => (
                     <SelectItem 
                       key={point.id} 
@@ -114,7 +117,9 @@ export function MainLayout({ children, fullWidth = false }: MainLayoutProps) {
       </div>
     </SidebarProvider>
   );
-}
+};
+
+export const MainLayout = memo(MainLayoutComponent);
 
 // Новый простой лэйаут для страниц без селекторов
 export function SimpleLayout({ children }: { children: React.ReactNode }) {

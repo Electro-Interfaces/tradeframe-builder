@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { HelpButton } from "@/components/help/HelpButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +34,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useSelection } from "@/context/SelectionContext";
+import { EmptyState } from "@/components/ui/empty-state";
 import { 
   Plus, 
   Edit, 
@@ -142,6 +145,7 @@ const mockTelegramBots: TelegramBotWithId[] = [
 
 export default function Messages() {
   const { toast } = useToast();
+  const { selectedNetwork, selectedTradingPoint } = useSelection();
   
   // Состояние для тикетов техподдержки
   const [tickets, setTickets] = useState<TicketWithId[]>(mockTickets);
@@ -293,17 +297,48 @@ export default function Messages() {
     }
   };
 
+  // Проверка выбора торговой сети
+  if (!selectedNetwork) {
+    return (
+      <MainLayout fullWidth={true}>
+        <div className="w-full h-full report-full-width">
+          <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
+            <h1 className="text-2xl font-semibold text-white">Коммуникации и поддержка</h1>
+            <p className="text-slate-400 mt-1">Управление тикетами техподдержки и настройка Telegram-интеграции</p>
+          </div>
+          <div className="bg-slate-800 mb-6 w-full mx-4 md:mx-6 lg:mx-8">
+            <div className="px-4 md:px-6 py-4">
+              <EmptyState 
+                title="Выберите торговую сеть" 
+                description="Для управления коммуникациями и поддержкой необходимо выбрать торговую сеть из выпадающего списка выше"
+                className="py-16"
+              />
+            </div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout fullWidth={true}>
       <div className="w-full h-full report-full-width">
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4 px-4 md:px-6 lg:px-8">
-          <h1 className="text-2xl font-semibold text-white">Коммуникации и поддержка</h1>
-          <p className="text-slate-400 mt-1">Управление тикетами техподдержки и настройка Telegram-интеграции</p>
+        <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Коммуникации и поддержка</h1>
+              <p className="text-slate-400 mt-1">
+                Коммуникации для сети: {selectedNetwork?.name}
+                {selectedTradingPoint && ` - Точка: ${selectedTradingPoint.name}`}
+              </p>
+            </div>
+            <HelpButton route="/network/messages" className="flex-shrink-0" />
+          </div>
         </div>
 
         {/* Секция техподдержки */}
-        <div className="bg-slate-800 mb-6 w-full">
+        <div className="bg-slate-800 mb-6 w-full mx-4 md:mx-6 lg:mx-8">
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -417,7 +452,7 @@ export default function Messages() {
         </div>
 
         {/* Секция Telegram-ботов */}
-        <div className="bg-slate-800 w-full">
+        <div className="bg-slate-800 w-full mx-4 md:mx-6 lg:mx-8">
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

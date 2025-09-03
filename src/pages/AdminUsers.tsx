@@ -31,6 +31,7 @@ import {
   MoreHorizontal,
   X
 } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 
 // Mock system roles
 const systemRoles = [
@@ -436,10 +437,15 @@ export default function AdminUsers() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Пользователи и роли</h1>
-          <p className="text-slate-400 mt-2">
-            Управление пользователями, ролями и правами доступа в системе
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Пользователи и роли</h1>
+              <p className="text-slate-400 mt-2">
+                Управление пользователями, ролями и правами доступа в системе
+              </p>
+            </div>
+            <HelpButton helpKey="admin-users" />
+          </div>
         </div>
 
         <Tabs defaultValue="users" className="space-y-6 w-full">

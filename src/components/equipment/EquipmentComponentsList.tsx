@@ -36,6 +36,45 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { CommandParametersEditor } from './CommandParametersEditor';
 
+// Функция для локализации параметров команд
+const getParameterLabel = (paramName: string, paramSchema?: any): string => {
+  // Сначала используем title из схемы, если есть
+  if (paramSchema?.title) {
+    return paramSchema.title;
+  }
+
+  // Затем используем мапинг для резервуаров
+  const labels: Record<string, string> = {
+    'id': 'ID резервуара',
+    'name': 'Название резервуара',
+    'fuelType': 'Тип топлива',
+    'currentLevelLiters': 'Текущий уровень (литры)',
+    'capacityLiters': 'Объем резервуара (литры)',
+    'minLevelPercent': 'Минимальный уровень (%)',
+    'criticalLevelPercent': 'Критический уровень (%)',
+    'maxLevelPercent': 'Максимальный уровень (%)',
+    'temperature': 'Температура (°C)',
+    'waterLevelMm': 'Уровень воды (мм)',
+    'density': 'Плотность',
+    'material': 'Материал',
+    'status': 'Статус',
+    'location': 'Местоположение',
+    'supplier': 'Поставщик',
+    'lastCalibration': 'Последняя калибровка',
+    'volume': 'Объем',
+    'pressure': 'Давление',
+    'flow_rate': 'Скорость потока',
+    'target': 'Цель',
+    'duration': 'Длительность',
+    'delay': 'Задержка',
+    'timeout': 'Таймаут',
+    'retry_count': 'Количество попыток',
+    'priority': 'Приоритет'
+  };
+  
+  return labels[paramName] || paramName.charAt(0).toUpperCase() + paramName.slice(1);
+};
+
 interface EquipmentComponentsListProps {
   equipmentId: string;
   onEditComponent?: (component: Component) => void;
@@ -353,16 +392,32 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
   };
 
   // Удаление команды
-  const handleDeleteCommand = (commandId: string, componentId: string) => {
-    setComponentCommandsData(prev => ({
-      ...prev,
-      [componentId]: (prev[componentId] || []).filter(cmd => cmd.id !== commandId)
-    }));
+  const handleDeleteCommand = async (commandId: string, componentId: string) => {
+    if (!confirm('Вы уверены, что хотите удалить эту команду? Это действие необратимо.')) {
+      return;
+    }
 
-    toast({
-      title: "Команда удалена",
-      description: "Команда была успешно удалена"
-    });
+    try {
+      await commandsAPI.delete(commandId);
+      
+      // Удаляем команду из локального состояния
+      setComponentCommandsData(prev => ({
+        ...prev,
+        [componentId]: (prev[componentId] || []).filter(cmd => cmd.id !== commandId)
+      }));
+
+      toast({
+        title: "Команда удалена",
+        description: "Команда была успешно удалена"
+      });
+    } catch (error) {
+      console.error('Ошибка удаления команды:', error);
+      toast({
+        title: "Ошибка удаления",
+        description: "Не удалось удалить команду. Попробуйте снова.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Обработка изменения параметра
@@ -700,7 +755,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                   return Object.entries(template.param_schema.properties).map(([paramName, paramSchema]: [string, any]) => (
                     <div key={paramName} className="space-y-2">
                       <Label htmlFor={paramName} className="text-white font-medium">
-                        {paramSchema.title || paramName}
+                        {getParameterLabel(paramName, paramSchema)}
                         {template.required_params?.includes(paramName) && (
                           <span className="text-red-400 ml-1">*</span>
                         )}

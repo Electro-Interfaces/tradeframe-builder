@@ -185,6 +185,470 @@ const initialComponents: Component[] = [
     created_at: new Date('2024-01-15').toISOString(),
     updated_at: new Date('2024-08-30').toISOString(),
     created_from_template: "comp_tso_mpsr_1"
+  },
+
+  // Компоненты платежных систем для систем управления на всех АЗС
+
+  // АЗС №001 (point1) - Система управления eq_6
+  {
+    id: "comp_pay_001",
+    trading_point_id: "point1",
+    equipment_id: "eq_6",
+    name: "Картридер банковских карт",
+    display_name: "Картридер для банковских карт с поддержкой NFC",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_BANKCR_001",
+    params: { type: "NFC", payment_types: ["card", "nfc"] },
+    status: 'online',
+    created_at: new Date('2024-01-15').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_BANKCR"
+  },
+  {
+    id: "comp_pay_002",
+    trading_point_id: "point1",
+    equipment_id: "eq_6",
+    name: "Картридер топливных карт",
+    display_name: "Картридер для чтения топливных карт в POS-терминале",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FUELCR_001",
+    params: { type: "fuel_cards", supported_cards: ["fleet", "corporate"] },
+    status: 'online',
+    created_at: new Date('2024-01-15').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FUELCR"
+  },
+  {
+    id: "comp_pay_003",
+    trading_point_id: "point1",
+    equipment_id: "eq_6",
+    name: "Купюроприёмник",
+    display_name: "Купюроприёмник для приёма наличных платежей",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_CASHIN_001",
+    params: { currency: "RUB", denominations: [100, 200, 500, 1000, 2000, 5000] },
+    status: 'online',
+    created_at: new Date('2024-01-15').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_CASHIN"
+  },
+  {
+    id: "comp_pay_004",
+    trading_point_id: "point1",
+    equipment_id: "eq_6",
+    name: "МПС-ридер",
+    display_name: "Ридер мобильных платёжных систем (NFC, QR-код, Apple Pay, Google Pay)",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_MPSR_001",
+    params: { protocols: ["NFC", "QR", "Apple Pay", "Google Pay", "Samsung Pay"] },
+    status: 'online',
+    created_at: new Date('2024-01-15').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_MPSR"
+  },
+  {
+    id: "comp_pay_005",
+    trading_point_id: "point1",
+    equipment_id: "eq_6",
+    name: "Фискальный регистратор",
+    display_name: "Фискальный регистратор для печати чеков и отправки данных в ОФД",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FISCAL_001",
+    params: { ofd_provider: "Первый ОФД", fiscal_memory: true, kkt_model: "АТОЛ 91Ф" },
+    status: 'online',
+    created_at: new Date('2024-01-15').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FISCAL"
+  },
+
+  // АЗС №002 (point2) - Система управления eq_13
+  {
+    id: "comp_pay_006",
+    trading_point_id: "point2",
+    equipment_id: "eq_13",
+    name: "Картридер банковских карт",
+    display_name: "Картридер для банковских карт с поддержкой NFC",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_BANKCR_002",
+    params: { type: "NFC", payment_types: ["card", "nfc"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_BANKCR"
+  },
+  {
+    id: "comp_pay_007",
+    trading_point_id: "point2",
+    equipment_id: "eq_13",
+    name: "Картридер топливных карт",
+    display_name: "Картридер для чтения топливных карт в POS-терминале",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FUELCR_002",
+    params: { type: "fuel_cards", supported_cards: ["fleet", "corporate"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FUELCR"
+  },
+  {
+    id: "comp_pay_008",
+    trading_point_id: "point2",
+    equipment_id: "eq_13",
+    name: "Купюроприёмник",
+    display_name: "Купюроприёмник для приёма наличных платежей",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_CASHIN_002",
+    params: { currency: "RUB", denominations: [100, 200, 500, 1000, 2000, 5000] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_CASHIN"
+  },
+  {
+    id: "comp_pay_009",
+    trading_point_id: "point2",
+    equipment_id: "eq_13",
+    name: "МПС-ридер",
+    display_name: "Ридер мобильных платёжных систем (NFC, QR-код, Apple Pay, Google Pay)",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_MPSR_002",
+    params: { protocols: ["NFC", "QR", "Apple Pay", "Google Pay", "Samsung Pay"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_MPSR"
+  },
+  {
+    id: "comp_pay_010",
+    trading_point_id: "point2",
+    equipment_id: "eq_13",
+    name: "Фискальный регистратор",
+    display_name: "Фискальный регистратор для печати чеков и отправки данных в ОФД",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FISCAL_002",
+    params: { ofd_provider: "Первый ОФД", fiscal_memory: true, kkt_model: "АТОЛ 91Ф" },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FISCAL"
+  },
+
+  // АЗС №003 (point3) - Система управления eq_14
+  {
+    id: "comp_pay_011",
+    trading_point_id: "point3",
+    equipment_id: "eq_14",
+    name: "Картридер банковских карт",
+    display_name: "Картридер для банковских карт с поддержкой NFC",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_BANKCR_003",
+    params: { type: "NFC", payment_types: ["card", "nfc"] },
+    status: 'online',
+    created_at: new Date('2024-01-20').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_BANKCR"
+  },
+  {
+    id: "comp_pay_012",
+    trading_point_id: "point3",
+    equipment_id: "eq_14",
+    name: "Картридер топливных карт",
+    display_name: "Картридер для чтения топливных карт в POS-терминале",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FUELCR_003",
+    params: { type: "fuel_cards", supported_cards: ["fleet", "corporate"] },
+    status: 'online',
+    created_at: new Date('2024-01-20').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FUELCR"
+  },
+  {
+    id: "comp_pay_013",
+    trading_point_id: "point3",
+    equipment_id: "eq_14",
+    name: "Купюроприёмник",
+    display_name: "Купюроприёмник для приёма наличных платежей",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_CASHIN_003",
+    params: { currency: "RUB", denominations: [100, 200, 500, 1000, 2000, 5000] },
+    status: 'online',
+    created_at: new Date('2024-01-20').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_CASHIN"
+  },
+  {
+    id: "comp_pay_014",
+    trading_point_id: "point3",
+    equipment_id: "eq_14",
+    name: "МПС-ридер",
+    display_name: "Ридер мобильных платёжных систем (NFC, QR-код, Apple Pay, Google Pay)",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_MPSR_003",
+    params: { protocols: ["NFC", "QR", "Apple Pay", "Google Pay", "Samsung Pay"] },
+    status: 'online',
+    created_at: new Date('2024-01-20').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_MPSR"
+  },
+  {
+    id: "comp_pay_015",
+    trading_point_id: "point3",
+    equipment_id: "eq_14",
+    name: "Фискальный регистратор",
+    display_name: "Фискальный регистратор для печати чеков и отправки данных в ОФД",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FISCAL_003",
+    params: { ofd_provider: "Первый ОФД", fiscal_memory: true, kkt_model: "АТОЛ 91Ф" },
+    status: 'online',
+    created_at: new Date('2024-01-20').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FISCAL"
+  },
+
+  // АЗС №004 (point4) - Система управления eq_15
+  {
+    id: "comp_pay_016",
+    trading_point_id: "point4",
+    equipment_id: "eq_15",
+    name: "Картридер банковских карт",
+    display_name: "Картридер для банковских карт с поддержкой NFC",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_BANKCR_004",
+    params: { type: "NFC", payment_types: ["card", "nfc"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_BANKCR"
+  },
+  {
+    id: "comp_pay_017",
+    trading_point_id: "point4",
+    equipment_id: "eq_15",
+    name: "Картридер топливных карт",
+    display_name: "Картридер для чтения топливных карт в POS-терминале",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FUELCR_004",
+    params: { type: "fuel_cards", supported_cards: ["fleet", "corporate"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FUELCR"
+  },
+  {
+    id: "comp_pay_018",
+    trading_point_id: "point4",
+    equipment_id: "eq_15",
+    name: "Купюроприёмник",
+    display_name: "Купюроприёмник для приёма наличных платежей",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_CASHIN_004",
+    params: { currency: "RUB", denominations: [100, 200, 500, 1000, 2000, 5000] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_CASHIN"
+  },
+  {
+    id: "comp_pay_019",
+    trading_point_id: "point4",
+    equipment_id: "eq_15",
+    name: "МПС-ридер",
+    display_name: "Ридер мобильных платёжных систем (NFC, QR-код, Apple Pay, Google Pay)",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_MPSR_004",
+    params: { protocols: ["NFC", "QR", "Apple Pay", "Google Pay", "Samsung Pay"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_MPSR"
+  },
+  {
+    id: "comp_pay_020",
+    trading_point_id: "point4",
+    equipment_id: "eq_15",
+    name: "Фискальный регистратор",
+    display_name: "Фискальный регистратор для печати чеков и отправки данных в ОФД",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FISCAL_004",
+    params: { ofd_provider: "Первый ОФД", fiscal_memory: true, kkt_model: "АТОЛ 91Ф" },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FISCAL"
+  },
+
+  // АЗС №005 (point5) - Система управления eq_16
+  {
+    id: "comp_pay_021",
+    trading_point_id: "point5",
+    equipment_id: "eq_16",
+    name: "Картридер банковских карт",
+    display_name: "Картридер для банковских карт с поддержкой NFC",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_BANKCR_005",
+    params: { type: "NFC", payment_types: ["card", "nfc"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_BANKCR"
+  },
+  {
+    id: "comp_pay_022",
+    trading_point_id: "point5",
+    equipment_id: "eq_16",
+    name: "Картридер топливных карт",
+    display_name: "Картридер для чтения топливных карт в POS-терминале",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FUELCR_005",
+    params: { type: "fuel_cards", supported_cards: ["fleet", "corporate"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FUELCR"
+  },
+  {
+    id: "comp_pay_023",
+    trading_point_id: "point5",
+    equipment_id: "eq_16",
+    name: "Купюроприёмник",
+    display_name: "Купюроприёмник для приёма наличных платежей",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_CASHIN_005",
+    params: { currency: "RUB", denominations: [100, 200, 500, 1000, 2000, 5000] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_CASHIN"
+  },
+  {
+    id: "comp_pay_024",
+    trading_point_id: "point5",
+    equipment_id: "eq_16",
+    name: "МПС-ридер",
+    display_name: "Ридер мобильных платёжных систем (NFC, QR-код, Apple Pay, Google Pay)",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_MPSR_005",
+    params: { protocols: ["NFC", "QR", "Apple Pay", "Google Pay", "Samsung Pay"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_MPSR"
+  },
+  {
+    id: "comp_pay_025",
+    trading_point_id: "point5",
+    equipment_id: "eq_16",
+    name: "Фискальный регистратор",
+    display_name: "Фискальный регистратор для печати чеков и отправки данных в ОФД",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FISCAL_005",
+    params: { ofd_provider: "Первый ОФД", fiscal_memory: true, kkt_model: "АТОЛ 91Ф" },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FISCAL"
+  },
+
+  // АЗС №006 (point6) - Система управления eq_17
+  {
+    id: "comp_pay_026",
+    trading_point_id: "point6",
+    equipment_id: "eq_17",
+    name: "Картридер банковских карт",
+    display_name: "Картридер для банковских карт с поддержкой NFC",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_BANKCR_006",
+    params: { type: "NFC", payment_types: ["card", "nfc"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_BANKCR"
+  },
+  {
+    id: "comp_pay_027",
+    trading_point_id: "point6",
+    equipment_id: "eq_17",
+    name: "Картридер топливных карт",
+    display_name: "Картридер для чтения топливных карт в POS-терминале",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FUELCR_006",
+    params: { type: "fuel_cards", supported_cards: ["fleet", "corporate"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FUELCR"
+  },
+  {
+    id: "comp_pay_028",
+    trading_point_id: "point6",
+    equipment_id: "eq_17",
+    name: "Купюроприёмник",
+    display_name: "Купюроприёмник для приёма наличных платежей",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_CASHIN_006",
+    params: { currency: "RUB", denominations: [100, 200, 500, 1000, 2000, 5000] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_CASHIN"
+  },
+  {
+    id: "comp_pay_029",
+    trading_point_id: "point6",
+    equipment_id: "eq_17",
+    name: "МПС-ридер",
+    display_name: "Ридер мобильных платёжных систем (NFC, QR-код, Apple Pay, Google Pay)",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_MPSR_006",
+    params: { protocols: ["NFC", "QR", "Apple Pay", "Google Pay", "Samsung Pay"] },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_MPSR"
+  },
+  {
+    id: "comp_pay_030",
+    trading_point_id: "point6",
+    equipment_id: "eq_17",
+    name: "Фискальный регистратор",
+    display_name: "Фискальный регистратор для печати чеков и отправки данных в ОФД",
+    system_type: "control_system",
+    category: "payment",
+    serial_number: "CMP_TSO_FISCAL_006",
+    params: { ofd_provider: "Первый ОФД", fiscal_memory: true, kkt_model: "АТОЛ 91Ф" },
+    status: 'online',
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date('2024-08-30').toISOString(),
+    created_from_template: "CMP_TSO_FISCAL"
   }
 ];
 
@@ -207,6 +671,16 @@ const saveComponents = () => {
 
 // Выполняем проверку при загрузке
 checkAndUpdateData();
+
+// Принудительное обновление для добавления новых компонентов платежных систем
+const forceUpdateComponents = () => {
+  console.log('🔄 Принудительное обновление компонентов - добавляем платежные системы...');
+  mockComponents = [...initialComponents];
+  saveComponents();
+};
+
+// Активируем принудительное обновление (раскомментировать для обновления)
+forceUpdateComponents();
 
 // Mock API для компонентов с персистентным хранением
 export const mockComponentsAPI = {
@@ -408,6 +882,19 @@ export const mockComponentsAPI = {
     saveComponents();
     
     return updatedComponent;
+  },
+
+  async delete(id: string): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const componentIndex = mockComponents.findIndex(comp => comp.id === id);
+    if (componentIndex === -1) {
+      throw new ApiError(404, 'Component not found');
+    }
+
+    // Удаляем компонент из массива
+    mockComponents.splice(componentIndex, 1);
+    saveComponents();
   }
 };
 

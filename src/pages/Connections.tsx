@@ -243,16 +243,16 @@ export default function Connections() {
 
   return (
     <>
-      <MainLayout>
-        <div className="w-full h-full px-4 md:px-6 lg:px-8">
+      <MainLayout fullWidth={true}>
+        <div className="w-full h-full report-full-width">
           {/* Заголовок страницы */}
-          <div className="mb-6 pt-4">
+          <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
             <h1 className="text-2xl font-semibold text-white">Настройки подключения</h1>
             <p className="text-slate-400 mt-2">Управление подключениями к внешним системам и сервисам</p>
           </div>
 
           {/* Панель подключений */}
-          <div className="bg-slate-800 mb-6 w-full">
+          <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700 mx-4 md:mx-6 lg:mx-8">
             <div className="px-4 md:px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -282,12 +282,13 @@ export default function Connections() {
 
           </div>
 
+          <div className="mx-4 md:mx-6 lg:mx-8">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
             </div>
           ) : connections.length === 0 ? (
-            <div className="px-4 md:px-6 pb-6">
+            <div className="pb-6">
               <EmptyState 
                 title="Нет подключений" 
                 description="Создайте первое подключение для интеграции с внешними системами"
@@ -303,7 +304,7 @@ export default function Connections() {
               />
             </div>
           ) : filteredConnections.length === 0 ? (
-            <div className="px-4 md:px-6 pb-6">
+            <div className="pb-6">
               <EmptyState 
                 title="Ничего не найдено" 
                 description="Попробуйте изменить условия поиска"
@@ -311,7 +312,7 @@ export default function Connections() {
               />
             </div>
           ) : (
-            <div className="w-full">
+            <div>
               {/* Десктоп: таблица на всю ширину */}
               <div className="overflow-x-auto border border-slate-600 rounded-lg">
                 <table className="w-full text-sm table-fixed">
@@ -427,6 +428,7 @@ export default function Connections() {
               </div>
             </div>
           )}
+          </div>
         </div>
       </MainLayout>
 

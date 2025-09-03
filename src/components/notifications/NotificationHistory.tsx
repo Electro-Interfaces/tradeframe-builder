@@ -5,6 +5,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, XCircle, Mail, MessageSquare, Webhook } from "lucide-react";
 
+// Функция для локализации ключей данных триггера
+const getTriggerKeyLabel = (key: string): string => {
+  const labels: Record<string, string> = {
+    'point': 'Торговая точка',
+    'tank': 'Резервуар',
+    'level': 'Уровень',
+    'fuelType': 'Тип топлива',
+    'temperature': 'Температура',
+    'pressure': 'Давление',
+    'flow': 'Поток',
+    'user': 'Пользователь',
+    'equipment': 'Оборудование',
+    'component': 'Компонент',
+    'threshold': 'Порог',
+    'value': 'Значение',
+    'status': 'Статус',
+    'time': 'Время',
+    'network': 'Сеть'
+  };
+  return labels[key] || key.charAt(0).toUpperCase() + key.slice(1);
+};
+
 interface NotificationEvent {
   id: string;
   timestamp: string;
@@ -213,7 +235,7 @@ export function NotificationHistory({ ruleId, onClose }: NotificationHistoryProp
                     </CardTitle>
                     <div className="text-sm text-muted-foreground mt-1">
                       Триггер: {Object.entries(event.triggerData).map(([key, value]) => 
-                        typeof value === 'object' ? `${key}: ${JSON.stringify(value)}` : `${key}: ${value}`
+                        typeof value === 'object' ? `${getTriggerKeyLabel(key)}: ${JSON.stringify(value)}` : `${getTriggerKeyLabel(key)}: ${value}`
                       ).join(', ')}
                     </div>
                   </div>

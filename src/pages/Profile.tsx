@@ -14,6 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserService } from "@/services/userService";
 import { Shield, Mail, Lock, User, Settings, Calendar, MapPin, Network, AlertCircle } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 
 interface ProfileFormData {
   firstName: string;
@@ -182,13 +183,16 @@ export default function Profile() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-foreground`}>
-            Профиль пользователя
-          </h1>
-          <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
-            Управляйте своей личной информацией, безопасностью и правами доступа
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-foreground`}>
+              Профиль пользователя
+            </h1>
+            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
+              Управляйте своей личной информацией, безопасностью и правами доступа
+            </p>
+          </div>
+          <HelpButton helpKey="profile" />
         </div>
 
         {/* Информационные карточки */}

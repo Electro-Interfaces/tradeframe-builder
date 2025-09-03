@@ -247,16 +247,16 @@ export default function ComponentTypes() {
   };
 
   return (
-    <MainLayout>
-      <div className="w-full h-full px-4 md:px-6 lg:px-8">
+    <MainLayout fullWidth={true}>
+      <div className="w-full h-full report-full-width">
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
+        <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <h1 className="text-2xl font-semibold text-white">Справочник типов компонентов</h1>
           <p className="text-slate-400 mt-2">Создавайте и управляйте шаблонами компонентов для POS-терминалов</p>
         </div>
 
         {/* Панель типов компонентов */}
-        <div className="bg-slate-800 mb-6 w-full">
+        <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700 mx-4 md:mx-6 lg:mx-8">
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -288,14 +288,14 @@ export default function ComponentTypes() {
 
         {/* Список типов компонентов */}
         {loading ? (
-          <div className="px-6 pb-6 flex items-center justify-center py-16">
+          <div className="mx-4 md:mx-6 lg:mx-8 pb-6 flex items-center justify-center py-16">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
               <p className="text-slate-400">Загрузка типов компонентов...</p>
             </div>
           </div>
         ) : filteredTypes.length === 0 ? (
-          <div className="px-4 md:px-6 pb-6">
+          <div className="mx-4 md:mx-6 lg:mx-8 pb-6">
             <EmptyState 
               title="Типы компонентов не найдены" 
               description={searchQuery ? "Попробуйте изменить параметры поиска" : "Создайте первый тип компонента"}
@@ -315,8 +315,8 @@ export default function ComponentTypes() {
         ) : (
           <>
             {/* Десктоп: таблица на всю ширину */}
-            <div className="hidden md:block w-full">
-              <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+            <div className="hidden md:block mx-4 md:mx-6 lg:mx-8">
+              <div className="overflow-x-auto rounded-lg border border-slate-600">
                 <table className="w-full text-sm min-w-full table-fixed">
                   <thead className="bg-slate-700">
                     <tr>
@@ -393,7 +393,7 @@ export default function ComponentTypes() {
             </div>
 
             {/* Мобайл: карточки */}
-            <div className="md:hidden space-y-3 px-6 pb-6">
+            <div className="md:hidden space-y-3 pb-6 mx-4 md:mx-6 lg:mx-8">
               {filteredTypes.map((type) => (
                 <div
                   key={type.id}

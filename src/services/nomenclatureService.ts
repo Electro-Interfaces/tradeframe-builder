@@ -129,14 +129,55 @@ const initialNomenclature: FuelNomenclature[] = [
   },
   {
     id: '5',
+    networkId: '1',
+    networkName: 'Демо сеть АЗС',
+    name: 'АИ-100',
+    internalCode: 'AI100',
+    networkApiCode: 'FUEL_AI100_ULTRA',
+    networkApiSettings: {
+      enabled: true,
+      endpoint: '/api/v1/fuel-types/ultra',
+      priority: 5,
+      lastSync: new Date('2024-02-15T11:00:00'),
+      syncStatus: 'success'
+    },
+    externalCodes: [
+      {
+        id: '9',
+        nomenclatureId: '5',
+        systemType: '1C',
+        externalCode: 'БНЗ-100',
+        description: 'Код в 1С:Предприятие',
+        createdAt: new Date('2024-02-15'),
+        updatedAt: new Date('2024-02-15')
+      },
+      {
+        id: '10',
+        nomenclatureId: '5',
+        systemType: 'PROCESSING',
+        externalCode: 'FUEL_100',
+        description: 'Код в процессинге',
+        createdAt: new Date('2024-02-15'),
+        updatedAt: new Date('2024-02-15')
+      }
+    ],
+    description: 'Бензин АИ-100 (Ultra)',
+    status: 'active',
+    createdAt: new Date('2024-02-15'),
+    updatedAt: new Date('2024-02-15'),
+    createdBy: 'admin',
+    updatedBy: 'admin'
+  },
+  {
+    id: '7',
     networkId: '2',
     networkName: 'Норд Лайн',
     name: 'АИ-92',
     internalCode: 'AI92',
     externalCodes: [
       {
-        id: '6',
-        nomenclatureId: '5',
+        id: '11',
+        nomenclatureId: '7',
         systemType: '1C',
         externalCode: 'БНЗ-92-НЛ',
         description: 'Код в 1С Норд Лайн',
@@ -152,15 +193,15 @@ const initialNomenclature: FuelNomenclature[] = [
     updatedBy: 'admin'
   },
   {
-    id: '6',
+    id: '8',
     networkId: '2',
     networkName: 'Норд Лайн',
     name: 'АИ-95',
     internalCode: 'AI95',
     externalCodes: [
       {
-        id: '7',
-        nomenclatureId: '6',
+        id: '12',
+        nomenclatureId: '8',
         systemType: 'CRM',
         externalCode: 'PREMIUM_95',
         description: 'Код в CRM системе',
@@ -176,15 +217,15 @@ const initialNomenclature: FuelNomenclature[] = [
     updatedBy: 'admin'
   },
   {
-    id: '7',
+    id: '9',
     networkId: '2',
     networkName: 'Норд Лайн',
     name: 'ДТ',
     internalCode: 'DT',
     externalCodes: [
       {
-        id: '8',
-        nomenclatureId: '7',
+        id: '13',
+        nomenclatureId: '9',
         systemType: '1C',
         externalCode: 'ДТ-НЛ',
         description: 'Дизельное топливо Норд Лайн',
@@ -200,6 +241,10 @@ const initialNomenclature: FuelNomenclature[] = [
     updatedBy: 'admin'
   }
 ];
+
+// Принудительно сбрасываем кэш номенклатуры для обновления данных
+console.log('🧹 Очищаем кэш номенклатуры для добавления АИ-100...');
+PersistentStorage.remove('nomenclature');
 
 // Загружаем данные из localStorage при инициализации
 let mockNomenclature: FuelNomenclature[] = PersistentStorage.load<FuelNomenclature>('nomenclature', initialNomenclature);

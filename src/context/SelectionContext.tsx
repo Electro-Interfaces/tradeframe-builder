@@ -7,6 +7,7 @@ type SelectionContextValue = {
   setSelectedNetwork: (networkId: string) => void;
   selectedTradingPoint: string;
   setSelectedTradingPoint: (v: string) => void;
+  isAllTradingPoints: boolean;
 };
 
 const SelectionContext = createContext<SelectionContextValue | undefined>(undefined);
@@ -95,11 +96,14 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedTradingPoint]);
 
+  const isAllTradingPoints = selectedTradingPoint === "all";
+
   const value: SelectionContextValue = {
     selectedNetwork,
     setSelectedNetwork: handleSetSelectedNetwork,
     selectedTradingPoint,
     setSelectedTradingPoint,
+    isAllTradingPoints,
   };
 
   return (

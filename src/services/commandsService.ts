@@ -599,6 +599,14 @@ export const commandsAPI = {
     return instance;
   },
 
+  async delete(commandId: string): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // В реальной реализации здесь был бы DELETE-запрос к API
+    // Для мок-данных просто возвращаем успешный результат
+    console.log(`Command ${commandId} deleted (mock)`);
+  },
+
   async getHistory(params: {
     targetType: 'equipment' | 'component';
     targetId: string;

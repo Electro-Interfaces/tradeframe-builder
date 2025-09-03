@@ -253,7 +253,7 @@ export default function EquipmentTypes() {
     // Автоматически загружаем все поля резервуара если выбран fuel_tank
     const initialDefaultParams = defaultValues.systemType === "fuel_tank" ? {
       // Обязательные поля (соответствуют Tank интерфейсу)
-      id: null,
+      id: 1,
       name: "",
       fuelType: "",
       currentLevelLiters: 0,
@@ -416,16 +416,16 @@ export default function EquipmentTypes() {
   };
 
   return (
-    <MainLayout>
-      <div className="w-full h-full px-4 md:px-6 lg:px-8">
+    <MainLayout fullWidth={true}>
+      <div className="w-full h-full report-full-width">
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
+        <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <h1 className="text-2xl font-semibold text-white">Справочник типов оборудования</h1>
           <p className="text-slate-400 mt-2">Создавайте и управляйте шаблонами оборудования с настройкой команд и системных типов</p>
         </div>
 
         {/* Панель типов оборудования */}
-        <div className="bg-slate-800 mb-6 w-full">
+        <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700 mx-4 md:mx-6 lg:mx-8">
           <div className="px-4 md:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -471,7 +471,7 @@ export default function EquipmentTypes() {
             </div>
           </div>
         ) : equipmentTypes.length === 0 ? (
-          <div className="px-4 md:px-6 pb-6">
+          <div className="mx-4 md:mx-6 lg:mx-8 pb-6">
             <EmptyState 
               title="Нет типов оборудования" 
               description="Создайте первый шаблон оборудования для начала работы"
@@ -487,7 +487,7 @@ export default function EquipmentTypes() {
             />
           </div>
         ) : filteredEquipmentTypes.length === 0 ? (
-          <div className="px-4 md:px-6 pb-6">
+          <div className="mx-4 md:mx-6 lg:mx-8 pb-6">
             <EmptyState 
               title="Ничего не найдено" 
               description="Попробуйте изменить условия поиска"
@@ -498,6 +498,7 @@ export default function EquipmentTypes() {
           <>
             {/* Десктоп: таблица на всю ширину */}
             <div className="hidden md:block w-full">
+              <div className="mx-4 md:mx-6 lg:mx-8">
           <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
             <table className="w-full text-sm min-w-full table-fixed">
               <thead className="bg-slate-700">
@@ -571,10 +572,12 @@ export default function EquipmentTypes() {
               </tbody>
             </table>
           </div>
+              </div>
         </div>
 
             {/* Мобайл: карточки */}
-            <div className="md:hidden space-y-3 px-6 pb-6">
+            <div className="md:hidden space-y-3 pb-6">
+              <div className="mx-4 md:mx-6 lg:mx-8 space-y-3">
               {filteredEquipmentTypes.filter(Boolean).map((equipmentType) => equipmentType && equipmentType.id ? (
                 <div
                   key={equipmentType.id}
@@ -636,6 +639,7 @@ export default function EquipmentTypes() {
                   </div>
                 </div>
               ) : null)}
+              </div>
             </div>
           </>
         )}
@@ -725,7 +729,7 @@ export default function EquipmentTypes() {
                         if (value === "fuel_tank") {
                           const fuelTankParams = {
                             // Обязательные поля (соответствуют Tank интерфейсу)
-                            id: null,
+                            id: 1,
                             name: "",
                             fuelType: "",
                             currentLevelLiters: 0,

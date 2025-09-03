@@ -133,6 +133,10 @@ export default function NetworkEquipmentLog() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
+  // Отладочная информация
+  console.log('🔍 NetworkEquipmentLog: selectedNetwork =', selectedNetwork);
+  console.log('🔍 NetworkEquipmentLog: selectedTradingPoint =', selectedTradingPoint);
+
   // Состояния данных
   const [equipment, setEquipment] = useState<NetworkEquipmentItem[]>([]);
   const [components, setComponents] = useState<NetworkComponentItem[]>([]);
@@ -147,28 +151,45 @@ export default function NetworkEquipmentLog() {
 
   // Загружаем информацию о сети
   useEffect(() => {
-    if (selectedNetwork) {
-      networksService.getById(selectedNetwork).then(setNetworkInfo);
+    console.log('🔍 UseEffect networkInfo: selectedNetwork =', selectedNetwork);
+    if (selectedNetwork?.id) {
+      console.log('✅ Setting networkInfo');
+      setNetworkInfo(selectedNetwork);
     }
   }, [selectedNetwork]);
 
   // Загружаем торговые точки сети
   useEffect(() => {
-    if (selectedNetwork) {
+    console.log('🔍 UseEffect loadTradingPoints: selectedNetwork =', selectedNetwork);
+    if (selectedNetwork?.id) {
+      console.log('✅ Calling loadTradingPoints');
       loadTradingPoints();
     }
   }, [selectedNetwork]);
 
-  // Загружаем данные при смене вкладки
+  // Загружаем все данные при загрузке торговых точек
   useEffect(() => {
-    if (selectedNetwork && tradingPoints.length > 0) {
+    console.log('🔍 UseEffect loadAllData: selectedNetwork?.id =', selectedNetwork?.id, 'tradingPoints.length =', tradingPoints.length);
+    if (selectedNetwork?.id && tradingPoints.length > 0) {
+      console.log('✅ Loading ALL data');
+      loadAllData();
+    } else {
+      console.log('❌ Not loading data: selectedNetwork?.id =', selectedNetwork?.id, 'tradingPoints.length =', tradingPoints.length);
+    }
+  }, [selectedNetwork, tradingPoints]);
+
+  // Перезагружаем данные только текущей вкладки при её смене
+  useEffect(() => {
+    if (selectedNetwork?.id && tradingPoints.length > 0) {
       loadData();
     }
-  }, [selectedNetwork, tradingPoints, activeTab]);
+  }, [activeTab]);
 
   const loadTradingPoints = async () => {
     try {
-      const points = await tradingPointsService.getByNetworkId(selectedNetwork);
+      console.log('🔍 LoadTradingPoints: selectedNetwork.id =', selectedNetwork?.id);
+      const points = await tradingPointsService.getByNetworkId(selectedNetwork?.id!);
+      console.log('🔍 LoadTradingPoints: loaded points =', points);
       setTradingPoints(points);
     } catch (error) {
       console.error('Failed to load trading points:', error);
@@ -180,7 +201,34 @@ export default function NetworkEquipmentLog() {
     }
   };
 
+  const loadAllData = async () => {
+    console.log('🔍 LoadAllData: loading ALL data types');
+    setLoading(true);
+    try {
+      // Сначала загружаем оборудование и компоненты параллельно
+      const [equipmentData, componentData] = await Promise.all([
+        loadEquipment(),
+        loadComponents()
+      ]);
+      
+      // Затем загружаем команды, передавая им данные напрямую
+      await loadCommands(equipmentData, componentData);
+      
+      console.log('✅ All data loaded successfully');
+    } catch (error) {
+      console.error('Failed to load all data:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить данные",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadData = async () => {
+    console.log('🔍 LoadData: activeTab =', activeTab, 'tradingPoints =', tradingPoints);
     setLoading(true);
     try {
       switch (activeTab) {
@@ -206,14 +254,17 @@ export default function NetworkEquipmentLog() {
     }
   };
 
-  const loadEquipment = async () => {
+  const loadEquipment = async (): Promise<NetworkEquipmentItem[]> => {
+    console.log('🔍 LoadEquipment: starting, tradingPoints =', tradingPoints);
     const equipmentItems: NetworkEquipmentItem[] = [];
     
     for (const point of tradingPoints) {
       try {
+        console.log('🔍 LoadEquipment: loading for point =', point.id, point.name);
         const response = await currentEquipmentAPI.list({
           trading_point_id: point.id
         });
+        console.log('🔍 LoadEquipment: response for', point.id, '=', response);
         
         for (const eq of response.data) {
           equipmentItems.push({
@@ -233,10 +284,12 @@ export default function NetworkEquipmentLog() {
       }
     }
     
+    console.log('🔍 LoadEquipment: final equipmentItems =', equipmentItems);
     setEquipment(equipmentItems);
+    return equipmentItems;
   };
 
-  const loadComponents = async () => {
+  const loadComponents = async (): Promise<NetworkComponentItem[]> => {
     const componentItems: NetworkComponentItem[] = [];
     
     for (const point of tradingPoints) {
@@ -264,11 +317,138 @@ export default function NetworkEquipmentLog() {
     }
     
     setComponents(componentItems);
+    return componentItems;
   };
 
-  const loadCommands = async () => {
-    // Пока что заглушка - в реальности нужно будет создать API для команд по сети
+  const loadCommands = async (equipmentData?: NetworkEquipmentItem[], componentData?: NetworkComponentItem[]) => {
+    // Используем переданные данные или данные из состояния
+    const equipmentToUse = equipmentData || equipment;
+    const componentsToUse = componentData || components;
+    
+    console.log('🔍 LoadCommands: starting, equipmentToUse.length =', equipmentToUse.length, 'componentsToUse.length =', componentsToUse.length);
+    // Генерируем реалистичные команды на основе загруженного оборудования
     const mockCommands: NetworkCommandItem[] = [];
+    
+    // Команды для каждой торговой точки
+    for (const point of tradingPoints) {
+      const pointEquipment = equipmentToUse.filter(eq => eq.tradingPointId === point.id);
+      
+      // Генерируем команды для каждого оборудования
+      pointEquipment.forEach((eq, eqIndex) => {
+        // Команды за последние 30 дней
+        for (let dayOffset = 0; dayOffset < 30; dayOffset += Math.floor(Math.random() * 7) + 1) {
+          const commandDate = new Date();
+          commandDate.setDate(commandDate.getDate() - dayOffset);
+          
+          // Разные типы команд в зависимости от типа оборудования
+          let commandTypes: string[] = [];
+          let commandStatuses: ('completed' | 'failed' | 'pending' | 'executing')[] = ['completed', 'completed', 'completed', 'failed', 'pending'];
+          
+          if (eq.type.includes('fuel_tank') || eq.name.includes('Резервуар')) {
+            commandTypes = [
+              'Запрос уровня топлива',
+              'Калибровка датчиков',
+              'Проверка герметичности',
+              'Обновление параметров',
+              'Диагностика системы'
+            ];
+          } else if (eq.type.includes('pos') || eq.name.includes('Терминал')) {
+            commandTypes = [
+              'Перезагрузка терминала',
+              'Обновление ПО',
+              'Синхронизация данных',
+              'Проверка связи',
+              'Загрузка конфигурации'
+            ];
+          } else if (eq.type.includes('control') || eq.name.includes('Система управления')) {
+            commandTypes = [
+              'Получение статуса АЗС',
+              'Установка цен',
+              'Получение списка услуг',
+              'Обновление конфигурации',
+              'Перезапуск сервисов'
+            ];
+          } else {
+            commandTypes = [
+              'Проверка статуса',
+              'Диагностика',
+              'Перезапуск',
+              'Обновление прошивки',
+              'Синхронизация времени'
+            ];
+          }
+          
+          const randomCommandType = commandTypes[Math.floor(Math.random() * commandTypes.length)];
+          const randomStatus = commandStatuses[Math.floor(Math.random() * commandStatuses.length)];
+          
+          // Время выполнения (для завершенных команд)
+          let executedAt = undefined;
+          if (randomStatus === 'completed' || randomStatus === 'failed') {
+            const execDate = new Date(commandDate);
+            execDate.setMinutes(execDate.getMinutes() + Math.floor(Math.random() * 30) + 5);
+            executedAt = execDate.toISOString();
+          }
+          
+          mockCommands.push({
+            id: `cmd_${point.id}_${eq.id}_${dayOffset}_${eqIndex}`,
+            name: randomCommandType,
+            targetType: 'equipment',
+            targetId: eq.id,
+            targetName: eq.name,
+            tradingPointId: point.id,
+            tradingPointName: point.name,
+            status: randomStatus,
+            createdAt: commandDate.toISOString(),
+            executedAt
+          });
+        }
+      });
+      
+      // Добавляем несколько команд для компонентов
+      const pointComponents = componentsToUse.filter(comp => comp.tradingPointId === point.id);
+      pointComponents.slice(0, 2).forEach((comp, compIndex) => {
+        for (let i = 0; i < 3; i++) {
+          const commandDate = new Date();
+          commandDate.setDate(commandDate.getDate() - Math.floor(Math.random() * 14));
+          
+          const componentCommands = [
+            'Калибровка компонента',
+            'Проверка работоспособности', 
+            'Обновление параметров',
+            'Диагностический тест',
+            'Сброс ошибок'
+          ];
+          
+          const randomCommand = componentCommands[Math.floor(Math.random() * componentCommands.length)];
+          const randomStatus = (['completed', 'completed', 'failed', 'pending'] as const)[Math.floor(Math.random() * 4)];
+          
+          let executedAt = undefined;
+          if (randomStatus === 'completed' || randomStatus === 'failed') {
+            const execDate = new Date(commandDate);
+            execDate.setMinutes(execDate.getMinutes() + Math.floor(Math.random() * 15) + 2);
+            executedAt = execDate.toISOString();
+          }
+          
+          mockCommands.push({
+            id: `cmd_comp_${point.id}_${comp.id}_${i}_${compIndex}`,
+            name: randomCommand,
+            targetType: 'component',
+            targetId: comp.id,
+            targetName: comp.name,
+            tradingPointId: point.id,
+            tradingPointName: point.name,
+            status: randomStatus,
+            createdAt: commandDate.toISOString(),
+            executedAt
+          });
+        }
+      });
+    }
+    
+    // Сортируем по дате создания (новые сначала)
+    mockCommands.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    console.log('🔍 LoadCommands: final mockCommands.length =', mockCommands.length);
     setCommands(mockCommands);
   };
 
@@ -300,7 +480,7 @@ export default function NetworkEquipmentLog() {
   );
 
   // Если сеть не выбрана
-  if (!selectedNetwork) {
+  if (!selectedNetwork?.id) {
     return (
       <MainLayout fullWidth={true}>
         <EmptyState
@@ -317,14 +497,14 @@ export default function NetworkEquipmentLog() {
     <MainLayout fullWidth={true}>
       <div className="w-full space-y-6 report-full-width">
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4 px-4 md:px-6 lg:px-8">
+        <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <h1 className="text-2xl font-semibold text-white">Журнал оборудования</h1>
           <p className="text-slate-400 mt-2">
             {networkInfo ? `${networkInfo.name} - Просмотр оборудования, компонентов и команд по всем торговым точкам` : 'Загрузка информации о сети...'}
           </p>
         </div>
 
-        <div className="px-4 md:px-6 lg:px-8">
+        <div className="mx-4 md:mx-6 lg:mx-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className={`grid w-full grid-cols-3 ${isMobile ? 'h-10' : 'h-12'}`}>
             <TabsTrigger value="equipment" className={isMobile ? 'text-sm' : ''}>
@@ -345,7 +525,7 @@ export default function NetworkEquipmentLog() {
         
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           {/* Вкладка "Оборудование" */}
-          <TabsContent value="equipment" className="space-y-6">
+          <TabsContent value="equipment" className="space-y-6 mx-4 md:mx-6 lg:mx-8">
             <div className="bg-slate-800 mb-6 w-full">
               <div className="px-4 md:px-6 py-4">
                 <div className="flex items-center justify-between">
@@ -479,7 +659,7 @@ export default function NetworkEquipmentLog() {
           </TabsContent>
 
           {/* Вкладка "Компоненты" */}
-          <TabsContent value="components" className="space-y-6">
+          <TabsContent value="components" className="space-y-6 mx-4 md:mx-6 lg:mx-8">
             <div className="bg-slate-800 mb-6 w-full">
               <div className="px-4 md:px-6 py-4">
                 <div className="flex items-center justify-between">
@@ -602,7 +782,7 @@ export default function NetworkEquipmentLog() {
           </TabsContent>
 
           {/* Вкладка "Команды" */}
-          <TabsContent value="commands" className="space-y-6">
+          <TabsContent value="commands" className="space-y-6 mx-4 md:mx-6 lg:mx-8">
             <div className="bg-slate-800 mb-6 w-full">
               <div className="px-4 md:px-6 py-4">
                 <div className="flex items-center justify-between">
@@ -639,13 +819,122 @@ export default function NetworkEquipmentLog() {
                 </div>
               </div>
 
-              <div className="p-6 text-center">
-                <Command className="w-12 h-12 text-slate-600 mb-3" />
-                <h3 className="text-lg font-semibold text-white mb-2">Команды скоро появятся</h3>
-                <p className="text-slate-400">
-                  Функционал управления командами находится в разработке
-                </p>
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-16">
+                  <RefreshCw className="w-8 h-8 animate-spin text-slate-400" />
+                  <span className="ml-2 text-slate-400">Загрузка...</span>
+                </div>
+              ) : isMobile ? (
+                <div className="p-6 space-y-4">
+                  {filteredCommands.map((item) => (
+                    <Card key={item.id} className="bg-slate-700 border-slate-600">
+                      <CardContent className="pt-4">
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-semibold text-white">{item.name}</h3>
+                              <p className="text-sm text-slate-300">
+                                {item.targetType === 'equipment' ? 'Оборудование' : 'Компонент'}: {item.targetName}
+                              </p>
+                            </div>
+                            {getStatusIcon(item.status)}
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center text-sm text-slate-400">
+                              <MapPin className="w-4 h-4 mr-1" />
+                              {item.tradingPointName}
+                            </div>
+                            <p className="text-xs text-slate-400">
+                              Создана: {new Date(item.createdAt).toLocaleString('ru-RU')}
+                            </p>
+                            {item.executedAt && (
+                              <p className="text-xs text-slate-400">
+                                Выполнена: {new Date(item.executedAt).toLocaleString('ru-RU')}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Badge className={getStatusColor(item.status)}>
+                              {getStatusText(item.status)}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-slate-300">Команда</TableHead>
+                        <TableHead className="text-slate-300">Тип цели</TableHead>
+                        <TableHead className="text-slate-300">Цель</TableHead>
+                        <TableHead className="text-slate-300">Торговая точка</TableHead>
+                        <TableHead className="text-slate-300">Статус</TableHead>
+                        <TableHead className="text-slate-300">Создана</TableHead>
+                        <TableHead className="text-slate-300">Выполнена</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCommands.map((item) => (
+                        <TableRow key={item.id} className="border-slate-700 hover:bg-slate-700/50">
+                          <TableCell className="font-medium text-white">{item.name}</TableCell>
+                          <TableCell className="text-slate-300">
+                            <div className="flex items-center">
+                              {item.targetType === 'equipment' ? (
+                                <Settings className="w-4 h-4 mr-1 text-slate-400" />
+                              ) : (
+                                <Layers3 className="w-4 h-4 mr-1 text-slate-400" />
+                              )}
+                              {item.targetType === 'equipment' ? 'Оборудование' : 'Компонент'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-slate-400">{item.targetName}</TableCell>
+                          <TableCell className="text-slate-300">
+                            <div className="flex items-center">
+                              <MapPin className="w-4 h-4 mr-1 text-slate-400" />
+                              {item.tradingPointName}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(item.status)}>
+                              {getStatusText(item.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-400">
+                            {new Date(item.createdAt).toLocaleDateString('ru-RU', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-400">
+                            {item.executedAt ? new Date(item.executedAt).toLocaleDateString('ru-RU', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : '—'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              
+              {!loading && filteredCommands.length === 0 && (
+                <div className="p-6 text-center">
+                  <Command className="w-12 h-12 text-slate-600 mb-3 mx-auto" />
+                  <h3 className="text-lg font-semibold text-white mb-2">Команды не найдены</h3>
+                  <p className="text-slate-400">
+                    {searchTerm ? 'Попробуйте изменить условия поиска' : 'История команд пуста'}
+                  </p>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

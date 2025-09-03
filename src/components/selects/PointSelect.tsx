@@ -18,34 +18,27 @@ export function PointSelect({ value, onValueChange, className, disabled, network
   const [tradingPoints, setTradingPoints] = useState<TradingPoint[]>([]);
   const selectedPoint = tradingPoints.find(p => p.id === value);
   
-  const loadTradingPoints = async () => {
-    try {
-      let data;
-      if (networkId) {
-        console.log('🔍 PointSelect: загружаем точки для сети', networkId);
-        data = await tradingPointsService.getByNetworkId(networkId);
-        console.log('📍 PointSelect: найденные точки:', data.map(p => ({id: p.id, name: p.name, networkId: p.networkId})));
-      } else {
-        data = await tradingPointsService.getAll();
-        console.log('📍 PointSelect: все точки:', data.map(p => ({id: p.id, name: p.name, networkId: p.networkId})));
-      }
-      setTradingPoints(data);
-    } catch (error) {
-      console.error('Error loading trading points:', error);
-      setTradingPoints([]);
-    }
-  };
-  
   useEffect(() => {
+    const loadTradingPoints = async () => {
+      try {
+        let data;
+        if (networkId) {
+          data = await tradingPointsService.getByNetworkId(networkId);
+        } else {
+          data = await tradingPointsService.getAll();
+        }
+        setTradingPoints(data);
+      } catch (error) {
+        console.error('Error loading trading points:', error);
+        setTradingPoints([]);
+      }
+    };
+
     loadTradingPoints();
   }, [networkId]);
   
-  // Обновляем данные при открытии селектора
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
-    if (newOpen) {
-      loadTradingPoints(); // Обновляем данные при каждом открытии
-    }
   };
   
   const handleSelect = (pointId: string) => {
@@ -62,13 +55,28 @@ export function PointSelect({ value, onValueChange, className, disabled, network
         >
           <MapPin className="inline h-4 w-4 mr-2 opacity-70" />
           <span className="truncate">
-            {selectedPoint?.name || (disabled ? "Сначала выберите сеть" : "Выберите торговую точку")}
+            {value === "all" 
+              ? "Все торговые точки" 
+              : selectedPoint?.name || (disabled ? "Сначала выберите сеть" : "Выберите торговую точку")
+            }
           </span>
           <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" align="start">
         <ul className="space-y-1">
+          {/* Опция "Все" */}
+          <li
+            key="all"
+            className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded-md cursor-pointer border-b border-slate-700 mb-1"
+            onClick={() => handleSelect("all")}
+          >
+            <span 
+              className="h-2 w-2 rounded-full bg-blue-400" 
+              aria-hidden 
+            />
+            <span className="truncate font-medium">Все торговые точки</span>
+          </li>
           {tradingPoints.map((point) => (
             <li
               key={point.id}

@@ -94,31 +94,32 @@ export interface TankCalibration {
 }
 
 // Начальные данные резервуаров
-// Резервуары демо сети - соответствуют оборудованию с полными параметрами из шаблона
+// Разнообразные конфигурации резервуаров для демо сети
 const initialTanks: Tank[] = [
+  // АЗС №001 - Центральная (3 резервуара - базовая конфигурация)
   {
     id: 1,
-    name: "Резервуар №1 (АИ-95) - Демо",
+    name: "Резервуар №1 (АИ-95)",
     fuelType: "АИ-95",
     currentLevelLiters: 42000,
     capacityLiters: 50000,
     minLevelPercent: 20,
     criticalLevelPercent: 10,
     temperature: 15.2,
-    waterLevelMm: 2, // изменено на waterLevelMm
+    waterLevelMm: 2,
     density: 0.725,
     status: 'active',
-    location: "Северная зона - Демо сеть",
+    location: "Северная зона",
     installationDate: "2024-01-15",
     lastCalibration: "2024-08-15",
-    supplier: "НефтеГазИнвест Демо",
+    supplier: "НефтеГазИнвест",
     sensors: [
       { name: "Уровень", status: "ok" },
       { name: "Температура", status: "ok" }
     ],
     linkedPumps: [
       { id: 1, name: "ТРК-1" },
-      { id: 2, name: "ТРК-3" }
+      { id: 2, name: "ТРК-2" }
     ],
     notifications: {
       enabled: true,
@@ -126,17 +127,9 @@ const initialTanks: Tank[] = [
       levelAlerts: true
     },
     thresholds: {
-      criticalTemp: {
-        min: -10,
-        max: 40
-      },
+      criticalTemp: { min: -10, max: 40 },
       maxWaterLevel: 15,
-      notifications: {
-        critical: true,
-        minimum: true,
-        temperature: true,
-        water: true
-      }
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
     },
     trading_point_id: "point1",
     created_at: new Date('2024-01-15').toISOString(),
@@ -144,44 +137,30 @@ const initialTanks: Tank[] = [
   },
   {
     id: 2,
-    name: "Резервуар №2 (АИ-92) - Демо",
+    name: "Резервуар №2 (АИ-92)",
     fuelType: "АИ-92",
     currentLevelLiters: 35000,
     capacityLiters: 50000,
     minLevelPercent: 20,
     criticalLevelPercent: 10,
     temperature: 14.8,
-    waterLevelMm: 1, // изменено на waterLevelMm
+    waterLevelMm: 1,
     density: 0.715,
     status: 'active',
-    location: "Центральная зона - Демо сеть",
+    location: "Центральная зона",
     installationDate: "2024-02-20",
     lastCalibration: "2024-08-20",
-    supplier: "Лукойл-Нефтепродукт Демо",
+    supplier: "Лукойл-Нефтепродукт",
     sensors: [
       { name: "Уровень", status: "ok" },
       { name: "Температура", status: "error" }
     ],
-    linkedPumps: [
-      { id: 4, name: "ТРК-2" }
-    ],
-    notifications: {
-      enabled: true,
-      drainAlerts: true,
-      levelAlerts: true
-    },
+    linkedPumps: [{ id: 3, name: "ТРК-3" }],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
     thresholds: {
-      criticalTemp: {
-        min: -10,
-        max: 40
-      },
+      criticalTemp: { min: -10, max: 40 },
       maxWaterLevel: 15,
-      notifications: {
-        critical: true,
-        minimum: true,
-        temperature: false,
-        water: true
-      }
+      notifications: { critical: true, minimum: true, temperature: false, water: true }
     },
     trading_point_id: "point1",
     created_at: new Date('2024-02-20').toISOString(),
@@ -189,94 +168,537 @@ const initialTanks: Tank[] = [
   },
   {
     id: 3,
-    name: "Резервуар №3 (ДТ) - Демо",
+    name: "Резервуар №3 (ДТ)",
     fuelType: "ДТ",
     currentLevelLiters: 28000,
     capacityLiters: 45000,
     minLevelPercent: 15,
     criticalLevelPercent: 8,
     temperature: 12.8,
-    waterLevelMm: 1, // изменено на waterLevelMm
+    waterLevelMm: 1,
     density: 0.835,
     status: 'active',
-    location: "Южная зона - Демо сеть",
+    location: "Южная зона",
     installationDate: "2024-03-10",
     lastCalibration: "2024-08-25",
-    supplier: "Роснефть Демо",
+    supplier: "Роснефть",
     sensors: [
       { name: "Уровень", status: "error" },
       { name: "Температура", status: "ok" }
     ],
     linkedPumps: [
-      { id: 5, name: "ТРК-4" },
-      { id: 6, name: "ТРК-5" },
-      { id: 7, name: "ТРК-6" }
+      { id: 4, name: "ТРК-4" },
+      { id: 5, name: "ТРК-5" }
     ],
-    notifications: {
-      enabled: false,
-      drainAlerts: false,
-      levelAlerts: true
-    },
+    notifications: { enabled: false, drainAlerts: false, levelAlerts: true },
     thresholds: {
-      criticalTemp: {
-        min: -15,
-        max: 50
-      },
+      criticalTemp: { min: -15, max: 50 },
       maxWaterLevel: 15,
-      notifications: {
-        critical: true,
-        minimum: true,
-        temperature: true,
-        water: false
-      }
+      notifications: { critical: true, minimum: true, temperature: true, water: false }
     },
     trading_point_id: "point1",
     created_at: new Date('2024-03-10').toISOString(),
     updated_at: new Date().toISOString()
   },
+
+  // АЗС №002 - Северная (1 резервуар - минимальная конфигурация)
   {
     id: 4,
-    name: "Резервуар №4 (АИ-98) - Демо",
-    fuelType: "АИ-98",
-    currentLevelLiters: 8500,
-    capacityLiters: 25000,
+    name: "Резервуар №1 (АИ-92)",
+    fuelType: "АИ-92",
+    currentLevelLiters: 15000,
+    capacityLiters: 30000,
+    minLevelPercent: 25,
+    criticalLevelPercent: 12,
+    temperature: 13.5,
+    waterLevelMm: 0.8,
+    density: 0.720,
+    status: 'active',
+    location: "Основная зона",
+    installationDate: "2024-05-01",
+    lastCalibration: "2024-10-15",
+    supplier: "Газпром нефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [{ id: 6, name: "ТРК-1" }],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -12, max: 38 },
+      maxWaterLevel: 12,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point2",
+    created_at: new Date('2024-05-01').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+
+  // АЗС №003 - Южная (4 резервуара - расширенная конфигурация)
+  {
+    id: 5,
+    name: "Резервуар №1 (АИ-95)",
+    fuelType: "АИ-95",
+    currentLevelLiters: 38000,
+    capacityLiters: 55000,
     minLevelPercent: 18,
     criticalLevelPercent: 9,
-    temperature: 16.1,
-    waterLevelMm: 0.5, // изменено на waterLevelMm
-    density: 0.735,
-    status: 'maintenance', // соответствует статусу в оборудовании
-    location: "Восточная зона - Демо сеть",
-    installationDate: "2024-04-05",
-    lastCalibration: "2024-11-01",
-    supplier: "Татнефть Демо",
+    temperature: 16.3,
+    waterLevelMm: 1.2,
+    density: 0.728,
+    status: 'active',
+    location: "Зона А",
+    installationDate: "2024-03-15",
+    lastCalibration: "2024-09-10",
+    supplier: "ЛУКОЙЛ",
     sensors: [
       { name: "Уровень", status: "ok" },
       { name: "Температура", status: "ok" }
     ],
     linkedPumps: [
-      { id: 8, name: "ТРК-7" }
+      { id: 7, name: "ТРК-1" },
+      { id: 8, name: "ТРК-2" }
     ],
-    notifications: {
-      enabled: true,
-      drainAlerts: true,
-      levelAlerts: true
-    },
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
     thresholds: {
-      criticalTemp: {
-        min: -10,
-        max: 40
-      },
-      maxWaterLevel: 15,
-      notifications: {
-        critical: true,
-        minimum: true,
-        temperature: true,
-        water: true
-      }
+      criticalTemp: { min: -8, max: 42 },
+      maxWaterLevel: 18,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
     },
-    trading_point_id: "point1",
-    created_at: new Date('2024-04-05').toISOString(),
+    trading_point_id: "point3",
+    created_at: new Date('2024-03-15').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 6,
+    name: "Резервуар №2 (АИ-92)",
+    fuelType: "АИ-92",
+    currentLevelLiters: 29000,
+    capacityLiters: 55000,
+    minLevelPercent: 18,
+    criticalLevelPercent: 9,
+    temperature: 15.1,
+    waterLevelMm: 2.1,
+    density: 0.718,
+    status: 'active',
+    location: "Зона А",
+    installationDate: "2024-03-15",
+    lastCalibration: "2024-09-10",
+    supplier: "ЛУКОЙЛ",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [{ id: 9, name: "ТРК-3" }],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -8, max: 42 },
+      maxWaterLevel: 18,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point3",
+    created_at: new Date('2024-03-15').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 7,
+    name: "Резервуар №3 (ДТ)",
+    fuelType: "ДТ",
+    currentLevelLiters: 41000,
+    capacityLiters: 60000,
+    minLevelPercent: 15,
+    criticalLevelPercent: 7,
+    temperature: 11.9,
+    waterLevelMm: 0.9,
+    density: 0.842,
+    status: 'active',
+    location: "Зона Б",
+    installationDate: "2024-04-01",
+    lastCalibration: "2024-10-05",
+    supplier: "Роснефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [
+      { id: 10, name: "ТРК-4" },
+      { id: 11, name: "ТРК-5" }
+    ],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -20, max: 55 },
+      maxWaterLevel: 20,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point3",
+    created_at: new Date('2024-04-01').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 8,
+    name: "Резервуар №4 (АИ-98)",
+    fuelType: "АИ-98",
+    currentLevelLiters: 12000,
+    capacityLiters: 25000,
+    minLevelPercent: 20,
+    criticalLevelPercent: 10,
+    temperature: 17.2,
+    waterLevelMm: 0.3,
+    density: 0.738,
+    status: 'active',
+    location: "Зона Б",
+    installationDate: "2024-04-15",
+    lastCalibration: "2024-10-20",
+    supplier: "Татнефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [{ id: 12, name: "ТРК-6" }],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -8, max: 42 },
+      maxWaterLevel: 12,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point3",
+    created_at: new Date('2024-04-15').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+
+  // АЗС №004 - Московское шоссе (5 резервуаров - максимальная конфигурация с 5 видами топлива)
+  {
+    id: 9,
+    name: "Резервуар №1 (АИ-92)",
+    fuelType: "АИ-92",
+    currentLevelLiters: 45000,
+    capacityLiters: 60000,
+    minLevelPercent: 20,
+    criticalLevelPercent: 10,
+    temperature: 14.5,
+    waterLevelMm: 1.5,
+    density: 0.720,
+    status: 'active',
+    location: "Секция А",
+    installationDate: "2024-01-10",
+    lastCalibration: "2024-08-01",
+    supplier: "Газпром нефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [
+      { id: 13, name: "ТРК-1" },
+      { id: 14, name: "ТРК-2" }
+    ],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -15, max: 45 },
+      maxWaterLevel: 20,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point4",
+    created_at: new Date('2024-01-10').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 10,
+    name: "Резервуар №2 (АИ-95)",
+    fuelType: "АИ-95",
+    currentLevelLiters: 52000,
+    capacityLiters: 60000,
+    minLevelPercent: 20,
+    criticalLevelPercent: 10,
+    temperature: 15.8,
+    waterLevelMm: 1.1,
+    density: 0.725,
+    status: 'active',
+    location: "Секция А",
+    installationDate: "2024-01-10",
+    lastCalibration: "2024-08-01",
+    supplier: "Газпром нефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [
+      { id: 15, name: "ТРК-3" },
+      { id: 16, name: "ТРК-4" }
+    ],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -15, max: 45 },
+      maxWaterLevel: 20,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point4",
+    created_at: new Date('2024-01-10').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 11,
+    name: "Резервуар №3 (АИ-98)",
+    fuelType: "АИ-98",
+    currentLevelLiters: 18000,
+    capacityLiters: 30000,
+    minLevelPercent: 25,
+    criticalLevelPercent: 12,
+    temperature: 16.9,
+    waterLevelMm: 0.4,
+    density: 0.740,
+    status: 'active',
+    location: "Секция Б",
+    installationDate: "2024-02-01",
+    lastCalibration: "2024-09-01",
+    supplier: "Татнефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [{ id: 17, name: "ТРК-5" }],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -15, max: 45 },
+      maxWaterLevel: 15,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point4",
+    created_at: new Date('2024-02-01').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 12,
+    name: "Резервуар №4 (ДТ)",
+    fuelType: "ДТ",
+    currentLevelLiters: 47000,
+    capacityLiters: 65000,
+    minLevelPercent: 18,
+    criticalLevelPercent: 9,
+    temperature: 10.2,
+    waterLevelMm: 2.8,
+    density: 0.845,
+    status: 'active',
+    location: "Секция Б",
+    installationDate: "2024-02-15",
+    lastCalibration: "2024-09-15",
+    supplier: "Роснефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "error" }
+    ],
+    linkedPumps: [
+      { id: 18, name: "ТРК-6" },
+      { id: 19, name: "ТРК-7" }
+    ],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -25, max: 60 },
+      maxWaterLevel: 25,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point4",
+    created_at: new Date('2024-02-15').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 13,
+    name: "Резервуар №5 (АИ-100)",
+    fuelType: "АИ-100",
+    currentLevelLiters: 8000,
+    capacityLiters: 20000,
+    minLevelPercent: 30,
+    criticalLevelPercent: 15,
+    temperature: 18.1,
+    waterLevelMm: 0.2,
+    density: 0.745,
+    status: 'active',
+    location: "Секция В",
+    installationDate: "2024-03-01",
+    lastCalibration: "2024-10-01",
+    supplier: "Татнефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [{ id: 20, name: "ТРК-8" }],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -15, max: 45 },
+      maxWaterLevel: 10,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point4",
+    created_at: new Date('2024-03-01').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+
+  // АЗС №005 - Промзона (5 резервуаров с дублированием топлива - 2 резервуара АИ-92)
+  {
+    id: 14,
+    name: "Резервуар №1 (АИ-92)",
+    fuelType: "АИ-92",
+    currentLevelLiters: 35000,
+    capacityLiters: 50000,
+    minLevelPercent: 20,
+    criticalLevelPercent: 10,
+    temperature: 13.8,
+    waterLevelMm: 1.8,
+    density: 0.716,
+    status: 'active',
+    location: "Западная секция",
+    installationDate: "2024-01-20",
+    lastCalibration: "2024-07-20",
+    supplier: "ЛУКОЙЛ",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [
+      { id: 21, name: "ТРК-1" },
+      { id: 22, name: "ТРК-2" }
+    ],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -20, max: 50 },
+      maxWaterLevel: 22,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point5",
+    created_at: new Date('2024-01-20').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 15,
+    name: "Резервуар №2 (АИ-92)",
+    fuelType: "АИ-92",
+    currentLevelLiters: 28000,
+    capacityLiters: 50000,
+    minLevelPercent: 20,
+    criticalLevelPercent: 10,
+    temperature: 14.2,
+    waterLevelMm: 1.3,
+    density: 0.719,
+    status: 'active',
+    location: "Западная секция",
+    installationDate: "2024-01-20",
+    lastCalibration: "2024-07-20",
+    supplier: "ЛУКОЙЛ",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [
+      { id: 23, name: "ТРК-3" },
+      { id: 24, name: "ТРК-4" }
+    ],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -20, max: 50 },
+      maxWaterLevel: 22,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point5",
+    created_at: new Date('2024-01-20').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 16,
+    name: "Резервуар №3 (АИ-95)",
+    fuelType: "АИ-95",
+    currentLevelLiters: 41000,
+    capacityLiters: 55000,
+    minLevelPercent: 18,
+    criticalLevelPercent: 9,
+    temperature: 15.9,
+    waterLevelMm: 0.9,
+    density: 0.727,
+    status: 'active',
+    location: "Восточная секция",
+    installationDate: "2024-02-10",
+    lastCalibration: "2024-08-10",
+    supplier: "Газпром нефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [
+      { id: 25, name: "ТРК-5" },
+      { id: 26, name: "ТРК-6" }
+    ],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -20, max: 50 },
+      maxWaterLevel: 18,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point5",
+    created_at: new Date('2024-02-10').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 17,
+    name: "Резервуар №4 (ДТ)",
+    fuelType: "ДТ",
+    currentLevelLiters: 52000,
+    capacityLiters: 70000,
+    minLevelPercent: 15,
+    criticalLevelPercent: 8,
+    temperature: 9.8,
+    waterLevelMm: 3.2,
+    density: 0.848,
+    status: 'active',
+    location: "Восточная секция",
+    installationDate: "2024-03-01",
+    lastCalibration: "2024-09-01",
+    supplier: "Роснефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "ok" }
+    ],
+    linkedPumps: [
+      { id: 27, name: "ТРК-7" },
+      { id: 28, name: "ТРК-8" },
+      { id: 29, name: "ТРК-9" }
+    ],
+    notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -30, max: 65 },
+      maxWaterLevel: 30,
+      notifications: { critical: true, minimum: true, temperature: true, water: true }
+    },
+    trading_point_id: "point5",
+    created_at: new Date('2024-03-01').toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 18,
+    name: "Резервуар №5 (АИ-98)",
+    fuelType: "АИ-98",
+    currentLevelLiters: 15000,
+    capacityLiters: 30000,
+    minLevelPercent: 22,
+    criticalLevelPercent: 11,
+    temperature: 17.5,
+    waterLevelMm: 0.6,
+    density: 0.742,
+    status: 'maintenance',
+    location: "Центральная секция",
+    installationDate: "2024-04-10",
+    lastCalibration: "2024-10-10",
+    supplier: "Татнефть",
+    sensors: [
+      { name: "Уровень", status: "ok" },
+      { name: "Температура", status: "error" }
+    ],
+    linkedPumps: [{ id: 30, name: "ТРК-10" }],
+    notifications: { enabled: false, drainAlerts: false, levelAlerts: true },
+    thresholds: {
+      criticalTemp: { min: -20, max: 50 },
+      maxWaterLevel: 12,
+      notifications: { critical: true, minimum: false, temperature: false, water: true }
+    },
+    trading_point_id: "point5",
+    created_at: new Date('2024-04-10').toISOString(),
     updated_at: new Date().toISOString()
   }
 ];
@@ -428,6 +850,11 @@ const resetTanksData = () => {
   console.log('🔄 Tanks data reset to match Equipment schema');
 };
 
+// Принудительная очистка localStorage для синхронизации
+PersistentStorage.remove('tanks');
+PersistentStorage.remove('tankEvents');
+PersistentStorage.remove('drainOperations');
+PersistentStorage.remove('tankCalibrations');
 // Для демонстрации связанной схемы - раскомментируйте следующую строку
 resetTanksData();
 

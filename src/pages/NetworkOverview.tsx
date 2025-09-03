@@ -4,6 +4,7 @@ import { useSelection } from "@/context/SelectionContext";
 import { SalesAnalysisSimple } from "@/components/reports/SalesAnalysisSimple";
 import { SalesAnalysisChartsSimple } from "@/components/reports/SalesAnalysisChartsSimple";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { HelpButton } from "@/components/help/HelpButton";
 import { DollarSign, Users, Fuel, Monitor, CreditCard, Store, Database, UserCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -71,8 +72,13 @@ export default function NetworkOverview() {
         <div className="w-full space-y-6">
           {/* Заголовок страницы */}
           <div className="mb-6 pt-4">
-            <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
-            <p className="text-slate-400 mt-2">Общая информация и аналитика по торговой сети</p>
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
+                <p className="text-slate-400 mt-2">Общая информация и аналитика по торговой сети</p>
+              </div>
+              <HelpButton route="/dashboard" className="flex-shrink-0" />
+            </div>
           </div>
 
           <div className="space-y-6">

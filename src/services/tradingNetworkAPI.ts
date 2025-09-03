@@ -49,16 +49,36 @@ async function getFuelTypesFromTanks(stationNumber: number): Promise<string[]> {
       limit: 100
     });
 
+    console.log(`📋 Raw equipment data for ${tradingPointId}:`, equipmentResponse.data.map(eq => ({
+      id: eq.id,
+      name: eq.display_name,
+      type: eq.system_type,
+      fuelType: eq.params?.fuelType,
+      status: eq.status
+    })));
+
     // Фильтруем только активные резервуары и извлекаем типы топлива
     const fuelTypes = equipmentResponse.data
       .filter(eq => eq.system_type === 'fuel_tank' && eq.params?.fuelType && eq.status !== 'deleted')
       .map(eq => eq.params.fuelType)
       .filter((fuelType, index, array) => array.indexOf(fuelType) === index); // убираем дубликаты
 
+    console.log(`🔍 Station ${stationNumber} (${tradingPointId}): найдено ${equipmentResponse.data.length} единиц оборудования`);
+    console.log(`🔍 Station ${stationNumber} (${tradingPointId}): найдено ${fuelTypes.length} видов топлива:`, fuelTypes);
+
     return fuelTypes;
   } catch (error) {
     console.error('Ошибка получения типов топлива из резервуаров:', error);
-    return ['АИ-92', 'АИ-95', 'ДТ']; // Fallback
+    console.log('⚠️ Используется fallback для станции', stationNumber);
+    
+    // Специальный fallback для АЗС №002 (Северная) - только АИ-92
+    if (stationNumber === 78) {
+      console.log('⚠️ Fallback для АЗС №002: [АИ-92]');
+      return ['АИ-92'];
+    }
+    
+    console.log('⚠️ Используется общий fallback: [АИ-92, АИ-95, ДТ]');
+    return ['АИ-92', 'АИ-95', 'ДТ']; // Общий fallback
   }
 }
 

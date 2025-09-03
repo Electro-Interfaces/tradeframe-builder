@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { cn } from "@/lib/utils";
 
 import { EquipmentTemplate, CreateEquipmentRequest } from "@/types/equipment";
+import { nomenclatureService } from "@/services/nomenclatureService";
+import { FuelNomenclature } from "@/types/nomenclature";
+import { useSelection } from "@/context/SelectionContext";
 
 // Схема валидации для шага 2
 const equipmentFormSchema = z.object({
@@ -49,10 +53,12 @@ export function EquipmentWizard({
   onSubmit,
   loading = false
 }: EquipmentWizardProps) {
+  const { selectedNetwork } = useSelection();
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [selectedTemplate, setSelectedTemplate] = useState<EquipmentTemplate | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [templateParams, setTemplateParams] = useState<Record<string, string | number | boolean | null>>({});
+  const [fuelNomenclature, setFuelNomenclature] = useState<FuelNomenclature[]>([]);
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentFormSchema),
@@ -70,6 +76,35 @@ export function EquipmentWizard({
     setTemplateParams({});
     form.reset();
   };
+
+  // Загружаем номенклатуру топлива при открытии диалога
+  useEffect(() => {
+    if (open) {
+      const loadFuelNomenclature = async () => {
+        try {
+          const filters = { 
+            status: 'active' as const,
+            ...(selectedNetwork?.id && { networkId: selectedNetwork.id })
+          };
+          const data = await nomenclatureService.getNomenclature(filters);
+          
+          // Удаляем дубликаты по названию топлива, оставляя только уникальные названия
+          const uniqueFuelTypes = data.reduce((acc, fuel) => {
+            if (!acc.some(item => item.name === fuel.name)) {
+              acc.push(fuel);
+            }
+            return acc;
+          }, [] as FuelNomenclature[]);
+          
+          setFuelNomenclature(uniqueFuelTypes);
+        } catch (error) {
+          console.error('Failed to load fuel nomenclature:', error);
+          setFuelNomenclature([]);
+        }
+      };
+      loadFuelNomenclature();
+    }
+  }, [open, selectedNetwork]);
 
   const handleClose = () => {
     if (!isSubmitting) {
@@ -448,12 +483,25 @@ export function EquipmentWizard({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="fuelType">Тип топлива *</Label>
-                <Input
-                  id="fuelType"
-                  value={templateParams.fuelType || ""}
-                  onChange={(e) => setTemplateParams({...templateParams, fuelType: e.target.value})}
-                  placeholder="Например: АИ-95"
-                />
+                <Select 
+                  value={templateParams.fuelType as string || ""} 
+                  onValueChange={(value) => setTemplateParams({...templateParams, fuelType: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите тип топлива" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fuelNomenclature.length === 0 ? (
+                      <SelectItem value="" disabled>Загрузка...</SelectItem>
+                    ) : (
+                      fuelNomenclature.map((fuel) => (
+                        <SelectItem key={fuel.id} value={fuel.name}>
+                          {fuel.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="currentLevelLiters">Текущий уровень (л)</Label>

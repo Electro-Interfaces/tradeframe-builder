@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/context/SelectionContext";
@@ -9,7 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Fuel, Download, Filter, AlertTriangle, Droplets, Gauge } from "lucide-react";
+import { Fuel, Download, AlertTriangle, Droplets, Gauge, Calendar } from "lucide-react";
+import { fuelStocksHistoryService, FuelStockSnapshot } from "@/services/fuelStocksHistoryService";
+import { FuelStocksChart } from "@/components/charts/FuelStocksChart";
+import { HelpButton } from "@/components/help/HelpButton";
 
 interface FuelStockRecord {
   id: string;
@@ -23,6 +26,9 @@ interface FuelStockRecord {
   status: 'normal' | 'low' | 'critical' | 'overfill';
   temperature: number;
   density: number;
+  operationMode?: string;
+  consumptionRate?: number;
+  fillRate?: number;
 }
 
 // Mock данные остатков топлива
@@ -127,22 +133,105 @@ export default function FuelStocksPage() {
   const isMobile = useIsMobile();
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   
-  // Фильтры
+  // Состояние данных
+  const [historicalData, setHistoricalData] = useState<FuelStockSnapshot[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedDateTime, setSelectedDateTime] = useState(() => {
+    const now = new Date('2025-08-30T16:00:00Z'); // По умолчанию конец августа
+    return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm format
+  });
+  
+  // Фильтры (убрали фильтр по статусу)
   const [selectedFuelType, setSelectedFuelType] = useState("Все");
-  const [selectedStatus, setSelectedStatus] = useState("Все");
   const [searchQuery, setSearchQuery] = useState("");
 
   const isNetworkOnly = selectedNetwork && !selectedTradingPoint;
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
 
-  // Фильтрация данных
+  // Загружаем данные при изменении даты/времени или выбора точки
+  useEffect(() => {
+    if (selectedNetwork) {
+      loadHistoricalData();
+    }
+  }, [selectedDateTime, selectedNetwork, selectedTradingPoint]);
+
+  const loadHistoricalData = async () => {
+    try {
+      setLoading(true);
+      const snapshots = await fuelStocksHistoryService.getSnapshotAtDateTime(selectedDateTime);
+      setHistoricalData(snapshots);
+    } catch (error) {
+      console.error('Ошибка загрузки исторических данных:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Конвертируем исторические данные в формат FuelStockRecord
+  const convertToFuelStockRecords = (snapshots: FuelStockSnapshot[]): FuelStockRecord[] => {
+    return snapshots
+      .filter(snapshot => {
+        // Фильтруем по выбранной торговой точке
+        if (selectedTradingPoint) {
+          return snapshot.tradingPointId === selectedTradingPoint;
+        }
+        return true;
+      })
+      .map(snapshot => {
+        const status = getStatusFromPercentage(snapshot.levelPercent);
+        return {
+          id: snapshot.id,
+          tankNumber: snapshot.tankName,
+          fuelType: snapshot.fuelType,
+          capacity: snapshot.capacityLiters,
+          currentLevel: snapshot.currentLevelLiters,
+          percentage: snapshot.levelPercent,
+          lastUpdated: new Date(snapshot.timestamp).toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          tradingPoint: getPointNameById(snapshot.tradingPointId),
+          status,
+          temperature: snapshot.temperature,
+          density: snapshot.density,
+          operationMode: snapshot.operationMode,
+          consumptionRate: snapshot.consumptionRate,
+          fillRate: snapshot.fillRate
+        };
+      });
+  };
+
+  const getStatusFromPercentage = (percentage: number): 'normal' | 'low' | 'critical' | 'overfill' => {
+    if (percentage >= 95) return 'overfill';
+    if (percentage >= 20) return 'normal';
+    if (percentage >= 10) return 'low';
+    return 'critical';
+  };
+
+  const getPointNameById = (pointId: string): string => {
+    const pointNames: Record<string, string> = {
+      'point1': 'АЗС №001 - Центральная',
+      'point2': 'АЗС №002 - Северная', 
+      'point3': 'АЗС №003 - Южная',
+      'point4': 'АЗС №004 - Московское шоссе',
+      'point5': 'АЗС №005 - Промзона'
+    };
+    return pointNames[pointId] || `Торговая точка ${pointId}`;
+  };
+
+  // Используем либо исторические данные, либо mock данные
+  const currentFuelStocks = selectedNetwork 
+    ? convertToFuelStockRecords(historicalData)
+    : mockFuelStocks;
+
+  // Фильтрация данных (убрали фильтр по статусу)
   const filteredStocks = useMemo(() => {
-    return mockFuelStocks.filter(record => {
+    return currentFuelStocks.filter(record => {
       // Фильтр по типу топлива
       if (selectedFuelType !== "Все" && record.fuelType !== selectedFuelType) return false;
-      
-      // Фильтр по статусу
-      if (selectedStatus !== "Все" && record.status !== selectedStatus) return false;
       
       // Поиск
       if (searchQuery) {
@@ -156,7 +245,7 @@ export default function FuelStocksPage() {
       
       return true;
     });
-  }, [selectedFuelType, selectedStatus, searchQuery]);
+  }, [currentFuelStocks, selectedFuelType, searchQuery]);
 
   // KPI данные - сумма объемов по типам топлива
   const fuelKpis = useMemo(() => {
@@ -200,104 +289,118 @@ export default function FuelStocksPage() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full space-y-6 report-full-width">
+      <div className="w-full space-y-6 pb-8">
         {/* Заголовок страницы */}
         <div className="mb-6 px-4 md:px-6 lg:px-8">
-          <h1 className="text-2xl font-semibold text-white">Остатки топлива</h1>
-          <p className="text-slate-400 mt-2">
-            {isNetworkOnly && "Отчет по остаткам топлива торговой сети"}
-            {isTradingPointSelected && "Отчет по остаткам топлива торговой точки"}
-            {!selectedNetwork && "Выберите сеть для просмотра остатков топлива"}
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Остатки топлива</h1>
+              <p className="text-slate-400 mt-2">
+                {isNetworkOnly && "Отчет по остаткам топлива торговой сети"}
+                {isTradingPointSelected && "Отчет по остаткам топлива торговой точки"}
+                {!selectedNetwork && "Выберите сеть для просмотра остатков топлива"}
+              </p>
+            </div>
+            <HelpButton helpKey="fuel-stocks" />
+          </div>
         </div>
 
         {selectedNetwork && (
           <>
-            {/* Фильтры */}
+            {/* График динамики остатков */}
             <div className="report-margins">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Filter className="w-5 h-5" />
-                  Фильтры
-                  <Button variant="outline" className="ml-auto flex-shrink-0">
-                    <Download className="w-4 h-4 mr-2" />
-                    Экспорт
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 lg:grid-cols-3 gap-4'}`}>
-                  <div>
-                    <Label className="text-slate-300">Тип топлива</Label>
-                    <Select value={selectedFuelType} onValueChange={setSelectedFuelType}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {fuelTypes.map(type => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-slate-300">Статус</Label>
-                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Все">Все</SelectItem>
-                        <SelectItem value="normal">Норма</SelectItem>
-                        <SelectItem value="low">Низкий</SelectItem>
-                        <SelectItem value="critical">Критичный</SelectItem>
-                        <SelectItem value="overfill">Переполнение</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-slate-300">Поиск</Label>
-                    <Input
-                      placeholder="Поиск по резервуару, топливу..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                    />
-                  </div>
-                </div>
-
-              </CardContent>
-            </Card>
+              <div className="grid grid-cols-1 gap-4">
+                <FuelStocksChart 
+                  selectedNetwork={selectedNetwork?.id || null}
+                  selectedTradingPoint={selectedTradingPoint}
+                />
+                
+                {/* Компактные фильтры для таблицы */}
+                <Card className="bg-slate-800 border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-white flex items-center gap-2 text-lg">
+                      <Calendar className="w-4 h-4" />
+                      Остатки на время
+                      <Button variant="outline" className="ml-auto flex-shrink-0 text-sm">
+                        <Download className="w-3 h-3 mr-1" />
+                        Экспорт
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-3 gap-3'}`}>
+                      {/* Компактный селектор даты и времени */}
+                      <div>
+                        <Label className="text-slate-300 flex items-center gap-1 mb-1 text-sm">
+                          <Calendar className="w-3 h-3" />
+                          Дата и время
+                          {loading && <span className="text-xs text-slate-500">(загрузка...)</span>}
+                        </Label>
+                        <Input
+                          type="datetime-local"
+                          value={selectedDateTime}
+                          onChange={(e) => setSelectedDateTime(e.target.value)}
+                          min="2025-08-01T00:00"
+                          max="2025-08-31T23:59"
+                          className="bg-slate-700 border-slate-600 text-white text-sm h-9"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          Август 2025, шаг 4ч
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-slate-300 text-sm">Фильтр по топливу</Label>
+                        <Select value={selectedFuelType} onValueChange={setSelectedFuelType}>
+                          <SelectTrigger className="bg-slate-700 border-slate-600 text-white h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {fuelTypes.map(type => (
+                              <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-slate-300 text-sm">Поиск по резервуарам</Label>
+                        <Input
+                          placeholder="Название резервуара..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 text-sm h-9"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             {/* KPI - Объемы топлива */}
             <div className="report-margins">
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'}`}>
+            <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3'}`}>
               {fuelKpis.map(({ fuelType, volume }) => (
                 <Card key={fuelType} className="bg-slate-800 border-slate-700">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-200">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-3 pt-3">
+                    <CardTitle className="text-xs font-medium text-slate-200">
                       {fuelType}
                     </CardTitle>
-                    <Fuel className="h-4 w-4 text-slate-400" />
+                    <Fuel className="h-3 w-3 text-slate-400" />
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">
+                  <CardContent className="px-3 pb-3">
+                    <div className="text-lg font-bold text-white">
                       {formatVolume(volume)}
                     </div>
                     <p className="text-xs text-slate-400">
-                      Общий объем в резервуарах
+                      Общий объем
                     </p>
                   </CardContent>
                 </Card>
               ))}
               {fuelKpis.length === 0 && (
-                <Card className="bg-slate-800 border-slate-700">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-slate-400">
+                <Card className="bg-slate-800 border-slate-700 col-span-full">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-sm text-slate-400">
                       Нет данных по выбранным фильтрам
                     </div>
                   </CardContent>
@@ -381,6 +484,17 @@ export default function FuelStocksPage() {
                               <span className="text-slate-400">Плотность:</span>
                               <span className="text-white font-mono ml-1">{record.density} г/см³</span>
                             </div>
+                            {record.operationMode && (
+                              <div className="col-span-2">
+                                <span className="text-slate-400">Режим:</span>
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  {record.operationMode === 'normal' ? 'Норм.' :
+                                   record.operationMode === 'filling' ? 'Заправка' :
+                                   record.operationMode === 'draining' ? 'Слив' : 
+                                   record.operationMode === 'maintenance' ? 'ТО' : record.operationMode}
+                                </Badge>
+                              </div>
+                            )}
                           </div>
                           
                           {isNetworkOnly && record.tradingPoint && (
@@ -412,9 +526,10 @@ export default function FuelStocksPage() {
                           <TableHead className="text-slate-300">Заполнение</TableHead>
                           <TableHead className="text-slate-300">Температура</TableHead>
                           <TableHead className="text-slate-300">Плотность</TableHead>
+                          <TableHead className="text-slate-300">Режим</TableHead>
                           {isNetworkOnly && <TableHead className="text-slate-300">Торговая точка</TableHead>}
                           <TableHead className="text-slate-300">Статус</TableHead>
-                          <TableHead className="text-slate-300">Обновлено</TableHead>
+                          <TableHead className="text-slate-300">Время снимка</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -458,6 +573,16 @@ export default function FuelStocksPage() {
                             </TableCell>
                             <TableCell className="text-slate-300 font-mono">
                               {record.density} г/см³
+                            </TableCell>
+                            <TableCell>
+                              {record.operationMode && (
+                                <Badge variant="outline" className="text-xs">
+                                  {record.operationMode === 'normal' ? 'Норма' :
+                                   record.operationMode === 'filling' ? 'Заправка' :
+                                   record.operationMode === 'draining' ? 'Слив' :
+                                   record.operationMode === 'maintenance' ? 'ТО' : record.operationMode}
+                                </Badge>
+                              )}
                             </TableCell>
                             {isNetworkOnly && (
                               <TableCell className="text-slate-300 max-w-xs">

@@ -11,6 +11,7 @@ import AdminUsers from "./pages/AdminUsers";
 import NewUsersAndRoles from "./pages/admin/UsersAndRoles";
 import Users from "./pages/admin/Users";
 import Roles from "./pages/admin/Roles";
+import Instructions from "./pages/admin/Instructions";
 import NetworksPage from "./pages/NetworksPage";
 import Nomenclature from "./pages/Nomenclature";
 import SalesAnalysisPage from "./pages/SalesAnalysisPage";
@@ -42,6 +43,9 @@ import TestServicesSimple from "./pages/TestServicesSimple";
 import TestDebug from "./pages/TestDebug";
 import DataInspector from "./pages/DataInspector";
 import NetworkEquipmentLog from "./pages/NetworkEquipmentLog";
+import LegalDocuments from "./pages/LegalDocuments";
+import LegalDocumentEditor from "./pages/LegalDocumentEditor";
+import LegalUsersAcceptances from "./pages/LegalUsersAcceptances";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +64,7 @@ const App = () => (
           <Route path="/admin/users-and-roles-new" element={<NewUsersAndRoles />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/roles" element={<Roles />} />
+          <Route path="/admin/instructions" element={<Instructions />} />
           <Route path="/admin/networks" element={<NetworksPage />} />
           <Route path="/admin/audit" element={<AuditLog />} />
           <Route path="/settings/dictionaries/equipment-types" element={<EquipmentTypes />} />
@@ -89,10 +94,15 @@ const App = () => (
           <Route path="/admin/test-simple" element={<TestServicesSimple />} />
           <Route path="/admin/test-debug" element={<TestDebug />} />
           <Route path="/admin/data-inspector" element={<DataInspector />} />
+          <Route path="/admin/legal-documents" element={<LegalDocuments />} />
+          <Route path="/admin/legal-documents/users-acceptances" element={<LegalUsersAcceptances />} />
+          <Route path="/admin/legal-documents/:docType/edit" element={<LegalDocumentEditor />} />
+          <Route path="/admin/legal-documents/:docType/create" element={<LegalDocumentEditor />} />
+          <Route path="/admin/legal-documents/:docType/view" element={<LegalDocumentEditor />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-        </BrowserRouter>
+          </BrowserRouter>
         </SelectionProvider>
       </AuthProvider>
     </TooltipProvider>

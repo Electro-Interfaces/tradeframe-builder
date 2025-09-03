@@ -28,7 +28,7 @@ const Nomenclature: React.FC = () => {
   };
 
   return (
-    <MainLayout>
+    <MainLayout fullWidth={true}>
       <NomenclatureList 
         onEdit={handleEdit}
         onCreate={handleCreate}

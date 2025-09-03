@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,10 +28,7 @@ import {
   Eye,
   Edit,
   Plus,
-  Package,
   Calendar as CalendarDays,
-  Search,
-  Download,
   AlertCircle,
   TrendingUp,
   Archive,
@@ -40,38 +37,19 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { HelpButton } from "@/components/help/HelpButton";
 import { useSelection } from "@/context/SelectionContext";
 import { 
   tradingNetworkAPI, 
   TradingNetworkPrice, 
   TradingNetworkService 
 } from "@/services/tradingNetworkAPI";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { nomenclatureService } from "@/services/nomenclatureService";
+import { FuelNomenclature } from "@/types/nomenclature";
+import { pricesCacheService, CachedFuelPrice } from "@/services/pricesCache";
 
-// Types
-interface FuelPrice {
-  id: string;
-  fuelType: string;
-  fuelCode: string;
-  priceNet: number; // без НДС в копейках
-  vatRate: number; // процент НДС
-  priceGross: number; // с НДС в копейках (рассчитывается)
-  unit: string; // Л/Кг
-  appliedFrom: string; // дата-время применения
-  status: 'active' | 'scheduled' | 'expired';
-  tradingPoint: string;
-  networkId: string;
-  packageId?: string;
-}
+// Types - теперь используем CachedFuelPrice как основной тип
+type FuelPrice = CachedFuelPrice;
 
 interface PricePackage {
   id: string;
@@ -233,22 +211,21 @@ type PriceFormData = z.infer<typeof priceFormSchema>;
 
 export default function Prices() {
   const { selectedTradingPoint } = useSelection();
-  const [currentPrices, setCurrentPrices] = useState<FuelPrice[]>(mockCurrentPrices);
-  const [journalEntries, setJournalEntries] = useState<PriceJournalEntry[]>(mockJournalEntries);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [selectedFuel, setSelectedFuel] = useState<string>("all");
+  
+  console.log('🏪 Prices page: выбранная торговая точка:', selectedTradingPoint);
+  console.log('🏪 Prices page: тип selectedTradingPoint:', typeof selectedTradingPoint);
+  console.log('🏪 Prices page: selectedTradingPoint.id:', selectedTradingPoint?.id);
+  const [currentPrices, setCurrentPrices] = useState<FuelPrice[]>([]);
+  const [journalEntries, setJournalEntries] = useState<PriceJournalEntry[]>([]);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isJournalDialogOpen, setIsJournalDialogOpen] = useState(false);
   const [selectedPrice, setSelectedPrice] = useState<FuelPrice | null>(null);
+  const [fuelNomenclature, setFuelNomenclature] = useState<FuelNomenclature[]>([]);
   
   // Состояния для работы с API торговой сети
   const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
-  const [isApplyingPrices, setIsApplyingPrices] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
-  const [pendingPrices, setPendingPrices] = useState<FuelPrice[]>([]);
   const [networkServices, setNetworkServices] = useState<TradingNetworkService[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const form = useForm<PriceFormData>({
     resolver: zodResolver(priceFormSchema),
@@ -261,22 +238,54 @@ export default function Prices() {
     }
   });
 
-  // Filtering
-  const filteredPrices = useMemo(() => {
-    // Используем pending цены, если есть несохранённые изменения, иначе текущие
-    const pricesToFilter = hasUnsavedChanges ? pendingPrices : currentPrices;
+  // Автоматическая загрузка цен при выборе торговой точки
+  useEffect(() => {
+    let tradingPointId;
+    if (typeof selectedTradingPoint === 'string') {
+      tradingPointId = selectedTradingPoint;
+    } else if (selectedTradingPoint && typeof selectedTradingPoint === 'object') {
+      tradingPointId = selectedTradingPoint.id;
+    }
     
-    return pricesToFilter.filter(price => {
-      const matchesSearch = searchTerm === "" || 
-        price.fuelType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        price.fuelCode.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = selectedStatus === "all" || price.status === selectedStatus;
-      const matchesFuel = selectedFuel === "all" || price.fuelType === selectedFuel;
-      
-      return matchesSearch && matchesStatus && matchesFuel;
-    });
-  }, [currentPrices, pendingPrices, hasUnsavedChanges, searchTerm, selectedStatus, selectedFuel]);
+    if (tradingPointId) {
+      console.log('🔄 Загружаем цены для точки:', tradingPointId);
+      loadPricesFromCache(tradingPointId);
+    } else {
+      // Если торговая точка не выбрана, отключаем состояние загрузки
+      setCurrentPrices([]);
+      setIsInitialLoading(false);
+    }
+  }, [selectedTradingPoint]);
+
+  // Загрузка номенклатуры топлива
+  useEffect(() => {
+    const loadFuelNomenclature = async () => {
+      try {
+        const filters = { 
+          status: 'active' as const,
+          ...(selectedTradingPoint?.network_id && { networkId: selectedTradingPoint.network_id })
+        };
+        const data = await nomenclatureService.getNomenclature(filters);
+        
+        // Удаляем дубликаты по названию топлива, оставляя только уникальные названия
+        const uniqueFuelTypes = data.reduce((acc, fuel) => {
+          if (!acc.some(item => item.name === fuel.name)) {
+            acc.push(fuel);
+          }
+          return acc;
+        }, [] as FuelNomenclature[]);
+        
+        setFuelNomenclature(uniqueFuelTypes);
+      } catch (error) {
+        console.error('Failed to load fuel nomenclature:', error);
+        setFuelNomenclature([]);
+      }
+    };
+    loadFuelNomenclature();
+  }, [selectedTradingPoint?.network_id]);
+
+  // Просто показываем все цены без фильтрации
+  const filteredPrices = currentPrices;
 
   // Utility functions
   const formatPrice = (kopecks: number) => {
@@ -332,6 +341,63 @@ export default function Prices() {
     }
   };
 
+  // Новые функции для работы с кэшем
+  const loadPricesFromCache = async (tradingPointId: string) => {
+    setIsInitialLoading(true);
+    try {
+      console.log('💰 Загружаем цены из кэша/сети для:', tradingPointId);
+      const prices = await pricesCacheService.getPricesForTradingPoint(tradingPointId);
+      setCurrentPrices(prices);
+      
+      console.log(`💰 Загружено ${prices.length} цен (источник: ${prices[0]?.source || 'unknown'})`);
+    } catch (error) {
+      console.error('Ошибка при загрузке цен:', error);
+      toast({
+        title: "Ошибка загрузки",
+        description: error instanceof Error ? error.message : "Не удалось загрузить цены",
+        variant: "destructive"
+      });
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
+
+  const refreshPricesFromNetwork = async () => {
+    const tradingPointId = typeof selectedTradingPoint === 'string' 
+      ? selectedTradingPoint 
+      : selectedTradingPoint?.id;
+    
+    if (!tradingPointId) {
+      toast({
+        title: "Ошибка",
+        description: "Выберите торговую точку",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUpdatingPrices(true);
+    try {
+      console.log('🔄 Принудительное обновление цен из сети для:', tradingPointId);
+      const prices = await pricesCacheService.refreshPricesFromNetwork(tradingPointId);
+      setCurrentPrices(prices);
+
+      toast({
+        title: "Цены обновлены",
+        description: `Получено ${prices.length} цен с торговой точки`,
+      });
+    } catch (error) {
+      console.error('Ошибка при обновлении цен:', error);
+      toast({
+        title: "Ошибка обновления",
+        description: error instanceof Error ? error.message : "Не удалось обновить цены",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingPrices(false);
+    }
+  };
+
   // Handlers
   const handleCreatePrice = () => {
     form.reset();
@@ -341,7 +407,7 @@ export default function Prices() {
 
   const handleEditPrice = (price: FuelPrice) => {
     setSelectedPrice(price);
-    const fuelType = mockFuelTypes.find(f => f.name === price.fuelType);
+    const fuelType = fuelNomenclature.find(f => f.name === price.fuelType);
     form.reset({
       fuelId: fuelType?.id || "",
       priceNet: price.priceNet / 100, // convert to rubles
@@ -355,7 +421,7 @@ export default function Prices() {
 
   const onSubmit = (data: PriceFormData) => {
     const grossPrice = calculateGrossPrice(data.priceNet * 100, data.vatRate);
-    const fuelType = mockFuelTypes.find(f => f.id === data.fuelId);
+    const fuelType = fuelNomenclature.find(f => f.id === data.fuelId);
     
     if (selectedPrice) {
       // Edit existing
@@ -381,7 +447,7 @@ export default function Prices() {
       const newPrice: FuelPrice = {
         id: Date.now().toString(),
         fuelType: fuelType?.name || "",
-        fuelCode: fuelType?.code || "",
+        fuelCode: fuelType?.internalCode || "",
         priceNet: data.priceNet * 100,
         vatRate: data.vatRate,
         priceGross: grossPrice,
@@ -403,7 +469,7 @@ export default function Prices() {
       id: Date.now().toString(),
       timestamp: format(new Date(), "dd.MM.yyyy HH:mm"),
       fuelType: fuelType?.name || "",
-      fuelCode: fuelType?.code || "",
+      fuelCode: fuelType?.internalCode || "",
       priceNet: data.priceNet * 100,
       priceGross: grossPrice,
       vatRate: data.vatRate,
@@ -418,176 +484,12 @@ export default function Prices() {
     setIsFormDialogOpen(false);
   };
 
-  // Функция сопоставления типов топлива из API с локальными
-  const mapNetworkFuelToLocal = (networkFuel: TradingNetworkPrice): string => {
-    // Преобразование названий из API в локальные
-    const fuelMapping: Record<string, string> = {
-      'АИ-92': 'АИ-92',
-      'АИ-95': 'АИ-95', 
-      'АИ-98': 'АИ-98',
-      'ДТ': 'ДТ',
-      'Газ': 'Газ'
-    };
-    return fuelMapping[networkFuel.service_name] || networkFuel.service_name;
-  };
-
-  // Функция получения service_code по типу топлива
+  // Функция получения service_code по типу топлива (для применения цен)
   const getServiceCode = (fuelType: string): number | null => {
     const service = networkServices.find(s => s.service_name === fuelType);
     return service?.service_code || null;
   };
 
-  // Обновление цен с АЗС через API торговой сети
-  const handleUpdatePricesFromNetwork = async () => {
-    if (!selectedTradingPoint) {
-      toast({
-        title: "Ошибка",
-        description: "Выберите торговую точку",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsUpdatingPrices(true);
-    
-    try {
-      // Получаем справочник услуг, если его нет
-      if (networkServices.length === 0) {
-        const services = await tradingNetworkAPI.getServices();
-        setNetworkServices(services);
-      }
-
-      // Получаем цены с торговой точки
-      // Используем номер станции из торговой точки (примерное значение)
-      const stationNumber = parseInt(selectedTradingPoint.id.replace(/\D/g, '')) || 77;
-      const networkPricesResponse = await tradingNetworkAPI.getPrices(stationNumber);
-      
-      if (!networkPricesResponse.prices || networkPricesResponse.prices.length === 0) {
-        toast({
-          title: "Цены не найдены",
-          description: "На торговой точке нет актуальных цен",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Преобразуем сетевые цены в локальный формат
-      const updatedPrices: FuelPrice[] = networkPricesResponse.prices.map((netPrice) => {
-        const localFuelType = mapNetworkFuelToLocal(netPrice);
-        const existingPrice = currentPrices.find(p => p.fuelType === localFuelType);
-        
-        return {
-          id: existingPrice?.id || `net_${netPrice.service_code}`,
-          fuelType: localFuelType,
-          fuelCode: localFuelType.replace('-', ''),
-          priceNet: Math.round(netPrice.price * 100 / 1.2), // Примерное извлечение цены без НДС
-          vatRate: 20,
-          priceGross: Math.round(netPrice.price * 100), // Цена в копейках
-          unit: "Л",
-          appliedFrom: format(new Date(), "dd.MM.yyyy HH:mm"),
-          status: 'active' as const,
-          tradingPoint: selectedTradingPoint.name,
-          networkId: selectedTradingPoint.id
-        };
-      });
-
-      // Обновляем состояние с новыми ценами
-      setPendingPrices(updatedPrices);
-      setHasUnsavedChanges(true);
-
-      toast({
-        title: "Цены обновлены",
-        description: `Получено ${updatedPrices.length} цен с торговой точки. Нажмите "Применить" для сохранения.`,
-      });
-
-    } catch (error) {
-      console.error('Ошибка при обновлении цен:', error);
-      toast({
-        title: "Ошибка обновления",
-        description: error instanceof Error ? error.message : "Не удалось обновить цены",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdatingPrices(false);
-    }
-  };
-
-  // Применение новых цен (сохранение в базе и отправка на АЗС)
-  const handleApplyPrices = async () => {
-    if (!selectedTradingPoint || pendingPrices.length === 0) {
-      toast({
-        title: "Ошибка",
-        description: "Нет изменений для применения",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsApplyingPrices(true);
-    
-    try {
-      // 1. Сохраняем цены в локальном состоянии (имитация сохранения в базе)
-      setCurrentPrices(pendingPrices);
-
-      // 2. Подготавливаем данные для отправки на АЗС
-      const pricesForNetwork: Record<string, number> = {};
-      
-      for (const price of pendingPrices) {
-        const serviceCode = getServiceCode(price.fuelType);
-        if (serviceCode) {
-          pricesForNetwork[serviceCode.toString()] = price.priceGross / 100; // Конвертируем в рубли
-        }
-      }
-
-      // 3. Отправляем цены на торговую точку через API
-      const stationNumber = parseInt(selectedTradingPoint.id.replace(/\D/g, '')) || 77;
-      const effectiveDate = new Date().toISOString();
-      
-      await tradingNetworkAPI.setPrices(
-        stationNumber,
-        pricesForNetwork,
-        effectiveDate
-      );
-
-      // 4. Добавляем записи в журнал
-      const journalEntries: PriceJournalEntry[] = pendingPrices.map(price => ({
-        id: `apply_${Date.now()}_${Math.random()}`,
-        timestamp: format(new Date(), "dd.MM.yyyy HH:mm"),
-        fuelType: price.fuelType,
-        fuelCode: price.fuelCode,
-        priceNet: price.priceNet,
-        priceGross: price.priceGross,
-        vatRate: price.vatRate,
-        source: 'api',
-        packageId: `api_pkg_${Date.now()}`,
-        status: 'applied',
-        authorName: "Система (API торговой сети)",
-        tradingPoint: selectedTradingPoint.name
-      }));
-      
-      setJournalEntries(prev => [...journalEntries, ...prev]);
-
-      // 5. Очищаем состояние
-      setPendingPrices([]);
-      setHasUnsavedChanges(false);
-      setIsApplyDialogOpen(false);
-
-      toast({
-        title: "Цены применены",
-        description: `${pendingPrices.length} цен успешно сохранены и отправлены на торговую точку.`,
-      });
-
-    } catch (error) {
-      console.error('Ошибка при применении цен:', error);
-      toast({
-        title: "Ошибка применения",
-        description: error instanceof Error ? error.message : "Не удалось применить цены",
-        variant: "destructive"
-      });
-    } finally {
-      setIsApplyingPrices(false);
-    }
-  };
 
   // Проверка выбора торговой точки
   if (!selectedTradingPoint) {
@@ -595,7 +497,10 @@ export default function Prices() {
       <MainLayout fullWidth={true}>
         <div className="w-full h-full px-4 md:px-6 lg:px-8">
           <div className="mb-6 pt-4">
-            <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
+              <span className="text-xs text-green-400 font-mono">🔧 Версия: {new Date().toLocaleTimeString()}</span>
+            </div>
           </div>
           <div className="bg-slate-800 mb-6 w-full rounded-lg">
             <div className="px-4 md:px-6 py-4">
@@ -616,23 +521,13 @@ export default function Prices() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
-          <p className="text-slate-400 mt-2">Управление ценами на топливо с отложенным применением и журналом изменений</p>
-          
-          {/* Уведомление о несохранённых изменениях */}
-          {hasUnsavedChanges && (
-            <div className="mt-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-orange-400" />
-                <span className="text-orange-300 text-sm font-medium">
-                  Обнаружены новые цены с торговой точки ({pendingPrices.length} цен)
-                </span>
-              </div>
-              <p className="text-orange-300/80 text-xs mt-1">
-                Нажмите "Применить" для сохранения в базе и отправки на АЗС
-              </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
+              <p className="text-slate-400 mt-2">Управление ценами на топливо с отложенным применением и журналом изменений</p>
             </div>
-          )}
+            <HelpButton route="/prices" variant="text" className="ml-4 flex-shrink-0" />
+          </div>
         </div>
 
         {/* Панель управления */}
@@ -658,7 +553,7 @@ export default function Prices() {
                   Журнал
                 </Button>
                 <Button 
-                  onClick={handleUpdatePricesFromNetwork}
+                  onClick={refreshPricesFromNetwork}
                   variant="outline"
                   disabled={isUpdatingPrices}
                   className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
@@ -668,88 +563,14 @@ export default function Prices() {
                   ) : (
                     <RefreshCw className="w-4 h-4 mr-2" />
                   )}
-                  Обновить
+                  Обновить из сети
                 </Button>
-                {hasUnsavedChanges ? (
-                  <Button 
-                    onClick={() => setIsApplyDialogOpen(true)}
-                    disabled={isApplyingPrices}
-                    className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
-                  >
-                    {isApplyingPrices ? (
-                      <Upload className="w-4 h-4 mr-2 animate-pulse" />
-                    ) : (
-                      <Upload className="w-4 h-4 mr-2" />
-                    )}
-                    Применить ({pendingPrices.length})
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleCreatePrice}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Новая цена
-                  </Button>
-                )}
-              </div>
-            </div>
-            
-            {/* Фильтры */}
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Поиск */}
-              <div>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    placeholder="Поиск по виду топлива..."
-                    className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              {/* Фильтр по виду топлива */}
-              <div>
-                <Select value={selectedFuel} onValueChange={setSelectedFuel}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                    <SelectValue placeholder="Все виды топлива" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все виды топлива</SelectItem>
-                    {mockFuelTypes.map((fuel) => (
-                      <SelectItem key={fuel.id} value={fuel.name}>
-                        {fuel.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Фильтр по статусу */}
-              <div>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                    <SelectValue placeholder="Все статусы" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все статусы</SelectItem>
-                    <SelectItem value="active">Активные</SelectItem>
-                    <SelectItem value="scheduled">Запланированные</SelectItem>
-                    <SelectItem value="expired">Истёкшие</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Экспорт */}
-              <div>
                 <Button 
-                  variant="outline" 
-                  className="w-full border-slate-600 text-white hover:bg-slate-700"
+                  onClick={handleCreatePrice}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Экспорт
+                  <Plus className="w-4 h-4 mr-2" />
+                  Новая цена
                 </Button>
               </div>
             </div>
@@ -757,27 +578,76 @@ export default function Prices() {
         </div>
 
         {/* Плитки цен */}
-        {filteredPrices.length === 0 ? (
+        {isInitialLoading ? (
+          <div className="px-4 md:px-6 pb-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {/* Skeleton плитки для состояния загрузки */}
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-slate-600 rounded-lg animate-pulse"></div>
+                      <div>
+                        <div className="h-4 w-16 bg-slate-600 rounded animate-pulse mb-2"></div>
+                        <div className="h-3 w-12 bg-slate-700 rounded animate-pulse"></div>
+                      </div>
+                    </div>
+                    <div className="h-5 w-20 bg-slate-600 rounded animate-pulse"></div>
+                  </div>
+                  
+                  <div className="space-y-3 mb-4">
+                    <div className="flex justify-between">
+                      <div className="h-3 w-24 bg-slate-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-16 bg-slate-600 rounded animate-pulse"></div>
+                    </div>
+                    <div className="flex justify-between">
+                      <div className="h-3 w-20 bg-slate-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-14 bg-slate-600 rounded animate-pulse"></div>
+                    </div>
+                    <div className="flex justify-between border-t border-slate-600 pt-2">
+                      <div className="h-3 w-16 bg-slate-700 rounded animate-pulse"></div>
+                      <div className="h-5 w-20 bg-slate-600 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between">
+                      <div className="h-3 w-14 bg-slate-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-8 bg-slate-600 rounded animate-pulse"></div>
+                    </div>
+                    <div className="flex justify-between">
+                      <div className="h-3 w-24 bg-slate-700 rounded animate-pulse"></div>
+                      <div className="h-3 w-20 bg-slate-600 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-3 border-t border-slate-700">
+                    <div className="h-8 flex-1 bg-slate-700 rounded animate-pulse"></div>
+                    <div className="h-8 w-8 bg-slate-700 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : filteredPrices.length === 0 ? (
           <div className="px-6">
             <div className="text-center py-16">
               <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-white text-2xl">💰</span>
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">
-                {searchTerm || selectedStatus !== "all" || selectedFuel !== "all" ? 'Цены не найдены' : 'Нет цен'}
+                Нет цен
               </h3>
               <p className="text-slate-400 mb-4">
-                {searchTerm || selectedStatus !== "all" || selectedFuel !== "all" ? 'Попробуйте изменить условия поиска' : 'Создайте первую цену на топливо'}
+                Создайте первую цену на топливо
               </p>
-              {!searchTerm && selectedStatus === "all" && selectedFuel === "all" && (
-                <Button 
-                  onClick={handleCreatePrice}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Создать цену
-                </Button>
-              )}
+              <Button 
+                onClick={handleCreatePrice}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Создать цену
+              </Button>
             </div>
           </div>
         ) : (
@@ -880,9 +750,9 @@ export default function Prices() {
                       <SelectValue placeholder="Выберите вид топлива" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockFuelTypes.map((fuel) => (
+                      {fuelNomenclature.map((fuel) => (
                         <SelectItem key={fuel.id} value={fuel.id}>
-                          {fuel.name} ({fuel.code})
+                          {fuel.name} ({fuel.internalCode})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1090,84 +960,14 @@ export default function Prices() {
             </div>
 
             {/* Footer журнала */}
-            <div className="flex items-center justify-between pt-4 border-t border-slate-700">
+            <div className="flex items-center justify-center pt-4 border-t border-slate-700">
               <div className="text-sm text-slate-400">
                 Показано записей: {journalEntries.length}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="border-slate-600 hover:bg-slate-700">
-                  <Download className="w-4 h-4 mr-2" />
-                  Экспорт CSV
-                </Button>
-                <Button variant="outline" size="sm" className="border-slate-600 hover:bg-slate-700">
-                  <Package className="w-4 h-4 mr-2" />
-                  Фильтр по пакету
-                </Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
 
-        {/* Диалог подтверждения применения цен */}
-        <AlertDialog open={isApplyDialogOpen} onOpenChange={setIsApplyDialogOpen}>
-          <AlertDialogContent className="max-w-lg">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2 text-orange-500">
-                <AlertTriangle className="w-5 h-5" />
-                Применить новые цены?
-              </AlertDialogTitle>
-              <AlertDialogDescription className="space-y-2">
-                <p>
-                  Вы собираетесь применить <strong>{pendingPrices.length} новых цен</strong> на топливо.
-                </p>
-                <p>
-                  Это действие выполнит следующее:
-                </p>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li>Сохранит новые цены в базе данных</li>
-                  <li>Отправит цены на торговую точку через API</li>
-                  <li>Цены вступят в силу немедленно</li>
-                  <li>Добавит запись в журнал изменений</li>
-                </ul>
-                <div className="bg-slate-700 p-3 rounded-lg mt-3">
-                  <p className="text-xs text-slate-300">
-                    <strong>Торговая точка:</strong> {selectedTradingPoint?.name}
-                  </p>
-                  {pendingPrices.slice(0, 3).map(price => (
-                    <p key={price.id} className="text-xs text-slate-300">
-                      {price.fuelType}: {formatPrice(price.priceGross)}
-                    </p>
-                  ))}
-                  {pendingPrices.length > 3 && (
-                    <p className="text-xs text-slate-400">...и ещё {pendingPrices.length - 3} цен</p>
-                  )}
-                </div>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isApplyingPrices}>
-                Отмена
-              </AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleApplyPrices}
-                disabled={isApplyingPrices}
-                className="bg-orange-600 hover:bg-orange-700"
-              >
-                {isApplyingPrices ? (
-                  <>
-                    <Upload className="w-4 h-4 mr-2 animate-pulse" />
-                    Применение...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Применить цены
-                  </>
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </MainLayout>
   );

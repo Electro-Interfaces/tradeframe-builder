@@ -122,12 +122,12 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
 
   if (loading) {
     return (
-      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
-        <div className="mb-6 px-6 pt-4">
+      <div className="w-full h-full report-full-width">
+        <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <h1 className="text-2xl font-semibold text-white">Номенклатура топлива</h1>
         </div>
-        <div className="bg-slate-800 mb-6 w-full">
-          <div className="px-6 py-4">
+        <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700 mx-4 md:mx-6 lg:mx-8">
+          <div className="px-4 md:px-6 py-4">
             <div className="text-white">Загрузка...</div>
           </div>
         </div>
@@ -138,12 +138,12 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
   // Проверка выбора торговой сети
   if (!selectedNetwork) {
     return (
-      <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
-        <div className="mb-6 px-6 pt-4">
+      <div className="w-full h-full report-full-width">
+        <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
           <h1 className="text-2xl font-semibold text-white">Номенклатура топлива</h1>
         </div>
-        <div className="bg-slate-800 mb-6 w-full">
-          <div className="px-6 py-4">
+        <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700 mx-4 md:mx-6 lg:mx-8">
+          <div className="px-4 md:px-6 py-4">
             <EmptyState 
               title="Выберите торговую сеть" 
               description="Для просмотра номенклатуры топлива необходимо выбрать торговую сеть из выпадающего списка выше"
@@ -156,9 +156,9 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
   }
 
   return (
-    <div className="w-full h-full -mr-4 md:-mr-6 lg:-mr-8 pl-1">
+    <div className="w-full h-full report-full-width">
       {/* Заголовок страницы */}
-      <div className="mb-6 px-6 pt-4">
+      <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
         <h1 className="text-2xl font-semibold text-white">Номенклатура топлива</h1>
         <p className="text-slate-400 mt-2">
           Справочник видов топлива для сети: {selectedNetwork?.name}
@@ -166,8 +166,8 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
       </div>
 
       {/* Панель номенклатуры */}
-      <div className="bg-slate-800 mb-6 w-full">
-        <div className="px-6 py-4">
+      <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700 mx-4 md:mx-6 lg:mx-8">
+        <div className="px-4 md:px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -187,7 +187,7 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
         </div>
 
         {nomenclature.length === 0 && !loading ? (
-          <div className="px-6 pb-6">
+          <div className="pb-6 mx-4 md:mx-6 lg:mx-8">
             <EmptyState 
               title="Номенклатура не найдена" 
               description="Создайте первый вид топлива для начала работы"
@@ -206,8 +206,8 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
         ) : (
           <>
             {/* Десктоп: таблица на всю ширину */}
-            <div className="hidden md:block w-full">
-              <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
+            <div className="hidden md:block mx-4 md:mx-6 lg:mx-8">
+              <div className="overflow-x-auto rounded-lg border border-slate-600">
                 <table className="w-full text-sm min-w-full table-fixed">
                   <thead className="bg-slate-700">
                     <tr>
@@ -343,7 +343,7 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
             </div>
 
             {/* Мобайл: карточки */}
-            <div className="md:hidden space-y-3 px-6 pb-6">
+            <div className="md:hidden space-y-3 mx-4 md:mx-6 lg:mx-8 pb-6">
               {nomenclature.map((item) => (
                 <div
                   key={item.id}

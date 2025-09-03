@@ -40,7 +40,12 @@
       "Bash(del \"C:\\Users\\magsp\\Documents\\tradeframe-builder\\src\\pages\\Commands.tsx\")",
       "Bash(start:*)",
       "Bash(git fetch:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(dir distassets)",
+      "Bash(dir:*)",
+      "Bash(rg:*)",
+      "Bash(npm install:*)",
+      "Bash(copy:*)"
     ],
     "deny": [],
     "ask": []

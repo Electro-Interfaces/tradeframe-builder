@@ -19,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth, usePermissions } from "@/contexts/AuthContext";
 import { useSelection } from "@/context/SelectionContext";
+import { HelpButton } from "@/components/help/HelpButton";
 import { currentEquipmentAPI } from "@/services/equipment";
 import { Equipment } from "@/types/equipment";
 import { 
@@ -758,10 +759,15 @@ export default function Tanks() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">
-            Резервуары{selectedTradingPoint ? ` на ${getTradingPointName(selectedTradingPoint)}` : ""}
-          </h1>
-          <p className="text-slate-400 mt-2">Мониторинг запасов топлива и управление операциями</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">
+                Резервуары{selectedTradingPoint ? ` на ${getTradingPointName(selectedTradingPoint)}` : ""}
+              </h1>
+              <p className="text-slate-400 mt-2">Мониторинг запасов топлива и управление операциями</p>
+            </div>
+            <HelpButton route="/point/tanks" className="flex-shrink-0" />
+          </div>
         </div>
 
         {/* Панель управления */}
