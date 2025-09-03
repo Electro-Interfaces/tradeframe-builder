@@ -122,6 +122,12 @@ export default function OperationsTransactionsPage() {
   // Фильтрация данных
   const filteredOperations = useMemo(() => {
     return operations.filter(record => {
+      // Исключаем операции с нежелательными способами оплаты
+      const excludedPaymentMethods = ['supplier_delivery', 'corporate_card', 'mobile_payment'];
+      if (record.paymentMethod && excludedPaymentMethods.includes(record.paymentMethod)) {
+        return false;
+      }
+      
       // Фильтр по торговой точке (если выбрана конкретная точка)
       if (selectedTradingPoint && selectedTradingPoint !== "all") {
         // Выбрана конкретная торговая точка - показываем только её операции
@@ -142,7 +148,7 @@ export default function OperationsTransactionsPage() {
         if (record.paymentMethod !== selectedPaymentMethod) return false;
       }
       
-      // Не фильтруем операции по способу оплаты - показываем все операции
+      // Не фильтруем дополнительно операции по способу оплаты
       
       // Фильтр по датам
       if (dateFrom || dateTo) {
