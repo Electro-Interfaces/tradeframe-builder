@@ -186,11 +186,12 @@ export default function OperationsTransactionsPage() {
   console.log('Отфильтрованных операций:', filteredOperations.length);
   console.log('Фильтры:', { selectedStatus, selectedFuelType, selectedPaymentMethod, searchQuery, dateFrom, dateTo });
 
-  // Получаем уникальные виды топлива из операций
+  // Получаем все виды топлива из номенклатуры демо-сети
   const fuelTypes = useMemo(() => {
-    const types = new Set(operations.filter(op => op.fuelType).map(op => op.fuelType));
-    return ["Все", ...Array.from(types).sort()];
-  }, [operations]);
+    // Статический список всех видов топлива из номенклатуры
+    const allFuelTypes = ["АИ-92", "АИ-95", "АИ-98", "ДТ", "АИ-100"];
+    return ["Все", ...allFuelTypes];
+  }, []);
 
   // Получаем только разрешенные способы оплаты для фильтра (но показываем все операции)
   const paymentMethods = useMemo(() => {

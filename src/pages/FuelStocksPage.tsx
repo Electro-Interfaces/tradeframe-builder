@@ -130,7 +130,7 @@ const mockFuelStocks: FuelStockRecord[] = [
   }
 ];
 
-const fuelTypes = ["Все", "АИ-95", "АИ-92", "ДТ"];
+const fuelTypes = ["Все", "АИ-92", "АИ-95", "АИ-98", "ДТ", "АИ-100"];
 const statusTypes = ["Все", "normal", "low", "critical", "overfill"];
 
 export default function FuelStocksPage() {
@@ -163,6 +163,8 @@ export default function FuelStocksPage() {
     const now = new Date('2025-08-30T16:00:00Z'); // По умолчанию конец августа
     return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm format
   });
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [nextRefreshTime, setNextRefreshTime] = useState<Date | null>(null);
   
   // Фильтры (убрали фильтр по статусу)
   const [selectedFuelType, setSelectedFuelType] = useState("Все");
@@ -177,6 +179,32 @@ export default function FuelStocksPage() {
       loadHistoricalData();
     }
   }, [selectedDateTime, selectedNetwork, selectedTradingPoint]);
+
+  // Автоматическое обновление данных каждые 2 часа
+  useEffect(() => {
+    if (selectedNetwork) {
+      const REFRESH_INTERVAL = 2 * 60 * 60 * 1000; // 2 часа в миллисекундах
+      
+      // Устанавливаем время следующего обновления при первой загрузке
+      const now = new Date();
+      setLastRefreshTime(now);
+      setNextRefreshTime(new Date(now.getTime() + REFRESH_INTERVAL));
+      
+      const intervalId = setInterval(() => {
+        console.log('🔄 Автоматическое обновление данных остатков топлива...');
+        const refreshTime = new Date();
+        setLastRefreshTime(refreshTime);
+        setNextRefreshTime(new Date(refreshTime.getTime() + REFRESH_INTERVAL));
+        loadHistoricalData();
+      }, REFRESH_INTERVAL);
+
+      return () => {
+        clearInterval(intervalId);
+        setLastRefreshTime(null);
+        setNextRefreshTime(null);
+      };
+    }
+  }, [selectedNetwork, selectedTradingPoint]); // зависимости без selectedDateTime чтобы не пересоздавать интервал
 
   const loadHistoricalData = async () => {
     console.log('🔄 FuelStocksPage: Загрузка исторических данных...', selectedDateTime);
@@ -484,9 +512,19 @@ export default function FuelStocksPage() {
                           max="2025-08-31T23:59"
                           className="bg-slate-700 border-slate-600 text-white text-sm h-9"
                         />
-                        <p className="text-xs text-slate-500 mt-1">
-                          Август 2025, шаг 4ч
-                        </p>
+                        <div className="text-xs text-slate-500 mt-1 space-y-0.5">
+                          <p>Август 2025, шаг 4ч</p>
+                          {lastRefreshTime && (
+                            <p className="text-green-400">
+                              ↻ Обновлено: {lastRefreshTime.toLocaleTimeString('ru-RU')}
+                            </p>
+                          )}
+                          {nextRefreshTime && (
+                            <p className="text-blue-400">
+                              ⏰ Следующее: {nextRefreshTime.toLocaleTimeString('ru-RU')}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <Label className="text-slate-300 text-sm">Фильтр по топливу</Label>
