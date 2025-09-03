@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, Download, Filter, Calendar } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 
 interface PriceHistoryRecord {
   id: string;
@@ -171,12 +172,17 @@ export default function PriceHistoryPage() {
       <div className="w-full space-y-6 report-full-width">
         {/* Заголовок страницы */}
         <div className="mb-6 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-          <h1 className="text-2xl font-semibold text-white">История цен</h1>
-          <p className="text-slate-400 mt-2">
-            {isNetworkOnly && "История изменений цен по торговой сети"}
-            {isTradingPointSelected && "История изменений цен торговой точки"}
-            {!selectedNetwork && "Выберите сеть для просмотра истории цен"}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">История цен</h1>
+              <p className="text-slate-400 mt-2">
+                {isNetworkOnly && "История изменений цен по торговой сети"}
+                {isTradingPointSelected && "История изменений цен торговой точки"}
+                {!selectedNetwork && "Выберите сеть для просмотра истории цен"}
+              </p>
+            </div>
+            <HelpButton route="/network/price-history" variant="text" className="flex-shrink-0" />
+          </div>
         </div>
 
         {selectedNetwork && (

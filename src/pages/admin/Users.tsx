@@ -18,6 +18,7 @@ import { useDeleteConfirmDialog } from '@/hooks/useDeleteConfirmDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { MainLayout } from '@/components/layout/MainLayout'
+import { HelpButton } from "@/components/help/HelpButton"
 
 export default function Users() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -82,10 +83,15 @@ export default function Users() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Пользователи</h1>
-          <p className="text-slate-400 mt-2">
-            Управление учетными записями пользователей системы
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Пользователи</h1>
+              <p className="text-slate-400 mt-2">
+                Управление учетными записями пользователей системы
+              </p>
+            </div>
+            <HelpButton route="/admin/users-and-roles" variant="text" className="flex-shrink-0" />
+          </div>
         </div>
 
         {/* Панель управления */}

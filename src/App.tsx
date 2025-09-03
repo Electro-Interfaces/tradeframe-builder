@@ -32,8 +32,9 @@ import Prices from "./pages/Prices";
 import ShiftReports from "./pages/ShiftReports";
 import SalesAnalysisPageTest from "./pages/SalesAnalysisPageTest";
 import OperationsTransactionsPage from "./pages/OperationsTransactionsPage";
+import OperationsTransactionsPageSimple from "./pages/OperationsTransactionsPageSimple";
 import PriceHistoryPage from "./pages/PriceHistoryPage";
-import FuelStocksPage from "./pages/FuelStocksPageFixed";
+import FuelStocksPage from "./pages/FuelStocksPage";
 import Profile from "./pages/Profile";
 import DatabaseSettings from "./pages/DatabaseSettings";
 import PartialMigrationSettings from "./pages/PartialMigrationSettings";
@@ -78,7 +79,7 @@ const App = () => (
           <Route path="/settings/workflows" element={<Workflows />} />
           <Route path="/network/overview" element={<NetworkOverview />} />
           <Route path="/network/sales-analysis" element={<SalesAnalysisPage />} />
-          <Route path="/network/operations-transactions" element={<OperationsTransactionsPage />} />
+          <Route path="/network/operations-transactions" element={<OperationsTransactionsPageSimple />} />
           <Route path="/network/price-history" element={<PriceHistoryPage />} />
           <Route path="/network/fuel-stocks" element={<FuelStocksPage />} />
           <Route path="/network/equipment-log" element={<NetworkEquipmentLog />} />

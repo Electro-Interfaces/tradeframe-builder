@@ -45,7 +45,10 @@
       "Bash(dir:*)",
       "Bash(rg:*)",
       "Bash(npm install:*)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "Bash(move:*)",
+      "Bash(del test-supabase.js)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []

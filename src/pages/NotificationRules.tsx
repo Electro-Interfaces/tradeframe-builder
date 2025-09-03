@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Edit, Trash2, Copy, History, Play, Pause, Mail, MessageSquare, Webhook, Filter, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSelection } from "@/context/SelectionContext";
+import { HelpButton } from "@/components/help/HelpButton";
 import { NotificationRuleForm } from "@/components/notifications/NotificationRuleForm";
 import { NotificationHistory } from "@/components/notifications/NotificationHistory";
 
@@ -387,11 +388,16 @@ export default function NotificationRules() {
       <div className="w-full h-full report-full-width">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-          <h1 className="text-2xl font-semibold text-white">Правила оповещений</h1>
-          <p className="text-slate-400 mt-2">
-            Правила оповещений для сети: {selectedNetwork?.name}
-            {selectedTradingPoint && ` - Точка: ${selectedTradingPoint.name}`}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Правила оповещений</h1>
+              <p className="text-slate-400 mt-2">
+                Правила оповещений для сети: {selectedNetwork?.name}
+                {selectedTradingPoint && ` - Точка: ${selectedTradingPoint.name}`}
+              </p>
+            </div>
+            <HelpButton route="/network/notifications" variant="text" className="flex-shrink-0" />
+          </div>
         </div>
 
         {/* Панель правил оповещений */}

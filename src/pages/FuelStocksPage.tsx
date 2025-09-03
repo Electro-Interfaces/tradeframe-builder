@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Fuel, Download, AlertTriangle, Droplets, Gauge, Calendar } from "lucide-react";
 import { fuelStocksHistoryService, FuelStockSnapshot } from "@/services/fuelStocksHistoryService";
+import { nomenclatureService } from "@/services/nomenclatureService";
 import { FuelStocksChart } from "@/components/charts/FuelStocksChart";
 import { HelpButton } from "@/components/help/HelpButton";
 
@@ -130,11 +131,13 @@ const mockFuelStocks: FuelStockRecord[] = [
   }
 ];
 
-const fuelTypes = ["Все", "АИ-92", "АИ-95", "АИ-98", "ДТ", "АИ-100"];
+// Статический список будет заменен на динамический
 const statusTypes = ["Все", "normal", "low", "critical", "overfill"];
 
 export default function FuelStocksPage() {
   console.log('🔥 FuelStocksPage: Компонент загружается!');
+  console.log('🌐 Текущий URL:', window.location.href);
+  console.log('⏰ Время загрузки:', new Date().toISOString());
   
   const isMobile = useIsMobile();
   const { selectedNetwork, selectedTradingPoint } = useSelection();
@@ -160,8 +163,8 @@ export default function FuelStocksPage() {
   const [historicalData, setHistoricalData] = useState<FuelStockSnapshot[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDateTime, setSelectedDateTime] = useState(() => {
-    const now = new Date('2025-08-30T16:00:00Z'); // По умолчанию конец августа
-    return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm format
+    // Устанавливаем дату по умолчанию на конец августа 2025, 16:00 местного времени
+    return '2025-08-30T16:00'; // Формат для datetime-local
   });
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const [nextRefreshTime, setNextRefreshTime] = useState<Date | null>(null);
@@ -169,52 +172,95 @@ export default function FuelStocksPage() {
   // Фильтры (убрали фильтр по статусу)
   const [selectedFuelType, setSelectedFuelType] = useState("Все");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Состояние для видов топлива из номенклатуры
+  const [fuelTypes, setFuelTypes] = useState<string[]>(["Все"]);
 
   const isNetworkOnly = selectedNetwork && !selectedTradingPoint;
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
 
   // Загружаем данные при изменении даты/времени или выбора точки
+  // Изменяем: загружаем данные всегда, не только когда сеть выбрана
   useEffect(() => {
-    if (selectedNetwork) {
-      loadHistoricalData();
-    }
+    loadHistoricalData();
   }, [selectedDateTime, selectedNetwork, selectedTradingPoint]);
 
   // Автоматическое обновление данных каждые 2 часа
+  // Изменяем: работает всегда, не только для выбранной сети
   useEffect(() => {
-    if (selectedNetwork) {
-      const REFRESH_INTERVAL = 2 * 60 * 60 * 1000; // 2 часа в миллисекундах
-      
-      // Устанавливаем время следующего обновления при первой загрузке
-      const now = new Date();
-      setLastRefreshTime(now);
-      setNextRefreshTime(new Date(now.getTime() + REFRESH_INTERVAL));
-      
-      const intervalId = setInterval(() => {
-        console.log('🔄 Автоматическое обновление данных остатков топлива...');
-        const refreshTime = new Date();
-        setLastRefreshTime(refreshTime);
-        setNextRefreshTime(new Date(refreshTime.getTime() + REFRESH_INTERVAL));
-        loadHistoricalData();
-      }, REFRESH_INTERVAL);
+    const REFRESH_INTERVAL = 2 * 60 * 60 * 1000; // 2 часа в миллисекундах
+    
+    // Устанавливаем время следующего обновления при первой загрузке
+    const now = new Date();
+    setLastRefreshTime(now);
+    setNextRefreshTime(new Date(now.getTime() + REFRESH_INTERVAL));
+    
+    const intervalId = setInterval(() => {
+      console.log('🔄 Автоматическое обновление данных остатков топлива...');
+      const refreshTime = new Date();
+      setLastRefreshTime(refreshTime);
+      setNextRefreshTime(new Date(refreshTime.getTime() + REFRESH_INTERVAL));
+      loadHistoricalData();
+    }, REFRESH_INTERVAL);
 
-      return () => {
-        clearInterval(intervalId);
-        setLastRefreshTime(null);
-        setNextRefreshTime(null);
-      };
-    }
-  }, [selectedNetwork, selectedTradingPoint]); // зависимости без selectedDateTime чтобы не пересоздавать интервал
+    return () => {
+      clearInterval(intervalId);
+      setLastRefreshTime(null);
+      setNextRefreshTime(null);
+    };
+  }, [selectedTradingPoint]); // зависимости без selectedDateTime и selectedNetwork
+
+  // Загружаем виды топлива из номенклатуры
+  useEffect(() => {
+    const loadFuelTypes = async () => {
+      try {
+        const nomenclature = await nomenclatureService.getAll();
+        
+        // Фильтруем только активные виды топлива для выбранной сети
+        const networkId = selectedNetwork?.id || '1'; // По умолчанию демо сеть
+        const activeFuelTypes = nomenclature
+          .filter(item => 
+            item.status === 'active' && 
+            item.networkId === networkId
+          )
+          .map(item => item.name)
+          .sort();
+          
+        console.log('📋 Загружены виды топлива из номенклатуры для FuelStocksPage:', activeFuelTypes);
+        setFuelTypes(["Все", ...activeFuelTypes]);
+      } catch (error) {
+        console.error('Ошибка загрузки номенклатуры:', error);
+        // Fallback на статический список
+        setFuelTypes(["Все", "АИ-92", "АИ-95", "АИ-98", "ДТ", "АИ-100"]);
+      }
+    };
+
+    loadFuelTypes();
+  }, [selectedNetwork]);
 
   const loadHistoricalData = async () => {
     console.log('🔄 FuelStocksPage: Загрузка исторических данных...', selectedDateTime);
     try {
       setLoading(true);
       
+      // Принудительно очищаем кэш при первом запуске для обеспечения свежих данных
+      console.log('🗑️ Очищаем кэш исторических данных...');
+      fuelStocksHistoryService.clearCache();
+      
       console.log('📊 FuelStocksPage: Получаем снимки на', selectedDateTime);
       // Try to get historical snapshots
       let snapshots = await fuelStocksHistoryService.getSnapshotAtDateTime(selectedDateTime);
       console.log('📊 FuelStocksPage: Получено снимков:', snapshots.length);
+      
+      if (snapshots.length > 0) {
+        console.log('📋 Первые снимки:', snapshots.slice(0, 3).map(s => ({
+          id: s.id,
+          tankName: s.tankName,
+          fuelType: s.fuelType,
+          tradingPointId: s.tradingPointId,
+          currentLevel: s.currentLevelLiters
+        })));
+      }
       
       // If no historical data, try to generate some or fall back to tank-based data
       if (snapshots.length === 0) {
@@ -230,6 +276,13 @@ export default function FuelStocksPage() {
           const { tanksService } = await import('@/services/tanksService');
           const tanks = await tanksService.getTanks();
           console.log('📦 FuelStocksPage: Найдено танков:', tanks.length);
+          console.log('📋 Первые танки:', tanks.slice(0, 3).map(t => ({
+            id: t.id,
+            name: t.name,
+            fuelType: t.fuelType,
+            tradingPointId: t.trading_point_id,
+            currentLevel: t.currentLevelLiters
+          })));
           
           // Generate snapshots from current tank data
           snapshots = tanks.map(tank => ({
@@ -296,7 +349,8 @@ export default function FuelStocksPage() {
     return snapshots
       .filter(snapshot => {
         // Фильтруем по выбранной торговой точке
-        if (selectedTradingPoint) {
+        // Если selectedTradingPoint пуст или равен 'all', показываем все записи
+        if (selectedTradingPoint && selectedTradingPoint !== 'all') {
           return snapshot.tradingPointId === selectedTradingPoint;
         }
         return true;
@@ -347,9 +401,21 @@ export default function FuelStocksPage() {
   };
 
   // Используем либо исторические данные, либо mock данные
-  const currentFuelStocks = selectedNetwork 
+  // Изменяем логику: если есть исторические данные, используем их, иначе mock
+  const currentFuelStocks = historicalData.length > 0 
     ? convertToFuelStockRecords(historicalData)
     : mockFuelStocks;
+    
+  // Особая отладка для понимания проблемы
+  console.log('🔍 ОТЛАДКА:', {
+    hasSelectedNetwork: !!selectedNetwork,
+    networkId: selectedNetwork?.id,
+    networkName: selectedNetwork?.name,
+    historicalDataCount: historicalData.length,
+    willUseMockData: historicalData.length === 0,
+    currentFuelStocksCount: currentFuelStocks.length,
+    dataSource: historicalData.length > 0 ? 'historical' : 'mock'
+  });
   
   console.log('📋 FuelStocksPage: Обработка данных:', {
     selectedNetworkId: selectedNetwork?.id,
@@ -463,7 +529,7 @@ export default function FuelStocksPage() {
                 <div>📁 Mock данные: {mockFuelStocks.length} записей</div>
                 <div>🔄 Загрузка: {loading ? 'Да' : 'Нет'}</div>
                 <div>✅ Есть сеть: {selectedNetwork ? 'Да' : 'НЕТ'}</div>
-                <div>🎛️ Источник данных: {selectedNetwork ? 'Исторические' : 'Mock'}</div>
+                <div>🎛️ Источник данных: {historicalData.length > 0 ? 'Исторические' : 'Mock'}</div>
                 <div>📊 Фильтрованных: {filteredStocks.length} записей</div>
               </div>
               
@@ -473,17 +539,17 @@ export default function FuelStocksPage() {
           </div>
         </div>
 
-        {selectedNetwork && (
-          <>
-            {/* График динамики остатков */}
-            <div className="report-margins">
-              <div className="grid grid-cols-1 gap-4">
-                <FuelStocksChart 
-                  selectedNetwork={selectedNetwork?.id || null}
-                  selectedTradingPoint={selectedTradingPoint}
-                />
-                
-                {/* Компактные фильтры для таблицы */}
+        {/* Показываем интерфейс всегда, не только для выбранной сети */}
+        <>
+          {/* График динамики остатков */}
+          <div className="report-margins">
+            <div className="grid grid-cols-1 gap-4">
+              <FuelStocksChart 
+                selectedNetwork={selectedNetwork?.id || null}
+                selectedTradingPoint={selectedTradingPoint}
+              />
+              
+              {/* Компактные фильтры для таблицы */}
                 <Card className="bg-slate-800 border-slate-700">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-white flex items-center gap-2 text-lg">
@@ -510,10 +576,10 @@ export default function FuelStocksPage() {
                           onChange={(e) => setSelectedDateTime(e.target.value)}
                           min="2025-08-01T00:00"
                           max="2025-08-31T23:59"
-                          className="bg-slate-700 border-slate-600 text-white text-sm h-9"
+                          className="bg-slate-700 border-slate-600 text-white text-sm h-9 [&::-webkit-datetime-edit-text]:text-white [&::-webkit-datetime-edit-month-field]:text-white [&::-webkit-datetime-edit-day-field]:text-white [&::-webkit-datetime-edit-year-field]:text-white [&::-webkit-datetime-edit-hour-field]:text-white [&::-webkit-datetime-edit-minute-field]:text-white"
                         />
-                        <div className="text-xs text-slate-500 mt-1 space-y-0.5">
-                          <p>Август 2025, шаг 4ч</p>
+                        <div className="text-xs mt-1 space-y-0.5">
+                          <p className="text-slate-300">Август 2025, шаг 4ч</p>
                           {lastRefreshTime && (
                             <p className="text-green-400">
                               ↻ Обновлено: {lastRefreshTime.toLocaleTimeString('ru-RU')}
@@ -794,8 +860,7 @@ export default function FuelStocksPage() {
               </CardContent>
             </Card>
             </div>
-          </>
-        )}
+        </>
 
         {/* Сообщение о выборе сети */}
         {!selectedNetwork && (

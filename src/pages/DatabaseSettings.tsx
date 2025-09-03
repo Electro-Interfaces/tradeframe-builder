@@ -52,7 +52,11 @@ export default function DatabaseSettings() {
     timeout: 5000,
     retryAttempts: 3,
     poolSize: 10,
-    ssl: false
+    ssl: false,
+    authType: 'none' as const,
+    username: '',
+    password: '',
+    apiKey: ''
   });
 
   useEffect(() => {
@@ -161,7 +165,11 @@ export default function DatabaseSettings() {
           timeout: newConnection.timeout,
           retryAttempts: newConnection.retryAttempts,
           poolSize: newConnection.poolSize,
-          ssl: newConnection.ssl
+          ssl: newConnection.ssl,
+          authType: newConnection.authType,
+          username: newConnection.username,
+          password: newConnection.password,
+          apiKey: newConnection.apiKey
         }
       });
 
@@ -175,7 +183,11 @@ export default function DatabaseSettings() {
         timeout: 5000,
         retryAttempts: 3,
         poolSize: 10,
-        ssl: false
+        ssl: false,
+        authType: 'none',
+        username: '',
+        password: '',
+        apiKey: ''
       });
 
       toast({
@@ -236,6 +248,8 @@ export default function DatabaseSettings() {
       case 'postgresql': return 'bg-blue-500';
       case 'mysql': return 'bg-orange-500';
       case 'sqlite': return 'bg-green-500';
+      case 'supabase': return 'bg-emerald-500';
+      case 'external-api': return 'bg-purple-500';
       default: return 'bg-gray-500';
     }
   };
@@ -368,6 +382,8 @@ export default function DatabaseSettings() {
                               <SelectItem value="postgresql">PostgreSQL</SelectItem>
                               <SelectItem value="mysql">MySQL</SelectItem>
                               <SelectItem value="sqlite">SQLite</SelectItem>
+                              <SelectItem value="supabase">Supabase</SelectItem>
+                              <SelectItem value="external-api">External API</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -394,6 +410,68 @@ export default function DatabaseSettings() {
                       </div>
 
                       <Separator />
+                      
+                      {/* Настройки аутентификации для External API */}
+                      {newConnection.type === 'external-api' && (
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Настройки аутентификации</h4>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="authType">Тип аутентификации</Label>
+                            <Select 
+                              value={newConnection.authType} 
+                              onValueChange={(value: any) => setNewConnection(prev => ({ ...prev, authType: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Без аутентификации</SelectItem>
+                                <SelectItem value="basic">Basic Auth</SelectItem>
+                                <SelectItem value="bearer">Bearer Token</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {newConnection.authType === 'basic' && (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="username">Логин</Label>
+                                <Input
+                                  id="username"
+                                  value={newConnection.username}
+                                  onChange={(e) => setNewConnection(prev => ({ ...prev, username: e.target.value }))}
+                                  placeholder="UserApi"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="password">Пароль</Label>
+                                <Input
+                                  id="password"
+                                  type="password"
+                                  value={newConnection.password}
+                                  onChange={(e) => setNewConnection(prev => ({ ...prev, password: e.target.value }))}
+                                  placeholder="••••••••"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {newConnection.authType === 'bearer' && (
+                            <div className="space-y-2">
+                              <Label htmlFor="apiKey">API Ключ / Token</Label>
+                              <Textarea
+                                id="apiKey"
+                                value={newConnection.apiKey}
+                                onChange={(e) => setNewConnection(prev => ({ ...prev, apiKey: e.target.value }))}
+                                placeholder="Введите API ключ или Bearer токен"
+                              />
+                            </div>
+                          )}
+                          
+                          <Separator />
+                        </div>
+                      )}
                       
                       <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
@@ -515,13 +593,22 @@ export default function DatabaseSettings() {
                       )}
                       
                       {!connection.isDefault && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteConnectionId(connection.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingConnection(connection)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteConnectionId(connection.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -607,6 +694,180 @@ export default function DatabaseSettings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Диалог редактирования подключения */}
+        <Dialog open={!!editingConnection} onOpenChange={() => setEditingConnection(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Редактирование подключения</DialogTitle>
+            </DialogHeader>
+            {editingConnection && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-name">Название</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingConnection.name}
+                    onChange={(e) => setEditingConnection({
+                      ...editingConnection,
+                      name: e.target.value
+                    })}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-url">URL</Label>
+                  <Input
+                    id="edit-url"
+                    value={editingConnection.url}
+                    onChange={(e) => setEditingConnection({
+                      ...editingConnection,
+                      url: e.target.value
+                    })}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-description">Описание</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={editingConnection.description || ''}
+                    onChange={(e) => setEditingConnection({
+                      ...editingConnection,
+                      description: e.target.value
+                    })}
+                  />
+                </div>
+                
+                {editingConnection.type === 'supabase' && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-apikey">API Key</Label>
+                    <Textarea
+                      id="edit-apikey"
+                      value={editingConnection.settings?.apiKey || ''}
+                      onChange={(e) => setEditingConnection({
+                        ...editingConnection,
+                        settings: {
+                          ...editingConnection.settings,
+                          apiKey: e.target.value
+                        }
+                      })}
+                      placeholder="Введите API ключ Supabase"
+                    />
+                  </div>
+                )}
+                
+                {editingConnection.type === 'external-api' && (
+                  <div className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-authType">Тип аутентификации</Label>
+                      <Select 
+                        value={editingConnection.settings?.authType || 'none'} 
+                        onValueChange={(value: any) => setEditingConnection({
+                          ...editingConnection,
+                          settings: {
+                            ...editingConnection.settings,
+                            authType: value
+                          }
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Без аутентификации</SelectItem>
+                          <SelectItem value="basic">Basic Auth</SelectItem>
+                          <SelectItem value="bearer">Bearer Token</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {editingConnection.settings?.authType === 'basic' && (
+                      <>
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-username">Логин</Label>
+                          <Input
+                            id="edit-username"
+                            value={editingConnection.settings?.username || ''}
+                            onChange={(e) => setEditingConnection({
+                              ...editingConnection,
+                              settings: {
+                                ...editingConnection.settings,
+                                username: e.target.value
+                              }
+                            })}
+                            placeholder="UserApi"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-password">Пароль</Label>
+                          <Input
+                            id="edit-password"
+                            type="password"
+                            value={editingConnection.settings?.password || ''}
+                            onChange={(e) => setEditingConnection({
+                              ...editingConnection,
+                              settings: {
+                                ...editingConnection.settings,
+                                password: e.target.value
+                              }
+                            })}
+                            placeholder="••••••••"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {editingConnection.settings?.authType === 'bearer' && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-apikey-bearer">API Ключ / Token</Label>
+                        <Textarea
+                          id="edit-apikey-bearer"
+                          value={editingConnection.settings?.apiKey || ''}
+                          onChange={(e) => setEditingConnection({
+                            ...editingConnection,
+                            settings: {
+                              ...editingConnection.settings,
+                              apiKey: e.target.value
+                            }
+                          })}
+                          placeholder="Введите API ключ или Bearer токен"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setEditingConnection(null)}>
+                    Отмена
+                  </Button>
+                  <Button onClick={async () => {
+                    try {
+                      await apiConfigService.updateConnection(editingConnection.id, {
+                        name: editingConnection.name,
+                        url: editingConnection.url,
+                        description: editingConnection.description,
+                        settings: editingConnection.settings
+                      });
+                      setEditingConnection(null);
+                      loadConnections();
+                      toast({ title: "Подключение обновлено" });
+                    } catch (error: any) {
+                      toast({
+                        title: "Ошибка обновления",
+                        description: error.message,
+                        variant: "destructive"
+                      });
+                    }
+                  }}>
+                    Сохранить
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Диалог подтверждения удаления */}
         <AlertDialog open={!!deleteConnectionId} onOpenChange={() => setDeleteConnectionId(null)}>

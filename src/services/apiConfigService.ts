@@ -5,12 +5,13 @@
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { createSupabaseFromSettings } from '@/services/supabaseClient';
 
 export interface DatabaseConnection {
   id: string;
   name: string;
   url: string;
-  type: 'postgresql' | 'mysql' | 'sqlite' | 'mock';
+  type: 'postgresql' | 'mysql' | 'sqlite' | 'mock' | 'supabase' | 'external-api';
   description?: string;
   isActive: boolean;
   isDefault: boolean;
@@ -22,6 +23,15 @@ export interface DatabaseConnection {
     retryAttempts?: number;
     poolSize?: number;
     ssl?: boolean;
+    // Специфичные настройки для Supabase
+    apiKey?: string;
+    serviceRoleKey?: string;
+    schema?: string;
+    autoApiKey?: boolean;
+    // Настройки для внешнего API с базовой аутентификацией
+    username?: string;
+    password?: string;
+    authType?: 'basic' | 'bearer' | 'none';
   };
 }
 
@@ -85,6 +95,45 @@ const initialConfig: ApiConfig = {
         retryAttempts: 5,
         poolSize: 20,
         ssl: true
+      }
+    },
+    {
+      id: 'supabase-db',
+      name: 'Supabase БД',
+      url: 'https://tohtryzyffcebtyvkxwh.supabase.co',
+      type: 'supabase',
+      description: 'Supabase PostgreSQL база данных с REST API',
+      isActive: false,
+      isDefault: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      settings: {
+        timeout: 8000,
+        retryAttempts: 3,
+        ssl: true,
+        apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI',
+        serviceRoleKey: '',
+        schema: 'public',
+        autoApiKey: true
+      }
+    },
+    {
+      id: 'trading-network-api',
+      name: 'API торговой сети',
+      url: 'https://pos.autooplata.ru/tms/',
+      type: 'external-api',
+      description: 'Внешний API торговой сети для интеграции с POS-системой',
+      isActive: false,
+      isDefault: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      settings: {
+        timeout: 10000,
+        retryAttempts: 3,
+        ssl: true,
+        authType: 'basic',
+        username: 'UserApi',
+        password: 'lHQfLZHzB3tn'
       }
     }
   ]
@@ -287,6 +336,116 @@ export const apiConfigService = {
         responseTime: 50,
         details: { mode: 'mock', storage: 'localStorage' }
       };
+    }
+
+    // Supabase подключение
+    if (connection.type === 'supabase') {
+      const startTime = Date.now();
+      try {
+        const apiKey = connection.settings?.apiKey;
+        if (!apiKey) {
+          return {
+            success: false,
+            error: 'API ключ не настроен для Supabase подключения'
+          };
+        }
+
+        const supabaseClient = createSupabaseFromSettings(
+          connection.url, 
+          apiKey, 
+          connection.settings?.schema || 'public'
+        );
+        
+        const testResult = await supabaseClient.testConnection();
+        const responseTime = Date.now() - startTime;
+        
+        if (testResult.success) {
+          return {
+            success: true,
+            responseTime,
+            details: {
+              type: 'supabase',
+              url: connection.url,
+              schema: connection.settings?.schema || 'public',
+              ...testResult.info
+            }
+          };
+        } else {
+          return {
+            success: false,
+            error: testResult.error || 'Не удалось подключиться к Supabase',
+            responseTime
+          };
+        }
+      } catch (error) {
+        const responseTime = Date.now() - startTime;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+          responseTime
+        };
+      }
+    }
+
+    // Тестируем внешний API с базовой аутентификацией
+    if (connection.type === 'external-api') {
+      const startTime = Date.now();
+      try {
+        const headers: Record<string, string> = {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        };
+
+        // Добавляем базовую аутентификацию
+        if (connection.settings?.authType === 'basic' && connection.settings?.username && connection.settings?.password) {
+          const credentials = btoa(`${connection.settings.username}:${connection.settings.password}`);
+          headers['Authorization'] = `Basic ${credentials}`;
+        }
+
+        const response = await fetch(connection.url, {
+          method: 'GET',
+          headers,
+          signal: AbortSignal.timeout(connection.settings?.timeout || 10000)
+        });
+
+        const responseTime = Date.now() - startTime;
+
+        if (response.ok) {
+          let responseData = null;
+          try {
+            responseData = await response.json();
+          } catch {
+            responseData = await response.text();
+          }
+
+          return {
+            success: true,
+            responseTime,
+            details: {
+              type: 'external-api',
+              url: connection.url,
+              status: response.status,
+              statusText: response.statusText,
+              authType: connection.settings?.authType || 'none',
+              response: responseData
+            }
+          };
+        } else {
+          const errorText = await response.text();
+          return {
+            success: false,
+            error: `HTTP ${response.status}: ${response.statusText}${errorText ? ' - ' + errorText : ''}`,
+            responseTime
+          };
+        }
+      } catch (error: any) {
+        const responseTime = Date.now() - startTime;
+        return {
+          success: false,
+          error: error.message || 'Ошибка подключения к внешнему API',
+          responseTime
+        };
+      }
     }
 
     // Тестируем HTTP подключение

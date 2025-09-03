@@ -34,7 +34,9 @@ import {
   Archive,
   RefreshCw,
   Upload,
-  AlertTriangle
+  AlertTriangle,
+  Save,
+  X
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HelpButton } from "@/components/help/HelpButton";
@@ -226,6 +228,11 @@ export default function Prices() {
   const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
   const [networkServices, setNetworkServices] = useState<TradingNetworkService[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  
+  // Состояния для inline-редактирования цен
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState<string>("");
+  const [hasChanges, setHasChanges] = useState(false);
 
   const form = useForm<PriceFormData>({
     resolver: zodResolver(priceFormSchema),
@@ -490,6 +497,100 @@ export default function Prices() {
     return service?.service_code || null;
   };
 
+  // Функции для inline-редактирования
+  const handleInlineEdit = (priceId: string, currentGrossPrice: number) => {
+    setEditingPriceId(priceId);
+    setEditingValue((currentGrossPrice / 100).toFixed(2)); // Convert kopeks to rubles
+    setHasChanges(false);
+  };
+
+  const handleEditingValueChange = (value: string) => {
+    setEditingValue(value);
+    const currentPrice = currentPrices.find(p => p.id === editingPriceId);
+    const currentGrossPrice = currentPrice ? (currentPrice.priceGross / 100).toFixed(2) : "0";
+    setHasChanges(value !== currentGrossPrice);
+  };
+
+  const handleCancelInlineEdit = () => {
+    setEditingPriceId(null);
+    setEditingValue("");
+    setHasChanges(false);
+  };
+
+  const handleSaveInlinePrice = async () => {
+    if (!editingPriceId || !hasChanges) return;
+    
+    const price = currentPrices.find(p => p.id === editingPriceId);
+    if (!price) return;
+
+    try {
+      const newGrossPrice = Math.round(parseFloat(editingValue) * 100); // Convert to kopeks
+      const newNetPrice = Math.round(newGrossPrice / (1 + price.vatRate / 100)); // Calculate net price from gross
+
+      // Save to API through tradingNetworkAPI
+      const tradingPointId = typeof selectedTradingPoint === 'string' 
+        ? selectedTradingPoint 
+        : selectedTradingPoint?.id;
+      
+      if (tradingPointId) {
+        const serviceCode = getServiceCode(price.fuelType);
+        if (serviceCode) {
+          // Convert trading point id to station number for API call
+          const stationNumber = parseInt(tradingPointId.replace('point', '')) + 76; // point1 -> 77, etc.
+          
+          await tradingNetworkAPI.setPrices(
+            stationNumber,
+            { [serviceCode.toString()]: newGrossPrice / 100 }, // API expects price in rubles
+            new Date().toISOString()
+          );
+        }
+      }
+
+      // Update local state
+      setCurrentPrices(prev => prev.map(p => 
+        p.id === editingPriceId 
+          ? {
+              ...p,
+              priceNet: newNetPrice,
+              priceGross: newGrossPrice,
+              appliedFrom: new Date().toLocaleString('ru-RU')
+            }
+          : p
+      ));
+
+      // Add journal entry
+      const journalEntry: PriceJournalEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toLocaleString('ru-RU'),
+        fuelType: price.fuelType,
+        fuelCode: price.fuelCode,
+        priceNet: newNetPrice,
+        priceGross: newGrossPrice,
+        vatRate: price.vatRate,
+        source: "manual",
+        packageId: `pkg_${Date.now()}`,
+        status: "applied",
+        authorName: "Текущий пользователь",
+        tradingPoint: "АЗС-1 на Московской"
+      };
+      setJournalEntries(prev => [journalEntry, ...prev]);
+
+      toast({
+        title: "Цена обновлена",
+        description: `Цена на ${price.fuelType} успешно обновлена до ${editingValue} ₽/л`,
+      });
+
+      handleCancelInlineEdit();
+    } catch (error) {
+      console.error('Ошибка сохранения цены:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить новую цену",
+        variant: "destructive"
+      });
+    }
+  };
+
 
   // Проверка выбора торговой точки
   if (!selectedTradingPoint) {
@@ -526,7 +627,7 @@ export default function Prices() {
               <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
               <p className="text-slate-400 mt-2">Управление ценами на топливо с отложенным применением и журналом изменений</p>
             </div>
-            <HelpButton route="/prices" variant="text" className="ml-4 flex-shrink-0" />
+            <HelpButton route="/point/prices" variant="text" className="ml-4 flex-shrink-0" />
           </div>
         </div>
 
@@ -686,7 +787,35 @@ export default function Prices() {
                     </div>
                     <div className="flex items-center justify-between border-t border-slate-600 pt-2">
                       <span className="text-slate-400 text-sm">С НДС:</span>
-                      <span className="text-white font-bold text-lg">{formatPrice(price.priceGross)}</span>
+                      {editingPriceId === price.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editingValue}
+                            onChange={(e) => handleEditingValueChange(e.target.value)}
+                            className="w-24 h-8 text-right bg-slate-700 border-slate-600 text-white font-bold text-sm"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleSaveInlinePrice();
+                              } else if (e.key === 'Escape') {
+                                handleCancelInlineEdit();
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <span className="text-slate-400 text-sm">₽</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleInlineEdit(price.id, price.priceGross)}
+                          className="text-white font-bold text-lg hover:text-blue-400 hover:underline transition-colors cursor-pointer"
+                          title="Нажмите для редактирования цены"
+                        >
+                          {formatPrice(price.priceGross)}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -704,23 +833,48 @@ export default function Prices() {
 
                   {/* Действия */}
                   <div className="flex gap-2 pt-3 border-t border-slate-700">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditPrice(price)}
-                      className="flex-1 text-slate-400 hover:text-white hover:bg-slate-700"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Редактировать
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
-                      title="История цены"
-                    >
-                      <History className="w-4 h-4" />
-                    </Button>
+                    {editingPriceId === price.id ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleSaveInlinePrice}
+                          disabled={!hasChanges}
+                          className="flex-1 text-green-400 hover:text-green-300 hover:bg-green-500/10 disabled:text-slate-500 disabled:hover:text-slate-500"
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          Сохранить
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCancelInlineEdit}
+                          className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditPrice(price)}
+                          className="flex-1 text-slate-400 hover:text-white hover:bg-slate-700"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Редактировать
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
+                          title="История цены"
+                        >
+                          <History className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

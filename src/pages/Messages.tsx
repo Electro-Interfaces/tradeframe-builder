@@ -333,7 +333,7 @@ export default function Messages() {
                 {selectedTradingPoint && ` - Точка: ${selectedTradingPoint.name}`}
               </p>
             </div>
-            <HelpButton route="/network/messages" className="flex-shrink-0" />
+            <HelpButton route="/network/messages" variant="text" className="flex-shrink-0" />
           </div>
         </div>
 

@@ -82,7 +82,7 @@ export default function NetworkOverview() {
                 <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
                 <p className="text-slate-400 mt-2">Общая информация и аналитика по торговой сети</p>
               </div>
-              <HelpButton route="/dashboard" className="flex-shrink-0" />
+              <HelpButton route="/dashboard" variant="text" className="flex-shrink-0" />
             </div>
           </div>
 

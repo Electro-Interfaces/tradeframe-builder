@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { HelpButton } from "@/components/help/HelpButton";
 
 // Импортируем существующие сервисы
 import { currentEquipmentAPI } from '@/services/equipment';
@@ -498,10 +499,15 @@ export default function NetworkEquipmentLog() {
       <div className="w-full space-y-6 report-full-width">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-          <h1 className="text-2xl font-semibold text-white">Журнал оборудования</h1>
-          <p className="text-slate-400 mt-2">
-            {networkInfo ? `${networkInfo.name} - Просмотр оборудования, компонентов и команд по всем торговым точкам` : 'Загрузка информации о сети...'}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Журнал оборудования</h1>
+              <p className="text-slate-400 mt-2">
+                {networkInfo ? `${networkInfo.name} - Просмотр оборудования, компонентов и команд по всем торговым точкам` : 'Загрузка информации о сети...'}
+              </p>
+            </div>
+            <HelpButton route="/network/equipment-log" variant="text" className="flex-shrink-0" />
+          </div>
         </div>
 
         <div className="mx-4 md:mx-6 lg:mx-8">

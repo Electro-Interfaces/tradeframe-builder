@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { RoleService } from '@/services/roleService'
+import { HelpButton } from "@/components/help/HelpButton"
 import type { Role } from '@/types/auth'
 import { RoleFormDialog } from '@/components/admin/roles/RoleFormDialog'
 import { PermissionBuilder } from '@/components/admin/roles/PermissionBuilder'
@@ -101,10 +102,15 @@ export default function RolesPage() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Роли системы</h1>
-          <p className="text-slate-400 mt-2">
-            Управление ролями и конфигурация разрешений для контроля доступа в системе
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Роли системы</h1>
+              <p className="text-slate-400 mt-2">
+                Управление ролями и конфигурация разрешений для контроля доступа в системе
+              </p>
+            </div>
+            <HelpButton route="/admin/roles" variant="text" className="flex-shrink-0" />
+          </div>
         </div>
 
 

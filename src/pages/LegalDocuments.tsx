@@ -22,6 +22,7 @@ import {
   Download
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { HelpButton } from "@/components/help/HelpButton";
 import { legalDocumentsService } from '@/services/legalDocumentsService';
 import { 
   DocumentTypeInfo, 
@@ -281,8 +282,11 @@ export default function LegalDocuments() {
               </p>
             </div>
             
-            {!isMobile && (
-              <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
+              <HelpButton route="/admin/legal-documents" variant="text" className="flex-shrink-0" />
+            
+              {!isMobile && (
+                <>
                 <Button
                   onClick={() => navigate('/admin/legal-documents/users-acceptances')}
                   variant="outline"
@@ -309,8 +313,9 @@ export default function LegalDocuments() {
                   <Eye className="w-4 h-4 mr-2" />
                   Журнал действий
                 </Button>
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 

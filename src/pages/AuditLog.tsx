@@ -35,6 +35,7 @@ import {
   FileText,
   Wrench
 } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 
 // Mock audit events data
 const auditEvents = [
@@ -707,8 +708,13 @@ export default function AuditLog() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Журнал аудита</h1>
-          <p className="text-slate-400 mt-2">Полный лог всех действий пользователей в системе</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Журнал аудита</h1>
+              <p className="text-slate-400 mt-2">Полный лог всех действий пользователей в системе</p>
+            </div>
+            <HelpButton route="/admin/audit" variant="text" className="flex-shrink-0" />
+          </div>
         </div>
 
         {/* Панель аудита */}

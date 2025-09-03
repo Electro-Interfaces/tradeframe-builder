@@ -766,7 +766,7 @@ export default function Tanks() {
               </h1>
               <p className="text-slate-400 mt-2">Мониторинг запасов топлива и управление операциями</p>
             </div>
-            <HelpButton route="/point/tanks" className="flex-shrink-0" />
+            <HelpButton route="/point/tanks" variant="text" className="flex-shrink-0" />
           </div>
         </div>
 

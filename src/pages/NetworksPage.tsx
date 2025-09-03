@@ -16,6 +16,7 @@ import { TradingPoint, TradingPointInput, TradingPointUpdateInput } from "@/type
 import { networksService } from "@/services/networksService";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { useToast } from "@/hooks/use-toast";
+import { HelpButton } from "@/components/help/HelpButton";
 
 export default function NetworksPage() {
   const { toast } = useToast();
@@ -393,7 +394,10 @@ export default function NetworksPage() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
       {/* Заголовок страницы */}
       <div className="mb-6 pt-4">
-        <h1 className="text-2xl font-semibold text-white">Настройки сетей и торговых точек</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-white">Настройки сетей и торговых точек</h1>
+          <HelpButton route="/admin/networks" variant="text" className="flex-shrink-0" />
+        </div>
       </div>
 
       {/* Панель торговых сетей */}

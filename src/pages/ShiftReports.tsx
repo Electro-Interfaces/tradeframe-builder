@@ -45,6 +45,7 @@ import {
   FileX,
   CheckCircle
 } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 
 
 export default function ShiftReports() {
@@ -203,13 +204,18 @@ export default function ShiftReports() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Сменные отчёты АЗС</h1>
-          <p className="text-slate-400 mt-2">
-            Отчёты по форме 25-НП для торговой точки: {selectedTradingPoint?.name}
-          </p>
-          {loading && (
-            <p className="text-slate-500 text-sm">Загрузка сменных отчетов...</p>
-          )}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Сменные отчёты АЗС</h1>
+              <p className="text-slate-400 mt-2">
+                Отчёты по форме 25-НП для торговой точки: {selectedTradingPoint?.name}
+              </p>
+              {loading && (
+                <p className="text-slate-500 text-sm">Загрузка сменных отчетов...</p>
+              )}
+            </div>
+            <HelpButton route="/point/shift-reports" variant="text" className="flex-shrink-0" />
+          </div>
         </div>
 
         {/* Панель фильтров */}

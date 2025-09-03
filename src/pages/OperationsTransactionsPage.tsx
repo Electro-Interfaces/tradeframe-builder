@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, Download, Filter, Clock, CheckCircle, XCircle, PlayCircle, PauseCircle, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { operationsService, Operation } from "@/services/operationsService";
+import { nomenclatureService } from "@/services/nomenclatureService";
 
 // Получение правильных типов операций из сервиса
 const operationTypeMap = {
@@ -54,36 +55,9 @@ export default function OperationsTransactionsPage() {
   const isNetworkOnly = selectedNetwork && (!selectedTradingPoint || selectedTradingPoint === "all");
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint && selectedTradingPoint !== "all";
 
-  // Загрузка операций при монтировании компонента
+  // Отключена автозагрузка - используйте кнопку "Очистить данные"
   useEffect(() => {
-    const loadOperations = async () => {
-      try {
-        setLoading(true);
-        // Проверяем, есть ли данные в localStorage
-        const hasStoredData = localStorage.getItem('tradeframe_operations');
-        
-        if (!hasStoredData) {
-          // Если нет сохраненных данных, принудительно загружаем демо-данные
-          console.log('Нет сохраненных операций, загружаем демо-данные');
-          // Принудительно очищаем кэш и перезагружаем данные
-          localStorage.removeItem('tradeframe_operations');
-        }
-        
-        const data = await operationsService.getAll();
-        console.log('Загружено операций:', data.length);
-        console.log('Данные операций:', data);
-        console.log('Уникальные виды топлива:', [...new Set(data.map(op => op.fuelType).filter(Boolean))]);
-        console.log('Уникальные способы оплаты:', [...new Set(data.map(op => op.paymentMethod).filter(Boolean))]);
-        console.log('localStorage tradeframe_operations:', localStorage.getItem('tradeframe_operations'));
-        setOperations(data);
-      } catch (error) {
-        console.error('Ошибка загрузки операций:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadOperations();
+    setLoading(false);
   }, []);
 
   // Функция для перезагрузки операций
@@ -96,6 +70,7 @@ export default function OperationsTransactionsPage() {
       
       const statusStats = await operationsService.getStatusStatistics();
       console.log('📊 Обновленная статистика по статусам:', statusStats);
+      // Данные обновлены
     } catch (error) {
       console.error('Ошибка при перезагрузке операций:', error);
     } finally {
@@ -103,21 +78,21 @@ export default function OperationsTransactionsPage() {
     }
   };
 
-  // Автообновление данных каждые 5 секунд
-  useEffect(() => {
-    if (!autoRefresh) return;
+  // ВРЕМЕННО ОТКЛЮЧЕНО автообновление данных
+  // useEffect(() => {
+  //   if (!autoRefresh) return;
     
-    const interval = setInterval(async () => {
-      try {
-        const data = await operationsService.getAll();
-        setOperations(data);
-      } catch (error) {
-        console.error('Ошибка обновления операций:', error);
-      }
-    }, 5000);
+  //   const interval = setInterval(async () => {
+  //     try {
+  //       const data = await operationsService.getAll();
+  //       setOperations(data);
+  //     } catch (error) {
+  //       console.error('Ошибка обновления операций:', error);
+  //     }
+  //   }, 5000);
 
-    return () => clearInterval(interval);
-  }, [autoRefresh]);
+  //   return () => clearInterval(interval);
+  // }, [autoRefresh]);
 
   // Фильтрация данных
   const filteredOperations = useMemo(() => {
@@ -128,13 +103,23 @@ export default function OperationsTransactionsPage() {
         return false;
       }
       
+      // ВРЕМЕННО ОТКЛЮЧЕН ФИЛЬТР ПО ТОРГОВЫМ ТОЧКАМ - ПОКАЗЫВАЕМ ВСЕ ОПЕРАЦИИ
       // Фильтр по торговой точке (если выбрана конкретная точка)
-      if (selectedTradingPoint && selectedTradingPoint !== "all") {
-        // Выбрана конкретная торговая точка - показываем только её операции
-        if (record.tradingPointId !== selectedTradingPoint) return false;
-      }
-      // Если выбрана только сеть или не выбрано ничего,
-      // показываем операции всех точек (все операции в демо-данных)
+      // if (selectedTradingPoint && selectedTradingPoint !== "all") {
+      //   // Конвертируем ID торговой точки для сопоставления
+      //   // point1 -> station_01, point2 -> station_02, etc.
+      //   let stationId;
+      //   if (selectedTradingPoint === 'point1') stationId = 'station_01';
+      //   else if (selectedTradingPoint === 'point2') stationId = 'station_02';
+      //   else if (selectedTradingPoint === 'point3') stationId = 'station_03';
+      //   else if (selectedTradingPoint === 'point4') stationId = 'station_04';
+      //   else if (selectedTradingPoint === 'point5') stationId = 'station_05';
+      //   else if (selectedTradingPoint === 'point6') stationId = 'station_06';
+      //   else stationId = selectedTradingPoint;
+      //   console.log('🔍 Фильтр торговых точек:', { selectedTradingPoint, stationId, recordTradingPointId: record.tradingPointId });
+      //   if (record.tradingPointId !== stationId) return false;
+      // }
+      // Показываем операции всех торговых точек
       
       
       // Фильтр по статусу
@@ -181,17 +166,38 @@ export default function OperationsTransactionsPage() {
     });
   }, [operations, selectedStatus, selectedFuelType, selectedPaymentMethod, searchQuery, dateFrom, dateTo, selectedNetwork, selectedTradingPoint]);
 
-  // Отладочная информация
-  console.log('Всего операций:', operations.length);
-  console.log('Отфильтрованных операций:', filteredOperations.length);
-  console.log('Фильтры:', { selectedStatus, selectedFuelType, selectedPaymentMethod, searchQuery, dateFrom, dateTo });
+  // Отладочная информация убрана для предотвращения зависания
 
-  // Получаем все виды топлива из номенклатуры демо-сети
-  const fuelTypes = useMemo(() => {
-    // Статический список всех видов топлива из номенклатуры
-    const allFuelTypes = ["АИ-92", "АИ-95", "АИ-98", "ДТ", "АИ-100"];
-    return ["Все", ...allFuelTypes];
-  }, []);
+  // Состояние для видов топлива из номенклатуры
+  const [fuelTypes, setFuelTypes] = useState<string[]>(["Все"]);
+  
+  // Загружаем виды топлива из номенклатуры
+  useEffect(() => {
+    const loadFuelTypes = async () => {
+      try {
+        const nomenclature = await nomenclatureService.getNomenclature();
+        
+        // Фильтруем только активные виды топлива для выбранной сети
+        const networkId = selectedNetwork?.id || '1'; // По умолчанию демо сеть
+        const activeFuelTypes = nomenclature
+          .filter(item => 
+            item.status === 'active' && 
+            item.networkId === networkId
+          )
+          .map(item => item.name)
+          .sort();
+          
+        console.log('📋 Загружены виды топлива из номенклатуры:', activeFuelTypes);
+        setFuelTypes(["Все", ...activeFuelTypes]);
+      } catch (error) {
+        console.error('Ошибка загрузки номенклатуры:', error);
+        // Fallback на статический список
+        setFuelTypes(["Все", "АИ-92", "АИ-95", "АИ-98", "ДТ", "АИ-100"]);
+      }
+    };
+
+    loadFuelTypes();
+  }, [selectedNetwork]);
 
   // Получаем только разрешенные способы оплаты для фильтра (но показываем все операции)
   const paymentMethods = useMemo(() => {
@@ -234,6 +240,8 @@ export default function OperationsTransactionsPage() {
     
     return fuelStats;
   }, [filteredOperations]);
+
+  // Отладка KPI убрана для предотвращения зависания
 
   // KPI данные - по видам оплаты
   const paymentKpis = useMemo(() => {
@@ -331,7 +339,7 @@ export default function OperationsTransactionsPage() {
                   </>
                 )}
               </Button>
-              <HelpButton route="/network/operations-transactions" className="flex-shrink-0" />
+              <HelpButton route="/network/operations-transactions" variant="text" className="flex-shrink-0" />
             </div>
           </div>
           <div className="flex items-center gap-4 mt-4">
@@ -374,10 +382,27 @@ export default function OperationsTransactionsPage() {
                     <Button 
                       variant="destructive" 
                       className="flex-shrink-0"
-                      onClick={() => {
+                      onClick={async () => {
                         if (confirm('Очистить все сохраненные операции и вернуться к демо-данным?')) {
                           localStorage.removeItem('tradeframe_operations');
-                          window.location.reload();
+                          await reloadOperations();
+                          
+                          // Принудительно перезагрузить виды топлива
+                          try {
+                            const nomenclature = await nomenclatureService.getNomenclature();
+                            const networkId = selectedNetwork?.id || '1';
+                            const activeFuelTypes = nomenclature
+                              .filter(item => 
+                                item.status === 'active' && 
+                                item.networkId === networkId
+                              )
+                              .map(item => item.name)
+                              .sort();
+                            setFuelTypes(["Все", ...activeFuelTypes]);
+                          } catch (error) {
+                            console.error('Ошибка перезагрузки номенклатуры:', error);
+                            setFuelTypes(["Все", "АИ-92", "АИ-95", "АИ-98", "ДТ", "АИ-100"]);
+                          }
                         }
                       }}
                     >
@@ -528,8 +553,8 @@ export default function OperationsTransactionsPage() {
                       <Activity className="h-4 w-4 text-slate-400" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-white">{stats.revenue.toFixed(0)} ₽</div>
-                      <p className="text-xs text-slate-400">{stats.volume.toFixed(0)} л</p>
+                      <div className="text-2xl font-bold text-white">{stats.volume.toFixed(0)} л</div>
+                      <p className="text-sm text-slate-400">{stats.revenue.toFixed(0)} ₽</p>
                       <p className="text-xs text-blue-400">{stats.operations} операций</p>
                     </CardContent>
                   </Card>
