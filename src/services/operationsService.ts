@@ -6,7 +6,7 @@
 import { PersistentStorage } from '@/utils/persistentStorage';
 import { getApiBaseUrl } from '@/services/apiConfigService';
 
-export type OperationType = 'sale' | 'refund' | 'correction' | 'maintenance' | 'fuel_loading' | 'cash_collection' | 'tank_loading' | 'diagnostics' | 'sensor_calibration';
+export type OperationType = 'sale' | 'refund' | 'correction' | 'maintenance' | 'tank_loading' | 'diagnostics' | 'sensor_calibration';
 export type OperationStatus = 'completed' | 'in_progress' | 'failed' | 'pending' | 'cancelled';
 export type PaymentMethod = 'bank_card' | 'cash' | 'corporate_card' | 'fuel_card' | 'online_order';
 
@@ -188,32 +188,6 @@ const initialOperations: Operation[] = [
     metadata: { orderType: "website" },
     createdAt: new Date('2025-08-31T22:15:00.000Z'),
     updatedAt: new Date('2025-08-31T22:17:30.000Z')
-  },
-  {
-    id: "TXN-AUG-NEW-006",
-    operationType: "cash_collection",
-    status: "completed",
-    startTime: "2025-08-31T23:00:00.000Z",
-    endTime: "2025-08-31T23:15:00.000Z",
-    duration: 15,
-    tradingPointId: "station_01",
-    tradingPointName: "АЗС №1 Центральная",
-    deviceId: "CASH-001",
-    transactionId: "TXN-AUG-NEW-006",
-    fuelType: undefined,
-    quantity: undefined,
-    price: undefined,
-    totalCost: 125000,
-    paymentMethod: "cash",
-    details: "Инкассация наличных средств",
-    progress: 100,
-    lastUpdated: "2025-08-31T23:15:00.000Z",
-    operatorName: "Смирнов С.М.",
-    customerId: undefined,
-    vehicleNumber: undefined,
-    metadata: { cashAmount: 125000, bags: 3 },
-    createdAt: new Date('2025-08-31T23:00:00.000Z'),
-    updatedAt: new Date('2025-08-31T23:15:00.000Z')
   },
   {
     id: "TXN-AUG-003",
@@ -737,7 +711,7 @@ const initialOperations: Operation[] = [
   },
   {
     id: "TXN-AUG-023",
-    operationType: "fuel_loading",
+    operationType: "tank_loading",
     status: "completed",
     startTime: "2025-08-03T04:11:21.888Z",
     endTime: "2025-08-03T05:55:57.888Z",
@@ -997,7 +971,7 @@ const initialOperations: Operation[] = [
   },
   {
     id: "TXN-AUG-034",
-    operationType: "fuel_loading",
+    operationType: "tank_loading",
     status: "completed",
     startTime: "2025-08-04T11:38:24.553Z",
     endTime: "2025-08-04T13:30:37.553Z",
@@ -2323,7 +2297,7 @@ const initialOperations: Operation[] = [
   },
   {
     id: "TXN-AUG-084",
-    operationType: "fuel_loading",
+    operationType: "tank_loading",
     status: "completed",
     startTime: "2025-08-11T11:03:27.354Z",
     endTime: "2025-08-11T12:59:05.354Z",
@@ -2869,7 +2843,7 @@ const initialOperations: Operation[] = [
   },
   {
     id: "TXN-AUG-096",
-    operationType: "fuel_loading",
+    operationType: "tank_loading",
     status: "completed",
     startTime: "2025-08-13T17:13:02.765Z",
     endTime: "2025-08-13T18:18:43.765Z",
@@ -3077,7 +3051,7 @@ const initialOperations: Operation[] = [
   },
   {
     id: "TXN-AUG-109",
-    operationType: "fuel_loading",
+    operationType: "tank_loading",
     status: "completed",
     startTime: "2025-08-14T19:01:12.598Z",
     endTime: "2025-08-14T20:28:57.598Z",
@@ -3909,7 +3883,7 @@ const initialOperations: Operation[] = [
   },
   {
     id: "TXN-AUG-142",
-    operationType: "fuel_loading",
+    operationType: "tank_loading",
     status: "completed",
     startTime: "2025-08-18T18:02:18.125Z",
     endTime: "2025-08-18T20:03:46.125Z",
@@ -4325,7 +4299,7 @@ const initialOperations: Operation[] = [
   },
   {
     id: "TXN-AUG-160",
-    operationType: "fuel_loading",
+    operationType: "tank_loading",
     status: "completed",
     startTime: "2025-08-21T10:28:22.914Z",
     endTime: "2025-08-21T12:31:58.914Z",
@@ -5625,7 +5599,7 @@ const initialOperations: Operation[] = [
   },
   {
     id: "TXN-AUG-212",
-    operationType: "fuel_loading",
+    operationType: "tank_loading",
     status: "completed",
     startTime: "2025-08-27T16:17:56.451Z",
     endTime: "2025-08-27T18:23:31.451Z",
@@ -5781,7 +5755,7 @@ const initialOperations: Operation[] = [
   },
   {
     id: "TXN-AUG-220",
-    operationType: "fuel_loading",
+    operationType: "tank_loading",
     status: "completed",
     startTime: "2025-08-28T05:21:28.844Z",
     endTime: "2025-08-28T07:27:17.844Z",
@@ -6223,7 +6197,7 @@ const initialOperations: Operation[] = [
   },
   {
     id: "TXN-AUG-231",
-    operationType: "fuel_loading",
+    operationType: "tank_loading",
     status: "completed",
     startTime: "2025-08-30T10:44:06.924Z",
     endTime: "2025-08-30T13:08:55.924Z",

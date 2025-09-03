@@ -563,7 +563,7 @@ export const commandsAPI = {
   },
 
   // Новые методы для поддержки команд уровня оборудования/компонентов
-  async create(request: import('@/types/commandTemplate').CreateCommandInstanceRequest): Promise<import('@/types/commandTemplate').CommandInstance> {
+  async createInstance(request: import('@/types/commandTemplate').CreateCommandInstanceRequest): Promise<import('@/types/commandTemplate').CommandInstance> {
     await new Promise(resolve => setTimeout(resolve, 200));
     
     const instance: import('@/types/commandTemplate').CommandInstance = {

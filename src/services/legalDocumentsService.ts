@@ -821,37 +821,6 @@ export const legalDocumentsService = {
         acceptance_percentage: totalUsers > 0 ? Math.round((acceptedUsers / totalUsers) * 100) : 0
       };
     });
-  },
-
-  // Получение журнала согласий пользователей
-  async getAcceptanceJournal(filters?: AcceptanceJournalFilters): Promise<UserDocumentAcceptance[]> {
-    await delay(300);
-    
-    let filteredAcceptances = [...userAcceptances];
-    
-    if (filters?.doc_type_code) {
-      filteredAcceptances = filteredAcceptances.filter(a => a.doc_type_code === filters.doc_type_code);
-    }
-    
-    if (filters?.user_id) {
-      filteredAcceptances = filteredAcceptances.filter(a => a.user_id === filters.user_id);
-    }
-    
-    if (filters?.date_from) {
-      filteredAcceptances = filteredAcceptances.filter(a => 
-        new Date(a.accepted_at) >= new Date(filters.date_from!)
-      );
-    }
-    
-    if (filters?.date_to) {
-      filteredAcceptances = filteredAcceptances.filter(a => 
-        new Date(a.accepted_at) <= new Date(filters.date_to!)
-      );
-    }
-    
-    return filteredAcceptances.sort((a, b) => 
-      new Date(b.accepted_at).getTime() - new Date(a.accepted_at).getTime()
-    );
   }
 };
 

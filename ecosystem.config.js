@@ -1,14 +1,15 @@
-module.exports = {
+export default {
   apps: [{
-    name: 'tradeframe',
+    name: 'tradeframe-dev',
     script: 'npm',
-    args: 'run preview',
+    args: 'run dev',
     cwd: '/home/user/webapp',
     env: {
-      PORT: 3000
+      PORT: 3000,
+      HOST: '0.0.0.0'
     },
     autorestart: true,
     watch: false,
-    max_memory_restart: '500M'
+    max_memory_restart: '1G'
   }]
 }

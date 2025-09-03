@@ -15,12 +15,10 @@ import { operationsService, Operation } from "@/services/operationsService";
 
 // Получение правильных типов операций из сервиса
 const operationTypeMap = {
-  'sale': 'Заправка',
+  'sale': 'Продажа',
   'refund': 'Возврат',
   'correction': 'Коррекция',
   'maintenance': 'Обслуживание',
-  'fuel_loading': 'Заправка',
-  'cash_collection': 'Инкассация',
   'tank_loading': 'Загрузка резервуара',
   'diagnostics': 'Диагностика',
   'sensor_calibration': 'Калибровка датчиков'
@@ -211,6 +209,24 @@ export default function OperationsTransactionsPage() {
     });
     
     return fuelStats;
+  }, [filteredOperations]);
+
+  // KPI данные - по видам оплаты
+  const paymentKpis = useMemo(() => {
+    const paymentStats: Record<string, { revenue: number; operations: number }> = {};
+    
+    filteredOperations.forEach(op => {
+      if (op.paymentMethod && op.status === 'completed' && op.totalCost) {
+        const displayMethod = paymentMethodMap[op.paymentMethod] || op.paymentMethod;
+        if (!paymentStats[displayMethod]) {
+          paymentStats[displayMethod] = { revenue: 0, operations: 0 };
+        }
+        paymentStats[displayMethod].revenue += op.totalCost;
+        paymentStats[displayMethod].operations += 1;
+      }
+    });
+    
+    return paymentStats;
   }, [filteredOperations]);
 
 
@@ -420,6 +436,28 @@ export default function OperationsTransactionsPage() {
                   <Card key={operationType} className="bg-slate-800 border-slate-700">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="text-sm font-medium text-slate-200">{operationType}</CardTitle>
+                      <Activity className="h-4 w-4 text-slate-400" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-white">{stats.revenue.toFixed(0)} ₽</div>
+                      <p className="text-xs text-slate-400">{stats.operations} операций</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* KPI - Суммы по видам оплаты */}
+            <div className="mx-4 md:mx-6 lg:mx-8">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Суммы по видам оплаты
+              </h3>
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-4 gap-4'}`}>
+                {Object.entries(paymentKpis).map(([paymentMethod, stats]) => (
+                  <Card key={paymentMethod} className="bg-slate-800 border-slate-700">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-slate-200">{paymentMethod}</CardTitle>
                       <Activity className="h-4 w-4 text-slate-400" />
                     </CardHeader>
                     <CardContent>
