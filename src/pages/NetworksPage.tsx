@@ -444,7 +444,7 @@ export default function NetworksPage() {
             <table className="w-full text-sm min-w-full table-fixed">
               <thead className="bg-slate-700">
                 <tr>
-                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '8%'}}>ID</th>
+                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '8%'}}>API ID</th>
                   <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '35%'}}>НАЗВАНИЕ</th>
                   <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '12%'}}>ТИП</th>
                   <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '12%'}}>ТОЧЕК</th>
@@ -462,8 +462,8 @@ export default function NetworksPage() {
                     }`}
                   >
                     <td className="px-4 md:px-6 py-4">
-                      <span className="text-xs bg-slate-800 text-slate-500 px-2 py-1 rounded font-mono">
-                        {network.id}
+                      <span className="text-xs bg-blue-900/50 text-blue-300 px-2 py-1 rounded font-mono">
+                        {network.external_id || 'не задан'}
                       </span>
                     </td>
                     <td className="px-4 md:px-6 py-4">
@@ -522,13 +522,18 @@ export default function NetworksPage() {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-white text-base mb-1">{network.name}</div>
                       <div className="text-sm text-slate-400 mb-2">{network.description}</div>
-                      <div className="flex items-center gap-3 text-xs">
+                      <div className="flex items-center gap-3 text-xs mb-2">
                         <Badge variant="secondary" className="bg-slate-600 text-slate-200">
                           {network.type}
                         </Badge>
                         <span className="text-slate-400">Точек: {network.pointsCount}</span>
                         <span className="text-slate-400">Сегодня</span>
                       </div>
+                      {network.external_id && (
+                        <div className="text-xs text-slate-500">
+                          API ID: <span className="bg-blue-900/50 text-blue-300 px-1 py-0.5 rounded font-mono">{network.external_id}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <Button 
@@ -616,7 +621,7 @@ export default function NetworksPage() {
                 <table className="w-full text-sm min-w-full table-fixed">
                   <thead className="bg-slate-700">
                     <tr>
-                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '8%'}}>ID</th>
+                      <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '8%'}}>API ID</th>
                       <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '34%'}}>НАЗВАНИЕ</th>
                       <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>АДРЕС</th>
                       <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '13%'}}>ТЕЛЕФОН</th>
@@ -641,8 +646,8 @@ export default function NetworksPage() {
                       tradingPoints.map((point) => (
                         <tr key={point.id} className="border-b border-slate-600 hover:bg-slate-700 transition-colors">
                           <td className="px-4 md:px-6 py-4">
-                            <span className="text-xs bg-slate-800 text-slate-500 px-2 py-1 rounded font-mono">
-                              {point.id}
+                            <span className="text-xs bg-blue-900/50 text-blue-300 px-2 py-1 rounded font-mono">
+                              {point.external_id || 'не задан'}
                             </span>
                           </td>
                           <td className="px-4 md:px-6 py-4">
@@ -714,7 +719,7 @@ export default function NetworksPage() {
                       {point.phone && (
                         <div className="text-sm text-slate-400 mb-2">{point.phone}</div>
                       )}
-                      <div className="flex items-center gap-3 text-xs">
+                      <div className="flex items-center gap-3 text-xs mb-2">
                         <Badge className={point.isBlocked ? "bg-red-600 text-white" : point.isActive ? "bg-green-600 text-white" : "bg-yellow-600 text-white"}>
                           {point.isBlocked ? "Заблокирован" : point.isActive ? "Активный" : "Неактивный"}
                         </Badge>
@@ -722,6 +727,11 @@ export default function NetworksPage() {
                           {point.updatedAt ? new Date(point.updatedAt).toLocaleDateString('ru-RU') : new Date(point.createdAt).toLocaleDateString('ru-RU')}
                         </span>
                       </div>
+                      {point.external_id && (
+                        <div className="text-xs text-slate-500">
+                          API ID: <span className="bg-blue-900/50 text-blue-300 px-1 py-0.5 rounded font-mono">{point.external_id}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <Button 

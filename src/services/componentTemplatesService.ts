@@ -1,175 +1,250 @@
 import { ComponentTemplate, ComponentTemplateId } from '@/types/componentTemplate';
-import { PersistentStorage } from '@/utils/persistentStorage';
+import { supabaseService as supabase } from './supabaseServiceClient';
 
-// Шаблоны компонентов для POS-терминалов согласно API торговой сети
-const initialComponentTemplates: ComponentTemplate[] = [
-  {
-    id: "1",
-    name: "Картридер топливных карт",
-    code: "CMP_TSO_FUELCR",
-    description: "Картридер для чтения топливных карт в POS-терминале",
-    systemType: "PAYMENT",
-    statusValues: ["OK", "CARD_ERROR", "READER_ERROR", "OFFLINE"],
-    isActive: true,
-    created_at: new Date('2024-01-01').toISOString(),
-    updated_at: new Date('2024-01-01').toISOString()
-  },
-  {
-    id: "2",
-    name: "Картридер банковских карт",
-    code: "CMP_TSO_BANKCR",
-    description: "Картридер для банковских карт с поддержкой NFC",
-    systemType: "PAYMENT",
-    statusValues: ["OK", "CARD_ERROR", "NFC_ERROR", "PIN_ERROR", "OFFLINE"],
-    isActive: true,
-    created_at: new Date('2024-01-01').toISOString(),
-    updated_at: new Date('2024-01-01').toISOString()
-  },
-  {
-    id: "3",
-    name: "Фискальный регистратор",
-    code: "CMP_TSO_KKT",
-    description: "Фискальный регистратор для печати чеков и отправки данных в ОФД",
-    systemType: "FISCAL",
-    statusValues: ["OK", "FISCAL_ERROR", "OFD_ERROR", "PAPER_ERROR", "OFFLINE"],
-    isActive: true,
-    created_at: new Date('2024-01-01').toISOString(),
-    updated_at: new Date('2024-01-01').toISOString()
-  },
-  {
-    id: "4",
-    name: "Купюроприёмник",
-    code: "CMP_TSO_CASHIN",
-    description: "Купюроприёмник для приёма наличных платежей",
-    systemType: "PAYMENT",
-    statusValues: ["OK", "CASH_ERROR", "JAM_ERROR", "FULL_ERROR", "OFFLINE"],
-    isActive: true,
-    created_at: new Date('2024-01-01').toISOString(),
-    updated_at: new Date('2024-01-01').toISOString()
-  },
-  {
-    id: "5",
-    name: "МПС-ридер",
-    code: "CMP_TSO_MPSR",
-    description: "Ридер мобильных платёжных систем (NFC, QR-код, Apple Pay, Google Pay)",
-    systemType: "PAYMENT",
-    statusValues: ["OK", "NFC_ERROR", "QR_ERROR", "CONNECTION_ERROR", "OFFLINE"],
-    isActive: true,
-    created_at: new Date('2024-01-01').toISOString(),
-    updated_at: new Date('2024-01-01').toISOString()
-  }
-];
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Загружаем данные из localStorage (используем новый ключ для принудительного обновления)
-const componentTemplatesData: ComponentTemplate[] = PersistentStorage.load<ComponentTemplate>('component_templates_v2', initialComponentTemplates);
+// Маппинг данных из Supabase в формат ComponentTemplate
+const mapFromSupabase = (data: any): ComponentTemplate => ({
+  id: data.id,
+  name: data.name,
+  code: data.technical_code,
+  description: data.description || '',
+  systemType: data.system_type,
+  statusValues: data.default_params?.statusValues || ['OK', 'ERROR', 'OFFLINE'],
+  isActive: data.is_active,
+  created_at: data.created_at,
+  updated_at: data.updated_at
+});
 
-// Функция для сохранения изменений
-const saveComponentTemplates = () => {
-  PersistentStorage.save('component_templates_v2', componentTemplatesData);
-};
+// Маппинг данных в формат Supabase
+const mapToSupabase = (data: Partial<ComponentTemplate>) => ({
+  name: data.name,
+  technical_code: data.code,
+  description: data.description,
+  system_type: data.systemType,
+  default_params: {
+    statusValues: data.statusValues,
+    // Дополнительные параметры можно добавить здесь
+  },
+  is_active: data.isActive,
+  updated_at: new Date().toISOString()
+});
 
-// API для работы с шаблонами компонентов
 export const componentTemplatesAPI = {
   // Получить все шаблоны
   async list(): Promise<ComponentTemplate[]> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return [...componentTemplatesData].sort((a, b) => a.name.localeCompare(b.name));
+    console.log('🔄 Loading component templates from Supabase...');
+    await delay(300);
+    
+    try {
+      const { data, error } = await supabase
+        .from('equipment_templates')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        console.error('Ошибка получения шаблонов компонентов:', error);
+        throw error;
+      }
+
+      const mappedData = (data || []).map(mapFromSupabase);
+      console.log('✅ Loaded component templates from Supabase:', mappedData.length, 'items');
+      return mappedData;
+
+    } catch (error) {
+      console.error('❌ Ошибка в componentTemplatesAPI.list:', error);
+      throw error;
+    }
   },
 
   // Получить шаблон по ID
   async get(id: ComponentTemplateId): Promise<ComponentTemplate | null> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    return componentTemplatesData.find(template => template.id === id) || null;
+    console.log('🔍 Getting component template by ID:', id);
+    await delay(200);
+    
+    try {
+      const { data, error } = await supabase
+        .from('equipment_templates')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // Не найден
+        }
+        throw error;
+      }
+
+      const mappedData = mapFromSupabase(data);
+      console.log('✅ Component template found:', mappedData.name);
+      return mappedData;
+
+    } catch (error) {
+      console.error('❌ Ошибка в componentTemplatesAPI.get:', error);
+      return null;
+    }
   },
 
   // Создать новый шаблон
   async create(data: Omit<ComponentTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<ComponentTemplate> {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    console.log('➕ Creating component template:', data.name);
+    await delay(500);
     
-    // Проверяем уникальность кода
-    const existingTemplate = componentTemplatesData.find(t => t.code === data.code);
-    if (existingTemplate) {
-      throw new Error('Component template with this code already exists');
+    try {
+      // Проверяем уникальность кода
+      const { data: existingData } = await supabase
+        .from('equipment_templates')
+        .select('id')
+        .eq('technical_code', data.code)
+        .single();
+
+      if (existingData) {
+        throw new Error('Component template with this code already exists');
+      }
+
+      const supabaseData = mapToSupabase(data);
+      const { data: insertedData, error } = await supabase
+        .from('equipment_templates')
+        .insert([supabaseData])
+        .select('*')
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const mappedData = mapFromSupabase(insertedData);
+      console.log('✅ Component template created:', mappedData.name);
+      return mappedData;
+
+    } catch (error) {
+      console.error('❌ Ошибка в componentTemplatesAPI.create:', error);
+      throw error;
     }
-
-    const newTemplate: ComponentTemplate = {
-      ...data,
-      id: `comp_template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    componentTemplatesData.push(newTemplate);
-    saveComponentTemplates();
-    
-    return newTemplate;
   },
 
   // Обновить шаблон
   async update(id: ComponentTemplateId, data: Partial<Omit<ComponentTemplate, 'id' | 'created_at'>>): Promise<ComponentTemplate | null> {
-    await new Promise(resolve => setTimeout(resolve, 250));
+    console.log('✏️ Updating component template:', id);
+    await delay(250);
     
-    const templateIndex = componentTemplatesData.findIndex(t => t.id === id);
-    if (templateIndex === -1) {
-      return null;
-    }
+    try {
+      // Проверяем уникальность кода при обновлении
+      if (data.code) {
+        const { data: existingData } = await supabase
+          .from('equipment_templates')
+          .select('id')
+          .eq('technical_code', data.code)
+          .neq('id', id)
+          .single();
 
-    // Проверяем уникальность кода при обновлении
-    if (data.code) {
-      const existingTemplate = componentTemplatesData.find(t => t.code === data.code && t.id !== id);
-      if (existingTemplate) {
-        throw new Error('Component template with this code already exists');
+        if (existingData) {
+          throw new Error('Component template with this code already exists');
+        }
       }
+
+      const supabaseData = mapToSupabase(data);
+      const { data: updatedData, error } = await supabase
+        .from('equipment_templates')
+        .update(supabaseData)
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const mappedData = mapFromSupabase(updatedData);
+      console.log('✅ Component template updated:', mappedData.name);
+      return mappedData;
+
+    } catch (error) {
+      console.error('❌ Ошибка в componentTemplatesAPI.update:', error);
+      throw error;
     }
-
-    const updatedTemplate: ComponentTemplate = {
-      ...componentTemplatesData[templateIndex],
-      ...data,
-      updated_at: new Date().toISOString()
-    };
-
-    componentTemplatesData[templateIndex] = updatedTemplate;
-    saveComponentTemplates();
-    
-    return updatedTemplate;
   },
 
   // Удалить шаблон
   async delete(id: ComponentTemplateId): Promise<boolean> {
-    await new Promise(resolve => setTimeout(resolve, 200));
+    console.log('🗑️ Deleting component template:', id);
+    await delay(200);
     
-    const templateIndex = componentTemplatesData.findIndex(t => t.id === id);
-    if (templateIndex === -1) {
-      return false;
-    }
+    try {
+      const { error } = await supabase
+        .from('equipment_templates')
+        .delete()
+        .eq('id', id);
 
-    componentTemplatesData.splice(templateIndex, 1);
-    saveComponentTemplates();
-    
-    return true;
+      if (error) {
+        throw error;
+      }
+
+      console.log('✅ Component template deleted');
+      return true;
+
+    } catch (error) {
+      console.error('❌ Ошибка в componentTemplatesAPI.delete:', error);
+      throw error;
+    }
   },
 
   // Получить активные шаблоны
   async getActive(): Promise<ComponentTemplate[]> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    return componentTemplatesData.filter(template => template.isActive)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    console.log('🔄 Loading active component templates...');
+    await delay(150);
+    
+    try {
+      const { data, error } = await supabase
+        .from('equipment_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) {
+        throw error;
+      }
+
+      const mappedData = (data || []).map(mapFromSupabase);
+      console.log('✅ Loaded active component templates:', mappedData.length, 'items');
+      return mappedData;
+
+    } catch (error) {
+      console.error('❌ Ошибка в componentTemplatesAPI.getActive:', error);
+      throw error;
+    }
   },
 
   // Поиск шаблонов
   async search(query: string): Promise<ComponentTemplate[]> {
-    await new Promise(resolve => setTimeout(resolve, 200));
+    console.log('🔍 Searching component templates:', query);
+    await delay(200);
     
     if (!query.trim()) {
       return this.list();
     }
     
-    const searchLower = query.toLowerCase();
-    return componentTemplatesData.filter(template =>
-      template.name.toLowerCase().includes(searchLower) ||
-      template.code.toLowerCase().includes(searchLower) ||
-      template.description.toLowerCase().includes(searchLower)
-    ).sort((a, b) => a.name.localeCompare(b.name));
+    try {
+      const searchTerm = `%${query.toLowerCase()}%`;
+      const { data, error } = await supabase
+        .from('equipment_templates')
+        .select('*')
+        .or(`name.ilike.${searchTerm},technical_code.ilike.${searchTerm},description.ilike.${searchTerm}`)
+        .order('name');
+
+      if (error) {
+        throw error;
+      }
+
+      const mappedData = (data || []).map(mapFromSupabase);
+      console.log('✅ Found component templates:', mappedData.length, 'items');
+      return mappedData;
+
+    } catch (error) {
+      console.error('❌ Ошибка в componentTemplatesAPI.search:', error);
+      throw error;
+    }
   }
 };
 

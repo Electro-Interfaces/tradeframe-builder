@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check LocalStorage</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1e293b; color: #fff; }
+        pre { background: #374151; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .success { color: #10b981; }
+        .warn { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Check LocalStorage API Config</h1>
+    <div id="results"></div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const className = type === 'success' ? 'success' : type === 'warn' ? 'warn' : '';
+            resultsDiv.innerHTML += `<div class="${className}">${message}</div>`;
+        }
+        
+        // Проверяем API конфигурацию в localStorage
+        const apiConfig = localStorage.getItem('api_config');
+        
+        if (apiConfig) {
+            try {
+                const config = JSON.parse(apiConfig);
+                log('✅ Найдена сохранённая API конфигурация:', 'success');
+                log('<pre>' + JSON.stringify(config, null, 2) + '</pre>');
+                
+                const currentConn = config.availableConnections?.find(c => c.id === config.currentConnectionId);
+                if (currentConn) {
+                    log(`🔍 Текущее подключение: ${currentConn.name} (${currentConn.type})`);
+                    log(`🔍 URL: ${currentConn.url}`);
+                    
+                    if (currentConn.type === 'mock') {
+                        log('⚠️ ВНИМАНИЕ: В localStorage настроен MOCK режим!', 'warn');
+                        log('Это объясняет почему данные не загружаются из API');
+                    } else {
+                        log('✅ В localStorage настроен API режим', 'success');
+                    }
+                }
+            } catch (e) {
+                log('❌ Ошибка парсинга API конфигурации: ' + e.message);
+            }
+        } else {
+            log('⚠️ API конфигурация в localStorage НЕ НАЙДЕНА', 'warn');
+            log('Используется конфигурация по умолчанию из кода');
+        }
+        
+        // Проверяем другие ключи связанные с операциями
+        log('\n🔍 Другие ключи в localStorage:');
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes('operation') || key.includes('tradeframe') || key.includes('api'))) {
+                const value = localStorage.getItem(key);
+                log(`   - ${key}: ${value ? (value.length > 100 ? value.substring(0, 100) + '...' : value) : 'null'}`);
+            }
+        }
+    </script>
+</body>
+</html>

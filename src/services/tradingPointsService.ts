@@ -5,7 +5,7 @@
 
 import { NetworkId } from '@/types/network';
 import { TradingPoint, TradingPointId, TradingPointInput } from '@/types/tradingpoint';
-import { supabase } from './supabaseClientBrowser';
+import { supabaseService as supabase } from './supabaseServiceClient';
 
 // API сервис только с Supabase - никакого localStorage!
 export const tradingPointsService = {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,19 +23,44 @@ export default function OperationsTransactionsPageSimple() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const loadData = async () => {
+    console.log('🔄 loadData() начинает выполнение...');
     setLoading(true);
     try {
+      console.log('🧹 Очищаем localStorage...');
       localStorage.removeItem('tradeframe_operations');
       localStorage.removeItem('operations');
+      
+      console.log('🔄 Вызываем operationsService.forceReload()...');
       await operationsService.forceReload();
+      
+      console.log('🔄 Вызываем operationsService.getAll()...');
       const data = await operationsService.getAll();
+      
+      console.log('✅ Получены данные:', {
+        dataType: typeof data,
+        isArray: Array.isArray(data),
+        length: data?.length || 'undefined',
+        firstItem: data?.[0] || 'none'
+      });
+      
+      console.log('🔄 Устанавливаем operations в состояние...');
       setOperations(data);
+      
+      console.log('✅ loadData() завершён успешно');
     } catch (error) {
-      console.error('Ошибка:', error);
+      console.error('❌ Ошибка в loadData():', error);
+      console.error('Стек ошибки:', error.stack);
     } finally {
+      console.log('🔄 Устанавливаем loading = false');
       setLoading(false);
     }
   };
+
+  // Автоматическая загрузка данных при монтировании компонента
+  useEffect(() => {
+    console.log('🔄 OperationsTransactionsPageSimple useEffect запущен');
+    loadData();
+  }, []);
 
   // Фильтрация операций
   const filteredOperations = useMemo(() => {
@@ -234,6 +259,13 @@ export default function OperationsTransactionsPageSimple() {
             
             <div className="text-slate-300">
               <p>Операций загружено: {operations.length} | Отфильтровано: {filteredOperations.length}</p>
+              {console.log('🔍 Render debug:', {
+                operationsLength: operations.length,
+                filteredLength: filteredOperations.length,
+                loading,
+                operationsType: typeof operations,
+                isOperationsArray: Array.isArray(operations)
+              })}
             </div>
           </CardContent>
         </Card>

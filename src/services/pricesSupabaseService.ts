@@ -3,7 +3,7 @@
  * Заменяет localStorage mock данные на реальную работу с БД
  */
 
-import { createSupabaseClient } from './supabaseClient';
+import { supabaseService } from './supabaseServiceClient';
 
 // Типы данных для работы с БД
 export interface FuelPrice {
@@ -97,22 +97,11 @@ export interface PriceHistoryEntry {
 }
 
 class PricesSupabaseService {
-  private client;
+  private client = supabaseService;
   
   constructor() {
-    // Получаем конфиг из переменных окружения
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase credentials not found in environment variables');
-    }
-    
-    this.client = createSupabaseClient({
-      url: supabaseUrl,
-      apiKey: supabaseKey,
-      schema: 'public'
-    });
+    // Используем готовый service клиент
+    console.log('🔧 PricesSupabaseService initialized with service client');
   }
 
   /**

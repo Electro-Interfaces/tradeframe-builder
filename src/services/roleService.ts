@@ -3,7 +3,7 @@
  * Интегрируется с Supabase для хранения данных
  */
 
-import { supabase } from './supabaseClientBrowser'
+import { supabaseService as supabase } from './supabaseServiceClient'
 import type {
   Role,
   User,
@@ -106,8 +106,7 @@ export class RoleService {
         scope: input.scope || 'global',
         scope_values: input.scope_values || null,
         is_system: input.is_system || false,
-        is_active: input.is_active !== false,
-        version: 1
+        is_active: input.is_active !== false
       }
 
       const { data, error } = await supabase
@@ -147,15 +146,9 @@ export class RoleService {
         throw new Error('Role not found')
       }
 
-      // Проверяем версию для оптимистичной блокировки
-      if (input.version && input.version !== currentRole.version) {
-        throw new Error('Role has been modified by another user')
-      }
-
       const updateData = {
         ...input,
-        updated_at: new Date().toISOString(),
-        version: currentRole.version + 1
+        updated_at: new Date().toISOString()
       }
 
       const { data, error } = await supabase
@@ -203,8 +196,7 @@ export class RoleService {
         .from('roles')
         .update({ 
           deleted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          version: role.version + 1
+          updated_at: new Date().toISOString()
         })
         .eq('id', id)
 
@@ -240,8 +232,7 @@ export class RoleService {
         .from('roles')
         .update({ 
           is_active,
-          updated_at: new Date().toISOString(),
-          version: currentRole.version + 1
+          updated_at: new Date().toISOString()
         })
         .eq('id', id)
         .select()
@@ -420,7 +411,7 @@ export class RoleService {
             { section: 'equipment', resource: 'dispensers', actions: ['read', 'write'] },
             { section: 'finance', resource: 'prices', actions: ['read', 'write'] }
           ],
-          scope: 'point',
+          scope: 'trading_point',
           is_system: true,
           is_active: true
         },
@@ -436,7 +427,7 @@ export class RoleService {
             { section: 'equipment', resource: 'tanks', actions: ['read'] },
             { section: 'finance', resource: 'prices', actions: ['read'] }
           ],
-          scope: 'point',
+          scope: 'trading_point',
           is_system: true,
           is_active: true
         },
@@ -504,8 +495,7 @@ export class RoleService {
       is_active: data.is_active,
       created_at: new Date(data.created_at),
       updated_at: new Date(data.updated_at),
-      deleted_at: data.deleted_at ? new Date(data.deleted_at) : undefined,
-      version: data.version || 1
+      deleted_at: data.deleted_at ? new Date(data.deleted_at) : undefined
     }
   }
 

@@ -3,7 +3,7 @@
  * Поддержка development и production режимов
  */
 
-import { createSupabaseFromSettings } from '@/services/supabaseClient';
+import { supabaseService } from '@/services/supabaseServiceClient';
 
 // Получение конфигурации из переменных окружения
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://tohtryzyffcebtyvkxwh.supabase.co';
@@ -22,8 +22,8 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 const isDevelopment = import.meta.env.DEV;
 const useSupabaseDirect = import.meta.env.VITE_USE_SUPABASE_DIRECT === 'true';
 
-// Создаём клиент Supabase
-export const supabase = createSupabaseFromSettings(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Используем готовый service клиент
+export const supabase = supabaseService;
 
 // Информация о конфигурации (для отладки)
 export const supabaseConfig = {

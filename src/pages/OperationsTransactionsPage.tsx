@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, Download, Filter, Clock, CheckCircle, XCircle, PlayCircle, PauseCircle, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { operationsService, Operation } from "@/services/operationsService";
+import { operationsSupabaseService } from "@/services/operationsSupabaseService";
 import { nomenclatureService } from "@/services/nomenclatureService";
 
 // Получение правильных типов операций из сервиса
@@ -55,24 +56,62 @@ export default function OperationsTransactionsPage() {
   const isNetworkOnly = selectedNetwork && (!selectedTradingPoint || selectedTradingPoint === "all");
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint && selectedTradingPoint !== "all";
 
-  // Отключена автозагрузка - используйте кнопку "Очистить данные"
+  // Загрузка операций из Supabase при первом открытии страницы
   useEffect(() => {
-    setLoading(false);
+    const loadOperations = async () => {
+      try {
+        setLoading(true);
+        console.log('🔄 Loading operations from Supabase...');
+        
+        // Загружаем операции напрямую из Supabase
+        const supabaseOperations = await operationsSupabaseService.getOperations();
+        setOperations(supabaseOperations);
+        
+        console.log('✅ Loaded operations:', supabaseOperations.length);
+      } catch (error) {
+        console.error('❌ Error loading operations:', error);
+        
+        // Fallback на старый сервис при ошибке
+        try {
+          const data = await operationsService.getAll();
+          setOperations(data);
+        } catch (fallbackError) {
+          console.error('❌ Fallback also failed:', fallbackError);
+          setOperations([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOperations();
   }, []);
 
   // Функция для перезагрузки операций
   const reloadOperations = async () => {
     try {
       setLoading(true);
-      await operationsService.forceReload();
-      const data = await operationsService.getAll();
-      setOperations(data);
+      console.log('🔄 Reloading operations from Supabase...');
       
-      const statusStats = await operationsService.getStatusStatistics();
+      // Загружаем операции напрямую из Supabase
+      const supabaseOperations = await operationsSupabaseService.getOperations();
+      setOperations(supabaseOperations);
+      
+      // Получаем статистику
+      const statusStats = await operationsSupabaseService.getStatusStatistics();
       console.log('📊 Обновленная статистика по статусам:', statusStats);
-      // Данные обновлены
+      console.log('✅ Reloaded operations:', supabaseOperations.length);
     } catch (error) {
-      console.error('Ошибка при перезагрузке операций:', error);
+      console.error('❌ Error reloading operations:', error);
+      
+      // Fallback на старый сервис
+      try {
+        await operationsService.forceReload();
+        const data = await operationsService.getAll();
+        setOperations(data);
+      } catch (fallbackError) {
+        console.error('❌ Fallback reload also failed:', fallbackError);
+      }
     } finally {
       setLoading(false);
     }
@@ -355,13 +394,12 @@ export default function OperationsTransactionsPage() {
               onClick={async () => {
                 localStorage.removeItem('tradeframe_operations');
                 setOperations([]);
-                const data = await operationsService.getAll();
-                setOperations(data);
-                console.log('Данные операций принудительно перезагружены');
+                await reloadOperations();
+                console.log('Данные операций принудительно перезагружены из Supabase');
               }}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              Перезагрузить демо-данные
+              Перезагрузить данные
             </Button>
           </div>
         </div>

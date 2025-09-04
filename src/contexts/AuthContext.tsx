@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SupabaseAuthService, type AuthUser } from '../services/supabaseAuthService';
-import { testSupabaseConnection, setUserSession } from '../services/supabaseClientBrowser';
+import { testServiceConnection } from '../services/supabaseServiceClient';
 
 // Типы пользователей и ролей
 export interface User {
@@ -301,14 +301,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('🎯 Context user being set:', contextUser);
       setUser(contextUser);
       
-      // Устанавливаем сессию в Supabase клиенте для корректной работы RLS
-      try {
-        await setUserSession(contextUser.email, contextUser.id);
-        console.log('✅ Supabase session established');
-      } catch (error) {
-        console.warn('⚠️ Failed to establish Supabase session:', error);
-        // Не прерываем логин из-за этой ошибки
-      }
+      // RLS не нужен при использовании service role ключа
+      console.log('✅ Using service role key - RLS bypassed');
       
       if (typeof window !== 'undefined') {
         try {

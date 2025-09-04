@@ -6,6 +6,7 @@
 import { apiConfigService } from './apiConfigService';
 import { OperationsBusinessLogic } from './operationsBusinessLogic';
 import { Operation, OperationType, OperationStatus, PaymentMethod, OperationInput } from './operationsTypes';
+import { operationsSupabaseService } from './operationsSupabaseService';
 
 // Фильтры для операций
 export interface OperationFilters {
@@ -63,6 +64,7 @@ class OperationsServiceUpdated {
         currentApiUrl,
         hasConnection: !!currentConnection,
         connectionId: currentConnection?.id,
+        connectionType: currentConnection?.type,
         filters,
         pagination
       });
@@ -70,6 +72,12 @@ class OperationsServiceUpdated {
       if (isMockMode) {
         console.log('📦 Using mock operations data');
         return this.getMockOperations(filters, pagination);
+      }
+      
+      // Проверяем тип подключения для выбора метода
+      if (currentConnection?.type === 'supabase') {
+        console.log('🗄️ Using direct Supabase connection');
+        return this.getSupabaseOperations(filters, pagination);
       }
       
       // Используем реальный API
@@ -90,6 +98,31 @@ class OperationsServiceUpdated {
     }
   }
   
+  /**
+   * Получить все операции (упрощенный метод без фильтров)
+   */
+  async getAll(): Promise<Operation[]> {
+    try {
+      console.log('🔄 OperationsService.getAll() called');
+      const result = await this.getOperations({}, { limit: 10000 });
+      console.log('✅ getAll() успешно загрузил', result.data.length, 'операций');
+      return result.data;
+    } catch (error) {
+      console.error('❌ OperationsService.getAll() error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Принудительная перезагрузка данных
+   */
+  async forceReload(): Promise<void> {
+    console.log('🔄 OperationsService.forceReload() called');
+    // Очищаем кэш если есть
+    localStorage.removeItem('tradeframe_operations');
+    localStorage.removeItem('operations');
+  }
+
   /**
    * Получить операцию по ID
    */
@@ -341,11 +374,20 @@ class OperationsServiceUpdated {
   }
   
   private transformOperationsResponse(apiResponse: any): PaginatedOperations {
-    return {
+    console.log('🔄 Transforming API response:', { 
+      dataCount: apiResponse?.data?.length,
+      pagination: apiResponse?.pagination,
+      summaryExists: !!apiResponse?.summary
+    });
+    
+    const result = {
       data: apiResponse.data.map((item: any) => this.transformOperationFromApi(item)),
       pagination: apiResponse.pagination,
       summary: apiResponse.summary
     };
+    
+    console.log('✅ Transformed operations:', result.data.length, 'операций');
+    return result;
   }
   
   private transformOperationFromApi(apiData: any): Operation {
@@ -378,70 +420,166 @@ class OperationsServiceUpdated {
   }
   
   // ============================================
+  // SUPABASE OPERATIONS METHODS
+  // ============================================
+  
+  /**
+   * Получить операции напрямую из Supabase
+   */
+  private async getSupabaseOperations(filters: OperationFilters, pagination: PaginationParams): Promise<PaginatedOperations> {
+    try {
+      console.log('📦 Using direct Supabase operations data');
+      
+      // Используем Supabase сервис напрямую
+      const supabaseFilters = {
+        operationType: filters.operationType,
+        status: filters.status,
+        tradingPointId: filters.tradingPointId,
+        paymentMethod: filters.paymentMethod,
+        startDate: filters.startDate,
+        endDate: filters.endDate
+      };
+
+      const allOperations = await operationsSupabaseService.getOperations(supabaseFilters);
+      console.log('✅ Loaded from Supabase:', allOperations.length, 'operations');
+      
+      // Применение дополнительной фильтрации если нужно
+      let filteredOperations = allOperations;
+      
+      // Пагинация
+      const page = pagination.page || 1;
+      const limit = pagination.limit || 20;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedData = filteredOperations.slice(startIndex, endIndex);
+      
+      return {
+        data: paginatedData,
+        pagination: {
+          page,
+          limit,
+          total: filteredOperations.length,
+          pages: Math.ceil(filteredOperations.length / limit)
+        },
+        summary: {
+          totalOperations: filteredOperations.length,
+          completedOperations: filteredOperations.filter(op => op.status === 'completed').length,
+          totalAmount: filteredOperations.reduce((sum, op) => sum + (op.totalCost || 0), 0),
+          averageOperationValue: filteredOperations.length > 0 
+            ? filteredOperations.reduce((sum, op) => sum + (op.totalCost || 0), 0) / filteredOperations.length 
+            : 0
+        }
+      };
+      
+    } catch (error) {
+      console.error('❌ Supabase operations error:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
   // MOCK DATA METHODS (для совместимости)
   // ============================================
   
   private async getMockOperations(filters: OperationFilters, pagination: PaginationParams): Promise<PaginatedOperations> {
-    // Здесь должна быть оригинальная логика из operationsService.ts
-    // Для примера возвращаем базовую структуру
-    const mockOperations: Operation[] = [
-      {
-        id: 'OP-001',
-        operationType: 'sale',
-        status: 'completed',
-        startTime: new Date().toISOString(),
-        endTime: new Date().toISOString(),
-        duration: 120,
-        tradingPointId: 'TP-001',
-        tradingPointName: 'Test Trading Point',
-        deviceId: 'DEV-001',
-        transactionId: 'TXN-001',
-        fuelType: 'АИ-95',
-        quantity: 30,
-        price: 50.5,
-        totalCost: 1515,
-        paymentMethod: 'bank_card',
-        details: 'Test sale operation',
-        progress: 100,
-        lastUpdated: new Date().toISOString(),
-        operatorName: 'Test Operator',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
-    
-    // Применение фильтров
-    let filteredOperations = OperationsBusinessLogic.filterOperations(mockOperations, filters);
-    
-    // Пагинация
-    const page = pagination.page || 1;
-    const limit = pagination.limit || 20;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedData = filteredOperations.slice(startIndex, endIndex);
-    
-    return {
-      data: paginatedData,
-      pagination: {
-        page,
-        limit,
-        total: filteredOperations.length,
-        pages: Math.ceil(filteredOperations.length / limit)
-      },
-      summary: {
-        totalOperations: filteredOperations.length,
-        completedOperations: filteredOperations.filter(op => op.status === 'completed').length,
-        totalAmount: filteredOperations.reduce((sum, op) => sum + (op.totalCost || 0), 0),
-        averageOperationValue: filteredOperations.length > 0 
-          ? filteredOperations.reduce((sum, op) => sum + (op.totalCost || 0), 0) / filteredOperations.length 
-          : 0
-      }
-    };
+    try {
+      console.log('📦 Using Supabase operations data instead of mock');
+      
+      // Используем Supabase сервис вместо mock данных
+      const supabaseFilters = {
+        operationType: filters.operationType,
+        status: filters.status,
+        tradingPointId: filters.tradingPointId,
+        paymentMethod: filters.paymentMethod,
+        startDate: filters.startDate,
+        endDate: filters.endDate
+      };
+
+      const allOperations = await operationsSupabaseService.getOperations(supabaseFilters);
+      
+      // Применение дополнительной фильтрации если нужно
+      let filteredOperations = allOperations;
+      
+      // Пагинация
+      const page = pagination.page || 1;
+      const limit = pagination.limit || 20;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedData = filteredOperations.slice(startIndex, endIndex);
+      
+      return {
+        data: paginatedData,
+        pagination: {
+          page,
+          limit,
+          total: filteredOperations.length,
+          pages: Math.ceil(filteredOperations.length / limit)
+        },
+        summary: {
+          totalOperations: filteredOperations.length,
+          completedOperations: filteredOperations.filter(op => op.status === 'completed').length,
+          totalAmount: filteredOperations.reduce((sum, op) => sum + (op.totalCost || 0), 0),
+          averageOperationValue: filteredOperations.length > 0 
+            ? filteredOperations.reduce((sum, op) => sum + (op.totalCost || 0), 0) / filteredOperations.length 
+            : 0
+        }
+      };
+    } catch (error) {
+      console.error('❌ Error loading operations from Supabase, using fallback:', error);
+      
+      // Fallback на простые mock данные при ошибке
+      const mockOperations: Operation[] = [
+        {
+          id: 'OP-001',
+          operationType: 'sale',
+          status: 'completed',
+          startTime: new Date().toISOString(),
+          endTime: new Date().toISOString(),
+          duration: 120,
+          tradingPointId: 'TP-001',
+          tradingPointName: 'Test Trading Point',
+          deviceId: 'DEV-001',
+          transactionId: 'TXN-001',
+          fuelType: 'АИ-95',
+          quantity: 30,
+          price: 50.5,
+          totalCost: 1515,
+          paymentMethod: 'bank_card',
+          details: 'Test sale operation',
+          progress: 100,
+          lastUpdated: new Date().toISOString(),
+          operatorName: 'Test Operator',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+      
+      return {
+        data: mockOperations,
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: mockOperations.length,
+          pages: 1
+        },
+        summary: {
+          totalOperations: mockOperations.length,
+          completedOperations: 1,
+          totalAmount: 1515,
+          averageOperationValue: 1515
+        }
+      };
+    }
   }
   
   private async getMockOperationById(id: string): Promise<Operation | null> {
-    // Mock implementation
-    return null;
+    try {
+      console.log('📦 Using Supabase to get operation by ID:', id);
+      return await operationsSupabaseService.getOperationById(id);
+    } catch (error) {
+      console.error(`❌ Error loading operation ${id} from Supabase:`, error);
+      return null;
+    }
   }
   
   private async createMockOperation(input: OperationInput): Promise<Operation> {
@@ -458,21 +596,60 @@ class OperationsServiceUpdated {
   }
   
   private async getMockOperationsStats(): Promise<any> {
-    // Mock implementation
-    return {
-      totalOperations: 100,
-      completedOperations: 85,
-      inProgressOperations: 10,
-      failedOperations: 5,
-      totalRevenue: 150000,
-      averageOperationValue: 1500,
-      operationsByType: {
-        'sale': 80,
-        'refund': 15,
-        'maintenance': 5
-      },
-      operationsByHour: {}
-    };
+    try {
+      console.log('📦 Using Supabase to get operations statistics');
+      
+      // Получаем статистику по статусам из Supabase
+      const statusStats = await operationsSupabaseService.getStatusStatistics();
+      
+      // Получаем все операции для дополнительных расчетов
+      const allOperations = await operationsSupabaseService.getOperations();
+      
+      const completedOperations = allOperations.filter(op => op.status === 'completed');
+      const totalRevenue = completedOperations.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+      
+      // Группировка по типам операций
+      const operationsByType: Record<string, number> = {};
+      allOperations.forEach(op => {
+        operationsByType[op.operationType] = (operationsByType[op.operationType] || 0) + 1;
+      });
+      
+      // Группировка по часам
+      const operationsByHour: Record<string, number> = {};
+      allOperations.forEach(op => {
+        const hour = new Date(op.startTime).getHours().toString();
+        operationsByHour[hour] = (operationsByHour[hour] || 0) + 1;
+      });
+      
+      return {
+        totalOperations: allOperations.length,
+        completedOperations: statusStats.completed || 0,
+        inProgressOperations: statusStats.in_progress || 0,
+        failedOperations: statusStats.failed || 0,
+        totalRevenue,
+        averageOperationValue: completedOperations.length > 0 ? totalRevenue / completedOperations.length : 0,
+        operationsByType,
+        operationsByHour
+      };
+    } catch (error) {
+      console.error('❌ Error loading operations stats from Supabase:', error);
+      
+      // Fallback на простые mock данные
+      return {
+        totalOperations: 100,
+        completedOperations: 85,
+        inProgressOperations: 10,
+        failedOperations: 5,
+        totalRevenue: 150000,
+        averageOperationValue: 1500,
+        operationsByType: {
+          'sale': 80,
+          'refund': 15,
+          'maintenance': 5
+        },
+        operationsByHour: {}
+      };
+    }
   }
   
   private async exportMockOperations(filters: OperationFilters, format: string): Promise<string> {

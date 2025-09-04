@@ -1,5 +1,5 @@
 import { FuelNomenclature, FuelNomenclatureFormData, FuelNomenclatureFilters, ExternalCodeMapping } from '../types/nomenclature';
-import { supabase } from './supabaseClientBrowser';
+import { supabaseService as supabase } from './supabaseServiceClient';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

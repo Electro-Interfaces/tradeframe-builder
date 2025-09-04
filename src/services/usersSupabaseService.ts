@@ -3,7 +3,7 @@
  * Заменяет localStorage на реальную базу данных
  */
 
-import { createSupabaseFromSettings } from './supabaseClient'
+import { supabaseService } from './supabaseServiceClient'
 import type {
   User,
   CreateUserInput,
@@ -27,11 +27,8 @@ export interface UserStatistics {
   lastLoginActivity: Array<{ user: User, lastLogin: Date | null }>
 }
 
-// Создаем клиент Supabase
-const supabase = createSupabaseFromSettings(
-  'https://tohtryzyffcebtyvkxwh.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
-)
+// Используем готовый service клиент
+const supabase = supabaseService
 
 export class UserSupabaseService {
   /**

@@ -1,13 +1,16 @@
 /**
  * Сервис для работы с резервуарами
- * Включает персистентное хранение в localStorage
+ * Переключен на работу с Supabase
  */
 
-import { PersistentStorage } from '@/utils/persistentStorage';
+import { PersistentStorage } from '../utils/persistentStorage';
+
+// Экспортируем все из нового Supabase сервиса
+export * from './tanksServiceSupabase';
 
 // Типы данных
 export interface Tank {
-  id: number;
+  id: string; // UUID в Supabase
   name: string;
   fuelType: string;
   currentLevelLiters: number;
@@ -56,7 +59,7 @@ export interface Tank {
 
 export interface TankEvent {
   id: string;
-  tankId: number;
+  tankId: string; // UUID в Supabase
   type: 'drain' | 'fill' | 'calibration' | 'maintenance' | 'alarm';
   title: string;
   description: string;
@@ -65,6 +68,67 @@ export interface TankEvent {
   severity: 'info' | 'warning' | 'critical';
   metadata?: Record<string, any>;
 }
+
+// Маппинг данных из Supabase в формат Tank
+const mapFromSupabase = (data: any): Tank => ({
+  id: data.id,
+  name: data.name,
+  fuelType: data.fuel_type,
+  currentLevelLiters: data.current_level_liters,
+  capacityLiters: data.capacity_liters,
+  minLevelPercent: data.min_level_percent,
+  criticalLevelPercent: data.critical_level_percent,
+  temperature: data.temperature,
+  waterLevelMm: data.water_level_mm,
+  density: data.density,
+  status: data.is_active ? 'active' : 'maintenance',
+  location: data.location || '',
+  installationDate: data.installation_date,
+  lastCalibration: data.last_calibration,
+  supplier: data.supplier,
+  sensors: data.sensors || [
+    { name: "Уровень", status: "ok" },
+    { name: "Температура", status: "ok" }
+  ],
+  linkedPumps: data.linked_pumps || [],
+  notifications: data.notifications || {
+    enabled: true,
+    drainAlerts: true,
+    levelAlerts: true
+  },
+  thresholds: data.thresholds || {
+    criticalTemp: { min: -10, max: 40 },
+    maxWaterLevel: 15,
+    notifications: { critical: true, minimum: true, temperature: true, water: true }
+  },
+  trading_point_id: data.trading_point_id,
+  created_at: data.created_at,
+  updated_at: data.updated_at
+});
+
+// Маппинг данных в формат Supabase  
+const mapToSupabase = (data: Partial<Tank>) => ({
+  name: data.name,
+  fuel_type: data.fuelType,
+  current_level_liters: data.currentLevelLiters,
+  capacity_liters: data.capacityLiters,
+  min_level_percent: data.minLevelPercent,
+  critical_level_percent: data.criticalLevelPercent,
+  temperature: data.temperature,
+  water_level_mm: data.waterLevelMm,
+  density: data.density,
+  is_active: data.status === 'active',
+  location: data.location,
+  installation_date: data.installationDate,
+  last_calibration: data.lastCalibration,
+  supplier: data.supplier,
+  sensors: data.sensors,
+  linked_pumps: data.linkedPumps,
+  notifications: data.notifications,
+  thresholds: data.thresholds,
+  trading_point_id: data.trading_point_id,
+  updated_at: new Date().toISOString()
+});
 
 export interface DrainOperation {
   id: string;
@@ -858,22 +922,64 @@ PersistentStorage.remove('tankCalibrations');
 // Для демонстрации связанной схемы - раскомментируйте следующую строку
 resetTanksData();
 
-// API сервис с персистентным хранением
+// API сервис на Supabase
 export const tanksService = {
   // Получить все резервуары
   async getTanks(tradingPointId?: string): Promise<Tank[]> {
-    await new Promise(resolve => setTimeout(resolve, 200));
+    console.log('🔄 Loading tanks from Supabase...');
+    await delay(300);
     
-    if (tradingPointId) {
-      return mockTanks.filter(tank => tank.trading_point_id === tradingPointId);
+    try {
+      let query = supabase.from('tanks').select('*').order('name');
+      
+      if (tradingPointId) {
+        query = query.eq('trading_point_id', tradingPointId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Ошибка получения резервуаров:', error);
+        throw error;
+      }
+      
+      const mappedData = (data || []).map(mapFromSupabase);
+      console.log('✅ Loaded tanks from Supabase:', mappedData.length, 'items');
+      return mappedData;
+      
+    } catch (error) {
+      console.error('❌ Ошибка в tanksService.getTanks:', error);
+      throw error;
     }
-    return [...mockTanks];
   },
 
   // Получить резервуар по ID
-  async getTank(id: number): Promise<Tank | null> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    return mockTanks.find(tank => tank.id === id) || null;
+  async getTank(id: string): Promise<Tank | null> {
+    console.log('🔍 Getting tank by ID:', id);
+    await delay(200);
+    
+    try {
+      const { data, error } = await supabase
+        .from('tanks')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // Не найден
+        }
+        throw error;
+      }
+
+      const mappedData = mapFromSupabase(data);
+      console.log('✅ Tank found:', mappedData.name);
+      return mappedData;
+
+    } catch (error) {
+      console.error('❌ Ошибка в tanksService.getTank:', error);
+      return null;
+    }
   },
 
   // Обновить резервуар

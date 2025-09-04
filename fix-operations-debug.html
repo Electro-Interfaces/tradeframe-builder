@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Operations Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1e293b; color: #fff; }
+        #results { background: #0f172a; padding: 20px; border-radius: 8px; max-height: 600px; overflow-y: auto; }
+        .success { color: #10b981; }
+        .warn { color: #f59e0b; }
+        .error { color: #ef4444; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 10px 5px 0 0; }
+        button:hover { background: #2563eb; }
+        button.danger { background: #ef4444; }
+        button.danger:hover { background: #dc2626; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Fix Operations Debug</h1>
+    <button onclick="clearApiConfig()">Очистить API конфигурацию</button>
+    <button onclick="setCorrectApiConfig()">Установить правильную конфигурацию</button>
+    <button onclick="testOperationsService()" class="success">Тест operationsService</button>
+    <button onclick="openOperationsPage()">Открыть страницу операций</button>
+    <button onclick="clearResults()">Очистить</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warn' ? 'warn' : '';
+            resultsDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+
+        function clearApiConfig() {
+            log('🧹 Очищаем API конфигурацию в localStorage...', 'warn');
+            localStorage.removeItem('api_config');
+            localStorage.removeItem('tradeframe_operations');
+            localStorage.removeItem('operations');
+            log('✅ API конфигурация очищена', 'success');
+        }
+
+        function setCorrectApiConfig() {
+            log('🔧 Устанавливаем правильную API конфигурацию...', 'warn');
+            
+            const correctConfig = {
+                currentConnectionId: 'local-db',
+                debugMode: true,
+                lastUpdated: new Date().toISOString(),
+                availableConnections: [
+                    {
+                        id: 'mock',
+                        name: 'Mock Data (Демо)',
+                        url: 'localStorage',
+                        type: 'mock',
+                        description: 'Локальные демо-данные в localStorage',
+                        isActive: false,
+                        isDefault: false,
+                        createdAt: new Date('2024-01-01').toISOString(),
+                        updatedAt: new Date().toISOString()
+                    },
+                    {
+                        id: 'local-db',
+                        name: 'Локальная БД',
+                        url: 'http://localhost:3001/api/v1',
+                        type: 'postgresql',
+                        description: 'Локальная PostgreSQL база данных',
+                        isActive: true,
+                        isDefault: true,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        settings: {
+                            timeout: 5000,
+                            retryAttempts: 3,
+                            poolSize: 10,
+                            ssl: false
+                        }
+                    }
+                ]
+            };
+            
+            localStorage.setItem('api_config', JSON.stringify(correctConfig));
+            log('✅ Правильная конфигурация установлена:', 'success');
+            log(`   - currentConnectionId: ${correctConfig.currentConnectionId}`);
+            log(`   - API URL: http://localhost:3001/api/v1`);
+            log(`   - Type: postgresql`);
+        }
+
+        async function testOperationsService() {
+            log('🧪 Тестируем цепочку operationsService...', 'warn');
+            
+            try {
+                // Проверяем что API сервер доступен
+                log('1. Проверяем API сервер...');
+                const healthResponse = await fetch('http://localhost:3001/health');
+                if (!healthResponse.ok) {
+                    throw new Error('API сервер недоступен');
+                }
+                log('   ✅ API сервер работает', 'success');
+                
+                // Проверяем endpoint операций
+                log('2. Проверяем endpoint операций...');
+                const operationsResponse = await fetch('http://localhost:3001/api/v1/operations?limit=5');
+                if (!operationsResponse.ok) {
+                    throw new Error(`Operations endpoint error: ${operationsResponse.status}`);
+                }
+                
+                const operationsData = await operationsResponse.json();
+                log(`   ✅ Операции загружены: ${operationsData.data?.length || 0} шт.`, 'success');
+                
+                // Теперь проверяем конфигурацию
+                log('3. Проверяем API конфигурацию...');
+                const savedConfig = localStorage.getItem('api_config');
+                if (savedConfig) {
+                    const config = JSON.parse(savedConfig);
+                    const currentConn = config.availableConnections?.find(c => c.id === config.currentConnectionId);
+                    log(`   - Текущее подключение: ${currentConn?.name} (${currentConn?.type})`);
+                    log(`   - URL: ${currentConn?.url}`);
+                    
+                    if (currentConn?.type === 'mock') {
+                        log('   ❌ ПРОБЛЕМА: Конфигурация в MOCK режиме!', 'error');
+                        log('   Нажмите "Установить правильную конфигурацию"', 'warn');
+                        return;
+                    }
+                } else {
+                    log('   ⚠️ Конфигурация не найдена, используется по умолчанию', 'warn');
+                }
+                
+                log('✅ Всё готово! Данные должны загружаться', 'success');
+                
+            } catch (error) {
+                log(`❌ Ошибка тестирования: ${error.message}`, 'error');
+            }
+        }
+
+        function openOperationsPage() {
+            log('🌐 Открываем страницу операций...', 'warn');
+            window.open('http://localhost:3006/network/operations-transactions', '_blank');
+            log('   Проверьте консоль браузера на новой странице', 'warn');
+        }
+        
+        // Автоматически проверяем при загрузке
+        setTimeout(() => {
+            testOperationsService();
+        }, 500);
+    </script>
+</body>
+</html>

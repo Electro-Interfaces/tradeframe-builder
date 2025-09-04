@@ -559,7 +559,7 @@ export default function Equipment() {
             </div>
           )}
 
-          {!loading && !error && equipment.length === 0 && (
+          {!loading && !error && equipment && equipment.length === 0 && (
             <EmptyState
               icon={Settings}
               title="Нет оборудования"
@@ -568,7 +568,7 @@ export default function Equipment() {
             />
           )}
 
-          {!loading && !error && equipment.length > 0 && (
+          {!loading && !error && equipment && equipment.length > 0 && (
             <div className="space-y-3">
               {equipment.map(item => {
                 const template = templates.find(t => t.id === item.template_id);
@@ -740,9 +740,9 @@ export default function Equipment() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-white">Установленное оборудование</h2>
-                  {!loading && equipment.length > 0 && (
+                  {!loading && equipment && equipment && equipment.length > 0 && (
                     <p className="text-sm text-slate-400">
-                      Всего единиц: {equipment.length}
+                      Всего единиц: {equipment && equipment.length}
                     </p>
                   )}
                 </div>
@@ -779,7 +779,7 @@ export default function Equipment() {
             </div>
           )}
 
-          {!loading && !error && equipment.length === 0 && (
+          {!loading && !error && equipment && equipment.length === 0 && (
             <div className="px-6 py-16 text-center">
               <Settings className="w-12 h-12 text-slate-600 mx-auto mb-3" />
               <h3 className="text-lg font-semibold text-white mb-2">Нет оборудования</h3>
@@ -797,7 +797,7 @@ export default function Equipment() {
           )}
 
           {/* Таблица с оборудованием */}
-          {!loading && !error && equipment.length > 0 && (
+          {!loading && !error && equipment && equipment.length > 0 && (
             <div className="overflow-x-auto w-full">
               <table className="w-full text-sm min-w-full table-fixed">
                 <thead className="bg-slate-700">

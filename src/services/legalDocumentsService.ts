@@ -5,8 +5,8 @@
 
 import { PersistentStorage } from '@/utils/persistentStorage';
 import { apiConfigService } from './apiConfigService';
-import { createSupabaseFromSettings } from './supabaseClient';
-import { supabase as officialSupabase } from './supabaseClientBrowser';
+// Убран неиспользуемый импорт
+import { supabaseService as officialSupabase } from './supabaseServiceClient';
 import {
   DocumentType,
   DocumentVersion,

@@ -4,7 +4,7 @@
  */
 
 import { Network, NetworkId, NetworkInput } from '@/types/network';
-import { supabase } from './supabaseClientBrowser';
+import { supabaseService as supabase } from './supabaseServiceClient';
 
 // API сервис только с Supabase - никакого localStorage!
 export const networksService = {

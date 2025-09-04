@@ -3,8 +3,7 @@
  * Работает с реальными пользователями из базы данных
  */
 
-import { createSupabaseFromSettings } from '@/services/supabaseClient';
-import { apiConfigService } from '@/services/apiConfigService';
+import { supabaseService } from '@/services/supabaseServiceClient';
 import * as bcrypt from 'bcryptjs';
 
 interface SupabaseUser {
@@ -51,26 +50,11 @@ export class SupabaseAuthService {
    */
   static async login(email: string, password: string): Promise<AuthUser> {
     try {
-      // Пытаемся получить Supabase клиент
-      let supabaseClient;
-      try {
-        supabaseClient = this.getSupabaseClient();
-      } catch (configError) {
-        // Если конфигурация не найдена, используем переменные окружения
-        const url = import.meta.env.VITE_SUPABASE_URL || 'https://tohtryzyffcebtyvkxwh.supabase.co';
-        const key = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI';
-        if (!url || !key) {
-          throw new Error('Supabase подключение не активно');
-        }
-        supabaseClient = createSupabaseFromSettings(url, key);
-      }
-
-      // Отладка: проверяем подключение
-      console.log('Attempting to query user with email:', email);
-      console.log('Supabase URL:', supabaseClient.baseUrl);
+      // Используем service клиент для авторизации
+      console.log('🔐 Attempting login with email:', email);
       
       // Получаем пользователя из базы данных
-      const { data: users, error: userError } = await supabaseClient
+      const { data: users, error: userError } = await supabaseService
         .from('users')
         .select('*')
         .eq('email', email)
@@ -78,17 +62,17 @@ export class SupabaseAuthService {
         .is('deleted_at', null)
         .limit(1);
 
-      console.log('Query result:', { users, userError });
+      console.log('✅ Query result:', { users, userError });
 
       if (userError) {
-        console.error('Supabase user query error:', userError);
+        console.error('❌ Supabase user query error:', userError);
         throw new Error('Ошибка подключения к базе данных: ' + userError);
       }
 
       if (!users || users.length === 0) {
         console.error('No users found for email:', email);
         // Попробуем без фильтра deleted_at
-        const { data: allUsers } = await supabaseClient
+        const { data: allUsers } = await supabaseService
           .from('users')
           .select('*')
           .eq('email', email)

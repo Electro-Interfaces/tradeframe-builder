@@ -1,10 +1,10 @@
 /**
- * Обновленный сервис для работы с ценами топлива
- * Переключается между localStorage и Supabase в зависимости от конфигурации
+ * Сервис для работы с ценами топлива
+ * Использует Supabase как основную БД с fallback на localStorage
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
-import { pricesSupabaseService } from './pricesSupabaseService';
+import { supabaseService } from './supabaseServiceClient';
 import { apiConfigService } from './apiConfigService';
 
 // Типы данных
@@ -1522,32 +1522,99 @@ const initialPriceJournal: PriceJournalEntry[] = [
 ];
 
 class PricesService {
+  private client = supabaseService;
+  
   private isSupabaseMode(): boolean {
     return !apiConfigService.isMockMode() && import.meta.env.VITE_SUPABASE_URL;
   }
-
-  /**
-   * Трансформирует данные из Supabase в формат для UI
-   */
-  private transformSupabasePriceToUI(supabasePrice: any): FuelPrice {
+  
+  // Трансформация данных из Supabase в UI формат
+  private transformSupabasePriceToUI(dbPrice: any): FuelPrice {
     return {
-      id: supabasePrice.id,
-      fuelType: supabasePrice.fuel_types?.name || 'Unknown',
-      fuelCode: supabasePrice.fuel_types?.code || '',
-      priceNet: supabasePrice.price_net,
-      vatRate: supabasePrice.vat_rate,
-      priceGross: supabasePrice.price_gross,
-      unit: supabasePrice.unit || 'L',
-      appliedFrom: supabasePrice.valid_from,
-      status: supabasePrice.is_active ? 'active' : 'expired',
-      tradingPoint: supabasePrice.trading_points?.name || 'Unknown',
-      networkId: supabasePrice.trading_point_id,
-      tradingPointId: supabasePrice.trading_point_id,
-      packageId: supabasePrice.package_id,
-      created_at: supabasePrice.created_at,
-      updated_at: supabasePrice.updated_at
+      id: dbPrice.id,
+      fuelType: dbPrice.fuel_types?.name || 'Unknown',
+      fuelCode: dbPrice.fuel_types?.code || '',
+      priceNet: dbPrice.price_net,
+      vatRate: dbPrice.vat_rate,
+      priceGross: dbPrice.price_gross,
+      unit: dbPrice.unit || 'L',
+      appliedFrom: dbPrice.valid_from,
+      status: dbPrice.is_active ? 'active' : 'expired',
+      tradingPoint: dbPrice.trading_points?.name || 'Unknown',
+      networkId: dbPrice.trading_point_id,
+      tradingPointId: dbPrice.trading_point_id,
+      packageId: dbPrice.package_id,
+      created_at: dbPrice.created_at,
+      updated_at: dbPrice.updated_at
     };
   }
+  
+  // Создать демо-данные цен для существующих торговых точек
+  async createDemoPrices(): Promise<void> {
+    if (!this.isSupabaseMode()) return;
+    
+    console.log('🎭 Создаем демо-цены в БД...');
+    try {
+      // Получаем существующие торговые точки и типы топлива
+      const [tpResult, ftResult] = await Promise.all([
+        this.client.from('trading_points').select('id, name').limit(3),
+        this.client.from('fuel_types').select('id, name, code').eq('is_active', true).limit(5)
+      ]);
+      
+      if (tpResult.error || ftResult.error) {
+        console.error('Ошибка получения данных для демо-цен:', tpResult.error || ftResult.error);
+        return;
+      }
+      
+      const tradingPoints = tpResult.data || [];
+      const fuelTypes = ftResult.data || [];
+      
+      if (tradingPoints.length === 0 || fuelTypes.length === 0) {
+        console.log('⚠️ Нет торговых точек или типов топлива для создания демо-цен');
+        return;
+      }
+      
+      // Создаем по несколько цен для каждой торговой точки
+      const demoPrices = [];
+      
+      for (const tp of tradingPoints.slice(0, 2)) { // Первые 2 торговые точки
+        for (const ft of fuelTypes.slice(0, 3)) { // Первые 3 вида топлива
+          const basePrice = ft.code === 'AI95' ? 5300 : 
+                          ft.code === 'AI92' ? 5000 : 
+                          ft.code === 'DT_SUMMER' ? 5200 : 5100;
+          
+          demoPrices.push({
+            trading_point_id: tp.id,
+            fuel_type_id: ft.id,
+            price_net: basePrice,
+            vat_rate: 20,
+            price_gross: Math.round(basePrice * 1.2),
+            source: 'manual',
+            valid_from: new Date().toISOString(),
+            is_active: true,
+            created_by: '550e8400-e29b-41d4-a716-446655440000', // demo user
+            reason: `Демо-цена на ${ft.name} для ${tp.name}`,
+            metadata: { demo: true }
+          });
+        }
+      }
+      
+      // Вставляем демо-цены
+      const { data, error } = await this.client
+        .from('prices')
+        .insert(demoPrices);
+      
+      if (error) {
+        console.error('Ошибка создания демо-цен:', error);
+      } else {
+        console.log(`✅ Создано ${demoPrices.length} демо-цен`);
+      }
+      
+    } catch (error) {
+      console.error('Исключение при создании демо-цен:', error);
+    }
+  }
+
 
   private transformSupabaseFuelType(supabaseFuelType: any): FuelType {
     return {
@@ -1559,58 +1626,20 @@ class PricesService {
     };
   }
 
-// Загружаем данные из localStorage
-let mockFuelTypes: FuelType[] = PersistentStorage.load<FuelType>('fuelTypes', initialFuelTypes);
-let mockCurrentPrices: FuelPrice[] = PersistentStorage.load<FuelPrice>('currentPrices', initialCurrentPrices);
-let mockPricePackages: PricePackage[] = PersistentStorage.load<PricePackage>('pricePackages', initialPricePackages);
-let mockPriceJournal: PriceJournalEntry[] = PersistentStorage.load<PriceJournalEntry>('priceJournal', initialPriceJournal);
-
-// Функции для сохранения изменений
-const saveFuelTypes = () => PersistentStorage.save('fuelTypes', mockFuelTypes);
-const saveCurrentPrices = () => PersistentStorage.save('currentPrices', mockCurrentPrices);
-const savePricePackages = () => PersistentStorage.save('pricePackages', mockPricePackages);
-const savePriceJournal = () => PersistentStorage.save('priceJournal', mockPriceJournal);
-
-// Функция для сброса и обновления всех данных о ценах (для обновления связанной схемы)
-const resetPricesData = () => {
-  PersistentStorage.remove('fuelTypes');
-  PersistentStorage.remove('currentPrices');
-  PersistentStorage.remove('pricePackages');
-  PersistentStorage.remove('priceJournal');
-  
-  mockFuelTypes = [...initialFuelTypes];
-  mockCurrentPrices = [...initialCurrentPrices];
-  mockPricePackages = [...initialPricePackages];
-  mockPriceJournal = [...initialPriceJournal];
-  
-  saveFuelTypes();
-  saveCurrentPrices();
-  savePricePackages();
-  savePriceJournal();
-  
-  console.log('🔄 Prices data reset to new connected schema (Equipment → Tanks → Prices)');
-};
-
-// Принудительный сброс данных для синхронизации с резервуарами
-// ВАЖНО: Очищаем localStorage принудительно для корректной синхронизации
-PersistentStorage.remove('fuelTypes');
-PersistentStorage.remove('currentPrices'); 
-PersistentStorage.remove('pricePackages');
-PersistentStorage.remove('priceJournal');
-resetPricesData();
-
-// Вспомогательные функции
-const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
-  return Math.round(priceNet * (1 + vatRate / 100));
-};
-
   // Получить типы топлива
   async getFuelTypes(): Promise<FuelType[]> {
     if (this.isSupabaseMode()) {
       console.log('🔄 Loading fuel types from Supabase...');
       try {
-        const supabaseFuelTypes = await pricesSupabaseService.getFuelTypes();
-        return supabaseFuelTypes.map(ft => this.transformSupabaseFuelType(ft));
+        const { data, error } = await this.client
+          .from('fuel_types')
+          .select('id, name, code, is_active, created_at')
+          .eq('is_active', true)
+          .order('name');
+        
+        if (error) throw error;
+        
+        return (data || []).map(ft => this.transformSupabaseFuelType(ft));
       } catch (error) {
         console.error('Error loading fuel types from Supabase:', error);
         // Fallback к localStorage
@@ -1641,10 +1670,51 @@ const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
     saveFuelTypes();
     
     return newFuelType;
-  },
+  }
 
   // Получить текущие цены
   async getCurrentPrices(tradingPointId?: string, networkId?: string): Promise<FuelPrice[]> {
+    if (this.isSupabaseMode()) {
+      console.log('🔄 Loading prices from Supabase...');
+      try {
+        let query = this.client.from('prices');
+        
+        // Добавляем связанные данные
+        query = query.select(`
+          *,
+          fuel_types(name, code),
+          trading_points(name)
+        `);
+        
+        // Фильтры
+        if (tradingPointId) {
+          query = query.eq('trading_point_id', tradingPointId);
+        }
+        
+        // Только активные цены
+        query = query.eq('is_active', true);
+        
+        // Только актуальные по времени
+        const now = new Date().toISOString();
+        query = query.lte('valid_from', now);
+        
+        // Сортировка по fuel type
+        query = query.order('valid_from', { ascending: false });
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        return (data || []).map(price => this.transformSupabasePriceToUI(price));
+        
+      } catch (error) {
+        console.error('Error loading prices from Supabase:', error);
+        // Fallback к localStorage
+      }
+    }
+    
+    // Fallback или mock режим
+    console.log('🔄 Loading prices from localStorage...');
     await new Promise(resolve => setTimeout(resolve, 200));
     
     let prices = [...mockCurrentPrices];
@@ -1658,14 +1728,84 @@ const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
     }
     
     return prices.sort((a, b) => a.fuelType.localeCompare(b.fuelType));
-  },
+  }
 
   // Создать/обновить цену
-  async upsertPrice(price: Omit<FuelPrice, 'id' | 'priceGross' | 'created_at' | 'updated_at'>): Promise<FuelPrice> {
+  async upsertPrice(priceData: {
+    tradingPointId: string;
+    fuelTypeId: string;
+    priceNet: number;
+    vatRate?: number;
+    source?: 'manual' | 'import' | 'api' | 'package';
+    reason?: string;
+    createdBy: string;
+  }): Promise<FuelPrice | null> {
+    if (this.isSupabaseMode()) {
+      console.log('🔄 Upserting price to Supabase...');
+      try {
+        const vatRate = priceData.vatRate || 20;
+        const priceGross = Math.round(priceData.priceNet * (1 + vatRate / 100));
+        
+        // Деактивируем старые цены
+        await this.client
+          .from('prices')
+          .update({ is_active: false })
+          .eq('trading_point_id', priceData.tradingPointId)
+          .eq('fuel_type_id', priceData.fuelTypeId)
+          .eq('is_active', true);
+        
+        // Создаем новую цену
+        const { data, error } = await this.client
+          .from('prices')
+          .insert({
+            trading_point_id: priceData.tradingPointId,
+            fuel_type_id: priceData.fuelTypeId,
+            price_net: priceData.priceNet,
+            vat_rate: vatRate,
+            price_gross: priceGross,
+            source: priceData.source || 'manual',
+            valid_from: new Date().toISOString(),
+            is_active: true,
+            created_by: priceData.createdBy,
+            reason: priceData.reason,
+            metadata: {}
+          })
+          .select(`
+            *,
+            fuel_types(name, code),
+            trading_points(name)
+          `)
+          .single();
+        
+        if (error) throw error;
+        
+        return this.transformSupabasePriceToUI(data);
+        
+      } catch (error) {
+        console.error('Error upserting price to Supabase:', error);
+        // Fallback к localStorage
+      }
+    }
+    
+    // Fallback или mock режим
+    console.log('🔄 Upserting price to localStorage...');
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Рассчитываем цену с НДС
-    const priceGross = calculateGrossPrice(price.priceNet, price.vatRate);
+    const priceGross = calculateGrossPrice(priceData.priceNet, priceData.vatRate || 20);
+    
+    // Преобразуем в старый формат для совместимости
+    const price = {
+      fuelCode: 'UNKNOWN', // TODO: получить из fuel_type
+      fuelType: 'Unknown',
+      priceNet: priceData.priceNet,
+      vatRate: priceData.vatRate || 20,
+      unit: 'L',
+      appliedFrom: new Date().toISOString(),
+      status: 'active' as const,
+      tradingPoint: 'Unknown',
+      networkId: '1',
+      tradingPointId: priceData.tradingPointId
+    };
     
     // Ищем существующую цену
     const existingIndex = mockCurrentPrices.findIndex(p => 
@@ -1703,7 +1843,7 @@ const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
       
       return newPrice;
     }
-  },
+  }
 
   // Удалить цену
   async deletePrice(id: string): Promise<void> {
@@ -1714,7 +1854,7 @@ const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
       mockCurrentPrices.splice(index, 1);
       saveCurrentPrices();
     }
-  },
+  }
 
   // Получить пакеты цен
   async getPricePackages(tradingPointId?: string, status?: string): Promise<PricePackage[]> {
@@ -1733,7 +1873,7 @@ const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
     return packages.sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  },
+  }
 
   // Создать пакет цен
   async createPricePackage(packageData: Omit<PricePackage, 'id' | 'createdAt'>): Promise<PricePackage> {
@@ -1757,7 +1897,7 @@ const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
     savePricePackages();
     
     return newPackage;
-  },
+  }
 
   // Применить пакет цен
   async applyPricePackage(packageId: string): Promise<void> {
@@ -1834,10 +1974,63 @@ const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
     savePricePackages();
     saveCurrentPrices();
     savePriceJournal();
-  },
+  }
 
   // Получить историю изменений цен
   async getPriceJournal(tradingPointId?: string, fuelCode?: string, limit = 50): Promise<PriceJournalEntry[]> {
+    if (this.isSupabaseMode()) {
+      console.log('🔄 Loading price history from Supabase...');
+      try {
+        let query = this.client.from('price_history');
+        
+        query = query.select(`
+          *,
+          fuel_types(name, code),
+          trading_points(name)
+        `);
+        
+        if (tradingPointId) {
+          query = query.eq('trading_point_id', tradingPointId);
+        }
+        
+        query = query.order('effective_date', { ascending: false });
+        
+        if (limit) {
+          query = query.limit(limit);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        // Трансформируем в формат UI
+        return (data || []).map((entry: any) => ({
+          id: entry.id,
+          timestamp: entry.effective_date,
+          fuelType: entry.fuel_types?.name || 'Unknown',
+          fuelCode: entry.fuel_types?.code || '',
+          priceNet: entry.new_price_net,
+          priceGross: entry.new_price_gross,
+          vatRate: entry.vat_rate,
+          source: entry.source,
+          packageId: entry.package_id,
+          status: 'applied', // Все записи в истории уже применены
+          authorName: 'User', // TODO: получить из связанных данных
+          authorId: entry.changed_by,
+          tradingPoint: entry.trading_points?.name || 'Unknown',
+          tradingPointId: entry.trading_point_id,
+          networkId: '1', // TODO: получить из trading_points
+          notes: entry.reason
+        }));
+        
+      } catch (error) {
+        console.error('Error loading price history from Supabase:', error);
+        // Fallback к localStorage
+      }
+    }
+    
+    // Fallback или mock режим
+    console.log('🔄 Loading price history from localStorage...');
     await new Promise(resolve => setTimeout(resolve, 200));
     
     let journal = [...mockPriceJournal];
@@ -1854,4 +2047,50 @@ const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, limit);
   }
+}
+
+// Загружаем данные из localStorage
+let mockFuelTypes: FuelType[] = PersistentStorage.load<FuelType>('fuelTypes', initialFuelTypes);
+let mockCurrentPrices: FuelPrice[] = PersistentStorage.load<FuelPrice>('currentPrices', initialCurrentPrices);
+let mockPricePackages: PricePackage[] = PersistentStorage.load<PricePackage>('pricePackages', initialPricePackages);
+let mockPriceJournal: PriceJournalEntry[] = PersistentStorage.load<PriceJournalEntry>('priceJournal', initialPriceJournal);
+
+// Функции для сохранения изменений
+const saveFuelTypes = () => PersistentStorage.save('fuelTypes', mockFuelTypes);
+const saveCurrentPrices = () => PersistentStorage.save('currentPrices', mockCurrentPrices);
+const savePricePackages = () => PersistentStorage.save('pricePackages', mockPricePackages);
+const savePriceJournal = () => PersistentStorage.save('priceJournal', mockPriceJournal);
+
+// Функция для сброса и обновления всех данных о ценах (для обновления связанной схемы)
+const resetPricesData = () => {
+  PersistentStorage.remove('fuelTypes');
+  PersistentStorage.remove('currentPrices');
+  PersistentStorage.remove('pricePackages');
+  PersistentStorage.remove('priceJournal');
+  
+  mockFuelTypes = [...initialFuelTypes];
+  mockCurrentPrices = [...initialCurrentPrices];
+  mockPricePackages = [...initialPricePackages];
+  mockPriceJournal = [...initialPriceJournal];
+  
+  saveFuelTypes();
+  saveCurrentPrices();
+  savePricePackages();
+  savePriceJournal();
+  
+  console.log('🔄 Prices data reset to new connected schema (Equipment → Tanks → Prices)');
 };
+
+// Данные только для fallback режима - в продакшене используется Supabase
+if (apiConfigService.isMockMode()) {
+  console.log('🧹 Инициализация mock данных цен для демо режима...');
+  resetPricesData();
+}
+
+// Вспомогательные функции
+const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
+  return Math.round(priceNet * (1 + vatRate / 100));
+};
+
+// Экспорт сервиса
+export const pricesService = new PricesService();

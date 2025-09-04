@@ -3,7 +3,7 @@
  * Интегрируется с Supabase для хранения данных
  */
 
-import { supabase } from './supabaseClientBrowser'
+import { supabaseService as supabase } from './supabaseServiceClient'
 import type {
   Role,
   User,

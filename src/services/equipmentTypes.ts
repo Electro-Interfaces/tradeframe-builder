@@ -1,7 +1,7 @@
 // Сервис для работы с шаблонами оборудования из Supabase
 // Обеспечивает связь между разделом "Типы оборудования" и страницей "Оборудование"
 
-import { supabase } from './supabaseClientBrowser'
+import { supabaseService as supabase } from './supabaseServiceClient'
 
 export interface EquipmentType {
   id: string;

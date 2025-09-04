@@ -34,7 +34,6 @@ export interface Role {
   created_at: Date
   updated_at: Date
   deleted_at?: Date               // soft delete
-  version: number                 // версионность для оптимистичной блокировки
 }
 
 export interface UserRole {
@@ -74,7 +73,6 @@ export interface User {
   created_at: Date
   updated_at: Date
   deleted_at?: Date               // soft delete
-  version: number                 // версионность
 }
 
 export interface Session {
@@ -105,12 +103,15 @@ export interface AuditLog {
 
 // Input типы для создания/обновления
 export interface CreateRoleInput {
+  tenant_id?: string
   code: string
   name: string
   description: string
   permissions: Permission[]
   scope: RoleScope
   scope_values?: string[]
+  is_system?: boolean
+  is_active?: boolean
 }
 
 export interface UpdateRoleInput {

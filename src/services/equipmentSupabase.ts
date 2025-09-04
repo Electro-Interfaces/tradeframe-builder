@@ -15,7 +15,7 @@ import {
   EquipmentEvent
 } from '@/types/equipment';
 
-import supabase from '@/config/supabaseConfig';
+import { supabaseService as supabase } from './supabaseServiceClient';
 
 // Утилита для генерации UUID
 function generateUUID(): string {
@@ -34,17 +34,17 @@ export const supabaseEquipmentTemplatesAPI = {
    * Получить список шаблонов оборудования
    */
   async list(): Promise<EquipmentTemplate[]> {
-    const result = await supabase.select('equipment_templates', {
-      select: '*'
-    });
+    const { data, error } = await supabase
+      .from('equipment_templates')
+      .select('*');
 
-    if (result.error) {
-      console.error('❌ Equipment templates list error:', result.error);
-      throw new Error(`Failed to fetch equipment templates: ${result.error}`);
+    if (error) {
+      console.error('❌ Equipment templates list error:', error);
+      throw new Error(`Failed to fetch equipment templates: ${error.message}`);
     }
 
     // Маппинг данных из Supabase в формат приложения
-    const templates = (result.data || []).map(item => ({
+    const templates = (data || []).map(item => ({
       id: item.id,
       name: item.name,
       system_type: item.system_type,
@@ -65,17 +65,18 @@ export const supabaseEquipmentTemplatesAPI = {
    * Получить шаблон по ID
    */
   async get(id: string): Promise<EquipmentTemplate> {
-    const result = await supabase.select('equipment_templates', {
-      select: '*',
-      eq: { id }
-    });
+    const { data, error } = await supabase
+      .from('equipment_templates')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (result.error) {
-      console.error(`❌ Equipment template get error (${id}):`, result.error);
-      throw new Error(`Failed to fetch equipment template: ${result.error}`);
+    if (error) {
+      console.error(`❌ Equipment template get error (${id}):`, error);
+      throw new Error(`Failed to fetch equipment template: ${error.message}`);
     }
 
-    const item = result.data?.[0];
+    const item = data;
     if (!item) {
       throw new Error(`Equipment template not found: ${id}`);
     }
@@ -212,15 +213,31 @@ export const supabaseEquipmentAPI = {
       options.offset = params.offset;
     }
 
-    const result = await supabase.select('equipment', options);
+    let query = supabase.from('equipment').select('*');
+    
+    if (options.where) {
+      Object.entries(options.where).forEach(([key, value]) => {
+        query = query.eq(key, value);
+      });
+    }
+    
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
+    
+    if (options.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 100) - 1);
+    }
+    
+    const { data, error } = await query;
 
-    if (result.error) {
-      console.error('❌ Equipment list error:', result.error);
-      throw new Error(`Failed to fetch equipment: ${result.error}`);
+    if (error) {
+      console.error('❌ Equipment list error:', error);
+      throw new Error(`Failed to fetch equipment: ${error.message}`);
     }
 
     // Маппинг данных
-    const items = (result.data || []).map(item => ({
+    const items = (data || []).map(item => ({
       id: item.id,
       name: item.name,
       template_id: item.template_id,
@@ -260,17 +277,18 @@ export const supabaseEquipmentAPI = {
    * Получить оборудование по ID
    */
   async get(id: string): Promise<Equipment> {
-    const result = await supabase.select('equipment', {
-      select: '*',
-      eq: { id }
-    });
+    const { data, error } = await supabase
+      .from('equipment')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (result.error) {
-      console.error(`❌ Equipment get error (${id}):`, result.error);
-      throw new Error(`Failed to fetch equipment: ${result.error}`);
+    if (error) {
+      console.error(`❌ Equipment get error (${id}):`, error);
+      throw new Error(`Failed to fetch equipment: ${error.message}`);
     }
 
-    const item = result.data?.[0];
+    const item = data;
     if (!item) {
       throw new Error(`Equipment not found: ${id}`);
     }

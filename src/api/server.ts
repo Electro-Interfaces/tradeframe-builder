@@ -7,24 +7,27 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { authenticateToken } from './middleware/auth.js';
-import { testDatabaseConnection } from './database/supabase.js';
+import { authenticateToken } from './middleware/auth';
+import { testDatabaseConnection } from './database/supabase';
 
 // Import routes
-import { authRouter } from './routes/auth.js';
-import { fuelStockSnapshotsRouter } from './routes/fuel-stock-snapshots.js';
-import { legalDocumentsRouter } from './routes/legal-documents.js';
-// import { networksRouter } from './routes/networks.js';
-// import { fuelTypesRouter } from './routes/fuel-types.js';
-import { operationsRouter } from './routes/operations.js';
-import { priceHistoryRouter } from './routes/price-history.js';
-import { fuelStocksRouter } from './routes/fuel-stocks.js';
+import { authRouter } from './routes/auth';
+import { fuelStockSnapshotsRouter } from './routes/fuel-stock-snapshots';
+import { legalDocumentsRouter } from './routes/legal-documents';
+import { networksRouter } from './routes/networks';
+import { fuelTypesRouter } from './routes/fuel-types';
+import { operationsRouter } from './routes/operations';
+import { priceHistoryRouter } from './routes/price-history';
+import { fuelStocksRouter } from './routes/fuel-stocks';
 import { equipmentRouter } from './routes/equipment';
 // import { equipmentLogRouter } from './routes/equipment-log';
 // import { tanksRouter } from './routes/tanks';
-// import { tradingPointsRouter } from './routes/trading-points';
-// import { usersRouter } from './routes/users';
-// import { rolesRouter } from './routes/roles';
+import { tradingPointsRouter } from './routes/trading-points';
+import { usersRouter } from './routes/users';
+import { rolesRouter } from './routes/roles';
+import { testRouter } from './routes/test';
+import { commandTemplatesRouter } from './routes/command-templates';
+import { apiTemplatesRouter } from './routes/api-templates';
 
 const app: Application = express();
 const PORT = process.env.API_PORT || process.env.PORT || 3001;
@@ -52,6 +55,10 @@ app.use(cors({
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',
+    'http://localhost:3003',
+    'http://localhost:3004',
+    'http://localhost:3005',
+    'http://localhost:3006',  // Добавлен для текущего dev сервера
     'http://localhost:5173',
     'file://'  // для локальных HTML файлов
   ],
@@ -127,17 +134,20 @@ app.use('/api/v1/fuel-stock-snapshots', fuelStockSnapshotsRouter);
 app.use('/api/v1/legal-documents', legalDocumentsRouter);
 
 // Other routes - temporarily disabled for testing
-// app.use('/api/v1/networks', authenticateToken, networksRouter);
-// app.use('/api/v1/fuel-types', authenticateToken, fuelTypesRouter);
+app.use('/api/v1/networks', networksRouter); // Temporarily disabled auth for testing
+app.use('/api/v1/fuel-types', fuelTypesRouter);
 app.use('/api/v1/operations', operationsRouter); // Temporarily disabled auth for testing
 app.use('/api/v1/price-history', authenticateToken, priceHistoryRouter);
 app.use('/api/v1/fuel-stocks', authenticateToken, fuelStocksRouter);
 app.use('/api/v1/equipment', authenticateToken, equipmentRouter);
 // app.use('/api/v1/equipment-log', authenticateToken, equipmentLogRouter);
 // app.use('/api/v1/tanks', authenticateToken, tanksRouter);
-// app.use('/api/v1/trading-points', authenticateToken, tradingPointsRouter);
-// app.use('/api/v1/users', authenticateToken, usersRouter);
-// app.use('/api/v1/roles', authenticateToken, rolesRouter);
+app.use('/api/v1/trading-points', tradingPointsRouter); // Temporarily disabled auth for testing
+app.use('/api/v1/users', authenticateToken, usersRouter);
+app.use('/api/v1/roles', authenticateToken, rolesRouter);
+app.use('/api/v1/command-templates', commandTemplatesRouter); // Temporarily disabled auth for testing
+app.use('/api/v1/api-templates', apiTemplatesRouter); // Temporarily disabled auth for testing
+app.use('/api/v1/test', testRouter); // Test router without auth
 
 // Temporary test routes (будут заменены на настоящие routes)
 // app.get('/api/v1/test', authenticateToken, (req: Request, res: Response) => {

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Operations Client</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1e293b; color: #fff; }
+        #results { background: #0f172a; padding: 20px; border-radius: 8px; max-height: 600px; overflow-y: auto; }
+        pre { background: #374151; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .loading { color: #fbbf24; }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 10px 5px 0 0; }
+        button:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Operations Client</h1>
+    <button onclick="testDirectAPI()">Тест API напрямую</button>
+    <button onclick="testServiceLogic()">Тест через сервис логику</button>
+    <button onclick="clearResults()">Очистить</button>
+    <div id="results"></div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'loading' ? 'loading' : '';
+            resultsDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+        
+        async function testDirectAPI() {
+            log('🧪 Testing direct API call...', 'loading');
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/v1/operations?limit=5');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                log(`✅ Direct API success! Got ${data.data?.length || 0} operations`, 'success');
+                log('📋 Response structure:', 'info');
+                log('<pre>' + JSON.stringify({
+                    success: data.success,
+                    dataCount: data.data?.length,
+                    pagination: data.pagination,
+                    summary: data.summary ? 'present' : 'missing',
+                    firstOperation: data.data?.[0] ? {
+                        id: data.data[0].id,
+                        operation_type: data.data[0].operation_type,
+                        status: data.data[0].status,
+                        trading_point_name: data.data[0].trading_point_name,
+                        fuel_type: data.data[0].fuel_type,
+                        total_cost: data.data[0].total_cost
+                    } : 'none'
+                }, null, 2) + '</pre>');
+                
+            } catch (error) {
+                log(`❌ Direct API error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testServiceLogic() {
+            log('🧪 Testing service logic simulation...', 'loading');
+            
+            try {
+                // Симулируем логику operationsService
+                const apiUrl = 'http://localhost:3001/api/v1';
+                const response = await fetch(`${apiUrl}/operations?limit=5`);
+                
+                if (!response.ok) {
+                    throw new Error(`Service API error: ${response.status}`);
+                }
+                
+                const apiResponse = await response.json();
+                log(`📦 Service got API response with ${apiResponse.data?.length || 0} items`, 'info');
+                
+                // Симулируем transformOperationsResponse
+                const transformedData = {
+                    data: apiResponse.data.map(item => ({
+                        id: item.id,
+                        operationType: item.operation_type,
+                        status: item.status,
+                        startTime: item.start_time,
+                        endTime: item.end_time,
+                        duration: item.duration,
+                        tradingPointId: item.trading_point_id,
+                        tradingPointName: item.trading_point_name,
+                        deviceId: item.device_id,
+                        transactionId: item.transaction_id,
+                        fuelType: item.fuel_type,
+                        quantity: item.quantity,
+                        price: item.price,
+                        totalCost: item.total_cost,
+                        paymentMethod: item.payment_method,
+                        details: item.details,
+                        progress: item.progress,
+                        operatorName: item.operator_name,
+                        customerId: item.customer_id,
+                        vehicleNumber: item.vehicle_number
+                    })),
+                    pagination: apiResponse.pagination,
+                    summary: apiResponse.summary
+                };
+                
+                log(`✅ Service transformation success! Got ${transformedData.data.length} operations`, 'success');
+                log('📋 Sample transformed operation:', 'info');
+                log('<pre>' + JSON.stringify(transformedData.data[0], null, 2) + '</pre>');
+                
+                // Симулируем getAll() метод
+                const allOperations = transformedData.data;
+                log(`🎯 getAll() would return ${allOperations.length} operations`, 'success');
+                
+            } catch (error) {
+                log(`❌ Service logic error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Авто-тест при загрузке
+        setTimeout(testDirectAPI, 500);
+    </script>
+</body>
+</html>

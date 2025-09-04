@@ -5,7 +5,8 @@
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
-import { createSupabaseFromSettings } from '@/services/supabaseClient';
+import { supabaseService } from '@/services/supabaseServiceClient';
+import { createClient } from '@supabase/supabase-js';
 
 export interface DatabaseConnection {
   id: string;
@@ -44,7 +45,7 @@ export interface ApiConfig {
 
 // Начальная конфигурация с mock и demo подключениями
 const initialConfig: ApiConfig = {
-  currentConnectionId: 'local-db',
+  currentConnectionId: 'supabase-db',
   debugMode: import.meta.env.DEV || false,
   lastUpdated: new Date(),
   availableConnections: [
@@ -102,7 +103,7 @@ const initialConfig: ApiConfig = {
       name: 'Supabase БД',
       url: 'https://tohtryzyffcebtyvkxwh.supabase.co',
       type: 'supabase',
-      description: 'Supabase PostgreSQL база данных с REST API',
+      description: 'Supabase PostgreSQL база данных с REST API (правильный проект)',
       isActive: true,
       isDefault: true,
       createdAt: new Date(),
@@ -111,8 +112,8 @@ const initialConfig: ApiConfig = {
         timeout: 8000,
         retryAttempts: 3,
         ssl: true,
-        apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI',
-        serviceRoleKey: '',
+        apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+        serviceRoleKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
         schema: 'public',
         autoApiKey: true
       }
@@ -141,6 +142,51 @@ const initialConfig: ApiConfig = {
 
 // Загружаем конфигурацию из localStorage
 let currentConfig: ApiConfig = PersistentStorage.load<ApiConfig>('api_config', initialConfig);
+
+/**
+ * Создает Supabase клиент из настроек подключения
+ */
+function createSupabaseFromSettings(url: string, apiKey: string, schema: string = 'public') {
+  const client = createClient(url, apiKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
+    db: {
+      schema
+    }
+  });
+
+  return {
+    client,
+    async testConnection() {
+      try {
+        const { data, error, count } = await client
+          .from('operations')
+          .select('*', { count: 'exact', head: true });
+        
+        if (error) {
+          return {
+            success: false,
+            error: error.message,
+            info: { error }
+          };
+        }
+        
+        return {
+          success: true,
+          info: { count, schema }
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          info: { error }
+        };
+      }
+    }
+  };
+}
 
 // Функция сохранения
 const saveConfig = () => {
@@ -187,7 +233,18 @@ export const apiConfigService = {
    */
   isMockMode(): boolean {
     const connection = this.getCurrentConnection();
-    return connection?.type === 'mock' || !connection;
+    const result = connection?.type === 'mock' || !connection;
+    
+    console.log('🔍 ApiConfigService.isMockMode() debug:', {
+      hasConnection: !!connection,
+      connectionId: connection?.id,
+      connectionType: connection?.type,
+      connectionUrl: connection?.url,
+      result: result,
+      currentConnectionId: currentConfig.currentConnectionId
+    });
+    
+    return result;
   },
 
   /**

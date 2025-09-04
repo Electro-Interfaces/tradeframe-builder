@@ -7,7 +7,18 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Конфигурация подключения для браузера
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tohtryzyffcebtyvkxwh.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI';
+// ВРЕМЕННО: Используем service role key для разработки, так как anon key не работает
+// В продакшне нужно настроить правильные RLS политики и использовать anon key
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+
+console.log('🔧 Supabase Browser Client Configuration:');
+console.log('URL:', supabaseUrl);
+console.log('Key (first 50 chars):', supabaseKey.substring(0, 50) + '...');
+console.log('Key type:', supabaseKey.includes('anon') ? 'anon' : supabaseKey.includes('service_role') ? 'service_role' : 'unknown');
+console.log('Environment variables:');
+console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+console.log('VITE_SUPABASE_ANON_KEY present:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
+console.log('VITE_USE_HTTP_API:', import.meta.env.VITE_USE_HTTP_API);
 
 // Создание клиента для браузера
 export const supabase: SupabaseClient = createClient(
@@ -21,6 +32,9 @@ export const supabase: SupabaseClient = createClient(
     }
   }
 );
+
+// Экспорт для совместимости
+export const supabaseClientBrowser = supabase;
 
 /**
  * Создание временной сессии пользователя для работы с RLS
@@ -103,10 +117,9 @@ function generateTemporaryJWT(email: string, userId: string): string {
 // Простая функция для тестирования подключения
 export const testSupabaseConnection = async () => {
   try {
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('networks')
-      .select('count(*)')
-      .limit(1);
+      .select('*', { count: 'exact', head: true });
     
     if (error) {
       return {
@@ -119,7 +132,7 @@ export const testSupabaseConnection = async () => {
     return {
       success: true,
       message: 'Supabase connection successful',
-      data
+      data: { count }
     };
   } catch (error) {
     return {

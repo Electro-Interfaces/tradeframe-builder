@@ -3,7 +3,7 @@
  * Handles all database operations for equipment management
  */
 
-import { supabase } from '@/services/supabaseClient';
+import { supabaseService as supabase } from '@/services/supabaseServiceClient';
 import { 
   Equipment, 
   EquipmentTemplate,
