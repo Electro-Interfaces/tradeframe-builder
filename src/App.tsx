@@ -47,6 +47,8 @@ import NetworkEquipmentLog from "./pages/NetworkEquipmentLog";
 import LegalDocuments from "./pages/LegalDocuments";
 import LegalDocumentEditor from "./pages/LegalDocumentEditor";
 import LegalUsersAcceptances from "./pages/LegalUsersAcceptances";
+import LoginPageWithLegal from "./pages/LoginPageWithLegal";
+import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +62,7 @@ const App = () => (
         <SelectionProvider>
           <BrowserRouter>
           <Routes>
+          <Route path="/login" element={<LoginPageWithLegal />} />
           <Route path="/" element={<NetworkOverview />} />
           <Route path="/admin/users-and-roles" element={<Users />} />
           <Route path="/admin/users-and-roles-new" element={<NewUsersAndRoles />} />

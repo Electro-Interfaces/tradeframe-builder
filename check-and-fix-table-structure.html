@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка и восстановление структуры equipment_templates</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        .result {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .success { border-left-color: #48bb78; background: #f0fff4; }
+        .error { border-left-color: #f56565; background: #fff5f5; }
+        .warning { border-left-color: #ed8936; background: #fffaf0; }
+        .info { border-left-color: #4299e1; background: #ebf8ff; }
+        pre { 
+            background: #2d3748; 
+            color: #e2e8f0; 
+            padding: 15px; 
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .actions {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .primary-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .success-btn { background: linear-gradient(135deg, #48bb78, #38a169); color: white; }
+        .danger-btn { background: linear-gradient(135deg, #f56565, #e53e3e); color: white; }
+        .warning-btn { background: linear-gradient(135deg, #ed8936, #dd6b20); color: white; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover {
+            background: #f7fafc;
+        }
+        .missing {
+            background: #fff5f5;
+            color: #c53030;
+        }
+        .exists {
+            background: #f0fff4;
+            color: #22543d;
+        }
+        .sql-container {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .sql-container h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+        .copy-btn {
+            background: #4299e1;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Проверка и восстановление структуры таблицы equipment_templates</h1>
+        
+        <div class="actions">
+            <button onclick="checkCurrentStructure()" class="primary-btn">📋 Проверить текущую структуру</button>
+            <button onclick="showRequiredStructure()" class="warning-btn">📊 Показать требуемую структуру</button>
+            <button onclick="generateFixSQL()" class="success-btn">🔨 Сгенерировать SQL для исправления</button>
+            <button onclick="testTableOperations()" class="primary-btn">🧪 Тестировать операции</button>
+            <button onclick="clearResults()" class="danger-btn">🗑️ Очистить результаты</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        // Требуемая структура таблицы
+        const requiredColumns = [
+            { name: 'id', type: 'uuid', nullable: false, default: 'gen_random_uuid()' },
+            { name: 'name', type: 'varchar(255)', nullable: false, default: null },
+            { name: 'technical_code', type: 'varchar(100)', nullable: true, default: null },
+            { name: 'system_type', type: 'varchar(100)', nullable: true, default: null },
+            { name: 'description', type: 'text', nullable: true, default: null },
+            { name: 'default_params', type: 'jsonb', nullable: true, default: '{}' },
+            { name: 'allow_component_template_ids', type: 'uuid[]', nullable: true, default: null },
+            { name: 'created_at', type: 'timestamptz', nullable: true, default: 'CURRENT_TIMESTAMP' },
+            { name: 'updated_at', type: 'timestamptz', nullable: true, default: 'CURRENT_TIMESTAMP' }
+        ]
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const resultDiv = document.createElement('div')
+            resultDiv.className = `result ${type}`
+            
+            const timestamp = new Date().toLocaleTimeString()
+            let content = `<strong>[${timestamp}] ${message}</strong>`
+            
+            if (data !== null) {
+                if (typeof data === 'object') {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                } else {
+                    content += `<pre>${data}</pre>`
+                }
+            }
+            
+            resultDiv.innerHTML = content
+            resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild)
+        }
+        
+        window.clearResults = function() {
+            document.getElementById('results').innerHTML = ''
+            logResult('✨ Результаты очищены', 'info')
+        }
+        
+        window.checkCurrentStructure = async function() {
+            logResult('🔍 Анализируем текущую структуру таблицы...', 'info')
+            
+            try {
+                // Пытаемся получить одну запись для анализа структуры
+                const { data, error } = await supabase
+                    .from('equipment_templates')
+                    .select('*')
+                    .limit(1)
+                
+                let currentColumns = []
+                
+                if (!error && data && data.length > 0) {
+                    currentColumns = Object.keys(data[0])
+                } else {
+                    // Пытаемся вставить и поймать ошибку для анализа
+                    const testData = {}
+                    requiredColumns.forEach(col => {
+                        if (col.name !== 'id' && col.name !== 'created_at' && col.name !== 'updated_at') {
+                            testData[col.name] = null
+                        }
+                    })
+                    
+                    const { error: insertError } = await supabase
+                        .from('equipment_templates')
+                        .insert([testData])
+                    
+                    if (insertError && insertError.message) {
+                        // Анализируем ошибку
+                        const missingColumnMatch = insertError.message.match(/Could not find the '(\w+)' column/)
+                        if (missingColumnMatch) {
+                            logResult(`❌ Отсутствует колонка: ${missingColumnMatch[1]}`, 'error')
+                        }
+                    }
+                }
+                
+                // Создаём таблицу сравнения
+                let tableHtml = '<table><thead><tr><th>Колонка</th><th>Требуемый тип</th><th>Статус</th></tr></thead><tbody>'
+                
+                const missingColumns = []
+                requiredColumns.forEach(reqCol => {
+                    const exists = currentColumns.includes(reqCol.name)
+                    const statusClass = exists ? 'exists' : 'missing'
+                    const statusText = exists ? '✅ Существует' : '❌ Отсутствует'
+                    
+                    if (!exists) {
+                        missingColumns.push(reqCol)
+                    }
+                    
+                    tableHtml += `
+                        <tr class="${statusClass}">
+                            <td><strong>${reqCol.name}</strong></td>
+                            <td>${reqCol.type}</td>
+                            <td>${statusText}</td>
+                        </tr>
+                    `
+                })
+                
+                tableHtml += '</tbody></table>'
+                
+                const resultDiv = document.createElement('div')
+                resultDiv.className = 'result info'
+                resultDiv.innerHTML = `<strong>📊 Анализ структуры таблицы:</strong>${tableHtml}`
+                document.getElementById('results').insertBefore(resultDiv, document.getElementById('results').firstChild)
+                
+                if (missingColumns.length > 0) {
+                    logResult(`⚠️ Отсутствует колонок: ${missingColumns.length}`, 'warning', missingColumns.map(c => c.name))
+                } else if (currentColumns.length > 0) {
+                    logResult('✅ Все необходимые колонки присутствуют!', 'success')
+                }
+                
+                // Проверяем количество записей
+                const { count } = await supabase
+                    .from('equipment_templates')
+                    .select('*', { count: 'exact', head: true })
+                
+                logResult(`📈 Записей в таблице: ${count || 0}`, 'info')
+                
+            } catch (err) {
+                logResult('❌ Ошибка при анализе структуры', 'error', err)
+            }
+        }
+        
+        window.showRequiredStructure = function() {
+            let tableHtml = '<table><thead><tr><th>Колонка</th><th>Тип данных</th><th>Nullable</th><th>По умолчанию</th></tr></thead><tbody>'
+            
+            requiredColumns.forEach(col => {
+                tableHtml += `
+                    <tr>
+                        <td><strong>${col.name}</strong></td>
+                        <td>${col.type}</td>
+                        <td>${col.nullable ? 'YES' : 'NO'}</td>
+                        <td>${col.default || '-'}</td>
+                    </tr>
+                `
+            })
+            
+            tableHtml += '</tbody></table>'
+            
+            const resultDiv = document.createElement('div')
+            resultDiv.className = 'result info'
+            resultDiv.innerHTML = `<strong>📋 Требуемая структура таблицы equipment_templates:</strong>${tableHtml}`
+            document.getElementById('results').insertBefore(resultDiv, document.getElementById('results').firstChild)
+        }
+        
+        window.generateFixSQL = async function() {
+            logResult('🔨 Генерируем SQL для исправления структуры...', 'info')
+            
+            const sql = `-- ============================================================
+-- Добавление недостающих колонок в таблицу equipment_templates
+-- ============================================================
+
+-- Добавляем все колонки с проверкой существования
+ALTER TABLE equipment_templates 
+ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+
+ALTER TABLE equipment_templates 
+ADD COLUMN IF NOT EXISTS technical_code VARCHAR(100);
+
+ALTER TABLE equipment_templates 
+ADD COLUMN IF NOT EXISTS system_type VARCHAR(100);
+
+ALTER TABLE equipment_templates 
+ADD COLUMN IF NOT EXISTS description TEXT;
+
+ALTER TABLE equipment_templates 
+ADD COLUMN IF NOT EXISTS default_params JSONB DEFAULT '{}';
+
+ALTER TABLE equipment_templates 
+ADD COLUMN IF NOT EXISTS allow_component_template_ids UUID[] DEFAULT NULL;
+
+-- Временно убираем NOT NULL constraints для существующих данных
+ALTER TABLE equipment_templates 
+ALTER COLUMN name DROP NOT NULL;
+
+-- Проверяем результат
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns 
+WHERE table_name = 'equipment_templates'
+ORDER BY ordinal_position;`
+            
+            const sqlContainer = document.createElement('div')
+            sqlContainer.className = 'sql-container'
+            sqlContainer.innerHTML = `
+                <h3>📝 SQL для исправления структуры:</h3>
+                <button onclick="copySQL()" class="copy-btn">📋 Копировать SQL</button>
+                <pre id="sqlCode">${sql}</pre>
+                <div class="result warning">
+                    <strong>⚠️ Инструкция:</strong><br>
+                    1. <a href="https://supabase.com/dashboard/project/tohtryzyffcebtyvkxwh/sql/new" target="_blank">Откройте SQL редактор в Supabase</a><br>
+                    2. Вставьте и выполните SQL запрос<br>
+                    3. Вернитесь сюда и проверьте структуру снова
+                </div>
+            `
+            document.getElementById('results').insertBefore(sqlContainer, document.getElementById('results').firstChild)
+        }
+        
+        window.copySQL = function() {
+            const sqlCode = document.getElementById('sqlCode').textContent
+            navigator.clipboard.writeText(sqlCode).then(() => {
+                logResult('✅ SQL скопирован в буфер обмена!', 'success')
+            }).catch(err => {
+                logResult('❌ Ошибка копирования', 'error', err)
+            })
+        }
+        
+        window.testTableOperations = async function() {
+            logResult('🧪 Тестируем операции с таблицей...', 'info')
+            
+            // Тест SELECT
+            try {
+                const { data: selectData, error: selectError } = await supabase
+                    .from('equipment_templates')
+                    .select('*')
+                    .limit(1)
+                
+                if (selectError) {
+                    logResult('❌ SELECT не работает', 'error', selectError)
+                } else {
+                    logResult('✅ SELECT работает', 'success')
+                }
+            } catch (err) {
+                logResult('❌ Критическая ошибка SELECT', 'error', err)
+            }
+            
+            // Тест INSERT (минимальные данные)
+            try {
+                const testData = {
+                    name: `Тест ${Date.now()}`
+                }
+                
+                const { data: insertData, error: insertError } = await supabase
+                    .from('equipment_templates')
+                    .insert([testData])
+                    .select()
+                
+                if (insertError) {
+                    logResult('❌ INSERT не работает', 'error', insertError)
+                    
+                    // Анализ ошибки
+                    if (insertError.message.includes('column')) {
+                        const match = insertError.message.match(/Could not find the '(\w+)' column/)
+                        if (match) {
+                            logResult(`💡 Отсутствует колонка: ${match[1]}`, 'warning')
+                        }
+                    }
+                } else {
+                    logResult('✅ INSERT работает', 'success', insertData)
+                    
+                    // Удаляем тестовую запись
+                    if (insertData && insertData[0]) {
+                        await supabase
+                            .from('equipment_templates')
+                            .delete()
+                            .eq('id', insertData[0].id)
+                        logResult('🗑️ Тестовая запись удалена', 'info')
+                    }
+                }
+            } catch (err) {
+                logResult('❌ Критическая ошибка INSERT', 'error', err)
+            }
+        }
+        
+        // Автозапуск проверки при загрузке
+        window.addEventListener('load', () => {
+            checkCurrentStructure()
+        })
+    </script>
+</body>
+</html>

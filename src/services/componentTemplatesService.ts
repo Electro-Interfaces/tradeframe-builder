@@ -61,7 +61,7 @@ const initialComponentTemplates: ComponentTemplate[] = [
 ];
 
 // Загружаем данные из localStorage (используем новый ключ для принудительного обновления)
-let componentTemplatesData: ComponentTemplate[] = PersistentStorage.load<ComponentTemplate>('component_templates_v2', initialComponentTemplates);
+const componentTemplatesData: ComponentTemplate[] = PersistentStorage.load<ComponentTemplate>('component_templates_v2', initialComponentTemplates);
 
 // Функция для сохранения изменений
 const saveComponentTemplates = () => {

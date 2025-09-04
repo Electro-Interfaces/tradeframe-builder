@@ -90,7 +90,12 @@ export function PointSelect({ value, onValueChange, className, disabled, network
                 )} 
                 aria-hidden 
               />
-              <span className="truncate">{point.name}</span>
+              <div className="min-w-0 flex-1">
+                <span className="truncate block">{point.name}</span>
+                {point.external_id && (
+                  <span className="text-xs text-blue-400 font-mono">ID: {point.external_id}</span>
+                )}
+              </div>
             </li>
           ))}
         </ul>

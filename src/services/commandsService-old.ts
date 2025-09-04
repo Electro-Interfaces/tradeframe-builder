@@ -297,9 +297,9 @@ const initialWorkflows: Workflow[] = [
 ];
 
 // Загружаем данные из localStorage
-let commandsData: Command[] = PersistentStorage.load<Command>('commands', initialCommands);
-let workflowsData: Workflow[] = PersistentStorage.load<Workflow>('workflows', initialWorkflows);
-let executionsData: CommandExecution[] = PersistentStorage.load<CommandExecution>('commandExecutions', []);
+const commandsData: Command[] = PersistentStorage.load<Command>('commands', initialCommands);
+const workflowsData: Workflow[] = PersistentStorage.load<Workflow>('workflows', initialWorkflows);
+const executionsData: CommandExecution[] = PersistentStorage.load<CommandExecution>('commandExecutions', []);
 
 let nextCommandId = Math.max(...commandsData.map(cmd => parseInt(cmd.id.replace('CMD-', '')) || 0)) + 1;
 let nextWorkflowId = Math.max(...workflowsData.map(wf => parseInt(wf.id.replace('WF-', '')) || 0)) + 1;

@@ -5,6 +5,7 @@
 
 import { PersistentStorage } from '@/utils/persistentStorage';
 import { tanksService, Tank } from './tanksService';
+import { apiConfigService } from './apiConfigService';
 
 export interface FuelStockSnapshot {
   id: string;
@@ -337,6 +338,122 @@ class FuelStocksHistoryGenerator {
 // Экземпляр генератора
 const historyGenerator = new FuelStocksHistoryGenerator();
 
+// HTTP API Methods
+const httpApiMethods = {
+  /**
+   * HTTP запрос к API
+   */
+  async apiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
+    const apiUrl = apiConfigService.getCurrentApiUrl();
+    const url = `${apiUrl}${endpoint}`;
+    
+    const defaultOptions: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...httpApiMethods.getAuthHeaders()
+      }
+    };
+    
+    const response = await fetch(url, { ...defaultOptions, ...options });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw {
+        status: response.status,
+        statusText: response.statusText,
+        message: errorData.error || 'API request failed',
+        details: errorData.details
+      };
+    }
+    
+    return await response.json();
+  },
+
+  /**
+   * Получить заголовки авторизации
+   */
+  getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    
+    if (token) {
+      return {
+        'Authorization': `Bearer ${token}`
+      };
+    }
+    
+    return {};
+  },
+
+  /**
+   * Получить исторические данные через API
+   */
+  async getHistoricalDataFromAPI(
+    startDate?: string,
+    endDate?: string,
+    tankId?: string,
+    tradingPointId?: string
+  ): Promise<FuelStockSnapshot[]> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (tankId) params.append('tankId', tankId);
+    if (tradingPointId) params.append('tradingPointId', tradingPointId);
+    params.append('limit', '1000');
+
+    const response = await httpApiMethods.apiRequest(`/fuel-stock-snapshots?${params}`);
+    
+    // Трансформируем API данные в формат UI
+    return (response.data || []).map((apiSnapshot: any) => ({
+      id: apiSnapshot.id,
+      tankId: parseInt(apiSnapshot.tank_id),
+      tankName: apiSnapshot.tanks?.name || `Tank ${apiSnapshot.tank_id}`,
+      fuelType: apiSnapshot.fuel_types?.name || 'Unknown',
+      tradingPointId: apiSnapshot.trading_point_id,
+      timestamp: apiSnapshot.snapshot_time,
+      currentLevelLiters: apiSnapshot.current_level_liters,
+      capacityLiters: apiSnapshot.capacity_liters,
+      levelPercent: apiSnapshot.level_percent || 0,
+      temperature: apiSnapshot.temperature || 15,
+      waterLevelMm: apiSnapshot.water_level_mm || 0,
+      density: apiSnapshot.density || 750,
+      status: apiSnapshot.tank_status || 'active',
+      consumptionRate: apiSnapshot.consumption_rate || 0,
+      fillRate: apiSnapshot.fill_rate || 0,
+      operationMode: apiSnapshot.operation_mode || 'normal'
+    }));
+  },
+
+  /**
+   * Создать снимки через API (batch)
+   */
+  async createSnapshotsBatch(snapshots: FuelStockSnapshot[]): Promise<boolean> {
+    const apiSnapshots = snapshots.map(snapshot => ({
+      tank_id: snapshot.tankId.toString(),
+      trading_point_id: snapshot.tradingPointId,
+      fuel_type_id: 'fuel_type_1', // TODO: получать из snapshot.fuelType
+      snapshot_time: snapshot.timestamp,
+      current_level_liters: snapshot.currentLevelLiters,
+      capacity_liters: snapshot.capacityLiters,
+      temperature: snapshot.temperature,
+      water_level_mm: snapshot.waterLevelMm,
+      density: snapshot.density,
+      tank_status: snapshot.status,
+      operation_mode: snapshot.operationMode,
+      consumption_rate: snapshot.consumptionRate,
+      fill_rate: snapshot.fillRate,
+      data_source: 'generated' as const,
+      metadata: {}
+    }));
+
+    const response = await httpApiMethods.apiRequest('/fuel-stock-snapshots/batch', {
+      method: 'POST',
+      body: JSON.stringify({ snapshots: apiSnapshots })
+    });
+
+    return response.success;
+  }
+};
+
 // Основной сервис для работы с историческими данными
 export const fuelStocksHistoryService = {
   /**
@@ -348,6 +465,22 @@ export const fuelStocksHistoryService = {
     tankId?: number,
     tradingPointId?: string
   ): Promise<FuelStockSnapshot[]> {
+    try {
+      // Если не mock режим, используем API
+      if (!apiConfigService.isMockMode()) {
+        return await httpApiMethods.getHistoricalDataFromAPI(
+          startDate,
+          endDate,
+          tankId?.toString(),
+          tradingPointId
+        );
+      }
+    } catch (error) {
+      console.error('Fuel stocks history API error:', error);
+      console.warn('Falling back to mock data due to API error');
+    }
+
+    // Mock режим или fallback
     const cacheKey = 'fuelStocksHistory_august2025';
     let snapshots = PersistentStorage.load<FuelStockSnapshot[]>(cacheKey, []);
     

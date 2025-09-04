@@ -1386,10 +1386,192 @@ export const dynamicEquipmentTemplatesAPI = {
   }
 };
 
-// Экспортируем текущую реализацию 
-// Используем динамическую версию для синхронизации с разделом "Типы оборудования"
-export const currentEquipmentAPI = mockEquipmentAPI;
-export const currentEquipmentTemplatesAPI = dynamicEquipmentTemplatesAPI;
+// Legacy exports (keeping for backward compatibility during migration)
+// These will be replaced by the dynamic exports below
 
-// 🔄 ДЛЯ PRODUCTION: Заменить на импорт из apiSwitch.ts:
-// import { currentEquipmentAPI, currentEquipmentTemplatesAPI } from './apiSwitch';
+// Switch between mock and real API based on environment
+// isApiMockMode is already imported above
+
+// Real API implementation (for production)
+class RealEquipmentAPI {
+  private apiUrl: string;
+
+  constructor() {
+    this.apiUrl = getApiBaseUrl() + '/equipment';
+  }
+
+  async list(params: ListEquipmentParams): Promise<ListEquipmentResponse> {
+    const searchParams = new URLSearchParams();
+    searchParams.append('trading_point_id', params.trading_point_id);
+    if (params.search) searchParams.append('search', params.search);
+    if (params.template_id) searchParams.append('template_id', params.template_id);
+    if (params.status) searchParams.append('status', params.status);
+    if (params.system_type) searchParams.append('system_type', params.system_type);
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.limit) searchParams.append('limit', params.limit.toString());
+
+    const response = await fetch(`${this.apiUrl}?${searchParams}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async create(data: CreateEquipmentRequest): Promise<Equipment> {
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async get(id: string): Promise<Equipment> {
+    const response = await fetch(`${this.apiUrl}/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async update(id: string, data: UpdateEquipmentRequest): Promise<Equipment> {
+    const response = await fetch(`${this.apiUrl}/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async setStatus(id: string, action: EquipmentStatusAction): Promise<void> {
+    const response = await fetch(`${this.apiUrl}/${id}/${action}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+  }
+
+  async delete(id: string): Promise<void> {
+    const response = await fetch(`${this.apiUrl}/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+  }
+
+  async getEvents(id: string): Promise<EquipmentEvent[]> {
+    const response = await fetch(`${this.apiUrl}/${id}/events`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+}
+
+class RealEquipmentTemplatesAPI {
+  private apiUrl: string;
+
+  constructor() {
+    this.apiUrl = getApiBaseUrl() + '/equipment-templates';
+  }
+
+  async list(): Promise<EquipmentTemplate[]> {
+    const response = await fetch(this.apiUrl, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async get(id: string): Promise<EquipmentTemplate> {
+    const response = await fetch(`${this.apiUrl}/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+}
+
+// Export current implementation based on mode
+const realEquipmentAPI = new RealEquipmentAPI();
+const realEquipmentTemplatesAPI = new RealEquipmentTemplatesAPI();
+
+// Import Supabase services
+import { 
+  supabaseEquipmentAPI, 
+  supabaseEquipmentTemplatesAPI 
+} from './equipmentSupabase';
+
+// Export current implementation - prioritize Supabase over HTTP API
+const useSupabase = import.meta.env.VITE_USE_SUPABASE_DIRECT === 'true';
+
+export const currentEquipmentAPI = isApiMockMode() ? 
+  mockEquipmentAPI : 
+  (useSupabase ? supabaseEquipmentAPI : realEquipmentAPI);
+
+export const currentEquipmentTemplatesAPI = isApiMockMode() ? 
+  dynamicEquipmentTemplatesAPI : 
+  (useSupabase ? supabaseEquipmentTemplatesAPI : realEquipmentTemplatesAPI);

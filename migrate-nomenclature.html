@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏷️ Миграция номенклатуры топлива</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button.danger { background: #dc3545; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f2f2f2; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 11px; max-height: 300px; }
+        .fuel-type { color: #28a745; font-weight: bold; }
+        .external-code { color: #dc3545; font-family: monospace; }
+        .network-name { color: #007bff; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>🏷️ Миграция номенклатуры топлива из localStorage в Supabase</h1>
+    
+    <div class="section info">
+        <h3>📋 План миграции:</h3>
+        <ol>
+            <li>Проверить данные номенклатуры в localStorage</li>
+            <li>Проверить текущее состояние таблицы nomenclature в Supabase</li>
+            <li>Сопоставить network_id с UUID из таблицы networks</li>
+            <li>Мигрировать данные с корректным форматом</li>
+            <li>Обновить nomenclatureService.ts для работы с Supabase</li>
+        </ol>
+    </div>
+    
+    <div class="section">
+        <button onclick="checkLocalStorageData()">🔍 Проверить данные в localStorage</button>
+        <button onclick="checkSupabaseTable()">🗄️ Проверить таблицу nomenclature</button>
+        <button onclick="checkNetworkMappings()">🔗 Проверить сопоставления сетей</button>
+        <button onclick="migrateNomenclature()" class="success">⬆️ Мигрировать номенклатуру</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const div = document.createElement('div')
+            div.className = `section ${type}`
+            
+            let content = `<h4>${message}</h4>`
+            if (data) {
+                if (typeof data === 'string') {
+                    content += `<pre>${data}</pre>`
+                } else {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                }
+            }
+            div.innerHTML = content
+            
+            resultsDiv.appendChild(div)
+        }
+
+        // Сопоставления network_id с UUID
+        let networkMappings = {}
+
+        window.checkLocalStorageData = async function() {
+            logResult('🔍 Проверяем данные номенклатуры в localStorage...', 'info')
+            
+            try {
+                const nomenclatureData = localStorage.getItem('nomenclature')
+                
+                if (!nomenclatureData) {
+                    logResult('❌ Данные номенклатуры не найдены в localStorage', 'error')
+                    return
+                }
+                
+                let parsed = JSON.parse(nomenclatureData)
+                
+                // Обработка вложенной структуры {data: [...]}
+                if (parsed && parsed.data && Array.isArray(parsed.data)) {
+                    parsed = parsed.data
+                }
+                
+                if (!Array.isArray(parsed)) {
+                    logResult('❌ Некорректный формат данных номенклатуры', 'error', parsed)
+                    return
+                }
+                
+                logResult(`✅ Найдено ${parsed.length} записей номенклатуры`, 'success')
+                
+                // Показываем структуру данных
+                const summary = parsed.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    internalCode: item.internalCode,
+                    networkId: item.networkId,
+                    networkName: item.networkName,
+                    externalCodes: item.externalCodes?.length || 0,
+                    status: item.status,
+                    networkApiCode: item.networkApiCode
+                }))
+                
+                logResult('📊 Структура данных номенклатуры:', 'info', summary)
+                
+                // Анализируем внешние коды
+                const allExternalCodes = []
+                parsed.forEach(item => {
+                    if (item.externalCodes && Array.isArray(item.externalCodes)) {
+                        item.externalCodes.forEach(code => {
+                            allExternalCodes.push({
+                                nomenclatureId: item.id,
+                                fuelName: item.name,
+                                systemType: code.systemType,
+                                externalCode: code.externalCode,
+                                description: code.description
+                            })
+                        })
+                    }
+                })
+                
+                if (allExternalCodes.length > 0) {
+                    logResult(`🔗 Найдено ${allExternalCodes.length} внешних кодов:`, 'info', allExternalCodes)
+                }
+                
+            } catch (error) {
+                logResult('❌ Ошибка при проверке localStorage', 'error', error)
+            }
+        }
+
+        window.checkSupabaseTable = async function() {
+            logResult('🗄️ Проверяем таблицу nomenclature в Supabase...', 'info')
+            
+            try {
+                // Проверяем существование таблицы nomenclature
+                const { data, error } = await supabase
+                    .from('nomenclature')
+                    .select('*')
+                    .limit(5)
+                
+                if (error) {
+                    logResult('❌ Ошибка доступа к таблице nomenclature', 'error', error)
+                    return
+                }
+                
+                logResult(`✅ Таблица nomenclature существует. Найдено ${data.length} записей`, 'success', data)
+                
+            } catch (error) {
+                logResult('❌ Ошибка проверки таблицы Supabase', 'error', error)
+            }
+        }
+
+        window.checkNetworkMappings = async function() {
+            logResult('🔗 Проверяем сопоставления network_id...', 'info')
+            
+            try {
+                // Получаем все сети из Supabase
+                const { data: networks, error: networksError } = await supabase
+                    .from('networks')
+                    .select('id, name, external_id')
+                    .order('name')
+                
+                if (networksError) {
+                    logResult('❌ Ошибка получения сетей', 'error', networksError)
+                    return
+                }
+                
+                logResult(`✅ Найдено ${networks.length} сетей в базе:`, 'success', networks)
+                
+                // Создаем сопоставления external_id -> UUID
+                networkMappings = {}
+                networks.forEach(network => {
+                    if (network.external_id) {
+                        networkMappings[network.external_id] = network.id
+                    }
+                })
+                
+                logResult('🗺️ Сопоставления network_id:', 'info', networkMappings)
+                
+                // Проверяем данные localStorage на соответствие
+                const nomenclatureData = localStorage.getItem('nomenclature')
+                if (nomenclatureData) {
+                    let parsed = JSON.parse(nomenclatureData)
+                    if (parsed && parsed.data && Array.isArray(parsed.data)) {
+                        parsed = parsed.data
+                    }
+                    
+                    const networkCheck = {}
+                    parsed.forEach(item => {
+                        if (!networkCheck[item.networkId]) {
+                            networkCheck[item.networkId] = []
+                        }
+                        networkCheck[item.networkId].push(item.name)
+                    })
+                    
+                    logResult('📊 Сопоставление номенклатуры с сетями:', 'info', networkCheck)
+                }
+                
+            } catch (error) {
+                logResult('❌ Ошибка проверки сопоставлений', 'error', error)
+            }
+        }
+
+        window.migrateNomenclature = async function() {
+            logResult('⬆️ Начинаем миграцию номенклатуры...', 'info')
+            
+            try {
+                // 1. Получаем данные из localStorage
+                const nomenclatureData = localStorage.getItem('nomenclature')
+                if (!nomenclatureData) {
+                    logResult('❌ Данные номенклатуры не найдены в localStorage', 'error')
+                    return
+                }
+                
+                let localStorageData = JSON.parse(nomenclatureData)
+                if (localStorageData && localStorageData.data && Array.isArray(localStorageData.data)) {
+                    localStorageData = localStorageData.data
+                }
+                
+                logResult(`📦 Подготовка к миграции ${localStorageData.length} записей...`, 'info')
+                
+                // 2. Обновляем сопоставления сетей
+                await checkNetworkMappings()
+                
+                let migratedCount = 0
+                const errors = []
+                
+                // 3. Мигрируем каждую запись
+                for (const item of localStorageData) {
+                    try {
+                        const networkUuid = networkMappings[item.networkId]
+                        if (!networkUuid) {
+                            errors.push(`Не найден UUID для network_id ${item.networkId} (${item.networkName})`)
+                            continue
+                        }
+                        
+                        // Подготавливаем данные для вставки
+                        const nomenclatureRecord = {
+                            id: crypto.randomUUID(),
+                            network_id: networkUuid,
+                            name: item.name,
+                            internal_code: item.internalCode,
+                            network_api_code: item.networkApiCode || null,
+                            network_api_settings: item.networkApiSettings || null,
+                            description: item.description || null,
+                            status: item.status || 'active',
+                            external_id: item.id, // Сохраняем оригинальный ID как external_id
+                            created_at: item.createdAt ? new Date(item.createdAt) : new Date(),
+                            updated_at: item.updatedAt ? new Date(item.updatedAt) : new Date(),
+                            created_by: item.createdBy || 'migration',
+                            updated_by: item.updatedBy || 'migration'
+                        }
+                        
+                        // Вставляем основную запись номенклатуры
+                        const { data: insertedNomenclature, error: nomenclatureError } = await supabase
+                            .from('nomenclature')
+                            .insert([nomenclatureRecord])
+                            .select()
+                        
+                        if (nomenclatureError) {
+                            errors.push(`Ошибка вставки ${item.name}: ${nomenclatureError.message}`)
+                            continue
+                        }
+                        
+                        // Если есть внешние коды, вставляем их
+                        if (item.externalCodes && Array.isArray(item.externalCodes) && item.externalCodes.length > 0) {
+                            const externalCodesRecords = item.externalCodes.map(code => ({
+                                id: crypto.randomUUID(),
+                                nomenclature_id: insertedNomenclature[0].id,
+                                system_type: code.systemType,
+                                external_code: code.externalCode,
+                                description: code.description || null,
+                                created_at: code.createdAt ? new Date(code.createdAt) : new Date(),
+                                updated_at: code.updatedAt ? new Date(code.updatedAt) : new Date()
+                            }))
+                            
+                            const { error: codesError } = await supabase
+                                .from('nomenclature_external_codes')
+                                .insert(externalCodesRecords)
+                            
+                            if (codesError) {
+                                logResult(`⚠️ Ошибка вставки внешних кодов для ${item.name}`, 'warning', codesError)
+                            } else {
+                                logResult(`✅ Мигрировано ${item.name} с ${externalCodesRecords.length} внешними кодами`, 'success')
+                            }
+                        } else {
+                            logResult(`✅ Мигрировано ${item.name} (без внешних кодов)`, 'success')
+                        }
+                        
+                        migratedCount++
+                        
+                    } catch (itemError) {
+                        errors.push(`Ошибка миграции ${item.name}: ${itemError.message}`)
+                    }
+                }
+                
+                // Итоговый отчет
+                logResult(`🎉 Миграция завершена! Мигрировано: ${migratedCount} записей`, 'success')
+                
+                if (errors.length > 0) {
+                    logResult(`⚠️ Ошибки при миграции (${errors.length}):`, 'warning', errors)
+                }
+                
+                // Проверяем результат
+                const { data: finalData, error: checkError } = await supabase
+                    .from('nomenclature')
+                    .select('id, name, internal_code, network_id, status, external_id')
+                    .order('name')
+                
+                if (!checkError) {
+                    logResult(`📊 Итоговое состояние таблицы nomenclature (${finalData.length} записей):`, 'info', finalData)
+                }
+                
+            } catch (error) {
+                logResult('❌ Критическая ошибка миграции', 'error', error)
+            }
+        }
+
+        // Автоматическая проверка при загрузке
+        document.addEventListener('DOMContentLoaded', async () => {
+            await new Promise(resolve => setTimeout(resolve, 500))
+            await checkLocalStorageData()
+            await checkSupabaseTable()
+        })
+    </script>
+</body>
+</html>

@@ -24,6 +24,30 @@ npm run lint
 npm run preview
 ```
 
+## 🗄️ Database Tools for Claude Code Agents
+
+### SQL Direct Access Tool
+**Location**: `tools/sql-direct.js`  
+**Purpose**: Прямой доступ к базе данных Supabase для всех агентов
+
+```bash
+# Quick database diagnostics
+node tools/sql-direct.js tables                    # List all tables
+node tools/sql-direct.js describe equipment_templates  # Table structure  
+node tools/sql-direct.js select equipment_templates    # Sample data
+
+# Integration in code
+import { executeSelect, describeTable } from './tools/sql-direct.js';
+```
+
+**Key Database Facts**:
+- ✅ **Schema**: Uses `is_active` (boolean), NOT `status` (string)
+- ✅ **IDs**: All UUIDs, not strings 
+- ✅ **Access**: Service Role Key for development (full access)
+- ✅ **Tables**: 8 main tables available (equipment_templates, equipment, networks, etc.)
+
+See `tools/README.md` for complete documentation.
+
 ## Architecture Overview
 
 This is a React-based trading platform UI built with:

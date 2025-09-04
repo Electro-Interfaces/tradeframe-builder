@@ -1889,7 +1889,7 @@ export const instructionsService = {
   async search(filters: InstructionFilters, page: number = 1, perPage: number = 20): Promise<InstructionSearchResult> {
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    let filteredTopics = await this.getTopics(filters);
+    const filteredTopics = await this.getTopics(filters);
     let filteredVersions = [...versions];
     
     if (filters.status) {

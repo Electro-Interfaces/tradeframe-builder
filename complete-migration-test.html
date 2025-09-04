@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Полная диагностика миграции</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 12px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Полная диагностика миграции на Supabase</h1>
+    
+    <div class="section info">
+        <h3>План полной миграции:</h3>
+        <ol>
+            <li>✅ Проверить подключение к Supabase</li>
+            <li>📊 Проверить данные в таблице networks</li>
+            <li>🧹 Очистить весь localStorage</li>
+            <li>🔄 Протестировать загрузку только из Supabase</li>
+            <li>🎯 Проверить отображение external_id в UI</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <button onclick="runFullDiagnostic()">🚀 Запустить полную диагностику</button>
+        <button onclick="clearAllLocalStorage()">🧹 Очистить весь localStorage</button>
+        <button onclick="testSupabaseOnly()">🔄 Тест только Supabase</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        // Настройки Supabase (актуальные из .env)
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const div = document.createElement('div')
+            div.className = `section ${type}`
+            
+            let content = `<h4>${message}</h4>`
+            if (data) {
+                if (typeof data === 'object' && Array.isArray(data)) {
+                    // Таблица для массивов
+                    if (data.length > 0) {
+                        const keys = Object.keys(data[0])
+                        content += `
+                            <table>
+                                <thead><tr>${keys.map(k => `<th>${k}</th>`).join('')}</tr></thead>
+                                <tbody>
+                                    ${data.map(row => `<tr>${keys.map(k => `<td>${row[k] || '—'}</td>`).join('')}</tr>`).join('')}
+                                </tbody>
+                            </table>
+                        `
+                    }
+                } else {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                }
+            }
+            div.innerHTML = content
+            
+            resultsDiv.appendChild(div)
+            console.log(message, data)
+        }
+
+        window.runFullDiagnostic = async function() {
+            document.getElementById('results').innerHTML = ''
+            
+            // 1. Проверка подключения
+            logResult('🔌 Шаг 1: Проверка подключения к Supabase...', 'info')
+            
+            try {
+                // Проверяем подключение простым запросом
+                const { data: testConnection, error: connError } = await supabase
+                    .from('networks')
+                    .select('id')
+                    .limit(1)
+                
+                if (connError) {
+                    logResult('❌ Ошибка подключения к Supabase', 'error', connError)
+                    return
+                } else {
+                    logResult('✅ Подключение к Supabase работает', 'success', { message: 'Connection successful' })
+                }
+            } catch (error) {
+                logResult('💥 Критическая ошибка подключения', 'error', error)
+                return
+            }
+
+            // 2. Проверка данных
+            logResult('📊 Шаг 2: Проверка данных в таблице networks...', 'info')
+            
+            try {
+                const { data: networks, error } = await supabase
+                    .from('networks')
+                    .select('*')
+                    .order('name')
+                
+                if (error) {
+                    logResult('❌ Ошибка загрузки networks', 'error', error)
+                } else if (!networks || networks.length === 0) {
+                    logResult('⚠️ Таблица networks пуста!', 'warning', 'Нужно добавить данные')
+                } else {
+                    logResult(`✅ Найдено ${networks.length} сетей в Supabase`, 'success', networks)
+                    
+                    // Проверяем external_id
+                    const withExternalId = networks.filter(n => n.external_id)
+                    const withoutExternalId = networks.filter(n => !n.external_id)
+                    
+                    if (withExternalId.length > 0) {
+                        logResult(`✅ Сети с external_id: ${withExternalId.length}`, 'success', withExternalId.map(n => ({name: n.name, external_id: n.external_id})))
+                    }
+                    
+                    if (withoutExternalId.length > 0) {
+                        logResult(`⚠️ Сети БЕЗ external_id: ${withoutExternalId.length}`, 'warning', withoutExternalId.map(n => ({name: n.name, external_id: 'ПУСТО'})))
+                    }
+                }
+            } catch (error) {
+                logResult('💥 Критическая ошибка загрузки данных', 'error', error)
+            }
+
+            // 3. Проверка localStorage
+            logResult('🔍 Шаг 3: Анализ localStorage...', 'info')
+            
+            const storageKeys = Object.keys(localStorage)
+            const networkKeys = storageKeys.filter(k => k.includes('network') || k.includes('Network'))
+            
+            if (networkKeys.length > 0) {
+                logResult(`⚠️ Найдены остатки networks в localStorage: ${networkKeys.length}`, 'warning', networkKeys)
+                networkKeys.forEach(key => {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key))
+                        logResult(`📦 ${key}:`, 'info', data)
+                    } catch (e) {
+                        logResult(`📦 ${key}: ${localStorage.getItem(key)}`, 'info')
+                    }
+                })
+            } else {
+                logResult('✅ localStorage чист от networks данных', 'success')
+            }
+
+            // 4. Итоговые рекомендации
+            logResult('📋 Шаг 4: Рекомендации по завершению миграции', 'info')
+            
+            const recommendations = []
+            
+            if (!networks || networks.length === 0) {
+                recommendations.push('❌ КРИТИЧНО: Добавить данные в таблицу networks')
+            }
+            
+            if (networks && networks.some(n => !n.external_id)) {
+                recommendations.push('⚠️ Добавить external_id для всех сетей')
+            }
+            
+            if (networkKeys.length > 0) {
+                recommendations.push('🧹 Очистить localStorage от старых данных')
+            }
+            
+            if (recommendations.length === 0) {
+                logResult('🎉 Миграция готова! Все проверки пройдены', 'success')
+            } else {
+                logResult('📝 Требуются действия:', 'warning', recommendations)
+            }
+        }
+
+        window.clearAllLocalStorage = function() {
+            const before = Object.keys(localStorage).length
+            localStorage.clear()
+            const after = Object.keys(localStorage).length
+            
+            logResult(`🧹 localStorage очищен: было ${before} ключей, стало ${after}`, 'success')
+            
+            setTimeout(() => {
+                location.reload()
+            }, 2000)
+        }
+
+        window.testSupabaseOnly = async function() {
+            logResult('🔄 Тестируем загрузку ТОЛЬКО из Supabase...', 'info')
+            
+            try {
+                // Имитируем работу networksService
+                const { data, error } = await supabase
+                    .from('networks')
+                    .select('id, name, description, code, status, external_id, settings, created_at, updated_at')
+                    .order('name')
+                
+                if (error) {
+                    logResult('❌ Ошибка Supabase', 'error', error)
+                    return
+                }
+
+                if (!data || data.length === 0) {
+                    logResult('⚠️ Нет данных в Supabase', 'warning')
+                    return
+                }
+
+                // Преобразуем как в networksService
+                const networks = data.map(row => ({
+                    id: row.id,
+                    external_id: row.external_id,
+                    name: row.name,
+                    description: row.description || '',
+                    type: 'АЗС',
+                    pointsCount: 0,
+                    code: row.code,
+                    status: row.status,
+                    settings: row.settings,
+                    created_at: row.created_at,
+                    updated_at: row.updated_at
+                }))
+
+                logResult(`✅ Успешно загружено ${networks.length} сетей из Supabase`, 'success', networks)
+                
+                // Показываем как это будет выглядеть в таблице
+                const tableData = networks.map(n => ({
+                    'Название': n.name,
+                    'API ID': n.external_id || '—',
+                    'UUID': n.id.substring(0, 8) + '...',
+                    'Статус': n.status,
+                    'Код': n.code
+                }))
+                
+                logResult('📊 Как это будет в таблице:', 'info', tableData)
+                
+            } catch (error) {
+                logResult('💥 Критическая ошибка тестирования', 'error', error)
+            }
+        }
+
+        // Автоматически запускаем диагностику при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runFullDiagnostic, 1000)
+        })
+    </script>
+</body>
+</html>

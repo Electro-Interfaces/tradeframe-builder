@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/context/SelectionContext";
@@ -9,21 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, Download, Filter, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Download, Filter, Calendar, AlertCircle } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { priceHistoryService, PriceHistoryUI } from "@/services/priceHistoryService";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface PriceHistoryRecord {
-  id: string;
-  date: string;
-  time: string;
-  fuelType: string;
-  oldPrice: number;
-  newPrice: number;
-  changeReason: string;
-  changedBy: string;
-  tradingPoint?: string;
-  status: 'applied' | 'pending' | 'cancelled';
-}
+// Используем типы из priceHistoryService
+type PriceHistoryRecord = PriceHistoryUI;
 
 // Mock данные истории цен
 const mockPriceHistory: PriceHistoryRecord[] = [
@@ -103,6 +96,11 @@ export default function PriceHistoryPage() {
   const isMobile = useIsMobile();
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   
+  // Состояние данных
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   // Фильтры
   const [dateFrom, setDateFrom] = useState("2024-12-01");
   const [dateTo, setDateTo] = useState("2024-12-08");
@@ -113,10 +111,44 @@ export default function PriceHistoryPage() {
   const isNetworkOnly = selectedNetwork && !selectedTradingPoint;
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
 
+  // Загрузка данных
+  useEffect(() => {
+    const loadPriceHistory = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const filters = {
+          startDate: dateFrom,
+          endDate: dateTo,
+          tradingPointId: selectedTradingPoint?.id,
+          // networkId можно добавить при необходимости
+        };
+        
+        const pagination = {
+          page: 1,
+          limit: 100
+        };
+        
+        const result = await priceHistoryService.getPriceHistory(filters, pagination);
+        setPriceHistory(result.data);
+      } catch (error) {
+        console.error('Failed to load price history:', error);
+        setError('Ошибка загрузки истории цен');
+        // При ошибке используем mock данные как fallback
+        setPriceHistory(mockPriceHistory);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPriceHistory();
+  }, [dateFrom, dateTo, selectedTradingPoint]);
+
   // Фильтрация данных
   const filteredHistory = useMemo(() => {
-    return mockPriceHistory.filter(record => {
-      // Фильтр по дате
+    return priceHistory.filter(record => {
+      // Дата уже отфильтрована на уровне API, но добавим локальную проверку
       if (dateFrom && record.date < dateFrom) return false;
       if (dateTo && record.date > dateTo) return false;
       
@@ -139,7 +171,7 @@ export default function PriceHistoryPage() {
       
       return true;
     });
-  }, [dateFrom, dateTo, selectedFuelType, selectedReason, searchQuery]);
+  }, [priceHistory, dateFrom, dateTo, selectedFuelType, selectedReason, searchQuery]);
 
   const getPriceChangeIcon = (oldPrice: number, newPrice: number) => {
     if (newPrice > oldPrice) return <TrendingUp className="w-4 h-4 text-slate-400" />;
@@ -276,7 +308,30 @@ export default function PriceHistoryPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                {isMobile ? (
+                {error && (
+                  <div className="p-4">
+                    <Alert className="bg-red-900/20 border-red-700">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-red-300">
+                        {error}
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+                
+                {loading ? (
+                  <div className="p-4 space-y-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="flex items-center space-x-4">
+                        <Skeleton className="h-12 w-12 rounded bg-slate-700" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-[200px] bg-slate-700" />
+                          <Skeleton className="h-4 w-[150px] bg-slate-700" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : isMobile ? (
                   // Mobile card layout
                   <div className="space-y-4 p-4">
                     {filteredHistory.map((record) => (

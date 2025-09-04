@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,28 +13,25 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { SkeletonTable } from "@/components/ui/skeleton-table";
+import { NetworksDebugSimple } from "@/components/debug/NetworksDebugSimple";
+import { Network, NetworkInput } from "@/types/network";
+import { networksService } from "@/services/networksService";
 import { 
   ChevronUp,
   ChevronDown,
   MoreHorizontal,
-  Plus
+  Plus,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface TradingNetwork {
-  id: number;
-  name: string;
-  description: string;
-  type: "АЗС" | "АГЗС" | "Мойка";
-  pointsCount: number;
-}
-
-type SortField = 'name' | 'pointsCount';
+type SortField = 'name' | 'pointsCount' | 'external_id';
 type SortOrder = 'asc' | 'desc';
 
 const AdminNetworks = () => {
   const { toast } = useToast();
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   
   // Состояния загрузки и ошибок
   const [isLoading, setIsLoading] = useState(false);
@@ -45,37 +42,25 @@ const AdminNetworks = () => {
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   
-  // Mock данные для сетей
-  const [networks, setNetworks] = useState<TradingNetwork[]>([
-    {
-      id: 1,
-      name: "Демо сеть АЗС",
-      description: "Демонстрационная сеть автозаправочных станций",
-      type: "АЗС",
-      pointsCount: 12
-    },
-    {
-      id: 2,
-      name: "Норд Лайн",
-      description: "Сеть автозаправочных станций Норд Лайн",
-      type: "АЗС",
-      pointsCount: 8
-    }
-  ]);
+  // Данные сетей из Supabase
+  const [networks, setNetworks] = useState<Network[]>([]);
 
-  const [editingNetwork, setEditingNetwork] = useState<TradingNetwork | null>(null);
+  const [editingNetwork, setEditingNetwork] = useState<Network | null>(null);
   const [networkDialogOpen, setNetworkDialogOpen] = useState(false);
 
   // Форма для сети
   const [networkForm, setNetworkForm] = useState({
     name: "",
     description: "",
-    type: "" as TradingNetwork["type"] | ""
+    type: "",
+    external_id: "",
+    code: "",
+    status: "active"
   });
 
   // Фильтрованные и отсортированные данные
   const filteredAndSortedNetworks = useMemo(() => {
-    let filtered = networks.filter(network => 
+    const filtered = networks.filter(network => 
       network.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       network.description.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -93,6 +78,25 @@ const AdminNetworks = () => {
     });
   }, [networks, searchQuery, sortField, sortOrder]);
 
+  // Загрузка сетей из базы данных
+  const loadNetworks = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await networksService.getAll();
+      setNetworks(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки сетей');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Загрузка при монтировании компонента
+  useEffect(() => {
+    loadNetworks();
+  }, []);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -107,22 +111,32 @@ const AdminNetworks = () => {
     return sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />;
   };
 
-  const openNetworkDialog = (network?: TradingNetwork) => {
+  const openNetworkDialog = (network?: Network) => {
     if (network) {
       setEditingNetwork(network);
       setNetworkForm({
         name: network.name,
-        description: network.description,
-        type: network.type
+        description: network.description || "",
+        type: network.type || "АЗС",
+        external_id: network.external_id || "",
+        code: network.code || "",
+        status: network.status || "active"
       });
     } else {
       setEditingNetwork(null);
-      setNetworkForm({ name: "", description: "", type: "" });
+      setNetworkForm({ 
+        name: "", 
+        description: "", 
+        type: "АЗС", 
+        external_id: "",
+        code: "",
+        status: "active"
+      });
     }
     setNetworkDialogOpen(true);
   };
 
-  const saveNetwork = () => {
+  const saveNetwork = async () => {
     if (!networkForm.name || !networkForm.type) {
       toast({
         title: "Ошибка",
@@ -132,50 +146,64 @@ const AdminNetworks = () => {
       return;
     }
 
-    if (editingNetwork) {
-      setNetworks(prev => prev.map(n => 
-        n.id === editingNetwork.id 
-          ? { ...n, name: networkForm.name, description: networkForm.description, type: networkForm.type as TradingNetwork["type"] }
-          : n
-      ));
-      toast({
-        title: "Успешно",
-        description: "Сеть обновлена"
+    try {
+      if (editingNetwork) {
+        // Обновление существующей сети
+        await networksService.update(editingNetwork.id, networkForm as NetworkInput);
+        toast({
+          title: "Успешно",
+          description: "Торговая сеть обновлена"
+        });
+      } else {
+        // Создание новой сети
+        await networksService.create(networkForm as NetworkInput);
+        toast({
+          title: "Успешно", 
+          description: "Торговая сеть создана"
+        });
+      }
+      
+      // Перезагружаем данные
+      await loadNetworks();
+      setNetworkDialogOpen(false);
+      setEditingNetwork(null);
+      setNetworkForm({ 
+        name: "", 
+        description: "", 
+        type: "АЗС", 
+        external_id: "",
+        code: "",
+        status: "active"
       });
-    } else {
-      const newNetwork: TradingNetwork = {
-        id: Math.max(...networks.map(n => n.id)) + 1,
-        name: networkForm.name,
-        description: networkForm.description,
-        type: networkForm.type as TradingNetwork["type"],
-        pointsCount: 0
-      };
-      setNetworks(prev => [...prev, newNetwork]);
+    } catch (err) {
       toast({
-        title: "Успешно",
-        description: "Сеть создана"
+        title: "Ошибка",
+        description: err instanceof Error ? err.message : "Ошибка сохранения сети",
+        variant: "destructive"
       });
     }
-    
-    setNetworkDialogOpen(false);
   };
 
   const editNetwork = (id: string) => {
-    const network = networks.find(n => n.id === parseInt(id));
+    const network = networks.find(n => n.id === id);
     if (network) openNetworkDialog(network);
   };
 
-  const duplicateNetwork = (id: string) => {
-    const network = networks.find(n => n.id === parseInt(id));
+  const duplicateNetwork = async (id: string) => {
+    const network = networks.find(n => n.id === id);
     if (network) {
-      const newNetwork: TradingNetwork = {
-        ...network,
-        id: Math.max(...networks.map(n => n.id)) + 1,
-        name: `${network.name} (копия)`,
-        pointsCount: 0
-      };
-      setNetworks(prev => [...prev, newNetwork]);
-      toast({
+      try {
+        const duplicateInput: NetworkInput = {
+          name: `${network.name} (копия)`,
+          description: network.description,
+          type: network.type,
+          external_id: network.external_id ? `${network.external_id}_copy` : undefined,
+          code: network.code ? `${network.code}_copy` : undefined,
+          status: network.status
+        };
+        await networksService.create(duplicateInput);
+        await loadNetworks();
+        toast({
         title: "Успешно",
         description: "Сеть дублирована"
       });
@@ -255,6 +283,10 @@ const AdminNetworks = () => {
     <MainLayout>
       <div className="w-full space-y-6">
         <div className="col-span-12 xl:col-span-8 2xl:col-span-9">
+        
+        {/* Отладочный компонент для диагностики */}
+        <NetworksDebugSimple />
+        
         {/* Шапка */}
         <div>
           <h1 className="text-2xl font-semibold mb-2">Сети и ТТ</h1>
@@ -317,6 +349,39 @@ const AdminNetworks = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label htmlFor="external_id">ID для API</Label>
+                  <Input
+                    id="external_id"
+                    value={networkForm.external_id}
+                    onChange={(e) => setNetworkForm(prev => ({ ...prev, external_id: e.target.value }))}
+                    placeholder="ID для синхронизации с торговым API"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="code">Код сети</Label>
+                  <Input
+                    id="code"
+                    value={networkForm.code}
+                    onChange={(e) => setNetworkForm(prev => ({ ...prev, code: e.target.value }))}
+                    placeholder="Уникальный код сети"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="status">Статус</Label>
+                  <Select 
+                    value={networkForm.status} 
+                    onValueChange={(value) => setNetworkForm(prev => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите статус" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectItem value="active">Активная</SelectItem>
+                      <SelectItem value="inactive">Неактивная</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setNetworkDialogOpen(false)}>
                     Отмена
@@ -357,6 +422,11 @@ const AdminNetworks = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <h3 className="font-semibold text-foreground truncate">{network.name}</h3>
+                        {network.external_id && (
+                          <p className="text-xs text-blue-400 font-mono mt-1">
+                            ID: {network.external_id}
+                          </p>
+                        )}
                         <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                           {network.description}
                         </p>
@@ -368,11 +438,16 @@ const AdminNetworks = () => {
                     
                     {/* Метаданные */}
                     <div className="flex items-center justify-between text-sm">
-                      <Badge variant="secondary" className="text-xs">
-                        {network.type}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {network.type}
+                        </Badge>
+                        <Badge variant={network.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                          {network.status === 'active' ? 'Активная' : 'Неактивная'}
+                        </Badge>
+                      </div>
                       <span className="text-muted-foreground font-medium">
-                        {network.pointsCount} точек
+                        {network.pointsCount || 0} точек
                       </span>
                     </div>
                   </div>
@@ -395,8 +470,19 @@ const AdminNetworks = () => {
                         {getSortIcon('name')}
                       </button>
                     </th>
+                    <th>
+                      <button
+                        className="flex items-center gap-1 hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/40 rounded"
+                        onClick={() => handleSort('external_id')}
+                        aria-label="Сортировать по ID"
+                      >
+                        ID
+                        {getSortIcon('external_id')}
+                      </button>
+                    </th>
                     <th>Описание</th>
                     <th>Тип</th>
+                    <th>Статус</th>
                     <th>
                       <button
                         className="flex items-center gap-1 hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/40 rounded"
@@ -420,6 +506,9 @@ const AdminNetworks = () => {
                       aria-selected={selectedId === network.id}
                     >
                       <td className="font-medium">{network.name}</td>
+                      <td className="font-mono text-blue-400">
+                        {network.external_id || '—'}
+                      </td>
                       <td className="text-slate-400 max-w-xs truncate">
                         {network.description}
                       </td>
@@ -429,7 +518,12 @@ const AdminNetworks = () => {
                         </Badge>
                       </td>
                       <td>
-                        <span className="font-mono tabular-nums">{network.pointsCount}</span>
+                        <Badge variant={network.status === 'active' ? 'default' : 'secondary'}>
+                          {network.status === 'active' ? 'Активная' : 'Неактивная'}
+                        </Badge>
+                      </td>
+                      <td>
+                        <span className="font-mono tabular-nums">{network.pointsCount || 0}</span>
                       </td>
                       <td>
                         <RowActions id={network.id.toString()} />

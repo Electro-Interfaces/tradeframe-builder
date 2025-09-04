@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Test with Correct API Key</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff; 
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { 
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 25px; 
+            border-radius: 15px; 
+            margin: 15px 0; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #48bb78, #68d391);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        button { 
+            background: linear-gradient(45deg, #48bb78, #68d391);
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+        }
+        button.success { background: linear-gradient(45deg, #48bb78, #68d391); }
+        button.error { background: linear-gradient(45deg, #f56565, #fc8181); }
+        .log { 
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px; 
+            border-radius: 10px; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            white-space: pre-wrap; 
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            border-left: 4px solid #48bb78;
+        }
+        .success { color: #68d391; font-weight: 600; }
+        .error { color: #fc8181; font-weight: 600; }
+        .warning { color: #f6ad55; font-weight: 600; }
+        .info { color: #90cdf4; }
+        .key-comparison {
+            background: rgba(26, 32, 44, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 Test with Correct API Key</h1>
+        <p>Тестируем с правильным API ключом из Dashboard</p>
+    </div>
+
+    <div class="container">
+        <h3>🔑 API Key Comparison</h3>
+        <div class="key-comparison">
+            <strong>❌ Old Key (used in tests):</strong><br>
+            <code style="color: #fc8181;">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMwNjAzNDcsImV4cCI6MjA0ODYzNjM0N30.0R0hKfITlTOlQHYgP4JVfFQi_7xz3kW5nC7VZq6K3k0</code>
+            <br><br>
+            <strong>✅ New Key (from Dashboard):</strong><br>
+            <code style="color: #68d391;">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI</code>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>🧪 Quick Connection Test</h3>
+        <button onclick="testCorrectKey()">Test with CORRECT Key</button>
+        <div id="test-result" class="log"></div>
+    </div>
+
+    <div class="container">
+        <h3>⚡ Equipment Test</h3>
+        <button onclick="testEquipment()">Test Equipment Templates</button>
+        <div id="equipment-result" class="log"></div>
+    </div>
+
+    <div class="container">
+        <h3>🔧 CRUD Test</h3>
+        <button onclick="testCRUD()">Test CREATE operation</button>
+        <div id="crud-result" class="log"></div>
+    </div>
+
+    <div class="container">
+        <h3>🎯 Full API Test</h3>
+        <button onclick="runFullTest()">🚀 Test All Main APIs</button>
+        <div id="full-result" class="log"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+        const CORRECT_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI';
+        
+        function log(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            container.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function testCorrectKey() {
+            const container = document.getElementById('test-result');
+            container.innerHTML = '';
+            
+            log('test-result', '🔍 Testing with CORRECT API key...', 'info');
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+                    headers: {
+                        'apikey': CORRECT_API_KEY,
+                        'Authorization': `Bearer ${CORRECT_API_KEY}`
+                    }
+                });
+
+                log('test-result', `Response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    log('test-result', '🎉 SUCCESS! Connection working with correct key!', 'success');
+                    const responseText = await response.text();
+                    log('test-result', `Response body: ${responseText.substring(0, 100)}...`, 'info');
+                } else {
+                    const errorText = await response.text();
+                    log('test-result', `❌ Error: ${errorText}`, 'error');
+                }
+
+            } catch (error) {
+                log('test-result', `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testEquipment() {
+            const container = document.getElementById('equipment-result');
+            container.innerHTML = '';
+            
+            log('equipment-result', '⚡ Testing equipment_templates with correct key...', 'info');
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/equipment_templates?limit=5`, {
+                    headers: {
+                        'apikey': CORRECT_API_KEY,
+                        'Authorization': `Bearer ${CORRECT_API_KEY}`
+                    }
+                });
+
+                log('equipment-result', `Response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('equipment-result', `🎉 SUCCESS! Found ${data.length} equipment templates`, 'success');
+                    
+                    if (data.length > 0) {
+                        data.forEach((template, index) => {
+                            log('equipment-result', `  ${index + 1}. ${template.name} (${template.system_type})`, 'info');
+                        });
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log('equipment-result', `❌ Error: ${errorText}`, 'error');
+                }
+
+            } catch (error) {
+                log('equipment-result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCRUD() {
+            const container = document.getElementById('crud-result');
+            container.innerHTML = '';
+            
+            const testId = 'test-correct-key-' + Date.now();
+            
+            log('crud-result', '🔧 Testing CREATE operation with correct key...', 'info');
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/equipment_templates`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': CORRECT_API_KEY,
+                        'Authorization': `Bearer ${CORRECT_API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        id: testId,
+                        name: 'Test with Correct Key',
+                        technical_code: 'TEST_CORRECT_' + Date.now(),
+                        system_type: 'test',
+                        status: true,
+                        description: 'Created with the correct API key!'
+                    })
+                });
+
+                log('crud-result', `CREATE Response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    log('crud-result', '🎉 SUCCESS! CREATE operation worked!', 'success');
+                    const data = await response.json();
+                    if (data.length > 0) {
+                        log('crud-result', `Created: ${data[0].name}`, 'success');
+                    }
+                    
+                    // Clean up - delete the test record
+                    setTimeout(async () => {
+                        try {
+                            await fetch(`${SUPABASE_URL}/rest/v1/equipment_templates?id=eq.${testId}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'apikey': CORRECT_API_KEY,
+                                    'Authorization': `Bearer ${CORRECT_API_KEY}`
+                                }
+                            });
+                            log('crud-result', '🧹 Test record cleaned up', 'info');
+                        } catch (e) {
+                            log('crud-result', '⚠️ Cleanup failed (not critical)', 'warning');
+                        }
+                    }, 2000);
+                    
+                } else {
+                    const errorText = await response.text();
+                    log('crud-result', `❌ CREATE Error: ${errorText}`, 'error');
+                }
+
+            } catch (error) {
+                log('crud-result', `❌ CRUD Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function runFullTest() {
+            const container = document.getElementById('full-result');
+            container.innerHTML = '';
+            
+            log('full-result', '🚀 Running full API test with correct key...', 'info');
+
+            const endpoints = [
+                { name: 'Equipment Templates', url: '/rest/v1/equipment_templates?limit=3' },
+                { name: 'Equipment', url: '/rest/v1/equipment?limit=3' },
+                { name: 'Networks', url: '/rest/v1/networks?limit=3' },
+                { name: 'Trading Points', url: '/rest/v1/trading_points?limit=3' },
+                { name: 'Operations', url: '/rest/v1/operations?limit=3' },
+                { name: 'Nomenclature', url: '/rest/v1/nomenclature?limit=3' },
+                { name: 'Users', url: '/rest/v1/users?limit=3' },
+                { name: 'Fuel Types', url: '/rest/v1/fuel_types?limit=3' }
+            ];
+
+            let successCount = 0;
+
+            for (const endpoint of endpoints) {
+                try {
+                    log('full-result', `Testing ${endpoint.name}...`, 'info');
+                    
+                    const response = await fetch(`${SUPABASE_URL}${endpoint.url}`, {
+                        headers: {
+                            'apikey': CORRECT_API_KEY,
+                            'Authorization': `Bearer ${CORRECT_API_KEY}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        log('full-result', `✅ ${endpoint.name}: ${Array.isArray(data) ? data.length : 'N/A'} records`, 'success');
+                        successCount++;
+                    } else {
+                        log('full-result', `❌ ${endpoint.name}: ${response.status} ${response.statusText}`, 'error');
+                    }
+
+                } catch (error) {
+                    log('full-result', `❌ ${endpoint.name}: ${error.message}`, 'error');
+                }
+            }
+
+            const successRate = (successCount / endpoints.length) * 100;
+            log('full-result', `\n🎯 FINAL RESULT: ${successRate.toFixed(1)}% (${successCount}/${endpoints.length})`, 
+                successRate >= 80 ? 'success' : successRate >= 50 ? 'warning' : 'error');
+
+            if (successRate >= 80) {
+                log('full-result', '🎉 EXCELLENT! Database is working properly!', 'success');
+                log('full-result', '✅ The problem was the old API key!', 'success');
+                log('full-result', '🔧 Update all your test files with the new key!', 'warning');
+            }
+        }
+
+        // Auto-run basic test
+        setTimeout(() => {
+            testCorrectKey();
+        }, 1000);
+    </script>
+</body>
+</html>

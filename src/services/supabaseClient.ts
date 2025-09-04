@@ -15,15 +15,170 @@ export interface SupabaseResponse<T> {
   count?: number;
 }
 
+class QueryBuilder {
+  private client: SupabaseClient;
+  private table: string;
+  private query: {
+    select?: string;
+    filters: Array<{ field: string; operator: string; value: any }>;
+    limit?: number;
+    offset?: number;
+    isConditions: Array<{ field: string; value: any }>;
+  };
+
+  constructor(client: SupabaseClient, table: string) {
+    this.client = client;
+    this.table = table;
+    this.query = {
+      filters: [],
+      isConditions: []
+    };
+  }
+
+  select(columns = '*') {
+    this.query.select = columns;
+    return this;
+  }
+
+  eq(field: string, value: any) {
+    this.query.filters.push({ field, operator: 'eq', value });
+    return this;
+  }
+
+  is(field: string, value: any) {
+    this.query.isConditions.push({ field, value });
+    return this;
+  }
+
+  limit(count: number) {
+    this.query.limit = count;
+    return this;
+  }
+
+  offset(count: number) {
+    this.query.offset = count;
+    return this;
+  }
+
+  async execute() {
+    const url = new URL(`${this.client.baseUrl}/rest/v1/${this.table}`);
+    
+    // Add select parameter
+    if (this.query.select) {
+      url.searchParams.set('select', this.query.select);
+    }
+    
+    // Add filters
+    this.query.filters.forEach(filter => {
+      if (filter.value === null) {
+        url.searchParams.append(filter.field, 'is.null');
+      } else {
+        url.searchParams.append(filter.field, `${filter.operator}.${filter.value}`);
+      }
+    });
+    
+    // Add IS conditions
+    this.query.isConditions.forEach(condition => {
+      if (condition.value === null) {
+        url.searchParams.append(condition.field, 'is.null');
+      } else {
+        url.searchParams.append(condition.field, `is.${condition.value}`);
+      }
+    });
+    
+    // Add limit
+    if (this.query.limit) {
+      url.searchParams.set('limit', this.query.limit.toString());
+    }
+    
+    // Add offset
+    if (this.query.offset) {
+      url.searchParams.set('offset', this.query.offset.toString());
+    }
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'apikey': this.client.apiKey,
+        'Authorization': `Bearer ${this.client.apiKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        data: null,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const data = await response.json();
+    return {
+      data: Array.isArray(data) ? data : [data],
+      error: null
+    };
+  }
+
+  // INSERT method
+  insert(data: any[]) {
+    return {
+      select: () => this.insertAndSelect(data)
+    };
+  }
+
+  async insertAndSelect(data: any[]) {
+    const url = `${this.client.baseUrl}/rest/v1/${this.table}`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'apikey': this.client.apiKey,
+        'Authorization': `Bearer ${this.client.apiKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(data.length === 1 ? data[0] : data)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        data: null,
+        error: `HTTP ${response.status}: ${errorText}`
+      };
+    }
+
+    const responseData = await response.json();
+    return {
+      data: Array.isArray(responseData) ? responseData : [responseData],
+      error: null
+    };
+  }
+
+  // Alias for execute to match Supabase's API
+  then(onfulfilled?: any, onrejected?: any) {
+    return this.execute().then(onfulfilled, onrejected);
+  }
+}
+
 export class SupabaseClient {
-  private baseUrl: string;
-  private apiKey: string;
+  public baseUrl: string;
+  public apiKey: string;
   private schema: string;
 
   constructor(config: SupabaseConfig) {
     this.baseUrl = config.url.replace(/\/$/, ''); // Убираем слэш в конце
     this.apiKey = config.apiKey;
     this.schema = config.schema || 'public';
+  }
+
+  /**
+   * Create a query builder for the specified table
+   */
+  from(table: string) {
+    return new QueryBuilder(this, table);
   }
 
   /**

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚨 Быстрая проверка ID</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .problem { background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .solution { background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 11px; max-height: 300px; }
+        .uuid { color: #dc3545; font-family: monospace; font-weight: bold; }
+        .external-id { color: #28a745; font-family: monospace; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🚨 Быстрая диагностика проблемы с ID</h1>
+    
+    <div class="problem">
+        <h3>❌ Проблема:</h3>
+        <p>В таблице показывается UUID вместо external_id:</p>
+        <ul>
+            <li class="uuid">f5f5961a-4ae0-400f-b40a-1f630a329434</li>
+            <li class="uuid">b5e25b51-a950-481e-a09d-ac25e6b5d6ab</li>
+        </ul>
+        <p>А должно показываться:</p>
+        <ul>
+            <li class="external-id">1</li>
+            <li class="external-id">15</li>
+        </ul>
+    </div>
+
+    <div class="solution">
+        <button onclick="checkCurrentData()">🔍 Проверить текущие данные</button>
+        <button onclick="fixExternalIds()">🔧 Исправить external_id прямо сейчас</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const div = document.createElement('div')
+            div.className = type
+            
+            let content = `<h4>${message}</h4>`
+            if (data) {
+                content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+            }
+            div.innerHTML = content
+            
+            resultsDiv.appendChild(div)
+        }
+
+        window.checkCurrentData = async function() {
+            logResult('🔍 Проверяем текущие данные в базе...', 'info')
+            
+            try {
+                const { data, error } = await supabase
+                    .from('networks')
+                    .select('id, name, external_id')
+                    .order('name')
+                
+                if (error) throw error
+                
+                logResult('📊 Текущие данные из базы:', 'info', data)
+                
+                const problems = data.filter(n => !n.external_id)
+                if (problems.length > 0) {
+                    logResult('❌ Проблемные записи БЕЗ external_id:', 'problem', problems)
+                } else {
+                    logResult('✅ Все записи имеют external_id!', 'solution')
+                }
+                
+            } catch (error) {
+                logResult('💥 Ошибка проверки данных', 'problem', error)
+            }
+        }
+
+        window.fixExternalIds = async function() {
+            logResult('🔧 Исправляем external_id прямо сейчас...', 'info')
+            
+            try {
+                // Исправляем Демо сеть
+                const { error: error1 } = await supabase
+                    .from('networks')
+                    .update({ external_id: '1' })
+                    .like('name', '%Демо сеть%')
+                
+                if (error1) throw error1
+                
+                // Исправляем Норд Лайн
+                const { error: error2 } = await supabase
+                    .from('networks')
+                    .update({ external_id: '15' })
+                    .like('name', '%Норд%')
+                
+                if (error2) throw error2
+                
+                logResult('✅ external_id исправлены!', 'solution')
+                
+                // Проверяем результат
+                await checkCurrentData()
+                
+                logResult('🔄 Перезагрузите страницу приложения для отображения изменений!', 'solution')
+                
+            } catch (error) {
+                logResult('💥 Ошибка исправления', 'problem', error)
+            }
+        }
+
+        // Автоматическая проверка при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(checkCurrentData, 500)
+        })
+    </script>
+</body>
+</html>

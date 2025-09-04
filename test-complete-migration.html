@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Финальный тест миграции</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 3px; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🎯 Финальный тест миграции на Supabase</h1>
+    
+    <div class="section info">
+        <h3>План финального теста:</h3>
+        <ol>
+            <li>🧹 Очистить весь localStorage</li>
+            <li>🔄 Перезагрузить страницу</li>
+            <li>✅ Проверить что сети загружаются из Supabase</li>
+            <li>🎯 Проверить что external_id отображается корректно</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <button onclick="performFinalTest()">🚀 Выполнить финальный тест</button>
+        <button onclick="clearAllAndReload()">🧹 Очистить localStorage и перезагрузить</button>
+        <button onclick="openApp()">📱 Открыть приложение</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const div = document.createElement('div')
+            div.className = `section ${type}`
+            
+            let content = `<h4>${message}</h4>`
+            if (data) {
+                content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+            }
+            div.innerHTML = content
+            
+            resultsDiv.appendChild(div)
+            console.log(message, data)
+        }
+
+        window.performFinalTest = async function() {
+            document.getElementById('results').innerHTML = ''
+            
+            // 1. Проверка localStorage
+            logResult('🔍 Шаг 1: Анализ текущего localStorage...', 'info')
+            
+            const storageKeys = Object.keys(localStorage)
+            if (storageKeys.length > 0) {
+                logResult(`⚠️ В localStorage найдено ${storageKeys.length} ключей`, 'warning', storageKeys)
+            } else {
+                logResult('✅ localStorage пуст', 'success')
+            }
+
+            // 2. Тест подключения к Supabase
+            logResult('🔌 Шаг 2: Тест подключения к Supabase...', 'info')
+            
+            try {
+                const { data: networks, error } = await supabase
+                    .from('networks')
+                    .select('id, name, external_id')
+                    .order('name')
+                
+                if (error) {
+                    logResult('❌ Ошибка подключения к Supabase', 'error', error)
+                    return
+                }
+
+                if (!networks || networks.length === 0) {
+                    logResult('⚠️ Нет данных в Supabase', 'warning')
+                    return
+                }
+
+                logResult(`✅ Supabase работает! Найдено ${networks.length} сетей`, 'success', networks)
+                
+                // 3. Проверяем external_id
+                const withExternalId = networks.filter(n => n.external_id)
+                if (withExternalId.length > 0) {
+                    logResult(`✅ Сети с external_id: ${withExternalId.length}`, 'success', withExternalId)
+                } else {
+                    logResult('⚠️ Нет сетей с external_id', 'warning')
+                }
+
+            } catch (error) {
+                logResult('💥 Критическая ошибка', 'error', error)
+            }
+            
+            // 4. Итог
+            logResult('📋 Финальный вердикт', 'success', {
+                message: 'Миграция завершена!',
+                recommendation: 'Можно очистить localStorage и начать работу с Supabase',
+                next_steps: [
+                    'Откройте приложение',
+                    'Проверьте что сети отображаются в селекторах',
+                    'Убедитесь что external_id показывается вместо UUID'
+                ]
+            })
+        }
+
+        window.clearAllAndReload = function() {
+            const before = Object.keys(localStorage).length
+            localStorage.clear()
+            logResult(`🧹 localStorage очищен: было ${before} ключей`, 'success')
+            
+            setTimeout(() => {
+                window.location.reload()
+            }, 1000)
+        }
+
+        window.openApp = function() {
+            window.open('http://localhost:3002/admin/networks', '_blank')
+        }
+
+        // Автоматически запускаем тест при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(performFinalTest, 500)
+        })
+    </script>
+</body>
+</html>

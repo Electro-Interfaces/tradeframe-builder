@@ -47,6 +47,7 @@ export interface TradingPointExternalCode {
 
 export interface TradingPoint {
   id: TradingPointId;
+  external_id?: string; // ID для синхронизации с торговым API
   networkId: NetworkId;
   name: string;
   description?: string;

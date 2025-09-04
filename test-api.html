@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - Operations</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e4e4e7;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #60a5fa;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            background: #27272a;
+        }
+        .success {
+            background: #064e3b;
+            color: #10b981;
+        }
+        .error {
+            background: #7f1d1d;
+            color: #ef4444;
+        }
+        .info {
+            background: #1e3a8a;
+            color: #60a5fa;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        pre {
+            background: #27272a;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        .section {
+            margin: 30px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 API Test Dashboard</h1>
+        
+        <div id="status" class="status">
+            Готов к тестированию...
+        </div>
+
+        <div class="section">
+            <h2>Quick Tests</h2>
+            <button onclick="testHealth()">Test Health</button>
+            <button onclick="testAuth()">Test Auth</button>
+            <button onclick="testOperations()">Test Operations (Mock)</button>
+            <button onclick="testOperationsWithAPI()">Test Operations (API)</button>
+            <button onclick="testPriceHistory()">Test Price History</button>
+            <button onclick="testFuelStocks()">Test Fuel Stocks</button>
+        </div>
+
+        <div class="section">
+            <h2>Response:</h2>
+            <pre id="response">No response yet</pre>
+        </div>
+    </div>
+
+    <script type="module">
+        const API_BASE = 'http://localhost:3001';
+        const API_V1 = `${API_BASE}/api/v1`;
+        let authToken = null;
+
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        function displayResponse(data) {
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function testHealth() {
+            try {
+                updateStatus('Testing health endpoint...', 'info');
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                updateStatus(`Health check: ${data.status}`, 'success');
+                displayResponse(data);
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error');
+                displayResponse({ error: error.message });
+            }
+        }
+
+        async function testAuth() {
+            try {
+                updateStatus('Testing auth with mock user...', 'info');
+                const response = await fetch(`${API_V1}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@tradeframe.com',
+                        password: 'admin123'
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success && data.data?.accessToken) {
+                    authToken = data.data.accessToken;
+                    updateStatus('Auth successful! Token saved.', 'success');
+                } else {
+                    updateStatus(`Auth failed: ${data.error || 'Unknown error'}`, 'error');
+                }
+                displayResponse(data);
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error');
+                displayResponse({ error: error.message });
+            }
+        }
+
+        async function testOperations() {
+            try {
+                updateStatus('Testing operations (fallback to mock)...', 'info');
+                
+                // Простой тест без импорта модулей
+                updateStatus('Mock mode test - check console for actual API test', 'info');
+                displayResponse({ 
+                    info: 'Mock test skipped in browser',
+                    hint: 'Use "Test Operations (API)" button to test real API'
+                });
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error');
+                displayResponse({ error: error.message });
+            }
+        }
+
+        async function testOperationsWithAPI() {
+            try {
+                if (!authToken) {
+                    updateStatus('Please login first!', 'error');
+                    return;
+                }
+                
+                updateStatus('Testing operations API endpoint...', 'info');
+                const response = await fetch(`${API_V1}/operations`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateStatus(`Found ${data.data?.length || 0} operations`, 'success');
+                } else {
+                    updateStatus(`API error: ${data.error}`, 'error');
+                }
+                displayResponse(data);
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error');
+                displayResponse({ error: error.message });
+            }
+        }
+
+        async function testPriceHistory() {
+            try {
+                if (!authToken) {
+                    updateStatus('Please login first!', 'error');
+                    return;
+                }
+                
+                updateStatus('Testing price history API...', 'info');
+                const response = await fetch(`${API_V1}/price-history`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateStatus(`Found ${data.data?.length || 0} price records`, 'success');
+                } else {
+                    updateStatus(`API error: ${data.error}`, 'error');
+                }
+                displayResponse(data);
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error');
+                displayResponse({ error: error.message });
+            }
+        }
+
+        async function testFuelStocks() {
+            try {
+                if (!authToken) {
+                    updateStatus('Please login first!', 'error');
+                    return;
+                }
+                
+                updateStatus('Testing fuel stocks API...', 'info');
+                const response = await fetch(`${API_V1}/fuel-stocks`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateStatus(`Found ${data.data?.length || 0} fuel stock records`, 'success');
+                } else {
+                    updateStatus(`API error: ${data.error}`, 'error');
+                }
+                displayResponse(data);
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error');
+                displayResponse({ error: error.message });
+            }
+        }
+
+        // Auto-test health on load
+        window.addEventListener('load', () => {
+            testHealth();
+        });
+    </script>
+</body>
+</html>

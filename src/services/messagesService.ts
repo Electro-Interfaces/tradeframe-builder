@@ -403,10 +403,10 @@ const initialNotifications: Notification[] = [
 ];
 
 // Загружаем данные из localStorage
-let chatMessagesData: ChatMessage[] = PersistentStorage.load<ChatMessage>('chatMessages', initialChatMessages);
-let ticketsData: SupportTicket[] = PersistentStorage.load<SupportTicket>('supportTickets', initialTickets);
-let notificationRulesData: NotificationRule[] = PersistentStorage.load<NotificationRule>('notificationRules', initialNotificationRules);
-let notificationsData: Notification[] = PersistentStorage.load<Notification>('notifications', initialNotifications);
+const chatMessagesData: ChatMessage[] = PersistentStorage.load<ChatMessage>('chatMessages', initialChatMessages);
+const ticketsData: SupportTicket[] = PersistentStorage.load<SupportTicket>('supportTickets', initialTickets);
+const notificationRulesData: NotificationRule[] = PersistentStorage.load<NotificationRule>('notificationRules', initialNotificationRules);
+const notificationsData: Notification[] = PersistentStorage.load<Notification>('notifications', initialNotifications);
 
 let nextChatMessageId = Math.max(...chatMessagesData.map(msg => parseInt(msg.id.replace('MSG-', '')) || 0)) + 1;
 let nextTicketId = Math.max(...ticketsData.map(t => parseInt(t.id.replace('TICKET-', '')) || 0)) + 1;

@@ -170,7 +170,7 @@ const initialComponentStatuses: ComponentStatusRecord[] = [
 ];
 
 // Загружаем данные из localStorage
-let componentStatusesData: ComponentStatusRecord[] = PersistentStorage.load<ComponentStatusRecord>('componentStatuses', initialComponentStatuses);
+const componentStatusesData: ComponentStatusRecord[] = PersistentStorage.load<ComponentStatusRecord>('componentStatuses', initialComponentStatuses);
 let nextId = Math.max(...componentStatusesData.map(cs => parseInt(cs.id.replace('CS-', '')) || 0)) + 1;
 
 // Функция для сохранения изменений

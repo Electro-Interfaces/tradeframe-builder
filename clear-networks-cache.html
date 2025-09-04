@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Очистка кэша сетей</title>
+</head>
+<body>
+    <h1>Очистка кэша торговых сетей</h1>
+    <button onclick="clearNetworksCache()">Очистить кэш сетей</button>
+    <div id="result"></div>
+
+    <script>
+        function clearNetworksCache() {
+            // Очищаем networks из localStorage
+            localStorage.removeItem('tradeframe_networks');
+            
+            // Показываем результат
+            document.getElementById('result').innerHTML = `
+                <p style="color: green; margin-top: 20px;">
+                    ✅ Кэш торговых сетей очищен!<br>
+                    Обновите страницу приложения для загрузки данных с новыми полями.
+                </p>
+            `;
+            
+            console.log('🧹 Networks cache cleared');
+        }
+    </script>
+</body>
+</html>

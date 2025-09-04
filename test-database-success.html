@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Success Test</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff; 
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { 
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 25px; 
+            border-radius: 15px; 
+            margin: 15px 0; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #48bb78, #68d391);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        button { 
+            background: linear-gradient(45deg, #48bb78, #68d391);
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+        }
+        button.running { 
+            background: linear-gradient(45deg, #4299e1, #63b3ed);
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.3);
+        }
+        button.success { 
+            background: linear-gradient(45deg, #48bb78, #68d391);
+        }
+        button.error { 
+            background: linear-gradient(45deg, #f56565, #fc8181);
+        }
+        .log { 
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px; 
+            border-radius: 10px; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            white-space: pre-wrap; 
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            border-left: 4px solid #48bb78;
+        }
+        .success { color: #68d391; font-weight: 600; }
+        .error { color: #fc8181; font-weight: 600; }
+        .warning { color: #f6ad55; font-weight: 600; }
+        .info { color: #90cdf4; }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: rgba(74, 85, 104, 0.8);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #48bb78, #68d391);
+            border-radius: 12px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 0%;
+        }
+        .score {
+            font-size: 2em;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        .score.excellent { background: linear-gradient(45deg, #48bb78, #68d391); }
+        .score.good { background: linear-gradient(45deg, #4299e1, #63b3ed); }
+        .score.poor { background: linear-gradient(45deg, #f56565, #fc8181); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        th { 
+            background: rgba(72, 187, 120, 0.3);
+            font-weight: 600;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #48bb78;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎉 Database Fix Success Test</h1>
+        <p>Проверяем что все исправления работают без 401 ошибок</p>
+    </div>
+
+    <div class="container">
+        <h3>📊 Overall Progress</h3>
+        <div class="progress-bar">
+            <div id="overall-progress" class="progress-fill"></div>
+        </div>
+        <div id="progress-text">Готов к запуску тестов...</div>
+    </div>
+
+    <div id="score-container" style="display: none;">
+        <div id="final-score" class="score">
+            <div id="score-text">Calculating...</div>
+            <div id="score-detail"></div>
+        </div>
+    </div>
+
+    <div class="test-grid">
+        <div class="container">
+            <h3>🔗 Basic Connection</h3>
+            <button id="btn-connection" onclick="testConnection()">Test Connection</button>
+            <div id="connection-result" class="log"></div>
+        </div>
+
+        <div class="container">
+            <h3>⚡ Equipment Section</h3>
+            <button id="btn-equipment" onclick="testEquipment()">Test Equipment APIs</button>
+            <div id="equipment-result" class="log"></div>
+        </div>
+
+        <div class="container">
+            <h3>🌐 Networks Section</h3>
+            <button id="btn-networks" onclick="testNetworks()">Test Networks APIs</button>
+            <div id="networks-result" class="log"></div>
+        </div>
+
+        <div class="container">
+            <h3>📋 Operations Section</h3>
+            <button id="btn-operations" onclick="testOperations()">Test Operations APIs</button>
+            <div id="operations-result" class="log"></div>
+        </div>
+
+        <div class="container">
+            <h3>🏷️ Nomenclature Section</h3>
+            <button id="btn-nomenclature" onclick="testNomenclature()">Test Nomenclature APIs</button>
+            <div id="nomenclature-result" class="log"></div>
+        </div>
+
+        <div class="container">
+            <h3>👥 Users & Roles</h3>
+            <button id="btn-users" onclick="testUsers()">Test Users APIs</button>
+            <div id="users-result" class="log"></div>
+        </div>
+
+        <div class="container">
+            <h3>⛽ Fuel Systems</h3>
+            <button id="btn-fuel" onclick="testFuel()">Test Fuel APIs</button>
+            <div id="fuel-result" class="log"></div>
+        </div>
+
+        <div class="container">
+            <h3>🔧 CRUD Operations</h3>
+            <button id="btn-crud" onclick="testCRUD()">Test CRUD</button>
+            <div id="crud-result" class="log"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>🎯 Run All Tests</h3>
+        <button id="btn-all" onclick="runAllTests()">🚀 Run Complete Test Suite</button>
+        <div id="summary-result" class="log"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI';
+        
+        let testResults = {};
+        let testsCompleted = 0;
+        const totalTests = 8;
+
+        function updateProgress() {
+            const progress = (testsCompleted / totalTests) * 100;
+            document.getElementById('overall-progress').style.width = progress + '%';
+            
+            if (progress < 100) {
+                document.getElementById('progress-text').innerHTML = `<span class="spinner"></span>Progress: ${progress.toFixed(0)}%`;
+            } else {
+                document.getElementById('progress-text').textContent = `✅ All tests completed: ${progress.toFixed(0)}%`;
+                showFinalScore();
+            }
+        }
+
+        function showFinalScore() {
+            const successCount = Object.values(testResults).filter(r => r.success).length;
+            const score = (successCount / totalTests) * 100;
+            const scoreContainer = document.getElementById('score-container');
+            const scoreElement = document.getElementById('final-score');
+            const scoreText = document.getElementById('score-text');
+            const scoreDetail = document.getElementById('score-detail');
+
+            scoreContainer.style.display = 'block';
+            scoreText.textContent = `${score.toFixed(0)}% Success Rate`;
+            scoreDetail.textContent = `${successCount}/${totalTests} tests passed`;
+
+            if (score >= 90) {
+                scoreElement.className = 'score excellent';
+            } else if (score >= 70) {
+                scoreElement.className = 'score good';
+            } else {
+                scoreElement.className = 'score poor';
+            }
+        }
+
+        function log(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            container.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateButton(buttonId, status) {
+            const button = document.getElementById(buttonId);
+            button.className = status;
+            if (status === 'success') {
+                button.innerHTML = '✅ Success';
+            } else if (status === 'error') {
+                button.innerHTML = '❌ Failed';
+            } else if (status === 'running') {
+                button.innerHTML = '<span class="spinner"></span>Testing...';
+            }
+        }
+
+        async function testConnection() {
+            const testName = 'connection';
+            updateButton('btn-connection', 'running');
+            document.getElementById('connection-result').innerHTML = '';
+            
+            log('connection-result', '🔗 Testing basic database connection...', 'info');
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (response.ok) {
+                    log('connection-result', '✅ Database connection successful', 'success');
+                    log('connection-result', `✅ Status: ${response.status} ${response.statusText}`, 'success');
+                    testResults[testName] = { success: true, details: 'Connection OK' };
+                    updateButton('btn-connection', 'success');
+                } else {
+                    throw new Error(`Connection failed: ${response.status} ${response.statusText}`);
+                }
+
+            } catch (error) {
+                log('connection-result', `❌ Connection error: ${error.message}`, 'error');
+                testResults[testName] = { success: false, details: error.message };
+                updateButton('btn-connection', 'error');
+            }
+
+            testsCompleted++;
+            updateProgress();
+        }
+
+        async function testEquipment() {
+            const testName = 'equipment';
+            updateButton('btn-equipment', 'running');
+            document.getElementById('equipment-result').innerHTML = '';
+            
+            log('equipment-result', '⚡ Testing Equipment section APIs...', 'info');
+
+            const endpoints = [
+                { name: 'Equipment Templates', url: '/rest/v1/equipment_templates?limit=5' },
+                { name: 'Equipment Instances', url: '/rest/v1/equipment?limit=5' },
+                { name: 'Equipment Events', url: '/rest/v1/equipment_events?limit=5' },
+                { name: 'Equipment Log', url: '/rest/v1/equipment_log?limit=5' }
+            ];
+
+            let successCount = 0;
+
+            for (const endpoint of endpoints) {
+                try {
+                    log('equipment-result', `Testing ${endpoint.name}...`, 'info');
+                    
+                    const response = await fetch(`${SUPABASE_URL}${endpoint.url}`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        log('equipment-result', `✅ ${endpoint.name}: ${Array.isArray(data) ? data.length : 'N/A'} records`, 'success');
+                        successCount++;
+                    } else {
+                        log('equipment-result', `❌ ${endpoint.name}: ${response.status} ${response.statusText}`, 'error');
+                    }
+
+                } catch (error) {
+                    log('equipment-result', `❌ ${endpoint.name}: ${error.message}`, 'error');
+                }
+            }
+
+            const success = successCount >= endpoints.length * 0.75;
+            log('equipment-result', `📊 Equipment APIs: ${successCount}/${endpoints.length} working`, 
+                success ? 'success' : 'error');
+
+            testResults[testName] = { success, details: `${successCount}/${endpoints.length} APIs working` };
+            updateButton('btn-equipment', success ? 'success' : 'error');
+
+            testsCompleted++;
+            updateProgress();
+        }
+
+        async function testNetworks() {
+            const testName = 'networks';
+            updateButton('btn-networks', 'running');
+            document.getElementById('networks-result').innerHTML = '';
+            
+            log('networks-result', '🌐 Testing Networks section APIs...', 'info');
+
+            const endpoints = [
+                { name: 'Networks', url: '/rest/v1/networks?limit=5' },
+                { name: 'Trading Points', url: '/rest/v1/trading_points?limit=5' }
+            ];
+
+            let successCount = 0;
+
+            for (const endpoint of endpoints) {
+                try {
+                    log('networks-result', `Testing ${endpoint.name}...`, 'info');
+                    
+                    const response = await fetch(`${SUPABASE_URL}${endpoint.url}`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        log('networks-result', `✅ ${endpoint.name}: ${Array.isArray(data) ? data.length : 'N/A'} records`, 'success');
+                        successCount++;
+                    } else {
+                        log('networks-result', `❌ ${endpoint.name}: ${response.status} ${response.statusText}`, 'error');
+                    }
+
+                } catch (error) {
+                    log('networks-result', `❌ ${endpoint.name}: ${error.message}`, 'error');
+                }
+            }
+
+            const success = successCount >= endpoints.length * 0.75;
+            log('networks-result', `📊 Networks APIs: ${successCount}/${endpoints.length} working`, 
+                success ? 'success' : 'error');
+
+            testResults[testName] = { success, details: `${successCount}/${endpoints.length} APIs working` };
+            updateButton('btn-networks', success ? 'success' : 'error');
+
+            testsCompleted++;
+            updateProgress();
+        }
+
+        async function testOperations() {
+            const testName = 'operations';
+            updateButton('btn-operations', 'running');
+            document.getElementById('operations-result').innerHTML = '';
+            
+            log('operations-result', '📋 Testing Operations section APIs...', 'info');
+
+            try {
+                log('operations-result', 'Testing Operations table...', 'info');
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/operations?limit=5`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('operations-result', `✅ Operations: ${Array.isArray(data) ? data.length : 'N/A'} records accessible`, 'success');
+                    
+                    // Test operations by fuel type
+                    const fuelResponse = await fetch(`${SUPABASE_URL}/rest/v1/operations?select=fuel_type&limit=10`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+
+                    if (fuelResponse.ok) {
+                        const fuelData = await fuelResponse.json();
+                        log('operations-result', `✅ Operations fuel filtering: ${fuelData.length} records`, 'success');
+                    }
+
+                    testResults[testName] = { success: true, details: `Operations API working, ${data.length} records` };
+                    updateButton('btn-operations', 'success');
+                } else {
+                    throw new Error(`Operations API failed: ${response.status} ${response.statusText}`);
+                }
+
+            } catch (error) {
+                log('operations-result', `❌ Operations test error: ${error.message}`, 'error');
+                testResults[testName] = { success: false, details: error.message };
+                updateButton('btn-operations', 'error');
+            }
+
+            testsCompleted++;
+            updateProgress();
+        }
+
+        async function testNomenclature() {
+            const testName = 'nomenclature';
+            updateButton('btn-nomenclature', 'running');
+            document.getElementById('nomenclature-result').innerHTML = '';
+            
+            log('nomenclature-result', '🏷️ Testing Nomenclature section APIs...', 'info');
+
+            const endpoints = [
+                { name: 'Nomenclature', url: '/rest/v1/nomenclature?limit=5' },
+                { name: 'External Codes', url: '/rest/v1/nomenclature_external_codes?limit=5' }
+            ];
+
+            let successCount = 0;
+
+            for (const endpoint of endpoints) {
+                try {
+                    log('nomenclature-result', `Testing ${endpoint.name}...`, 'info');
+                    
+                    const response = await fetch(`${SUPABASE_URL}${endpoint.url}`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        log('nomenclature-result', `✅ ${endpoint.name}: ${Array.isArray(data) ? data.length : 'N/A'} records`, 'success');
+                        successCount++;
+                    } else {
+                        log('nomenclature-result', `❌ ${endpoint.name}: ${response.status} ${response.statusText}`, 'error');
+                    }
+
+                } catch (error) {
+                    log('nomenclature-result', `❌ ${endpoint.name}: ${error.message}`, 'error');
+                }
+            }
+
+            const success = successCount >= 1; // At least nomenclature should work
+            log('nomenclature-result', `📊 Nomenclature APIs: ${successCount}/${endpoints.length} working`, 
+                success ? 'success' : 'error');
+
+            testResults[testName] = { success, details: `${successCount}/${endpoints.length} APIs working` };
+            updateButton('btn-nomenclature', success ? 'success' : 'error');
+
+            testsCompleted++;
+            updateProgress();
+        }
+
+        async function testUsers() {
+            const testName = 'users';
+            updateButton('btn-users', 'running');
+            document.getElementById('users-result').innerHTML = '';
+            
+            log('users-result', '👥 Testing Users & Roles APIs...', 'info');
+
+            const endpoints = [
+                { name: 'Users', url: '/rest/v1/users?limit=5' },
+                { name: 'Roles', url: '/rest/v1/roles?limit=5' },
+                { name: 'User Roles', url: '/rest/v1/user_roles?limit=5' }
+            ];
+
+            let successCount = 0;
+
+            for (const endpoint of endpoints) {
+                try {
+                    log('users-result', `Testing ${endpoint.name}...`, 'info');
+                    
+                    const response = await fetch(`${SUPABASE_URL}${endpoint.url}`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        log('users-result', `✅ ${endpoint.name}: ${Array.isArray(data) ? data.length : 'N/A'} records`, 'success');
+                        successCount++;
+                    } else {
+                        log('users-result', `❌ ${endpoint.name}: ${response.status} ${response.statusText}`, 'error');
+                    }
+
+                } catch (error) {
+                    log('users-result', `❌ ${endpoint.name}: ${error.message}`, 'error');
+                }
+            }
+
+            const success = successCount >= endpoints.length * 0.6;
+            log('users-result', `📊 Users APIs: ${successCount}/${endpoints.length} working`, 
+                success ? 'success' : 'error');
+
+            testResults[testName] = { success, details: `${successCount}/${endpoints.length} APIs working` };
+            updateButton('btn-users', success ? 'success' : 'error');
+
+            testsCompleted++;
+            updateProgress();
+        }
+
+        async function testFuel() {
+            const testName = 'fuel';
+            updateButton('btn-fuel', 'running');
+            document.getElementById('fuel-result').innerHTML = '';
+            
+            log('fuel-result', '⛽ Testing Fuel Systems APIs...', 'info');
+
+            const endpoints = [
+                { name: 'Fuel Types', url: '/rest/v1/fuel_types?limit=5' },
+                { name: 'Fuel Stocks', url: '/rest/v1/fuel_stocks?limit=5' },
+                { name: 'Tanks', url: '/rest/v1/tanks?limit=5' },
+                { name: 'Tank Events', url: '/rest/v1/tank_events?limit=5' }
+            ];
+
+            let successCount = 0;
+
+            for (const endpoint of endpoints) {
+                try {
+                    log('fuel-result', `Testing ${endpoint.name}...`, 'info');
+                    
+                    const response = await fetch(`${SUPABASE_URL}${endpoint.url}`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        log('fuel-result', `✅ ${endpoint.name}: ${Array.isArray(data) ? data.length : 'N/A'} records`, 'success');
+                        successCount++;
+                    } else {
+                        log('fuel-result', `❌ ${endpoint.name}: ${response.status} ${response.statusText}`, 'error');
+                    }
+
+                } catch (error) {
+                    log('fuel-result', `❌ ${endpoint.name}: ${error.message}`, 'error');
+                }
+            }
+
+            const success = successCount >= endpoints.length * 0.5;
+            log('fuel-result', `📊 Fuel APIs: ${successCount}/${endpoints.length} working`, 
+                success ? 'success' : 'error');
+
+            testResults[testName] = { success, details: `${successCount}/${endpoints.length} APIs working` };
+            updateButton('btn-fuel', success ? 'success' : 'error');
+
+            testsCompleted++;
+            updateProgress();
+        }
+
+        async function testCRUD() {
+            const testName = 'crud';
+            updateButton('btn-crud', 'running');
+            document.getElementById('crud-result').innerHTML = '';
+            
+            log('crud-result', '🔧 Testing CRUD operations...', 'info');
+
+            const testId = 'test-crud-' + Date.now();
+            let operationsCount = 0;
+
+            try {
+                // CREATE
+                log('crud-result', '1. Testing CREATE...', 'info');
+                const createResponse = await fetch(`${SUPABASE_URL}/rest/v1/equipment_templates`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        id: testId,
+                        name: 'CRUD Test Template',
+                        technical_code: 'CRUD_TEST_' + Date.now(),
+                        system_type: 'test',
+                        status: true,
+                        description: 'Test template for CRUD operations'
+                    })
+                });
+
+                if (createResponse.ok) {
+                    log('crud-result', '✅ CREATE operation successful', 'success');
+                    operationsCount++;
+                } else {
+                    log('crud-result', `❌ CREATE failed: ${createResponse.status}`, 'error');
+                }
+
+                // READ
+                log('crud-result', '2. Testing READ...', 'info');
+                const readResponse = await fetch(`${SUPABASE_URL}/rest/v1/equipment_templates?id=eq.${testId}`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (readResponse.ok) {
+                    const data = await readResponse.json();
+                    log('crud-result', `✅ READ operation successful (${data.length} records found)`, 'success');
+                    operationsCount++;
+                } else {
+                    log('crud-result', `❌ READ failed: ${readResponse.status}`, 'error');
+                }
+
+                // UPDATE
+                log('crud-result', '3. Testing UPDATE...', 'info');
+                const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/equipment_templates?id=eq.${testId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        description: 'Updated test template - CRUD working!'
+                    })
+                });
+
+                if (updateResponse.ok) {
+                    log('crud-result', '✅ UPDATE operation successful', 'success');
+                    operationsCount++;
+                } else {
+                    log('crud-result', `❌ UPDATE failed: ${updateResponse.status}`, 'error');
+                }
+
+                // DELETE
+                log('crud-result', '4. Testing DELETE...', 'info');
+                const deleteResponse = await fetch(`${SUPABASE_URL}/rest/v1/equipment_templates?id=eq.${testId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (deleteResponse.ok) {
+                    log('crud-result', '✅ DELETE operation successful', 'success');
+                    operationsCount++;
+                } else {
+                    log('crud-result', `❌ DELETE failed: ${deleteResponse.status}`, 'error');
+                }
+
+                const success = operationsCount >= 3;
+                log('crud-result', `📊 CRUD Operations: ${operationsCount}/4 successful`, 
+                    success ? 'success' : 'error');
+
+                testResults[testName] = { success, details: `${operationsCount}/4 CRUD operations working` };
+                updateButton('btn-crud', success ? 'success' : 'error');
+
+            } catch (error) {
+                log('crud-result', `❌ CRUD test error: ${error.message}`, 'error');
+                testResults[testName] = { success: false, details: error.message };
+                updateButton('btn-crud', 'error');
+            }
+
+            testsCompleted++;
+            updateProgress();
+        }
+
+        async function runAllTests() {
+            document.getElementById('summary-result').innerHTML = '';
+            log('summary-result', '🚀 Running complete test suite...', 'info');
+            
+            // Reset counters
+            testResults = {};
+            testsCompleted = 0;
+            
+            // Run all tests in sequence
+            await testConnection();
+            await testEquipment();
+            await testNetworks();
+            await testOperations();
+            await testNomenclature();
+            await testUsers();
+            await testFuel();
+            await testCRUD();
+            
+            // Summary
+            const successCount = Object.values(testResults).filter(r => r.success).length;
+            const totalCount = Object.keys(testResults).length;
+            const successRate = (successCount / totalCount) * 100;
+            
+            log('summary-result', '\n🎯 FINAL TEST RESULTS:', 'info');
+            log('summary-result', '================================', 'info');
+            log('summary-result', `📊 Success Rate: ${successRate.toFixed(1)}% (${successCount}/${totalCount})`, 
+                successRate >= 80 ? 'success' : 'warning');
+                
+            Object.entries(testResults).forEach(([test, result]) => {
+                log('summary-result', `${result.success ? '✅' : '❌'} ${test}: ${result.details}`, 
+                    result.success ? 'success' : 'error');
+            });
+            
+            if (successRate >= 90) {
+                log('summary-result', '\n🎉 EXCELLENT! Database is fully operational!', 'success');
+                log('summary-result', '🚀 All sections ready for development!', 'success');
+            } else if (successRate >= 70) {
+                log('summary-result', '\n✅ GOOD! Most systems working properly!', 'success');
+                log('summary-result', '⚠️ Minor issues can be addressed during development', 'warning');
+            } else {
+                log('summary-result', '\n⚠️ Some issues detected - check individual tests', 'warning');
+            }
+        }
+
+        // Auto-start connection test
+        setTimeout(() => {
+            testConnection();
+        }, 1000);
+    </script>
+</body>
+</html>

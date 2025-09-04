@@ -10,8 +10,8 @@ const port = process.env.PORT || 8080;
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Handle SPA routing
-app.get('*', (req, res) => {
+// Handle SPA routing (Express 5): use a regex catch-all
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 

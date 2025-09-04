@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 Восстановить изначальные типы оборудования</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button.danger { background: #dc3545; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 11px; max-height: 400px; }
+        .template-card { border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 5px; background: #f8f9fa; }
+        .current { border-left: 4px solid #ffc107; }
+        .original { border-left: 4px solid #28a745; }
+    </style>
+</head>
+<body>
+    <h1>🔄 Восстановить изначальные типы оборудования</h1>
+    
+    <div class="section warning">
+        <h3>⚠️ Внимание:</h3>
+        <p>В базе данных сейчас находятся НЕ изначальные типы оборудования!</p>
+        <p>Этот инструмент позволит восстановить оригинальные типы.</p>
+    </div>
+    
+    <div class="section">
+        <button onclick="showCurrentTypes()">📋 Показать текущие типы</button>
+        <button onclick="showOriginalTypes()">✅ Показать изначальные типы</button>
+        <button class="danger" onclick="restoreOriginalTypes()">🔄 ВОССТАНОВИТЬ изначальные типы</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        // ИЗНАЧАЛЬНЫЕ типы оборудования из оригинального приложения
+        const originalTemplates = [
+            {
+                name: "Резервуар",
+                technical_code: "EQP_RESERVOIR", 
+                system_type: "fuel_tank",
+                description: "Топливный резервуар для хранения нефтепродуктов",
+                default_params: {
+                    capacityLiters: 50000,
+                    minLevelPercent: 20,
+                    criticalLevelPercent: 10,
+                    material: "steel"
+                },
+                allow_component_template_ids: ["1", "4"]
+            },
+            {
+                name: "Терминал самообслуживания",
+                technical_code: "EQP_TSO",
+                system_type: "self_service_terminal", 
+                description: "Автоматизированный терминал самообслуживания на АЗС",
+                default_params: {
+                    touch_screen: true,
+                    payment_methods: ["card", "cash"]
+                },
+                allow_component_template_ids: ["1", "2", "3", "4", "5"]
+            },
+            {
+                name: "Система управления",
+                technical_code: "EQP_CONTROL_SYSTEM",
+                system_type: "control_system",
+                description: "Центральная система управления АЗС",
+                default_params: {
+                    server_type: "industrial",
+                    redundancy: true
+                },
+                allow_component_template_ids: ["1", "2", "3", "4"]
+            },
+            {
+                name: "Табло цен",
+                technical_code: "EQP_PRICE_BOARD",
+                system_type: "price_display",
+                description: "Электронное табло для отображения цен на топливо",
+                default_params: {
+                    display_type: "LED",
+                    brightness: 5000
+                },
+                allow_component_template_ids: ["1", "2", "4"]
+            },
+            {
+                name: "Видеонаблюдение",
+                technical_code: "EQP_CCTV",
+                system_type: "surveillance",
+                description: "Система видеонаблюдения для безопасности АЗС",
+                default_params: {
+                    resolution: "4K",
+                    night_vision: true,
+                    storage_days: 30
+                },
+                allow_component_template_ids: ["1", "4"]
+            },
+            {
+                name: "Звуковое сопровождение",
+                technical_code: "EQP_AUDIO", 
+                system_type: "audio_system",
+                description: "Система звукового сопровождения и оповещения",
+                default_params: {
+                    speakers: 6,
+                    volume_max: 80,
+                    zones: 3
+                },
+                allow_component_template_ids: ["1", "4"]
+            }
+        ]
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const div = document.createElement('div')
+            div.className = `section ${type}`
+            
+            let content = `<h4>${message}</h4>`
+            if (data) {
+                if (typeof data === 'string') {
+                    content += `<pre>${data}</pre>`
+                } else if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+                    let tableContent = '<div>'
+                    data.forEach(item => {
+                        const cardClass = item._type === 'current' ? 'template-card current' : 
+                                         item._type === 'original' ? 'template-card original' : 'template-card'
+                        tableContent += `
+                        <div class="${cardClass}">
+                            <strong>${item.name}</strong> 
+                            <code>${item.technical_code}</code><br>
+                            <small>${item.description || 'Без описания'}</small><br>
+                            <em>Тип: ${item.system_type}</em>
+                        </div>`
+                    })
+                    tableContent += '</div>'
+                    content += tableContent
+                } else {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                }
+            }
+            div.innerHTML = content
+            
+            resultsDiv.appendChild(div)
+        }
+
+        window.showCurrentTypes = async function() {
+            logResult('📋 Текущие типы в базе данных...', 'info')
+            
+            try {
+                const { data, error } = await supabase
+                    .from('equipment_templates')
+                    .select('*')
+                    .order('name')
+                
+                if (error) {
+                    logResult('❌ Ошибка получения текущих типов', 'error', error)
+                    return
+                }
+                
+                const dataWithType = data.map(d => ({...d, _type: 'current'}))
+                logResult(`⚠️ Найдено ${data?.length || 0} текущих типов (НЕ изначальные!)`, 'warning', dataWithType)
+                
+            } catch (error) {
+                logResult('❌ Критическая ошибка', 'error', error)
+            }
+        }
+
+        window.showOriginalTypes = function() {
+            const dataWithType = originalTemplates.map(d => ({...d, _type: 'original'}))
+            logResult('✅ Изначальные типы оборудования (должны быть в системе):', 'success', dataWithType)
+        }
+
+        window.restoreOriginalTypes = async function() {
+            if (!confirm('⚠️ ВНИМАНИЕ! Это удалит все текущие типы оборудования и заменит их изначальными. Продолжить?')) {
+                return
+            }
+            
+            logResult('🔄 Восстанавливаем изначальные типы оборудования...', 'info')
+            
+            try {
+                // Шаг 1: Удаляем все текущие записи
+                logResult('🗑️ Удаляем текущие записи...', 'warning')
+                const { error: deleteError } = await supabase
+                    .from('equipment_templates')
+                    .delete()
+                    .gte('created_at', '1900-01-01') // Удаляем все записи
+                
+                if (deleteError) {
+                    logResult('❌ Ошибка удаления', 'error', deleteError)
+                    return
+                }
+                
+                // Шаг 2: Добавляем изначальные типы
+                logResult('➕ Добавляем изначальные типы...', 'info')
+                let addedCount = 0
+                const errors = []
+                
+                for (const template of originalTemplates) {
+                    try {
+                        // Создаём копию шаблона без allow_component_template_ids
+                        const { allow_component_template_ids, ...templateWithoutIds } = template
+                        
+                        const { error } = await supabase
+                            .from('equipment_templates')
+                            .insert([templateWithoutIds])
+                        
+                        if (error) {
+                            errors.push(`${template.name}: ${error.message}`)
+                        } else {
+                            addedCount++
+                            logResult(`✅ Добавлен: ${template.name}`, 'success')
+                        }
+                        
+                    } catch (itemError) {
+                        errors.push(`${template.name}: ${itemError.message}`)
+                    }
+                }
+                
+                logResult(`🎉 Восстановлено типов: ${addedCount} из ${originalTemplates.length}`, 'success')
+                
+                if (errors.length > 0) {
+                    logResult(`⚠️ Ошибки (${errors.length}):`, 'warning', errors)
+                }
+                
+                // Показываем итоговое состояние
+                await showCurrentTypes()
+                
+            } catch (error) {
+                logResult('❌ Критическая ошибка восстановления', 'error', error)
+            }
+        }
+
+        // При загрузке показываем оба списка для сравнения
+        document.addEventListener('DOMContentLoaded', async () => {
+            await new Promise(resolve => setTimeout(resolve, 500))
+            await showCurrentTypes()
+            showOriginalTypes()
+        })
+    </script>
+</body>
+</html>

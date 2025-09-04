@@ -28,7 +28,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Users as UsersIcon } from 'lucide-react'
-import { UserService } from '@/services/userService'
+import { UserService } from '@/services/usersSupabaseService'
 import { RoleService } from '@/services/roleService'
 import type { User, Role, UserStatus } from '@/types/auth'
 

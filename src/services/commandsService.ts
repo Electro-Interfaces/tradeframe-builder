@@ -224,9 +224,9 @@ const initialCommands: Command[] = [
 ];
 
 // Загружаем данные из localStorage
-let commandTemplates: CommandTemplate[] = PersistentStorage.load<CommandTemplate>('command_templates', initialCommandTemplates);
-let commands: Command[] = PersistentStorage.load<Command>('commands_v2', initialCommands);
-let executions: CommandExecution[] = PersistentStorage.load<CommandExecution>('command_executions', []);
+const commandTemplates: CommandTemplate[] = PersistentStorage.load<CommandTemplate>('command_templates', initialCommandTemplates);
+const commands: Command[] = PersistentStorage.load<Command>('commands_v2', initialCommands);
+const executions: CommandExecution[] = PersistentStorage.load<CommandExecution>('command_executions', []);
 
 // Функции для сохранения изменений
 const saveCommandTemplates = () => {

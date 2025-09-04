@@ -1,5 +1,7 @@
-// Сервис для работы с типами оборудования
+// Сервис для работы с шаблонами оборудования из Supabase
 // Обеспечивает связь между разделом "Типы оборудования" и страницей "Оборудование"
+
+import { supabase } from './supabaseClientBrowser'
 
 export interface EquipmentType {
   id: string;
@@ -25,268 +27,200 @@ export interface EquipmentTemplate {
   updated_at: string;
 }
 
-// Функции для работы с localStorage
-const EQUIPMENT_TYPES_KEY = 'equipmentTypes';
-
-// Базовые типы оборудования (по умолчанию)
-const defaultEquipmentTypes: EquipmentType[] = [
-  {
-    id: "1",
-    name: "Резервуар",
-    code: "EQP_RESERVOIR",
-    description: "Топливный резервуар для хранения нефтепродуктов",
-    systemType: "fuel_tank",
-    isActive: true,
-    availableCommandIds: ["1", "4"],
-  },
-  {
-    id: "2",
-    name: "Терминал самообслуживания",
-    code: "EQP_TSO",
-    description: "Автоматизированный терминал самообслуживания на АЗС",
-    systemType: "self_service_terminal",
-    isActive: true,
-    availableCommandIds: ["1", "2", "3", "4", "5"],
-  },
-  {
-    id: "3",
-    name: "Система управления",
-    code: "EQP_CONTROL_SYSTEM",
-    description: "Центральная система управления АЗС",
-    systemType: "control_system",
-    isActive: true,
-    availableCommandIds: ["1", "2", "3", "4"],
-  },
-  {
-    id: "4",
-    name: "Табло цен",
-    code: "EQP_PRICE_BOARD",
-    description: "Электронное табло для отображения цен на топливо",
-    systemType: "price_display",
-    isActive: true,
-    availableCommandIds: ["1", "2", "4"],
-  },
-  {
-    id: "5",
-    name: "Видеонаблюдение",
-    code: "EQP_CCTV",
-    description: "Система видеонаблюдения для безопасности АЗС",
-    systemType: "surveillance",
-    isActive: true,
-    availableCommandIds: ["1", "4"],
-  },
-  {
-    id: "6",
-    name: "Звуковое сопровождение",
-    code: "EQP_AUDIO",
-    description: "Система звукового сопровождения и оповещения",
-    systemType: "audio_system",
-    isActive: true,
-    availableCommandIds: ["1", "4"],
-  },
-];
-
-// Функции для работы с данными
-function getEquipmentTypesFromStorage(): EquipmentType[] {
-  try {
-    const stored = localStorage.getItem(EQUIPMENT_TYPES_KEY);
-    if (!stored) {
-      // Если данных нет, сохраняем базовые типы
-      localStorage.setItem(EQUIPMENT_TYPES_KEY, JSON.stringify(defaultEquipmentTypes));
-      return defaultEquipmentTypes;
-    }
-    return JSON.parse(stored);
-  } catch (error) {
-    console.error('Error reading equipment types from storage:', error);
-    return defaultEquipmentTypes;
-  }
-}
-
-function saveEquipmentTypesToStorage(types: EquipmentType[]): void {
-  try {
-    localStorage.setItem(EQUIPMENT_TYPES_KEY, JSON.stringify(types));
-  } catch (error) {
-    console.error('Error saving equipment types to storage:', error);
-  }
-}
-
-// Конвертер из EquipmentType в EquipmentTemplate
-export function convertToEquipmentTemplate(equipmentType: EquipmentType): EquipmentTemplate {
+// Конвертер из EquipmentTemplate (Supabase) в EquipmentType (legacy интерфейс)
+function convertFromEquipmentTemplate(template: EquipmentTemplate): EquipmentType {
   return {
-    id: equipmentType.id,
-    name: equipmentType.name,
-    technical_code: equipmentType.code,
-    system_type: equipmentType.systemType,
-    status: equipmentType.isActive,
-    description: equipmentType.description,
-    default_params: equipmentType.defaultParams || getDefaultParamsBySystemType(equipmentType.systemType),
-    allow_component_template_ids: getComponentTemplateIds(equipmentType.systemType),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    id: template.id,
+    name: template.name,
+    code: template.technical_code,
+    description: template.description,
+    systemType: template.system_type,
+    isActive: template.status,
+    availableCommandIds: template.allow_component_template_ids || [],
+    defaultParams: template.default_params || {}
   };
 }
 
-// Вспомогательная функция для получения параметров по умолчанию по типу системы
-function getDefaultParamsBySystemType(systemType: string): Record<string, any> {
-  switch (systemType) {
-    case 'fuel_tank':
-      return { 
-        // Обязательные поля (соответствуют Tank интерфейсу)
-        id: null,
-        name: "",
-        fuelType: "",
-        currentLevelLiters: 0,
-        
-        // Параметры емкости
-        capacityLiters: 50000,
-        minLevelPercent: 20,
-        criticalLevelPercent: 10,
-        
-        // Физические параметры (синхронизировано с tanksService)
-        temperature: 15.0,
-        waterLevelMm: 0.0, // возвращено обратно на waterLevelMm
-        density: 0.725,
-        
-        // Статус и операционные данные (добавлено из tanksService)
-        status: 'active',
-        location: "Зона не указана",
-        installationDate: new Date().toISOString().split('T')[0],
-        lastCalibration: null,
-        supplier: null,
-        
-        // Поля из UI (добавлено)
-        sensors: [
-          { name: "Уровень", status: "ok" },
-          { name: "Температура", status: "ok" }
-        ],
-        linkedPumps: [],
-        notifications: {
-          enabled: true,
-          drainAlerts: true,
-          levelAlerts: true
-        },
-        
-        // Пороговые значения (синхронизировано с tanksService и UI)
-        thresholds: {
-          criticalTemp: {
-            min: -10,
-            max: 40
-          },
-          maxWaterLevel: 15,
-          notifications: {
-            critical: true,
-            minimum: true,
-            temperature: true,
-            water: true
-          }
-        },
-        
-        // Системные поля
-        trading_point_id: "",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        
-        // Дополнительные технические параметры
-        material: "steel"
-      };
-    case 'self_service_terminal':
-      return { touch_screen: true, payment_methods: ["card", "cash"] };
-    case 'control_system':
-      return { server_type: "industrial", redundancy: true };
-    case 'price_display':
-      return { display_type: "LED", brightness: 5000 };
-    case 'surveillance':
-      return { resolution: "4K", night_vision: true, storage_days: 30 };
-    case 'audio_system':
-      return { speakers: 6, volume_max: 80, zones: 3 };
-    default:
-      return {};
+// Функции для работы с Supabase
+async function getEquipmentTemplatesFromSupabase(): Promise<EquipmentTemplate[]> {
+  try {
+    const { data, error } = await supabase
+      .from('equipment_templates')
+      .select('*')
+      .order('name')
+    
+    if (error) {
+      console.error('Error fetching equipment templates:', error)
+      return []
+    }
+    
+    return data || []
+  } catch (error) {
+    console.error('Error fetching equipment templates from Supabase:', error)
+    return []
   }
 }
 
-// Вспомогательная функция для получения доступных компонентов по типу системы
-function getComponentTemplateIds(systemType: string): string[] {
-  switch (systemType) {
-    case 'fuel_tank':
-      return ["comp_sensor_level_1"];
-    case 'self_service_terminal':
-      return ["comp_printer_1", "comp_pinpad_1"];
-    case 'control_system':
-      return ["comp_server_1", "comp_ups_1"];
-    case 'price_display':
-      return ["comp_led_1"];
-    case 'surveillance':
-      return ["comp_camera_1", "comp_dvr_1"];
-    case 'audio_system':
-      return ["comp_speaker_1", "comp_amplifier_1"];
-    default:
-      return [];
-  }
-}
 
-// API для получения типов оборудования
+// API для получения типов оборудования (теперь из Supabase equipment_templates)
 export const equipmentTypesAPI = {
   async list(): Promise<EquipmentType[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const allTypes = getEquipmentTypesFromStorage();
-    console.log('equipmentTypesAPI.list() - all types from storage:', allTypes);
-    const activeTypes = allTypes.filter(type => type.isActive);
-    console.log('equipmentTypesAPI.list() - active types:', activeTypes);
-    return activeTypes;
+    console.log('🔄 equipmentTypesAPI.list() called - starting...')
+    try {
+      console.log('📡 Calling getEquipmentTemplatesFromSupabase()...')
+      const templates = await getEquipmentTemplatesFromSupabase()
+      console.log('equipmentTypesAPI.list() - templates from Supabase:', templates)
+      
+      // Детальная проверка статусов
+      templates.forEach((template, index) => {
+        console.log(`Template ${index}: name="${template.name}", status="${template.status}", type="${typeof template.status}"`)
+      })
+      
+      // Временно показываем все шаблоны, пока не выясним правильное имя колонки статуса
+      const activeTemplates = templates // templates.filter(template => template.status)
+      console.log('equipmentTypesAPI.list() - active templates (показываем все):', activeTemplates)
+      const convertedTypes = activeTemplates.map(convertFromEquipmentTemplate)
+      console.log('📋 Returning converted types:', convertedTypes)
+      return convertedTypes
+    } catch (error) {
+      console.error('❌ Error in equipmentTypesAPI.list():', error)
+      return []
+    }
   },
 
   async get(id: string): Promise<EquipmentType | null> {
-    await new Promise(resolve => setTimeout(resolve, 50));
-    return getEquipmentTypesFromStorage().find(type => type.id === id) || null;
+    try {
+      const { data, error } = await supabase
+        .from('equipment_templates')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (error || !data) {
+        console.error('Error fetching equipment template by id:', error)
+        return null
+      }
+      
+      return convertFromEquipmentTemplate(data)
+    } catch (error) {
+      console.error('Error in equipmentTypesAPI.get():', error)
+      return null
+    }
   },
 
   async create(type: Omit<EquipmentType, 'id'>): Promise<EquipmentType> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const newType: EquipmentType = {
-      ...type,
-      id: Date.now().toString(),
-    };
-    const types = getEquipmentTypesFromStorage();
-    const updatedTypes = [...types, newType];
-    saveEquipmentTypesToStorage(updatedTypes);
-    return newType;
+    try {
+      const templateData = {
+        name: type.name,
+        technical_code: type.code,
+        system_type: type.systemType,
+        description: type.description || null,
+        status: type.isActive,
+        default_params: type.defaultParams || {},
+        allow_component_template_ids: type.availableCommandIds || []
+      }
+      
+      const { data, error } = await supabase
+        .from('equipment_templates')
+        .insert([templateData])
+        .select()
+        .single()
+      
+      if (error || !data) {
+        console.error('Error creating equipment template:', error)
+        throw new Error('Failed to create equipment template')
+      }
+      
+      return convertFromEquipmentTemplate(data)
+    } catch (error) {
+      console.error('Error in equipmentTypesAPI.create():', error)
+      throw error
+    }
   },
 
   async update(id: string, updates: Partial<EquipmentType>): Promise<EquipmentType | null> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const types = getEquipmentTypesFromStorage();
-    const index = types.findIndex(type => type.id === id);
-    if (index === -1) return null;
-    
-    const updatedType = { ...types[index], ...updates };
-    types[index] = updatedType;
-    saveEquipmentTypesToStorage(types);
-    return updatedType;
+    try {
+      const updateData: any = {
+        updated_at: new Date().toISOString()
+      }
+      
+      if (updates.name !== undefined) updateData.name = updates.name
+      if (updates.code !== undefined) updateData.technical_code = updates.code
+      if (updates.systemType !== undefined) updateData.system_type = updates.systemType
+      if (updates.description !== undefined) updateData.description = updates.description
+      if (updates.isActive !== undefined) updateData.status = updates.isActive
+      if (updates.defaultParams !== undefined) updateData.default_params = updates.defaultParams
+      if (updates.availableCommandIds !== undefined) updateData.allow_component_template_ids = updates.availableCommandIds
+      
+      const { data, error } = await supabase
+        .from('equipment_templates')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error || !data) {
+        console.error('Error updating equipment template:', error)
+        return null
+      }
+      
+      return convertFromEquipmentTemplate(data)
+    } catch (error) {
+      console.error('Error in equipmentTypesAPI.update():', error)
+      return null
+    }
   },
 
   async delete(id: string): Promise<boolean> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const types = getEquipmentTypesFromStorage();
-    const filteredTypes = types.filter(type => type.id !== id);
-    if (filteredTypes.length === types.length) return false;
-    
-    saveEquipmentTypesToStorage(filteredTypes);
-    return true;
+    try {
+      const { error } = await supabase
+        .from('equipment_templates')
+        .delete()
+        .eq('id', id)
+      
+      if (error) {
+        console.error('Error deleting equipment template:', error)
+        return false
+      }
+      
+      return true
+    } catch (error) {
+      console.error('Error in equipmentTypesAPI.delete():', error)
+      return false
+    }
   }
 };
 
-// API для получения шаблонов оборудования на основе типов
+// API для получения шаблонов оборудования напрямую из Supabase
 export const equipmentTemplatesFromTypesAPI = {
   async list(): Promise<EquipmentTemplate[]> {
-    const equipmentTypes = await equipmentTypesAPI.list();
-    console.log('equipmentTemplatesFromTypesAPI.list() - equipment types:', equipmentTypes);
-    const templates = equipmentTypes.map(convertToEquipmentTemplate);
-    console.log('equipmentTemplatesFromTypesAPI.list() - converted templates:', templates);
-    return templates;
+    try {
+      const templates = await getEquipmentTemplatesFromSupabase()
+      console.log('equipmentTemplatesFromTypesAPI.list() - templates from Supabase:', templates)
+      return templates
+    } catch (error) {
+      console.error('Error in equipmentTemplatesFromTypesAPI.list():', error)
+      return []
+    }
   },
 
   async get(id: string): Promise<EquipmentTemplate | null> {
-    const equipmentType = await equipmentTypesAPI.get(id);
-    return equipmentType ? convertToEquipmentTemplate(equipmentType) : null;
+    try {
+      const { data, error } = await supabase
+        .from('equipment_templates')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (error || !data) {
+        console.error('Error fetching equipment template by id:', error)
+        return null
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Error in equipmentTemplatesFromTypesAPI.get():', error)
+      return null
+    }
   }
 };

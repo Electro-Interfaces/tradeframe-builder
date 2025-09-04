@@ -135,7 +135,7 @@ const apiClient = new ApiClient();
 let connectionSettingsData: ConnectionSettings[] = PersistentStorage.load<ConnectionSettings>('connection_settings_v1', []);
 
 // User templates stored in localStorage (system templates come from store)
-let userTemplatesData: NewCommandTemplate[] = PersistentStorage.load<NewCommandTemplate>('new_templates_v1', []);
+const userTemplatesData: NewCommandTemplate[] = PersistentStorage.load<NewCommandTemplate>('new_templates_v1', []);
 
 // Get all templates (system + user)
 const getAllTemplates = (): NewCommandTemplate[] => {

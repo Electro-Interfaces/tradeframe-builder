@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { SupabaseAuthService, type AuthUser } from '../services/supabaseAuthService';
+import { testSupabaseConnection, setUserSession } from '../services/supabaseClientBrowser';
 
 // Типы пользователей и ролей
 export interface User {
-  id: number;
+  id: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  status: 'active' | 'inactive' | 'blocked';
-  lastLogin?: string;
-  roles: UserRole[];
+  name: string;
+  role: string;
+  networkId?: string;
+  tradingPointIds: string[];
   permissions: string[];
+  status?: 'active' | 'inactive' | 'blocked';
+  lastLogin?: string;
 }
 
 export interface UserRole {
@@ -153,26 +155,54 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   // Инициализация пользователя при загрузке приложения
+  // Проверяем, есть ли сохраненная сессия
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         if (typeof window !== 'undefined') {
-          // Симуляция загрузки пользователя из localStorage или API
+          // Проверяем есть ли сохраненная сессия
           const savedUser = localStorage.getItem('currentUser');
-          if (savedUser) {
-            setUser(JSON.parse(savedUser));
+          const authToken = localStorage.getItem('auth_token');
+          
+          if (savedUser && authToken) {
+            try {
+              // Проверяем, что savedUser является валидным JSON
+              if (savedUser.startsWith('[object Object]') || savedUser === '[object Object]') {
+                console.warn('🚫 Corrupted localStorage data detected, clearing...');
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('auth_token');
+                setUser(null);
+                return;
+              }
+              
+              // Восстанавливаем пользователя из сохраненной сессии
+              const parsedUser = JSON.parse(savedUser);
+              console.log('🔄 Restoring user from localStorage:', parsedUser);
+              setUser(parsedUser);
+            } catch (error) {
+              console.error('❌ Error parsing saved user data:', error);
+              console.log('🧹 Clearing corrupted localStorage data');
+              localStorage.removeItem('currentUser');
+              localStorage.removeItem('auth_token');
+              setUser(null);
+            }
           } else {
-            // Устанавливаем мокированного пользователя для демо
-            setUser(MOCK_CURRENT_USER);
-            localStorage.setItem('currentUser', JSON.stringify(MOCK_CURRENT_USER));
+            // Нет сохраненной сессии - пользователь должен войти
+            setUser(null);
+            console.log('❌ No saved session - user needs to login');
           }
         } else {
-          // На сервере устанавливаем мокированного пользователя
-          setUser(MOCK_CURRENT_USER);
+          // На сервере пользователь не авторизован
+          setUser(null);
         }
       } catch (error) {
-        console.error('Ошибка инициализации аутентификации:', error);
-        setUser(MOCK_CURRENT_USER);
+        console.error('Auth initialization error:', error);
+        setUser(null);
+        // Очищаем поврежденные данные
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('auth_token');
+        }
       } finally {
         setLoading(false);
       }
@@ -247,30 +277,78 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Симуляция входа в систему
+  // Вход в систему через Supabase
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
-      // Симуляция API вызова
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('🔐 Starting login process for:', email);
+      const authUser = await SupabaseAuthService.login(email, password);
+      console.log('✅ AuthUser from Supabase:', authUser);
       
-      // В реальном приложении здесь будет API вызов
-      setUser(MOCK_CURRENT_USER);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('currentUser', JSON.stringify(MOCK_CURRENT_USER));
+      // Конвертируем AuthUser в User для контекста
+      const contextUser: User = {
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.name, // Это должно быть "Системный администратор"
+        role: authUser.role,
+        networkId: authUser.networkId,
+        tradingPointIds: authUser.tradingPointIds,
+        permissions: authUser.permissions,
+        status: 'active',
+        lastLogin: new Date().toISOString()
+      };
+
+      console.log('🎯 Context user being set:', contextUser);
+      setUser(contextUser);
+      
+      // Устанавливаем сессию в Supabase клиенте для корректной работы RLS
+      try {
+        await setUserSession(contextUser.email, contextUser.id);
+        console.log('✅ Supabase session established');
+      } catch (error) {
+        console.warn('⚠️ Failed to establish Supabase session:', error);
+        // Не прерываем логин из-за этой ошибки
       }
-    } catch (error) {
-      throw new Error('Неверный логин или пароль');
+      
+      if (typeof window !== 'undefined') {
+        try {
+          const userJson = JSON.stringify(contextUser);
+          console.log('💾 Saving user as JSON:', userJson);
+          localStorage.setItem('currentUser', userJson);
+          localStorage.setItem('auth_token', 'supabase_session');
+          console.log('✅ Successfully saved to localStorage');
+        } catch (error) {
+          console.error('❌ Error saving user to localStorage:', error);
+        }
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Ошибка входа в систему');
     } finally {
       setLoading(false);
     }
   };
 
   // Выход из системы
-  const logout = (): void => {
-    setUser(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('currentUser');
+  const logout = async (): Promise<void> => {
+    try {
+      console.log('🚪 Starting logout process');
+      await SupabaseAuthService.logout();
+      setUser(null);
+      
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('auth_token');
+        console.log('🧹 Cleared localStorage on logout');
+      }
+    } catch (error: any) {
+      console.error('❌ Logout error:', error);
+      // Даже если ошибка, очищаем локальные данные
+      setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('auth_token');
+        console.log('🧹 Force cleared localStorage after error');
+      }
     }
   };
 

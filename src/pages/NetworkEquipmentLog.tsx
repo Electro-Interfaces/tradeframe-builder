@@ -343,7 +343,7 @@ export default function NetworkEquipmentLog() {
           
           // Разные типы команд в зависимости от типа оборудования
           let commandTypes: string[] = [];
-          let commandStatuses: ('completed' | 'failed' | 'pending' | 'executing')[] = ['completed', 'completed', 'completed', 'failed', 'pending'];
+          const commandStatuses: ('completed' | 'failed' | 'pending' | 'executing')[] = ['completed', 'completed', 'completed', 'failed', 'pending'];
           
           if (eq.type.includes('fuel_tank') || eq.name.includes('Резервуар')) {
             commandTypes = [

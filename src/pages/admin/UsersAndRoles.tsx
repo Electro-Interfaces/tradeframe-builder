@@ -17,7 +17,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table'
-import { UserService, type UserStatistics } from '@/services/userService'
+import { UserService, type UserStatistics } from '@/services/usersSupabaseService'
 import { RoleService } from '@/services/roleService'
 import type { User, Role } from '@/types/auth'
 import { RoleFormDialog } from '@/components/admin/roles/RoleFormDialog'

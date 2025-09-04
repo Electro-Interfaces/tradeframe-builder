@@ -89,10 +89,10 @@ const apiClient = new ApiClient();
 const initialTemplates: CommandTemplate[] = commandTemplatesStore.getAll();
 
 // Загружаем пользовательские шаблоны из localStorage
-let userTemplates: CommandTemplate[] = PersistentStorage.load<CommandTemplate>('command_templates_v1', []);
+const userTemplates: CommandTemplate[] = PersistentStorage.load<CommandTemplate>('command_templates_v1', []);
 
 // Объединяем системные и пользовательские шаблоны
-let allTemplates: CommandTemplate[] = [...initialTemplates, ...userTemplates];
+const allTemplates: CommandTemplate[] = [...initialTemplates, ...userTemplates];
 
 // Функция для сохранения пользовательских шаблонов
 const saveUserTemplates = () => {

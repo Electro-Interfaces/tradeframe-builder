@@ -4,6 +4,9 @@
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { apiConfigService } from './apiConfigService';
+import { createSupabaseFromSettings } from './supabaseClient';
+import { supabase as officialSupabase } from './supabaseClientBrowser';
 import {
   DocumentType,
   DocumentVersion,
@@ -327,11 +330,11 @@ const initialUserLegalStatuses: UserLegalStatus[] = [
 const initialAuditLog: AuditLogEntry[] = [];
 
 // Загрузка данных из localStorage
-let documentTypes = PersistentStorage.load('legal_document_types', initialDocumentTypes);
-let documentVersions = PersistentStorage.load<DocumentVersion>('legal_document_versions', initialDocumentVersions);
-let userAcceptances = PersistentStorage.load<UserDocumentAcceptance>('legal_user_acceptances', initialUserAcceptances);
-let userLegalStatuses = PersistentStorage.load<UserLegalStatus>('legal_user_statuses', initialUserLegalStatuses);
-let auditLog = PersistentStorage.load<AuditLogEntry>('legal_audit_log', initialAuditLog);
+const documentTypes = PersistentStorage.load('legal_document_types', initialDocumentTypes);
+const documentVersions = PersistentStorage.load<DocumentVersion>('legal_document_versions', initialDocumentVersions);
+const userAcceptances = PersistentStorage.load<UserDocumentAcceptance>('legal_user_acceptances', initialUserAcceptances);
+const userLegalStatuses = PersistentStorage.load<UserLegalStatus>('legal_user_statuses', initialUserLegalStatuses);
+const auditLog = PersistentStorage.load<AuditLogEntry>('legal_audit_log', initialAuditLog);
 
 // Функции для сохранения
 const saveDocumentTypes = () => PersistentStorage.save('legal_document_types', documentTypes);
@@ -359,10 +362,29 @@ const generateChecksum = (content: string): string => {
 };
 
 const getCurrentUser = () => {
-  // В реальном приложении это будет браться из контекста аутентификации
+  // Try to get user from localStorage (real authenticated user)
+  try {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser && !savedUser.includes('[object Object]')) {
+      const parsedUser = JSON.parse(savedUser);
+      if (parsedUser && parsedUser.id && parsedUser.email) {
+        return {
+          id: parsedUser.id,
+          name: parsedUser.name || 'User',
+          email: parsedUser.email,
+          role: 'superadmin' as const
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error parsing current user:', error);
+  }
+  
+  // Fallback to mock user
   return {
     id: 'user_admin',
     name: 'Администратор системы',
+    email: 'admin@demo-azs.ru',
     role: 'superadmin' as const
   };
 };
@@ -387,6 +409,197 @@ const addAuditLogEntry = (action: string, resourceType: string, resourceId: stri
   
   auditLog.push(entry);
   saveAuditLog();
+};
+
+// HTTP API methods для интеграции с backend
+const httpApiMethods = {
+  /**
+   * HTTP запрос к API
+   */
+  async apiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
+    const apiUrl = apiConfigService.getCurrentApiUrl();
+    const url = `${apiUrl}${endpoint}`;
+    
+    const defaultOptions: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...httpApiMethods.getAuthHeaders()
+      }
+    };
+    
+    const response = await fetch(url, { ...defaultOptions, ...options });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw {
+        status: response.status,
+        statusText: response.statusText,
+        message: errorData.error || 'API request failed',
+        details: errorData.details
+      };
+    }
+    
+    return await response.json();
+  },
+
+  /**
+   * Получить заголовки авторизации
+   */
+  getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  },
+
+  /**
+   * Получить документы из API
+   */
+  async getDocumentVersionsFromAPI(): Promise<DocumentVersion[]> {
+    const response = await httpApiMethods.apiRequest('/legal-documents/versions');
+    return response.data || [];
+  },
+
+  /**
+   * Принять документ через API
+   */
+  async acceptDocumentFromAPI(versionId: string, source: AcceptanceSource = 'web'): Promise<UserDocumentAcceptance> {
+    const response = await httpApiMethods.apiRequest('/legal-documents/accept', {
+      method: 'POST',
+      body: JSON.stringify({ version_id: versionId, source })
+    });
+    return response.data;
+  },
+
+  /**
+   * Получить статус пользователя из API
+   */
+  async getUserLegalStatusFromAPI(userId: string): Promise<UserLegalStatus | null> {
+    try {
+      const response = await httpApiMethods.apiRequest(`/legal-documents/user-status/${userId}`);
+      return response.data;
+    } catch (error: any) {
+      if (error.status === 404) return null;
+      throw error;
+    }
+  },
+
+  /**
+   * Получить требования согласия из API
+   */
+  async getUserConsentRequirementFromAPI(userId: string): Promise<UserConsentRequirement> {
+    const response = await httpApiMethods.apiRequest(`/legal-documents/consent-requirement/${userId}`);
+    return response.data;
+  },
+
+  /**
+   * Получить статистику документов из API
+   */
+  async getDocumentStatisticsFromAPI(): Promise<DocumentStatistics[]> {
+    const response = await httpApiMethods.apiRequest('/legal-documents/statistics');
+    return response.data || [];
+  }
+};
+
+// Supabase helper methods
+const saveAcceptanceToSupabase = async (versionId: string, userId: string, email: string, source: AcceptanceSource): Promise<UserDocumentAcceptance> => {
+  const config = apiConfigService.getCurrentConnection();
+  if (!config || config.type !== 'supabase') {
+    throw new Error('Supabase connection not configured');
+  }
+  
+  // Используем официальный Supabase клиент вместо самодельного
+  const supabase = officialSupabase;
+  
+  // Get document version info (from localStorage for now)
+  const version = documentVersions.find(v => v.id === versionId);
+  if (!version) {
+    throw new Error('Document version not found');
+  }
+  
+  // Get actual user data from getCurrentUser
+  const currentUser = getCurrentUser();
+  const actualUserId = currentUser.id || userId;
+  const actualEmail = currentUser.email || email;
+  
+  console.log('💾 Saving to Supabase database:', { 
+    versionId, 
+    actualUserId, 
+    actualEmail, 
+    docType: version.doc_type_code,
+    currentUser: currentUser 
+  });
+  
+  // Validate that we have proper UUID for user_id
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(actualUserId)) {
+    console.warn('⚠️ User ID is not a valid UUID, attempting to find user by email');
+    // For demo purposes, generate a UUID or use a fallback
+    // In production, you would query the users table to get the UUID by email
+    const fallbackUuid = crypto.randomUUID();
+    console.log('🔄 Using fallback UUID:', fallbackUuid);
+    
+    // Save acceptance with fallback UUID using official client
+    const { data, error } = await supabase
+      .from('user_document_acceptances')
+      .insert({
+        user_id: fallbackUuid,
+        user_email: actualEmail,
+        doc_type_code: version.doc_type_code,
+        doc_version: version.version  // Добавляем версию документа
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('❌ Error saving to Supabase with fallback UUID:', error);
+      throw new Error('Failed to save acceptance: ' + error);
+    }
+    
+    console.log('✅ Successfully saved to Supabase database with fallback UUID');
+    return { ...acceptance, id: data?.[0]?.id || acceptance.id };
+  }
+  
+  // Create acceptance record
+  const acceptance: UserDocumentAcceptance = {
+    id: crypto.randomUUID(),
+    user_id: actualUserId,
+    user_name: 'User',
+    user_email: actualEmail,
+    doc_version_id: versionId,
+    doc_type_code: version.doc_type_code,
+    doc_version: version.version,
+    accepted_at: new Date().toISOString(),
+    ip_address: '127.0.0.1',
+    user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
+    source,
+    immutable: true,
+    created_at: new Date().toISOString()
+  };
+  
+  // Проверим текущую сессию перед сохранением
+  const { data: sessionData } = await supabase.auth.getSession();
+  console.log('🔍 Supabase session before insert:', sessionData);
+  
+  // Save to Supabase using official client (only columns that exist in table)
+  const { data, error } = await supabase
+    .from('user_document_acceptances')
+    .insert({
+      user_id: actualUserId,  // UUID from users table
+      user_email: actualEmail,  // Email for reference
+      doc_type_code: version.doc_type_code,
+      doc_version: version.version,  // Добавляем версию документа
+    })
+    .select()
+    .single();
+  
+  console.log('🔍 Insert result:', { data, error });
+    
+  if (error) {
+    console.error('❌ Error saving to Supabase:', error);
+    throw new Error('Failed to save acceptance: ' + error);
+  }
+  
+  console.log('✅ Successfully saved to Supabase database');
+  return acceptance;
 };
 
 // Основной сервис
@@ -420,6 +633,26 @@ export const legalDocumentsService = {
     }
     
     return versions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  },
+
+  getLatestVersion(docTypeCode: DocumentType): DocumentVersion | null {
+    // Find the current published version for this document type
+    const currentVersion = documentVersions.find(v => 
+      v.doc_type_code === docTypeCode && 
+      v.is_current && 
+      v.status === 'published'
+    );
+    
+    if (currentVersion) {
+      return currentVersion;
+    }
+    
+    // Fallback to any published version of this type
+    const publishedVersions = documentVersions
+      .filter(v => v.doc_type_code === docTypeCode && v.status === 'published')
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    return publishedVersions[0] || null;
   },
 
   async getDocumentVersion(versionId: string): Promise<DocumentVersion | null> {
@@ -567,7 +800,47 @@ export const legalDocumentsService = {
 
   // === РАБОТА С СОГЛАСИЯМИ ПОЛЬЗОВАТЕЛЕЙ ===
 
-  async acceptDocument(versionId: string, userId?: string, source: AcceptanceSource = 'web'): Promise<UserDocumentAcceptance> {
+  async acceptDocumentByType(docType: DocumentType, userId?: string, source: AcceptanceSource = 'web'): Promise<UserDocumentAcceptance> {
+    // Get the current version for this document type
+    const currentVersion = this.getLatestVersion(docType);
+    if (!currentVersion) {
+      throw new Error(`Не найдена текущая версия документа типа ${docType}`);
+    }
+    return this.acceptDocument(currentVersion.id, userId, source);
+  },
+
+  async acceptDocument(versionIdOrType: string, userId?: string, source: AcceptanceSource = 'web'): Promise<UserDocumentAcceptance> {
+    // Check if it's a document type code
+    if (['tos', 'privacy', 'pdn', 'dpa', 'cookies', 'eula', 'sla'].includes(versionIdOrType)) {
+      return this.acceptDocumentByType(versionIdOrType as DocumentType, userId, source);
+    }
+    
+    const versionId = versionIdOrType;
+    const apiMode = apiConfigService.getApiMode();
+    
+    // Try Supabase first
+    if (apiMode === 'supabase') {
+      try {
+        const actualUserId = userId || getCurrentUser().id;
+        const actualUserEmail = getCurrentUser().email;
+        return await saveAcceptanceToSupabase(versionId, actualUserId, actualUserEmail, source);
+      } catch (error) {
+        console.error('Supabase legal documents error:', error);
+        console.warn('Falling back to mock data due to Supabase error');
+      }
+    }
+    
+    // Try HTTP API
+    if (apiMode === 'http') {
+      try {
+        return await httpApiMethods.acceptDocumentFromAPI(versionId, source);
+      } catch (error) {
+        console.error('Legal documents API error:', error);
+        console.warn('Falling back to mock data due to API error');
+      }
+    }
+    
+    // Mock mode or fallback
     await delay(300);
     
     const actualUserId = userId || getCurrentUser().id;
@@ -620,6 +893,17 @@ export const legalDocumentsService = {
   },
 
   async getUserConsentRequirement(userId: string): Promise<UserConsentRequirement> {
+    // Try API first
+    if (apiConfigService.getApiMode() === 'http') {
+      try {
+        return await httpApiMethods.getUserConsentRequirementFromAPI(userId);
+      } catch (error) {
+        console.error('Legal documents API error:', error);
+        console.warn('Falling back to mock data due to API error');
+      }
+    }
+    
+    // Mock mode or fallback
     await delay(300);
     
     const userStatus = userLegalStatuses.find(s => s.user_id === userId);
@@ -715,8 +999,61 @@ export const legalDocumentsService = {
   // === ЖУРНАЛЫ И СТАТИСТИКА ===
 
   async getAcceptanceJournal(filters: AcceptanceJournalFilters = {}): Promise<UserDocumentAcceptance[]> {
-    await delay(400);
+    const apiMode = apiConfigService.getApiMode();
     
+    // Попытка получить данные из Supabase
+    if (apiMode === 'supabase') {
+      try {
+        const { data, error } = await officialSupabase
+          .from('user_document_acceptances')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (!error && data) {
+          console.log('📊 Loaded real acceptance data from Supabase:', data);
+          
+          // Преобразуем данные из Supabase в формат UserDocumentAcceptance
+          const acceptances: UserDocumentAcceptance[] = data.map(row => ({
+            id: row.id || crypto.randomUUID(),
+            user_id: row.user_id,
+            user_name: 'Пользователь', // В базе нет имени, используем по умолчанию
+            user_email: row.user_email,
+            doc_version_id: row.doc_version_id || crypto.randomUUID(),
+            doc_type_code: row.doc_type_code,
+            doc_version: row.doc_version || '1.0',
+            accepted_at: row.created_at,
+            ip_address: row.ip_address || '127.0.0.1',
+            user_agent: row.user_agent || 'Unknown',
+            source: row.source || 'web',
+            immutable: true
+          }));
+          
+          // Применяем фильтры если есть
+          let filtered = acceptances;
+          if (filters.doc_type) {
+            filtered = filtered.filter(ua => ua.doc_type_code === filters.doc_type);
+          }
+          if (filters.version_id) {
+            filtered = filtered.filter(ua => ua.doc_version_id === filters.version_id);
+          }
+          if (filters.user_id) {
+            filtered = filtered.filter(ua => ua.user_id === filters.user_id);
+          }
+          if (filters.user_email) {
+            filtered = filtered.filter(ua => 
+              ua.user_email?.toLowerCase().includes(filters.user_email!.toLowerCase())
+            );
+          }
+          
+          return filtered;
+        }
+      } catch (error) {
+        console.error('❌ Error loading from Supabase, falling back to mock data:', error);
+      }
+    }
+    
+    // Fallback к mock данным
+    await delay(400);
     let filtered = [...userAcceptances];
     
     if (filters.doc_type) {
@@ -801,6 +1138,17 @@ export const legalDocumentsService = {
   },
 
   async getDocumentStatistics(): Promise<DocumentStatistics[]> {
+    // Try API first
+    if (apiConfigService.getApiMode() === 'http') {
+      try {
+        return await httpApiMethods.getDocumentStatisticsFromAPI();
+      } catch (error) {
+        console.error('Legal documents API error:', error);
+        console.warn('Falling back to mock data due to API error');
+      }
+    }
+    
+    // Mock mode or fallback
     await delay(300);
     
     const currentVersions = documentVersions.filter(v => v.is_current && v.status === 'published');

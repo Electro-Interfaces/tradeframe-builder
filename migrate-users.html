@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👥 Миграция пользователей в Supabase</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button.danger { background: #dc3545; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 11px; max-height: 300px; }
+        .user-card { border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 5px; background: #f8f9fa; }
+        .active { border-left: 4px solid #28a745; }
+        .inactive { border-left: 4px solid #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>👥 Миграция пользователей из localStorage в Supabase</h1>
+    
+    <div class="section info">
+        <h3>📋 План миграции users:</h3>
+        <ol>
+            <li>Проверить данные пользователей в localStorage</li>
+            <li>Проверить существующую таблицу users в Supabase</li>
+            <li>Создать SQL для таблицы users (если нужно)</li>
+            <li>Мигрировать пользователей с привязкой к существующим ролям</li>
+        </ol>
+        <p><strong>Особенности:</strong> Users зависят от ролей, которые уже есть в Supabase</p>
+    </div>
+    
+    <div class="section">
+        <button onclick="checkLocalStorageUsers()">🔍 Проверить localStorage</button>
+        <button onclick="checkSupabaseUsers()">🗄️ Проверить Supabase users</button>
+        <button onclick="createUsersTable()">🔧 SQL для таблицы users</button>
+        <button onclick="migrateUsers()" class="success">⬆️ Мигрировать пользователей</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const div = document.createElement('div')
+            div.className = `section ${type}`
+            
+            let content = `<h4>${message}</h4>`
+            if (data) {
+                if (typeof data === 'string') {
+                    content += `<pre>${data}</pre>`
+                } else if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+                    // Специальное отображение для пользователей
+                    let tableContent = '<div>'
+                    data.forEach(item => {
+                        const cardClass = item.status === 'active' || item.isActive ? 'user-card active' : 'user-card inactive'
+                        tableContent += `
+                        <div class="${cardClass}">
+                            <strong>${item.firstName || item.first_name || 'Без имени'} ${item.lastName || item.last_name || ''}</strong> 
+                            <code>${item.email || 'Без email'}</code><br>
+                            <small>Статус: ${item.status || 'не указан'}</small><br>
+                            ${item.phone ? `<small>Телефон: ${item.phone}</small><br>` : ''}
+                            ${item.roles ? `<small>Ролей: ${Array.isArray(item.roles) ? item.roles.length : 0}</small><br>` : ''}
+                            ${item.createdAt ? `<small>Создан: ${new Date(item.createdAt).toLocaleString()}</small>` : ''}
+                            ${item.created_at ? `<small>Создан: ${new Date(item.created_at).toLocaleString()}</small>` : ''}
+                        </div>`
+                    })
+                    tableContent += '</div>'
+                    content += tableContent
+                } else {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                }
+            }
+            div.innerHTML = content
+            
+            resultsDiv.appendChild(div)
+        }
+
+        window.checkLocalStorageUsers = async function() {
+            logResult('🔍 Проверяем пользователей в localStorage...', 'info')
+            
+            try {
+                const usersData = localStorage.getItem('users')
+                
+                if (!usersData) {
+                    logResult('❌ Пользователи не найдены в localStorage', 'error')
+                    
+                    // Проверяем другие возможные ключи
+                    const allKeys = []
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i)
+                        if (key.toLowerCase().includes('user') || key.toLowerCase().includes('auth')) {
+                            allKeys.push(key)
+                        }
+                    }
+                    
+                    if (allKeys.length > 0) {
+                        logResult(`🔍 Найдены ключи с user/auth: ${allKeys.join(', ')}`, 'warning')
+                    }
+                    return
+                }
+                
+                let parsed = JSON.parse(usersData)
+                
+                // Обработка различных форматов данных
+                if (parsed && parsed.data && Array.isArray(parsed.data)) {
+                    parsed = parsed.data
+                }
+                
+                if (!Array.isArray(parsed)) {
+                    logResult('❌ Некорректный формат данных пользователей', 'error', parsed)
+                    return
+                }
+                
+                logResult(`✅ Найдено ${parsed.length} пользователей`, 'success')
+                logResult('📊 Пользователи из localStorage:', 'info', parsed)
+                
+            } catch (error) {
+                logResult('❌ Ошибка при проверке localStorage', 'error', error)
+            }
+        }
+
+        window.checkSupabaseUsers = async function() {
+            logResult('🗄️ Проверяем таблицу users в Supabase...', 'info')
+            
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .order('created_at')
+                
+                if (error) {
+                    logResult('❌ Таблица users не существует или недоступна', 'error', error)
+                    return
+                }
+                
+                logResult(`✅ Таблица users существует. Найдено ${data?.length || 0} записей`, 'success')
+                
+                if (data && data.length > 0) {
+                    logResult('📊 Существующие пользователи в Supabase:', 'info', data)
+                }
+                
+            } catch (error) {
+                logResult('❌ Ошибка проверки таблицы users', 'error', error)
+            }
+        }
+
+        window.createUsersTable = async function() {
+            logResult('🔧 SQL для создания таблицы users...', 'warning')
+            
+            const createTableSQL = `
+-- Создание таблицы users для пользователей системы
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id VARCHAR(50) DEFAULT 'default',
+    email VARCHAR(255) NOT NULL UNIQUE,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'blocked')),
+    last_login TIMESTAMPTZ,
+    password_hash VARCHAR(255), -- для будущего использования
+    external_id VARCHAR(50), -- оригинальный ID из localStorage
+    is_system BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ
+);
+
+-- Создание таблицы user_roles для связи пользователей и ролей
+CREATE TABLE IF NOT EXISTS user_roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    scope_value VARCHAR(100), -- значение области действия (network_id, point_id и т.д.)
+    granted_by UUID REFERENCES users(id),
+    granted_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, role_id, scope_value)
+);
+
+-- Индексы для производительности
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_users_external_id ON users(external_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON user_roles(role_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_active ON user_roles(is_active);
+
+-- Комментарии к таблицам
+COMMENT ON TABLE users IS 'Пользователи системы';
+COMMENT ON COLUMN users.email IS 'Email пользователя (логин)';
+COMMENT ON COLUMN users.external_id IS 'Оригинальный ID из localStorage';
+COMMENT ON COLUMN users.tenant_id IS 'ID тенанта для мультитенантности';
+
+COMMENT ON TABLE user_roles IS 'Связь пользователей и ролей';
+COMMENT ON COLUMN user_roles.scope_value IS 'Значение области действия роли';
+COMMENT ON COLUMN user_roles.granted_by IS 'Кто назначил роль';
+
+-- Отключение RLS для простоты
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_roles DISABLE ROW LEVEL SECURITY;
+            `
+            
+            logResult('📝 SQL для создания таблиц users и user_roles:', 'info', createTableSQL)
+            logResult('⚠️ Выполните этот SQL в Supabase SQL Editor для создания таблиц', 'warning')
+        }
+
+        window.migrateUsers = async function() {
+            logResult('⬆️ Начинаем миграцию пользователей...', 'info')
+            
+            try {
+                // 1. Получаем данные из localStorage
+                const usersData = localStorage.getItem('users')
+                if (!usersData) {
+                    logResult('❌ Пользователи не найдены в localStorage', 'error')
+                    return
+                }
+                
+                let localStorageData = JSON.parse(usersData)
+                if (localStorageData && localStorageData.data && Array.isArray(localStorageData.data)) {
+                    localStorageData = localStorageData.data
+                }
+                
+                if (!Array.isArray(localStorageData)) {
+                    logResult('❌ Некорректный формат данных', 'error', localStorageData)
+                    return
+                }
+                
+                logResult(`📦 Подготовка к миграции ${localStorageData.length} пользователей...`, 'info')
+                
+                // 2. Получаем роли из Supabase для сопоставления
+                const { data: rolesData, error: rolesError } = await supabase
+                    .from('roles')
+                    .select('id, code')
+                
+                if (rolesError) {
+                    logResult('❌ Ошибка получения ролей из Supabase', 'error', rolesError)
+                    return
+                }
+                
+                const rolesByCode = {}
+                rolesData.forEach(role => {
+                    rolesByCode[role.code] = role.id
+                })
+                
+                logResult(`📋 Найдено ролей в Supabase: ${rolesData.length}`, 'info')
+                
+                let migratedCount = 0
+                const errors = []
+                
+                // 3. Мигрируем каждого пользователя
+                for (const user of localStorageData) {
+                    try {
+                        // Подготавливаем данные пользователя
+                        const userRecord = {
+                            email: user.email,
+                            first_name: user.firstName,
+                            last_name: user.lastName,
+                            phone: user.phone || null,
+                            status: user.status,
+                            last_login: user.lastLogin ? new Date(user.lastLogin).toISOString() : null,
+                            external_id: user.id?.toString(), // Сохраняем оригинальный ID
+                            tenant_id: 'default'
+                        }
+                        
+                        // Вставляем пользователя
+                        const { data: insertedUser, error: userError } = await supabase
+                            .from('users')
+                            .insert([userRecord])
+                            .select()
+                            .single()
+                        
+                        if (userError) {
+                            errors.push(`Ошибка вставки пользователя ${user.email}: ${userError.message}`)
+                            continue
+                        }
+                        
+                        logResult(`✅ Создан пользователь: ${user.firstName} ${user.lastName} (${user.email})`, 'success')
+                        
+                        // 4. Назначаем роли пользователю
+                        if (user.roles && Array.isArray(user.roles)) {
+                            for (const userRole of user.roles) {
+                                const supabaseRoleId = rolesByCode[userRole.roleCode]
+                                if (supabaseRoleId) {
+                                    const userRoleRecord = {
+                                        user_id: insertedUser.id,
+                                        role_id: supabaseRoleId,
+                                        scope_value: userRole.scopeValue || null,
+                                        is_active: true
+                                    }
+                                    
+                                    const { error: roleError } = await supabase
+                                        .from('user_roles')
+                                        .insert([userRoleRecord])
+                                    
+                                    if (roleError) {
+                                        errors.push(`Ошибка назначения роли ${userRole.roleCode} пользователю ${user.email}: ${roleError.message}`)
+                                    } else {
+                                        logResult(`   ➤ Назначена роль: ${userRole.roleName}`, 'info')
+                                    }
+                                } else {
+                                    errors.push(`Роль с кодом ${userRole.roleCode} не найдена в Supabase`)
+                                }
+                            }
+                        }
+                        
+                        migratedCount++
+                        
+                    } catch (itemError) {
+                        errors.push(`Ошибка миграции пользователя ${user.email}: ${itemError.message}`)
+                    }
+                }
+                
+                // Итоговый отчет
+                logResult(`🎉 Миграция завершена! Мигрировано пользователей: ${migratedCount}`, 'success')
+                
+                if (errors.length > 0) {
+                    logResult(`⚠️ Ошибки при миграции (${errors.length}):`, 'warning', errors)
+                }
+                
+                // Проверяем результат
+                const { data: finalData, error: checkError } = await supabase
+                    .from('users')
+                    .select(`
+                        *,
+                        user_roles (
+                            role_id,
+                            scope_value,
+                            roles (
+                                name,
+                                code
+                            )
+                        )
+                    `)
+                    .order('created_at')
+                
+                if (!checkError) {
+                    logResult(`📊 Итоговое состояние таблицы users (${finalData.length} записей):`, 'info', finalData)
+                }
+                
+            } catch (error) {
+                logResult('❌ Критическая ошибка миграции', 'error', error)
+            }
+        }
+
+        // Автоматическая проверка при загрузке
+        document.addEventListener('DOMContentLoaded', async () => {
+            await new Promise(resolve => setTimeout(resolve, 500))
+            await checkLocalStorageUsers()
+        })
+    </script>
+</body>
+</html>

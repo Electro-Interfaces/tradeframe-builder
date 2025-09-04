@@ -291,7 +291,7 @@ class PersistentStorageClass {
   static getStorageSize(): { used: number; percentage: number } {
     let totalSize = 0;
     
-    for (let key in localStorage) {
+    for (const key in localStorage) {
       if (key.startsWith(this.PREFIX)) {
         totalSize += localStorage[key].length + key.length;
       }

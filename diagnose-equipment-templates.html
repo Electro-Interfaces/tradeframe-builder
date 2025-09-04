@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностика таблицы equipment_templates</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        .result {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .success { border-left-color: #48bb78; background: #f0fff4; }
+        .error { border-left-color: #f56565; background: #fff5f5; }
+        .warning { border-left-color: #ed8936; background: #fffaf0; }
+        .info { border-left-color: #4299e1; background: #ebf8ff; }
+        pre { 
+            background: #2d3748; 
+            color: #e2e8f0; 
+            padding: 15px; 
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .primary-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .success-btn { background: linear-gradient(135deg, #48bb78, #38a169); color: white; }
+        .danger-btn { background: linear-gradient(135deg, #f56565, #e53e3e); color: white; }
+        .info-btn { background: linear-gradient(135deg, #4299e1, #3182ce); color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Диагностика таблицы equipment_templates</h1>
+        
+        <div class="actions">
+            <button onclick="testConnection()" class="primary-btn">🔌 Проверить подключение</button>
+            <button onclick="checkTableExists()" class="info-btn">📋 Проверить существование таблицы</button>
+            <button onclick="checkColumns()" class="info-btn">📊 Проверить колонки</button>
+            <button onclick="testSelect()" class="primary-btn">🔍 Тестовый SELECT</button>
+            <button onclick="testInsert()" class="success-btn">➕ Тестовый INSERT</button>
+            <button onclick="addColumn()" class="danger-btn">🔧 Добавить колонку allow_component_template_ids</button>
+            <button onclick="clearResults()" class="danger-btn">🗑️ Очистить результаты</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const resultDiv = document.createElement('div')
+            resultDiv.className = `result ${type}`
+            
+            const timestamp = new Date().toLocaleTimeString()
+            let content = `<strong>[${timestamp}] ${message}</strong>`
+            
+            if (data !== null) {
+                if (typeof data === 'object') {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                } else {
+                    content += `<pre>${data}</pre>`
+                }
+            }
+            
+            resultDiv.innerHTML = content
+            resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild)
+        }
+        
+        window.clearResults = function() {
+            document.getElementById('results').innerHTML = ''
+            logResult('✨ Результаты очищены', 'info')
+        }
+        
+        window.testConnection = async function() {
+            logResult('🔌 Проверяем подключение к Supabase...', 'info')
+            
+            try {
+                // Простой тест - получить список таблиц
+                const { data, error } = await supabase
+                    .from('equipment_templates')
+                    .select('count', { count: 'exact', head: true })
+                
+                if (error) {
+                    logResult('⚠️ Ошибка при подключении', 'error', error)
+                } else {
+                    logResult('✅ Подключение успешно установлено!', 'success')
+                }
+            } catch (err) {
+                logResult('❌ Критическая ошибка подключения', 'error', err)
+            }
+        }
+        
+        window.checkTableExists = async function() {
+            logResult('📋 Проверяем существование таблицы equipment_templates...', 'info')
+            
+            try {
+                // Пытаемся получить количество записей
+                const { count, error } = await supabase
+                    .from('equipment_templates')
+                    .select('*', { count: 'exact', head: true })
+                
+                if (error) {
+                    if (error.message.includes('relation') && error.message.includes('does not exist')) {
+                        logResult('❌ Таблица equipment_templates НЕ существует!', 'error')
+                    } else {
+                        logResult('⚠️ Ошибка при проверке таблицы', 'warning', error)
+                    }
+                } else {
+                    logResult(`✅ Таблица существует! Записей в таблице: ${count || 0}`, 'success')
+                }
+            } catch (err) {
+                logResult('❌ Критическая ошибка при проверке таблицы', 'error', err)
+            }
+        }
+        
+        window.checkColumns = async function() {
+            logResult('📊 Получаем список колонок...', 'info')
+            
+            try {
+                // Делаем запрос одной записи чтобы увидеть структуру
+                const { data, error } = await supabase
+                    .from('equipment_templates')
+                    .select('*')
+                    .limit(1)
+                
+                if (error) {
+                    logResult('⚠️ Ошибка при получении колонок', 'warning', error)
+                    
+                    // Пробуем альтернативный метод
+                    logResult('🔄 Пробуем альтернативный метод...', 'info')
+                    
+                    // Попытка получить пустой результат для анализа структуры
+                    const { data: emptyData, error: emptyError } = await supabase
+                        .from('equipment_templates')
+                        .select('*')
+                        .eq('id', '00000000-0000-0000-0000-000000000000')
+                    
+                    if (!emptyError) {
+                        const columns = emptyData && emptyData.length > 0 
+                            ? Object.keys(emptyData[0])
+                            : []
+                        
+                        if (columns.length === 0) {
+                            logResult('⚠️ Не удалось определить колонки (таблица пуста или нет доступа)', 'warning')
+                        } else {
+                            logResult('✅ Колонки таблицы:', 'success', columns)
+                        }
+                    } else {
+                        logResult('❌ Не удалось получить информацию о колонках', 'error', emptyError)
+                    }
+                } else {
+                    const columns = data && data.length > 0 
+                        ? Object.keys(data[0])
+                        : []
+                    
+                    if (columns.length === 0) {
+                        logResult('ℹ️ Таблица пуста, колонки неизвестны', 'info')
+                        
+                        // Пытаемся получить схему другим способом
+                        logResult('🔄 Пытаемся определить схему...', 'info')
+                        
+                        const testData = {
+                            name: 'Test',
+                            technical_code: 'TEST',
+                            system_type: 'test',
+                            description: 'Test'
+                        }
+                        
+                        const { error: insertError } = await supabase
+                            .from('equipment_templates')
+                            .insert([testData])
+                            .select()
+                        
+                        if (insertError) {
+                            const errorMsg = insertError.message
+                            logResult('Анализ ошибки вставки для определения схемы:', 'info', errorMsg)
+                            
+                            // Пытаемся извлечь информацию о колонках из ошибки
+                            if (errorMsg.includes('column')) {
+                                logResult('💡 Подсказка из ошибки:', 'info', errorMsg)
+                            }
+                        }
+                    } else {
+                        logResult('✅ Найдены колонки:', 'success', columns)
+                        
+                        // Проверяем наличие нужной колонки
+                        const hasAllowColumn = columns.includes('allow_component_template_ids')
+                        if (hasAllowColumn) {
+                            logResult('✅ Колонка allow_component_template_ids СУЩЕСТВУЕТ', 'success')
+                        } else {
+                            logResult('⚠️ Колонка allow_component_template_ids ОТСУТСТВУЕТ', 'warning')
+                        }
+                    }
+                }
+            } catch (err) {
+                logResult('❌ Критическая ошибка при проверке колонок', 'error', err)
+            }
+        }
+        
+        window.testSelect = async function() {
+            logResult('🔍 Выполняем тестовый SELECT...', 'info')
+            
+            try {
+                const { data, error } = await supabase
+                    .from('equipment_templates')
+                    .select('*')
+                    .limit(5)
+                
+                if (error) {
+                    logResult('❌ Ошибка SELECT', 'error', error)
+                } else {
+                    logResult(`✅ SELECT успешен! Получено записей: ${data.length}`, 'success')
+                    if (data.length > 0) {
+                        logResult('Первая запись:', 'info', data[0])
+                    }
+                }
+            } catch (err) {
+                logResult('❌ Критическая ошибка SELECT', 'error', err)
+            }
+        }
+        
+        window.testInsert = async function() {
+            logResult('➕ Пытаемся вставить тестовую запись...', 'info')
+            
+            const testRecord = {
+                name: `Тест ${Date.now()}`,
+                technical_code: `TEST_${Date.now()}`,
+                system_type: 'test_equipment',
+                description: 'Тестовая запись для проверки'
+            }
+            
+            logResult('Данные для вставки:', 'info', testRecord)
+            
+            try {
+                const { data, error } = await supabase
+                    .from('equipment_templates')
+                    .insert([testRecord])
+                    .select()
+                
+                if (error) {
+                    logResult('❌ Ошибка INSERT', 'error', error)
+                    
+                    // Анализируем ошибку
+                    if (error.message.includes('column')) {
+                        logResult('💡 Проблема с колонками. Проверьте структуру таблицы.', 'warning')
+                    } else if (error.message.includes('permission') || error.message.includes('policy')) {
+                        logResult('🔐 Проблема с правами доступа (RLS политики)', 'warning')
+                    }
+                } else {
+                    logResult('✅ INSERT успешен!', 'success', data)
+                    
+                    // Удаляем тестовую запись
+                    if (data && data[0]) {
+                        const { error: deleteError } = await supabase
+                            .from('equipment_templates')
+                            .delete()
+                            .eq('id', data[0].id)
+                        
+                        if (deleteError) {
+                            logResult('⚠️ Не удалось удалить тестовую запись', 'warning', deleteError)
+                        } else {
+                            logResult('🗑️ Тестовая запись удалена', 'info')
+                        }
+                    }
+                }
+            } catch (err) {
+                logResult('❌ Критическая ошибка INSERT', 'error', err)
+            }
+        }
+        
+        window.addColumn = async function() {
+            logResult('🔧 Генерируем SQL для добавления колонки...', 'warning')
+            
+            const sql = `
+-- Добавляем колонку allow_component_template_ids если её нет
+ALTER TABLE equipment_templates 
+ADD COLUMN IF NOT EXISTS allow_component_template_ids uuid[] DEFAULT NULL;
+
+-- Проверяем результат
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns  
+WHERE table_name = 'equipment_templates'
+AND column_name = 'allow_component_template_ids';`
+            
+            logResult('📝 SQL запрос для выполнения в Supabase Dashboard:', 'info', sql)
+            
+            // Создаём ссылку для быстрого перехода
+            const dashboardUrl = `https://supabase.com/dashboard/project/tohtryzyffcebtyvkxwh/sql/new`
+            const linkHtml = `<a href="${dashboardUrl}" target="_blank" style="color: #667eea; font-weight: bold;">🚀 Открыть SQL редактор в Supabase</a>`
+            
+            const instructionsDiv = document.createElement('div')
+            instructionsDiv.className = 'result warning'
+            instructionsDiv.innerHTML = `
+                <strong>📋 Инструкции:</strong><br>
+                1. ${linkHtml}<br>
+                2. Скопируйте SQL запрос выше<br>
+                3. Вставьте и выполните его<br>
+                4. Вернитесь сюда и нажмите "Проверить колонки" для подтверждения
+            `
+            document.getElementById('results').insertBefore(instructionsDiv, document.getElementById('results').firstChild)
+        }
+        
+        // Автозапуск базовых проверок
+        window.addEventListener('load', async () => {
+            await testConnection()
+            await checkTableExists()
+            await checkColumns()
+        })
+    </script>
+</body>
+</html>

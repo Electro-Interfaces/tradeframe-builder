@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка структуры equipment_templates</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        .result {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .success { border-left-color: #48bb78; background: #f0fff4; }
+        .error { border-left-color: #f56565; background: #fff5f5; }
+        .warning { border-left-color: #ed8936; background: #fffaf0; }
+        .info { border-left-color: #4299e1; background: #ebf8ff; }
+        pre { 
+            background: #2d3748; 
+            color: #e2e8f0; 
+            padding: 15px; 
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .check-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .fix-btn { background: linear-gradient(135deg, #48bb78, #38a169); color: white; }
+        .column-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .column-item {
+            background: #f7fafc;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+        .column-name {
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .column-type {
+            color: #718096;
+            font-size: 14px;
+        }
+        .missing {
+            background: #fff5f5;
+            border-color: #feb2b2;
+        }
+        .found {
+            background: #f0fff4;
+            border-color: #9ae6b4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Проверка структуры таблицы equipment_templates</h1>
+        
+        <div class="actions">
+            <button onclick="checkTableStructure()" class="check-btn">📋 Проверить структуру</button>
+            <button onclick="addMissingColumn()" class="fix-btn">🔧 Добавить колонку allow_component_template_ids</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk4MDIxNTEsImV4cCI6MjA0NTM3ODE1MX0.w1ebaJ_CoO8xNH0nVKDGFdNl0TDN51eCMQZsT4Y2D7Q'
+
+        async function initSupabase() {
+            if (typeof window.supabase === 'undefined') {
+                const script = document.createElement('script')
+                script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
+                document.head.appendChild(script)
+                
+                return new Promise((resolve) => {
+                    script.onload = () => {
+                        window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+                        resolve()
+                    }
+                })
+            }
+            window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        }
+
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const resultDiv = document.createElement('div')
+            resultDiv.className = `result ${type}`
+            
+            let content = `<strong>${message}</strong>`
+            if (data) {
+                if (typeof data === 'object') {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                } else {
+                    content += `<pre>${data}</pre>`
+                }
+            }
+            
+            resultDiv.innerHTML = content
+            resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild)
+        }
+
+        async function checkTableStructure() {
+            await initSupabase()
+            const supabase = window.supabaseClient
+            
+            logResult('🔍 Проверяем структуру таблицы equipment_templates...', 'info')
+            
+            try {
+                // Получаем информацию о колонках таблицы
+                const { data: columns, error } = await supabase
+                    .rpc('get_table_columns', { table_name: 'equipment_templates' })
+                    .catch(() => {
+                        // Если функция не существует, используем альтернативный метод
+                        return supabase
+                            .from('equipment_templates')
+                            .select('*')
+                            .limit(0)
+                    })
+                
+                if (error) {
+                    // Альтернативный способ - делаем запрос и смотрим на структуру
+                    const { data: sampleData, error: sampleError } = await supabase
+                        .from('equipment_templates')
+                        .select('*')
+                        .limit(1)
+                    
+                    if (sampleError) {
+                        logResult('❌ Ошибка получения структуры', 'error', sampleError)
+                        return
+                    }
+                    
+                    const columnNames = sampleData.length > 0 
+                        ? Object.keys(sampleData[0])
+                        : []
+                    
+                    logResult(`📋 Найдено колонок: ${columnNames.length}`, 'info')
+                    
+                    // Проверяем наличие нужных колонок
+                    const requiredColumns = [
+                        'id',
+                        'name',
+                        'type',
+                        'allow_custom_component',
+                        'allow_component_template_ids',
+                        'created_at',
+                        'updated_at'
+                    ]
+                    
+                    let html = '<div class="column-list">'
+                    for (const col of requiredColumns) {
+                        const found = columnNames.includes(col)
+                        html += `
+                            <div class="column-item ${found ? 'found' : 'missing'}">
+                                <div class="column-name">${found ? '✅' : '❌'} ${col}</div>
+                            </div>
+                        `
+                    }
+                    html += '</div>'
+                    
+                    const missingColumns = requiredColumns.filter(col => !columnNames.includes(col))
+                    
+                    if (missingColumns.length > 0) {
+                        logResult(`⚠️ Отсутствуют колонки: ${missingColumns.join(', ')}`, 'warning')
+                        const resultDiv = document.createElement('div')
+                        resultDiv.innerHTML = html
+                        document.getElementById('results').insertBefore(resultDiv, document.getElementById('results').firstChild.nextSibling)
+                    } else {
+                        logResult('✅ Все необходимые колонки присутствуют', 'success')
+                    }
+                    
+                    if (columnNames.length > 0) {
+                        logResult('Существующие колонки:', 'info', columnNames)
+                    }
+                } else {
+                    logResult('Информация о колонках:', 'info', columns)
+                }
+                
+            } catch (error) {
+                logResult('❌ Ошибка проверки структуры', 'error', error)
+            }
+        }
+        
+        async function addMissingColumn() {
+            await initSupabase()
+            const supabase = window.supabaseClient
+            
+            logResult('🔧 Добавляем колонку allow_component_template_ids...', 'warning')
+            
+            // SQL запрос для добавления колонки
+            const sql = `
+                ALTER TABLE equipment_templates 
+                ADD COLUMN IF NOT EXISTS allow_component_template_ids uuid[] DEFAULT NULL;
+            `
+            
+            logResult('📝 SQL запрос:', 'info', sql)
+            
+            // Создаем HTML файл с SQL для выполнения через Supabase Dashboard
+            const sqlInstructions = `
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <h3>📋 Инструкция по добавлению колонки:</h3>
+                    <ol>
+                        <li>Откройте <a href="https://supabase.com/dashboard/project/tohtryzyffcebtyvkxwh/sql/new" target="_blank">SQL редактор в Supabase</a></li>
+                        <li>Скопируйте и выполните следующий SQL запрос:</li>
+                    </ol>
+                    <pre style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 5px;">${sql}</pre>
+                    <p>После выполнения запроса нажмите кнопку "Проверить структуру" для подтверждения изменений.</p>
+                </div>
+            `
+            
+            const resultDiv = document.createElement('div')
+            resultDiv.innerHTML = sqlInstructions
+            document.getElementById('results').insertBefore(resultDiv, document.getElementById('results').firstChild)
+            
+            logResult('ℹ️ SQL запрос подготовлен. Следуйте инструкциям выше для выполнения.', 'info')
+        }
+        
+        // Автоматически проверяем структуру при загрузке
+        window.addEventListener('load', () => {
+            checkTableStructure()
+        })
+    </script>
+</body>
+</html>

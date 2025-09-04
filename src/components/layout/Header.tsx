@@ -11,6 +11,7 @@ import {
 import { Settings, LogOut, User, Menu, Bell, MessageCircle } from "lucide-react";
 import { NetworkSelect } from "@/components/selects/NetworkSelect";
 import { PointSelect } from "@/components/selects/PointSelect";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   selectedNetwork: string;
@@ -30,6 +31,32 @@ export function Header({
   isMobile = false
 }: HeaderProps) {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+  
+  // Получаем инициалы и имя пользователя
+  const getUserInitials = () => {
+    if (!user?.name) return 'У';
+    const names = user.name.split(' ');
+    if (names.length >= 2) {
+      return names[0][0] + names[1][0];
+    }
+    return user.name[0];
+  };
+  
+  const getUserDisplayName = () => {
+    if (!user?.name) return 'Пользователь';
+    const names = user.name.split(' ');
+    return names[0] || user.name; // Первое имя
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-header bg-background/95 backdrop-blur-sm border-b border-border shadow-soft">
@@ -100,28 +127,53 @@ export function Header({
           {/* User Profile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-1 px-1 md:px-3 transition-colors duration-200 h-8 md:h-auto">
-                <Avatar className="w-7 h-7 md:w-8 md:h-8 rounded-full">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    А
+              <Button 
+                variant="ghost" 
+                className="flex items-center gap-2 px-2 md:px-3 transition-all duration-200 h-9 md:h-10 hover:bg-accent/50 rounded-lg border border-transparent hover:border-border"
+              >
+                <Avatar className="w-8 h-8 md:w-9 md:h-9 rounded-lg shadow-sm ring-2 ring-background">
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-sm font-semibold rounded-lg">
+                    {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden lg:block font-medium text-sm">Андрей</span>
+                <div className="hidden lg:flex flex-col items-start">
+                  <span className="font-medium text-sm text-foreground leading-none">{getUserDisplayName()}</span>
+                  <span className="text-xs text-muted-foreground mt-1">Администратор</span>
+                </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => navigate('/profile')}>
-                <User className="mr-2 h-4 w-4" />
-                Профиль
+            <DropdownMenuContent align="end" className="w-56 p-2 shadow-lg border border-border/50">
+              <div className="flex items-center gap-3 p-3 mb-2 bg-muted/30 rounded-lg">
+                <Avatar className="w-10 h-10 rounded-lg">
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold rounded-lg">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm">{getUserDisplayName()}</span>
+                  <span className="text-xs text-muted-foreground">{user?.email || 'admin@tradecontrol.ru'}</span>
+                </div>
+              </div>
+              <DropdownMenuItem 
+                onClick={() => navigate('/profile')}
+                className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer"
+              >
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span>Профиль</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                Настройки
+              <DropdownMenuItem 
+                className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer"
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                <span>Настройки</span>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Выйти
+              <DropdownMenuSeparator className="my-2" />
+              <DropdownMenuItem 
+                onClick={handleLogout} 
+                className="flex items-center gap-3 p-2 rounded-md hover:bg-destructive/10 cursor-pointer text-destructive focus:text-destructive"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Выйти</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple DB Check</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #fff; 
+            padding: 20px; 
+            max-width: 800px; 
+            margin: 0 auto;
+        }
+        .container { 
+            background: #2d3748; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+        }
+        button { 
+            background: #4299e1; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 5px;
+        }
+        button:hover { background: #3182ce; }
+        .log { 
+            background: #000; 
+            padding: 10px; 
+            border-radius: 5px; 
+            font-family: monospace; 
+            white-space: pre-wrap; 
+            margin-top: 10px;
+        }
+        .success { color: #48bb78; }
+        .error { color: #f56565; }
+        .warning { color: #ed8936; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Simple Equipment DB Check</h1>
+    
+    <div class="container">
+        <h3>Option 1: Check via SQL Query (Direct)</h3>
+        <p>Используем прямой SQL запрос для проверки таблиц</p>
+        <button onclick="checkDirectSQL()">Check Tables (SQL)</button>
+        <div id="sql-result" class="log"></div>
+    </div>
+
+    <div class="container">
+        <h3>Option 2: Manual Verification</h3>
+        <p>Откройте Supabase Dashboard → SQL Editor и выполните:</p>
+        <div class="log">
+-- Проверить существующие таблицы
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name LIKE '%equipment%'
+ORDER BY table_name;
+
+-- Если equipment_templates существует, проверить колонки
+SELECT column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name = 'equipment_templates' 
+AND table_schema = 'public'
+ORDER BY ordinal_position;
+
+-- Если есть данные, показать первые записи
+SELECT id, name, system_type, status 
+FROM equipment_templates 
+LIMIT 5;
+        </div>
+        <button onclick="copySQL()">Copy SQL to Clipboard</button>
+    </div>
+
+    <div class="container">
+        <h3>Option 3: Alternative API Check</h3>
+        <button onclick="checkAlternativeAPI()">Try Alternative Access</button>
+        <div id="alt-result" class="log"></div>
+    </div>
+
+    <div class="container">
+        <h3>📋 Manual Results Input</h3>
+        <p>Если автоматические проверки не работают, введите результаты вручную:</p>
+        <textarea id="manual-results" rows="10" cols="80" placeholder="Вставьте сюда результаты SQL запросов из Supabase Dashboard..."></textarea><br>
+        <button onclick="analyzeManualResults()">Analyze Manual Results</button>
+        <div id="manual-analysis" class="log"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+        
+        // Try multiple API keys
+        const API_KEYS = [
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMwNjAzNDcsImV4cCI6MjA0ODYzNjM0N30.0R0hKfITlTOlQHYgP4JVfFQi_7xz3kW5nC7VZq6K3k0',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczMzA2MDM0NywiZXhwIjoyMDQ4NjM2MzQ3fQ.kHps6mJ80OEuKrOH6T8_TK8VpnzKpPKnUz4uTXe_Fh0'
+        ];
+
+        function log(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : '';
+            container.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+        }
+
+        async function checkDirectSQL() {
+            const container = document.getElementById('sql-result');
+            container.innerHTML = '';
+            
+            log('sql-result', 'Пробуем прямой SQL запрос...', 'info');
+
+            const queries = [
+                {
+                    name: 'Check Tables',
+                    sql: `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE '%equipment%' ORDER BY table_name`
+                },
+                {
+                    name: 'Check equipment_templates structure',
+                    sql: `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'equipment_templates' AND table_schema = 'public' ORDER BY ordinal_position`
+                }
+            ];
+
+            for (const apiKey of API_KEYS) {
+                log('sql-result', `Trying with API key: ${apiKey.substring(0, 20)}...`, 'info');
+                
+                try {
+                    for (const query of queries) {
+                        const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+                            method: 'POST',
+                            headers: {
+                                'apikey': apiKey,
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ sql: query.sql })
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            log('sql-result', `✅ ${query.name}: Success`, 'success');
+                            log('sql-result', JSON.stringify(result, null, 2), 'info');
+                            return; // Success, stop trying
+                        } else {
+                            log('sql-result', `❌ ${query.name}: ${response.status} ${response.statusText}`, 'error');
+                        }
+                    }
+                } catch (error) {
+                    log('sql-result', `❌ Error with this API key: ${error.message}`, 'error');
+                }
+            }
+            
+            log('sql-result', '❌ All API keys failed. Try manual verification.', 'error');
+        }
+
+        async function checkAlternativeAPI() {
+            const container = document.getElementById('alt-result');
+            container.innerHTML = '';
+            
+            log('alt-result', 'Пробуем альтернативные способы доступа...', 'info');
+
+            // Try different endpoints
+            const endpoints = [
+                '/rest/v1/',
+                '/rest/v1/equipment_templates',
+                '/rest/v1/information_schema.tables'
+            ];
+
+            for (const apiKey of API_KEYS) {
+                for (const endpoint of endpoints) {
+                    try {
+                        log('alt-result', `Testing: ${endpoint}`, 'info');
+                        
+                        const response = await fetch(`${SUPABASE_URL}${endpoint}`, {
+                            method: 'GET',
+                            headers: {
+                                'apikey': apiKey,
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        log('alt-result', `Response: ${response.status} ${response.statusText}`, 
+                             response.ok ? 'success' : 'warning');
+
+                        if (response.ok && endpoint.includes('equipment_templates')) {
+                            const data = await response.json();
+                            log('alt-result', `✅ Found equipment_templates with ${data.length} records`, 'success');
+                            log('alt-result', JSON.stringify(data.slice(0, 2), null, 2), 'info');
+                            return;
+                        }
+
+                    } catch (error) {
+                        log('alt-result', `Error on ${endpoint}: ${error.message}`, 'error');
+                    }
+                }
+            }
+        }
+
+        function copySQL() {
+            const sqlText = `-- Проверить существующие таблицы
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name LIKE '%equipment%'
+ORDER BY table_name;
+
+-- Если equipment_templates существует, проверить колонки
+SELECT column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name = 'equipment_templates' 
+AND table_schema = 'public'
+ORDER BY ordinal_position;
+
+-- Если есть данные, показать первые записи
+SELECT id, name, system_type, status 
+FROM equipment_templates 
+LIMIT 5;`;
+
+            navigator.clipboard.writeText(sqlText).then(() => {
+                alert('SQL запросы скопированы в буфер обмена!');
+            });
+        }
+
+        function analyzeManualResults() {
+            const container = document.getElementById('manual-analysis');
+            const input = document.getElementById('manual-results').value.trim();
+            
+            container.innerHTML = '';
+            
+            if (!input) {
+                log('manual-analysis', 'Пожалуйста, введите результаты SQL запросов', 'warning');
+                return;
+            }
+
+            log('manual-analysis', 'Анализируем введенные данные...', 'info');
+
+            // Simple analysis
+            if (input.includes('equipment_templates')) {
+                log('manual-analysis', '✅ Таблица equipment_templates существует', 'success');
+                
+                if (input.includes('status')) {
+                    log('manual-analysis', '✅ Колонка status найдена - структура корректна', 'success');
+                    log('manual-analysis', '📋 Рекомендация: Проблема не в отсутствии колонки status', 'info');
+                    log('manual-analysis', '🔧 Возможно проблема в RLS политиках или данных', 'warning');
+                } else {
+                    log('manual-analysis', '❌ Колонка status отсутствует!', 'error');
+                    log('manual-analysis', '📋 Рекомендация: Нужно добавить колонку status', 'warning');
+                    log('manual-analysis', '💡 Выполните: ALTER TABLE equipment_templates ADD COLUMN status BOOLEAN NOT NULL DEFAULT true;', 'info');
+                }
+            } else if (input.includes('equipment')) {
+                log('manual-analysis', '⚠️ Таблицы equipment найдены, но equipment_templates отсутствует', 'warning');
+                log('manual-analysis', '📋 Рекомендация: Создайте таблицу equipment_templates', 'info');
+            } else if (input.toLowerCase().includes('no rows') || input.includes('0 rows')) {
+                log('manual-analysis', '❌ Таблицы equipment не найдены', 'error');
+                log('manual-analysis', '📋 Рекомендация: Выполните полную миграцию', 'warning');
+            } else {
+                log('manual-analysis', '🔍 Анализ неоднозначен. Покажите конкретные результаты:', 'info');
+                log('manual-analysis', input.substring(0, 500), 'info');
+            }
+        }
+
+        // Auto-run simple checks on page load
+        setTimeout(() => {
+            checkAlternativeAPI();
+        }, 1000);
+    </script>
+</body>
+</html>

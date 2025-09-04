@@ -1,9 +1,11 @@
 /**
- * Сервис для работы с ценами топлива
- * Включает персистентное хранение в localStorage
+ * Обновленный сервис для работы с ценами топлива
+ * Переключается между localStorage и Supabase в зависимости от конфигурации
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { pricesSupabaseService } from './pricesSupabaseService';
+import { apiConfigService } from './apiConfigService';
 
 // Типы данных
 export interface FuelPrice {
@@ -1519,6 +1521,44 @@ const initialPriceJournal: PriceJournalEntry[] = [
   }
 ];
 
+class PricesService {
+  private isSupabaseMode(): boolean {
+    return !apiConfigService.isMockMode() && import.meta.env.VITE_SUPABASE_URL;
+  }
+
+  /**
+   * Трансформирует данные из Supabase в формат для UI
+   */
+  private transformSupabasePriceToUI(supabasePrice: any): FuelPrice {
+    return {
+      id: supabasePrice.id,
+      fuelType: supabasePrice.fuel_types?.name || 'Unknown',
+      fuelCode: supabasePrice.fuel_types?.code || '',
+      priceNet: supabasePrice.price_net,
+      vatRate: supabasePrice.vat_rate,
+      priceGross: supabasePrice.price_gross,
+      unit: supabasePrice.unit || 'L',
+      appliedFrom: supabasePrice.valid_from,
+      status: supabasePrice.is_active ? 'active' : 'expired',
+      tradingPoint: supabasePrice.trading_points?.name || 'Unknown',
+      networkId: supabasePrice.trading_point_id,
+      tradingPointId: supabasePrice.trading_point_id,
+      packageId: supabasePrice.package_id,
+      created_at: supabasePrice.created_at,
+      updated_at: supabasePrice.updated_at
+    };
+  }
+
+  private transformSupabaseFuelType(supabaseFuelType: any): FuelType {
+    return {
+      id: supabaseFuelType.id,
+      name: supabaseFuelType.name,
+      code: supabaseFuelType.code,
+      isActive: supabaseFuelType.is_active,
+      created_at: supabaseFuelType.created_at
+    };
+  }
+
 // Загружаем данные из localStorage
 let mockFuelTypes: FuelType[] = PersistentStorage.load<FuelType>('fuelTypes', initialFuelTypes);
 let mockCurrentPrices: FuelPrice[] = PersistentStorage.load<FuelPrice>('currentPrices', initialCurrentPrices);
@@ -1564,13 +1604,28 @@ const calculateGrossPrice = (priceNet: number, vatRate: number): number => {
   return Math.round(priceNet * (1 + vatRate / 100));
 };
 
-// API сервис с персистентным хранением
-export const pricesService = {
   // Получить типы топлива
   async getFuelTypes(): Promise<FuelType[]> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    return mockFuelTypes.filter(fuel => fuel.isActive);
-  },
+    if (this.isSupabaseMode()) {
+      console.log('🔄 Loading fuel types from Supabase...');
+      try {
+        const supabaseFuelTypes = await pricesSupabaseService.getFuelTypes();
+        return supabaseFuelTypes.map(ft => this.transformSupabaseFuelType(ft));
+      } catch (error) {
+        console.error('Error loading fuel types from Supabase:', error);
+        // Fallback к localStorage
+      }
+    }
+
+    // Fallback или mock режим
+    console.log('🔄 Loading fuel types from localStorage...');
+    return this.getFuelTypesFromLocalStorage();
+  }
+
+  private getFuelTypesFromLocalStorage(): FuelType[] {
+    return PersistentStorage.load<FuelType>('fuelTypes', initialFuelTypes)
+      .filter(fuel => fuel.isActive);
+  }
 
   // Создать новый тип топлива
   async createFuelType(fuelType: Omit<FuelType, 'id' | 'created_at'>): Promise<FuelType> {

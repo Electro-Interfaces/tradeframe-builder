@@ -332,7 +332,7 @@ const initialShiftReports: ShiftReport[] = [
 ];
 
 // Загружаем данные из localStorage
-let shiftReportsData: ShiftReport[] = PersistentStorage.load<ShiftReport>('shiftReports', initialShiftReports);
+const shiftReportsData: ShiftReport[] = PersistentStorage.load<ShiftReport>('shiftReports', initialShiftReports);
 let nextShiftId = Math.max(...shiftReportsData.map(sr => parseInt(sr.id.replace('SHIFT-', '')) || 0)) + 1;
 let nextDocumentId = 1;
 let nextFuelPositionId = 1;

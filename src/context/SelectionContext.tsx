@@ -13,25 +13,43 @@ type SelectionContextValue = {
 const SelectionContext = createContext<SelectionContextValue | undefined>(undefined);
 
 export function SelectionProvider({ children }: { children: React.ReactNode }) {
-  const [selectedNetworkId, setSelectedNetworkId] = useState<string>("1");
+  const [selectedNetworkId, setSelectedNetworkId] = useState<string>("");
   const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>("");
 
   // Получаем объект сети по ID
   const [selectedNetwork, setSelectedNetworkState] = useState<Network | null>(null);
+  
+  // Загружаем первую доступную сеть при старте
+  useEffect(() => {
+    if (!selectedNetworkId) {
+      networksService.getAll().then(networks => {
+        if (networks.length > 0) {
+          // Пытаемся найти сеть с external_id = "1", иначе берем первую
+          const demoNetwork = networks.find(n => n.external_id === "1");
+          const networkToSelect = demoNetwork || networks[0];
+          console.log('🎯 Выбираем сеть при старте:', networkToSelect);
+          setSelectedNetworkId(networkToSelect.id);
+        }
+      }).catch(error => {
+        console.error('❌ Ошибка загрузки сетей при старте:', error);
+      });
+    }
+  }, []);
   
   useEffect(() => {
     if (selectedNetworkId) {
       networksService.getById(selectedNetworkId)
         .then(network => {
           setSelectedNetworkState(network);
+          console.log('✅ Загружена сеть:', network);
         })
         .catch(error => {
-          console.error('Ошибка при загрузке сети:', error);
+          console.error('❌ Ошибка при загрузке сети:', error);
           setSelectedNetworkState(null);
           // Если сеть не найдена, сбрасываем выбор на первую доступную
           networksService.getAll().then(networks => {
             if (networks.length > 0) {
-              console.log('Переключаем на первую доступную сеть:', networks[0]);
+              console.log('🔄 Переключаем на первую доступную сеть:', networks[0]);
               setSelectedNetworkId(networks[0].id);
             }
           });
@@ -58,8 +76,9 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
         const savedNetwork = localStorage.getItem("tc:selectedNetwork");
         const savedTradingPoint = localStorage.getItem("tc:selectedTradingPoint");
         
-        // Если есть сохраненная сеть, используем её, иначе оставляем "1"
-        if (savedNetwork && savedNetwork !== selectedNetworkId) {
+        // Если есть сохраненная сеть, используем её
+        if (savedNetwork && savedNetwork.trim()) {
+          console.log('🔄 Восстанавливаем сеть из localStorage:', savedNetwork);
           setSelectedNetworkId(savedNetwork);
         }
         
@@ -68,11 +87,9 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
           setSelectedTradingPoint(savedTradingPoint);
         }
       } catch (e) {
-        console.warn('LocalStorage не доступен:', e);
-        // Начальное значение уже "1", ничего менять не нужно
+        console.warn('⚠️ LocalStorage не доступен:', e);
       }
     }
-    // На сервере начальное значение уже "1", ничего менять не нужно
   }, []); // Убираем зависимость selectedNetworkId
 
   // Persist to localStorage

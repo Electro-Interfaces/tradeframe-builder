@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Инициализация данных номенклатуры</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 11px; max-height: 300px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Инициализация и проверка данных номенклатуры</h1>
+    
+    <div class="section info">
+        <h3>📋 Проблема:</h3>
+        <p>Данные номенклатуры не найдены в localStorage. Возможные причины:</p>
+        <ul>
+            <li>Данные были очищены в nomenclatureService.ts</li>
+            <li>Данные инициализируются только при первом обращении к сервису</li>
+            <li>Данные хранятся под другим ключом</li>
+        </ul>
+    </div>
+    
+    <div class="section">
+        <button onclick="checkAllLocalStorage()">🔍 Проверить все ключи localStorage</button>
+        <button onclick="initializeNomenclatureData()">🚀 Инициализировать данные номенклатуры</button>
+        <button onclick="checkAfterInitialization()">✅ Проверить после инициализации</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const div = document.createElement('div')
+            div.className = `section ${type}`
+            
+            let content = `<h4>${message}</h4>`
+            if (data) {
+                if (typeof data === 'string') {
+                    content += `<pre>${data}</pre>`
+                } else {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                }
+            }
+            div.innerHTML = content
+            
+            resultsDiv.appendChild(div)
+        }
+
+        window.checkAllLocalStorage = function() {
+            logResult('🔍 Проверяем все ключи в localStorage...', 'info')
+            
+            const allKeys = []
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                const value = localStorage.getItem(key)
+                
+                // Показываем только первые 100 символов значения для краткости
+                const shortValue = value && value.length > 100 ? value.substring(0, 100) + '...' : value
+                
+                allKeys.push({
+                    key: key,
+                    length: value ? value.length : 0,
+                    preview: shortValue
+                })
+            }
+            
+            logResult(`📊 Найдено ${allKeys.length} ключей в localStorage:`, 'info', allKeys)
+            
+            // Проверяем конкретно nomenclature
+            const nomenclatureData = localStorage.getItem('nomenclature')
+            if (nomenclatureData) {
+                logResult('✅ Ключ "nomenclature" найден!', 'success', nomenclatureData)
+            } else {
+                logResult('❌ Ключ "nomenclature" не найден', 'error')
+            }
+        }
+
+        window.initializeNomenclatureData = function() {
+            logResult('🚀 Инициализируем данные номенклатуры вручную...', 'info')
+            
+            // Данные из nomenclatureService.ts
+            const initialNomenclature = [
+                {
+                    id: '1',
+                    networkId: '1',
+                    networkName: 'Демо сеть АЗС',
+                    name: 'АИ-92',
+                    internalCode: 'AI92',
+                    networkApiCode: 'FUEL_AI92_REGULAR',
+                    networkApiSettings: {
+                        enabled: true,
+                        endpoint: '/api/v1/fuel-types/regular',
+                        priority: 1,
+                        lastSync: new Date('2024-01-15T10:00:00'),
+                        syncStatus: 'success'
+                    },
+                    externalCodes: [
+                        {
+                            id: '1',
+                            nomenclatureId: '1',
+                            systemType: '1C',
+                            externalCode: 'БНЗ-92',
+                            description: 'Код в 1С:Предприятие',
+                            createdAt: new Date('2024-01-15'),
+                            updatedAt: new Date('2024-01-15')
+                        },
+                        {
+                            id: '2',
+                            nomenclatureId: '1',
+                            systemType: 'PROCESSING',
+                            externalCode: 'FUEL_92',
+                            description: 'Код в процессинге',
+                            createdAt: new Date('2024-01-15'),
+                            updatedAt: new Date('2024-01-15')
+                        }
+                    ],
+                    description: 'Бензин АИ-92 (Regular)',
+                    status: 'active',
+                    createdAt: new Date('2024-01-15'),
+                    updatedAt: new Date('2024-01-15'),
+                    createdBy: 'admin',
+                    updatedBy: 'admin'
+                },
+                {
+                    id: '2',
+                    networkId: '1',
+                    networkName: 'Демо сеть АЗС',
+                    name: 'АИ-95',
+                    internalCode: 'AI95',
+                    networkApiCode: 'FUEL_AI95_PREMIUM',
+                    networkApiSettings: {
+                        enabled: true,
+                        endpoint: '/api/v1/fuel-types/premium',
+                        priority: 2,
+                        lastSync: new Date('2024-01-15T10:30:00'),
+                        syncStatus: 'success'
+                    },
+                    externalCodes: [
+                        {
+                            id: '3',
+                            nomenclatureId: '2',
+                            systemType: '1C',
+                            externalCode: 'БНЗ-95',
+                            description: 'Код в 1С:Предприятие',
+                            createdAt: new Date('2024-01-15'),
+                            updatedAt: new Date('2024-01-15')
+                        }
+                    ],
+                    description: 'Бензин АИ-95 (Premium)',
+                    status: 'active',
+                    createdAt: new Date('2024-01-15'),
+                    updatedAt: new Date('2024-03-10'),
+                    createdBy: 'admin',
+                    updatedBy: 'operator'
+                },
+                {
+                    id: '3',
+                    networkId: '1',
+                    networkName: 'Демо сеть АЗС',
+                    name: 'АИ-98',
+                    internalCode: 'AI98',
+                    externalCodes: [],
+                    description: 'Бензин АИ-98 (Super)',
+                    status: 'active',
+                    createdAt: new Date('2024-02-01'),
+                    updatedAt: new Date('2024-02-01'),
+                    createdBy: 'admin',
+                    updatedBy: 'admin'
+                },
+                {
+                    id: '4',
+                    networkId: '1',
+                    networkName: 'Демо сеть АЗС',
+                    name: 'ДТ',
+                    internalCode: 'DT',
+                    externalCodes: [
+                        {
+                            id: '4',
+                            nomenclatureId: '4',
+                            systemType: '1C',
+                            externalCode: 'ДТ-Л',
+                            description: 'Дизельное топливо летнее',
+                            createdAt: new Date('2024-01-15'),
+                            updatedAt: new Date('2024-01-15')
+                        },
+                        {
+                            id: '5',
+                            nomenclatureId: '4',
+                            systemType: 'CRM',
+                            externalCode: 'DIESEL_FUEL',
+                            createdAt: new Date('2024-01-15'),
+                            updatedAt: new Date('2024-01-15')
+                        }
+                    ],
+                    description: 'Дизельное топливо',
+                    status: 'active',
+                    createdAt: new Date('2024-01-20'),
+                    updatedAt: new Date('2024-01-20'),
+                    createdBy: 'admin',
+                    updatedBy: 'admin'
+                },
+                {
+                    id: '5',
+                    networkId: '1',
+                    networkName: 'Демо сеть АЗС',
+                    name: 'АИ-100',
+                    internalCode: 'AI100',
+                    networkApiCode: 'FUEL_AI100_ULTRA',
+                    networkApiSettings: {
+                        enabled: true,
+                        endpoint: '/api/v1/fuel-types/ultra',
+                        priority: 5,
+                        lastSync: new Date('2024-02-15T11:00:00'),
+                        syncStatus: 'success'
+                    },
+                    externalCodes: [
+                        {
+                            id: '9',
+                            nomenclatureId: '5',
+                            systemType: '1C',
+                            externalCode: 'БНЗ-100',
+                            description: 'Код в 1С:Предприятие',
+                            createdAt: new Date('2024-02-15'),
+                            updatedAt: new Date('2024-02-15')
+                        },
+                        {
+                            id: '10',
+                            nomenclatureId: '5',
+                            systemType: 'PROCESSING',
+                            externalCode: 'FUEL_100',
+                            description: 'Код в процессинге',
+                            createdAt: new Date('2024-02-15'),
+                            updatedAt: new Date('2024-02-15')
+                        }
+                    ],
+                    description: 'Бензин АИ-100 (Ultra)',
+                    status: 'active',
+                    createdAt: new Date('2024-02-15'),
+                    updatedAt: new Date('2024-02-15'),
+                    createdBy: 'admin',
+                    updatedBy: 'admin'
+                }
+            ]
+            
+            // Сохраняем в localStorage
+            localStorage.setItem('nomenclature', JSON.stringify(initialNomenclature))
+            
+            logResult(`✅ Инициализировано ${initialNomenclature.length} записей номенклатуры`, 'success')
+            logResult('📊 Структура данных:', 'info', initialNomenclature.map(item => ({
+                id: item.id,
+                name: item.name,
+                networkId: item.networkId,
+                externalCodesCount: item.externalCodes?.length || 0
+            })))
+        }
+
+        window.checkAfterInitialization = function() {
+            logResult('✅ Проверяем данные после инициализации...', 'info')
+            
+            const nomenclatureData = localStorage.getItem('nomenclature')
+            if (!nomenclatureData) {
+                logResult('❌ Данные все еще не найдены', 'error')
+                return
+            }
+            
+            const parsed = JSON.parse(nomenclatureData)
+            logResult(`✅ Данные найдены! Записей: ${parsed.length}`, 'success')
+            
+            // Показываем краткую сводку
+            const summary = parsed.map(item => ({
+                id: item.id,
+                name: item.name,
+                networkId: item.networkId,
+                networkName: item.networkName,
+                externalCodes: item.externalCodes?.length || 0
+            }))
+            
+            logResult('📊 Краткая сводка данных:', 'info', summary)
+        }
+
+        // Автоматическая проверка при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                checkAllLocalStorage()
+            }, 500)
+        })
+    </script>
+</body>
+</html>

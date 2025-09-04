@@ -1,0 +1,19 @@
+{
+  "assistant": {
+    "responseLanguage": "ru",
+    "planLanguage": "ru",
+    "enforceLanguage": true,
+    "notes": "Отвечать и составлять планы на русском языке."
+  },
+  "environment": {
+    "approvalPolicy": "never",
+    "sandbox": "danger-full-access",
+    "network": "enabled"
+  },
+  "workflow": {
+    "planApproval": "required",
+    "postApprovalPolicy": "never",
+    "askOnlyFor": ["initial-plan"],
+    "notes": "Сначала согласовать краткий план этапов, затем выполнять без дополнительных запросов."
+  }
+}

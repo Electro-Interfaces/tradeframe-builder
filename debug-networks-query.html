@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Отладка запроса торговых сетей</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 3px; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 11px; max-height: 400px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Отладка запроса торговых сетей</h1>
+    
+    <div class="section">
+        <button onclick="testOriginalQuery()">📋 Тест исходного запроса</button>
+        <button onclick="testJoinQuery()">🔗 Тест с JOIN</button>
+        <button onclick="testManualCount()">🧮 Ручной подсчет точек</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const div = document.createElement('div')
+            div.className = `section ${type}`
+            
+            let content = `<h4>${message}</h4>`
+            if (data) {
+                if (typeof data === 'string') {
+                    content += `<pre>${data}</pre>`
+                } else {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                }
+            }
+            div.innerHTML = content
+            
+            resultsDiv.appendChild(div)
+            console.log(message, data)
+        }
+
+        window.testOriginalQuery = async function() {
+            logResult('📋 Тестирование исходного запроса сетей...', 'info')
+            
+            try {
+                const { data, error } = await supabase
+                    .from('networks')
+                    .select('id, name, description, code, status, external_id, settings, created_at, updated_at')
+                    .order('name')
+                
+                if (error) {
+                    logResult('❌ Ошибка исходного запроса', 'error', error)
+                    return
+                }
+                
+                logResult(`✅ Исходный запрос работает: ${data.length} сетей`, 'success', data)
+                
+            } catch (error) {
+                logResult('💥 Критическая ошибка исходного запроса', 'error', error)
+            }
+        }
+
+        window.testJoinQuery = async function() {
+            logResult('🔗 Тестирование запроса с JOIN...', 'info')
+            
+            try {
+                const { data, error } = await supabase
+                    .from('networks')
+                    .select(`
+                        id, 
+                        name, 
+                        description, 
+                        code, 
+                        status, 
+                        external_id, 
+                        settings, 
+                        created_at, 
+                        updated_at,
+                        trading_points!left (id)
+                    `)
+                    .order('name')
+                
+                if (error) {
+                    logResult('❌ Ошибка запроса с JOIN', 'error', error)
+                    return
+                }
+                
+                logResult(`✅ JOIN запрос работает: ${data.length} сетей`, 'success', data)
+                
+                // Обрабатываем как в сервисе
+                const processed = data.map(row => ({
+                    ...row,
+                    pointsCount: Array.isArray(row.trading_points) ? row.trading_points.length : 0
+                }))
+                
+                logResult('📊 Обработанные данные с pointsCount:', 'info', processed)
+                
+            } catch (error) {
+                logResult('💥 Критическая ошибка JOIN запроса', 'error', error)
+            }
+        }
+
+        window.testManualCount = async function() {
+            logResult('🧮 Ручной подсчет торговых точек для каждой сети...', 'info')
+            
+            try {
+                // Получаем все сети
+                const networksResponse = await supabase
+                    .from('networks')
+                    .select('id, name, external_id')
+                    .order('name')
+                
+                if (networksResponse.error) throw networksResponse.error
+                
+                const networksWithCount = []
+                
+                // Для каждой сети считаем точки
+                for (const network of networksResponse.data) {
+                    const pointsResponse = await supabase
+                        .from('trading_points')
+                        .select('id, name, external_id')
+                        .eq('network_id', network.id)
+                    
+                    if (pointsResponse.error) {
+                        logResult(`❌ Ошибка подсчета для сети ${network.name}`, 'error', pointsResponse.error)
+                        continue
+                    }
+                    
+                    const pointsCount = pointsResponse.data?.length || 0
+                    networksWithCount.push({
+                        ...network,
+                        pointsCount,
+                        tradingPoints: pointsResponse.data
+                    })
+                    
+                    logResult(`📍 "${network.name}" (external_id: ${network.external_id})`, pointsCount > 0 ? 'success' : 'warning', {
+                        'UUID': network.id,
+                        'Точек': pointsCount,
+                        'Список точек': pointsResponse.data?.map(p => `${p.name} (${p.external_id})`) || []
+                    })
+                }
+                
+                logResult('📊 Итоговый результат ручного подсчета:', 'success', networksWithCount)
+                
+            } catch (error) {
+                logResult('💥 Ошибка ручного подсчета', 'error', error)
+            }
+        }
+
+        // Автоматический запуск тестов
+        document.addEventListener('DOMContentLoaded', async () => {
+            await new Promise(resolve => setTimeout(resolve, 500))
+            await testOriginalQuery()
+        })
+    </script>
+</body>
+</html>

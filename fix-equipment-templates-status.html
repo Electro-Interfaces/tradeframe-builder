@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Исправить статус шаблонов оборудования</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 11px; max-height: 400px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Исправление статуса шаблонов оборудования</h1>
+    
+    <div class="section error">
+        <h3>🐛 Проблема:</h3>
+        <p>Из консоли видно: <code>templates from Supabase: Array(10)</code> но <code>active templates: Array(0)</code></p>
+        <p>Это означает, что все шаблоны имеют <code>status: false</code> или <code>null</code></p>
+    </div>
+    
+    <div class="section">
+        <button onclick="checkStatuses()">🔍 Проверить статусы</button>
+        <button onclick="fixStatuses()">✅ Исправить все статусы на true</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const div = document.createElement('div')
+            div.className = `section ${type}`
+            
+            let content = `<h4>${message}</h4>`
+            if (data) {
+                if (typeof data === 'string') {
+                    content += `<pre>${data}</pre>`
+                } else {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                }
+            }
+            div.innerHTML = content
+            
+            resultsDiv.appendChild(div)
+        }
+
+        window.checkStatuses = async function() {
+            logResult('🔍 Проверяем статусы шаблонов...', 'info')
+            
+            try {
+                const { data, error } = await supabase
+                    .from('equipment_templates')
+                    .select('id, name, technical_code, status')
+                    .order('name')
+                
+                if (error) {
+                    logResult('❌ Ошибка запроса', 'error', error)
+                    return
+                }
+                
+                const statusCounts = data.reduce((acc, item) => {
+                    const status = item.status === null ? 'null' : String(item.status)
+                    acc[status] = (acc[status] || 0) + 1
+                    return acc
+                }, {})
+                
+                logResult(`📊 Статусы шаблонов:`, 'info', statusCounts)
+                logResult(`📋 Все шаблоны:`, 'info', data)
+                
+                const activeCount = data.filter(item => item.status === true).length
+                const inactiveCount = data.filter(item => item.status === false || item.status === null).length
+                
+                logResult(`✅ Активных: ${activeCount}, ❌ Неактивных: ${inactiveCount}`, activeCount > 0 ? 'success' : 'warning')
+                
+            } catch (error) {
+                logResult('❌ Критическая ошибка', 'error', error)
+            }
+        }
+
+        window.fixStatuses = async function() {
+            logResult('✅ Исправляем статусы всех шаблонов...', 'info')
+            
+            try {
+                // Обновляем все записи, устанавливая status = true
+                const { data, error } = await supabase
+                    .from('equipment_templates')
+                    .update({ 
+                        status: true,
+                        updated_at: new Date().toISOString()
+                    })
+                    .select('id, name, status')
+                
+                if (error) {
+                    logResult('❌ Ошибка обновления', 'error', error)
+                    return
+                }
+                
+                logResult(`✅ Обновлено ${data.length} шаблонов`, 'success')
+                logResult('📋 Обновленные шаблоны:', 'info', data)
+                
+                // Проверяем результат
+                await checkStatuses()
+                
+            } catch (error) {
+                logResult('❌ Критическая ошибка исправления', 'error', error)
+            }
+        }
+
+        // Автоматическая проверка при загрузке
+        document.addEventListener('DOMContentLoaded', async () => {
+            await new Promise(resolve => setTimeout(resolve, 500))
+            await checkStatuses()
+        })
+    </script>
+</body>
+</html>

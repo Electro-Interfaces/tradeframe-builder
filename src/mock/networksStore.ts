@@ -1,7 +1,7 @@
 import { Network, NetworkId, NetworkInput } from '@/types/network';
 
 // In-memory storage for networks
-let networksData: Network[] = [
+const networksData: Network[] = [
   {
     id: "1",
     name: "Демо сеть АЗС",
@@ -10,7 +10,7 @@ let networksData: Network[] = [
     pointsCount: 5
   },
   {
-    id: "2", 
+    id: "15", 
     name: "Норд Лайн",
     description: "Сеть заправочных станций Норд Лайн",
     type: "АЗС",

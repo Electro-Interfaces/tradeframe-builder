@@ -1,445 +1,682 @@
 import { FuelNomenclature, FuelNomenclatureFormData, FuelNomenclatureFilters, ExternalCodeMapping } from '../types/nomenclature';
-import { PersistentStorage } from '@/utils/persistentStorage';
-import { getApiBaseUrl, isApiMockMode } from '@/services/apiConfigService';
-
-const API_BASE_URL = getApiBaseUrl();
+import { supabase } from './supabaseClientBrowser';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Начальные данные номенклатуры
-const initialNomenclature: FuelNomenclature[] = [
-  {
-    id: '1',
-    networkId: '1',
-    networkName: 'Демо сеть АЗС',
-    name: 'АИ-92',
-    internalCode: 'AI92',
-    networkApiCode: 'FUEL_AI92_REGULAR',
-    networkApiSettings: {
-      enabled: true,
-      endpoint: '/api/v1/fuel-types/regular',
-      priority: 1,
-      lastSync: new Date('2024-01-15T10:00:00'),
-      syncStatus: 'success'
-    },
-    externalCodes: [
-      {
-        id: '1',
-        nomenclatureId: '1',
-        systemType: '1C',
-        externalCode: 'БНЗ-92',
-        description: 'Код в 1С:Предприятие',
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-01-15')
-      },
-      {
-        id: '2',
-        nomenclatureId: '1',
-        systemType: 'PROCESSING',
-        externalCode: 'FUEL_92',
-        description: 'Код в процессинге',
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-01-15')
-      }
-    ],
-    description: 'Бензин АИ-92 (Regular)',
-    status: 'active',
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-    createdBy: 'admin',
-    updatedBy: 'admin'
-  },
-  {
-    id: '2',
-    networkId: '1',
-    networkName: 'Демо сеть АЗС',
-    name: 'АИ-95',
-    internalCode: 'AI95',
-    networkApiCode: 'FUEL_AI95_PREMIUM',
-    networkApiSettings: {
-      enabled: true,
-      endpoint: '/api/v1/fuel-types/premium',
-      priority: 2,
-      lastSync: new Date('2024-01-15T10:30:00'),
-      syncStatus: 'success'
-    },
-    externalCodes: [
-      {
-        id: '3',
-        nomenclatureId: '2',
-        systemType: '1C',
-        externalCode: 'БНЗ-95',
-        description: 'Код в 1С:Предприятие',
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-01-15')
-      }
-    ],
-    description: 'Бензин АИ-95 (Premium)',
-    status: 'active',
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-03-10'),
-    createdBy: 'admin',
-    updatedBy: 'operator'
-  },
-  {
-    id: '3',
-    networkId: '1',
-    networkName: 'Демо сеть АЗС',
-    name: 'АИ-98',
-    internalCode: 'AI98',
-    externalCodes: [],
-    description: 'Бензин АИ-98 (Super)',
-    status: 'active',
-    createdAt: new Date('2024-02-01'),
-    updatedAt: new Date('2024-02-01'),
-    createdBy: 'admin',
-    updatedBy: 'admin'
-  },
-  {
-    id: '4',
-    networkId: '1',
-    networkName: 'Демо сеть АЗС',
-    name: 'ДТ',
-    internalCode: 'DT',
-    externalCodes: [
-      {
-        id: '4',
-        nomenclatureId: '4',
-        systemType: '1C',
-        externalCode: 'ДТ-Л',
-        description: 'Дизельное топливо летнее',
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-01-15')
-      },
-      {
-        id: '5',
-        nomenclatureId: '4',
-        systemType: 'CRM',
-        externalCode: 'DIESEL_FUEL',
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-01-15')
-      }
-    ],
-    description: 'Дизельное топливо',
-    status: 'active',
-    createdAt: new Date('2024-01-20'),
-    updatedAt: new Date('2024-01-20'),
-    createdBy: 'admin',
-    updatedBy: 'admin'
-  },
-  {
-    id: '5',
-    networkId: '1',
-    networkName: 'Демо сеть АЗС',
-    name: 'АИ-100',
-    internalCode: 'AI100',
-    networkApiCode: 'FUEL_AI100_ULTRA',
-    networkApiSettings: {
-      enabled: true,
-      endpoint: '/api/v1/fuel-types/ultra',
-      priority: 5,
-      lastSync: new Date('2024-02-15T11:00:00'),
-      syncStatus: 'success'
-    },
-    externalCodes: [
-      {
-        id: '9',
-        nomenclatureId: '5',
-        systemType: '1C',
-        externalCode: 'БНЗ-100',
-        description: 'Код в 1С:Предприятие',
-        createdAt: new Date('2024-02-15'),
-        updatedAt: new Date('2024-02-15')
-      },
-      {
-        id: '10',
-        nomenclatureId: '5',
-        systemType: 'PROCESSING',
-        externalCode: 'FUEL_100',
-        description: 'Код в процессинге',
-        createdAt: new Date('2024-02-15'),
-        updatedAt: new Date('2024-02-15')
-      }
-    ],
-    description: 'Бензин АИ-100 (Ultra)',
-    status: 'active',
-    createdAt: new Date('2024-02-15'),
-    updatedAt: new Date('2024-02-15'),
-    createdBy: 'admin',
-    updatedBy: 'admin'
-  },
-  {
-    id: '7',
-    networkId: '2',
-    networkName: 'Норд Лайн',
-    name: 'АИ-92',
-    internalCode: 'AI92',
-    externalCodes: [
-      {
-        id: '11',
-        nomenclatureId: '7',
-        systemType: '1C',
-        externalCode: 'БНЗ-92-НЛ',
-        description: 'Код в 1С Норд Лайн',
-        createdAt: new Date('2024-03-01'),
-        updatedAt: new Date('2024-03-01')
-      }
-    ],
-    description: 'Бензин АИ-92',
-    status: 'active',
-    createdAt: new Date('2024-03-01'),
-    updatedAt: new Date('2024-03-01'),
-    createdBy: 'admin',
-    updatedBy: 'admin'
-  },
-  {
-    id: '8',
-    networkId: '2',
-    networkName: 'Норд Лайн',
-    name: 'АИ-95',
-    internalCode: 'AI95',
-    externalCodes: [
-      {
-        id: '12',
-        nomenclatureId: '8',
-        systemType: 'CRM',
-        externalCode: 'PREMIUM_95',
-        description: 'Код в CRM системе',
-        createdAt: new Date('2024-03-01'),
-        updatedAt: new Date('2024-03-01')
-      }
-    ],
-    description: 'Бензин АИ-95',
-    status: 'active',
-    createdAt: new Date('2024-03-01'),
-    updatedAt: new Date('2024-03-01'),
-    createdBy: 'admin',
-    updatedBy: 'admin'
-  },
-  {
-    id: '9',
-    networkId: '2',
-    networkName: 'Норд Лайн',
-    name: 'ДТ',
-    internalCode: 'DT',
-    externalCodes: [
-      {
-        id: '13',
-        nomenclatureId: '9',
-        systemType: '1C',
-        externalCode: 'ДТ-НЛ',
-        description: 'Дизельное топливо Норд Лайн',
-        createdAt: new Date('2024-03-01'),
-        updatedAt: new Date('2024-03-01')
-      }
-    ],
-    description: 'Дизельное топливо',
-    status: 'active',
-    createdAt: new Date('2024-03-01'),
-    updatedAt: new Date('2024-03-01'),
-    createdBy: 'admin',
-    updatedBy: 'admin'
-  }
-];
-
-// Принудительно сбрасываем кэш номенклатуры для обновления данных
-console.log('🧹 Очищаем кэш номенклатуры для добавления АИ-100...');
-PersistentStorage.remove('nomenclature');
-
-// Загружаем данные из localStorage при инициализации
-let mockNomenclature: FuelNomenclature[] = PersistentStorage.load<FuelNomenclature>('nomenclature', initialNomenclature);
-
-// Функция для сохранения изменений
-const saveNomenclature = () => {
-  PersistentStorage.save('nomenclature', mockNomenclature);
-};
-
 export const nomenclatureService = {
   async getNomenclature(filters?: FuelNomenclatureFilters): Promise<FuelNomenclature[]> {
-    await delay(500);
+    console.log('🔄 Loading nomenclature from Supabase with filters:', filters);
+    await delay(300);
     
-    let filtered = [...mockNomenclature];
-    
-    if (filters?.networkId) {
-      filtered = filtered.filter(item => item.networkId === filters.networkId);
+    try {
+      // Базовый запрос для получения номенклатуры с сетями
+      let query = supabase
+        .from('nomenclature')
+        .select(`
+          id,
+          network_id,
+          name,
+          internal_code,
+          network_api_code,
+          network_api_settings,
+          description,
+          status,
+          external_id,
+          created_at,
+          updated_at,
+          created_by,
+          updated_by,
+          networks!inner(
+            id,
+            name
+          )
+        `)
+        .order('name');
+
+      // Применяем фильтры
+      if (filters?.networkId) {
+        query = query.eq('network_id', filters.networkId);
+      }
+      
+      if (filters?.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status);
+      }
+      
+      if (filters?.searchTerm) {
+        const search = filters.searchTerm.toLowerCase();
+        query = query.or(`
+          name.ilike.%${search}%,
+          internal_code.ilike.%${search}%,
+          description.ilike.%${search}%
+        `);
+      }
+
+      const { data: nomenclatureData, error: nomenclatureError } = await query;
+
+      if (nomenclatureError) {
+        console.error('Ошибка получения номенклатуры:', nomenclatureError);
+        throw nomenclatureError;
+      }
+
+      if (!nomenclatureData || nomenclatureData.length === 0) {
+        return [];
+      }
+
+      // Получаем внешние коды для всех записей номенклатуры
+      const nomenclatureIds = nomenclatureData.map(item => item.id);
+      const { data: externalCodes, error: codesError } = await supabase
+        .from('nomenclature_external_codes')
+        .select('*')
+        .in('nomenclature_id', nomenclatureIds)
+        .order('system_type');
+
+      if (codesError) {
+        console.error('Ошибка получения внешних кодов:', codesError);
+      }
+
+      // Группируем внешние коды по nomenclature_id
+      const codesByNomenclature = (externalCodes || []).reduce((acc, code) => {
+        if (!acc[code.nomenclature_id]) {
+          acc[code.nomenclature_id] = [];
+        }
+        acc[code.nomenclature_id].push({
+          id: code.id,
+          nomenclatureId: code.nomenclature_id,
+          systemType: code.system_type,
+          externalCode: code.external_code,
+          description: code.description,
+          createdAt: new Date(code.created_at),
+          updatedAt: new Date(code.updated_at)
+        });
+        return acc;
+      }, {} as Record<string, ExternalCodeMapping[]>);
+
+      // Формируем итоговый результат
+      const result: FuelNomenclature[] = nomenclatureData.map(item => ({
+        id: item.id,
+        networkId: item.network_id,
+        networkName: item.networks?.name || '',
+        name: item.name,
+        internalCode: item.internal_code,
+        networkApiCode: item.network_api_code || undefined,
+        networkApiSettings: item.network_api_settings || undefined,
+        externalCodes: codesByNomenclature[item.id] || [],
+        description: item.description || undefined,
+        status: item.status as 'active' | 'archived',
+        createdAt: new Date(item.created_at),
+        updatedAt: new Date(item.updated_at),
+        createdBy: item.created_by || undefined,
+        updatedBy: item.updated_by || undefined
+      }));
+
+      console.log('✅ Loaded nomenclature from Supabase:', result.length, 'items');
+      return result;
+
+    } catch (error) {
+      console.error('❌ Ошибка в nomenclatureService.getNomenclature:', error);
+      throw error;
     }
-    
-    if (filters?.status && filters.status !== 'all') {
-      filtered = filtered.filter(item => item.status === filters.status);
-    }
-    
-    if (filters?.searchTerm) {
-      const search = filters.searchTerm.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.name.toLowerCase().includes(search) ||
-        item.internalCode.toLowerCase().includes(search) ||
-        item.description?.toLowerCase().includes(search) ||
-        item.externalCodes.some(code => 
-          code.externalCode.toLowerCase().includes(search) ||
-          code.description?.toLowerCase().includes(search)
-        )
-      );
-    }
-    
-    return filtered;
   },
 
   async getNomenclatureById(id: string): Promise<FuelNomenclature | null> {
-    await delay(300);
-    return mockNomenclature.find(item => item.id === id) || null;
+    await delay(200);
+    
+    try {
+      const { data: nomenclatureData, error: nomenclatureError } = await supabase
+        .from('nomenclature')
+        .select(`
+          id,
+          network_id,
+          name,
+          internal_code,
+          network_api_code,
+          network_api_settings,
+          description,
+          status,
+          external_id,
+          created_at,
+          updated_at,
+          created_by,
+          updated_by,
+          networks!inner(
+            id,
+            name
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (nomenclatureError || !nomenclatureData) {
+        return null;
+      }
+
+      // Получаем внешние коды для этой номенклатуры
+      const { data: externalCodes, error: codesError } = await supabase
+        .from('nomenclature_external_codes')
+        .select('*')
+        .eq('nomenclature_id', id)
+        .order('system_type');
+
+      const mappedCodes: ExternalCodeMapping[] = (externalCodes || []).map(code => ({
+        id: code.id,
+        nomenclatureId: code.nomenclature_id,
+        systemType: code.system_type,
+        externalCode: code.external_code,
+        description: code.description,
+        createdAt: new Date(code.created_at),
+        updatedAt: new Date(code.updated_at)
+      }));
+
+      return {
+        id: nomenclatureData.id,
+        networkId: nomenclatureData.network_id,
+        networkName: nomenclatureData.networks?.name || '',
+        name: nomenclatureData.name,
+        internalCode: nomenclatureData.internal_code,
+        networkApiCode: nomenclatureData.network_api_code || undefined,
+        networkApiSettings: nomenclatureData.network_api_settings || undefined,
+        externalCodes: mappedCodes,
+        description: nomenclatureData.description || undefined,
+        status: nomenclatureData.status as 'active' | 'archived',
+        createdAt: new Date(nomenclatureData.created_at),
+        updatedAt: new Date(nomenclatureData.updated_at),
+        createdBy: nomenclatureData.created_by || undefined,
+        updatedBy: nomenclatureData.updated_by || undefined
+      };
+
+    } catch (error) {
+      console.error('Ошибка в nomenclatureService.getNomenclatureById:', error);
+      return null;
+    }
   },
 
   async createNomenclature(data: FuelNomenclatureFormData): Promise<FuelNomenclature> {
     await delay(500);
     
-    const newItem: FuelNomenclature = {
-      id: `nom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      ...data,
-      networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'Норд Лайн',
-      // Обрабатываем настройки API торговой сети
-      networkApiSettings: data.networkApiEnabled ? {
-        enabled: true,
-        endpoint: data.networkApiCode ? `/api/v1/fuel-types/${data.networkApiCode.toLowerCase()}` : undefined,
-        priority: mockNomenclature.length + 1,
-        lastSync: undefined,
-        syncStatus: 'pending'
-      } : undefined,
-      externalCodes: data.externalCodes.map((code, index) => ({
-        ...code,
-        id: `${Date.now()}_${index}`,
-        nomenclatureId: Date.now().toString(),
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      createdBy: 'current_user',
-      updatedBy: 'current_user'
-    };
-    
-    mockNomenclature.push(newItem);
-    saveNomenclature();
-    return newItem;
+    try {
+      // Создаем основную запись номенклатуры
+      const nomenclatureRecord = {
+        network_id: data.networkId,
+        name: data.name,
+        internal_code: data.internalCode,
+        network_api_code: data.networkApiCode || null,
+        network_api_settings: data.networkApiEnabled ? {
+          enabled: true,
+          endpoint: data.networkApiCode ? `/api/v1/fuel-types/${data.networkApiCode.toLowerCase()}` : undefined,
+          priority: 1,
+          lastSync: undefined,
+          syncStatus: 'pending'
+        } : null,
+        description: data.description || null,
+        status: data.status,
+        created_by: 'current_user',
+        updated_by: 'current_user'
+      };
+
+      const { data: insertedNomenclature, error: nomenclatureError } = await supabase
+        .from('nomenclature')
+        .insert([nomenclatureRecord])
+        .select(`
+          id,
+          network_id,
+          name,
+          internal_code,
+          network_api_code,
+          network_api_settings,
+          description,
+          status,
+          external_id,
+          created_at,
+          updated_at,
+          created_by,
+          updated_by,
+          networks!inner(
+            id,
+            name
+          )
+        `)
+        .single();
+
+      if (nomenclatureError) {
+        throw nomenclatureError;
+      }
+
+      // Добавляем внешние коды, если есть
+      let externalCodes: ExternalCodeMapping[] = [];
+      if (data.externalCodes && data.externalCodes.length > 0) {
+        const externalCodesRecords = data.externalCodes.map(code => ({
+          nomenclature_id: insertedNomenclature.id,
+          system_type: code.systemType,
+          external_code: code.externalCode,
+          description: code.description || null
+        }));
+
+        const { data: insertedCodes, error: codesError } = await supabase
+          .from('nomenclature_external_codes')
+          .insert(externalCodesRecords)
+          .select('*');
+
+        if (codesError) {
+          console.error('Ошибка создания внешних кодов:', codesError);
+        } else {
+          externalCodes = (insertedCodes || []).map(code => ({
+            id: code.id,
+            nomenclatureId: code.nomenclature_id,
+            systemType: code.system_type,
+            externalCode: code.external_code,
+            description: code.description,
+            createdAt: new Date(code.created_at),
+            updatedAt: new Date(code.updated_at)
+          }));
+        }
+      }
+
+      return {
+        id: insertedNomenclature.id,
+        networkId: insertedNomenclature.network_id,
+        networkName: insertedNomenclature.networks?.name || '',
+        name: insertedNomenclature.name,
+        internalCode: insertedNomenclature.internal_code,
+        networkApiCode: insertedNomenclature.network_api_code || undefined,
+        networkApiSettings: insertedNomenclature.network_api_settings || undefined,
+        externalCodes,
+        description: insertedNomenclature.description || undefined,
+        status: insertedNomenclature.status as 'active' | 'archived',
+        createdAt: new Date(insertedNomenclature.created_at),
+        updatedAt: new Date(insertedNomenclature.updated_at),
+        createdBy: insertedNomenclature.created_by || undefined,
+        updatedBy: insertedNomenclature.updated_by || undefined
+      };
+
+    } catch (error) {
+      console.error('Ошибка в nomenclatureService.createNomenclature:', error);
+      throw error;
+    }
   },
 
   async updateNomenclature(id: string, data: FuelNomenclatureFormData): Promise<FuelNomenclature> {
     await delay(500);
     
-    const index = mockNomenclature.findIndex(item => item.id === id);
-    if (index === -1) {
-      throw new Error('Номенклатура не найдена');
+    try {
+      // Обновляем основную запись номенклатуры
+      const updateRecord = {
+        network_id: data.networkId,
+        name: data.name,
+        internal_code: data.internalCode,
+        network_api_code: data.networkApiCode || null,
+        network_api_settings: data.networkApiEnabled ? {
+          enabled: true,
+          endpoint: data.networkApiCode ? `/api/v1/fuel-types/${data.networkApiCode.toLowerCase()}` : undefined,
+          priority: 1,
+          lastSync: undefined,
+          syncStatus: 'pending'
+        } : null,
+        description: data.description || null,
+        status: data.status,
+        updated_by: 'current_user',
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: updatedNomenclature, error: nomenclatureError } = await supabase
+        .from('nomenclature')
+        .update(updateRecord)
+        .eq('id', id)
+        .select(`
+          id,
+          network_id,
+          name,
+          internal_code,
+          network_api_code,
+          network_api_settings,
+          description,
+          status,
+          external_id,
+          created_at,
+          updated_at,
+          created_by,
+          updated_by,
+          networks!inner(
+            id,
+            name
+          )
+        `)
+        .single();
+
+      if (nomenclatureError) {
+        throw nomenclatureError;
+      }
+
+      // Удаляем все существующие внешние коды
+      await supabase
+        .from('nomenclature_external_codes')
+        .delete()
+        .eq('nomenclature_id', id);
+
+      // Добавляем новые внешние коды
+      let externalCodes: ExternalCodeMapping[] = [];
+      if (data.externalCodes && data.externalCodes.length > 0) {
+        const externalCodesRecords = data.externalCodes.map(code => ({
+          nomenclature_id: id,
+          system_type: code.systemType,
+          external_code: code.externalCode,
+          description: code.description || null
+        }));
+
+        const { data: insertedCodes, error: codesError } = await supabase
+          .from('nomenclature_external_codes')
+          .insert(externalCodesRecords)
+          .select('*');
+
+        if (codesError) {
+          console.error('Ошибка обновления внешних кодов:', codesError);
+        } else {
+          externalCodes = (insertedCodes || []).map(code => ({
+            id: code.id,
+            nomenclatureId: code.nomenclature_id,
+            systemType: code.system_type,
+            externalCode: code.external_code,
+            description: code.description,
+            createdAt: new Date(code.created_at),
+            updatedAt: new Date(code.updated_at)
+          }));
+        }
+      }
+
+      return {
+        id: updatedNomenclature.id,
+        networkId: updatedNomenclature.network_id,
+        networkName: updatedNomenclature.networks?.name || '',
+        name: updatedNomenclature.name,
+        internalCode: updatedNomenclature.internal_code,
+        networkApiCode: updatedNomenclature.network_api_code || undefined,
+        networkApiSettings: updatedNomenclature.network_api_settings || undefined,
+        externalCodes,
+        description: updatedNomenclature.description || undefined,
+        status: updatedNomenclature.status as 'active' | 'archived',
+        createdAt: new Date(updatedNomenclature.created_at),
+        updatedAt: new Date(updatedNomenclature.updated_at),
+        createdBy: updatedNomenclature.created_by || undefined,
+        updatedBy: updatedNomenclature.updated_by || undefined
+      };
+
+    } catch (error) {
+      console.error('Ошибка в nomenclatureService.updateNomenclature:', error);
+      throw error;
     }
-    
-    const existing = mockNomenclature[index];
-    const updated: FuelNomenclature = {
-      ...existing,
-      ...data,
-      id: existing.id,
-      networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'Норд Лайн',
-      // Обновляем настройки API торговой сети
-      networkApiSettings: data.networkApiEnabled ? {
-        enabled: true,
-        endpoint: data.networkApiCode ? `/api/v1/fuel-types/${data.networkApiCode.toLowerCase()}` : existing.networkApiSettings?.endpoint,
-        priority: existing.networkApiSettings?.priority || index + 1,
-        lastSync: existing.networkApiSettings?.lastSync,
-        syncStatus: (existing.networkApiCode !== data.networkApiCode) ? 'pending' : existing.networkApiSettings?.syncStatus || 'pending'
-      } : {
-        enabled: false,
-        endpoint: undefined,
-        priority: undefined,
-        lastSync: undefined,
-        syncStatus: undefined
-      },
-      externalCodes: data.externalCodes.map((code, index) => ({
-        ...code,
-        id: code.id || `${Date.now()}_${index}`,
-        nomenclatureId: existing.id,
-        createdAt: code.createdAt || new Date(),
-        updatedAt: new Date()
-      })),
-      createdAt: existing.createdAt,
-      updatedAt: new Date(),
-      updatedBy: 'current_user'
-    };
-    
-    mockNomenclature[index] = updated;
-    saveNomenclature();
-    return updated;
   },
 
   async deleteNomenclature(id: string): Promise<void> {
-    await delay(500);
-    const index = mockNomenclature.findIndex(item => item.id === id);
-    if (index === -1) {
-      throw new Error('Номенклатура не найдена');
+    await delay(300);
+    
+    try {
+      // Сначала удаляем внешние коды (каскадное удаление должно работать автоматически)
+      await supabase
+        .from('nomenclature_external_codes')
+        .delete()
+        .eq('nomenclature_id', id);
+
+      // Затем удаляем основную запись
+      const { error } = await supabase
+        .from('nomenclature')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+    } catch (error) {
+      console.error('Ошибка в nomenclatureService.deleteNomenclature:', error);
+      throw error;
     }
-    mockNomenclature.splice(index, 1);
-    saveNomenclature();
   },
 
   async archiveNomenclature(id: string): Promise<FuelNomenclature> {
-    await delay(500);
-    const item = mockNomenclature.find(n => n.id === id);
-    if (!item) {
-      throw new Error('Номенклатура не найдена');
+    await delay(300);
+    
+    try {
+      const { data: updatedNomenclature, error } = await supabase
+        .from('nomenclature')
+        .update({ 
+          status: 'archived',
+          updated_by: 'current_user',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select(`
+          id,
+          network_id,
+          name,
+          internal_code,
+          network_api_code,
+          network_api_settings,
+          description,
+          status,
+          external_id,
+          created_at,
+          updated_at,
+          created_by,
+          updated_by,
+          networks!inner(
+            id,
+            name
+          )
+        `)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Получаем внешние коды
+      const { data: externalCodes } = await supabase
+        .from('nomenclature_external_codes')
+        .select('*')
+        .eq('nomenclature_id', id);
+
+      const mappedCodes: ExternalCodeMapping[] = (externalCodes || []).map(code => ({
+        id: code.id,
+        nomenclatureId: code.nomenclature_id,
+        systemType: code.system_type,
+        externalCode: code.external_code,
+        description: code.description,
+        createdAt: new Date(code.created_at),
+        updatedAt: new Date(code.updated_at)
+      }));
+
+      return {
+        id: updatedNomenclature.id,
+        networkId: updatedNomenclature.network_id,
+        networkName: updatedNomenclature.networks?.name || '',
+        name: updatedNomenclature.name,
+        internalCode: updatedNomenclature.internal_code,
+        networkApiCode: updatedNomenclature.network_api_code || undefined,
+        networkApiSettings: updatedNomenclature.network_api_settings || undefined,
+        externalCodes: mappedCodes,
+        description: updatedNomenclature.description || undefined,
+        status: updatedNomenclature.status as 'active' | 'archived',
+        createdAt: new Date(updatedNomenclature.created_at),
+        updatedAt: new Date(updatedNomenclature.updated_at),
+        createdBy: updatedNomenclature.created_by || undefined,
+        updatedBy: updatedNomenclature.updated_by || undefined
+      };
+
+    } catch (error) {
+      console.error('Ошибка в nomenclatureService.archiveNomenclature:', error);
+      throw error;
     }
-    item.status = 'archived';
-    item.updatedAt = new Date();
-    item.updatedBy = 'current_user';
-    saveNomenclature();
-    return item;
   },
 
   async activateNomenclature(id: string): Promise<FuelNomenclature> {
-    await delay(500);
-    const item = mockNomenclature.find(n => n.id === id);
-    if (!item) {
-      throw new Error('Номенклатура не найдена');
+    await delay(300);
+    
+    try {
+      const { data: updatedNomenclature, error } = await supabase
+        .from('nomenclature')
+        .update({ 
+          status: 'active',
+          updated_by: 'current_user',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select(`
+          id,
+          network_id,
+          name,
+          internal_code,
+          network_api_code,
+          network_api_settings,
+          description,
+          status,
+          external_id,
+          created_at,
+          updated_at,
+          created_by,
+          updated_by,
+          networks!inner(
+            id,
+            name
+          )
+        `)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Получаем внешние коды
+      const { data: externalCodes } = await supabase
+        .from('nomenclature_external_codes')
+        .select('*')
+        .eq('nomenclature_id', id);
+
+      const mappedCodes: ExternalCodeMapping[] = (externalCodes || []).map(code => ({
+        id: code.id,
+        nomenclatureId: code.nomenclature_id,
+        systemType: code.system_type,
+        externalCode: code.external_code,
+        description: code.description,
+        createdAt: new Date(code.created_at),
+        updatedAt: new Date(code.updated_at)
+      }));
+
+      return {
+        id: updatedNomenclature.id,
+        networkId: updatedNomenclature.network_id,
+        networkName: updatedNomenclature.networks?.name || '',
+        name: updatedNomenclature.name,
+        internalCode: updatedNomenclature.internal_code,
+        networkApiCode: updatedNomenclature.network_api_code || undefined,
+        networkApiSettings: updatedNomenclature.network_api_settings || undefined,
+        externalCodes: mappedCodes,
+        description: updatedNomenclature.description || undefined,
+        status: updatedNomenclature.status as 'active' | 'archived',
+        createdAt: new Date(updatedNomenclature.created_at),
+        updatedAt: new Date(updatedNomenclature.updated_at),
+        createdBy: updatedNomenclature.created_by || undefined,
+        updatedBy: updatedNomenclature.updated_by || undefined
+      };
+
+    } catch (error) {
+      console.error('Ошибка в nomenclatureService.activateNomenclature:', error);
+      throw error;
     }
-    item.status = 'active';
-    item.updatedAt = new Date();
-    item.updatedBy = 'current_user';
-    saveNomenclature();
-    return item;
   },
 
   async getExternalCodeMappings(nomenclatureId: string): Promise<ExternalCodeMapping[]> {
-    await delay(300);
-    const item = mockNomenclature.find(n => n.id === nomenclatureId);
-    return item?.externalCodes || [];
+    await delay(200);
+    
+    try {
+      const { data: externalCodes, error } = await supabase
+        .from('nomenclature_external_codes')
+        .select('*')
+        .eq('nomenclature_id', nomenclatureId)
+        .order('system_type');
+
+      if (error) {
+        throw error;
+      }
+
+      return (externalCodes || []).map(code => ({
+        id: code.id,
+        nomenclatureId: code.nomenclature_id,
+        systemType: code.system_type,
+        externalCode: code.external_code,
+        description: code.description,
+        createdAt: new Date(code.created_at),
+        updatedAt: new Date(code.updated_at)
+      }));
+
+    } catch (error) {
+      console.error('Ошибка в nomenclatureService.getExternalCodeMappings:', error);
+      return [];
+    }
   },
 
   async addExternalCode(nomenclatureId: string, code: Omit<ExternalCodeMapping, 'id' | 'nomenclatureId' | 'createdAt' | 'updatedAt'>): Promise<ExternalCodeMapping> {
-    await delay(500);
-    const item = mockNomenclature.find(n => n.id === nomenclatureId);
-    if (!item) {
-      throw new Error('Номенклатура не найдена');
+    await delay(300);
+    
+    try {
+      const { data: insertedCode, error } = await supabase
+        .from('nomenclature_external_codes')
+        .insert([{
+          nomenclature_id: nomenclatureId,
+          system_type: code.systemType,
+          external_code: code.externalCode,
+          description: code.description || null
+        }])
+        .select('*')
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Обновляем updated_at основной записи номенклатуры
+      await supabase
+        .from('nomenclature')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', nomenclatureId);
+
+      return {
+        id: insertedCode.id,
+        nomenclatureId: insertedCode.nomenclature_id,
+        systemType: insertedCode.system_type,
+        externalCode: insertedCode.external_code,
+        description: insertedCode.description,
+        createdAt: new Date(insertedCode.created_at),
+        updatedAt: new Date(insertedCode.updated_at)
+      };
+
+    } catch (error) {
+      console.error('Ошибка в nomenclatureService.addExternalCode:', error);
+      throw error;
     }
-    
-    const newMapping: ExternalCodeMapping = {
-      ...code,
-      id: Date.now().toString(),
-      nomenclatureId,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    item.externalCodes.push(newMapping);
-    item.updatedAt = new Date();
-    return newMapping;
   },
 
   async removeExternalCode(nomenclatureId: string, mappingId: string): Promise<void> {
-    await delay(500);
-    const item = mockNomenclature.find(n => n.id === nomenclatureId);
-    if (!item) {
-      throw new Error('Номенклатура не найдена');
-    }
+    await delay(300);
     
-    const index = item.externalCodes.findIndex(code => code.id === mappingId);
-    if (index !== -1) {
-      item.externalCodes.splice(index, 1);
-      item.updatedAt = new Date();
+    try {
+      const { error } = await supabase
+        .from('nomenclature_external_codes')
+        .delete()
+        .eq('id', mappingId)
+        .eq('nomenclature_id', nomenclatureId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Обновляем updated_at основной записи номенклатуры
+      await supabase
+        .from('nomenclature')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', nomenclatureId);
+
+    } catch (error) {
+      console.error('Ошибка в nomenclatureService.removeExternalCode:', error);
+      throw error;
     }
   }
 };

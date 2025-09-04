@@ -282,8 +282,8 @@ const initialUsers: User[] = [
 ];
 
 // Загружаем данные из localStorage
-let usersData: User[] = PersistentStorage.load<User>('users', initialUsers);
-let rolesData: Role[] = PersistentStorage.load<Role>('roles', systemRoles);
+const usersData: User[] = PersistentStorage.load<User>('users', initialUsers);
+const rolesData: Role[] = PersistentStorage.load<Role>('roles', systemRoles);
 let nextUserId = Math.max(...usersData.map(u => u.id || 0)) + 1;
 let nextRoleId = Math.max(...rolesData.map(r => r.id || 0)) + 1;
 

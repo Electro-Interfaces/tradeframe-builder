@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset API Config</title>
+</head>
+<body>
+    <h1>Reset API Configuration</h1>
+    <button onclick="resetConfig()">Reset to Default</button>
+    <button onclick="checkConfig()">Check Current Config</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        function resetConfig() {
+            // Удаляем конфигурацию из localStorage
+            localStorage.removeItem('api_config');
+            document.getElementById('output').innerHTML = '<p>✅ API configuration reset!</p>';
+        }
+        
+        function checkConfig() {
+            const config = localStorage.getItem('api_config');
+            document.getElementById('output').innerHTML = '<pre>' + JSON.stringify(JSON.parse(config || '{}'), null, 2) + '</pre>';
+        }
+    </script>
+</body>
+</html>

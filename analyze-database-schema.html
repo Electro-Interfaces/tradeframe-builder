@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗄️ Анализ схемы базы данных</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1400px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+        th { background: #f2f2f2; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 11px; max-height: 300px; }
+        .completed { background: #d4edda; }
+        .ready { background: #fff3cd; }
+        .blocked { background: #f8d7da; }
+        .dependency { color: #666; font-size: 11px; }
+    </style>
+</head>
+<body>
+    <h1>🗄️ Анализ схемы базы данных для планирования миграций</h1>
+    
+    <div class="section">
+        <button onclick="analyzeTables()">🔍 Анализ таблиц</button>
+        <button onclick="checkForeignKeys()">🔗 Проверить связи (Foreign Keys)</button>
+        <button onclick="planMigrations()">📋 Спланировать миграции</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI'
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        
+        function logResult(message, type = 'info', data = null) {
+            const resultsDiv = document.getElementById('results')
+            const div = document.createElement('div')
+            div.className = `section ${type}`
+            
+            let content = `<h4>${message}</h4>`
+            if (data) {
+                if (typeof data === 'string') {
+                    content += `<pre>${data}</pre>`
+                } else {
+                    content += `<pre>${JSON.stringify(data, null, 2)}</pre>`
+                }
+            }
+            div.innerHTML = content
+            
+            resultsDiv.appendChild(div)
+        }
+
+        window.analyzeTables = async function() {
+            logResult('🔍 Анализируем все таблицы в базе данных...', 'info')
+            
+            try {
+                // Получаем список всех таблиц
+                const { data, error } = await supabase.rpc('analyze_schema')
+                
+                if (error) {
+                    // Альтернативный способ - через information_schema  
+                    const { data: tables, error: tablesError } = await supabase
+                        .from('information_schema.tables')
+                        .select('table_name')
+                        .eq('table_schema', 'public')
+                        .order('table_name')
+                    
+                    if (tablesError) {
+                        // Третий способ - пробуем запросы к известным таблицам
+                        const knownTables = [
+                            'networks', 'trading_points', 'equipment', 'equipment_types',
+                            'operations', 'tanks', 'prices', 'fuel_stocks', 'nomenclature',
+                            'users', 'roles', 'shift_reports', 'messages', 'commands'
+                        ]
+                        
+                        const existingTables = []
+                        for (const tableName of knownTables) {
+                            try {
+                                const { count, error: countError } = await supabase
+                                    .from(tableName)
+                                    .select('*', { count: 'exact', head: true })
+                                
+                                if (!countError) {
+                                    existingTables.push({
+                                        table_name: tableName,
+                                        row_count: count || 0
+                                    })
+                                }
+                            } catch (e) {
+                                // Таблица не существует
+                            }
+                        }
+                        
+                        logResult('📊 Существующие таблицы:', 'success', existingTables)
+                        return existingTables
+                    }
+                }
+                
+                logResult('📊 Схема базы данных:', 'success', data || tables)
+                
+            } catch (error) {
+                logResult('❌ Ошибка анализа таблиц', 'error', error)
+            }
+        }
+
+        window.checkForeignKeys = async function() {
+            logResult('🔗 Проверяем связи между таблицами...', 'info')
+            
+            const relationships = {
+                'networks': {
+                    children: ['trading_points', 'operations'],
+                    status: '✅ Мигрировано'
+                },
+                'trading_points': {
+                    parent: 'networks',  
+                    children: ['equipment', 'operations', 'tanks', 'shift_reports'],
+                    status: '✅ Мигрировано'
+                },
+                'equipment': {
+                    parent: 'trading_points',
+                    dependencies: ['equipment_types'],
+                    children: ['equipment_components'],
+                    status: '⏳ Готово к миграции'
+                },
+                'equipment_types': {
+                    children: ['equipment'],
+                    status: '⏳ Готово к миграции'  
+                },
+                'tanks': {
+                    parent: 'trading_points',
+                    dependencies: ['nomenclature'],
+                    children: ['fuel_stocks'],
+                    status: '⏳ Готово к миграции'
+                },
+                'nomenclature': {
+                    children: ['tanks', 'operations', 'prices'],
+                    status: '⏳ Готово к миграции'
+                },
+                'operations': {
+                    parent: 'trading_points',
+                    dependencies: ['nomenclature', 'users'],
+                    status: '🔒 Требует: users, nomenclature'
+                },
+                'users': {
+                    dependencies: ['roles'],
+                    children: ['operations', 'shift_reports'],
+                    status: '⏳ Готово к миграции'
+                },
+                'roles': {
+                    children: ['users'],
+                    status: '⏳ Готово к миграции'
+                },
+                'shift_reports': {
+                    parent: 'trading_points',
+                    dependencies: ['users'],
+                    status: '🔒 Требует: users'
+                },
+                'fuel_stocks': {
+                    parent: 'tanks',
+                    dependencies: ['nomenclature'],
+                    status: '🔒 Требует: tanks, nomenclature'
+                },
+                'prices': {
+                    dependencies: ['nomenclature'],
+                    status: '🔒 Требует: nomenclature'
+                },
+                'messages': {
+                    dependencies: ['users'],
+                    status: '🔒 Требует: users'
+                },
+                'commands': {
+                    dependencies: ['equipment'],
+                    status: '🔒 Требует: equipment'
+                }
+            }
+            
+            logResult('🗄️ Схема связей таблиц:', 'info', relationships)
+        }
+
+        window.planMigrations = async function() {
+            logResult('📋 Планируем последовательность миграций...', 'info')
+            
+            const migrationPlan = {
+                'Уровень 1 - Базовые справочники (без зависимостей)': {
+                    status: 'completed',
+                    tables: [
+                        { name: 'networks', status: '✅ Завершено', priority: 'Высший' },
+                        { name: 'roles', status: '⏳ Готово', priority: 'Высокий' },
+                        { name: 'equipment_types', status: '⏳ Готово', priority: 'Высокий' },
+                        { name: 'nomenclature', status: '⏳ Готово', priority: 'Высокий' }
+                    ]
+                },
+                'Уровень 2 - Зависимые от уровня 1': {
+                    status: 'ready',
+                    tables: [
+                        { name: 'trading_points', status: '✅ Завершено', dependency: 'networks', priority: 'Высший' },
+                        { name: 'users', status: '⏳ Готово', dependency: 'roles', priority: 'Высокий' }
+                    ]
+                },
+                'Уровень 3 - Зависимые от уровня 2': {
+                    status: 'ready',
+                    tables: [
+                        { name: 'equipment', status: '⏳ Готово', dependency: 'trading_points + equipment_types', priority: 'Высокий' },
+                        { name: 'tanks', status: '⏳ Готово', dependency: 'trading_points + nomenclature', priority: 'Средний' }
+                    ]
+                },
+                'Уровень 4 - Операционные данные': {
+                    status: 'blocked',
+                    tables: [
+                        { name: 'operations', status: '🔒 Блокировано', dependency: 'trading_points + users + nomenclature', priority: 'Средний' },
+                        { name: 'shift_reports', status: '🔒 Блокировано', dependency: 'trading_points + users', priority: 'Низкий' },
+                        { name: 'fuel_stocks', status: '🔒 Блокировано', dependency: 'tanks + nomenclature', priority: 'Средний' }
+                    ]
+                },
+                'Уровень 5 - Дополнительные данные': {
+                    status: 'blocked',
+                    tables: [
+                        { name: 'prices', status: '🔒 Блокировано', dependency: 'nomenclature', priority: 'Низкий' },
+                        { name: 'messages', status: '🔒 Блокировано', dependency: 'users', priority: 'Низкий' },
+                        { name: 'commands', status: '🔒 Блокировано', dependency: 'equipment', priority: 'Низкий' }
+                    ]
+                }
+            }
+            
+            logResult('📋 План миграций по уровням:', 'info', migrationPlan)
+            
+            // Рекомендации по следующим шагам
+            const recommendations = {
+                'Следующие миграции (готовые к выполнению)': [
+                    '1. roles - Роли пользователей (независимая таблица)',
+                    '2. equipment_types - Типы оборудования (независимая таблица)', 
+                    '3. nomenclature - Номенклатура топлива (независимая таблица)',
+                    '4. users - Пользователи (зависит от roles)'
+                ],
+                'После базовых справочников': [
+                    '5. equipment - Оборудование (зависит от trading_points + equipment_types)',
+                    '6. tanks - Резервуары (зависит от trading_points + nomenclature)'
+                ],
+                'Операционные данные (последними)': [
+                    '7. operations - Операции продаж',
+                    '8. shift_reports - Сменные отчеты',
+                    '9. fuel_stocks - Остатки топлива'
+                ]
+            }
+            
+            logResult('🎯 Рекомендации по порядку миграции:', 'warning', recommendations)
+        }
+
+        // Автоматический запуск анализа
+        document.addEventListener('DOMContentLoaded', async () => {
+            await new Promise(resolve => setTimeout(resolve, 500))
+            await analyzeTables()
+            await checkForeignKeys()
+            await planMigrations()
+        })
+    </script>
+</body>
+</html>

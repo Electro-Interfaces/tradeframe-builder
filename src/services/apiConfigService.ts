@@ -44,7 +44,7 @@ export interface ApiConfig {
 
 // Начальная конфигурация с mock и demo подключениями
 const initialConfig: ApiConfig = {
-  currentConnectionId: 'mock',
+  currentConnectionId: 'local-db',
   debugMode: import.meta.env.DEV || false,
   lastUpdated: new Date(),
   availableConnections: [
@@ -54,8 +54,8 @@ const initialConfig: ApiConfig = {
       url: 'localStorage',
       type: 'mock',
       description: 'Локальные демо-данные в localStorage',
-      isActive: true,
-      isDefault: true,
+      isActive: false,
+      isDefault: false,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date(),
       settings: {
@@ -66,11 +66,11 @@ const initialConfig: ApiConfig = {
     {
       id: 'local-db',
       name: 'Локальная БД',
-      url: 'http://localhost:3000/api/v1',
+      url: 'http://localhost:3001/api/v1',
       type: 'postgresql',
       description: 'Локальная PostgreSQL база данных',
-      isActive: false,
-      isDefault: false,
+      isActive: true,
+      isDefault: true,
       createdAt: new Date(),
       updatedAt: new Date(),
       settings: {
@@ -103,8 +103,8 @@ const initialConfig: ApiConfig = {
       url: 'https://tohtryzyffcebtyvkxwh.supabase.co',
       type: 'supabase',
       description: 'Supabase PostgreSQL база данных с REST API',
-      isActive: false,
-      isDefault: false,
+      isActive: true,
+      isDefault: true,
       createdAt: new Date(),
       updatedAt: new Date(),
       settings: {
@@ -188,6 +188,28 @@ export const apiConfigService = {
   isMockMode(): boolean {
     const connection = this.getCurrentConnection();
     return connection?.type === 'mock' || !connection;
+  },
+
+  /**
+   * Получить текущий режим API
+   */
+  getApiMode(): 'mock' | 'http' | 'supabase' {
+    const connection = this.getCurrentConnection();
+    if (!connection || connection.type === 'mock') {
+      return 'mock';
+    }
+    if (connection.type === 'supabase') {
+      return 'supabase';
+    }
+    return 'http';
+  },
+
+  /**
+   * Получить тип текущего подключения
+   */
+  getCurrentConnectionType(): string {
+    const connection = this.getCurrentConnection();
+    return connection?.type || 'mock';
   },
 
   /**

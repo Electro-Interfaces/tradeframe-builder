@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from '@/hooks/use-toast'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { UserService, type UserStatistics } from '@/services/userService'
+import { UserService, type UserStatistics } from '@/services/usersSupabaseService'
 import { RoleService } from '@/services/roleService'
 import type { User, Role, UserStatus, RoleScope } from '@/types/auth'
 import { RoleFormDialog } from '@/components/admin/roles/RoleFormDialog'
