@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Диагностика подключения к торговому API</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #0f0; 
+            padding: 20px;
+            line-height: 1.4;
+        }
+        .section { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border: 1px solid #0f0;
+            background: #0a0a0a;
+        }
+        h1 { color: #0ff; }
+        h2 { color: #ff0; }
+        .step {
+            margin: 10px 0;
+            padding: 8px;
+            background: #001100;
+            border-left: 3px solid #0f0;
+        }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        .config-item {
+            margin: 5px 0;
+            padding: 5px;
+            background: #000;
+            border-left: 2px solid #ff0;
+        }
+        pre {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            overflow-x: auto;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Диагностика подключения к торговому API</h1>
+    
+    <div class="section">
+        <h2>Шаг 1: Проверка localStorage конфигурации</h2>
+        <div id="step1"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 2: Проверка настроек "Обмен данными"</h2>
+        <div id="step2"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 3: Тест прямого подключения</h2>
+        <div id="step3"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 4: Рекомендации по исправлению</h2>
+        <div id="step4"></div>
+    </div>
+
+    <script>
+        const log = (containerId, msg, type = '') => {
+            const div = document.createElement('div');
+            div.className = `step ${type}`;
+            div.innerHTML = msg;
+            document.getElementById(containerId).appendChild(div);
+        };
+
+        // Проверяем localStorage
+        function checkLocalStorageConfig() {
+            log('step1', '🔍 Проверяем конфигурацию в localStorage...', 'warning');
+            
+            const configKey = 'trading_network_config';
+            const savedConfig = localStorage.getItem(configKey);
+            
+            if (!savedConfig) {
+                log('step1', '❌ Конфигурация торгового API не найдена в localStorage', 'error');
+                log('step1', 'Это означает что настройки в разделе "Обмен данными" не сохранены');
+                return null;
+            }
+
+            try {
+                const config = JSON.parse(savedConfig);
+                log('step1', '✅ Конфигурация найдена в localStorage', 'success');
+                
+                // Показываем основные параметры
+                const configInfo = [
+                    `🌐 URL: ${config.baseUrl || 'не указан'}`,
+                    `🔐 Тип авторизации: ${config.authType || 'не указан'}`,
+                    `👤 Логин: ${config.username || 'не указан'}`,
+                    `🔑 Есть пароль: ${!!config.password}`,
+                    `🏢 System ID: ${config.systemId || 'не указан'}`,
+                    `🏪 Station ID: ${config.defaultStationId || 'не указан'}`,
+                    `🔌 Включено: ${config.enabled ? 'Да' : 'Нет'}`
+                ];
+                
+                configInfo.forEach(info => {
+                    log('step1', info);
+                });
+
+                // Показываем эндпоинты
+                if (config.endpoints) {
+                    log('step1', '<br><strong>📡 Эндпоинты:</strong>');
+                    Object.entries(config.endpoints).forEach(([key, value]) => {
+                        log('step1', `  • ${key}: ${value}`);
+                    });
+                }
+                
+                return config;
+                
+            } catch (error) {
+                log('step1', `❌ Ошибка парсинга конфигурации: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        // Проверяем доступность раздела "Обмен данными"
+        function checkDataExchangeSection() {
+            log('step2', '🔍 Проверяем раздел "Обмен данными"...', 'warning');
+            
+            // Проверяем можем ли мы открыть раздел
+            const dataExchangeUrl = '/settings/data-exchange';
+            log('step2', `📍 URL раздела: ${window.location.origin}${dataExchangeUrl}`);
+            
+            // Проверяем есть ли данные в других ключах localStorage
+            const allKeys = Object.keys(localStorage);
+            const apiKeys = allKeys.filter(key => 
+                key.includes('api') || 
+                key.includes('trading') || 
+                key.includes('config') ||
+                key.includes('network')
+            );
+            
+            if (apiKeys.length > 0) {
+                log('step2', '📋 Найдены связанные ключи в localStorage:', 'success');
+                apiKeys.forEach(key => {
+                    const value = localStorage.getItem(key);
+                    const preview = value && value.length > 100 ? value.substring(0, 100) + '...' : value;
+                    log('step2', `  • ${key}: ${preview}`);
+                });
+            } else {
+                log('step2', '⚠️ Связанных ключей в localStorage не найдено', 'warning');
+            }
+
+            log('step2', '<br><strong>💡 Как открыть настройки:</strong>');
+            log('step2', '1. Перейдите в раздел "Настройки" → "Обмен данными"');
+            log('step2', '2. Заполните все поля конфигурации торгового API');
+            log('step2', '3. Нажмите "Сохранить"');
+        }
+
+        // Тестируем прямое подключение
+        async function testDirectConnection(config) {
+            log('step3', '🔍 Тестируем прямое подключение к API...', 'warning');
+            
+            if (!config) {
+                log('step3', '❌ Нет конфигурации для тестирования', 'error');
+                return;
+            }
+
+            if (!config.enabled) {
+                log('step3', '❌ Интеграция отключена в настройках', 'error');
+                return;
+            }
+
+            try {
+                // Формируем URL для запроса
+                const apiUrl = config.baseUrl;
+                const endpoint = config.endpoints?.tanks || '/v1/tanks';
+                const systemId = config.systemId;
+                const stationId = config.defaultStationId;
+                
+                const fullUrl = `${apiUrl}${endpoint}?system=${systemId}&station=${stationId}`;
+                log('step3', `📡 Тестовый URL: ${fullUrl}`);
+
+                // Формируем заголовки
+                const headers = {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                };
+
+                // Добавляем авторизацию
+                if (config.authType === 'basic' && config.username && config.password) {
+                    const authString = btoa(`${config.username}:${config.password}`);
+                    headers['Authorization'] = `Basic ${authString}`;
+                    log('step3', '🔐 Используется Basic авторизация');
+                } else if (config.authType === 'bearer' && config.apiKey) {
+                    headers['Authorization'] = `Bearer ${config.apiKey}`;
+                    log('step3', '🔐 Используется Bearer токен');
+                } else {
+                    log('step3', '⚠️ Авторизация не настроена', 'warning');
+                }
+
+                log('step3', '⏳ Отправляем запрос...');
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), config.timeout || 30000);
+                
+                const response = await fetch(fullUrl, {
+                    method: 'GET',
+                    headers,
+                    signal: controller.signal,
+                    mode: 'cors'
+                });
+                
+                clearTimeout(timeoutId);
+
+                log('step3', `📊 Статус ответа: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('step3', '✅ Подключение успешно!', 'success');
+                    log('step3', `📦 Получено данных: ${JSON.stringify(data).length} символов`);
+                    
+                    if (Array.isArray(data)) {
+                        log('step3', `📊 Количество записей: ${data.length}`);
+                    } else if (data.tanks && Array.isArray(data.tanks)) {
+                        log('step3', `📊 Количество резервуаров: ${data.tanks.length}`);
+                    }
+                    
+                    // Показываем структуру данных
+                    const sample = Array.isArray(data) ? data[0] : (data.tanks ? data.tanks[0] : data);
+                    if (sample) {
+                        log('step3', '<br><strong>📋 Пример структуры данных:</strong>');
+                        const sampleStr = JSON.stringify(sample, null, 2);
+                        const pre = document.createElement('pre');
+                        pre.textContent = sampleStr.substring(0, 500) + (sampleStr.length > 500 ? '...' : '');
+                        document.getElementById('step3').appendChild(pre);
+                    }
+                    
+                } else {
+                    log('step3', `❌ Ошибка подключения: ${response.status} ${response.statusText}`, 'error');
+                    
+                    const errorText = await response.text().catch(() => 'не удалось получить текст ошибки');
+                    log('step3', `📄 Тело ответа: ${errorText.substring(0, 200)}...`);
+                    
+                    if (response.status === 403) {
+                        log('step3', '🔐 Вероятно неправильные логин/пароль', 'error');
+                    } else if (response.status === 404) {
+                        log('step3', '📍 Неправильный URL или эндпоинт', 'error');
+                    }
+                }
+
+            } catch (error) {
+                log('step3', `❌ Ошибка сети: ${error.message}`, 'error');
+                
+                if (error.name === 'AbortError') {
+                    log('step3', '⏰ Превышено время ожидания', 'error');
+                } else if (error.message.includes('CORS')) {
+                    log('step3', '🚫 Проблема с CORS политикой', 'error');
+                    log('step3', 'Возможно нужен прокси сервер для обхода CORS');
+                } else if (error.message.includes('Failed to fetch')) {
+                    log('step3', '🌐 Сервер недоступен или заблокирован', 'error');
+                }
+            }
+        }
+
+        // Рекомендации по исправлению
+        function showRecommendations(config) {
+            log('step4', '💡 Рекомендации по исправлению:', 'warning');
+            
+            if (!config) {
+                log('step4', '1. Откройте раздел "Настройки" → "Обмен данными"', 'warning');
+                log('step4', '2. Заполните все поля конфигурации торгового API:', 'warning');
+                log('step4', '   • URL сервера торговой сети', 'warning');
+                log('step4', '   • Логин и пароль для доступа', 'warning'); 
+                log('step4', '   • ID системы и ID станции', 'warning');
+                log('step4', '3. Включите интеграцию (переключатель "Включено")', 'warning');
+                log('step4', '4. Нажмите "Сохранить" и "Тест подключения"', 'warning');
+                return;
+            }
+
+            const problems = [];
+            const fixes = [];
+
+            // Анализируем проблемы
+            if (!config.enabled) {
+                problems.push('Интеграция отключена');
+                fixes.push('Включите переключатель "Включено" в настройках');
+            }
+
+            if (!config.baseUrl || !config.baseUrl.startsWith('http')) {
+                problems.push('Неправильный URL сервера');
+                fixes.push('Проверьте URL сервера торговой сети (должен начинаться с http/https)');
+            }
+
+            if (config.authType === 'basic' && (!config.username || !config.password)) {
+                problems.push('Не указаны логин/пароль для Basic Auth');
+                fixes.push('Заполните поля "Логин" и "Пароль" в настройках');
+            }
+
+            if (config.authType === 'bearer' && !config.apiKey) {
+                problems.push('Не указан API ключ для Bearer Auth');
+                fixes.push('Заполните поле "API ключ" в настройках');
+            }
+
+            if (!config.systemId) {
+                problems.push('Не указан ID системы');
+                fixes.push('Заполните поле "ID системы" в настройках');
+            }
+
+            if (!config.defaultStationId) {
+                problems.push('Не указан ID станции');
+                fixes.push('Заполните поле "ID станции по умолчанию" в настройках');
+            }
+
+            // Показываем найденные проблемы
+            if (problems.length > 0) {
+                log('step4', '<br><strong>🔴 Найденные проблемы:</strong>', 'error');
+                problems.forEach((problem, i) => {
+                    log('step4', `${i + 1}. ${problem}`, 'error');
+                });
+
+                log('step4', '<br><strong>✅ Как исправить:</strong>', 'success');
+                fixes.forEach((fix, i) => {
+                    log('step4', `${i + 1}. ${fix}`, 'success');
+                });
+            } else {
+                log('step4', '✅ Конфигурация выглядит корректно', 'success');
+                log('step4', 'Проблема может быть в:', 'warning');
+                log('step4', '• Недоступности сервера торговой сети', 'warning');
+                log('step4', '• Блокировке CORS браузером', 'warning');
+                log('step4', '• Неправильных учетных данных', 'warning');
+                log('step4', '• Сетевых ограничениях (firewall)', 'warning');
+            }
+
+            log('step4', '<br><strong>🔧 Дополнительные шаги:</strong>');
+            log('step4', '1. Проверьте доступность сервера торговой сети из браузера');
+            log('step4', '2. Убедитесь что учетные данные правильные');
+            log('step4', '3. Проверьте нет ли блокировок на уровне сети/антивируса');
+            log('step4', '4. Рассмотрите использование прокси для обхода CORS');
+        }
+
+        // Запуск диагностики
+        async function runDiagnostics() {
+            const config = checkLocalStorageConfig();
+            checkDataExchangeSection();
+            await testDirectConnection(config);
+            showRecommendations(config);
+        }
+
+        // Запускаем диагностику
+        runDiagnostics();
+    </script>
+</body>
+</html>

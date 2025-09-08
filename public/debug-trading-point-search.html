@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Диагностика поиска торговой точки</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 ДИАГНОСТИКА ПОИСКА ТОРГОВОЙ ТОЧКИ</h1>
+    <p>Проверяем по каким параметрам идет поиск и что есть в БД</p>
+    
+    <button onclick="debugTradingPointSearch()">🚀 Диагностика поиска</button>
+    <button onclick="clearLog()">🧹 Очистить</button>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const TARGET_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        window.debugTradingPointSearch = async function() {
+            addLog('🔍 ДИАГНОСТИКА ПОИСКА ТОРГОВОЙ ТОЧКИ', 'info');
+            addLog(`Ищем ID: ${TARGET_ID}`, 'info');
+            
+            try {
+                const { httpClient } = await import('/src/services/universalHttpClient.ts');
+                
+                // ТЕСТ 1: Показать все торговые точки в БД
+                addLog('📋 ТЕСТ 1: Все торговые точки в БД...', 'info');
+                
+                const allTpResponse = await httpClient.get('/rest/v1/trading_points', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code,network_id',
+                        order: 'name'
+                    }
+                });
+                
+                if (allTpResponse.success && allTpResponse.data) {
+                    addLog(`✅ Найдено торговых точек в БД: ${allTpResponse.data.length}`, 'success');
+                    
+                    allTpResponse.data.forEach((tp, index) => {
+                        const isTarget = tp.id === TARGET_ID;
+                        addLog(`<div class="code" style="background: ${isTarget ? '#2d4a22' : '#0d1117'};">
+                            ТП ${index + 1}: ${tp.name}<br>
+                            - ID: ${tp.id} ${isTarget ? '🎯 ИСКОМАЯ' : ''}<br>
+                            - External ID: ${tp.external_id || 'НЕТ'}<br>
+                            - Code: ${tp.code || 'НЕТ'}<br>
+                            - Network ID: ${tp.network_id}
+                        </div>`, isTarget ? 'success' : 'info');
+                    });
+                    
+                    // Проверяем есть ли искомая торговая точка
+                    const targetExists = allTpResponse.data.some(tp => tp.id === TARGET_ID);
+                    if (targetExists) {
+                        addLog('✅ Искомая торговая точка НАЙДЕНА в списке!', 'success');
+                    } else {
+                        addLog('❌ Искомая торговая точка НЕ найдена в списке!', 'error');
+                    }
+                } else {
+                    addLog('❌ Не удалось получить список торговых точек', 'error');
+                    return;
+                }
+                
+                // ТЕСТ 2: Прямой поиск по ID (как в оригинальном тесте)
+                addLog('🎯 ТЕСТ 2: Прямой поиск по ID (как в оригинальном тесте)...', 'info');
+                addLog(`Параметры поиска: id=eq.${TARGET_ID}`, 'info');
+                
+                const directSearchResponse = await httpClient.get('/rest/v1/trading_points', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code,network_id',
+                        id: `eq.${TARGET_ID}`
+                    }
+                });
+                
+                addLog(`<div class="code">
+                    Success: ${directSearchResponse.success}<br>
+                    Status: ${directSearchResponse.status}<br>
+                    Data Length: ${directSearchResponse.data ? directSearchResponse.data.length : 'null'}<br>
+                    Error: ${directSearchResponse.error || 'нет'}
+                </div>`, directSearchResponse.success && directSearchResponse.data?.length > 0 ? 'success' : 'error');
+                
+                if (directSearchResponse.success && directSearchResponse.data && directSearchResponse.data.length > 0) {
+                    addLog('✅ Прямой поиск по ID работает!', 'success');
+                    const tp = directSearchResponse.data[0];
+                    addLog(`<div class="code">
+                        Найдено:<br>
+                        - ID: ${tp.id}<br>
+                        - Название: ${tp.name}<br>
+                        - External ID: ${tp.external_id || 'НЕТ'}<br>
+                        - Code: ${tp.code || 'НЕТ'}<br>
+                        - Network ID: ${tp.network_id}
+                    </div>`, 'success');
+                } else {
+                    addLog('❌ Прямой поиск по ID не работает!', 'error');
+                    
+                    // ТЕСТ 3: Альтернативные способы поиска
+                    addLog('🔄 ТЕСТ 3: Альтернативные способы поиска...', 'info');
+                    
+                    // Поиск через LIKE
+                    const likeSearchResponse = await httpClient.get('/rest/v1/trading_points', {
+                        destination: 'supabase',
+                        queryParams: {
+                            select: 'id,name,external_id,code,network_id',
+                            id: `like.%${TARGET_ID.slice(-8)}%`
+                        }
+                    });
+                    
+                    if (likeSearchResponse.success && likeSearchResponse.data && likeSearchResponse.data.length > 0) {
+                        addLog('✅ Поиск через LIKE сработал!', 'success');
+                        likeSearchResponse.data.forEach(tp => {
+                            addLog(`- ${tp.name} (ID: ${tp.id})`, 'success');
+                        });
+                    } else {
+                        addLog('❌ Поиск через LIKE тоже не работает', 'error');
+                    }
+                    
+                    // Поиск по имени
+                    const nameSearchResponse = await httpClient.get('/rest/v1/trading_points', {
+                        destination: 'supabase',
+                        queryParams: {
+                            select: 'id,name,external_id,code,network_id',
+                            name: `like.*АЗС*`
+                        }
+                    });
+                    
+                    if (nameSearchResponse.success && nameSearchResponse.data && nameSearchResponse.data.length > 0) {
+                        addLog('✅ Поиск по имени "АЗС" сработал!', 'success');
+                        nameSearchResponse.data.forEach(tp => {
+                            addLog(`- ${tp.name} (ID: ${tp.id})`, 'success');
+                        });
+                    }
+                }
+                
+                // ТЕСТ 4: Проверка формата ID
+                addLog('🔎 ТЕСТ 4: Анализ формата ID...', 'info');
+                addLog(`<div class="code">
+                    Искомый ID: ${TARGET_ID}<br>
+                    Длина: ${TARGET_ID.length} символов<br>
+                    Содержит дефисы: ${TARGET_ID.includes('-') ? '✅ ДА' : '❌ НЕТ'}<br>
+                    UUID формат: ${TARGET_ID.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) ? '✅ ДА' : '❌ НЕТ'}<br>
+                    Регистр: ${TARGET_ID === TARGET_ID.toLowerCase() ? 'нижний' : 'смешанный'}
+                </div>`, 'info');
+                
+                // ТЕСТ 5: Проверка структуры таблицы
+                addLog('🏗️ ТЕСТ 5: Структура таблицы trading_points...', 'info');
+                
+                const structureResponse = await httpClient.get('/rest/v1/', {
+                    destination: 'supabase'
+                });
+                
+                if (structureResponse.success) {
+                    addLog('✅ Базовое подключение к Supabase работает', 'success');
+                } else {
+                    addLog('❌ Проблемы с подключением к Supabase', 'error');
+                }
+                
+                // ИТОГОВЫЙ ВЕРДИКТ
+                addLog('🏁 ИТОГОВЫЙ АНАЛИЗ:', 'info');
+                
+                const targetFound = allTpResponse.data && allTpResponse.data.some(tp => tp.id === TARGET_ID);
+                if (targetFound) {
+                    addLog('✅ Торговая точка СУЩЕСТВУЕТ в базе данных', 'success');
+                    addLog('❌ Проблема в параметрах поиска или синтаксисе запроса', 'error');
+                    addLog('💡 Рекомендация: Проверить правильность формирования query parameters', 'warning');
+                } else {
+                    addLog('❌ Торговая точка НЕ СУЩЕСТВУЕТ в базе данных', 'error');
+                    addLog('💡 Рекомендация: Использовать один из существующих ID торговых точек', 'warning');
+                }
+                
+            } catch (error) {
+                addLog(`💥 КРИТИЧЕСКАЯ ОШИБКА: ${error.message}`, 'error');
+                addLog(`<div class="code">${error.stack}</div>`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Страница загружена. Автозапуск диагностики...', 'info');
+        setTimeout(debugTradingPointSearch, 1000);
+    </script>
+</body>
+</html>

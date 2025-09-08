@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔗 Тест прямого подключения к Supabase</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔗 ТЕСТ ПРЯМОГО ПОДКЛЮЧЕНИЯ К SUPABASE</h1>
+    <p>Проверка обновленного HTTP клиента с встроенными реквизитами</p>
+    
+    <button onclick="testDirectConnection()">🚀 Тест прямого подключения</button>
+    <button onclick="testTradingPointsAccess()">📍 Тест доступа к торговым точкам</button>
+    <button onclick="testNetworksAccess()">🌐 Тест доступа к сетям</button>
+    <button onclick="clearLog()">🧹 Очистить</button>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        window.testDirectConnection = async function() {
+            addLog('🔗 Начало теста прямого подключения к Supabase', 'info');
+            
+            try {
+                // Импорт обновленного HTTP клиента
+                addLog('📦 Импорт обновленного HTTP клиента...', 'info');
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                addLog('✅ HTTP клиент импортирован', 'success');
+                
+                // Тест 1: Базовое подключение к Supabase REST API
+                addLog('🏥 Тест базового подключения к Supabase REST API...', 'info');
+                
+                const healthResponse = await httpClient.get('/rest/v1/', {
+                    destination: 'supabase',
+                    timeout: 10000
+                });
+                
+                addLog('📊 Результат базового подключения:', 'info');
+                addLog(`<div class="code">
+                    Success: ${healthResponse.success}<br>
+                    Status: ${healthResponse.status}<br>
+                    Error: ${healthResponse.error || 'нет'}<br>
+                    Response Time: ${healthResponse.responseTime}ms<br>
+                    Data Type: ${typeof healthResponse.data}
+                </div>`, healthResponse.success ? 'success' : 'error');
+                
+                if (!healthResponse.success) {
+                    addLog('❌ Базовое подключение к Supabase не работает!', 'error');
+                    addLog('💡 Проверьте URL и API ключ в коде HTTP клиента', 'warning');
+                    return;
+                }
+                
+                addLog('✅ Прямое подключение к Supabase работает!', 'success');
+                
+                // Тест 2: Проверка доступа к таблицам
+                addLog('📋 Тест доступа к системным таблицам...', 'info');
+                
+                const tablesResponse = await httpClient.get('/rest/v1/', {
+                    destination: 'supabase',
+                    timeout: 10000
+                });
+                
+                if (tablesResponse.success) {
+                    addLog('✅ Доступ к REST API получен', 'success');
+                    
+                    // Показать информацию о доступных endpoints
+                    if (tablesResponse.data) {
+                        addLog(`<div class="code">
+                            Получен ответ от Supabase REST API<br>
+                            Структура: ${JSON.stringify(tablesResponse.data, null, 2)}
+                        </div>`, 'info');
+                    }
+                } else {
+                    addLog('❌ Проблемы с доступом к таблицам', 'error');
+                }
+                
+                // Тест 3: Попытка получить список networks
+                addLog('🌐 Попытка получить список сетей через прямое подключение...', 'info');
+                
+                const networksResponse = await httpClient.get('/rest/v1/networks', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code',
+                        limit: '3'
+                    }
+                });
+                
+                addLog('📊 Результат запроса сетей:', 'info');
+                addLog(`<div class="code">
+                    Success: ${networksResponse.success}<br>
+                    Status: ${networksResponse.status}<br>
+                    Count: ${networksResponse.data ? networksResponse.data.length : 0}<br>
+                    Error: ${networksResponse.error || 'нет'}
+                </div>`, networksResponse.success ? 'success' : 'error');
+                
+                if (networksResponse.success && networksResponse.data && networksResponse.data.length > 0) {
+                    addLog('✅ Сети получены через прямое подключение!', 'success');
+                    networksResponse.data.forEach((network, index) => {
+                        addLog(`<div class="code">
+                            Сеть ${index + 1}:<br>
+                            - ID: ${network.id}<br>
+                            - Название: ${network.name}<br>
+                            - External ID: ${network.external_id || 'НЕТ'}<br>
+                            - Code: ${network.code || 'НЕТ'}
+                        </div>`, 'success');
+                    });
+                } else {
+                    addLog('⚠️ Не удалось получить сети через прямое подключение', 'warning');
+                }
+                
+                addLog('🏁 Тест прямого подключения завершен', 'success');
+                
+            } catch (error) {
+                addLog(`💥 Критическая ошибка: ${error.message}`, 'error');
+                addLog(`<div class="code">${error.stack}</div>`, 'error');
+            }
+        }
+        
+        window.testTradingPointsAccess = async function() {
+            addLog('📍 Тест доступа к торговым точкам через прямое подключение', 'info');
+            
+            try {
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                
+                // Запрос торговых точек
+                const tradingPointsResponse = await httpClient.get('/rest/v1/trading_points', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,network_id',
+                        limit: '5'
+                    }
+                });
+                
+                addLog('📊 Результат запроса торговых точек:', 'info');
+                addLog(`<div class="code">
+                    Success: ${tradingPointsResponse.success}<br>
+                    Status: ${tradingPointsResponse.status}<br>
+                    Count: ${tradingPointsResponse.data ? tradingPointsResponse.data.length : 0}<br>
+                    Error: ${tradingPointsResponse.error || 'нет'}
+                </div>`, tradingPointsResponse.success ? 'success' : 'error');
+                
+                if (tradingPointsResponse.success && tradingPointsResponse.data) {
+                    tradingPointsResponse.data.forEach((tp, index) => {
+                        addLog(`<div class="code">
+                            ТП ${index + 1}:<br>
+                            - ID: ${tp.id}<br>
+                            - Название: ${tp.name}<br>
+                            - External ID: ${tp.external_id || 'НЕТ'}<br>
+                            - Network ID: ${tp.network_id}
+                        </div>`, 'success');
+                    });
+                }
+                
+            } catch (error) {
+                addLog(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        window.testNetworksAccess = async function() {
+            addLog('🌐 Тест доступа к сетям через прямое подключение', 'info');
+            
+            try {
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                
+                // Запрос сетей
+                const networksResponse = await httpClient.get('/rest/v1/networks', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code,status',
+                        limit: '10'
+                    }
+                });
+                
+                addLog('📊 Результат запроса сетей:', 'info');
+                addLog(`<div class="code">
+                    Success: ${networksResponse.success}<br>
+                    Status: ${networksResponse.status}<br>
+                    Count: ${networksResponse.data ? networksResponse.data.length : 0}<br>
+                    Error: ${networksResponse.error || 'нет'}
+                </div>`, networksResponse.success ? 'success' : 'error');
+                
+                if (networksResponse.success && networksResponse.data) {
+                    networksResponse.data.forEach((network, index) => {
+                        addLog(`<div class="code">
+                            Сеть ${index + 1}:<br>
+                            - ID: ${network.id}<br>
+                            - Название: ${network.name}<br>
+                            - External ID: ${network.external_id || 'НЕТ'}<br>
+                            - Code: ${network.code || 'НЕТ'}<br>
+                            - Status: ${network.status || 'НЕТ'}
+                        </div>`, 'success');
+                    });
+                    
+                    // Проверка на наличие сетей с external_id
+                    const networksWithExternalId = networksResponse.data.filter(n => n.external_id);
+                    addLog(`<div class="code">
+                        Сетей с external_id: ${networksWithExternalId.length}/${networksResponse.data.length}<br>
+                        Готовность для API: ${networksWithExternalId.length > 0 ? '✅ ГОТОВО' : '❌ НЕТ external_id'}
+                    </div>`, networksWithExternalId.length > 0 ? 'success' : 'warning');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Страница загружена. Нажмите кнопки для тестирования прямого подключения.', 'info');
+    </script>
+</body>
+</html>

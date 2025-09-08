@@ -48,11 +48,8 @@ class TradingPointScanService {
       // Симуляция API запроса к торговому API торговой точки
       await this.delay(1500);
 
-      // Симуляция различных результатов сканирования
-      const mockResults = this.generateMockScanResults(tradingPointId);
-      
-      console.log('Результат сканирования:', mockResults);
-      return mockResults;
+      // ❌ Mock сканирование удалено - нужна реальная интеграция с API торговой сети
+      throw new Error('Сканирование торговых точек требует настройки реального API в разделе "Обмен данными"');
       
     } catch (error) {
       console.error('Ошибка при сканировании торговой точки:', error);
@@ -146,83 +143,10 @@ class TradingPointScanService {
   }
 
   /**
-   * Генерирует mock результаты сканирования
+   * ❌ Mock генерация удалена - реальные данные через API
    */
   private generateMockScanResults(tradingPointId: string): TradingPointScanResult {
-    const mockEquipment: TradingPointApiEquipment[] = [
-      {
-        name: "ТРК №3 - Обнаружена через API",
-        type: "Терминал самообслуживания", 
-        system_type: "self_service_terminal",
-        serial_number: `TSO_API_${Date.now()}`,
-        status: "online",
-        location: "Остров 2",
-        installation_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        components: [
-          {
-            name: "Картридер банковских карт NFC",
-            type: "PAYMENT", 
-            status: "online",
-            serial_number: `CR_${Date.now()}`,
-            model: "Ingenico iCT250"
-          },
-          {
-            name: "Принтер чеков термальный",
-            type: "PRINTER",
-            status: "online", 
-            serial_number: `PRT_${Date.now()}`,
-            model: "Epson TM-T88V"
-          },
-          {
-            name: "Дисплей клиента LCD",
-            type: "DISPLAY",
-            status: "online",
-            serial_number: `DSP_${Date.now()}`,
-            model: "LCD 15.6 inch"
-          }
-        ]
-      },
-      {
-        name: "Резервуар №4 - Обнаружен через API",
-        type: "Резервуар подземный",
-        system_type: "fuel_tank", 
-        serial_number: `TANK_API_${Date.now()}`,
-        status: "online",
-        location: "Зона резервуаров",
-        installation_date: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-        components: [
-          {
-            name: "Датчик уровня топлива поплавковый",
-            type: "SENSOR",
-            status: "online",
-            serial_number: `LVL_${Date.now()}`,
-            model: "Gilbarco Veeder-Root TLS-350"
-          },
-          {
-            name: "Датчик температуры PT100",
-            type: "SENSOR", 
-            status: "online",
-            serial_number: `TEMP_${Date.now()}`,
-            model: "PT100 Probe"
-          },
-          {
-            name: "Датчик товарной воды",
-            type: "SENSOR",
-            status: "offline", // Один из датчиков неисправен
-            serial_number: `H2O_${Date.now()}`,
-            model: "Water Detection Probe"
-          }
-        ]
-      }
-    ];
-
-    return {
-      success: true,
-      equipment_found: mockEquipment,
-      components_found: mockEquipment.reduce((acc, eq) => acc.concat(eq.components || []), [] as TradingPointApiComponent[]),
-      scan_timestamp: new Date().toISOString(),
-      trading_point_id: tradingPointId
-    };
+    throw new Error('Мок данные удалены - используйте реальное API');
   }
 
   /**

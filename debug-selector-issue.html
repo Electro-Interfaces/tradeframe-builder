@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔧 Диагностика проблемы с селекторами</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; background: #1e293b; color: white; padding: 20px; line-height: 1.6; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .critical { background: #ff6b35; color: white; padding: 20px; border-radius: 8px; margin: 20px 0; font-weight: bold; }
+        .section { background: #374151; padding: 20px; border-radius: 8px; margin: 15px 0; }
+        .success { background: #10b981; color: white; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .error { background: #dc2626; color: white; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .warning { background: #f59e0b; color: black; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .debug { background: #0f172a; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; overflow-x: auto; margin: 10px 0; white-space: pre-wrap; }
+        button { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin: 5px; }
+        button:hover { background: #2563eb; }
+        .info { background: #3b82f6; color: white; padding: 15px; border-radius: 6px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Диагностика проблемы с селекторами</h1>
+        
+        <div class="critical">
+            <h2>🚨 ПРОБЛЕМА ОБНАРУЖЕНА!</h2>
+            <p>PointSelect показывает ВСЕ торговые точки из базы, а не только точки выбранной сети!</p>
+        </div>
+
+        <div class="section">
+            <h3>📋 Что тестируем:</h3>
+            <p><strong>Сеть 15 "Норд Лайн":</strong> должна показывать только станцию 4</p>
+            <p><strong>UUID сети 15:</strong> b5e25b51-a950-481e-a09d-ac25e6b5d6ab</p>
+            <p><strong>UUID станции 4:</strong> 6969b08d-1cbe-45c2-ae9c-8002c7022b59</p>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Диагностические тесты:</h3>
+            <button onclick="testNetwork15TradingPoints()">🏪 Тест: Торговые точки сети 15</button>
+            <button onclick="testAllTradingPoints()">📊 Тест: Все торговые точки в базе</button>
+            <button onclick="testPointSelectLogic()">🔍 Тест: Логика PointSelect</button>
+            <button onclick="openMainApp()">🌐 Главное приложение</button>
+            <button onclick="clearResults()">🗑️ Очистить</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Правильные настройки Supabase
+        const CORRECT_URL = 'https://dlvggjmirqhmdylfwngm.supabase.co';
+        const CORRECT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsdmdnam1pcnFobWR5bGZ3bmdtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNTY5Njg2NSwiZXhwIjoyMDUxMjcyODY1fQ.SLOvfECCNMeWX-V7Hl4mjfyDGfTLUmLF9GCn3R3NfAY';
+
+        // Константы с правильными UUID
+        const NETWORK_15_UUID = 'b5e25b51-a950-481e-a09d-ac25e6b5d6ab';
+        const STATION_4_UUID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+
+        window.testNetwork15TradingPoints = async function() {
+            addResult('🏪 Тестируем торговые точки ТОЛЬКО сети 15...', 'info');
+
+            try {
+                // Запрос точно как в tradingPointsService.getByNetworkId()
+                const endpoint = `${CORRECT_URL}/rest/v1/trading_points?select=*&eq.network_id=${NETWORK_15_UUID}&order=name`;
+                
+                addResult(`🔗 Запрос: ${endpoint}`, 'debug');
+
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'apikey': CORRECT_KEY,
+                        'Authorization': `Bearer ${CORRECT_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const count = data?.length || 0;
+
+                addResult(`📊 Найдено торговых точек в сети 15: ${count}`, count === 1 ? 'success' : 'error');
+
+                if (count === 0) {
+                    addResult('❌ ПРОБЛЕМА: В сети 15 не найдено торговых точек!', 'error');
+                } else if (count === 1) {
+                    const point = data[0];
+                    addResult('✅ ПРАВИЛЬНО: В сети 15 найдена только одна торговая точка', 'success');
+                    addResult(`📍 Название: ${point.name}`, 'success');
+                    addResult(`🔢 Station code: ${point.station_code}`, 'success');
+                    addResult(`🆔 UUID: ${point.id}`, 'success');
+                    
+                    if (point.id === STATION_4_UUID) {
+                        addResult('✅ UUID СОВПАДАЕТ с ожидаемым UUID станции 4!', 'success');
+                    } else {
+                        addResult('❌ UUID НЕ СОВПАДАЕТ с ожидаемым UUID станции 4!', 'error');
+                        addResult(`Ожидалось: ${STATION_4_UUID}`, 'error');
+                        addResult(`Получено: ${point.id}`, 'error');
+                    }
+                } else {
+                    addResult(`❌ ПРОБЛЕМА: В сети 15 найдено ${count} торговых точек, а должна быть только одна!`, 'error');
+                    
+                    data.forEach((point, index) => {
+                        addResult(`${index + 1}. ${point.name} (UUID: ${point.id}, Station code: ${point.station_code})`, 'warning');
+                    });
+                }
+
+            } catch (error) {
+                addResult(`❌ Ошибка тестирования: ${error.message}`, 'error');
+            }
+        }
+
+        window.testAllTradingPoints = async function() {
+            addResult('📊 Тестируем ВСЕ торговые точки в базе...', 'info');
+
+            try {
+                const endpoint = `${CORRECT_URL}/rest/v1/trading_points?select=id,name,network_id,station_code&order=name`;
+                
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'apikey': CORRECT_KEY,
+                        'Authorization': `Bearer ${CORRECT_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const totalCount = data?.length || 0;
+
+                addResult(`📊 ВСЕГО торговых точек в базе: ${totalCount}`, 'info');
+
+                // Группируем по сетям
+                const byNetwork = {};
+                data.forEach(point => {
+                    const netId = point.network_id;
+                    if (!byNetwork[netId]) {
+                        byNetwork[netId] = [];
+                    }
+                    byNetwork[netId].push(point);
+                });
+
+                // Показываем распределение по сетям
+                Object.keys(byNetwork).forEach(networkId => {
+                    const points = byNetwork[networkId];
+                    const isNetwork15 = networkId === NETWORK_15_UUID;
+                    const status = isNetwork15 ? 'success' : 'info';
+                    
+                    addResult(`🏢 Сеть ${networkId}: ${points.length} точек${isNetwork15 ? ' (СЕТЬ 15!)' : ''}`, status);
+                    
+                    if (isNetwork15) {
+                        points.forEach(point => {
+                            const isStation4 = point.id === STATION_4_UUID;
+                            addResult(`  📍 ${point.name} (Station: ${point.station_code}, UUID: ${point.id})${isStation4 ? ' ⭐ СТАНЦИЯ 4!' : ''}`, isStation4 ? 'success' : 'warning');
+                        });
+                    }
+                });
+
+            } catch (error) {
+                addResult(`❌ Ошибка загрузки всех точек: ${error.message}`, 'error');
+            }
+        }
+
+        window.testPointSelectLogic = function() {
+            addResult('🔍 Проверяем логику PointSelect компонента...', 'info');
+            
+            addResult('📋 Инструкция по диагностике:', 'info');
+            addResult('1. Откройте главное приложение (кнопка ниже)', 'info');
+            addResult('2. Откройте DevTools (F12) → Console', 'info');
+            addResult('3. Выберите сеть 15 "Норд Лайн"', 'info');
+            addResult('4. Следите за логами в консоли:', 'info');
+            
+            addResult('Ожидаемые логи:', 'debug');
+            addResult('🔄 Loading trading points for network: b5e25b51-a950-481e-a09d-ac25e6b5d6ab\n✅ Loaded 1 trading points for network b5e25b51-a950-481e-a09d-ac25e6b5d6ab', 'debug');
+            
+            addResult('5. Убедитесь, что в селекторе торговых точек показана ТОЛЬКО станция 4', 'info');
+            addResult('6. Если показаны все точки - значит проблема в передаче networkId', 'warning');
+        }
+
+        window.openMainApp = function() {
+            addResult('🌐 Открываем главное приложение для проверки...', 'info');
+            addResult('📋 После выбора сети 15 проверьте консоль браузера!', 'warning');
+            window.open('http://localhost:3000', '_blank');
+        }
+
+        window.clearResults = function() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type;
+            if (type === 'debug') {
+                div.innerHTML = `<pre>${message}</pre>`;
+            } else {
+                div.textContent = message;
+            }
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        // Автоматически запускаем тест при загрузке
+        window.addEventListener('load', function() {
+            addResult('🔧 Диагностика селекторов готова', 'info');
+            addResult('📊 Запускаем автотест торговых точек сети 15...', 'info');
+            testNetwork15TradingPoints();
+        });
+    </script>
+</body>
+</html>

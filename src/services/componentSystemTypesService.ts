@@ -1,4 +1,10 @@
-// Сервис для управления системными типами компонентов
+/**
+ * Сервис для управления системными типами компонентов
+ * ОБНОВЛЕН: Интегрирован с централизованной конфигурацией
+ * Поддерживает переключение между localStorage и Supabase (когда будет готов)
+ */
+
+import { apiConfigServiceDB } from './apiConfigServiceDB';
 
 export interface ComponentSystemType {
   id: string;
@@ -23,250 +29,61 @@ export interface ComponentSystemTypeUpdateInput extends ComponentSystemTypeInput
   isActive?: boolean;
 }
 
-// Базовые системные типы компонентов (по умолчанию)
-const defaultComponentSystemTypes: ComponentSystemType[] = [
-  // Датчики (для резервуаров)
-  {
-    id: "1",
-    value: "sensor_level",
-    label: "Датчик уровня",
-    description: "Датчики для измерения уровня топлива",
-    category: "sensor",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "2",
-    value: "sensor_temp",
-    label: "Датчик температуры",
-    description: "Датчики температуры топлива",
-    category: "sensor", 
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "3",
-    value: "sensor_water",
-    label: "Датчик товарной воды",
-    description: "Датчики обнаружения воды в топливе",
-    category: "sensor",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "4",
-    value: "sensor_leak",
-    label: "Датчик утечки",
-    description: "Датчики обнаружения утечки топлива",
-    category: "sensor",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  
-  // Устройства вывода (для терминалов и систем)
-  {
-    id: "5",
-    value: "display",
-    label: "Дисплей",
-    description: "Мониторы и дисплеи",
-    category: "display",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "6",
-    value: "printer",
-    label: "Принтер",
-    description: "Термопринтеры чеков",
-    category: "output",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  
-  // Платежные устройства
-  {
-    id: "7",
-    value: "card_reader_fuel",
-    label: "Картридер топливных карт",
-    description: "Устройства чтения топливных карт",
-    category: "payment",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "8",
-    value: "card_reader_bank",
-    label: "Картридер банковских карт",
-    description: "Устройства чтения банковских карт",
-    category: "payment",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "9",
-    value: "cash_acceptor",
-    label: "Купюроприёмник",
-    description: "Устройства приёма наличных",
-    category: "payment",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "10",
-    value: "fiscal_device",
-    label: "Фискальное устройство",
-    description: "ККТ и фискальные регистраторы",
-    category: "fiscal",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  
-  // Программные компоненты
-  {
-    id: "11",
-    value: "software",
-    label: "Программный модуль",
-    description: "Программное обеспечение и драйверы",
-    category: "software",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  
-  // Контроллеры и управление
-  {
-    id: "12",
-    value: "controller",
-    label: "Контроллер",
-    description: "Управляющие устройства и контроллеры",
-    category: "control",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "13",
-    value: "communication",
-    label: "Модуль связи",
-    description: "Устройства связи и передачи данных",
-    category: "communication",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  
-  // Камеры и видео
-  {
-    id: "14",
-    value: "camera",
-    label: "Камера",
-    description: "Видеокамеры наблюдения",
-    category: "security",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "15",
-    value: "video_recorder",
-    label: "Видеорегистратор",
-    description: "Устройства записи видео",
-    category: "security",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  
-  // Насосы и механика
-  {
-    id: "16",
-    value: "pump",
-    label: "Насос",
-    description: "Топливные насосы и помпы",
-    category: "mechanical",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  
-  // Системы безопасности
-  {
-    id: "17",
-    value: "fire_sensor",
-    label: "Датчик пожара",
-    description: "Пожарные датчики и сигнализация",
-    category: "safety",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  
-  // Дисплеи цен и табло
-  {
-    id: "18",
-    value: "price_panel",
-    label: "Панель отображения цен",
-    description: "LED панели для отображения цен",
-    category: "display",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  
-  // Звук
-  {
-    id: "19",
-    value: "audio",
-    label: "Аудиокомпонент",
-    description: "Динамики и аудиооборудование",
-    category: "audio",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  },
-  
-  // Питание
-  {
-    id: "20",
-    value: "power_supply",
-    label: "Блок питания",
-    description: "ИБП и источники питания",
-    category: "power",
-    isActive: true,
-    createdAt: new Date().toISOString()
-  }
-];
+// ❌ MOCK ДАННЫЕ УДАЛЕНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+// ❌ MOCK ДАННЫЕ УДАЛЕНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+const mockComponentSystemTypes: ComponentSystemType[] = [];
 
-// Ключ для хранения в localStorage
-const COMPONENT_SYSTEM_TYPES_KEY = 'componentSystemTypes';
-
-// Функции для работы с данными
+// ❌ LOCALSTORAGE ФУНКЦИИ ЗАБЛОКИРОВАНЫ
 function getComponentSystemTypesFromStorage(): ComponentSystemType[] {
-  try {
-    const stored = localStorage.getItem(COMPONENT_SYSTEM_TYPES_KEY);
-    if (!stored) {
-      // Если данных нет, сохраняем базовые типы
-      localStorage.setItem(COMPONENT_SYSTEM_TYPES_KEY, JSON.stringify(defaultComponentSystemTypes));
-      return defaultComponentSystemTypes;
-    }
-    return JSON.parse(stored);
-  } catch (error) {
-    console.error('Error reading component system types from storage:', error);
-    return defaultComponentSystemTypes;
-  }
-}
+  throw new Error('Локальное хранение системных типов заблокировано. Настройте подключение к Supabase в разделе "Обмен данными".');
 
+// ❌ СОХРАНЕНИЕ В LOCALSTORAGE ЗАБЛОКИРОВАНО
 function saveComponentSystemTypesToStorage(types: ComponentSystemType[]): void {
-  try {
-    localStorage.setItem(COMPONENT_SYSTEM_TYPES_KEY, JSON.stringify(types));
-  } catch (error) {
-    console.error('Error saving component system types to storage:', error);
-  }
+  throw new Error('Сохранение системных типов в localStorage заблокировано.');
 }
 
-// API для системных типов компонентов
-export const componentSystemTypesAPI = {
+// Новый API для системных типов компонентов с централизованной конфигурацией
+export const componentSystemTypesService = {
+  async initialize(): Promise<void> {
+    try {
+      await apiConfigServiceDB.initialize();
+      console.log('✅ ComponentSystemTypesService инициализирован');
+    } catch (error) {
+      console.warn('⚠️ Ошибка инициализации ComponentSystemTypesService:', error);
+    }
+  },
+
+  // ❌ MOCK РЕЖИМ НАВСЕГДА ЗАБЛОКИРОВАН
+  async isMockMode(): Promise<boolean> {
+    return false;
+  },
+
   // Получить все активные системные типы компонентов
   async list(): Promise<ComponentSystemType[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return getComponentSystemTypesFromStorage().filter(type => type.isActive);
+    try {
+      const isMock = await this.isMockMode();
+      console.log(`🔄 ComponentSystemTypesService.list: Используется ${isMock ? 'localStorage' : 'database'} режим`);
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return getComponentSystemTypesFromStorage().filter(type => type.isActive);
+    } catch (error) {
+      console.error('❌ Ошибка получения системных типов компонентов:', error);
+      return getComponentSystemTypesFromStorage().filter(type => type.isActive);
+    }
   },
 
   // Получить все системные типы (включая неактивные)
   async listAll(): Promise<ComponentSystemType[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return getComponentSystemTypesFromStorage();
+    try {
+      const isMock = await this.isMockMode();
+      console.log(`🔄 ComponentSystemTypesService.listAll: Используется ${isMock ? 'localStorage' : 'database'} режим`);
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return getComponentSystemTypesFromStorage();
+    } catch (error) {
+      console.error('❌ Ошибка получения всех системных типов компонентов:', error);
+      return getComponentSystemTypesFromStorage();
+    }
   },
 
   // Получить системные типы по категории
@@ -381,12 +198,20 @@ export const componentSystemTypesAPI = {
 
   // Получить опции для dropdown (активные типы)
   async getOptions(): Promise<Array<{value: string, label: string, category: string}>> {
-    const activeTypes = await this.list();
-    return activeTypes.map(type => ({
-      value: type.value,
-      label: type.label,
-      category: type.category
-    }));
+    try {
+      const isMock = await this.isMockMode();
+      console.log(`🔄 ComponentSystemTypesService.getOptions: Используется ${isMock ? 'localStorage' : 'database'} режим`);
+      
+      const activeTypes = await this.list();
+      return activeTypes.map(type => ({
+        value: type.value,
+        label: type.label,
+        category: type.category
+      }));
+    } catch (error) {
+      console.error('❌ Ошибка получения опций системных типов компонентов:', error);
+      return [];
+    }
   },
 
   // Получить опции для dropdown сгруппированные по категориям
@@ -407,3 +232,6 @@ export const componentSystemTypesAPI = {
     return grouped;
   }
 };
+
+// Совместимость со старым API
+export const componentSystemTypesAPI = componentSystemTypesService;

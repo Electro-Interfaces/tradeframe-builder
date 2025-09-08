@@ -1,493 +1,574 @@
 /**
- * Supabase-based prices service
- * Заменяет localStorage mock данные на реальную работу с БД
+ * Prices Supabase Service - Новый подход к управлению ценами
+ * УПРОЩЕН: Убраны все fallback режимы и checkConnection
+ * Прямые вызовы Supabase с четкими ошибками
+ * 
+ * Особенности:
+ * - Автоматическая синхронизация с резервуарами
+ * - Прямая интеграция с Supabase
+ * - Журнал изменений цен
+ * - Нет сложных маппингов UUID
  */
 
-import { supabaseService } from './supabaseServiceClient';
+// 🔥 НОВЫЙ ПОДХОД: Используем API торговой сети для получения цен и видов топлива
+import { supabase } from './supabaseClientBrowser';
+import { tradingNetworkAPI } from './tradingNetworkAPI';
+import { httpClient } from './universalHttpClient';
+import { nomenclatureService } from './nomenclatureService';
 
-// Типы данных для работы с БД
+// Типы данных для нового сервиса цен
 export interface FuelPrice {
   id: string;
-  package_id?: string;
   trading_point_id: string;
-  fuel_type_id: string;
-  nomenclature_id?: string;
-  price_net: number; // в копейках
-  vat_rate: number;
-  price_gross: number; // в копейках
-  source: 'manual' | 'import' | 'api' | 'package' | 'system';
-  currency: string;
-  unit: string;
-  valid_from: string;
-  valid_to?: string;
-  is_active: boolean;
-  created_by: string;
-  reason?: string;
-  metadata: any;
+  fuel_type: string;
+  fuel_code: string;
+  price_net: number; // цена без НДС в копейках
+  vat_rate: number; // ставка НДС в процентах
+  price_gross: number; // цена с НДС в копейках  
+  unit: string; // единица измерения (Л, кг)
+  currency: string; // валюта (RUB)
+  applied_from: string; // дата применения ISO
+  status: 'active' | 'scheduled' | 'expired';
+  source: 'manual' | 'api_sync' | 'import';
   created_at: string;
   updated_at: string;
-  
-  // Joined data
-  fuel_types?: {
-    name: string;
-    code: string;
-    category: string;
-  };
-  trading_points?: {
-    name: string;
-  };
-  nomenclature?: {
-    name: string;
-    internal_code: string;
-  };
-  users?: {
-    name: string;
-  };
-}
-
-export interface PricePackage {
-  id: string;
-  network_id: string;
-  name: string;
-  code: string;
-  description?: string;
-  trading_point_ids: string[];
-  status: 'draft' | 'pending' | 'approved' | 'active' | 'archived' | 'cancelled';
-  valid_from: string;
-  valid_to?: string;
-  approved_by?: string;
-  approved_at?: string;
-  created_by: string;
-  metadata: any;
-  created_at: string;
-  updated_at: string;
-  
-  // Joined data
-  networks?: {
-    name: string;
-    code: string;
-  };
-  users?: {
-    name: string;
-  };
+  created_by?: string; // ID пользователя
 }
 
 export interface PriceHistoryEntry {
   id: string;
   trading_point_id: string;
-  fuel_type_id: string;
-  price: number;
-  effective_date: string;
-  reason?: string;
-  set_by?: string;
-  metadata: any;
+  fuel_type: string;
+  old_price?: number;
+  new_price: number;
+  action: 'create' | 'update' | 'sync' | 'import';
+  source: 'manual' | 'api_sync' | 'import';
   created_at: string;
-  
-  // Joined data
-  fuel_types?: {
-    name: string;
-    code: string;
-  };
-  trading_points?: {
-    name: string;
-  };
-  users?: {
-    name: string;
-  };
+  created_by?: string;
+  notes?: string;
+}
+
+export interface FuelTypeInfo {
+  fuel_type: string;
+  fuel_code: string;
+  tanks_count: number;
+  total_volume: number;
+  current_level: number;
+  has_price: boolean;
+  current_price?: FuelPrice;
 }
 
 class PricesSupabaseService {
-  private client = supabaseService;
-  
-  constructor() {
-    // Используем готовый service клиент
-    console.log('🔧 PricesSupabaseService initialized with service client');
-  }
-
   /**
-   * Получить текущие активные цены
+   * Получить маппинг номенклатуры для сети
    */
-  async getCurrentPrices(params: {
-    tradingPointId?: string;
-    networkId?: string;
-    fuelTypeId?: string;
-  } = {}): Promise<FuelPrice[]> {
+  private async getNomenclatureMapping(networkId: string): Promise<Map<string, { name: string, code: string }>> {
+    console.log(`📚 [PRICES SERVICE] Загружаем номенклатуру для сети ${networkId}`);
+    
     try {
-      let query = this.client.from('prices');
+      const nomenclature = await nomenclatureService.getNomenclature({ networkId, status: 'active' });
+      const mapping = new Map<string, { name: string, code: string }>();
       
-      // Добавляем связанные данные
-      query = query.select(`
-        *,
-        fuel_types(name, code, category),
-        trading_points(name),
-        nomenclature(name, internal_code),
-        users(name)
-      `);
-      
-      // Фильтры
-      if (params.tradingPointId) {
-        query = query.eq('trading_point_id', params.tradingPointId);
-      }
-      
-      if (params.fuelTypeId) {
-        query = query.eq('fuel_type_id', params.fuelTypeId);
-      }
-      
-      // Только активные цены
-      query = query.eq('is_active', true);
-      
-      // Только актуальные по времени
-      const now = new Date().toISOString();
-      query = query.lte('valid_from', now);
-      
-      // Сортировка
-      query = query.order('valid_from', { ascending: false });
-      query = query.limit(100);
-      
-      const result = await query;
-      
-      if (result.error) {
-        console.error('Error fetching current prices:', result.error);
-        return [];
-      }
-      
-      return result.data as FuelPrice[];
-      
-    } catch (error) {
-      console.error('Exception in getCurrentPrices:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Получить активную цену для топлива на торговой точке
-   */
-  async getActivePrice(tradingPointId: string, fuelTypeId: string): Promise<FuelPrice | null> {
-    try {
-      // Используем функцию из БД
-      const result = await this.client.select('get_active_price', {
-        limit: 1
-      });
-      
-      // Пока функция не работает, используем обычный запрос
-      const query = this.client
-        .from('prices')
-        .select(`
-          *,
-          fuel_types(name, code, category),
-          trading_points(name)
-        `)
-        .eq('trading_point_id', tradingPointId)
-        .eq('fuel_type_id', fuelTypeId)
-        .eq('is_active', true)
-        .lte('valid_from', new Date().toISOString())
-        .order('valid_from', { ascending: false })
-        .limit(1);
-      
-      const queryResult = await query;
-      
-      if (queryResult.error) {
-        console.error('Error fetching active price:', queryResult.error);
-        return null;
-      }
-      
-      return queryResult.data?.[0] as FuelPrice || null;
-      
-    } catch (error) {
-      console.error('Exception in getActivePrice:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Создать или обновить цену
-   */
-  async upsertPrice(priceData: {
-    trading_point_id: string;
-    fuel_type_id: string;
-    nomenclature_id?: string;
-    price_net: number;
-    vat_rate?: number;
-    source?: 'manual' | 'import' | 'api' | 'package' | 'system';
-    valid_from: string;
-    valid_to?: string;
-    created_by: string;
-    reason?: string;
-    metadata?: any;
-  }): Promise<FuelPrice | null> {
-    try {
-      // Рассчитываем цену с НДС если не указана
-      const vatRate = priceData.vat_rate || 20;
-      const priceGross = Math.round(priceData.price_net * (1 + vatRate / 100));
-      
-      const insertData = {
-        trading_point_id: priceData.trading_point_id,
-        fuel_type_id: priceData.fuel_type_id,
-        nomenclature_id: priceData.nomenclature_id,
-        price_net: priceData.price_net,
-        vat_rate: vatRate,
-        price_gross: priceGross,
-        source: priceData.source || 'manual',
-        currency: 'RUB',
-        unit: 'L',
-        valid_from: priceData.valid_from,
-        valid_to: priceData.valid_to,
-        is_active: true,
-        created_by: priceData.created_by,
-        reason: priceData.reason,
-        metadata: priceData.metadata || {}
-      };
-      
-      // Деактивируем старые цены для этого топлива и точки
-      await this.client.update('prices', 
-        { is_active: false }, 
-        { 
-          trading_point_id: priceData.trading_point_id,
-          fuel_type_id: priceData.fuel_type_id,
-          is_active: true
+      nomenclature.forEach(item => {
+        // Маппинг по network_api_code
+        if (item.networkApiCode) {
+          mapping.set(item.networkApiCode, { name: item.name, code: item.internalCode });
+          console.log(`📚 [NOMENCLATURE] API код "${item.networkApiCode}" -> внутреннее название "${item.name}"`);
         }
-      );
-      
-      // Вставляем новую цену
-      const result = await this.client.insert('prices', insertData);
-      
-      if (result.error) {
-        console.error('Error inserting price:', result.error);
-        return null;
-      }
-      
-      return result.data?.[0] as FuelPrice || null;
-      
-    } catch (error) {
-      console.error('Exception in upsertPrice:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Получить пакеты цен
-   */
-  async getPricePackages(params: {
-    networkId?: string;
-    status?: string;
-    limit?: number;
-  } = {}): Promise<PricePackage[]> {
-    try {
-      let query = this.client
-        .from('price_packages')
-        .select(`
-          *,
-          networks(name, code),
-          users(name)
-        `);
-      
-      if (params.networkId) {
-        query = query.eq('network_id', params.networkId);
-      }
-      
-      if (params.status) {
-        query = query.eq('status', params.status);
-      }
-      
-      query = query.order('created_at', { ascending: false });
-      
-      if (params.limit) {
-        query = query.limit(params.limit);
-      }
-      
-      const result = await query;
-      
-      if (result.error) {
-        console.error('Error fetching price packages:', result.error);
-        return [];
-      }
-      
-      return result.data as PricePackage[];
-      
-    } catch (error) {
-      console.error('Exception in getPricePackages:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Создать пакет цен
-   */
-  async createPricePackage(packageData: {
-    network_id: string;
-    name: string;
-    code: string;
-    description?: string;
-    trading_point_ids: string[];
-    valid_from: string;
-    valid_to?: string;
-    created_by: string;
-  }): Promise<PricePackage | null> {
-    try {
-      const insertData = {
-        ...packageData,
-        status: 'draft',
-        metadata: {}
-      };
-      
-      const result = await this.client.insert('price_packages', insertData);
-      
-      if (result.error) {
-        console.error('Error creating price package:', result.error);
-        return null;
-      }
-      
-      return result.data?.[0] as PricePackage || null;
-      
-    } catch (error) {
-      console.error('Exception in createPricePackage:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Получить историю цен
-   */
-  async getPriceHistory(params: {
-    tradingPointId?: string;
-    fuelTypeId?: string;
-    limit?: number;
-  } = {}): Promise<PriceHistoryEntry[]> {
-    try {
-      let query = this.client
-        .from('price_history')
-        .select(`
-          *,
-          fuel_types(name, code),
-          trading_points(name),
-          users(name)
-        `);
-      
-      if (params.tradingPointId) {
-        query = query.eq('trading_point_id', params.tradingPointId);
-      }
-      
-      if (params.fuelTypeId) {
-        query = query.eq('fuel_type_id', params.fuelTypeId);
-      }
-      
-      query = query.order('effective_date', { ascending: false });
-      
-      if (params.limit) {
-        query = query.limit(params.limit);
-      }
-      
-      const result = await query;
-      
-      if (result.error) {
-        console.error('Error fetching price history:', result.error);
-        return [];
-      }
-      
-      return result.data as PriceHistoryEntry[];
-      
-    } catch (error) {
-      console.error('Exception in getPriceHistory:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Добавить запись в историю цен (при изменении цены)
-   */
-  async addPriceHistoryEntry(historyData: {
-    trading_point_id: string;
-    fuel_type_id: string;
-    price: number;
-    effective_date: string;
-    reason?: string;
-    set_by?: string;
-    metadata?: any;
-  }): Promise<boolean> {
-    try {
-      const result = await this.client.insert('price_history', {
-        ...historyData,
-        metadata: historyData.metadata || {}
+        
+        // Маппинг по внешним кодам
+        item.externalCodes.forEach(extCode => {
+          mapping.set(extCode.externalCode, { name: item.name, code: item.internalCode });
+          console.log(`📚 [NOMENCLATURE] Внешний код "${extCode.externalCode}" (${extCode.systemType}) -> внутреннее название "${item.name}"`);
+        });
       });
       
-      if (result.error) {
-        console.error('Error adding price history entry:', result.error);
-        return false;
-      }
-      
-      return true;
-      
+      console.log(`✅ [NOMENCLATURE] Загружен маппинг для ${mapping.size} кодов`);
+      return mapping;
     } catch (error) {
-      console.error('Exception in addPriceHistoryEntry:', error);
-      return false;
+      console.error('❌ [NOMENCLATURE] Ошибка загрузки номенклатуры:', error);
+      return new Map();
     }
   }
 
   /**
-   * Получить типы топлива
+   * Получить информацию о видах топлива для торговой точки
+   * 🔥 НОВАЯ ЛОГИКА: Сопоставляем данные API с номенклатурой
    */
-  async getFuelTypes(): Promise<Array<{
-    id: string;
-    name: string;
-    code: string;
-    category: string;
-    is_active: boolean;
-  }>> {
+  async getFuelTypesInfo(tradingPointId: string): Promise<FuelTypeInfo[]> {
+    console.log(`🔥 [PRICES SERVICE] Получение видов топлива из API торговой сети для ${tradingPointId}`);
+    
     try {
-      const result = await this.client
-        .from('fuel_types')
-        .select('id, name, code, category, is_active')
-        .eq('is_active', true)
-        .order('name');
-      
-      if (result.error) {
-        console.error('Error fetching fuel types:', result.error);
-        return [];
+      // 1. Получаем маппинг торговой точки на систему и станцию API
+      const { data: tradingPoint, error: tpError } = await supabase
+        .from('trading_points')
+        .select('id, name, external_id, network_id')
+        .eq('id', tradingPointId)
+        .single();
+
+      if (tpError || !tradingPoint) {
+        console.error('❌ [PRICES SERVICE] Ошибка загрузки торговой точки:', tpError);
+        // Если не найдена в БД, возвращаем стандартный набор
+        return this.getStandardFuelTypes(tradingPointId);
       }
-      
-      return result.data || [];
-      
+
+      console.log(`📍 [PRICES SERVICE] Торговая точка: ${tradingPoint.name}, external_id: ${tradingPoint.external_id}`);
+
+      // 2. Получаем сеть для определения system ID
+      const { data: network, error: netError } = await supabase
+        .from('networks')
+        .select('external_id')
+        .eq('id', tradingPoint.network_id)
+        .single();
+
+      if (netError || !network) {
+        console.error('❌ [PRICES SERVICE] Ошибка загрузки сети:', netError);
+        return this.getStandardFuelTypes(tradingPointId);
+      }
+
+      const systemId = network.external_id || '15'; 
+      const stationId = tradingPoint.external_id || '4';
+
+      console.log(`🌐 [PRICES SERVICE] Запрашиваем цены из API: system=${systemId}, station=${stationId}`);
+
+      // 3. Загружаем маппинг номенклатуры для сети  
+      const nomenclatureMapping = await this.getNomenclatureMapping(tradingPoint.network_id);
+
+      // 4. Запрашиваем цены из торгового API
+      try {
+        // Используем правильный endpoint для получения цен
+        const pricesResponse = await httpClient.get<any>('/v1/prices', {
+          destination: 'external-api',
+          queryParams: {
+            system: systemId,
+            station: stationId
+          }
+        });
+
+        console.log(`📊 [PRICES SERVICE] Ответ API:`, pricesResponse);
+        console.log(`📊 [PRICES SERVICE] Тип данных:`, typeof pricesResponse.data);
+        console.log(`📊 [PRICES SERVICE] Является массивом:`, Array.isArray(pricesResponse.data));
+        console.log(`📊 [PRICES SERVICE] Ключи данных:`, pricesResponse.data ? Object.keys(pricesResponse.data) : 'нет данных');
+
+        if (pricesResponse.success && pricesResponse.data) {
+          return this.parseFuelTypesFromAPI(pricesResponse.data, tradingPointId, nomenclatureMapping);
+        } else {
+          throw new Error(`API вернул неуспешный ответ или пустые данные: ${pricesResponse.error || 'неизвестная ошибка'}`);
+        }
+      } catch (apiError) {
+        console.error(`❌ [PRICES SERVICE] Ошибка получения данных из внешней системы:`, apiError);
+        throw new Error(`Не удалось загрузить цены из внешней системы: ${apiError instanceof Error ? apiError.message : 'неизвестная ошибка'}`);
+      }
+
     } catch (error) {
-      console.error('Exception in getFuelTypes:', error);
+      console.error('❌ [PRICES SERVICE] Критическая ошибка при загрузке цен:', error);
+      throw error; // Пробрасываем ошибку дальше, не скрываем её
+    }
+  }
+
+  /**
+   * Парсинг данных о топливе из API с использованием номенклатуры
+   */
+  private parseFuelTypesFromAPI(apiData: any, tradingPointId: string, nomenclatureMapping: Map<string, { name: string, code: string }>): FuelTypeInfo[] {
+    console.log(`🔍 [PRICES SERVICE PARSER] Начинаем парсинг данных:`, apiData);
+    console.log(`🔍 [PRICES SERVICE PARSER] Тип данных: ${typeof apiData}`);
+    console.log(`🔍 [PRICES SERVICE PARSER] Является массивом: ${Array.isArray(apiData)}`);
+    
+    const fuelTypesInfo: FuelTypeInfo[] = [];
+
+    // API может вернуть разные форматы
+    if (Array.isArray(apiData)) {
+      console.log(`🔍 [PRICES SERVICE PARSER] Обрабатываем как массив, длина: ${apiData.length}`);
+      // Формат массива цен
+      apiData.forEach((item: any, index: number) => {
+        console.log(`🔍 [PRICES SERVICE PARSER] Элемент ${index}:`, item);
+        console.log(`🔍 [PRICES SERVICE PARSER] Ключи элемента: ${Object.keys(item)}`);
+        
+        // Проверяем есть ли вложенный массив services
+        if (item.services && Array.isArray(item.services)) {
+          console.log(`🔍 [PRICES SERVICE PARSER] Найден массив services с ${item.services.length} элементами`);
+          
+          item.services.forEach((service: any, serviceIndex: number) => {
+            console.log(`🔍 [PRICES SERVICE PARSER] Сервис ${serviceIndex}:`, service);
+            console.log(`🔍 [PRICES SERVICE PARSER] Ключи сервиса: ${Object.keys(service)}`);
+            
+            // Получаем сырое название из API
+            const apiName = service.fuel_name || 
+                           service.fuel_type || 
+                           service.name || 
+                           service.type ||
+                           service.product_name ||
+                           service.product ||
+                           service.fuel ||
+                           service.title ||
+                           service.description ||
+                           service.label ||
+                           service.service_name ||
+                           service.service_type ||
+                           service.good_name ||
+                           service.good_type;
+            
+            console.log(`🔍 [PRICES SERVICE PARSER] Сырое название из API: "${apiName}"`);
+            console.log(`🔍 [PRICES SERVICE PARSER] Все поля сервиса для отладки:`, service);
+            
+            // КРИТИЧЕСКАЯ ПРОВЕРКА - не создаем фиктивные данные!
+            if (!apiName) {
+              const errorMsg = `❌ КРИТИЧЕСКАЯ ОШИБКА: Внешняя система не предоставила название топлива для сервиса ${serviceIndex}. Доступные поля: ${Object.keys(service).join(', ')}`;
+              console.error(errorMsg);
+              throw new Error(`Не удалось определить вид топлива из внешней системы. Проверьте настройки API.`);
+            }
+            
+            // Ищем соответствие в номенклатуре
+            let mappedFuel = null;
+            if (apiName) {
+              mappedFuel = nomenclatureMapping.get(apiName);
+              if (!mappedFuel) {
+                // Пробуем поиск без учета регистра
+                for (const [key, value] of nomenclatureMapping) {
+                  if (key.toLowerCase() === apiName.toLowerCase()) {
+                    mappedFuel = value;
+                    break;
+                  }
+                }
+              }
+            }
+            
+            // Финальное название - только реальные данные!
+            const finalFuelName = mappedFuel?.name || apiName;
+            const finalFuelCode = mappedFuel?.code || 
+                                  service.fuel_code || 
+                                  service.fuel_id?.toString() || 
+                                  service.id?.toString() ||
+                                  service.service_code?.toString() ||
+                                  service.product_code?.toString();
+            
+            // КРИТИЧЕСКАЯ ПРОВЕРКА - код топлива обязателен
+            if (!finalFuelCode) {
+              throw new Error(`Не удалось определить код топлива для "${finalFuelName}". Внешняя система должна предоставить одно из полей: fuel_code, fuel_id, id, service_code, product_code. Доступные поля: ${Object.keys(service).join(', ')}`);
+            }
+            
+            console.log(`🔍 [PRICES SERVICE PARSER] Финальное название: "${finalFuelName}" ${mappedFuel ? '(из номенклатуры)' : '(из API)'}`);
+            console.log(`🔍 [PRICES SERVICE PARSER] Финальный код: "${finalFuelCode}"`);
+            
+            // КРИТИЧЕСКАЯ ПРОВЕРКА - цена обязательна и должна быть положительной
+            const priceValue = service.price;
+            if (!priceValue || priceValue <= 0) {
+              throw new Error(`Недопустимая цена для топлива "${finalFuelName}": ${priceValue}. Цена должна быть положительным числом.`);
+            }
+            
+            console.log(`💰 [PRICES SERVICE PARSER] Цена из API: ${priceValue} руб/л`);
+            
+            const fuelInfo: FuelTypeInfo = {
+              fuel_type: finalFuelName,
+              fuel_code: finalFuelCode,
+              tanks_count: 1,
+              total_volume: 0,
+              current_level: 0,
+              has_price: true,
+              current_price: {
+                id: `api_${finalFuelCode}_${Date.now()}`,
+                trading_point_id: tradingPointId,
+                fuel_type: finalFuelName,
+                fuel_code: finalFuelCode,
+                price_net: Math.round(priceValue * 100),
+                vat_rate: 20,
+                price_gross: Math.round(priceValue * 100 * 1.2),
+                unit: 'Л',
+                currency: 'RUB',
+                applied_from: new Date().toISOString(),
+                status: 'active',
+                source: 'api_sync',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            };
+            fuelTypesInfo.push(fuelInfo);
+          });
+        } else {
+          // Старая логика для прямых элементов
+          const fuelName = item.fuel_name || item.fuel_type || `Топливо ${item.fuel_id || item.id}`;
+          console.log(`🔍 [PRICES SERVICE PARSER] Название топлива из корня: ${fuelName}`);
+          
+          const fuelInfo: FuelTypeInfo = {
+            fuel_type: fuelName,
+            fuel_code: item.fuel_code || item.fuel_id?.toString() || item.id?.toString() || '',
+            tanks_count: 1,
+            total_volume: 0,
+            current_level: 0,
+            has_price: true,
+            current_price: {
+              id: `api_${item.fuel_id || item.id}_${Date.now()}`,
+              trading_point_id: tradingPointId,
+              fuel_type: fuelName,
+              fuel_code: item.fuel_code || item.fuel_id?.toString() || '',
+              price_net: Math.round((item.price || 0) * 100),
+              vat_rate: 20,
+              price_gross: Math.round((item.price || 0) * 100 * 1.2),
+              unit: 'Л',
+              currency: 'RUB',
+              applied_from: new Date().toISOString(),
+              status: 'active',
+              source: 'api_sync',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          };
+          fuelTypesInfo.push(fuelInfo);
+        }
+      });
+    } else if (typeof apiData === 'object' && apiData.fuels) {
+      console.log(`🔍 [PRICES SERVICE PARSER] Обнаружен объект с fuels`);
+      console.log(`🔍 [PRICES SERVICE PARSER] apiData.fuels:`, apiData.fuels);
+      // Формат с вложенным массивом fuels
+      if (Array.isArray(apiData.fuels)) {
+        console.log(`🔍 [PRICES SERVICE PARSER] apiData.fuels является массивом, длина: ${apiData.fuels.length}`);
+        apiData.fuels.forEach((fuel: any) => {
+          const fuelInfo: FuelTypeInfo = {
+            fuel_type: fuel.name || fuel.fuel_name || fuel.type,
+            fuel_code: fuel.code || fuel.id?.toString() || '',
+            tanks_count: fuel.tanks_count || 1,
+            total_volume: fuel.volume || 0,
+            current_level: fuel.level || 0,
+            has_price: !!fuel.price,
+            current_price: fuel.price ? {
+              id: `api_${fuel.id}_${Date.now()}`,
+              trading_point_id: tradingPointId,
+              fuel_type: fuel.name || fuel.fuel_name,
+              fuel_code: fuel.code || fuel.id?.toString() || '',
+              price_net: Math.round((fuel.price || 0) * 100),
+              vat_rate: 20,
+              price_gross: Math.round((fuel.price || 0) * 100 * 1.2),
+              unit: 'Л',
+              currency: 'RUB',
+              applied_from: new Date().toISOString(),
+              status: 'active',
+              source: 'api_sync',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            } : undefined
+          };
+          fuelTypesInfo.push(fuelInfo);
+        });
+      }
+    } else if (typeof apiData === 'object') {
+      console.log(`🔍 [PRICES SERVICE PARSER] Обрабатываем как объект с ключами`);
+      console.log(`🔍 [PRICES SERVICE PARSER] Ключи объекта: ${Object.keys(apiData)}`);
+      // Формат объекта с ценами по ключам
+      Object.entries(apiData).forEach(([fuelType, priceData]: [string, any]) => {
+        console.log(`🔍 [PRICES SERVICE PARSER] Ключ: ${fuelType}, Значение:`, priceData);
+        if (typeof priceData === 'number' || (priceData && typeof priceData.price === 'number')) {
+          const price = typeof priceData === 'number' ? priceData : priceData.price;
+          const fuelInfo: FuelTypeInfo = {
+            fuel_type: fuelType,
+            fuel_code: fuelType,
+            tanks_count: 1,
+            total_volume: 0,
+            current_level: 0,
+            has_price: true,
+            current_price: {
+              id: `api_${fuelType}_${Date.now()}`,
+              trading_point_id: tradingPointId,
+              fuel_type: fuelType,
+              fuel_code: fuelType,
+              price_net: Math.round(price * 100),
+              vat_rate: 20,
+              price_gross: Math.round(price * 100 * 1.2),
+              unit: 'Л',
+              currency: 'RUB',
+              applied_from: new Date().toISOString(),
+              status: 'active',
+              source: 'api_sync',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          };
+          fuelTypesInfo.push(fuelInfo);
+        }
+      });
+    }
+
+    console.log(`✅ [PRICES SERVICE] Распарсено ${fuelTypesInfo.length} видов топлива из API`);
+    return fuelTypesInfo;
+  }
+
+  /**
+   * Получить стандартный набор видов топлива
+   */
+  private getStandardFuelTypes(tradingPointId: string): FuelTypeInfo[] {
+    console.log(`📋 [PRICES SERVICE] Используем стандартный набор видов топлива (3 вида для АЗС)`);
+    
+    // Стандартный набор для АЗС - только 3 вида топлива
+    const standardFuels = [
+      { type: 'АИ-92', code: 'AI92' },
+      { type: 'АИ-95', code: 'AI95' },
+      { type: 'ДТ', code: 'DT' }
+    ];
+
+    return standardFuels.map(fuel => ({
+      fuel_type: fuel.type,
+      fuel_code: fuel.code,
+      tanks_count: 0,
+      total_volume: 0,
+      current_level: 0,
+      has_price: false,
+      current_price: undefined
+    }));
+  }
+
+  /**
+   * Получить текущие активные цены для торговой точки
+   */
+  async getCurrentPrices(tradingPointId: string): Promise<FuelPrice[]> {
+    console.log(`💰 [PRICES SERVICE] Получение текущих цен для ${tradingPointId}`);
+
+    try {
+      const { data, error } = await supabase
+        .from('prices')
+        .select('*')
+        .eq('trading_point_id', tradingPointId)
+        .eq('status', 'active')  // Используем поле status вместо is_active
+        .order('applied_from', { ascending: false });  // И applied_from вместо valid_from
+
+      if (error) {
+        if (error.code === 'PGRST205') {
+          console.warn('⚠️ [PRICES SERVICE] Таблица prices не найдена, возвращаем пустой массив');
+          return [];
+        }
+        console.error('❌ [PRICES SERVICE] Database error getting current prices:', error);
+        throw new Error(`Database unavailable: ${error.message}`);
+      }
+
+      console.log(`✅ [PRICES SERVICE] Получено ${data?.length || 0} активных цен`);
+      return data || [];
+    } catch (error) {
+      console.warn('⚠️ [PRICES SERVICE] Ошибка получения цен, возвращаем пустой массив:', error);
       return [];
     }
   }
 
   /**
-   * Получить торговые точки
+   * Синхронизация цен с торговым API
    */
-  async getTradingPoints(networkId?: string): Promise<Array<{
-    id: string;
-    name: string;
-    network_id: string;
-  }>> {
+  async syncPricesWithTradingAPI(tradingPointId: string): Promise<{
+    success: boolean;
+    syncedCount: number;
+    errors?: string[];
+  }> {
+    console.log(`🔄 [PRICES SERVICE] Синхронизация цен с торговым API для ${tradingPointId}`);
+
     try {
-      let query = this.client
-        .from('trading_points')
-        .select('id, name, network_id')
-        .eq('is_blocked', false);
+      // Получаем свежие данные из API
+      const fuelTypes = await this.getFuelTypesInfo(tradingPointId);
       
-      if (networkId) {
-        query = query.eq('network_id', networkId);
+      let syncedCount = 0;
+      const errors: string[] = [];
+
+      // Сохраняем цены в БД
+      for (const fuel of fuelTypes) {
+        if (fuel.has_price && fuel.current_price) {
+          try {
+            await this.updatePrice(tradingPointId, fuel.fuel_type, fuel.current_price.price_gross / 100);
+            syncedCount++;
+          } catch (err) {
+            errors.push(`Ошибка сохранения цены для ${fuel.fuel_type}: ${err}`);
+          }
+        }
       }
+
+      console.log(`✅ [PRICES SERVICE] Синхронизировано ${syncedCount} цен`);
       
-      query = query.order('name');
-      
-      const result = await query;
-      
-      if (result.error) {
-        console.error('Error fetching trading points:', result.error);
-        return [];
-      }
-      
-      return result.data || [];
-      
+      return {
+        success: syncedCount > 0,
+        syncedCount,
+        errors: errors.length > 0 ? errors : undefined
+      };
     } catch (error) {
-      console.error('Exception in getTradingPoints:', error);
+      console.error('❌ [PRICES SERVICE] Ошибка синхронизации:', error);
+      return {
+        success: false,
+        syncedCount: 0,
+        errors: [`Критическая ошибка: ${error}`]
+      };
+    }
+  }
+
+  /**
+   * Обновить цену на топливо
+   */
+  async updatePrice(tradingPointId: string, fuelType: string, priceRubles: number): Promise<FuelPrice> {
+    console.log(`💰 [PRICES SERVICE] Обновление цены: ${fuelType} = ${priceRubles}₽`);
+
+    const priceData = {
+      trading_point_id: tradingPointId,
+      fuel_type: fuelType,
+      fuel_code: fuelType,
+      price_net: Math.round(priceRubles * 100 / 1.2), // Без НДС
+      vat_rate: 20,
+      price_gross: Math.round(priceRubles * 100), // С НДС
+      unit: 'Л',
+      currency: 'RUB',
+      applied_from: new Date().toISOString(),
+      status: 'active',
+      source: 'manual' as const,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    // Деактивируем старые цены
+    await supabase
+      .from('prices')
+      .update({ status: 'expired' })
+      .eq('trading_point_id', tradingPointId)
+      .eq('fuel_type', fuelType)
+      .eq('status', 'active');
+
+    // Создаем новую цену
+    const { data, error } = await supabase
+      .from('prices')
+      .insert(priceData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ [PRICES SERVICE] Ошибка сохранения цены:', error);
+      throw new Error(`Не удалось сохранить цену: ${error.message}`);
+    }
+
+    console.log(`✅ [PRICES SERVICE] Цена обновлена`);
+    return data;
+  }
+
+  /**
+   * Получить историю изменений цен
+   */
+  async getPriceHistory(tradingPointId: string, limit: number = 100): Promise<PriceHistoryEntry[]> {
+    console.log(`📜 [PRICES SERVICE] Получение истории цен для ${tradingPointId}`);
+
+    try {
+      const { data, error } = await supabase
+        .from('price_history')
+        .select('*')
+        .eq('trading_point_id', tradingPointId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        if (error.code === 'PGRST205') {
+          console.warn('⚠️ [PRICES SERVICE] Таблица price_history не найдена');
+          return [];
+        }
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('❌ [PRICES SERVICE] Ошибка получения истории:', error);
       return [];
     }
   }
 }
 
-// Экспортируем singleton
+// Экспорт singleton экземпляра
 export const pricesSupabaseService = new PricesSupabaseService();
+
+export default pricesSupabaseService;

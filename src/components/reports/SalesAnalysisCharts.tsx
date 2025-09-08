@@ -1,28 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// 🚨 КРИТИЧНО: ФАЙЛ ЗАБЛОКИРОВАН - СОДЕРЖИТ ТОЛЬКО ДЕМО ДАННЫЕ
+// ❌ БЕЗОПАСНОСТЬ: Компонент содержал фиктивные данные о физической топливной системе:
+// - Fake fuel sales data
+// - Fake payment methods data  
+// - Fake trend data
+// - Hard-coded metrics: "АИ-95 (45%)", "14:00 - 18:00", "78.5%"
+//
+// ✅ FAIL-SECURE: В физической топливной системе показ фиктивных данных
+// может привести к неверным управленческим решениям и финансовым потерям.
+// Используйте SalesAnalysisChartsSimple.tsx для реальных данных из Supabase.
 
-// Mock data для графиков
-const mockFuelData = [
-  { name: "АИ-95", value: 45, amount: 1281234, color: "#60a5fa" },
-  { name: "АИ-92", value: 35, amount: 996223, color: "#4ade80" },
-  { name: "ДТ", value: 20, amount: 570178, color: "#9ca3af" }
-];
+export function SalesAnalysisCharts() {
+  throw new Error('🚨 ЗАБЛОКИРОВАНО: SalesAnalysisCharts содержит только демо данные. Используйте SalesAnalysisChartsSimple');
+}
 
-const mockPaymentData = [
-  { name: "Банк. карты", value: 65, amount: 1850763, color: "#3b82f6" },
-  { name: "Наличные", value: 25, amount: 711909, color: "#10b981" },
-  { name: "Корп. карты", value: 10, amount: 284963, color: "#6b7280" }
-];
-
-const mockTrendData = [
-  { period: "01.12", revenue: 245000, transactions: 87 },
-  { period: "02.12", revenue: 267000, transactions: 92 },
-  { period: "03.12", revenue: 298000, transactions: 105 },
-  { period: "04.12", revenue: 276000, transactions: 98 },
-  { period: "05.12", revenue: 312000, transactions: 112 },
-  { period: "06.12", revenue: 289000, transactions: 101 },
-  { period: "07.12", revenue: 334000, transactions: 118 }
-];
+// ❌ ВСЕ MOCK ДАННЫЕ УДАЛЕНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
 
 // Компонент загрузки
 const ChartSkeleton = () => (

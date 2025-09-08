@@ -1,24 +1,40 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, CreditCard, Fuel, Users, DollarSign } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { operationsSupabaseService } from "@/services/operationsSupabaseService";
+import { tradingPointsService } from "@/services/tradingPointsService";
+import { Network } from "@/types/network";
+import { TradingPoint } from "@/types/tradingpoint";
 
-// Mock data без графиков
-const mockKpiData = {
-  totalRevenue: 2847635,
-  totalTransactions: 1247,
-  totalFuelLiters: 45832,
-  averageTicket: 2284,
-  cashlessPercentage: 78.5
-};
-
-interface SalesAnalysisProps {
-  selectedNetwork?: string;
-  selectedTradingPoint?: string;
+interface SalesAnalysisData {
+  totalRevenue: number;
+  totalTransactions: number;
+  totalFuelLiters: number;
+  averageTicket: number;
+  cashlessPercentage: number;
+  loading: boolean;
 }
 
-export function SalesAnalysisSimple({ selectedNetwork, selectedTradingPoint }: SalesAnalysisProps) {
+interface SalesAnalysisProps {
+  selectedNetwork?: Network | null;
+  selectedTradingPoint?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  groupBy?: string;
+}
+
+export function SalesAnalysisSimple({ selectedNetwork, selectedTradingPoint, dateFrom, dateTo, groupBy }: SalesAnalysisProps) {
   const isMobile = useIsMobile();
+  
+  const [salesData, setSalesData] = useState<SalesAnalysisData>({
+    totalRevenue: 0,
+    totalTransactions: 0,
+    totalFuelLiters: 0,
+    averageTicket: 0,
+    cashlessPercentage: 0,
+    loading: true
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ru-RU', {
@@ -27,6 +43,149 @@ export function SalesAnalysisSimple({ selectedNetwork, selectedTradingPoint }: S
       minimumFractionDigits: 0
     }).format(value);
   };
+
+  // Загрузка данных операций
+  useEffect(() => {
+    async function loadSalesData() {
+      if (!selectedNetwork) {
+        setSalesData(prev => ({ ...prev, loading: false }));
+        return;
+      }
+
+      try {
+        setSalesData(prev => ({ ...prev, loading: true }));
+
+        // Подготавливаем фильтры
+        const filters: any = {};
+        
+        // Если выбрана конкретная торговая точка
+        if (selectedTradingPoint && selectedTradingPoint !== "all") {
+          // Используем UUID торговой точки напрямую для фильтрации
+          filters.tradingPointId = selectedTradingPoint;
+          console.log('🎯 Фильтруем по торговой точке (UUID):', { 
+            selectedTradingPoint
+          });
+        } else {
+          console.log('📊 Загружаем данные по всей сети');
+        }
+
+        // Фильтр по завершенным операциям с переданными датами или за последнюю неделю
+        let startDateValue, endDateValue;
+        
+        if (dateFrom && dateTo) {
+          startDateValue = dateFrom;
+          endDateValue = dateTo;
+          console.log('📅 Using provided date range:', { dateFrom, dateTo });
+        } else {
+          const endDate = new Date();
+          const startDate = new Date();
+          startDate.setDate(startDate.getDate() - 7);
+          startDateValue = startDate.toISOString().split('T')[0];
+          endDateValue = endDate.toISOString().split('T')[0];
+          console.log('📅 Using default 7-day range:', { startDateValue, endDateValue });
+        }
+        
+        filters.status = 'completed';
+        filters.startDate = startDateValue;
+        filters.endDate = endDateValue;
+        
+        if (groupBy) {
+          console.log('📊 Grouping by:', groupBy);
+          filters.groupBy = groupBy;
+        }
+
+        console.log('🔍 Loading sales data with filters:', filters);
+        
+        // Получаем операции из Supabase
+        let operations = await operationsSupabaseService.getOperations(filters);
+        
+        // Если выбрана вся сеть (не конкретная торговая точка), то фильтруем по торговым точкам этой сети
+        if (selectedNetwork && (!selectedTradingPoint || selectedTradingPoint === "all")) {
+          console.log('🏪 Фильтруем операции по всей сети:', selectedNetwork.id);
+          
+          try {
+            // Получаем торговые точки для выбранной сети
+            const tradingPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
+            const networkTradingPointIds = tradingPoints.map(tp => tp.id);
+            
+            console.log('🏪 UUID торговых точек сети:', networkTradingPointIds);
+            
+            // Фильтруем операции по UUID торговых точек сети
+            operations = operations.filter(op => 
+              op.tradingPointId && networkTradingPointIds.includes(op.tradingPointId)
+            );
+            
+            console.log('🏪 Операций после фильтрации по сети:', operations.length);
+            
+          } catch (error) {
+            console.error('❌ Ошибка при получении торговых точек сети:', error);
+          }
+        }
+
+        console.log('📊 Loaded operations for analysis:', operations.length);
+        
+        // Логируем уникальные торговые точки в полученных операциях
+        const uniqueTradingPoints = [...new Set(operations.map(op => op.tradingPointId).filter(Boolean))];
+        console.log('🏪 Уникальные торговые точки в операциях:', uniqueTradingPoints);
+        
+        // Детальное логирование для диагностики фильтрации по торговой точке
+        if (selectedTradingPoint && selectedTradingPoint !== "all") {
+          console.log('🔍 Диагностика фильтрации по торговой точке:');
+          console.log('   - Выбранная торговая точка:', selectedTradingPoint);
+          console.log('   - Тип выбранной торговой точки:', typeof selectedTradingPoint);
+          console.log('   - Уникальные торговые точки в операциях:', uniqueTradingPoints);
+          console.log('   - Типы торговых точек в операциях:', uniqueTradingPoints.map(id => typeof id));
+          
+          const exactMatches = operations.filter(op => op.tradingPointId === selectedTradingPoint);
+          const stringMatches = operations.filter(op => String(op.tradingPointId) === String(selectedTradingPoint));
+          
+          console.log(`   - Точных совпадений (===): ${exactMatches.length}`);
+          console.log(`   - Строковых совпадений: ${stringMatches.length}`);
+          console.log('   - Образцы операций с точкой:', operations.slice(0, 3).map(op => ({
+            id: op.id,
+            tradingPointId: op.tradingPointId,
+            tradingPointIdType: typeof op.tradingPointId
+          })));
+        }
+
+        // Вычисляем метрики
+        const totalRevenue = operations.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+        const totalTransactions = operations.length;
+        const totalFuelLiters = operations.reduce((sum, op) => sum + (op.quantity || 0), 0);
+        const averageTicket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+        
+        // Процент безналичных операций
+        const cashlessOperations = operations.filter(op => 
+          op.paymentMethod === 'bank_card' || 
+          op.paymentMethod === 'corporate_card'
+        ).length;
+        const cashlessPercentage = totalTransactions > 0 ? (cashlessOperations / totalTransactions) * 100 : 0;
+
+        setSalesData({
+          totalRevenue,
+          totalTransactions,
+          totalFuelLiters,
+          averageTicket,
+          cashlessPercentage,
+          loading: false
+        });
+
+        console.log('✅ Sales data calculated:', {
+          totalRevenue,
+          totalTransactions,
+          totalFuelLiters,
+          averageTicket,
+          cashlessPercentage: `${cashlessPercentage.toFixed(1)}%`
+        });
+
+      } catch (error) {
+        console.error('❌ Error loading sales data:', error);
+        setSalesData(prev => ({ ...prev, loading: false }));
+      }
+    }
+
+    loadSalesData();
+  }, [selectedNetwork, selectedTradingPoint, dateFrom, dateTo, groupBy]);
 
   return (
     <div className="space-y-6">
@@ -41,10 +200,14 @@ export function SalesAnalysisSimple({ selectedNetwork, selectedTradingPoint }: S
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {formatCurrency(selectedTradingPoint ? mockKpiData.totalRevenue / 5 : mockKpiData.totalRevenue)}
+              {salesData.loading ? (
+                <div className="animate-pulse bg-slate-600 h-8 w-24 rounded"></div>
+              ) : (
+                formatCurrency(salesData.totalRevenue)
+              )}
             </div>
             <p className="text-xs text-green-400">
-              +12% к предыдущему периоду
+              {selectedTradingPoint ? 'За неделю по точке' : 'За неделю по сети'}
             </p>
           </CardContent>
         </Card>
@@ -58,10 +221,14 @@ export function SalesAnalysisSimple({ selectedNetwork, selectedTradingPoint }: S
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {(selectedTradingPoint ? Math.floor(mockKpiData.totalTransactions / 5) : mockKpiData.totalTransactions).toLocaleString()}
+              {salesData.loading ? (
+                <div className="animate-pulse bg-slate-600 h-8 w-20 rounded"></div>
+              ) : (
+                salesData.totalTransactions.toLocaleString()
+              )}
             </div>
             <p className="text-xs text-blue-400">
-              +8% к предыдущему периоду
+              {selectedTradingPoint ? 'Операций по точке' : 'Операций по сети'}
             </p>
           </CardContent>
         </Card>
@@ -75,10 +242,14 @@ export function SalesAnalysisSimple({ selectedNetwork, selectedTradingPoint }: S
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {(selectedTradingPoint ? Math.floor(mockKpiData.totalFuelLiters / 5) : mockKpiData.totalFuelLiters).toLocaleString()} л
+              {salesData.loading ? (
+                <div className="animate-pulse bg-slate-600 h-8 w-20 rounded"></div>
+              ) : (
+                `${salesData.totalFuelLiters.toLocaleString()} л`
+              )}
             </div>
             <p className="text-xs text-orange-400">
-              +5% к предыдущему периоду
+              {selectedTradingPoint ? 'Литров по точке' : 'Литров по сети'}
             </p>
           </CardContent>
         </Card>
@@ -92,10 +263,14 @@ export function SalesAnalysisSimple({ selectedNetwork, selectedTradingPoint }: S
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {formatCurrency(mockKpiData.averageTicket)}
+              {salesData.loading ? (
+                <div className="animate-pulse bg-slate-600 h-8 w-20 rounded"></div>
+              ) : (
+                formatCurrency(salesData.averageTicket)
+              )}
             </div>
             <p className="text-xs text-purple-400">
-              +3% к предыдущему периоду
+              Средняя стоимость операции
             </p>
           </CardContent>
         </Card>
@@ -109,10 +284,14 @@ export function SalesAnalysisSimple({ selectedNetwork, selectedTradingPoint }: S
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">
-              {mockKpiData.cashlessPercentage}%
+              {salesData.loading ? (
+                <div className="animate-pulse bg-slate-600 h-8 w-16 rounded"></div>
+              ) : (
+                `${salesData.cashlessPercentage.toFixed(1)}%`
+              )}
             </div>
             <p className="text-xs text-cyan-400">
-              +2% к предыдущему периоду
+              Безналичные платежи
             </p>
           </CardContent>
         </Card>

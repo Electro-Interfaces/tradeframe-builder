@@ -1,6 +1,7 @@
 /**
  * Equipment Service - Supabase Integration
- * Использует Service Role Key для полного доступа к базе данных
+ * ОБНОВЛЕН: Интегрирован с централизованной конфигурацией из раздела "Обмен данными"
+ * Использует SupabaseConnectionHelper для проверки подключений
  * Исправлена схема: is_active вместо status, правильные UUID
  */
 
@@ -15,7 +16,9 @@ import {
   EquipmentEvent
 } from '@/types/equipment';
 
-import { supabaseService as supabase } from './supabaseServiceClient';
+// НОВОЕ: Используем специализированный клиент для базы данных Supabase
+import { supabaseDatabaseClient } from './supabaseDatabaseClient';
+import { SupabaseConnectionHelper, executeSupabaseOperation } from './supabaseConnectionHelper';
 
 // Утилита для генерации UUID
 function generateUUID(): string {
@@ -27,24 +30,34 @@ function generateUUID(): string {
 }
 
 /**
- * Equipment Templates API - Supabase
+ * Equipment Templates API - Supabase с централизованной конфигурацией
  */
 export const supabaseEquipmentTemplatesAPI = {
+  /**
+   * Инициализация сервиса
+   */
+  async initialize(): Promise<void> {
+    await SupabaseConnectionHelper.initialize();
+  },
+
   /**
    * Получить список шаблонов оборудования
    */
   async list(): Promise<EquipmentTemplate[]> {
-    const { data, error } = await supabase
-      .from('equipment_templates')
-      .select('*');
+    const response = await supabaseDatabaseClient.get('/rest/v1/equipment_templates', {
+      queryParams: { select: '*' }
+    });
 
-    if (error) {
+    if (!response.success) {
+      const error = new Error(response.error || 'Failed to fetch equipment templates');
       console.error('❌ Equipment templates list error:', error);
-      throw new Error(`Failed to fetch equipment templates: ${error.message}`);
+      throw error;
     }
 
+    const data = response.data || [];
+    
     // Маппинг данных из Supabase в формат приложения
-    const templates = (data || []).map(item => ({
+    const templates = data.map(item => ({
       id: item.id,
       name: item.name,
       system_type: item.system_type,
@@ -65,18 +78,25 @@ export const supabaseEquipmentTemplatesAPI = {
    * Получить шаблон по ID
    */
   async get(id: string): Promise<EquipmentTemplate> {
-    const { data, error } = await supabase
-      .from('equipment_templates')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const response = await supabaseDatabaseClient.get('/rest/v1/equipment_templates', {
+      queryParams: { 
+        select: '*',
+        id: `eq.${id}`
+      }
+    });
 
-    if (error) {
+    if (!response.success) {
+      const error = new Error(response.error || `Failed to fetch equipment template: ${id}`);
       console.error(`❌ Equipment template get error (${id}):`, error);
-      throw new Error(`Failed to fetch equipment template: ${error.message}`);
+      throw error;
     }
 
-    const item = data;
+    const data = response.data;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error(`Equipment template not found: ${id}`);
+    }
+
+    const item = data[0];
     if (!item) {
       throw new Error(`Equipment template not found: ${id}`);
     }
@@ -121,19 +141,18 @@ export const supabaseEquipmentTemplatesAPI = {
 
     console.log('🔧 Creating equipment template:', payload);
 
-    const result = await supabase.insert('equipment_templates', payload);
+    const response = await supabaseDatabaseClient.post('/rest/v1/equipment_templates', payload);
 
-    if (result.error) {
-      console.error('❌ Equipment template create error:', result.error);
-      throw new Error(`Failed to create equipment template: ${result.error}`);
+    if (!response.success) {
+      console.error('❌ Equipment template create error:', response.error);
+      throw new Error(`Failed to create equipment template: ${response.error}`);
     }
 
-    const created = result.data?.[0];
-    if (!created) {
+    if (!response.data) {
       throw new Error('Equipment template creation failed - no data returned');
     }
 
-    console.log('✅ Equipment template created:', created.name);
+    console.log('✅ Equipment template created:', payload.name);
     return this.get(id);
   },
 
@@ -158,11 +177,11 @@ export const supabaseEquipmentTemplatesAPI = {
 
     console.log('🔧 Updating equipment template:', id, payload);
 
-    const result = await supabase.update('equipment_templates', payload, { id });
+    const response = await supabaseDatabaseClient.patch(`/rest/v1/equipment_templates?id=eq.${id}`, payload);
 
-    if (result.error) {
-      console.error(`❌ Equipment template update error (${id}):`, result.error);
-      throw new Error(`Failed to update equipment template: ${result.error}`);
+    if (!response.success) {
+      console.error(`❌ Equipment template update error (${id}):`, response.error);
+      throw new Error(`Failed to update equipment template: ${response.error}`);
     }
 
     console.log('✅ Equipment template updated:', id);
@@ -175,11 +194,11 @@ export const supabaseEquipmentTemplatesAPI = {
   async delete(id: string): Promise<void> {
     console.log('🗑️ Deleting equipment template:', id);
 
-    const result = await supabase.delete('equipment_templates', { id });
+    const response = await supabaseDatabaseClient.delete(`/rest/v1/equipment_templates?id=eq.${id}`);
 
-    if (result.error) {
-      console.error(`❌ Equipment template delete error (${id}):`, result.error);
-      throw new Error(`Failed to delete equipment template: ${result.error}`);
+    if (!response.success) {
+      console.error(`❌ Equipment template delete error (${id}):`, response.error);
+      throw new Error(`Failed to delete equipment template: ${response.error}`);
     }
 
     console.log('✅ Equipment template deleted:', id);
@@ -196,57 +215,64 @@ export const supabaseEquipmentAPI = {
   async list(params: ListEquipmentParams): Promise<ListEquipmentResponse> {
     console.log('🔍 Fetching equipment list with params:', params);
 
-    const options: any = {
-      select: '*'
-    };
-
-    // Добавляем фильтры
+    // Используем специализированный метод для получения оборудования
+    const dbFilters: Record<string, any> = {};
     if (params.trading_point_id) {
-      options.eq = { ...options.eq, trading_point_id: params.trading_point_id };
+      dbFilters.trading_point_id = params.trading_point_id;
     }
+    if (params.system_type) {
+      dbFilters.system_type = params.system_type;
+    }
+    if (params.template_id) {
+      dbFilters.template_id = params.template_id;
+    }
+    
+    const response = await supabaseDatabaseClient.getEquipment(dbFilters);
 
-    // Лимиты и пагинация
-    if (params.limit) {
-      options.limit = params.limit;
-    }
-    if (params.offset) {
-      options.offset = params.offset;
-    }
-
-    let query = supabase.from('equipment').select('*');
-    
-    if (options.where) {
-      Object.entries(options.where).forEach(([key, value]) => {
-        query = query.eq(key, value);
-      });
-    }
-    
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-    
-    if (options.offset) {
-      query = query.range(options.offset, options.offset + (options.limit || 100) - 1);
-    }
-    
-    const { data, error } = await query;
-
-    if (error) {
+    if (!response.success) {
+      const error = new Error(response.error || 'Failed to fetch equipment');
       console.error('❌ Equipment list error:', error);
-      throw new Error(`Failed to fetch equipment: ${error.message}`);
+      throw error;
     }
 
-    // Маппинг данных
+    const data = response.data;
+
+    // Добавляем детальное логирование для отладки цен
+    console.log(`🔍 [EQUIPMENT API] Raw query result:`, {
+      count: data?.length || 0,
+      params: params
+    });
+    
+    if (data && data.length > 0) {
+      console.log(`📋 [EQUIPMENT API] Первые 3 записи:`, data.slice(0, 3));
+      // Показываем детали для резервуаров
+      const tanks = data.filter(item => item.system_type === 'fuel_tank');
+      console.log(`🛢️ [EQUIPMENT API] Найдено ${tanks.length} резервуаров для ТП ${params.trading_point_id}`);
+      tanks.forEach((tank, i) => {
+        console.log(`  Резервуар ${i + 1}: ${tank.name} | status=${tank.status} | fuel_type=${tank.params?.['Тип топлива'] || 'НЕТ'}`);
+      });
+    } else {
+      console.warn(`⚠️ [EQUIPMENT API] Данные не найдены для параметров:`, params);
+    }
+
+    // Маппинг данных в правильном формате
     const items = (data || []).map(item => ({
       id: item.id,
       name: item.name,
+      system_type: item.system_type,
       template_id: item.template_id,
       trading_point_id: item.trading_point_id,
-      status: item.is_active ? 'active' : 'inactive', // ✅ Исправлено
-      config: item.config || {},
+      display_name: item.display_name,
+      serial_number: item.serial_number,
+      external_id: item.external_id,
+      status: item.status, // Используем status напрямую
+      installation_date: item.installation_date,
+      params: item.params || {},
+      bindings: item.bindings || {},
       created_at: item.created_at,
       updated_at: item.updated_at,
-      description: item.description || ''
+      deleted_at: item.deleted_at,
+      created_from_template: item.created_from_template
     })) as Equipment[];
 
     // Фильтрация по статусу если нужно
@@ -259,17 +285,20 @@ export const supabaseEquipmentAPI = {
     if (params.search) {
       const searchLower = params.search.toLowerCase();
       filteredItems = filteredItems.filter(item => 
-        item.name.toLowerCase().includes(searchLower) ||
-        (item.description && item.description.toLowerCase().includes(searchLower))
+        (item.name && item.name.toLowerCase().includes(searchLower)) ||
+        (item.display_name && item.display_name.toLowerCase().includes(searchLower)) ||
+        (item.serial_number && item.serial_number.toLowerCase().includes(searchLower))
       );
     }
 
-    console.log(`✅ Loaded ${filteredItems.length} equipment items`);
+    console.log(`✅ Loaded ${filteredItems.length} equipment items from Supabase`);
 
     return {
-      items: filteredItems,
+      data: filteredItems,
       total: filteredItems.length,
-      hasMore: false // Пока что простая реализация без пагинации
+      page: params.page || 1,
+      limit: params.limit || 50,
+      has_more: false
     };
   },
 
@@ -277,18 +306,24 @@ export const supabaseEquipmentAPI = {
    * Получить оборудование по ID
    */
   async get(id: string): Promise<Equipment> {
-    const { data, error } = await supabase
-      .from('equipment')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const response = await supabaseDatabaseClient.get('/rest/v1/equipment', {
+      queryParams: { 
+        select: '*',
+        id: `eq.${id}`
+      }
+    });
 
-    if (error) {
-      console.error(`❌ Equipment get error (${id}):`, error);
-      throw new Error(`Failed to fetch equipment: ${error.message}`);
+    if (!response.success) {
+      console.error(`❌ Equipment get error (${id}):`, response.error);
+      throw new Error(`Failed to fetch equipment: ${response.error}`);
     }
 
-    const item = data;
+    const data = response.data;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error(`Equipment not found: ${id}`);
+    }
+
+    const item = data[0];
     if (!item) {
       throw new Error(`Equipment not found: ${id}`);
     }
@@ -296,16 +331,23 @@ export const supabaseEquipmentAPI = {
     const equipment: Equipment = {
       id: item.id,
       name: item.name,
+      system_type: item.system_type,
       template_id: item.template_id,
       trading_point_id: item.trading_point_id,
-      status: item.is_active ? 'active' : 'inactive', // ✅ Исправлено
-      config: item.config || {},
+      display_name: item.display_name,
+      serial_number: item.serial_number,
+      external_id: item.external_id,
+      status: item.status, // Используем status напрямую
+      installation_date: item.installation_date,
+      params: item.params || {},
+      bindings: item.bindings || {},
       created_at: item.created_at,
       updated_at: item.updated_at,
-      description: item.description || ''
+      deleted_at: item.deleted_at,
+      created_from_template: item.created_from_template
     };
 
-    console.log(`✅ Loaded equipment: ${equipment.name}`);
+    console.log(`✅ Loaded equipment: ${equipment.display_name || equipment.name}`);
     return equipment;
   },
 
@@ -316,28 +358,47 @@ export const supabaseEquipmentAPI = {
     const id = generateUUID();
     const now = new Date().toISOString();
 
+    // Получаем данные шаблона
+    let template: EquipmentTemplate | null = null;
+    try {
+      template = await supabaseEquipmentTemplatesAPI.get(data.template_id);
+    } catch (error) {
+      console.warn(`⚠️ Template not found: ${data.template_id}, creating equipment without template`);
+    }
+
+    // Объединяем параметры шаблона с кастомными параметрами
+    const combinedParams = {
+      ...(template?.default_params || {}),
+      ...(data.custom_params || {})
+    };
+
     const payload = {
       id,
-      name: data.name,
+      name: template?.name || data.display_name, // Используем имя шаблона или display_name
+      system_type: template?.system_type || 'fuel_tank', // Используем тип из шаблона или fallback
       template_id: data.template_id,
       trading_point_id: data.trading_point_id,
-      is_active: true, // ✅ Исправлено: новое оборудование активно по умолчанию
-      config: data.config || {},
-      description: data.description || '',
+      display_name: data.display_name,
+      serial_number: data.serial_number,
+      external_id: data.external_id,
+      status: 'offline', // Новое оборудование начинает в статусе offline
+      installation_date: data.installation_date || now,
+      params: combinedParams,
+      bindings: data.bindings || {},
       created_at: now,
       updated_at: now
     };
 
     console.log('🔧 Creating equipment:', payload);
 
-    const result = await supabase.insert('equipment', payload);
+    const response = await supabaseDatabaseClient.post('/rest/v1/equipment', payload);
 
-    if (result.error) {
-      console.error('❌ Equipment create error:', result.error);
-      throw new Error(`Failed to create equipment: ${result.error}`);
+    if (!response.success) {
+      console.error('❌ Equipment create error:', response.error);
+      throw new Error(`Failed to create equipment: ${response.error}`);
     }
 
-    console.log('✅ Equipment created:', data.name);
+    console.log('✅ Equipment created:', payload.display_name);
     return this.get(id);
   },
 
@@ -351,16 +412,20 @@ export const supabaseEquipmentAPI = {
 
     // Маппинг полей
     if (data.name) payload.name = data.name;
-    if (data.config) payload.config = data.config;
-    if (data.description !== undefined) payload.description = data.description;
+    if (data.display_name) payload.display_name = data.display_name;
+    if (data.serial_number !== undefined) payload.serial_number = data.serial_number;
+    if (data.external_id !== undefined) payload.external_id = data.external_id;
+    if (data.params) payload.params = data.params;
+    if (data.bindings) payload.bindings = data.bindings;
+    if (data.installation_date) payload.installation_date = data.installation_date;
 
     console.log('🔧 Updating equipment:', id, payload);
 
-    const result = await supabase.update('equipment', payload, { id });
+    const response = await supabaseDatabaseClient.patch(`/rest/v1/equipment?id=eq.${id}`, payload);
 
-    if (result.error) {
-      console.error(`❌ Equipment update error (${id}):`, result.error);
-      throw new Error(`Failed to update equipment: ${result.error}`);
+    if (!response.success) {
+      console.error(`❌ Equipment update error (${id}):`, response.error);
+      throw new Error(`Failed to update equipment: ${response.error}`);
     }
 
     console.log('✅ Equipment updated:', id);
@@ -371,24 +436,54 @@ export const supabaseEquipmentAPI = {
    * Изменить статус оборудования
    */
   async setStatus(id: string, action: EquipmentStatusAction): Promise<void> {
-    const is_active = action === 'enable';
+    let status: string;
+    let deleted_at: string | null = null;
 
-    console.log(`🔧 Setting equipment status: ${id} -> ${action}`);
+    switch (action) {
+      case 'enable':
+        status = 'online';
+        break;
+      case 'disable':
+        status = 'disabled';
+        break;
+      case 'archive':
+        status = 'archived';
+        deleted_at = new Date().toISOString();
+        break;
+      default:
+        throw new Error(`Unknown action: ${action}`);
+    }
 
-    const result = await supabase.update('equipment', 
-      { 
-        is_active, // ✅ Исправлено
-        updated_at: new Date().toISOString()
-      }, 
-      { id }
-    );
+    console.log(`🔧 Setting equipment status: ${id} -> ${action} (status: ${status})`);
 
-    if (result.error) {
-      console.error(`❌ Equipment status update error (${id}):`, result.error);
-      throw new Error(`Failed to update equipment status: ${result.error}`);
+    const response = await supabaseDatabaseClient.patch(`/rest/v1/equipment?id=eq.${id}`, {
+      status,
+      deleted_at,
+      updated_at: new Date().toISOString()
+    });
+
+    if (!response.success) {
+      console.error(`❌ Equipment status update error (${id}):`, response.error);
+      throw new Error(`Failed to update equipment status: ${response.error}`);
     }
 
     console.log(`✅ Equipment status updated: ${id} -> ${action}`);
+  },
+
+  /**
+   * Удалить оборудование
+   */
+  async delete(id: string): Promise<void> {
+    console.log('🗑️ Deleting equipment:', id);
+
+    const response = await supabaseDatabaseClient.delete(`/rest/v1/equipment?id=eq.${id}`);
+
+    if (!response.success) {
+      console.error(`❌ Equipment delete error (${id}):`, response.error);
+      throw new Error(`Failed to delete equipment: ${response.error}`);
+    }
+
+    console.log('✅ Equipment deleted:', id);
   },
 
   /**
@@ -405,4 +500,5 @@ export const supabaseEquipmentAPI = {
 
 // Экспорт для использования в приложении
 export const currentSupabaseEquipmentAPI = supabaseEquipmentAPI;
+export const equipmentSupabaseService = supabaseEquipmentAPI;
 export const currentSupabaseEquipmentTemplatesAPI = supabaseEquipmentTemplatesAPI;

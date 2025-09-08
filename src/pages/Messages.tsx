@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { HelpButton } from "@/components/help/HelpButton";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useSelection } from "@/context/SelectionContext";
 import { EmptyState } from "@/components/ui/empty-state";
+import { errorLogService } from "@/services/errorLogService";
+import { messagesSupabaseService } from "@/services/messagesSupabaseService";
+import { telegramService } from "@/services/telegramService";
 import { 
   Plus, 
   Edit, 
@@ -91,73 +94,76 @@ interface TelegramBotWithId extends TelegramBot {
   connectedUsers: number;
 }
 
-// Mock данные тикетов техподдержки
-const mockTickets: TicketWithId[] = [
-  {
-    id: "1",
-    subject: "Не работает авторизация в системе",
-    description: "После обновления не могу войти в систему с обычным паролем. Появляется ошибка 'Invalid credentials'.",
-    priority: "high",
-    category: "access",
-    email: "manager@azs-center.ru",
-    createdAt: "2024-08-31 09:15",
-    status: "in_progress",
-    responses: 2,
-    lastUpdate: "2024-08-31 14:20"
-  },
-  {
-    id: "2", 
-    subject: "Некорректные данные в отчетах",
-    description: "В сводном отчете за вчера показывается неверная сумма продаж АИ-95. По факту было продано на 15% больше.",
-    priority: "medium",
-    category: "technical",
-    email: "accountant@azs-north.ru",
-    createdAt: "2024-08-31 08:45",
-    status: "waiting_response",
-    responses: 1,
-    lastUpdate: "2024-08-31 12:30"
-  },
-];
-
-// Mock данные Telegram-ботов
-const mockTelegramBots: TelegramBotWithId[] = [
-  {
-    id: "1",
-    name: "TradeFrame Network Bot",
-    token: "1234567890:AABBCCDDEEFFgghhiijjkkllmmnnooppqq",
-    isActive: true,
-    channels: ["@tradeframe_network", "@tradeframe_managers"],
-    createdAt: "2024-08-15 10:00",
-    lastActivity: "2024-08-31 14:25",
-    connectedUsers: 45
-  },
-  {
-    id: "2",
-    name: "TradeFrame Support Bot", 
-    token: "9876543210:ZZYYXXWWVVuuttssrrqqppoonn",
-    isActive: true,
-    channels: ["@tradeframe_support"],
-    createdAt: "2024-08-10 15:30",
-    lastActivity: "2024-08-31 13:50",
-    connectedUsers: 12
-  },
-];
+// ❌ КРИТИЧЕСКАЯ УГРОЗА БЕЗОПАСНОСТИ УСТРАНЕНА!
+// ❌ Mock тикеты техподдержки и ТОКЕНЫ TELEGRAM БОТОВ удалены
+// ✅ ТОЛЬКО реальные данные из базы данных Supabase
 
 export default function Messages() {
   const { toast } = useToast();
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   
-  // Состояние для тикетов техподдержки
-  const [tickets, setTickets] = useState<TicketWithId[]>(mockTickets);
+  // ✅ Состояние для РЕАЛЬНЫХ тикетов техподдержки из Supabase
+  const [tickets, setTickets] = useState<TicketWithId[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isCreateTicketOpen, setIsCreateTicketOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   
-  // Состояние для Telegram-ботов
-  const [telegramBots, setTelegramBots] = useState<TelegramBotWithId[]>(mockTelegramBots);
+  // ✅ Состояние для РЕАЛЬНЫХ Telegram-ботов из Supabase
+  const [telegramBots, setTelegramBots] = useState<TelegramBotWithId[]>([]);
   const [isCreateBotOpen, setIsCreateBotOpen] = useState(false);
   const [editingBot, setEditingBot] = useState<TelegramBotWithId | null>(null);
   const [deletingBot, setDeletingBot] = useState<TelegramBotWithId | null>(null);
+
+  // ✅ Загрузка ТОЛЬКО реальных данных из базы данных Supabase
+  useEffect(() => {
+    loadMessagesData();
+  }, []);
+
+  const loadMessagesData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Загружаем реальные тикеты и боты из Supabase
+      const [realTickets, realBots] = await Promise.all([
+        messagesSupabaseService.getTickets(),
+        telegramService.getTelegramBots()
+      ]);
+      
+      console.log('✅ Загружены реальные сообщения:', {
+        tickets: realTickets.length,
+        bots: realBots.length
+      });
+      
+      setTickets(realTickets);
+      setTelegramBots(realBots);
+    } catch (error) {
+      console.error('❌ КРИТИЧНО: Не удалось загрузить сообщения и боты:', error);
+      
+      // Логируем критическую ошибку
+      await errorLogService.logCriticalError(
+        'Messages',
+        'loadMessagesData',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { component: 'Messages', action: 'loadData' }
+        }
+      );
+
+      setError('Не удалось загрузить данные сообщений');
+      
+      // ❌ БЕЗ FALLBACK на mock данные - показываем ошибку пользователю
+      toast({
+        title: "Критическая ошибка",
+        description: "Не удалось загрузить тикеты и Telegram-боты",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const ticketForm = useForm<Ticket>({
     resolver: zodResolver(ticketSchema),

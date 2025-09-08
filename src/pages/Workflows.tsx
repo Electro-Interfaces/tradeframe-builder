@@ -33,7 +33,7 @@ import {
   ExecutionStatus,
   WORKFLOW_TYPE_CONFIGS
 } from "@/types/workflows";
-import workflowsService from "@/services/workflowsService";
+import workflowsService from "@/services/workflowsSupabaseService";
 import { WorkflowForm } from "@/components/workflows/WorkflowForm";
 import { WorkflowMonitoring } from "@/components/workflows/WorkflowMonitoring";
 

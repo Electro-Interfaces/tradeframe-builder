@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { UserService } from "@/services/userService";
 import { Shield, Mail, Lock, User, Settings, Calendar, MapPin, Network, AlertCircle } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
+import { TelegramConnectionSettings } from "@/components/settings/TelegramConnectionSettings";
 
 interface ProfileFormData {
   firstName: string;
@@ -250,11 +251,12 @@ export default function Profile() {
 
         {/* Табы с настройками */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profile">Профиль</TabsTrigger>
             <TabsTrigger value="security">Безопасность</TabsTrigger>
             <TabsTrigger value="permissions">Права доступа</TabsTrigger>
             <TabsTrigger value="preferences">Предпочтения</TabsTrigger>
+            <TabsTrigger value="integrations">Интеграции</TabsTrigger>
           </TabsList>
 
           {/* Вкладка Профиль */}
@@ -555,6 +557,11 @@ export default function Profile() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Вкладка Интеграции */}
+          <TabsContent value="integrations" className="space-y-4">
+            <TelegramConnectionSettings />
           </TabsContent>
         </Tabs>
       </div>

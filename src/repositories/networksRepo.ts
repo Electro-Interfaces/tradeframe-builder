@@ -1,6 +1,5 @@
 import { Network, NetworkId, NetworkInput } from '@/types/network';
-import { networksStore } from '@/mock/networksStore';
-import { tradingPointsStore } from '@/mock/tradingPointsStore';
+import { supabase } from '@/services/supabaseAuthService';
 
 export interface NetworksRepo {
   list(): Promise<Network[]>;
@@ -10,72 +9,103 @@ export interface NetworksRepo {
   getPointsCount(id: NetworkId): Promise<number>;
 }
 
-class MockNetworksRepo implements NetworksRepo {
+class SupabaseNetworksRepo implements NetworksRepo {
   async list(): Promise<Network[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 100));
+    const { data, error } = await supabase
+      .from('networks')
+      .select(`
+        *,
+        trading_points!inner(count)
+      `)
+      .eq('is_active', true)
+      .order('name');
     
-    const networks = networksStore.getAll();
-    // Update points count for each network
-    networks.forEach(network => {
-      const count = tradingPointsStore.getCountByNetworkId(network.id);
-      networksStore.updatePointsCount(network.id, count);
-    });
-    
-    return networksStore.getAll();
+    if (error) throw error;
+    return data || [];
   }
 
   async create(input: NetworkInput): Promise<Network> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
     if (!input.name.trim()) {
       throw new Error('Название сети обязательно');
     }
     
-    return networksStore.create(input);
+    const { data, error } = await supabase
+      .from('networks')
+      .insert({
+        name: input.name,
+        description: input.description,
+        is_active: true
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   }
 
   async update(id: NetworkId, input: NetworkInput): Promise<Network> {
-    // Simulate API delay  
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
     if (!input.name.trim()) {
       throw new Error('Название сети обязательно');
     }
     
-    const updated = networksStore.update(id, input);
-    if (!updated) {
-      throw new Error('Сеть не найдена');
-    }
+    const { data, error } = await supabase
+      .from('networks')
+      .update({
+        name: input.name,
+        description: input.description,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
     
-    return updated;
+    if (error) throw error;
+    if (!data) throw new Error('Сеть не найдена');
+    
+    return data;
   }
 
   async remove(id: NetworkId): Promise<void> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Check if network exists
+    const { data: network, error: checkError } = await supabase
+      .from('networks')
+      .select('id')
+      .eq('id', id)
+      .single();
     
-    const network = networksStore.getById(id);
-    if (!network) {
+    if (checkError || !network) {
       throw new Error('Сеть не найдена');
     }
     
-    // Cascade delete: remove all trading points
-    tradingPointsStore.removeByNetworkId(id);
+    // Cascade delete: remove all trading points first
+    const { error: pointsError } = await supabase
+      .from('trading_points')
+      .delete()
+      .eq('network_id', id);
+    
+    if (pointsError) throw pointsError;
     
     // Remove the network
-    networksStore.remove(id);
+    const { error } = await supabase
+      .from('networks')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   }
 
   async getPointsCount(id: NetworkId): Promise<number> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 50));
+    const { count, error } = await supabase
+      .from('trading_points')
+      .select('*', { count: 'exact', head: true })
+      .eq('network_id', id)
+      .eq('is_active', true);
     
-    return tradingPointsStore.getCountByNetworkId(id);
+    if (error) throw error;
+    return count || 0;
   }
 }
 
-export function createMockNetworksRepo(): NetworksRepo {
-  return new MockNetworksRepo();
+export function createNetworksRepo(): NetworksRepo {
+  return new SupabaseNetworksRepo();
 }

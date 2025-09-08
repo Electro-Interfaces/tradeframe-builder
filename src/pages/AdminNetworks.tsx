@@ -15,7 +15,9 @@ import { ErrorState } from "@/components/ui/error-state";
 import { SkeletonTable } from "@/components/ui/skeleton-table";
 import { NetworksDebugSimple } from "@/components/debug/NetworksDebugSimple";
 import { Network, NetworkInput } from "@/types/network";
+import { TradingPoint } from "@/types/tradingpoint";
 import { networksService } from "@/services/networksService";
+import { tradingPointsService } from "@/services/tradingPointsService";
 import { 
   ChevronUp,
   ChevronDown,
@@ -44,6 +46,11 @@ const AdminNetworks = () => {
   
   // Данные сетей из Supabase
   const [networks, setNetworks] = useState<Network[]>([]);
+  
+  // Торговые точки выбранной сети
+  const [tradingPoints, setTradingPoints] = useState<TradingPoint[]>([]);
+  const [loadingTradingPoints, setLoadingTradingPoints] = useState(false);
+  const [tradingPointsError, setTradingPointsError] = useState<string | null>(null);
 
   const [editingNetwork, setEditingNetwork] = useState<Network | null>(null);
   const [networkDialogOpen, setNetworkDialogOpen] = useState(false);
@@ -92,10 +99,37 @@ const AdminNetworks = () => {
     }
   };
 
+  // Загрузка торговых точек для выбранной сети
+  const loadTradingPoints = async (networkId: string) => {
+    setLoadingTradingPoints(true);
+    setTradingPointsError(null);
+    try {
+      console.log('🔄 Загрузка торговых точек для сети:', networkId);
+      const data = await tradingPointsService.getByNetworkId(networkId);
+      console.log('✅ Загружены торговые точки:', data);
+      setTradingPoints(data);
+    } catch (err) {
+      console.error('❌ Ошибка загрузки торговых точек:', err);
+      setTradingPointsError(err instanceof Error ? err.message : 'Ошибка загрузки торговых точек');
+      setTradingPoints([]);
+    } finally {
+      setLoadingTradingPoints(false);
+    }
+  };
+
   // Загрузка при монтировании компонента
   useEffect(() => {
     loadNetworks();
   }, []);
+
+  // Загрузка торговых точек при выборе сети
+  useEffect(() => {
+    if (selectedId) {
+      loadTradingPoints(selectedId);
+    } else {
+      setTradingPoints([]);
+    }
+  }, [selectedId]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -548,23 +582,41 @@ const AdminNetworks = () => {
           <h2 className="text-lg font-semibold mb-3">Торговые точки выбранной сети</h2>
           {!selectedId ? (
             <EmptyState title="Выберите сеть выше" />
+          ) : loadingTradingPoints ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-slate-400">Загрузка торговых точек...</div>
+            </div>
+          ) : tradingPointsError ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-red-400">Ошибка: {tradingPointsError}</div>
+            </div>
+          ) : tradingPoints.length === 0 ? (
+            <EmptyState 
+              title="Торговые точки не найдены" 
+              description="В выбранной сети пока нет торговых точек"
+            />
           ) : (
             <>
               {/* Мобильная версия ТТ - карточки */}
               <div className="md:hidden space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i} className="p-4 bg-card border-border">
+                {tradingPoints.map((point) => (
+                  <Card key={point.id} className="p-4 bg-card border-border">
                     <div className="space-y-2">
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-medium text-foreground">АЗС №{String(i).padStart(3, '0')}</h4>
-                          <p className="text-sm text-muted-foreground">Код: A0{i}</p>
+                          <h4 className="font-medium text-foreground">{point.name}</h4>
+                          {point.external_id && (
+                            <p className="text-sm text-muted-foreground">ID: {point.external_id}</p>
+                          )}
                           <p className="text-sm text-muted-foreground line-clamp-2">
-                            Город, Ул. Примерная, д. {i}
+                            {point.description || 'Описание отсутствует'}
                           </p>
                         </div>
-                        <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
-                          Активна
+                        <Badge 
+                          variant={point.isBlocked ? "destructive" : "default"} 
+                          className={point.isBlocked ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-green-500/10 text-green-500 border-green-500/20"}
+                        >
+                          {point.isBlocked ? 'Заблокирована' : 'Активна'}
                         </Badge>
                       </div>
                     </div>
@@ -578,19 +630,28 @@ const AdminNetworks = () => {
                   <thead>
                     <tr className="h-11 border-b border-slate-700">
                       <th className="text-left">Наименование</th>
-                      <th className="text-left">Код</th>
-                      <th className="text-left">Адрес</th>
+                      <th className="text-left">ID</th>
+                      <th className="text-left">Описание</th>
                       <th className="text-left">Статус</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[1, 2, 3].map((i) => (
-                      <tr key={i} className="h-11 border-b border-slate-800">
-                        <td>АЗС №{String(i).padStart(3, '0')}</td>
-                        <td>A0{i}</td>
-                        <td>Город, Ул. Примерная, д. {i}</td>
+                    {tradingPoints.map((point) => (
+                      <tr key={point.id} className="h-11 border-b border-slate-800">
+                        <td className="font-medium">{point.name}</td>
+                        <td className="font-mono text-blue-400">
+                          {point.external_id || '—'}
+                        </td>
+                        <td className="text-slate-400">
+                          {point.description || 'Описание отсутствует'}
+                        </td>
                         <td>
-                          <span className="badge success">Активна</span>
+                          <Badge 
+                            variant={point.isBlocked ? "destructive" : "default"}
+                            className={point.isBlocked ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"}
+                          >
+                            {point.isBlocked ? 'Заблокирована' : 'Активна'}
+                          </Badge>
                         </td>
                       </tr>
                     ))}

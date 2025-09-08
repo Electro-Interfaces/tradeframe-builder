@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Download, Search, Filter } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { operationsService, Operation } from "@/services/operationsService";
+import { operationsSupabaseService } from "@/services/operationsSupabaseService";
+import { Operation } from "@/services/operationsService";
 
 // Типы операций для отображения
 const operationTypeMap = {
@@ -32,8 +33,9 @@ interface OperationsTransactionsProps {
 }
 
 export function OperationsTransactions({ isNetworkOnly, isTradingPointSelected }: OperationsTransactionsProps) {
-  const [dateFrom, setDateFrom] = useState("2024-08-30");
-  const [dateTo, setDateTo] = useState("2024-08-30");
+  // Устанавливаем даты на период с данными (август 2025)
+  const [dateFrom, setDateFrom] = useState("2025-08-01");
+  const [dateTo, setDateTo] = useState("2025-08-31");
   const [operationType, setOperationType] = useState("all");
   const [operationStatus, setOperationStatus] = useState("all");
   const [fuelType, setFuelType] = useState("all");
@@ -47,7 +49,7 @@ export function OperationsTransactions({ isNetworkOnly, isTradingPointSelected }
     const loadOperations = async () => {
       try {
         setLoading(true);
-        const data = await operationsService.getAll();
+        const data = await operationsSupabaseService.getOperations({});
         setOperations(data);
       } catch (error) {
         console.error('Ошибка загрузки операций:', error);

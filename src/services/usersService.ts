@@ -1,9 +1,16 @@
 /**
  * Сервис для работы с пользователями и ролями
- * Включает персистентное хранение в localStorage
+ * ОБНОВЛЕН: Использует централизованную конфигурацию из раздела "Обмен данными"
+ * Поддерживает переключение между localStorage (mock) и Supabase (database)
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { apiConfigServiceDB } from './apiConfigServiceDB';
+import { UserSupabaseService } from './usersSupabaseService';
+import { errorLogService } from './errorLogService';
+
+// Создаем экземпляр Supabase сервиса
+const usersSupabaseService = new UserSupabaseService();
 
 export interface User {
   id: number;
@@ -296,167 +303,206 @@ const saveRoles = () => {
   PersistentStorage.save('roles', rolesData);
 };
 
-// API сервис пользователей с персистентным хранением
+// API сервис пользователей с централизованной конфигурацией
 export const usersService = {
+  
+  /**
+   * Инициализация сервиса пользователей
+   */
+  async initialize(): Promise<void> {
+    try {
+      await apiConfigServiceDB.initialize();
+      console.log('✅ UsersService инициализирован с централизованной конфигурацией');
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Инициализация пользовательского сервиса неудачна
+      console.error('❌ КРИТИЧНО: Ошибка инициализации UsersService:', error);
+      await errorLogService.logCriticalError(
+        'UsersService',
+        'initialize',
+        error instanceof Error ? error : new Error(String(error))
+      );
+      // ✅ FAIL-SECURE: При ошибках инициализации блокируем сервис
+      throw new Error('Сервис управления пользователями недоступен. Система заблокирована.');
+    }
+  },
+
+  /**
+   * ❌ КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ БЕЗОПАСНОСТИ: MOCK РЕЖИМ ЗАБЛОКИРОВАН
+   */
+  async isMockMode(): Promise<boolean> {
+    // ✅ FAIL-SECURE: Mock режим пользователей навсегда заблокирован
+    console.log('🔒 Mock режим пользователей заблокирован политикой безопасности');
+    return false;
+  },
+
   // ПОЛЬЗОВАТЕЛИ
   
   // Получить всех пользователей
   async getAllUsers(): Promise<User[]> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    return [...usersData].sort((a, b) => a.firstName.localeCompare(b.firstName));
+    try {
+      const isMock = await this.isMockMode();
+      
+      if (isMock) {
+        console.log('🔄 UsersService: Используется localStorage режим');
+        await new Promise(resolve => setTimeout(resolve, 150));
+        return [...usersData].sort((a, b) => a.firstName.localeCompare(b.firstName));
+      } else {
+        console.log('🔄 UsersService: Используется Supabase режим');
+        try {
+          return await usersSupabaseService.getAllUsers();
+        } catch (error) {
+          // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается загрузить пользователей из базы данных
+          console.error('❌ КРИТИЧНО: Ошибка загрузки пользователей из Supabase:', error);
+          await errorLogService.logCriticalError(
+            'UsersService',
+            'getAllUsers',
+            error instanceof Error ? error : new Error(String(error)),
+            {
+              metadata: { securityEvent: 'USER_DATA_RETRIEVAL_FAILURE' }
+            }
+          );
+          
+          // ✅ FAIL-SECURE: При ошибках загрузки пользователей блокируем доступ
+          throw new Error('Не удается загрузить список пользователей. Система заблокирована из соображений безопасности.');
+        }
+      }
+    } catch (error) {
+      console.error('❌ КРИТИЧНО: Ошибка получения всех пользователей:', error);
+      // ❌ БЕЗ FALLBACK - перебрасываем ошибку выше
+      throw error;
+    }
   },
 
   // Получить пользователя по ID
   async getUserById(id: number): Promise<User | null> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return usersData.find(u => u.id === id) || null;
+    try {
+      console.log('🔄 UsersService: Получение пользователя по ID через Supabase');
+      return await usersSupabaseService.getUserById(id);
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается получить пользователя из базы данных
+      console.error('❌ КРИТИЧНО: Ошибка получения пользователя из Supabase:', error);
+      await errorLogService.logCriticalError(
+        'UsersService',
+        'getUserById',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { userId: id, securityEvent: 'SINGLE_USER_RETRIEVAL_FAILURE' }
+        }
+      );
+      
+      // ✅ FAIL-SECURE: При ошибках получения пользователя блокируем доступ
+      throw new Error(`Не удается получить данные пользователя ID:${id}. Доступ заблокирован.`);
+    }
   },
 
   // Получить пользователя по email
   async getUserByEmail(email: string): Promise<User | null> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return usersData.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+    try {
+      console.log('🔄 UsersService: Получение пользователя по email через Supabase');
+      return await usersSupabaseService.getUserByEmail(email);
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается получить пользователя из базы данных
+      console.error('❌ КРИТИЧНО: Ошибка получения пользователя по email из Supabase:', error);
+      await errorLogService.logCriticalError(
+        'UsersService',
+        'getUserByEmail',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { email, securityEvent: 'USER_EMAIL_RETRIEVAL_FAILURE' }
+        }
+      );
+      
+      // ✅ FAIL-SECURE: При ошибках получения пользователя блокируем доступ
+      throw new Error(`Не удается получить данные пользователя по email. Доступ заблокирован.`);
+    }
   },
 
   // Создать пользователя
   async createUser(input: UserInput): Promise<User> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Проверяем уникальность email
-    const existingUser = usersData.find(u => u.email.toLowerCase() === input.email.toLowerCase());
-    if (existingUser) {
-      throw new Error('Пользователь с таким email уже существует');
-    }
-    
-    // Получаем роли и разрешения
-    const userRoles: UserRole[] = [];
-    const permissions: string[] = [];
-    
-    if (input.roles && input.roles.length > 0) {
-      for (const roleId of input.roles) {
-        const role = rolesData.find(r => r.id === roleId);
-        if (role) {
-          userRoles.push({
-            roleId: role.id,
-            roleName: role.name,
-            roleCode: role.code,
-            scope: role.scope,
-            permissions: role.permissions
-          });
-          permissions.push(...role.permissions);
+    try {
+      console.log('🔄 UsersService: Создание пользователя через Supabase');
+      return await usersSupabaseService.createUser(input);
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается создать пользователя в базе данных
+      console.error('❌ КРИТИЧНО: Ошибка создания пользователя в Supabase:', error);
+      await errorLogService.logCriticalError(
+        'UsersService',
+        'createUser',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { email: input.email, securityEvent: 'USER_CREATION_FAILURE' }
         }
-      }
+      );
+      
+      // ✅ FAIL-SECURE: При ошибках создания пользователя блокируем операцию
+      throw new Error(`Не удается создать пользователя. Система заблокирована.`);
     }
-    
-    const newUser: User = {
-      id: nextUserId++,
-      email: input.email,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      phone: input.phone,
-      status: input.status || 'active',
-      roles: userRoles,
-      permissions: Array.from(new Set(permissions)), // убираем дубли
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    usersData.push(newUser);
-    saveUsers();
-    
-    return newUser;
   },
 
   // Обновить пользователя
   async updateUser(id: number, updates: Partial<UserInput>): Promise<User | null> {
-    await new Promise(resolve => setTimeout(resolve, 250));
-    
-    const index = usersData.findIndex(u => u.id === id);
-    if (index === -1) return null;
-    
-    // Проверяем уникальность email при изменении
-    if (updates.email) {
-      const existingUser = usersData.find(u => u.id !== id && u.email.toLowerCase() === updates.email!.toLowerCase());
-      if (existingUser) {
-        throw new Error('Пользователь с таким email уже существует');
-      }
-    }
-    
-    const currentUser = usersData[index];
-    
-    // Обновляем роли если они переданы
-    let userRoles = currentUser.roles;
-    let permissions = currentUser.permissions;
-    
-    if (updates.roles !== undefined) {
-      userRoles = [];
-      permissions = [];
-      
-      for (const roleId of updates.roles) {
-        const role = rolesData.find(r => r.id === roleId);
-        if (role) {
-          userRoles.push({
-            roleId: role.id,
-            roleName: role.name,
-            roleCode: role.code,
-            scope: role.scope,
-            permissions: role.permissions
-          });
-          permissions.push(...role.permissions);
+    try {
+      console.log('🔄 UsersService: Обновление пользователя через Supabase');
+      return await usersSupabaseService.updateUser(id, updates);
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается обновить пользователя в базе данных
+      console.error('❌ КРИТИЧНО: Ошибка обновления пользователя в Supabase:', error);
+      await errorLogService.logCriticalError(
+        'UsersService',
+        'updateUser',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { userId: id, securityEvent: 'USER_UPDATE_FAILURE' }
         }
-      }
-      permissions = Array.from(new Set(permissions));
+      );
+      
+      // ✅ FAIL-SECURE: При ошибках обновления пользователя блокируем операцию
+      throw new Error(`Не удается обновить пользователя ID:${id}. Система заблокирована.`);
     }
-    
-    const updatedUser: User = {
-      ...currentUser,
-      email: updates.email || currentUser.email,
-      firstName: updates.firstName || currentUser.firstName,
-      lastName: updates.lastName || currentUser.lastName,
-      phone: updates.phone !== undefined ? updates.phone : currentUser.phone,
-      status: updates.status || currentUser.status,
-      roles: userRoles,
-      permissions,
-      updatedAt: new Date()
-    };
-
-    usersData[index] = updatedUser;
-    saveUsers();
-    
-    return updatedUser;
   },
 
   // Удалить пользователя
   async deleteUser(id: number): Promise<boolean> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const index = usersData.findIndex(u => u.id === id);
-    if (index === -1) return false;
-    
-    // Нельзя удалить супер администратора
-    const user = usersData[index];
-    if (user.roles.some(role => role.roleCode === 'super_admin')) {
-      throw new Error('Нельзя удалить супер администратора');
+    try {
+      console.log('🔄 UsersService: Удаление пользователя через Supabase');
+      return await usersSupabaseService.deleteUser(id);
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается удалить пользователя из базы данных
+      console.error('❌ КРИТИЧНО: Ошибка удаления пользователя из Supabase:', error);
+      await errorLogService.logCriticalError(
+        'UsersService',
+        'deleteUser',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { userId: id, securityEvent: 'USER_DELETION_FAILURE' }
+        }
+      );
+      
+      // ✅ FAIL-SECURE: При ошибках удаления пользователя блокируем операцию
+      throw new Error(`Не удается удалить пользователя ID:${id}. Система заблокирована.`);
     }
-    
-    usersData.splice(index, 1);
-    saveUsers();
-    
-    return true;
   },
 
   // Обновить статус пользователя
   async updateUserStatus(id: number, status: 'active' | 'inactive' | 'blocked'): Promise<User | null> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    
-    const user = usersData.find(u => u.id === id);
-    if (!user) return null;
-    
-    user.status = status;
-    user.updatedAt = new Date();
-    
-    saveUsers();
-    return user;
+    try {
+      console.log('🔄 UsersService: Обновление статуса пользователя через Supabase');
+      return await usersSupabaseService.updateUserStatus(id, status);
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается обновить статус пользователя в базе данных
+      console.error('❌ КРИТИЧНО: Ошибка обновления статуса пользователя в Supabase:', error);
+      await errorLogService.logCriticalError(
+        'UsersService',
+        'updateUserStatus',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { userId: id, status, securityEvent: 'USER_STATUS_UPDATE_FAILURE' }
+        }
+      );
+      
+      // ✅ FAIL-SECURE: При ошибках обновления статуса блокируем операцию
+      throw new Error(`Не удается обновить статус пользователя ID:${id}. Система заблокирована.`);
+    }
   },
 
   // Поиск пользователей
@@ -464,48 +510,70 @@ export const usersService = {
     status?: 'active' | 'inactive' | 'blocked';
     roleCode?: string;
   }): Promise<User[]> {
-    await new Promise(resolve => setTimeout(resolve, 180));
-    
-    let filteredUsers = usersData;
-    
-    // Фильтры
-    if (filters) {
-      if (filters.status) {
-        filteredUsers = filteredUsers.filter(u => u.status === filters.status);
-      }
-      if (filters.roleCode) {
-        filteredUsers = filteredUsers.filter(u => 
-          u.roles.some(role => role.roleCode === filters.roleCode)
-        );
-      }
-    }
-    
-    // Поиск по запросу
-    if (query.trim()) {
-      const searchLower = query.toLowerCase();
-      filteredUsers = filteredUsers.filter(u => 
-        u.firstName.toLowerCase().includes(searchLower) ||
-        u.lastName.toLowerCase().includes(searchLower) ||
-        u.email.toLowerCase().includes(searchLower) ||
-        u.phone?.includes(searchLower)
+    try {
+      console.log('🔄 UsersService: Поиск пользователей через Supabase');
+      return await usersSupabaseService.searchUsers(query, filters);
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается выполнить поиск пользователей
+      console.error('❌ КРИТИЧНО: Ошибка поиска пользователей в Supabase:', error);
+      await errorLogService.logCriticalError(
+        'UsersService',
+        'searchUsers',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { query, filters, securityEvent: 'USER_SEARCH_FAILURE' }
+        }
       );
+      
+      // ✅ FAIL-SECURE: При ошибках поиска блокируем операцию
+      throw new Error('Не удается выполнить поиск пользователей. Система заблокирована.');
     }
-    
-    return filteredUsers.sort((a, b) => a.firstName.localeCompare(b.firstName));
   },
 
   // РОЛИ
 
   // Получить все роли
   async getAllRoles(): Promise<Role[]> {
-    await new Promise(resolve => setTimeout(resolve, 120));
-    return [...rolesData].sort((a, b) => a.name.localeCompare(b.name));
+    try {
+      console.log('🔄 UsersService: Получение всех ролей через Supabase');
+      return await usersSupabaseService.getAllRoles();
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается загрузить роли из базы данных
+      console.error('❌ КРИТИЧНО: Ошибка загрузки ролей из Supabase:', error);
+      await errorLogService.logCriticalError(
+        'UsersService',
+        'getAllRoles',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { securityEvent: 'ROLES_RETRIEVAL_FAILURE' }
+        }
+      );
+      
+      // ✅ FAIL-SECURE: При ошибках загрузки ролей блокируем доступ
+      throw new Error('Не удается загрузить список ролей. Система заблокирована.');
+    }
   },
 
   // Получить роль по ID
   async getRoleById(id: number): Promise<Role | null> {
-    await new Promise(resolve => setTimeout(resolve, 80));
-    return rolesData.find(r => r.id === id) || null;
+    try {
+      console.log('🔄 UsersService: Получение роли по ID через Supabase');
+      return await usersSupabaseService.getRoleById(id);
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается получить роль из базы данных
+      console.error('❌ КРИТИЧНО: Ошибка получения роли из Supabase:', error);
+      await errorLogService.logCriticalError(
+        'UsersService',
+        'getRoleById',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { roleId: id, securityEvent: 'SINGLE_ROLE_RETRIEVAL_FAILURE' }
+        }
+      );
+      
+      // ✅ FAIL-SECURE: При ошибках получения роли блокируем доступ
+      throw new Error(`Не удается получить данные роли ID:${id}. Доступ заблокирован.`);
+    }
   },
 
   // Создать роль

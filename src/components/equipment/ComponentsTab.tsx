@@ -48,7 +48,7 @@ import {
   UpdateComponentRequest
 } from "@/types/component";
 import { currentComponentsAPI } from "@/services/components";
-import { componentTemplatesStore } from "@/mock/componentTemplatesStore";
+import { componentsSupabaseAPI } from "@/services/componentsSupabase";
 import { ComponentWizard } from "./ComponentWizard";
 import { ComponentDetailCard } from "./ComponentDetailCard";
 
@@ -126,12 +126,22 @@ export function ComponentsTab({
     loadComponents();
   }, [equipmentId, searchQuery, statusFilter, templateFilter]);
 
-  const loadCompatibleTemplates = () => {
-    if (equipmentTemplateId) {
-      const compatibleTemplates = componentTemplatesStore.getCompatibleTemplates(equipmentTemplateId);
-      setTemplates(compatibleTemplates);
-    } else {
-      setTemplates(componentTemplatesStore.getAll());
+  const loadCompatibleTemplates = async () => {
+    try {
+      // Загружаем все шаблоны из Supabase
+      const allTemplates = await componentsSupabaseAPI.getTemplates();
+      
+      // Фильтруем совместимые шаблоны по типу оборудования (если указан)
+      if (equipmentTemplateId) {
+        // Здесь можно добавить логику фильтрации по совместимости
+        // Пока что возвращаем все шаблоны
+        setTemplates(allTemplates);
+      } else {
+        setTemplates(allTemplates);
+      }
+    } catch (error) {
+      console.error('Failed to load component templates:', error);
+      setTemplates([]);
     }
   };
 

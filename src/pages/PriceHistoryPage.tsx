@@ -18,76 +18,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 // Используем типы из priceHistoryService
 type PriceHistoryRecord = PriceHistoryUI;
 
-// Mock данные истории цен
-const mockPriceHistory: PriceHistoryRecord[] = [
-  {
-    id: "1",
-    date: "2024-12-07",
-    time: "09:15",
-    fuelType: "АИ-95",
-    oldPrice: 52.50,
-    newPrice: 53.20,
-    changeReason: "Изменение оптовых цен",
-    changedBy: "Администратор сети",
-    status: 'applied'
-  },
-  {
-    id: "2", 
-    date: "2024-12-07",
-    time: "09:15",
-    fuelType: "АИ-92",
-    oldPrice: 49.80,
-    newPrice: 50.45,
-    changeReason: "Изменение оптовых цен",
-    changedBy: "Администратор сети",
-    status: 'applied'
-  },
-  {
-    id: "3",
-    date: "2024-12-06",
-    time: "14:30",
-    fuelType: "ДТ",
-    oldPrice: 51.20,
-    newPrice: 51.95,
-    changeReason: "Корректировка маржи",
-    changedBy: "Менеджер АЗС №001",
-    tradingPoint: "АЗС №001 - Московское шоссе",
-    status: 'applied'
-  },
-  {
-    id: "4",
-    date: "2024-12-05", 
-    time: "16:45",
-    fuelType: "АИ-95",
-    oldPrice: 52.80,
-    newPrice: 52.50,
-    changeReason: "Снижение для повышения конкурентоспособности",
-    changedBy: "Директор сети",
-    status: 'applied'
-  },
-  {
-    id: "5",
-    date: "2024-12-04",
-    time: "11:20",
-    fuelType: "АИ-92",
-    oldPrice: 50.10,
-    newPrice: 49.80,
-    changeReason: "Снижение для повышения конкурентоспособности", 
-    changedBy: "Директор сети",
-    status: 'applied'
-  },
-  {
-    id: "6",
-    date: "2024-12-08",
-    time: "08:00",
-    fuelType: "АИ-95", 
-    oldPrice: 53.20,
-    newPrice: 53.80,
-    changeReason: "Плановое повышение",
-    changedBy: "Система",
-    status: 'pending'
-  }
-];
 
 const fuelTypes = ["Все", "АИ-95", "АИ-92", "ДТ"];
 const changeReasons = ["Все", "Изменение оптовых цен", "Корректировка маржи", "Снижение для повышения конкурентоспособности", "Плановое повышение"];
@@ -134,9 +64,8 @@ export default function PriceHistoryPage() {
         setPriceHistory(result.data);
       } catch (error) {
         console.error('Failed to load price history:', error);
-        setError('Ошибка загрузки истории цен');
-        // При ошибке используем mock данные как fallback
-        setPriceHistory(mockPriceHistory);
+        setError('Ошибка загрузки истории цен. Проверьте подключение к базе данных и конфигурацию системы.');
+        setPriceHistory([]);
       } finally {
         setLoading(false);
       }

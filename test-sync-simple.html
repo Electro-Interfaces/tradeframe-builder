@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔧 Простой тест синхронизации</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; margin: 10px 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Простой тест синхронизации</h1>
+    
+    <div>
+        <button onclick="testSync()">Тест синхронизации с логами</button>
+        <button onclick="clearLogs()">Очистить логи</button>
+    </div>
+    
+    <div id="logs"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.innerHTML = `${new Date().toLocaleTimeString()} - ${message}`;
+            logsDiv.appendChild(logEntry);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            console.clear();
+        }
+
+        async function testSync() {
+            log('🚀 Начало теста синхронизации', 'info');
+            
+            try {
+                // Проверяем доступность сервиса в глобальной области
+                if (typeof window.tradingTransactionsSyncService !== 'undefined') {
+                    log('✅ tradingTransactionsSyncService найден в window', 'success');
+                    
+                    const syncOptions = {
+                        systemId: 15,
+                        stationNumber: 4,
+                        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        endDate: new Date().toISOString()
+                    };
+                    
+                    log('🔧 Параметры синхронизации: ' + JSON.stringify(syncOptions, null, 2), 'info');
+                    
+                    // Вызываем синхронизацию
+                    const result = await window.tradingTransactionsSyncService.syncTransactions(syncOptions);
+                    
+                    log('✅ Результат синхронизации: ' + JSON.stringify(result, null, 2), 'success');
+                    
+                } else {
+                    log('❌ tradingTransactionsSyncService НЕ найден в window', 'error');
+                    log('🔍 Доступные свойства window:', 'info');
+                    Object.keys(window).filter(key => key.includes('trading') || key.includes('sync')).forEach(key => {
+                        log(`   - ${key}`, 'info');
+                    });
+                }
+                
+            } catch (error) {
+                log('❌ Ошибка теста: ' + error.message, 'error');
+                console.error('Полная ошибка:', error);
+            }
+        }
+
+        // Автоматически проверяем при загрузке
+        window.onload = () => {
+            log('🌐 Страница загружена', 'success');
+            log('🔍 Проверяем доступность сервисов...', 'info');
+            
+            // Ждем немного для загрузки всех скриптов
+            setTimeout(() => {
+                if (typeof window.tradingTransactionsSyncService !== 'undefined') {
+                    log('✅ tradingTransactionsSyncService доступен', 'success');
+                } else {
+                    log('⚠️ tradingTransactionsSyncService не найден', 'error');
+                }
+            }, 2000);
+        };
+    </script>
+</body>
+</html>

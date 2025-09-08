@@ -49,8 +49,8 @@ export async function testBasicServices(): Promise<TestResult[]> {
 
   // Тестируем дополнительные сервисы
   try {
-    const { usersService } = await import('@/services/usersService');
-    const users = await usersService.getAllUsers();
+    const { usersSupabaseService } = await import('@/services/usersSupabaseService');
+    const users = await usersSupabaseService.getAllUsers();
     results.push({
       service: 'usersService',
       status: 'success',
@@ -66,41 +66,41 @@ export async function testBasicServices(): Promise<TestResult[]> {
   }
 
   try {
-    const { operationsService } = await import('@/services/operationsService');
+    const { operationsService } = await import('@/services/operationsSupabaseService');
     const operations = await operationsService.getAll();
     results.push({
-      service: 'operationsService',
+      service: 'operationsSupabaseService',
       status: 'success',
       message: `Найдено ${operations.length} операций`,
       data: operations.slice(0, 1)
     });
   } catch (error) {
     results.push({
-      service: 'operationsService',
+      service: 'operationsSupabaseService',
       status: 'error',
       message: `Ошибка: ${error}`
     });
   }
 
   try {
-    const { shiftReportsService } = await import('@/services/shiftReportsService');
-    const shifts = await shiftReportsService.getAllShiftReports();
+    const { shiftReportsSupabaseService } = await import('@/services/shiftReportsSupabaseService');
+    const shifts = await shiftReportsSupabaseService.getAllShiftReports();
     results.push({
-      service: 'shiftReportsService',
+      service: 'shiftReportsSupabaseService',
       status: 'success',
       message: `Найдено ${shifts.length} сменных отчетов`,
       data: shifts.slice(0, 1)
     });
   } catch (error) {
     results.push({
-      service: 'shiftReportsService',
+      service: 'shiftReportsSupabaseService',
       status: 'error',
       message: `Ошибка: ${error}`
     });
   }
 
   try {
-    const { messagesService } = await import('@/services/messagesService');
+    const { messagesService } = await import('@/services/messagesSupabaseService');
     const messages = await messagesService.getAllChatMessages();
     const tickets = await messagesService.getAllTickets();
     const notifications = await messagesService.getAllNotifications();
@@ -119,34 +119,34 @@ export async function testBasicServices(): Promise<TestResult[]> {
   }
 
   try {
-    const { tanksService } = await import('@/services/tanksService');
+    const { tanksService } = await import('@/services/tanksServiceSupabase');
     const tanks = await tanksService.getTanks();
     results.push({
-      service: 'tanksService',
+      service: 'tanksServiceSupabase',
       status: 'success',
       message: `Найдено ${tanks.length} резервуаров`,
       data: tanks.slice(0, 1)
     });
   } catch (error) {
     results.push({
-      service: 'tanksService',
+      service: 'tanksServiceSupabase',
       status: 'error',
       message: `Ошибка: ${error}`
     });
   }
 
   try {
-    const { pricesService } = await import('@/services/pricesService');
+    const { pricesService } = await import('@/services/pricesSupabaseService');
     const prices = await pricesService.getCurrentPrices();
     results.push({
-      service: 'pricesService',
+      service: 'pricesSupabaseService',
       status: 'success',
       message: `Найдено ${prices.length} текущих цен`,
       data: prices.slice(0, 1)
     });
   } catch (error) {
     results.push({
-      service: 'pricesService',
+      service: 'pricesSupabaseService',
       status: 'error',
       message: `Ошибка: ${error}`
     });
@@ -157,21 +157,21 @@ export async function testBasicServices(): Promise<TestResult[]> {
     const commands = await commandsService.getAllCommands();
     const workflows = await commandsService.getAllWorkflows();
     results.push({
-      service: 'commandsService',
+      service: 'commandTemplatesSupabaseService',
       status: 'success',
       message: `Команды: ${commands.length}, Регламенты: ${workflows.length}`,
       data: { commands: commands.slice(0, 1), workflows: workflows.slice(0, 1) }
     });
   } catch (error) {
     results.push({
-      service: 'commandsService',
+      service: 'commandTemplatesSupabaseService',
       status: 'error',
       message: `Ошибка: ${error}`
     });
   }
 
   try {
-    const { componentStatusService } = await import('@/services/componentStatusService');
+    const { componentStatusService } = await import('@/services/componentStatusSupabaseService');
     const statuses = await componentStatusService.getAll();
     results.push({
       service: 'componentStatusService',

@@ -38,7 +38,7 @@ import {
   X
 } from 'lucide-react';
 
-import { instructionsService } from '@/services/instructionsService';
+import { instructionsService } from '@/services/instructionsSupabaseService';
 import type { 
   InstructionTopic, 
   InstructionVersion, 

@@ -5,7 +5,9 @@
 
 import { PersistentStorage } from '@/utils/persistentStorage';
 import { tanksService, Tank } from './tanksService';
-import { apiConfigService } from './apiConfigService';
+import { apiConfigServiceDB } from './apiConfigServiceDB';
+import { errorLogService } from './errorLogService';
+import { httpClient } from './universalHttpClient';
 
 export interface FuelStockSnapshot {
   id: string;
@@ -29,6 +31,10 @@ export interface FuelStockSnapshot {
 
 // Генератор исторических данных
 class FuelStocksHistoryGenerator {
+  private async getApiUrl() {
+    const connection = await apiConfigServiceDB.getCurrentConnection();
+    return connection?.url || '';
+  }
   private readonly AUGUST_2025_START = new Date('2025-08-01T00:00:00Z');
   private readonly AUGUST_2025_END = new Date('2025-08-31T23:59:59Z');
   private readonly SNAPSHOT_INTERVAL_HOURS = 4; // Каждые 4 часа
@@ -343,30 +349,22 @@ const httpApiMethods = {
   /**
    * HTTP запрос к API
    */
-  async apiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const apiUrl = apiConfigService.getCurrentApiUrl();
-    const url = `${apiUrl}${endpoint}`;
+  async apiRequest(endpoint: string, options: any = {}): Promise<any> {
+    const response = await httpClient.request(endpoint, {
+      destination: 'supabase',
+      ...options
+    });
     
-    const defaultOptions: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...httpApiMethods.getAuthHeaders()
-      }
-    };
-    
-    const response = await fetch(url, { ...defaultOptions, ...options });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+    if (!response.success) {
       throw {
         status: response.status,
-        statusText: response.statusText,
-        message: errorData.error || 'API request failed',
-        details: errorData.details
+        statusText: 'Request failed',
+        message: response.error || 'API request failed',
+        details: response.data
       };
     }
     
-    return await response.json();
+    return response.data;
   },
 
   /**
@@ -467,7 +465,7 @@ export const fuelStocksHistoryService = {
   ): Promise<FuelStockSnapshot[]> {
     try {
       // Если не mock режим, используем API
-      if (!apiConfigService.isMockMode()) {
+      if (!(await apiConfigServiceDB.isMockMode())) {
         return await httpApiMethods.getHistoricalDataFromAPI(
           startDate,
           endDate,
@@ -476,19 +474,25 @@ export const fuelStocksHistoryService = {
         );
       }
     } catch (error) {
-      console.error('Fuel stocks history API error:', error);
-      console.warn('Falling back to mock data due to API error');
-    }
-
-    // Mock режим или fallback
-    const cacheKey = 'fuelStocksHistory_august2025';
-    let snapshots = PersistentStorage.load<FuelStockSnapshot[]>(cacheKey, []);
-    
-    // Если данных нет, генерируем их
-    if (snapshots.length === 0) {
-      console.log('📊 Генерируем исторические данные остатков топлива...');
-      snapshots = await historyGenerator.generateAugustHistory();
-      PersistentStorage.save(cacheKey, snapshots);
+      console.error('❌ КРИТИЧНО: Ошибка загрузки исторических данных остатков топлива из API:', error);
+      
+      // Логируем критическую ошибку в базу данных
+      await errorLogService.logCriticalError(
+        'fuelStocksHistoryService',
+        'getHistoricalData',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { 
+            startDate,
+            endDate,
+            tankId,
+            tradingPointId,
+            service: 'fuelStocksHistoryService'
+          }
+        }
+      );
+      
+      throw new Error(`Не удалось загрузить данные об остатках топлива: ${error.message}`);
     }
     
     // Фильтруем по параметрам

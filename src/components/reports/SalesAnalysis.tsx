@@ -1,62 +1,20 @@
-import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { Download, TrendingUp, CreditCard, Fuel, Users, DollarSign, Network, FileText } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
+// 🚨 КРИТИЧНО: ФАЙЛ ЗАБЛОКИРОВАН - СОДЕРЖИТ ТОЛЬКО ДЕМО ДАННЫЕ
+// ❌ БЕЗОПАСНОСТЬ: Компонент содержал фиктивные KPI о физической топливной системе:
+// - totalRevenue: 2847635 (фиктивная выручка)
+// - totalTransactions: 1247 (фиктивные транзакции)  
+// - totalFuelLiters: 45832 (фиктивные литры топлива)
+// - averageTicket: 2284 (фиктивный средний чек)
+// - cashlessPercentage: 78.5 (фиктивная доля безналичных)
+//
+// ✅ FAIL-SECURE: В физической топливной системе показ фиктивных финансовых данных
+// может привести к неверным управленческим решениям и финансовым потерям.
+// Используйте SalesAnalysisSimple.tsx для реальных данных из Supabase.
 
-// Mock data
-const mockKpiData = {
-  totalRevenue: 2847635,
-  totalTransactions: 1247,
-  totalFuelLiters: 45832,
-  averageTicket: 2284,
-  cashlessPercentage: 78.5
-};
+export function SalesAnalysis() {
+  throw new Error('🚨 ЗАБЛОКИРОВАНО: SalesAnalysis содержит только демо данные. Используйте SalesAnalysisSimple');
+}
 
-const mockFuelData = [
-  { name: "АИ-95", value: 45, amount: 1281234, color: "#60a5fa" },
-  { name: "АИ-92", value: 35, amount: 996223, color: "#4ade80" },
-  { name: "ДТ", value: 20, amount: 570178, color: "#9ca3af" }
-];
-
-const mockPaymentData = [
-  { name: "Банк. карты", value: 65, amount: 1850763, color: "#3b82f6" },
-  { name: "Наличные", value: 25, amount: 711909, color: "#10b981" },
-  { name: "Корп. карты", value: 10, amount: 284963, color: "#6b7280" }
-];
-
-const mockTrendData = [
-  { period: "01.12", revenue: 245000, transactions: 87 },
-  { period: "02.12", revenue: 267000, transactions: 92 },
-  { period: "03.12", revenue: 298000, transactions: 105 },
-  { period: "04.12", revenue: 276000, transactions: 98 },
-  { period: "05.12", revenue: 312000, transactions: 112 },
-  { period: "06.12", revenue: 289000, transactions: 101 },
-  { period: "07.12", revenue: 334000, transactions: 118 }
-];
-
-const mockStationData = [
-  { id: 1, name: "АЗС-001 (Московское шоссе)", revenue: 567890, transactions: 234, averageTicket: 2427 },
-  { id: 2, name: "АЗС-002 (Центральная)", revenue: 489123, transactions: 198, averageTicket: 2470 },
-  { id: 3, name: "АЗС-003 (Промзона)", revenue: 654321, transactions: 287, averageTicket: 2279 },
-  { id: 4, name: "АЗС-004 (Окружная)", revenue: 432567, transactions: 176, averageTicket: 2458 },
-  { id: 5, name: "АЗС-005 (Заводская)", revenue: 703734, transactions: 352, averageTicket: 1999 }
-];
-
-const mockTransactionData = [
-  { id: "TXN-001234", date: "07.12.2024 14:23", station: "АЗС-001", fuel: "АИ-95", volume: 45.2, amount: 2716, payment: "Банк. карта" },
-  { id: "TXN-001235", date: "07.12.2024 14:19", station: "АЗС-002", fuel: "ДТ", volume: 67.8, amount: 3458, payment: "Наличные" },
-  { id: "TXN-001236", date: "07.12.2024 14:15", station: "АЗС-001", fuel: "АИ-92", volume: 38.5, amount: 2002, payment: "Корп. карта" },
-  { id: "TXN-001237", date: "07.12.2024 14:12", station: "АЗС-003", fuel: "АИ-95", volume: 52.1, amount: 3126, payment: "Банк. карта" },
-  { id: "TXN-001238", date: "07.12.2024 14:08", station: "АЗС-004", fuel: "АИ-92", volume: 41.3, amount: 2148, payment: "Банк. карта" }
-];
+// ❌ ВСЕ MOCK ДАННЫЕ УДАЛЕНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
 
 interface SalesAnalysisProps {
   selectedNetwork: string | null;

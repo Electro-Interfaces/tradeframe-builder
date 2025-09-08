@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Debug Tanks API</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #0f0; 
+            padding: 20px;
+            line-height: 1.4;
+        }
+        .section { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border: 1px solid #0f0;
+            background: #0a0a0a;
+        }
+        h1 { color: #0ff; }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        pre {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            overflow-x: auto;
+            font-size: 11px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #0a0a0a;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            cursor: pointer;
+            font-family: monospace;
+            margin: 5px;
+        }
+        button:hover {
+            background: #001100;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug API резервуаров</h1>
+    
+    <div class="section">
+        <h2>Конфигурация API</h2>
+        <button onclick="testConfig()">🔧 Проверить конфигурацию</button>
+        <div id="configResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Тест запроса резервуаров</h2>
+        <button onclick="testTanksApi()">🏭 Тест API резервуаров</button>
+        <button onclick="testWithStationId()">🎯 Тест с station_id = 4</button>
+        <div id="apiResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Прямой запрос</h2>
+        <button onclick="directApiCall()">🌐 Прямой вызов fetch</button>
+        <div id="directResult"></div>
+    </div>
+
+    <script>
+        const log = (containerId, msg, type = '') => {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = msg;
+            document.getElementById(containerId).appendChild(div);
+        };
+
+        async function testConfig() {
+            const container = 'configResult';
+            document.getElementById(container).innerHTML = '';
+            
+            log(container, '🔄 Проверка конфигурации...', 'warning');
+            
+            try {
+                // URL API должен быть из настроек "Обмен данными"
+                const apiUrl = 'https://pos.autooplata.ru/tms/tanks';
+                const params = new URLSearchParams({
+                    system: '15',  // System ID из настроек
+                    station: '4'   // Station ID из настроек
+                });
+                
+                const fullUrl = `${apiUrl}?${params}`;
+                
+                log(container, `✅ URL для запроса: ${fullUrl}`, 'success');
+                log(container, `📋 Bearer Token нужно взять из настроек "Обмен данными"`, 'warning');
+                
+            } catch (error) {
+                log(container, `❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTanksApi() {
+            const container = 'apiResult';
+            document.getElementById(container).innerHTML = '';
+            
+            log(container, '🔄 Тестируем API резервуаров...', 'warning');
+            
+            try {
+                const response = await fetch('http://localhost:3006/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'test_tanks_api',
+                        params: {
+                            system: '15',
+                            station: '4'
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log(container, `✅ Успешный ответ:`, 'success');
+                log(container, `<pre>${JSON.stringify(data, null, 2)}</pre>`);
+                
+            } catch (error) {
+                log(container, `❌ Ошибка API: ${error.message}`, 'error');
+                log(container, `⚠️ Попробуем прямой запрос...`, 'warning');
+            }
+        }
+
+        async function testWithStationId() {
+            const container = 'apiResult';
+            log(container, '🎯 Тест с прямыми параметрами...', 'warning');
+            
+            // Имитируем работу tanksTradingApiService
+            const testParams = {
+                baseUrl: 'https://pos.autooplata.ru/tms',
+                endpoint: '/tanks',
+                systemId: '15',
+                stationId: '4',
+                authToken: 'ТОКЕН_ИЗ_НАСТРОЕК' // Нужно взять из раздела "Обмен данными"
+            };
+            
+            log(container, `<pre>Параметры запроса:
+${JSON.stringify(testParams, null, 2)}</pre>`);
+        }
+
+        async function directApiCall() {
+            const container = 'directResult';
+            document.getElementById(container).innerHTML = '';
+            
+            log(container, '🌐 Прямой запрос к API...', 'warning');
+            
+            try {
+                const url = 'https://pos.autooplata.ru/tms/tanks?system=15&station=4';
+                
+                // ВНИМАНИЕ: Нужен реальный Bearer token из настроек
+                const headers = {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    // 'Authorization': 'Bearer YOUR_TOKEN_HERE'
+                };
+                
+                log(container, `📍 URL: ${url}`, 'success');
+                log(container, `🔐 Заголовки: ${JSON.stringify(headers, null, 2)}`, 'warning');
+                log(container, `⚠️ Нужно добавить реальный Bearer token из раздела "Обмен данными"`, 'error');
+                
+                // Закомментированный реальный запрос
+                /*
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers,
+                    signal: AbortSignal.timeout(10000)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                log(container, '✅ Успешный ответ:', 'success');
+                log(container, `<pre>${JSON.stringify(data, null, 2)}</pre>`);
+                */
+                
+            } catch (error) {
+                log(container, `❌ Ошибка прямого запроса: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

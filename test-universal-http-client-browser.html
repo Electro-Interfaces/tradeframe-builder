@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест универсального HTTP клиента</title>
+</head>
+<body>
+    <h1>🧪 Тест универсального HTTP клиента для торгового API</h1>
+    <div id="log"></div>
+
+    <script type="module">
+        // Импортируем универсальный клиент
+        import { httpClient } from './src/services/universalHttpClient.js';
+        import { tradingNetworkConfigService } from './src/services/tradingNetworkConfigService.js';
+
+        const log = document.getElementById('log');
+
+        function addLog(message, type = 'info') {
+            const div = document.createElement('div');
+            div.style.padding = '5px';
+            div.style.margin = '2px 0';
+            
+            if (type === 'error') {
+                div.style.color = 'red';
+                div.style.backgroundColor = '#ffebee';
+            } else if (type === 'success') {
+                div.style.color = 'green';
+                div.style.backgroundColor = '#e8f5e8';
+            } else {
+                div.style.color = 'black';
+                div.style.backgroundColor = '#f5f5f5';
+            }
+            
+            div.textContent = message;
+            log.appendChild(div);
+        }
+
+        async function testHttpClient() {
+            try {
+                addLog('🧪 НАЧИНАЕМ ТЕСТ УНИВЕРСАЛЬНОГО HTTP КЛИЕНТА');
+                addLog('===========================================');
+                
+                // Тест 1: Проверяем конфигурацию
+                addLog('🔧 ТЕСТ 1: Проверка конфигурации торговой сети');
+                
+                let config;
+                try {
+                    config = await tradingNetworkConfigService.getConfig();
+                    addLog('✅ Конфигурация получена асинхронно:', 'success');
+                    addLog(`   - Включена: ${config.enabled}`);
+                    addLog(`   - Base URL: ${config.baseUrl}`);
+                    addLog(`   - Auth Type: ${config.authType}`);
+                    addLog(`   - Username: ${config.username || 'не указан'}`);
+                    addLog(`   - Endpoints: ${JSON.stringify(config.endpoints)}`);
+                } catch (asyncError) {
+                    addLog('❌ Ошибка асинхронной конфигурации: ' + asyncError.message, 'error');
+                    
+                    // Пробуем синхронную версию
+                    try {
+                        config = tradingNetworkConfigService.getConfigSync();
+                        addLog('✅ Используем синхронную конфигурацию:', 'success');
+                        addLog(`   - Включена: ${config.enabled}`);
+                        addLog(`   - Base URL: ${config.baseUrl}`);
+                        addLog(`   - Auth Type: ${config.authType}`);
+                        addLog(`   - Username: ${config.username}`);
+                    } catch (syncError) {
+                        addLog('❌ И синхронная конфигурация не работает: ' + syncError.message, 'error');
+                        return;
+                    }
+                }
+
+                // Тест 2: Прямой запрос через универсальный клиент
+                addLog('');
+                addLog('🌐 ТЕСТ 2: Запрос к API резервуаров');
+                addLog('-----------------------------------');
+                
+                const testEndpoint = '/tanks';
+                const queryParams = {
+                    system: '15',  // Network external_id (Норд Лайн)
+                    station: '4'   // АЗС 4 external_id
+                };
+                
+                addLog(`📡 Делаем запрос: ${testEndpoint}`);
+                addLog(`📋 Параметры: ${JSON.stringify(queryParams)}`);
+                addLog(`🔗 Полный URL будет: ${config.baseUrl}${testEndpoint}?system=${queryParams.system}&station=${queryParams.station}`);
+                
+                const startTime = Date.now();
+                
+                const response = await httpClient.get(testEndpoint, {
+                    destination: 'external-api',
+                    queryParams: queryParams,
+                    timeout: 10000,
+                    retryAttempts: 1
+                });
+                
+                const responseTime = Date.now() - startTime;
+                
+                addLog('');
+                addLog('📊 РЕЗУЛЬТАТ ЗАПРОСА:');
+                addLog(`   - Успех: ${response.success}`);
+                addLog(`   - HTTP статус: ${response.status || 'не указан'}`);
+                addLog(`   - Время ответа: ${response.responseTime || responseTime}ms`);
+                addLog(`   - Ошибка: ${response.error || 'нет'}`);
+                
+                if (response.success && response.data) {
+                    addLog('   - Данные получены:', 'success');
+                    if (Array.isArray(response.data)) {
+                        addLog(`     📊 Количество резервуаров: ${response.data.length}`, 'success');
+                        if (response.data.length > 0) {
+                            addLog(`     🛢️  Первый резервуар: ${JSON.stringify(response.data[0], null, 2)}`);
+                        }
+                    } else if (typeof response.data === 'object') {
+                        addLog(`     📄 Данные (объект): ${JSON.stringify(response.data, null, 2)}`);
+                    } else {
+                        addLog(`     📄 Данные (текст): ${response.data}`);
+                    }
+                } else {
+                    if (response.error) {
+                        addLog(`❌ Ошибка: ${response.error}`, 'error');
+                    }
+                    if (response.data) {
+                        addLog(`📄 Данные ошибки: ${JSON.stringify(response.data, null, 2)}`, 'error');
+                    }
+                    if (response.headers) {
+                        addLog(`📋 Заголовки: ${JSON.stringify(response.headers, null, 2)}`);
+                    }
+                }
+                
+                // Тест 3: Альтернативные параметры
+                addLog('');
+                addLog('🔄 ТЕСТ 3: Альтернативные параметры');
+                addLog('----------------------------------');
+                
+                const altParams = [
+                    { system: '1', station: '1' },
+                    { systemId: '15', stationId: '4' },
+                    { networkId: '15', pointId: '4' }
+                ];
+                
+                for (let i = 0; i < altParams.length; i++) {
+                    const params = altParams[i];
+                    addLog(`🧪 Тестируем параметры ${i+1}: ${JSON.stringify(params)}`);
+                    
+                    try {
+                        const altResponse = await httpClient.get(testEndpoint, {
+                            destination: 'external-api',
+                            queryParams: params,
+                            timeout: 5000,
+                            retryAttempts: 0
+                        });
+                        
+                        if (altResponse.success) {
+                            addLog(`   ✅ Успех! Статус: ${altResponse.status}`, 'success');
+                            if (Array.isArray(altResponse.data)) {
+                                addLog(`   📊 Резервуаров: ${altResponse.data.length}`, 'success');
+                            }
+                            break;
+                        } else {
+                            addLog(`   ❌ Ошибка: ${altResponse.error}`, 'error');
+                        }
+                    } catch (altError) {
+                        addLog(`   💥 Исключение: ${altError.message}`, 'error');
+                    }
+                }
+                
+                addLog('');
+                addLog('🏁 ТЕСТ ЗАВЕРШЕН');
+                
+            } catch (error) {
+                addLog('💥 Критическая ошибка теста: ' + error.message, 'error');
+                console.error('Full error:', error);
+            }
+        }
+
+        // Запуск теста
+        testHttpClient();
+    </script>
+</body>
+</html>

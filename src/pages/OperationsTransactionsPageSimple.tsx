@@ -7,34 +7,42 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, Activity } from "lucide-react";
-import { operationsService } from "@/services/operationsService";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Download, Activity, ChevronDown, Save, Mail, Send } from "lucide-react";
+import { operationsSupabaseService } from "@/services/operationsSupabaseService";
+import { telegramService } from "@/services/telegramService";
+import { isGlobalTelegramConfigured } from "@/config/system";
+import { isUserTelegramEnabled } from "@/config/userSettings";
+import { useAuth } from "@/contexts/AuthContext";
+import * as XLSX from 'xlsx';
 
 export default function OperationsTransactionsPageSimple() {
+  const { user } = useAuth();
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   
   // Фильтры
   const [selectedFuelType, setSelectedFuelType] = useState("Все");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Все");
   const [selectedStatus, setSelectedStatus] = useState("Все");
+  // Устанавливаем даты на период с данными (август 2025)
   const [dateFrom, setDateFrom] = useState("2025-08-01");
   const [dateTo, setDateTo] = useState("2025-08-31");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Пагинация
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const loadData = async () => {
     console.log('🔄 loadData() начинает выполнение...');
     setLoading(true);
+    setError('');
     try {
-      console.log('🧹 Очищаем localStorage...');
-      localStorage.removeItem('tradeframe_operations');
-      localStorage.removeItem('operations');
       
-      console.log('🔄 Вызываем operationsService.forceReload()...');
-      await operationsService.forceReload();
-      
-      console.log('🔄 Вызываем operationsService.getAll()...');
-      const data = await operationsService.getAll();
+      console.log('🔄 Вызываем operationsSupabaseService.getOperations() для прямой загрузки из Supabase...');
+      const data = await operationsSupabaseService.getOperations({});
       
       console.log('✅ Получены данные:', {
         dataType: typeof data,
@@ -44,12 +52,16 @@ export default function OperationsTransactionsPageSimple() {
       });
       
       console.log('🔄 Устанавливаем operations в состояние...');
-      setOperations(data);
+      setOperations(data || []);
       
       console.log('✅ loadData() завершён успешно');
     } catch (error) {
       console.error('❌ Ошибка в loadData():', error);
       console.error('Стек ошибки:', error.stack);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      setError(errorMessage);
+      setOperations([]);
     } finally {
       console.log('🔄 Устанавливаем loading = false');
       setLoading(false);
@@ -108,6 +120,11 @@ export default function OperationsTransactionsPageSimple() {
     });
   }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus, dateFrom, dateTo, searchQuery]);
 
+  // Сброс страницы при изменении фильтров
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedFuelType, selectedPaymentMethod, selectedStatus, dateFrom, dateTo, searchQuery]);
+
   // Списки для селекторов
   const fuelTypes = useMemo(() => {
     const types = new Set(operations.map(op => op.fuelType).filter(Boolean));
@@ -142,6 +159,195 @@ export default function OperationsTransactionsPageSimple() {
     }
   };
 
+  // Функция создания Excel файла
+  const createExcelFile = (operations) => {
+    try {
+      console.log('🔄 Начинаем экспорт операций:', operations.length);
+      
+      if (operations.length === 0) {
+        alert('Нет данных для экспорта');
+        return;
+      }
+
+      // Подготовка данных для экспорта
+      const exportData = operations.map((operation, index) => ({
+        '№': index + 1,
+        'ID операции': operation.id,
+        'ID транзакции': operation.transactionId || '',
+        'Номер ТО': operation.toNumber || '',
+        'Дата': new Date(operation.startTime).toLocaleDateString('ru-RU'),
+        'Время начала': new Date(operation.startTime).toLocaleTimeString('ru-RU'),
+        'Время завершения': operation.endTime ? new Date(operation.endTime).toLocaleTimeString('ru-RU') : '',
+        'Статус': operation.status === 'completed' ? 'Завершено' :
+                  operation.status === 'in_progress' ? 'Выполняется' :
+                  operation.status === 'failed' ? 'Ошибка' :
+                  operation.status === 'pending' ? 'Ожидание' :
+                  operation.status === 'cancelled' ? 'Отменено' : operation.status,
+        'Торговая точка': operation.tradingPointName || '',
+        'Устройство': operation.deviceId || '',
+        'Вид топлива': operation.fuelType || '',
+        'Фактич. отпуск (л)': operation.actualQuantity?.toFixed(2) || operation.quantity?.toFixed(2) || '',
+        'Цена (₽/л)': operation.price?.toFixed(2) || '',
+        'Фактич. отпуск (₽)': operation.actualAmount?.toFixed(2) || operation.totalCost?.toFixed(2) || '',
+        'Вид оплаты': operation.paymentMethod ? ({
+          'cash': 'Наличные',
+          'bank_card': 'Банковские карты',
+          'fuel_card': 'Топливные карты',
+          'online_order': 'Онлайн заказы'
+        }[operation.paymentMethod] || operation.paymentMethod) : '',
+        'Номер POS': operation.posNumber || '',
+        'Смена': operation.shiftNumber || '',
+        'Номер карты': operation.cardNumber || '',
+        'Заказ (л)': operation.orderedQuantity?.toFixed(2) || '',
+        'Заказ (₽)': operation.orderedAmount?.toFixed(2) || '',
+        'Оператор': operation.operatorName || '',
+        'Детали': operation.details || ''
+      }));
+
+      console.log('📊 Подготовлено данных для экспорта:', exportData.length);
+
+      // Создание книги Excel
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      
+      // Настройка ширины колонок
+      const colWidths = [
+        { wch: 5 },   // №
+        { wch: 15 },  // ID операции
+        { wch: 15 },  // ID транзакции
+        { wch: 10 },  // Номер ТО
+        { wch: 12 },  // Дата
+        { wch: 12 },  // Время начала
+        { wch: 12 },  // Время завершения
+        { wch: 12 },  // Статус
+        { wch: 20 },  // Торговая точка
+        { wch: 12 },  // Устройство
+        { wch: 12 },  // Вид топлива
+        { wch: 15 },  // Фактич. отпуск (л)
+        { wch: 12 },  // Цена
+        { wch: 15 },  // Фактич. отпуск (₽)
+        { wch: 15 },  // Вид оплаты
+        { wch: 10 },  // Номер POS
+        { wch: 8 },   // Смена
+        { wch: 15 },  // Номер карты
+        { wch: 12 },  // Заказ (л)
+        { wch: 12 },  // Заказ (₽)
+        { wch: 15 },  // Оператор
+        { wch: 30 }   // Детали
+      ];
+      worksheet['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Операции');
+
+      // Генерация имени файла с текущей датой
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
+      const filename = `operations_${dateStr}_${timeStr}.xlsx`;
+
+      console.log('💾 Сохраняем файл:', filename);
+
+      // Возвращаем данные для дальнейшего использования
+      return { workbook, filename };
+    } catch (error) {
+      console.error('❌ Ошибка при создании файла:', error);
+      alert('Ошибка при создании файла. Проверьте консоль для деталей.');
+      return null;
+    }
+  };
+
+  // Функция сохранения файла локально
+  const saveFileLocally = (operations) => {
+    const result = createExcelFile(operations);
+    if (result) {
+      XLSX.writeFile(result.workbook, result.filename);
+      console.log('✅ Файл сохранен локально:', result.filename);
+    }
+  };
+
+  // Функция отправки в Telegram
+  const sendToTelegram = async (operations) => {
+    try {
+      // Проверяем глобальные настройки
+      if (!isGlobalTelegramConfigured()) {
+        alert('Telegram бот не настроен администратором.\n\nОбратитесь к администратору для настройки корпоративного бота.');
+        return;
+      }
+
+      // Проверяем настройки пользователя
+      if (!isUserTelegramEnabled()) {
+        alert('Telegram уведомления отключены.\n\nДля включения:\n1. Откройте Профиль → Интеграции\n2. Включите Telegram уведомления\n3. Укажите ваш Chat ID');
+        return;
+      }
+
+      const result = createExcelFile(operations);
+      if (!result) return;
+
+      // Конвертируем в blob для отправки
+      const wbout = XLSX.write(result.workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
+      // Создаем описание для файла
+      const caption = `📊 <b>Отчет по операциям</b>\n\n` +
+                     `📅 Дата: ${new Date().toLocaleDateString('ru-RU')}\n` +
+                     `📈 Операций: ${operations.length}\n` +
+                     `📄 Файл: ${result.filename}\n\n` +
+                     `🤖 Автоматически сгенерировано системой TradeFrame`;
+
+      console.log('📱 Отправляем файл в Telegram...');
+      
+      await telegramService.sendDocument(blob, {
+        filename: result.filename,
+        caption: caption
+      });
+
+      console.log('✅ Файл успешно отправлен в Telegram');
+      alert('✅ Файл успешно отправлен в Telegram!');
+      
+    } catch (error) {
+      console.error('❌ Ошибка отправки в Telegram:', error);
+      
+      // Если ошибка связана с настройками, предлагаем настроить
+      const errorMessage = error.message || 'Неизвестная ошибка';
+      if (errorMessage.includes('настроен') || errorMessage.includes('токен') || errorMessage.includes('chat_id')) {
+        alert(`❌ ${errorMessage}\n\nОткройте настройки профиля для настройки Telegram бота.`);
+      } else {
+        alert(`❌ Ошибка отправки в Telegram:\n${errorMessage}`);
+      }
+    }
+  };
+
+  // Функция отправки по email
+  const sendToEmail = (operations) => {
+    const userEmail = user?.email;
+    
+    if (!userEmail) {
+      alert('Для отправки по email необходимо указать email в профиле.');
+      return;
+    }
+
+    const result = createExcelFile(operations);
+    if (result) {
+      // Создаем сообщение для email
+      const subject = `Отчет по операциям - ${new Date().toLocaleDateString('ru-RU')}`;
+      const body = `📊 Отчет по операциям\n\n` +
+                  `Период: ${new Date().toLocaleDateString('ru-RU')}\n` +
+                  `Операций: ${operations.length}\n` +
+                  `Файл: ${result.filename}\n\n` +
+                  `Пожалуйста, загрузите файл отдельно и прикрепите к письму.`;
+      
+      // Также сохраняем файл локально для отправки
+      XLSX.writeFile(result.workbook, result.filename);
+      
+      // Создаем mailto ссылку
+      const mailtoUrl = `mailto:${userEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(mailtoUrl);
+      
+      console.log('📧 Подготовлено письмо для отправки');
+      alert(`Email клиент открыт с подготовленным письмом на адрес ${userEmail}. Файл сохранен для прикрепления.`);
+    }
+  };
+
   return (
     <MainLayout>
       <div className="p-6 space-y-6">
@@ -151,10 +357,29 @@ export default function OperationsTransactionsPageSimple() {
             <CardTitle className="text-slate-200 flex items-center justify-between">
               <span>Операции и транзакции</span>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-shrink-0">
-                  <Download className="w-4 h-4 mr-2" />
-                  Экспорт
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex-shrink-0">
+                      <Download className="w-4 h-4 mr-2" />
+                      Экспорт
+                      <ChevronDown className="w-4 h-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => saveFileLocally(filteredOperations)}>
+                      <Save className="w-4 h-4 mr-2" />
+                      Сохранить файл
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => sendToTelegram(filteredOperations)}>
+                      <Send className="w-4 h-4 mr-2" />
+                      Отправить в Telegram
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => sendToEmail(filteredOperations)}>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Отправить по email
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button onClick={loadData} disabled={loading}>
                   {loading ? 'Загрузка...' : 'Загрузить данные'}
                 </Button>
@@ -258,11 +483,19 @@ export default function OperationsTransactionsPageSimple() {
             </div>
             
             <div className="text-slate-300">
-              <p>Операций загружено: {operations.length} | Отфильтровано: {filteredOperations.length}</p>
+              {error ? (
+                <div className="bg-red-900/50 border border-red-700 rounded p-4 mb-4">
+                  <p className="text-red-200 font-semibold">❌ Ошибка загрузки операций:</p>
+                  <p className="text-red-300 mt-2">{error}</p>
+                </div>
+              ) : (
+                <p>Операций загружено: {operations.length} | Отфильтровано: {filteredOperations.length}</p>
+              )}
               {console.log('🔍 Render debug:', {
                 operationsLength: operations.length,
                 filteredLength: filteredOperations.length,
                 loading,
+                error,
                 operationsType: typeof operations,
                 isOperationsArray: Array.isArray(operations)
               })}
@@ -370,7 +603,9 @@ export default function OperationsTransactionsPageSimple() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOperations.slice(0, 50).map((record) => (
+                  {filteredOperations
+                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .map((record) => (
                     <TableRow key={record.id} className="border-slate-700 hover:bg-slate-800">
                       <TableCell className="min-w-[100px]">{getStatusBadge(record.status)}</TableCell>
                       <TableCell className="text-slate-300 font-mono text-xs min-w-[150px]">{record.id}</TableCell>
@@ -441,9 +676,34 @@ export default function OperationsTransactionsPageSimple() {
                 </div>
               )}
               
-              {filteredOperations.length > 50 && (
-                <div className="text-center py-4 text-slate-400">
-                  Показаны первые 50 из {filteredOperations.length} операций
+              {filteredOperations.length > itemsPerPage && (
+                <div className="flex items-center justify-between py-4 px-4 bg-slate-800 border-t border-slate-700">
+                  <div className="text-slate-400 text-sm">
+                    Показаны {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredOperations.length)} из {filteredOperations.length} операций
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="text-slate-300 border-slate-600 hover:bg-slate-700"
+                    >
+                      ← Предыдущая
+                    </Button>
+                    <span className="text-slate-300 text-sm px-3">
+                      Страница {currentPage} из {Math.ceil(filteredOperations.length / itemsPerPage)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredOperations.length / itemsPerPage), prev + 1))}
+                      disabled={currentPage >= Math.ceil(filteredOperations.length / itemsPerPage)}
+                      className="text-slate-300 border-slate-600 hover:bg-slate-700"
+                    >
+                      Следующая →
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

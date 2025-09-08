@@ -1,127 +1,92 @@
 /**
- * 🔄 ПЕРЕКЛЮЧАТЕЛЬ API - для тестирования миграции
+ * 🔄 ПРЯМОЕ ПОДКЛЮЧЕНИЕ К SUPABASE
  * 
- * Этот файл позволяет быстро переключаться между mock и HTTP API
- * для тестирования готовности к production
+ * Все сервисы теперь используют прямое подключение к Supabase
+ * без промежуточного API сервера
  */
 
-import { 
-  mockEquipmentAPI, 
-  mockEquipmentTemplatesAPI 
-} from './equipment';
+import { supabaseEquipmentAPI, supabaseEquipmentTemplatesAPI } from './equipmentSupabase';
+import { componentsSupabaseAPI } from './componentsSupabase';
+import { commandTemplatesSupabaseAPI } from './commandTemplatesSupabase';
 
-import { 
-  mockComponentsAPI
-} from './components';
-
-import { 
-  httpEquipmentAPI,
-  httpEquipmentTemplatesAPI,
-  httpComponentsAPI,
-  HttpApiError
-} from './httpClients';
-
-// 🎛️ КОНФИГУРАЦИЯ ПЕРЕКЛЮЧЕНИЯ
-import { apiConfigService } from '@/services/apiConfigService';
-
-const API_CONFIG = {
-  // Установить true для использования реального HTTP API
-  USE_HTTP_API: !apiConfigService.isMockMode(),
-  
-  // URL реального API
-  API_BASE_URL: apiConfigService.getCurrentApiUrl(),
-  
-  // Режим отладки
-  DEBUG_MODE: import.meta.env.DEV || false
-};
-
-// 📊 Логирование переключений
-const logApiUsage = (service: string, mode: 'MOCK' | 'HTTP') => {
-  if (API_CONFIG.DEBUG_MODE) {
-    console.log(`🔄 ${service}: Используется ${mode} API`);
+// 📊 Логирование использования Supabase
+const logSupabaseUsage = (service: string) => {
+  if (import.meta.env.DEV) {
+    console.log(`🔗 ${service}: Используется прямое подключение к Supabase`);
   }
 };
 
-// ===== ПЕРЕКЛЮЧАЕМЫЕ СЕРВИСЫ =====
+// ===== SUPABASE СЕРВИСЫ =====
 
 // 🔧 Equipment API
 export const currentEquipmentAPI = (() => {
-  if (API_CONFIG.USE_HTTP_API) {
-    logApiUsage('Equipment', 'HTTP');
-    return httpEquipmentAPI;
-  } else {
-    logApiUsage('Equipment', 'MOCK');
-    return mockEquipmentAPI;
-  }
+  logSupabaseUsage('Equipment');
+  return supabaseEquipmentAPI;
 })();
 
-// 📋 Equipment Templates API  
+// 📋 Equipment Templates API (используем тот же equipmentSupabase)  
 export const currentEquipmentTemplatesAPI = (() => {
-  if (API_CONFIG.USE_HTTP_API) {
-    logApiUsage('Equipment Templates', 'HTTP');
-    return httpEquipmentTemplatesAPI;
-  } else {
-    logApiUsage('Equipment Templates', 'MOCK');
-    return mockEquipmentTemplatesAPI;
-  }
+  logSupabaseUsage('Equipment Templates');
+  return supabaseEquipmentTemplatesAPI; // правильный API для шаблонов
 })();
 
 // 🧩 Components API
 export const currentComponentsAPI = (() => {
-  if (API_CONFIG.USE_HTTP_API) {
-    logApiUsage('Components', 'HTTP');
-    return httpComponentsAPI;
-  } else {
-    logApiUsage('Components', 'MOCK');
-    return mockComponentsAPI;
-  }
+  logSupabaseUsage('Components');
+  return componentsSupabaseAPI;
 })();
 
-// 🔍 Функции для тестирования подключения
+// 📝 Command Templates API
+export const currentCommandTemplatesAPI = (() => {
+  logSupabaseUsage('Command Templates');
+  return commandTemplatesSupabaseAPI;
+})();
+
+// 🔍 Функции для тестирования подключения Supabase
 
 /**
- * Проверка доступности реального API
+ * Проверка подключения к Supabase
  */
-export const testApiConnection = async (): Promise<{
+export const testSupabaseConnection = async (): Promise<{
   success: boolean;
   service: string;
   error?: string;
 }[]> => {
   const results = [];
   
-  // Тест Equipment API
+  // Тест Equipment Supabase
   try {
-    await httpEquipmentAPI.list({ trading_point_id: 'test' });
-    results.push({ success: true, service: 'Equipment API' });
+    await currentEquipmentAPI.list({ trading_point_id: 'test' });
+    results.push({ success: true, service: 'Equipment Supabase' });
   } catch (error) {
     results.push({ 
       success: false, 
-      service: 'Equipment API',
-      error: error instanceof HttpApiError ? error.message : 'Unknown error'
+      service: 'Equipment Supabase',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
   
-  // Тест Equipment Templates API
+  // Тест Components Supabase
   try {
-    await httpEquipmentTemplatesAPI.list();
-    results.push({ success: true, service: 'Equipment Templates API' });
+    await currentComponentsAPI.list({ equipment_id: 'test' });
+    results.push({ success: true, service: 'Components Supabase' });
   } catch (error) {
     results.push({ 
       success: false, 
-      service: 'Equipment Templates API',
-      error: error instanceof HttpApiError ? error.message : 'Unknown error'
+      service: 'Components Supabase',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
   
-  // Тест Components API
+  // Тест Command Templates Supabase
   try {
-    await httpComponentsAPI.list({ equipment_id: 'test' });
-    results.push({ success: true, service: 'Components API' });
+    await currentCommandTemplatesAPI.list();
+    results.push({ success: true, service: 'Command Templates Supabase' });
   } catch (error) {
     results.push({ 
       success: false, 
-      service: 'Components API',
-      error: error instanceof HttpApiError ? error.message : 'Unknown error'
+      service: 'Command Templates Supabase',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
   
@@ -129,45 +94,32 @@ export const testApiConnection = async (): Promise<{
 };
 
 /**
- * Получение статуса текущего режима API
+ * Получение статуса текущего режима подключения
+ * ФИНАЛЬНАЯ КОНФИГУРАЦИЯ: ТОЛЬКО SUPABASE, MOCK ПОЛНОСТЬЮ ОТКЛЮЧЕН
  */
-export const getApiStatus = () => ({
-  mode: API_CONFIG.USE_HTTP_API ? 'HTTP' : 'MOCK',
-  baseUrl: API_CONFIG.API_BASE_URL,
-  debugMode: API_CONFIG.DEBUG_MODE,
-  config: API_CONFIG
+export const getConnectionStatus = () => ({
+  mode: 'SUPABASE_PRODUCTION',
+  database: 'Supabase',
+  connection: 'Direct',
+  mockDisabled: true,
+  forceDatabaseMode: true,
+  debugMode: import.meta.env.DEV
 });
 
-/**
- * Принудительное переключение на HTTP API (для тестирования)
- */
-export const forceHttpMode = () => {
-  // @ts-ignore
-  window.__FORCE_HTTP_API = true;
-  console.warn('🔄 Принудительно включен HTTP API режим');
-  location.reload();
-};
-
-/**
- * Принудительное переключение на Mock API (для тестирования)
- */
-export const forceMockMode = () => {
-  // @ts-ignore
-  window.__FORCE_HTTP_API = false;
-  console.warn('🔄 Принудительно включен MOCK API режим');
-  location.reload();
-};
-
 // Добавляем функции в window для удобного тестирования в консоли
-if (API_CONFIG.DEBUG_MODE) {
+if (import.meta.env.DEV) {
   // @ts-ignore
-  window.apiTest = {
-    testConnection: testApiConnection,
-    getStatus: getApiStatus,
-    forceHttp: forceHttpMode,
-    forceMock: forceMockMode
+  window.supabaseTest = {
+    testConnection: testSupabaseConnection,
+    getStatus: getConnectionStatus,
+    services: {
+      equipment: currentEquipmentAPI,
+      components: currentComponentsAPI,
+      commandTemplates: currentCommandTemplatesAPI
+    }
   };
   
-  console.log('🧪 API тестирование доступно через window.apiTest');
-  console.log('📊 Текущий режим:', getApiStatus().mode);
+  console.log('🧪 Supabase тестирование доступно через window.supabaseTest');
+  console.log('🔗 ФИНАЛЬНЫЙ РЕЖИМ: Только Supabase, Mock отключен');
+  console.log('🚫 Mock режим полностью деактивирован');
 }

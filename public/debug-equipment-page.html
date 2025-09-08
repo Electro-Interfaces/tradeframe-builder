@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Debug Equipment Page</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 DEBUG EQUIPMENT PAGE IMPORTS</h1>
+    <p>Проверяем какой сервис вызывает ошибку supabase.from().eq is not a function</p>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        async function testImports() {
+            addLog('🔍 ТЕСТИРУЕМ ВСЕ ИМПОРТЫ СТРАНИЦЫ EQUIPMENT', 'info');
+            
+            const imports = [
+                { name: 'currentEquipmentAPI', path: '/src/services/apiSwitch.ts' },
+                { name: 'currentEquipmentTemplatesAPI', path: '/src/services/apiSwitch.ts' },
+                { name: 'currentComponentsAPI', path: '/src/services/apiSwitch.ts' },
+                { name: 'getEquipmentComponentsHealth', path: '/src/services/equipment.ts' },
+                { name: 'tradingPointsService', path: '/src/services/tradingPointsService.ts' },
+                { name: 'tanksService', path: '/src/services/tanksServiceSupabase.ts' }
+            ];
+            
+            for (const imp of imports) {
+                try {
+                    addLog(`📦 Тестируем ${imp.name} из ${imp.path}...`, 'info');
+                    
+                    const module = await import(imp.path);
+                    const service = module[imp.name];
+                    
+                    if (service) {
+                        addLog(`✅ ${imp.name} загружен успешно`, 'success');
+                        
+                        // Тестируем основные методы
+                        if (typeof service.list === 'function') {
+                            addLog(`  - Метод list: найден`, 'info');
+                            
+                            try {
+                                // Пробуем вызвать list с пустыми параметрами
+                                addLog(`  - Вызываем ${imp.name}.list({})...`, 'warning');
+                                const result = await service.list({});
+                                addLog(`  - ✅ ${imp.name}.list() работает`, 'success');
+                            } catch (error) {
+                                addLog(`  - ❌ ${imp.name}.list() ошибка: ${error.message}`, 'error');
+                                if (error.message.includes('query.eq is not a function')) {
+                                    addLog(`  - 🚨 НАЙДЕНА ПРОБЛЕМА В ${imp.name}!`, 'error');
+                                }
+                            }
+                        } else {
+                            addLog(`  - Метод list: не найден`, 'warning');
+                        }
+                        
+                    } else {
+                        addLog(`❌ ${imp.name} не найден в модуле`, 'error');
+                    }
+                    
+                } catch (error) {
+                    addLog(`❌ Ошибка загрузки ${imp.name}: ${error.message}`, 'error');
+                }
+                
+                addLog('---', 'info');
+            }
+            
+            addLog('🏁 Тестирование завершено', 'info');
+        }
+        
+        // Автозапуск
+        addLog('✅ Debug Equipment Page загружен', 'info');
+        testImports();
+    </script>
+</body>
+</html>

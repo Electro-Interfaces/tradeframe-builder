@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Проверка торговых точек</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <h1 class="text-xl font-bold mb-4">📍 Проверка торговых точек</h1>
+    
+    <button onclick="checkTradingPoints()" class="bg-blue-600 px-4 py-2 rounded mb-4">Найти торговые точки</button>
+    <div id="results" class="mt-4 space-y-2"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+        const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+        
+        const PROBLEM_TP_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+
+        async function checkTradingPoints() {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            
+            function log(message, type = 'info') {
+                const div = document.createElement('div');
+                div.className = type === 'error' ? 'text-red-400 bg-red-900 p-3 rounded' : 
+                                 type === 'success' ? 'text-green-400 bg-green-900 p-3 rounded' : 
+                                 type === 'warning' ? 'text-yellow-400 bg-yellow-900 p-3 rounded' : 
+                                 'text-blue-400 bg-blue-900 p-3 rounded';
+                div.innerHTML = message;
+                results.appendChild(div);
+            }
+            
+            try {
+                // 1. Получаем все торговые точки
+                log('📍 Получаем все торговые точки...');
+                
+                const url = `${SUPABASE_URL}/rest/v1/trading_points?limit=20`;
+                const response = await fetch(url, {
+                    headers: {
+                        'apikey': SERVICE_ROLE_KEY,
+                        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const tradingPoints = await response.json();
+                log(`✅ Найдено торговых точек: ${tradingPoints.length}`, 'success');
+                
+                if (tradingPoints.length === 0) {
+                    log('❌ В базе данных нет торговых точек!', 'error');
+                    return;
+                }
+                
+                // 2. Показываем все торговые точки
+                log('<br><strong>📋 Все торговые точки:</strong>', 'info');
+                tradingPoints.forEach((tp, i) => {
+                    const isTarget = tp.id === PROBLEM_TP_ID;
+                    const highlight = isTarget ? 'style="background-color: #dc2626; font-weight: bold;"' : '';
+                    log(`<div ${highlight}>  ${i+1}. ${tp.name} <br>     ID: ${tp.id} <br>     Сеть: ${tp.network_id}</div>`);
+                });
+                
+                // 3. Проверяем проблемную торговую точку
+                const problemTP = tradingPoints.find(tp => tp.id === PROBLEM_TP_ID);
+                
+                if (problemTP) {
+                    log(`<br>✅ Проблемная торговая точка НАЙДЕНА: <strong>${problemTP.name}</strong>`, 'success');
+                    
+                    // Проверяем резервуары для этой точки
+                    await checkEquipmentForTP(problemTP);
+                } else {
+                    log(`<br>❌ Торговая точка с ID ${PROBLEM_TP_ID} НЕ НАЙДЕНА в базе данных!`, 'error');
+                    log('💡 Это может быть причина проблемы - нужна другая торговая точка', 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        async function checkEquipmentForTP(tp) {
+            function log(message, type = 'info') {
+                const results = document.getElementById('results');
+                const div = document.createElement('div');
+                div.className = type === 'error' ? 'text-red-400 bg-red-900 p-3 rounded' : 
+                                 type === 'success' ? 'text-green-400 bg-green-900 p-3 rounded' : 
+                                 type === 'warning' ?  'text-yellow-400 bg-yellow-900 p-3 rounded' : 
+                                 'text-blue-400 bg-blue-900 p-3 rounded';
+                div.innerHTML = message;
+                results.appendChild(div);
+            }
+            
+            try {
+                log(`<br>🛠️ Проверяем оборудование для "${tp.name}"...`);
+                
+                const url = `${SUPABASE_URL}/rest/v1/equipment?trading_point_id=eq.${tp.id}`;
+                const response = await fetch(url, {
+                    headers: {
+                        'apikey': SERVICE_ROLE_KEY,
+                        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
+                    }
+                });
+                
+                const equipment = await response.json();
+                log(`📊 Всего оборудования: ${equipment.length}`);
+                
+                const tanks = equipment.filter(eq => eq.system_type === 'fuel_tank');
+                log(`🛢️ Резервуаров: ${tanks.length}`, tanks.length > 0 ? 'success' : 'error');
+                
+                if (tanks.length > 0) {
+                    log('<strong>Найденные резервуары:</strong>');
+                    tanks.forEach((tank, i) => {
+                        const fuelType = tank.params?.['Тип топлива'] || 'НЕ УКАЗАН';
+                        const status = tank.status || 'unknown';
+                        const isValid = status !== 'deleted' && tank.params?.['Тип топлива'];
+                        
+                        const statusColor = isValid ? 'success' : 'error';
+                        log(`  ${i+1}. <strong>${tank.name}</strong> | Топливо: ${fuelType} | Статус: ${status}`, statusColor);
+                    });
+                    
+                    const validTanks = tanks.filter(t => t.status !== 'deleted' && t.params?.['Тип топлива']);
+                    log(`<br>✅ <strong>ВАЛИДНЫХ резервуаров: ${validTanks.length}</strong>`, 
+                        validTanks.length > 0 ? 'success' : 'error');
+                        
+                    if (validTanks.length === 0) {
+                        log('❌ НЕТ валидных резервуаров с типом топлива!', 'error');
+                        log('💡 Нужно добавить параметр "Тип топлива" к резервуарам', 'warning');
+                    }
+                } else {
+                    log('❌ Резервуары не найдены!', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка проверки оборудования: ${error.message}`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        checkTradingPoints();
+    </script>
+</body>
+</html>

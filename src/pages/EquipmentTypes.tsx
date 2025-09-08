@@ -40,7 +40,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { equipmentTypesAPI } from "@/services/equipmentTypes";
-import { systemTypesAPI, SystemType } from "@/services/systemTypesService";
+import { systemTypesAPI, SystemType } from "@/services/systemTypesSupabaseService";
 import { SystemTypeDialog } from "@/components/dialogs/SystemTypeDialog";
 
 // Схема валидации

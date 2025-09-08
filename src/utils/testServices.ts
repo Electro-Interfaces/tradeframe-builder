@@ -5,13 +5,13 @@
 
 import { networksService } from '@/services/networksService';
 import { tradingPointsService } from '@/services/tradingPointsService';
-import { operationsService } from '@/services/operationsService';
-import { usersService } from '@/services/usersService';
-import { shiftReportsService } from '@/services/shiftReportsService';
-import { messagesService } from '@/services/messagesService';
-import { componentStatusService } from '@/services/componentStatusService';
-import { tanksService } from '@/services/tanksService';
-import { pricesService } from '@/services/pricesService';
+import { operationsService } from '@/services/operationsSupabaseService';
+import { usersSupabaseService } from '@/services/usersSupabaseService';
+import { shiftReportsSupabaseService } from '@/services/shiftReportsSupabaseService';
+import { messagesService } from '@/services/messagesSupabaseService';
+import { componentStatusService } from '@/services/componentStatusSupabaseService';
+import { tanksService } from '@/services/tanksServiceSupabase';
+import { pricesService } from '@/services/pricesSupabaseService';
 import { commandsService } from '@/services/commandsService';
 
 interface TestResult {
@@ -62,14 +62,14 @@ export async function testAllServices(): Promise<TestResult[]> {
   try {
     const operations = await operationsService.getAll();
     results.push({
-      service: 'operationsService', 
+      service: 'operationsSupabaseService', 
       status: 'success',
       message: `Найдено ${operations.length} операций`,
       data: operations.slice(0, 2)
     });
   } catch (error) {
     results.push({
-      service: 'operationsService',
+      service: 'operationsSupabaseService',
       status: 'error',
       message: `Ошибка: ${error}`
     });
@@ -77,16 +77,16 @@ export async function testAllServices(): Promise<TestResult[]> {
 
   // Тестируем users service
   try {
-    const users = await usersService.getAllUsers();
+    const users = await usersSupabaseService.getAllUsers();
     results.push({
-      service: 'usersService',
+      service: 'usersSupabaseService',
       status: 'success',
       message: `Найдено ${users.length} пользователей`,
       data: users.slice(0, 2)
     });
   } catch (error) {
     results.push({
-      service: 'usersService',
+      service: 'usersSupabaseService',
       status: 'error',
       message: `Ошибка: ${error}`
     });
@@ -94,16 +94,16 @@ export async function testAllServices(): Promise<TestResult[]> {
 
   // Тестируем shift reports service
   try {
-    const shifts = await shiftReportsService.getAllShiftReports();
+    const shifts = await shiftReportsSupabaseService.getAllShiftReports();
     results.push({
-      service: 'shiftReportsService',
+      service: 'shiftReportsSupabaseService',
       status: 'success',
       message: `Найдено ${shifts.length} сменных отчетов`,
       data: shifts.slice(0, 2)
     });
   } catch (error) {
     results.push({
-      service: 'shiftReportsService',
+      service: 'shiftReportsSupabaseService',
       status: 'error',
       message: `Ошибка: ${error}`
     });
@@ -147,16 +147,16 @@ export async function testAllServices(): Promise<TestResult[]> {
 
   // Тестируем tanks service
   try {
-    const tanks = await tanksService.getAll();
+    const tanks = await tanksService.getTanks();
     results.push({
-      service: 'tanksService',
+      service: 'tanksServiceSupabase',
       status: 'success',
       message: `Найдено ${tanks.length} резервуаров`,
       data: tanks.slice(0, 2)
     });
   } catch (error) {
     results.push({
-      service: 'tanksService',
+      service: 'tanksServiceSupabase',
       status: 'error',
       message: `Ошибка: ${error}`
     });
@@ -166,14 +166,14 @@ export async function testAllServices(): Promise<TestResult[]> {
   try {
     const prices = await pricesService.getCurrentPrices();
     results.push({
-      service: 'pricesService',
+      service: 'pricesSupabaseService',
       status: 'success',
       message: `Найдено ${prices.length} текущих цен`,
       data: prices.slice(0, 2)
     });
   } catch (error) {
     results.push({
-      service: 'pricesService',
+      service: 'pricesSupabaseService',
       status: 'error',
       message: `Ошибка: ${error}`
     });
@@ -184,14 +184,14 @@ export async function testAllServices(): Promise<TestResult[]> {
     const commands = await commandsService.getAllCommands();
     const workflows = await commandsService.getAllWorkflows();
     results.push({
-      service: 'commandsService',
+      service: 'commandTemplatesSupabaseService',
       status: 'success',
       message: `Команды: ${commands.length}, Регламенты: ${workflows.length}`,
       data: { commands: commands.slice(0, 1), workflows: workflows.slice(0, 1) }
     });
   } catch (error) {
     results.push({
-      service: 'commandsService',
+      service: 'commandTemplatesSupabaseService',
       status: 'error',
       message: `Ошибка: ${error}`
     });

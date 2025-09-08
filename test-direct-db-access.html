@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Прямой доступ к базе данных</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        .section {
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: #2d2d2d;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        input {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px;
+            width: 100px;
+        }
+        label {
+            color: #ccc;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 ПРЯМОЙ ДОСТУП К БАЗЕ ДАННЫХ</h1>
+    <p>Проверка универсального HTTP клиента и поиск реквизитов по номерам</p>
+    
+    <div class="section">
+        <h3>🎯 Управление тестами</h3>
+        <button onclick="testDirectDbAccess()">🗄️ Тест прямого доступа к БД</button>
+        <button onclick="testTablesAccess()">📋 Проверить доступ к таблицам</button>
+        <button onclick="clearLog()">🧹 Очистить логи</button>
+    </div>
+    
+    <div class="section">
+        <h3>🔍 Поиск по номерам</h3>
+        <label>Номер сети:</label>
+        <input type="text" id="networkNumber" value="15" placeholder="15">
+        
+        <label>Номер торговой точки:</label>
+        <input type="text" id="stationNumber" value="4" placeholder="4">
+        
+        <br><br>
+        <button onclick="findByNumbers()">🎯 Найти реквизиты по номерам</button>
+        <button onclick="findAllNetworks()">🌐 Показать все сети</button>
+        <button onclick="findAllTradingPoints()">📍 Показать все торговые точки</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        function addSection(title) {
+            const div = document.createElement('div');
+            div.className = 'section';
+            div.innerHTML = `<h3>${title}</h3>`;
+            log.appendChild(div);
+            return div;
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        // Тест прямого доступа к БД
+        window.testDirectDbAccess = async function() {
+            const section = addSection('🗄️ ТЕСТ ПРЯМОГО ДОСТУПА К БАЗЕ ДАННЫХ');
+            
+            try {
+                addLog('📦 Импорт универсального HTTP клиента...', 'info');
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                addLog('✅ HTTP клиент импортирован', 'success');
+                
+                // Тест 1: Проверка базового подключения
+                addLog('🔗 Тест базового подключения к Supabase REST API...', 'info');
+                
+                const healthResponse = await httpClient.get('/rest/v1/', {
+                    destination: 'supabase',
+                    timeout: 10000
+                });
+                
+                addLog(`<div class="code">
+                    Success: ${healthResponse.success}<br>
+                    Status: ${healthResponse.status}<br>
+                    Response Time: ${healthResponse.responseTime}ms<br>
+                    Error: ${healthResponse.error || 'нет'}<br>
+                    Headers: ${JSON.stringify(healthResponse.headers, null, 2)}
+                </div>`, healthResponse.success ? 'success' : 'error');
+                
+                if (!healthResponse.success) {
+                    addLog('❌ Прямое подключение к Supabase не работает!', 'error');
+                    addLog('💡 Проверьте URL и API ключ в universalHttpClient.ts', 'warning');
+                    return;
+                }
+                
+                addLog('✅ Прямое подключение к Supabase работает!', 'success');
+                
+                // Тест 2: Проверка аутентификации
+                addLog('🔑 Тест аутентификации с Service Role Key...', 'info');
+                
+                const authTest = await httpClient.get('/rest/v1/networks', {
+                    destination: 'supabase',
+                    queryParams: { select: 'count', head: 'true' },
+                    timeout: 10000
+                });
+                
+                if (authTest.success) {
+                    addLog('✅ Аутентификация работает, доступ к таблицам получен!', 'success');
+                } else {
+                    addLog('❌ Проблемы с аутентификацией', 'error');
+                    addLog(`Ошибка: ${authTest.error}`, 'error');
+                }
+                
+            } catch (error) {
+                addLog(`💥 Критическая ошибка: ${error.message}`, 'error');
+                addLog(`<div class="code">${error.stack}</div>`, 'error');
+            }
+        }
+        
+        // Тест доступа к таблицам
+        window.testTablesAccess = async function() {
+            const section = addSection('📋 ПРОВЕРКА ДОСТУПА К ТАБЛИЦАМ');
+            
+            try {
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                
+                // Список таблиц для проверки
+                const tables = ['networks', 'trading_points', 'equipment', 'operations'];
+                
+                for (const table of tables) {
+                    addLog(`📊 Проверка таблицы "${table}"...`, 'info');
+                    
+                    const response = await httpClient.get(`/rest/v1/${table}`, {
+                        destination: 'supabase',
+                        queryParams: { 
+                            select: 'count',
+                            head: 'true'
+                        },
+                        timeout: 5000
+                    });
+                    
+                    if (response.success) {
+                        addLog(`✅ Таблица "${table}" доступна`, 'success');
+                        
+                        // Получаем несколько записей для примера
+                        const dataResponse = await httpClient.get(`/rest/v1/${table}`, {
+                            destination: 'supabase',
+                            queryParams: { 
+                                select: '*',
+                                limit: '3'
+                            },
+                            timeout: 5000
+                        });
+                        
+                        if (dataResponse.success && dataResponse.data) {
+                            addLog(`📊 Записей в "${table}": ${dataResponse.data.length}`, 'info');
+                        }
+                    } else {
+                        addLog(`❌ Таблица "${table}" недоступна: ${response.error}`, 'error');
+                    }
+                }
+                
+            } catch (error) {
+                addLog(`💥 Ошибка проверки таблиц: ${error.message}`, 'error');
+            }
+        }
+        
+        // Поиск реквизитов по номерам
+        window.findByNumbers = async function() {
+            const networkNumber = document.getElementById('networkNumber').value;
+            const stationNumber = document.getElementById('stationNumber').value;
+            
+            const section = addSection(`🎯 ПОИСК РЕКВИЗИТОВ: СЕТЬ ${networkNumber}, СТАНЦИЯ ${stationNumber}`);
+            
+            if (!networkNumber || !stationNumber) {
+                addLog('❌ Введите номера сети и торговой точки', 'error');
+                return;
+            }
+            
+            try {
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                
+                // Поиск сети по номеру (external_id или code)
+                addLog(`🌐 Поиск сети с номером "${networkNumber}"...`, 'info');
+                
+                const networkResponse = await httpClient.get('/rest/v1/networks', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code,status',
+                        or: `external_id.eq.${networkNumber},code.eq.${networkNumber}`
+                    }
+                });
+                
+                let foundNetwork = null;
+                
+                if (networkResponse.success && networkResponse.data && networkResponse.data.length > 0) {
+                    foundNetwork = networkResponse.data[0];
+                    addLog('✅ Сеть найдена!', 'success');
+                    addLog(`<div class="code">
+                        ID: ${foundNetwork.id}<br>
+                        Название: ${foundNetwork.name}<br>
+                        External ID: ${foundNetwork.external_id || 'НЕТ'}<br>
+                        Code: ${foundNetwork.code || 'НЕТ'}<br>
+                        Status: ${foundNetwork.status}
+                    </div>`, 'success');
+                } else {
+                    addLog(`❌ Сеть с номером "${networkNumber}" не найдена`, 'error');
+                    addLog('💡 Проверьте, что в таблице networks есть запись с external_id или code = ' + networkNumber, 'warning');
+                }
+                
+                // Поиск торговой точки по номеру
+                addLog(`📍 Поиск торговой точки с номером "${stationNumber}"...`, 'info');
+                
+                const stationResponse = await httpClient.get('/rest/v1/trading_points', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code,network_id',
+                        or: `external_id.eq.${stationNumber},code.eq.${stationNumber}`
+                    }
+                });
+                
+                let foundStation = null;
+                
+                if (stationResponse.success && stationResponse.data && stationResponse.data.length > 0) {
+                    foundStation = stationResponse.data[0];
+                    addLog('✅ Торговая точка найдена!', 'success');
+                    addLog(`<div class="code">
+                        ID: ${foundStation.id}<br>
+                        Название: ${foundStation.name}<br>
+                        External ID: ${foundStation.external_id || 'НЕТ'}<br>
+                        Code: ${foundStation.code || 'НЕТ'}<br>
+                        Network ID: ${foundStation.network_id}
+                    </div>`, 'success');
+                    
+                    // Проверяем связь с найденной сетью
+                    if (foundNetwork && foundStation.network_id === foundNetwork.id) {
+                        addLog('✅ Торговая точка принадлежит найденной сети!', 'success');
+                    } else if (foundNetwork) {
+                        addLog('⚠️ Торговая точка НЕ принадлежит найденной сети', 'warning');
+                        addLog(`Expected network_id: ${foundNetwork.id}, actual: ${foundStation.network_id}`, 'warning');
+                    }
+                } else {
+                    addLog(`❌ Торговая точка с номером "${stationNumber}" не найдена`, 'error');
+                    addLog('💡 Проверьте, что в таблице trading_points есть запись с external_id или code = ' + stationNumber, 'warning');
+                }
+                
+                // Итоговая оценка готовности для API
+                addLog('🎯 ИТОГОВАЯ ОЦЕНКА ГОТОВНОСТИ ДЛЯ API:', 'info');
+                
+                const systemId = foundNetwork ? (foundNetwork.external_id || foundNetwork.code || '') : '';
+                const stationId = foundStation ? (foundStation.external_id || foundStation.code || '') : '';
+                const ready = !!(systemId && stationId);
+                
+                addLog(`<div class="code">
+                    System ID для API: "${systemId}" ${systemId ? '✅' : '❌'}<br>
+                    Station ID для API: "${stationId}" ${stationId ? '✅' : '❌'}<br>
+                    Готовность для API: ${ready ? '✅ ГОТОВО' : '❌ НЕ ГОТОВО'}<br>
+                    ${ready ? 'URL для API: https://pos.autooplata.ru/tms/tanks?system=' + systemId + '&station=' + stationId : 'Необходимо добавить external_id в соответствующие таблицы'}
+                </div>`, ready ? 'success' : 'error');
+                
+                if (ready) {
+                    addLog('🎉 Все реквизиты найдены! API вызовы должны работать.', 'success');
+                } else {
+                    addLog('⚠️ Не все реквизиты найдены. Требуется настройка БД.', 'warning');
+                }
+                
+            } catch (error) {
+                addLog(`💥 Ошибка поиска: ${error.message}`, 'error');
+                addLog(`<div class="code">${error.stack}</div>`, 'error');
+            }
+        }
+        
+        // Показать все сети
+        window.findAllNetworks = async function() {
+            const section = addSection('🌐 ВСЕ СЕТИ В БАЗЕ ДАННЫХ');
+            
+            try {
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                
+                const response = await httpClient.get('/rest/v1/networks', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code,status',
+                        order: 'name'
+                    }
+                });
+                
+                if (response.success && response.data) {
+                    addLog(`📊 Найдено сетей: ${response.data.length}`, 'info');
+                    
+                    response.data.forEach((network, index) => {
+                        const hasExternalId = !!(network.external_id || network.code);
+                        addLog(`<div class="code">
+                            Сеть ${index + 1}:<br>
+                            - ID: ${network.id}<br>
+                            - Название: ${network.name}<br>
+                            - External ID: ${network.external_id || 'НЕТ'}<br>
+                            - Code: ${network.code || 'НЕТ'}<br>
+                            - Status: ${network.status}<br>
+                            - API готовность: ${hasExternalId ? '✅ ГОТОВО' : '❌ НЕТ external_id/code'}
+                        </div>`, hasExternalId ? 'success' : 'warning');
+                    });
+                } else {
+                    addLog('❌ Не удалось получить список сетей', 'error');
+                }
+                
+            } catch (error) {
+                addLog(`💥 Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        // Показать все торговые точки
+        window.findAllTradingPoints = async function() {
+            const section = addSection('📍 ВСЕ ТОРГОВЫЕ ТОЧКИ В БАЗЕ ДАННЫХ');
+            
+            try {
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                
+                const response = await httpClient.get('/rest/v1/trading_points', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code,network_id',
+                        order: 'name',
+                        limit: '20'
+                    }
+                });
+                
+                if (response.success && response.data) {
+                    addLog(`📊 Найдено торговых точек: ${response.data.length}`, 'info');
+                    
+                    response.data.forEach((tp, index) => {
+                        const hasExternalId = !!(tp.external_id || tp.code);
+                        addLog(`<div class="code">
+                            ТП ${index + 1}:<br>
+                            - ID: ${tp.id}<br>
+                            - Название: ${tp.name}<br>
+                            - External ID: ${tp.external_id || 'НЕТ'}<br>
+                            - Code: ${tp.code || 'НЕТ'}<br>
+                            - Network ID: ${tp.network_id}<br>
+                            - API готовность: ${hasExternalId ? '✅ ГОТОВО' : '❌ НЕТ external_id/code'}
+                        </div>`, hasExternalId ? 'success' : 'warning');
+                    });
+                } else {
+                    addLog('❌ Не удалось получить список торговых точек', 'error');
+                }
+                
+            } catch (error) {
+                addLog(`💥 Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Страница загружена. Выберите тест для запуска.', 'info');
+        addLog('💡 По умолчанию поиск настроен для сети "15" и станции "4"', 'info');
+    </script>
+</body>
+</html>

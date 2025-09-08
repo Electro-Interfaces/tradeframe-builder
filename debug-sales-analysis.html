@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Отладка анализа продаж</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1e293b; color: white; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .debug { background: #0f172a; padding: 15px; border-radius: 8px; font-family: monospace; margin: 10px 0; font-size: 12px; }
+        button { background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin: 5px; }
+        button:hover { background: #2563eb; }
+        .info { background: #374151; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        iframe { width: 100%; height: 600px; border: 1px solid #374151; border-radius: 8px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Отладка анализа продаж - Станция 4, Сеть 15</h1>
+        
+        <div class="info">
+            <h3>📋 Инструкции по отладке:</h3>
+            <ol>
+                <li>Откройте DevTools (F12) и перейдите на вкладку Console</li>
+                <li>В приложении ниже выберите сеть 15 "Норд Лайн"</li>
+                <li>Затем выберите станцию 4</li>
+                <li>Наблюдайте за логами в консоли с префиксами:</li>
+                <ul>
+                    <li><code>🎯 КРИТИЧНО: Фильтруем по торговой точке в Supabase:</code></li>
+                    <li><code>🔍 КРИТИЧНО: Финальный URL запроса к Supabase:</code></li>
+                    <li><code>🎯 КРИТИЧНО: Первые 3 операции после фильтра:</code></li>
+                    <li><code>🏪 UUID торговых точек сети:</code></li>
+                    <li><code>📊 Loaded operations for analysis:</code></li>
+                </ul>
+            </ol>
+        </div>
+
+        <button onclick="openMainApp()">🚀 Открыть главное приложение</button>
+        <button onclick="openSalesPage()">📈 Открыть страницу анализа продаж</button>
+        <button onclick="showExpectedData()">📊 Показать ожидаемые данные</button>
+
+        <div class="debug" style="display: none;" id="expectedData">
+            <h4>📊 Ожидаемые данные для станции 4:</h4>
+            <pre>
+UUID станции 4: 6969b08d-1cbe-45c2-ae9c-8002c7022b59
+UUID сети 15:   b5e25b51-a950-481e-a09d-ac25e6b5d6ab
+
+Ожидаемые операции (август 2025):
+- Общее количество операций: ~15
+- Общий объем топлива: ~1000-1500 литров  
+- Общая выручка: ~50000-80000 рублей
+- Типы платежей: наличные, банковские карты, корпоративные карты
+- Виды топлива: АИ-95, АИ-92, ДТ
+
+КРИТИЧЕСКИ ВАЖНО: 
+Если показываются данные 1,154,246.96 ₽ и 1000+ транзакций - 
+это означает, что фильтрация НЕ РАБОТАЕТ и показываются 
+агрегированные данные по всей системе!
+            </pre>
+        </div>
+
+        <iframe id="appFrame" src="http://localhost:3000" style="display: none;"></iframe>
+    </div>
+
+    <script>
+        function openMainApp() {
+            window.open('http://localhost:3000', '_blank');
+        }
+
+        function openSalesPage() {
+            // Открываем страницу анализа продаж напрямую
+            window.open('http://localhost:3000/network/operations-transactions', '_blank');
+        }
+
+        function showExpectedData() {
+            const expectedData = document.getElementById('expectedData');
+            expectedData.style.display = expectedData.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Показать встроенный фрейм с приложением
+        function showEmbedded() {
+            const iframe = document.getElementById('appFrame');
+            iframe.style.display = iframe.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Автоматически показать ожидаемые данные
+        window.addEventListener('load', function() {
+            showExpectedData();
+            console.log('🔍 Страница отладки загружена');
+            console.log('📋 Инструкции:');
+            console.log('1. Откройте главное приложение');
+            console.log('2. Выберите сеть 15 "Норд Лайн"');
+            console.log('3. Выберите станцию 4');
+            console.log('4. Смотрите логи в консоли');
+            console.log('5. Проверьте, что данные соответствуют только станции 4');
+        });
+    </script>
+</body>
+</html>

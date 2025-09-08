@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌐 Тест внешнего API</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        .highlight { 
+            background: #2d4a22; 
+            padding: 10px; 
+            border-left: 4px solid #28a745;
+            margin: 10px 0;
+        }
+        .api-call {
+            background: #1a2332;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #17a2b8;
+        }
+        .section {
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: #2d2d2d;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button.success { background: #28a745; }
+        button.warning { background: #ffc107; color: #000; }
+        select, input {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌐 ТЕСТ ВНЕШНЕГО API</h1>
+    <p>Проверка работы универсального HTTP клиента с внешним торговым API</p>
+    
+    <div class="section">
+        <h3>🎯 Выбор торговой точки</h3>
+        <select id="tradingPointSelect" onchange="updateSelectedTradingPoint()">
+            <option value="">Загружаем торговые точки...</option>
+        </select>
+        <button onclick="loadTradingPoints()">🔄 Перезагрузить точки</button>
+        
+        <div id="selectedTpInfo" style="margin-top: 10px;"></div>
+    </div>
+    
+    <div class="section">
+        <h3>🧪 API тесты</h3>
+        <button onclick="testExternalApiConnection()">🔗 Тест подключения к API</button>
+        <button onclick="testGetTanksData()">🛢️ Получить данные резервуаров</button>
+        <button onclick="testGetTransactionsData()">📋 Получить транзакции</button>
+        <button onclick="testFullApiWorkflow()">🚀 Полный тест API</button>
+    </div>
+    
+    <div class="section">
+        <h3>⚙️ Управление</h3>
+        <button onclick="clearLog()">🧹 Очистить логи</button>
+        <button onclick="showApiConfig()">🔧 Показать конфигурацию API</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        let selectedTradingPoint = null;
+        let httpClient = null;
+        let tradingNetworkConfigService = null;
+        
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        function addSection(title) {
+            const div = document.createElement('div');
+            div.className = 'section';
+            div.innerHTML = `<h3>${title}</h3>`;
+            log.appendChild(div);
+            return div;
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        // Инициализация
+        async function initialize() {
+            try {
+                addLog('📦 Импорт сервисов...', 'info');
+                const imports = await import('/src/services/universalHttpClient.ts');
+                httpClient = imports.httpClient;
+                
+                const configImports = await import('/src/services/tradingNetworkConfigService.ts');
+                tradingNetworkConfigService = configImports.tradingNetworkConfigService;
+                
+                addLog('✅ Сервисы импортированы', 'success');
+                
+                await loadTradingPoints();
+            } catch (error) {
+                addLog(`❌ Ошибка инициализации: ${error.message}`, 'error');
+            }
+        }
+        
+        // Загрузка торговых точек
+        window.loadTradingPoints = async function() {
+            try {
+                addLog('📍 Загружаем торговые точки...', 'info');
+                const response = await httpClient.getAllTradingPointsWithNetworks();
+                
+                const select = document.getElementById('tradingPointSelect');
+                select.innerHTML = '<option value="">Выберите торговую точку...</option>';
+                
+                if (response.success && response.data) {
+                    addLog(`✅ Загружено торговых точек: ${response.data.length}`, 'success');
+                    
+                    response.data.forEach(tp => {
+                        const option = document.createElement('option');
+                        option.value = tp.id;
+                        option.textContent = `${tp.name} (${tp.networkInfo.name}) ${tp.apiReady ? '✅' : '❌'}`;
+                        option.dataset.tpData = JSON.stringify(tp);
+                        select.appendChild(option);
+                    });
+                    
+                    // Автовыбор первой готовой точки
+                    const readyTp = response.data.find(tp => tp.apiReady);
+                    if (readyTp) {
+                        select.value = readyTp.id;
+                        updateSelectedTradingPoint();
+                    }
+                } else {
+                    addLog('❌ Не удалось загрузить торговые точки', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Ошибка загрузки: ${error.message}`, 'error');
+            }
+        }
+        
+        // Обновление выбранной торговой точки
+        window.updateSelectedTradingPoint = function() {
+            const select = document.getElementById('tradingPointSelect');
+            const infoDiv = document.getElementById('selectedTpInfo');
+            
+            if (select.value) {
+                const option = select.options[select.selectedIndex];
+                selectedTradingPoint = JSON.parse(option.dataset.tpData);
+                
+                infoDiv.innerHTML = `<div class="highlight">
+                    ВЫБРАННАЯ ТОРГОВАЯ ТОЧКА:<br>
+                    ➜ Название: ${selectedTradingPoint.name}<br>
+                    ➜ Сеть: ${selectedTradingPoint.networkInfo.name}<br>
+                    ➜ System ID: "${selectedTradingPoint.systemId}"<br>
+                    ➜ Station ID: "${selectedTradingPoint.stationId}"<br>
+                    ➜ API готовность: ${selectedTradingPoint.apiReady ? '✅ ГОТОВА' : '❌ НЕ ГОТОВА'}
+                </div>`;
+            } else {
+                selectedTradingPoint = null;
+                infoDiv.innerHTML = '';
+            }
+        }
+        
+        // Показать конфигурацию API
+        window.showApiConfig = async function() {
+            addSection('🔧 КОНФИГУРАЦИЯ ВНЕШНЕГО API');
+            
+            try {
+                const config = await tradingNetworkConfigService.getConfig();
+                
+                addLog(`<div class="code">
+                    КОНФИГУРАЦИЯ ТОРГОВОЙ СЕТИ:<br>
+                    ➜ Включена: ${config.enabled ? '✅ ДА' : '❌ НЕТ'}<br>
+                    ➜ Base URL: ${config.baseUrl}<br>
+                    ➜ Auth Type: ${config.authType}<br>
+                    ➜ Username: ${config.username}<br>
+                    ➜ Password: ${config.password ? '***' : 'НЕТ'}<br>
+                    ➜ Timeout: ${config.timeout}ms<br>
+                    ➜ Endpoints:<br>
+                    &nbsp;&nbsp;- Tanks: ${config.endpoints.tanks}<br>
+                    &nbsp;&nbsp;- Transactions: ${config.endpoints.transactions}
+                </div>`, 'info');
+                
+            } catch (error) {
+                addLog(`❌ Ошибка получения конфигурации: ${error.message}`, 'error');
+            }
+        }
+        
+        // Тест подключения к внешнему API
+        window.testExternalApiConnection = async function() {
+            addSection('🔗 ТЕСТ ПОДКЛЮЧЕНИЯ К ВНЕШНЕМУ API');
+            
+            if (!selectedTradingPoint) {
+                addLog('❌ Выберите торговую точку!', 'error');
+                return;
+            }
+            
+            if (!selectedTradingPoint.apiReady) {
+                addLog('❌ Выбранная торговая точка не готова для API!', 'error');
+                return;
+            }
+            
+            try {
+                addLog('🔗 Тестируем подключение к внешнему API...', 'info');
+                
+                const startTime = Date.now();
+                const response = await httpClient.get('/tanks', {
+                    destination: 'external-api',
+                    queryParams: {
+                        system: selectedTradingPoint.systemId,
+                        station: selectedTradingPoint.stationId
+                    },
+                    timeout: 15000
+                });
+                const responseTime = Date.now() - startTime;
+                
+                addLog(`<div class="api-call">
+                    API ВЫЗОВ:<br>
+                    ➜ URL: https://pos.autooplata.ru/tms/tanks<br>
+                    ➜ Параметры: system=${selectedTradingPoint.systemId}, station=${selectedTradingPoint.stationId}<br>
+                    ➜ Время ответа: ${responseTime}ms
+                </div>`, 'info');
+                
+                addLog(`<div class="code">
+                    РЕЗУЛЬТАТ:<br>
+                    ➜ Success: ${response.success}<br>
+                    ➜ Status: ${response.status}<br>
+                    ➜ Error: ${response.error || 'нет'}<br>
+                    ➜ Data Type: ${typeof response.data}<br>
+                    ➜ Data Length: ${Array.isArray(response.data) ? response.data.length : 'не массив'}
+                </div>`, response.success ? 'success' : 'error');
+                
+                if (response.success) {
+                    addLog('✅ Подключение к внешнему API работает!', 'success');
+                } else {
+                    addLog('❌ Проблемы с подключением к внешнему API', 'error');
+                    if (response.status === 401 || response.status === 403) {
+                        addLog('🔐 Проверьте учетные данные в конфигурации', 'warning');
+                    }
+                }
+                
+            } catch (error) {
+                addLog(`❌ Критическая ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        // Тест получения данных резервуаров
+        window.testGetTanksData = async function() {
+            addSection('🛢️ ТЕСТ ПОЛУЧЕНИЯ ДАННЫХ РЕЗЕРВУАРОВ');
+            
+            if (!selectedTradingPoint) {
+                addLog('❌ Выберите торговую точку!', 'error');
+                return;
+            }
+            
+            try {
+                addLog('🛢️ Получаем данные резервуаров через tradingNetworkConfigService...', 'info');
+                
+                const tanksData = await tradingNetworkConfigService.getTanksData(selectedTradingPoint.id);
+                
+                addLog(`<div class="code">
+                    РЕЗУЛЬТАТ getTanksData():<br>
+                    ➜ Тип данных: ${typeof tanksData}<br>
+                    ➜ Является массивом: ${Array.isArray(tanksData)}<br>
+                    ➜ Количество записей: ${Array.isArray(tanksData) ? tanksData.length : 'N/A'}
+                </div>`, 'success');
+                
+                if (Array.isArray(tanksData) && tanksData.length > 0) {
+                    addLog('✅ Данные резервуаров получены!', 'success');
+                    
+                    tanksData.slice(0, 3).forEach((tank, index) => {
+                        addLog(`<div class="code">
+                            Резервуар ${index + 1}:<br>
+                            ${JSON.stringify(tank, null, 2)}
+                        </div>`, 'info');
+                    });
+                    
+                    if (tanksData.length > 3) {
+                        addLog(`... и еще ${tanksData.length - 3} резервуаров`, 'info');
+                    }
+                } else {
+                    addLog('⚠️ Резервуары не найдены или пустой ответ', 'warning');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Ошибка получения резервуаров: ${error.message}`, 'error');
+            }
+        }
+        
+        // Тест получения транзакций
+        window.testGetTransactionsData = async function() {
+            addSection('📋 ТЕСТ ПОЛУЧЕНИЯ ТРАНЗАКЦИЙ');
+            
+            if (!selectedTradingPoint) {
+                addLog('❌ Выберите торговую точку!', 'error');
+                return;
+            }
+            
+            try {
+                addLog('📋 Получаем транзакции через tradingNetworkConfigService...', 'info');
+                
+                const transactionsData = await tradingNetworkConfigService.getTransactionsData({
+                    tradingPointId: selectedTradingPoint.id,
+                    limit: 10
+                });
+                
+                addLog(`<div class="code">
+                    РЕЗУЛЬТАТ getTransactionsData():<br>
+                    ➜ Тип данных: ${typeof transactionsData}<br>
+                    ➜ Является массивом: ${Array.isArray(transactionsData)}<br>
+                    ➜ Количество записей: ${Array.isArray(transactionsData) ? transactionsData.length : 'N/A'}
+                </div>`, 'success');
+                
+                if (Array.isArray(transactionsData) && transactionsData.length > 0) {
+                    addLog('✅ Транзакции получены!', 'success');
+                    
+                    transactionsData.slice(0, 2).forEach((transaction, index) => {
+                        addLog(`<div class="code">
+                            Транзакция ${index + 1}:<br>
+                            ${JSON.stringify(transaction, null, 2)}
+                        </div>`, 'info');
+                    });
+                    
+                    if (transactionsData.length > 2) {
+                        addLog(`... и еще ${transactionsData.length - 2} транзакций`, 'info');
+                    }
+                } else {
+                    addLog('⚠️ Транзакции не найдены или пустой ответ', 'warning');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Ошибка получения транзакций: ${error.message}`, 'error');
+            }
+        }
+        
+        // Полный тест API
+        window.testFullApiWorkflow = async function() {
+            addSection('🚀 ПОЛНЫЙ ТЕСТ API WORKFLOW');
+            
+            if (!selectedTradingPoint) {
+                addLog('❌ Выберите торговую точку!', 'error');
+                return;
+            }
+            
+            addLog('🚀 Запуск полного теста API...', 'info');
+            
+            // Шаг 1: Конфигурация
+            await showApiConfig();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Шаг 2: Подключение
+            await testExternalApiConnection();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Шаг 3: Резервуары
+            await testGetTanksData();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Шаг 4: Транзакции
+            await testGetTransactionsData();
+            
+            addLog('🏁 Полный тест API завершен!', 'success');
+        }
+        
+        // Автозапуск
+        addLog('✅ Страница загружена. Инициализация...', 'info');
+        initialize();
+    </script>
+</body>
+</html>

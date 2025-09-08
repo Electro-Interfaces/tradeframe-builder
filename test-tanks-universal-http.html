@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест универсального HTTP клиента для резервуаров</title>
+</head>
+<body>
+    <h1>🛢️ Тест универсального HTTP клиента для резервуаров</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { tanksUnifiedService } from './src/services/tanksUnifiedService.js';
+        import { httpClient } from './src/services/universalHttpClient.js';
+
+        const results = document.getElementById('results');
+
+        async function testUniversalHttpClient() {
+            console.log('🧪 Тестируем универсальный HTTP клиент для резервуаров...');
+            results.innerHTML += '<h2>Тест универсального HTTP клиента</h2>';
+
+            try {
+                // 1. Проверяем конфигурацию универсального HTTP клиента
+                console.log('1️⃣ Проверяем конфигурацию...');
+                const configInfo = await httpClient.getConfigurationInfo();
+                
+                console.log('📋 Информация о конфигурации:', configInfo);
+                results.innerHTML += `<div><strong>Конфигурация HTTP клиента:</strong></div>`;
+                results.innerHTML += `<pre>${JSON.stringify(configInfo, null, 2)}</pre>`;
+
+                // 2. Тестируем соединение с внешним API
+                console.log('2️⃣ Тестируем соединение с внешним API...');
+                results.innerHTML += `<h3>Тест соединения</h3>`;
+                
+                const connectionTest = await httpClient.testExternalApiConnection();
+                console.log('🔧 Результат тестирования:', connectionTest);
+                
+                if (connectionTest.success) {
+                    results.innerHTML += `<div style="color: green;">✅ ${connectionTest.data ? 'Соединение успешно' : 'Нет данных но соединение работает'}</div>`;
+                    results.innerHTML += `<pre>${JSON.stringify(connectionTest.data, null, 2)}</pre>`;
+                } else {
+                    results.innerHTML += `<div style="color: red;">❌ ${connectionTest.error}</div>`;
+                }
+
+                // 3. Тестируем загрузку резервуаров через унифицированный сервис 
+                console.log('3️⃣ Тестируем загрузку резервуаров...');
+                results.innerHTML += `<h3>Загрузка резервуаров</h3>`;
+                
+                // Используем ID первой торговой точки для теста
+                const testTradingPointId = 'tp-demo-1';
+                const tanksResult = await tanksUnifiedService.getTanksForTradingPoint(testTradingPointId);
+                
+                console.log('🛢️ Результат загрузки резервуаров:', tanksResult);
+                results.innerHTML += `<div><strong>Результат загрузки резервуаров:</strong></div>`;
+                results.innerHTML += `<div>Источник данных: <strong>${tanksResult.source}</strong></div>`;
+                results.innerHTML += `<div>Синхронизация: <strong>${tanksResult.synchronized}</strong></div>`;
+                results.innerHTML += `<div>Количество резервуаров: <strong>${tanksResult.tanks.length}</strong></div>`;
+                
+                if (tanksResult.error) {
+                    results.innerHTML += `<div style="color: red;">❌ Ошибка: ${tanksResult.error}</div>`;
+                }
+                
+                if (tanksResult.tanks.length > 0) {
+                    results.innerHTML += `<div style="color: green;">✅ Данные резервуаров получены успешно!</div>`;
+                    results.innerHTML += `<pre>${JSON.stringify(tanksResult.tanks.slice(0, 2), null, 2)}</pre>`;
+                } else {
+                    results.innerHTML += `<div style="color: orange;">⚠️ Данные резервуаров не найдены</div>`;
+                }
+
+            } catch (error) {
+                console.error('❌ Ошибка при тестировании:', error);
+                results.innerHTML += `<div style="color: red;">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        // Запускаем тест
+        testUniversalHttpClient();
+    </script>
+</body>
+</html>

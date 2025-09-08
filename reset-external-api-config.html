@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 Сброс конфигурации внешнего API</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        .highlight { 
+            background: #2d4a22; 
+            padding: 10px; 
+            border-left: 4px solid #28a745;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.success { background: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>🔄 СБРОС КОНФИГУРАЦИИ ВНЕШНЕГО API</h1>
+    <p>Исправляем неправильную конфигурацию: endpoints /v1/* → /, authType bearer → basic</p>
+    
+    <div>
+        <button onclick="checkCurrentConfig()">🔍 Проверить текущую конфигурацию</button>
+        <button onclick="resetToDefaultConfig()" class="danger">🔄 Сбросить к настройкам по умолчанию</button>
+        <button onclick="updateSpecificSettings()" class="success">⚙️ Обновить проблемные настройки</button>
+        <button onclick="clearLog()">🧹 Очистить логи</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        let tradingNetworkConfigService = null;
+        let systemConfigService = null;
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        // Инициализация
+        async function initialize() {
+            try {
+                const configImports = await import('/src/services/tradingNetworkConfigService.ts');
+                tradingNetworkConfigService = configImports.tradingNetworkConfigService;
+                
+                const systemImports = await import('/src/services/systemConfigService.ts');
+                systemConfigService = systemImports.systemConfigService;
+                
+                addLog('✅ Сервисы конфигурации загружены', 'success');
+                
+            } catch (error) {
+                addLog(`❌ Ошибка инициализации: ${error.message}`, 'error');
+            }
+        }
+        
+        // Проверить текущую конфигурацию
+        window.checkCurrentConfig = async function() {
+            addLog('🔍 ПРОВЕРКА ТЕКУЩЕЙ КОНФИГУРАЦИИ', 'info');
+            
+            try {
+                const config = await tradingNetworkConfigService.getConfig();
+                
+                addLog(`<div class="code">
+                    ТЕКУЩАЯ КОНФИГУРАЦИЯ ВНЕШНЕГО API:<br>
+                    ➜ Включена: ${config.enabled ? '✅ ДА' : '❌ НЕТ'}<br>
+                    ➜ Base URL: ${config.baseUrl}<br>
+                    ➜ Auth Type: ${config.authType} ${config.authType === 'basic' ? '✅' : '❌ ДОЛЖНО БЫТЬ basic'}<br>
+                    ➜ Username: ${config.username}<br>
+                    ➜ Password: ${config.password ? '***' : 'НЕТ'}<br>
+                    ➜ API Key: ${config.apiKey || 'НЕТ'}<br>
+                    ➜ Timeout: ${config.timeout}ms<br>
+                    ➜ Endpoints:<br>
+                    &nbsp;&nbsp;- Tanks: ${config.endpoints.tanks} ${config.endpoints.tanks === '/tanks' ? '✅' : '❌ ДОЛЖНО БЫТЬ /tanks'}<br>
+                    &nbsp;&nbsp;- Transactions: ${config.endpoints.transactions} ${config.endpoints.transactions === '/transactions' ? '✅' : '❌ ДОЛЖНО БЫТЬ /transactions'}
+                </div>`, 'info');
+                
+                // Определяем проблемы
+                const problems = [];
+                if (config.authType !== 'basic') {
+                    problems.push(`AuthType: ${config.authType} → basic`);
+                }
+                if (config.endpoints.tanks !== '/tanks') {
+                    problems.push(`Tanks endpoint: ${config.endpoints.tanks} → /tanks`);
+                }
+                if (config.endpoints.transactions !== '/transactions') {
+                    problems.push(`Transactions endpoint: ${config.endpoints.transactions} → /transactions`);
+                }
+                
+                if (problems.length > 0) {
+                    addLog(`<div class="highlight">
+                        ⚠️ НАЙДЕНЫ ПРОБЛЕМЫ В КОНФИГУРАЦИИ:<br>
+                        ${problems.map(p => `• ${p}`).join('<br>')}
+                    </div>`, 'warning');
+                } else {
+                    addLog('✅ Конфигурация правильная!', 'success');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Ошибка проверки конфигурации: ${error.message}`, 'error');
+            }
+        }
+        
+        // Сбросить к настройкам по умолчанию
+        window.resetToDefaultConfig = async function() {
+            addLog('🔄 СБРОС К НАСТРОЙКАМ ПО УМОЛЧАНИЮ', 'warning');
+            
+            try {
+                const SYSTEM_CONFIG_KEY = 'TRADING_NETWORK_CONFIG';
+                
+                addLog('🔄 Устанавливаем null в системную конфигурацию для принудительного использования defaults...', 'info');
+                
+                // Устанавливаем null, чтобы принудительно использовать конфигурацию по умолчанию
+                await systemConfigService.setConfig(SYSTEM_CONFIG_KEY, null, 'system', 'Сброс к настройкам по умолчанию');
+                
+                addLog('✅ Системная конфигурация сброшена', 'success');
+                
+                // Ждем немного и проверяем результат
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const newConfig = await tradingNetworkConfigService.getConfig();
+                
+                addLog(`<div class="highlight">
+                    ✅ КОНФИГУРАЦИЯ СБРОШЕНА К ЗНАЧЕНИЯМ ПО УМОЛЧАНИЮ:<br>
+                    ➜ Auth Type: ${newConfig.authType}<br>
+                    ➜ Tanks endpoint: ${newConfig.endpoints.tanks}<br>
+                    ➜ Transactions endpoint: ${newConfig.endpoints.transactions}<br>
+                    ➜ Username: ${newConfig.username}<br>
+                    ➜ Password: ${newConfig.password ? 'установлен' : 'НЕТ'}
+                </div>`, 'success');
+                
+            } catch (error) {
+                addLog(`❌ Ошибка сброса конфигурации: ${error.message}`, 'error');
+            }
+        }
+        
+        // Обновить только проблемные настройки
+        window.updateSpecificSettings = async function() {
+            addLog('⚙️ ОБНОВЛЕНИЕ ПРОБЛЕМНЫХ НАСТРОЕК', 'info');
+            
+            try {
+                const currentConfig = await tradingNetworkConfigService.getConfig();
+                
+                // Создаем исправленную конфигурацию
+                const fixedConfig = {
+                    ...currentConfig,
+                    authType: 'basic',
+                    endpoints: {
+                        tanks: '/tanks',
+                        transactions: '/transactions'
+                    },
+                    username: 'UserApi',
+                    password: 'PasswordApi'
+                };
+                
+                addLog('🔧 Сохраняем исправленную конфигурацию...', 'info');
+                
+                // Сохраняем через systemConfigService используя setConfig
+                const SYSTEM_CONFIG_KEY = 'TRADING_NETWORK_CONFIG';
+                await systemConfigService.setConfig(SYSTEM_CONFIG_KEY, fixedConfig, 'system', 'Исправленная конфигурация внешнего API');
+                
+                addLog(`<div class="highlight">
+                    ✅ НАСТРОЙКИ ОБНОВЛЕНЫ:<br>
+                    ➜ Auth Type: ${fixedConfig.authType}<br>
+                    ➜ Tanks endpoint: ${fixedConfig.endpoints.tanks}<br>
+                    ➜ Transactions endpoint: ${fixedConfig.endpoints.transactions}<br>
+                    ➜ Username: ${fixedConfig.username}<br>
+                    ➜ Password: ***
+                </div>`, 'success');
+                
+                // Проверяем результат
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await checkCurrentConfig();
+                
+            } catch (error) {
+                addLog(`❌ Ошибка обновления настроек: ${error.message}`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Инструмент сброса конфигурации загружен', 'info');
+        initialize();
+    </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Проверка параметров АЗС 4</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 ПРОВЕРКА ПАРАМЕТРОВ АЗС 4</h1>
+    <p>Детальная проверка настроек торговой точки АЗС 4 для работы с внешним API</p>
+    
+    <button onclick="checkAzs4Params()">🚀 Проверить параметры АЗС 4</button>
+    <button onclick="clearLog()">🧹 Очистить</button>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const TARGET_TP_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59'; // АЗС 4
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        window.checkAzs4Params = async function() {
+            addLog('🔍 Начало проверки параметров АЗС 4', 'info');
+            addLog(`<div class="code">Target Trading Point ID: ${TARGET_TP_ID}</div>`, 'info');
+            
+            try {
+                // Импорт сервисов
+                addLog('📦 Импорт сервисов...', 'info');
+                const { tradingPointsService } = await import('./src/services/tradingPointsService.js');
+                const { networksService } = await import('./src/services/networksService.js');
+                const { tradingNetworkConfigService } = await import('./src/services/tradingNetworkConfigService.js');
+                addLog('✅ Сервисы импортированы', 'success');
+                
+                // Получение торговой точки
+                addLog('🏪 Получение данных торговой точки АЗС 4...', 'info');
+                const tradingPoint = await tradingPointsService.getById(TARGET_TP_ID);
+                
+                if (!tradingPoint) {
+                    addLog('❌ Торговая точка АЗС 4 не найдена!', 'error');
+                    return;
+                }
+                
+                addLog('✅ Торговая точка найдена', 'success');
+                addLog(`<div class="code">
+                    ID: ${tradingPoint.id}<br>
+                    Название: ${tradingPoint.name}<br>
+                    External ID: ${tradingPoint.external_id || '❌ НЕТ'}<br>
+                    Code: ${tradingPoint.code || '❌ НЕТ'}<br>
+                    Network ID: ${tradingPoint.networkId || '❌ НЕТ'}<br>
+                    Статус: ${tradingPoint.status || 'неизвестен'}
+                </div>`, 'info');
+                
+                // Определение Station ID
+                const stationId = tradingPoint.external_id || tradingPoint.code || '';
+                addLog(`📋 Station ID (для API): "${stationId}"`, stationId ? 'success' : 'error');
+                
+                if (!stationId) {
+                    addLog('❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: У торговой точки нет external_id или code!', 'error');
+                    addLog('💡 Решение: Добавьте external_id в таблицу trading_points для этой записи', 'warning');
+                }
+                
+                // Получение сети
+                if (!tradingPoint.networkId) {
+                    addLog('❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: У торговой точки нет networkId!', 'error');
+                    return;
+                }
+                
+                addLog('🌐 Получение данных сети...', 'info');
+                const network = await networksService.getById(tradingPoint.networkId);
+                
+                if (!network) {
+                    addLog('❌ Сеть не найдена!', 'error');
+                    return;
+                }
+                
+                addLog('✅ Сеть найдена', 'success');
+                addLog(`<div class="code">
+                    ID: ${network.id}<br>
+                    Название: ${network.name}<br>
+                    External ID: ${network.external_id || '❌ НЕТ'}<br>
+                    Code: ${network.code || '❌ НЕТ'}<br>
+                    Статус: ${network.status || 'неизвестен'}
+                </div>`, 'info');
+                
+                // Определение System ID
+                const systemId = network.external_id || network.code || '';
+                addLog(`📋 System ID (для API): "${systemId}"`, systemId ? 'success' : 'error');
+                
+                if (!systemId) {
+                    addLog('❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: У сети нет external_id или code!', 'error');
+                    addLog('💡 Решение: Добавьте external_id в таблицу networks для этой записи', 'warning');
+                }
+                
+                // Тест API параметров через tradingNetworkConfigService
+                addLog('🔧 Тест получения API параметров через сервис...', 'info');
+                try {
+                    const apiParams = await tradingNetworkConfigService.getApiParamsFromDB(TARGET_TP_ID);
+                    
+                    if (apiParams) {
+                        addLog('✅ API параметры получены через сервис', 'success');
+                        addLog(`<div class="code">
+                            System ID: "${apiParams.systemId}"<br>
+                            Station ID: "${apiParams.stationId}"<br>
+                            Соответствуют данным: ${apiParams.systemId === systemId && apiParams.stationId === stationId ? '✅ ДА' : '❌ НЕТ'}
+                        </div>`, 'success');
+                    } else {
+                        addLog('❌ API параметры НЕ получены через сервис', 'error');
+                    }
+                } catch (error) {
+                    addLog(`❌ Ошибка получения API параметров: ${error.message}`, 'error');
+                }
+                
+                // Финальная проверка готовности
+                addLog('🎯 ИТОГОВАЯ ОЦЕНКА ГОТОВНОСТИ:', 'info');
+                const readyForApi = !!(systemId && stationId);
+                
+                addLog(`<div class="code">
+                    System ID готов: ${systemId ? '✅ ДА' : '❌ НЕТ'}<br>
+                    Station ID готов: ${stationId ? '✅ ДА' : '❌ НЕТ'}<br>
+                    Готов для API вызовов: ${readyForApi ? '✅ ДА' : '❌ НЕТ'}<br>
+                    Ожидаемый URL: https://pos.autooplata.ru/tms/tanks?system=${systemId}&station=${stationId}
+                </div>`, readyForApi ? 'success' : 'error');
+                
+                if (readyForApi) {
+                    addLog('🎉 АЗС 4 готова для работы с внешним API!', 'success');
+                    addLog('💡 Кнопка "Создать резервуары" должна работать корректно', 'success');
+                } else {
+                    addLog('⚠️ АЗС 4 НЕ готова для работы с внешним API', 'warning');
+                    addLog('🔧 Необходимо добавить external_id в соответствующие таблицы БД', 'warning');
+                }
+                
+                // Предложения по исправлению
+                if (!systemId) {
+                    addLog('📝 SQL для исправления сети:', 'warning');
+                    addLog(`<div class="code">UPDATE networks SET external_id = '15' WHERE id = '${network.id}';</div>`, 'warning');
+                }
+                
+                if (!stationId) {
+                    addLog('📝 SQL для исправления торговой точки:', 'warning');
+                    addLog(`<div class="code">UPDATE trading_points SET external_id = '4' WHERE id = '${TARGET_TP_ID}';</div>`, 'warning');
+                }
+                
+            } catch (error) {
+                addLog(`💥 Критическая ошибка: ${error.message}`, 'error');
+                addLog(`<div class="code">${error.stack}</div>`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Страница загружена. Нажмите "Проверить параметры АЗС 4" для начала.', 'info');
+    </script>
+</body>
+</html>

@@ -127,12 +127,18 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     console.log('GET /trading-points - Start', req.query);
     
-    // Временно возвращаем тестовые данные
+    // Получаем данные из Supabase  
+    const validatedParams = ListTradingPointsSchema.parse(req.query);
+    const result = await tradingPointsRepo.list(validatedParams);
+    console.log('🎯 Trading points from Supabase:', result.data.length);
+    
     res.json({
       success: true,
-      data: [],
-      total: 0,
-      message: "Trading points endpoint working without auth"
+      data: result.data,
+      total: result.total,
+      page: result.page,
+      totalPages: result.totalPages,
+      message: `Found ${result.data.length} trading points`
     });
   } catch (error: any) {
     if (error.name === 'ZodError') {

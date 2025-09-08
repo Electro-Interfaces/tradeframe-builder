@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>🧹 Очистка старых fuel_tank из equipment</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .warning { color: #fbbf24; }
+        .info { color: #60a5fa; }
+        pre { background: #262626; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 200px; }
+        button { margin: 10px; padding: 10px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #b91c1c; }
+        .safe { background: #059669; }
+        .safe:hover { background: #047857; }
+    </style>
+</head>
+<body>
+    <h1>🧹 Очистка старых fuel_tank записей из equipment</h1>
+    <div id="results"></div>
+    
+    <button onclick="checkEquipmentTanks()" class="safe">📋 Проверить записи</button>
+    <button onclick="deleteEquipmentTanks()">🗑️ УДАЛИТЬ старые fuel_tank</button>
+
+    <script type="module">
+        import { equipmentSupabaseService } from '/src/services/equipmentSupabase.js';
+        
+        const results = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const className = type;
+            results.innerHTML += `<div class="${className}">${message}</div>`;
+            console.log(message);
+        }
+
+        window.checkEquipmentTanks = async function() {
+            results.innerHTML = '';
+            log('🔍 Проверяем записи fuel_tank в таблице equipment...', 'info');
+            
+            try {
+                // Получаем все fuel_tank записи
+                const response = await equipmentSupabaseService.list({
+                    system_type: 'fuel_tank'
+                });
+                
+                if (!response.data || response.data.length === 0) {
+                    log('✅ Записи fuel_tank в equipment НЕ НАЙДЕНЫ', 'success');
+                    return;
+                }
+                
+                log(`🔍 Найдено ${response.data.length} записей fuel_tank:`, 'warning');
+                
+                response.data.forEach((item, index) => {
+                    log(`   ${index + 1}. ID: ${item.id}`, 'info');
+                    log(`      Название: ${item.display_name || item.name}`, 'info');
+                    log(`      ТП: ${item.trading_point_id}`, 'info');
+                    log(`      Создано: ${item.created_at}`, 'info');
+                });
+                
+                results.innerHTML += '<pre>' + JSON.stringify(response.data, null, 2) + '</pre>';
+                
+            } catch (error) {
+                log(`❌ Ошибка проверки: ${error.message}`, 'error');
+            }
+        };
+        
+        window.deleteEquipmentTanks = async function() {
+            log('\n🗑️ НАЧИНАЕМ УДАЛЕНИЕ fuel_tank записей...', 'warning');
+            
+            if (!confirm('⚠️ ВНИМАНИЕ! Это удалит ВСЕ записи fuel_tank из таблицы equipment. Продолжить?')) {
+                log('❌ Отменено пользователем', 'info');
+                return;
+            }
+            
+            try {
+                // Получаем все fuel_tank записи
+                const response = await equipmentSupabaseService.list({
+                    system_type: 'fuel_tank'
+                });
+                
+                if (!response.data || response.data.length === 0) {
+                    log('ℹ️ Записи fuel_tank для удаления не найдены', 'info');
+                    return;
+                }
+                
+                log(`🔍 Найдено ${response.data.length} записей для удаления`, 'warning');
+                
+                // Удаляем каждую запись
+                let deletedCount = 0;
+                let errorCount = 0;
+                
+                for (const item of response.data) {
+                    try {
+                        await equipmentSupabaseService.delete(item.id);
+                        log(`✅ Удалено: ${item.display_name || item.name} (${item.id})`, 'success');
+                        deletedCount++;
+                    } catch (error) {
+                        log(`❌ Ошибка удаления ${item.id}: ${error.message}`, 'error');
+                        errorCount++;
+                    }
+                }
+                
+                log(`\n📊 ИТОГИ ОЧИСТКИ:`, 'info');
+                log(`   ✅ Удалено: ${deletedCount}`, 'success');
+                log(`   ❌ Ошибок: ${errorCount}`, errorCount > 0 ? 'error' : 'info');
+                
+                if (deletedCount > 0) {
+                    log('\n🎉 ГОТОВО! Теперь система должна обращаться к внешнему API', 'success');
+                    log('🔄 Обновите страницу резервуаров для проверки', 'info');
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка очистки: ${error.message}`, 'error');
+            }
+        };
+
+        // Автоматически проверяем при загрузке
+        checkEquipmentTanks();
+    </script>
+</body>
+</html>

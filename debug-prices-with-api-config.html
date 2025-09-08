@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отладка цен с конфигурацией API</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">🔍 Отладка цен с конфигурацией торгового API</h1>
+        
+        <div class="bg-gray-800 rounded-lg p-4 mb-6">
+            <h2 class="text-lg font-semibold mb-3">Конфигурация из скриншота:</h2>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <strong>Базовый URL API:</strong> https://pos.autooplata.ru/tms<br>
+                    <strong>ID системы торговой сети:</strong> 15<br>
+                    <strong>ID торговой точки по умолчанию:</strong> 4<br>
+                    <strong>Timeout (мс):</strong> 30000
+                </div>
+                <div>
+                    <strong>Тип аутентификации:</strong> Bearer Token<br>
+                    <strong>API ключ:</strong> eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...<br>
+                    <em>(токен обрезан для безопасности)</em>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg p-4 mb-6">
+            <h2 class="text-lg font-semibold mb-3">Тестирование</h2>
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Trading Point ID:</label>
+                    <input type="text" id="tradingPointId" value="4"
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">System ID:</label>
+                    <input type="text" id="systemId" value="15"
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Date:</label>
+                    <input type="text" id="testDate" 
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                           placeholder="YYYY-MM-DD">
+                </div>
+            </div>
+            <div class="mt-4 space-x-2">
+                <button onclick="testSupabaseTanks()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                    🏪 Тест резервуаров Supabase
+                </button>
+                <button onclick="testTradingAPI()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+                    🔗 Тест торгового API
+                </button>
+                <button onclick="testFullPipeline()" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">
+                    🚀 Полный тест пайплайна
+                </button>
+                <button onclick="clearResults()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded">
+                    🧹 Очистить
+                </button>
+            </div>
+        </div>
+
+        <div id="results" class="space-y-4"></div>
+    </div>
+
+    <script>
+        // Конфигурация из скриншота
+        const TRADING_API_CONFIG = {
+            baseUrl: 'https://pos.autooplata.ru/tms',
+            systemId: '15',
+            defaultTradingPointId: '4',
+            timeout: 30000,
+            authType: 'Bearer Token',
+            apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vamJodXdnZHhucGNyemxqemttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQyMjUzNzksImV4cCI6MjA0OTgwMTM3OX0.KXF1gEiAXWv-HVLCZFoHuIKVcjQIBSUPcROkfVMNHDY' // Этот токен для Supabase
+        };
+
+        // Supabase конфигурация
+        const SUPABASE_URL = 'https://oojbhuwgdxnpcrzljzkm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vamJodXdnZHhucGNyemxqemttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQyMjUzNzksImV4cCI6MjA0OTgwMTM3OX0.KXF1gEiAXWv-HVLCZFoHuIKVcjQIBSUPcROkfVMNHDY';
+
+        // Автоустановка сегодняшней даты
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('testDate').value = today;
+        });
+
+        async function testSupabaseTanks() {
+            const tradingPointId = document.getElementById('tradingPointId').value.trim();
+            if (!tradingPointId) {
+                addResult('error', 'Введите Trading Point ID');
+                return;
+            }
+
+            try {
+                addResult('info', `🏪 Тестирование резервуаров Supabase для торговой точки: ${tradingPointId}`);
+                
+                // Запрос резервуаров как в pricesSupabaseService
+                const equipmentUrl = `${SUPABASE_URL}/rest/v1/equipment?trading_point_id=eq.${tradingPointId}&system_type=eq.fuel_tank&limit=100`;
+                
+                addResult('debug', `📡 URL запроса: ${equipmentUrl}`);
+                
+                const response = await fetch(equipmentUrl, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const tanks = await response.json();
+                addResult('success', `✅ Получено ${tanks.length} резервуаров из Supabase`);
+
+                if (tanks.length === 0) {
+                    addResult('warning', '⚠️ Резервуары не найдены! Возможно неправильный trading_point_id или они не созданы');
+                    return;
+                }
+
+                // Анализируем данные как в pricesSupabaseService.getFuelTypesInfo
+                const validTanks = tanks.filter(tank => tank.status !== 'deleted' && tank.params?.['Тип топлива']);
+                addResult('info', `🔍 Валидных резервуаров (не deleted + есть тип топлива): ${validTanks.length} из ${tanks.length}`);
+
+                if (validTanks.length === 0) {
+                    addResult('error', '❌ Нет валидных резервуаров с указанным типом топлива!');
+                    
+                    // Показываем примеры для отладки
+                    tanks.slice(0, 3).forEach((tank, i) => {
+                        const fuelType = tank.params?.['Тип топлива'];
+                        const paramKeys = Object.keys(tank.params || {});
+                        addResult('debug', 
+                            `Резервуар ${i+1}: status="${tank.status}", 
+                             Тип топлива="${fuelType}", 
+                             params=[${paramKeys.join(', ')}]`
+                        );
+                    });
+                    return;
+                }
+
+                // Группируем по видам топлива
+                const fuelTypesMap = new Map();
+                validTanks.forEach(tank => {
+                    const fuelType = tank.params['Тип топлива'];
+                    const capacity = parseFloat(tank.params['Вместимость (л)']) || 0;
+                    const level = parseFloat(tank.params['Текущий уровень (л)']) || 0;
+
+                    if (!fuelTypesMap.has(fuelType)) {
+                        fuelTypesMap.set(fuelType, {
+                            tanks: [],
+                            totalVolume: 0,
+                            currentLevel: 0
+                        });
+                    }
+
+                    const fuelData = fuelTypesMap.get(fuelType);
+                    fuelData.tanks.push(tank);
+                    fuelData.totalVolume += capacity;
+                    fuelData.currentLevel += level;
+                });
+
+                addResult('success', `🔥 Найдено ${fuelTypesMap.size} видов топлива:`);
+                
+                fuelTypesMap.forEach((data, fuelType) => {
+                    addResult('info', 
+                        `${fuelType}: ${data.tanks.length} резервуаров, 
+                         объём ${data.totalVolume} л, 
+                         уровень ${data.currentLevel} л`
+                    );
+                });
+
+                // Проверяем цены
+                await checkCurrentPrices(tradingPointId);
+
+            } catch (error) {
+                addResult('error', `❌ Ошибка тестирования Supabase: ${error.message}`);
+                console.error('Supabase test error:', error);
+            }
+        }
+
+        async function checkCurrentPrices(tradingPointId) {
+            try {
+                addResult('info', `💰 Проверяем текущие цены для ${tradingPointId}...`);
+                
+                const pricesUrl = `${SUPABASE_URL}/rest/v1/prices?trading_point_id=eq.${tradingPointId}&is_active=eq.true&order=valid_from.desc`;
+                
+                const response = await fetch(pricesUrl, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 404 || response.status === 406) {
+                        addResult('warning', '⚠️ Таблица prices не найдена в базе данных');
+                        return;
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const prices = await response.json();
+                addResult('success', `✅ Найдено ${prices.length} активных цен`);
+                
+                prices.forEach(price => {
+                    addResult('info', 
+                        `💰 ${price.fuel_type}: ${(price.price_gross / 100).toFixed(2)} ₽/л 
+                         (НДС ${price.vat_rate}%)`
+                    );
+                });
+
+            } catch (error) {
+                addResult('warning', `⚠️ Ошибка проверки цен: ${error.message}`);
+            }
+        }
+
+        async function testTradingAPI() {
+            const tradingPointId = document.getElementById('tradingPointId').value.trim();
+            const systemId = document.getElementById('systemId').value.trim();
+            const testDate = document.getElementById('testDate').value.trim();
+
+            if (!tradingPointId || !systemId) {
+                addResult('error', 'Введите Trading Point ID и System ID');
+                return;
+            }
+
+            try {
+                addResult('info', `🔗 Тестирование торгового API...`);
+                
+                // Тестируем через прокси как настроено в vite.config.ts
+                const proxyUrl = `/api/trading-network/v1/pos/prices/${tradingPointId}?system=${systemId}&date=${encodeURIComponent(testDate)}`;
+                
+                addResult('debug', `📡 Прокси URL: ${proxyUrl}`);
+                addResult('debug', `📡 Прокси направляет на: ${TRADING_API_CONFIG.baseUrl}/v1/pos/prices/${tradingPointId}?system=${systemId}&date=${testDate}`);
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                addResult('info', `📊 HTTP статус: ${response.status} ${response.statusText}`);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    addResult('error', `❌ Ошибка торгового API: ${errorText}`);
+                    return;
+                }
+
+                const data = await response.json();
+                addResult('success', `✅ Получен ответ от торгового API`);
+                addResult('debug', `📋 Данные: ${JSON.stringify(data, null, 2)}`);
+
+            } catch (error) {
+                addResult('error', `❌ Ошибка тестирования торгового API: ${error.message}`);
+                console.error('Trading API test error:', error);
+            }
+        }
+
+        async function testFullPipeline() {
+            addResult('info', '🚀 Запуск полного теста пайплайна обработки цен...');
+            
+            // Последовательно выполняем все тесты
+            await testSupabaseTanks();
+            await new Promise(resolve => setTimeout(resolve, 1000)); // пауза
+            await testTradingAPI();
+            
+            addResult('success', '🏁 Полный тест пайплайна завершён');
+        }
+
+        function addResult(type, message) {
+            const results = document.getElementById('results');
+            const colors = {
+                'info': 'bg-blue-900 border-blue-600 text-blue-200',
+                'success': 'bg-green-900 border-green-600 text-green-200',
+                'warning': 'bg-yellow-900 border-yellow-600 text-yellow-200',
+                'error': 'bg-red-900 border-red-600 text-red-200',
+                'debug': 'bg-gray-800 border-gray-600 text-gray-300'
+            };
+            
+            const div = document.createElement('div');
+            div.className = `border-l-4 p-4 rounded ${colors[type] || colors.info}`;
+            div.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="whitespace-pre-wrap font-mono text-sm">${message}</div>
+                    <span class="text-xs opacity-70">${new Date().toLocaleTimeString()}</span>
+                </div>
+            `;
+            
+            results.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

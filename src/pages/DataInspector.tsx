@@ -84,26 +84,26 @@ export default function DataInspector() {
       // Импортируем все сервисы для инициализации
       const { networksService } = await import('@/services/networksService');
       const { tradingPointsService } = await import('@/services/tradingPointsService');
-      const { usersService } = await import('@/services/usersService');
+      const { usersSupabaseService } = await import('@/services/usersSupabaseService');
       const { currentEquipmentAPI } = await import('@/services/equipment');
       const { currentComponentsAPI } = await import('@/services/components');
       const { commandsService } = await import('@/services/commandsService');
-      const { componentStatusService } = await import('@/services/componentStatusService');
-      const { pricesService } = await import('@/services/pricesService');
-      const { tanksService } = await import('@/services/tanksService');
-      const { operationsService } = await import('@/services/operationsService');
+      const { componentStatusService } = await import('@/services/componentStatusSupabaseService');
+      const { pricesService } = await import('@/services/pricesSupabaseService');
+      const { tanksService } = await import('@/services/tanksServiceSupabase');
+      const { operationsService } = await import('@/services/operationsSupabaseService');
       
       console.log('📦 Инициализируем все сервисы...');
       
       // Импортируем дополнительные сервисы для шаблонов
       const { equipmentTypesAPI, convertToEquipmentTemplate } = await import('@/services/equipmentTypes');
-      const componentTemplatesModule = await import('@/mock/componentTemplatesStore');
+      const { componentsSupabaseAPI } = await import('@/services/componentsSupabase');
       
       // Вызываем методы для инициализации данных в localStorage
       const [networks, points, users, equipment, components, commands, workflows, componentStatuses, fuelTypes, currentPrices, tanks, operations] = await Promise.all([
         networksService.getAll(),
         tradingPointsService.getAll(),
-        usersService.getAllUsers(),
+        usersSupabaseService.getAllUsers(),
         currentEquipmentAPI.list({ trading_point_id: '1' }),
         currentComponentsAPI.list({ }),
         commandsService.getAllCommands(),
@@ -121,7 +121,7 @@ export default function DataInspector() {
       localStorage.setItem('tradeframe_equipmentTemplates', JSON.stringify(equipmentTemplates));
       
       // Загружаем и сохраняем шаблоны компонентов
-      const componentTemplates = componentTemplatesModule.componentTemplatesStore.getAll();
+      const componentTemplates = await componentsSupabaseAPI.getTemplates();
       localStorage.setItem('tradeframe_componentTemplates', JSON.stringify(componentTemplates));
       
       console.log('✅ Все данные загружены:', {

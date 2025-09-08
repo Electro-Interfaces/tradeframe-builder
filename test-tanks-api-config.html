@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест конфигурации API резервуаров</title>
+</head>
+<body>
+    <h1>Тест конфигурации API резервуаров</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { tradingNetworkConfigService } from './src/services/tradingNetworkConfigService.js';
+        import { tanksApiIntegrationService } from './src/services/tanksApiIntegrationService.js';
+
+        const results = document.getElementById('results');
+
+        async function testConfiguration() {
+            console.log('🧪 Проверяем конфигурацию API для резервуаров...');
+            results.innerHTML += '<h2>Проверка конфигурации API</h2>';
+
+            try {
+                // 1. Проверяем основную конфигурацию торговой сети
+                console.log('1️⃣ Получаем конфигурацию торговой сети...');
+                const config = await tradingNetworkConfigService.getConfig();
+                
+                console.log('📋 Конфигурация торговой сети:', config);
+                results.innerHTML += `<div><strong>Конфигурация торговой сети:</strong></div>`;
+                results.innerHTML += `<pre>${JSON.stringify(config, null, 2)}</pre>`;
+
+                // 2. Проверяем наличие настроек для резервуаров
+                if (config.endpoints && config.endpoints.tanks) {
+                    console.log('✅ Эндпоинт для резервуаров настроен:', config.endpoints.tanks);
+                    results.innerHTML += `<div style="color: green;">✅ Эндпоинт для резервуаров: ${config.endpoints.tanks}</div>`;
+                } else {
+                    console.error('❌ Эндпоинт для резервуаров НЕ настроен!');
+                    results.innerHTML += `<div style="color: red;">❌ Эндпоинт для резервуаров НЕ настроен!</div>`;
+                }
+
+                // 3. Проверяем базовый URL
+                if (config.baseUrl) {
+                    console.log('✅ Базовый URL настроен:', config.baseUrl);
+                    results.innerHTML += `<div style="color: green;">✅ Базовый URL: ${config.baseUrl}</div>`;
+                } else {
+                    console.error('❌ Базовый URL НЕ настроен!');
+                    results.innerHTML += `<div style="color: red;">❌ Базовый URL НЕ настроен!</div>`;
+                }
+
+                // 4. Проверяем активность
+                if (config.enabled) {
+                    console.log('✅ Торговая сеть ВКЛЮЧЕНА');
+                    results.innerHTML += `<div style="color: green;">✅ Торговая сеть ВКЛЮЧЕНА</div>`;
+                } else {
+                    console.error('❌ Торговая сеть ОТКЛЮЧЕНА!');
+                    results.innerHTML += `<div style="color: red;">❌ Торговая сеть ОТКЛЮЧЕНА!</div>`;
+                }
+
+                // 5. Тестируем соединение с API
+                console.log('5️⃣ Тестируем соединение с API резервуаров...');
+                results.innerHTML += `<h3>Тестирование соединения</h3>`;
+
+                const connectionTest = await tanksApiIntegrationService.testApiConnection();
+                console.log('🔧 Результат тестирования:', connectionTest);
+                
+                if (connectionTest.success) {
+                    results.innerHTML += `<div style="color: green;">✅ ${connectionTest.message}</div>`;
+                } else {
+                    results.innerHTML += `<div style="color: red;">❌ ${connectionTest.message}</div>`;
+                }
+
+            } catch (error) {
+                console.error('❌ Ошибка при проверке конфигурации:', error);
+                results.innerHTML += `<div style="color: red;">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        // Запускаем тест
+        testConfiguration();
+    </script>
+</body>
+</html>

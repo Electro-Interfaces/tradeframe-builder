@@ -81,11 +81,11 @@ export function Header({
 
         {/* Desktop Left Section: Logo + Brand */}
         <div className="hidden md:flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">TC</span>
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">DW</span>
           </div>
           <div>
-            <h1 className="font-semibold text-foreground text-lg">TradeControl</h1>
+            <h1 className="font-semibold text-foreground text-lg">DW TradeFrame</h1>
             <p className="text-xs text-muted-foreground">v2.0</p>
           </div>
         </div>

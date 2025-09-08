@@ -2,9 +2,18 @@
  * Сервис для работы с резервуарами на Supabase
  */
 
-import { supabaseService as supabase } from './supabaseServiceClient';
+import { supabaseDatabaseClient } from './supabaseDatabaseClient';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Маппинг названий топлива на UUID из nomenclature
+const FUEL_TYPE_MAPPING: Record<string, string> = {
+  'Дизельное топливо': '123e4567-e89b-12d3-a456-426614174001',
+  'АИ-92': '123e4567-e89b-12d3-a456-426614174002', 
+  'АИ-95': '123e4567-e89b-12d3-a456-426614174003',
+  'АИ-98': '123e4567-e89b-12d3-a456-426614174004',
+  'Газ': '123e4567-e89b-12d3-a456-426614174005'
+};
 
 // Типы данных
 export interface Tank {
@@ -104,53 +113,87 @@ const mapFromSupabase = (data: any): Tank => ({
 });
 
 // Маппинг данных в формат Supabase  
-const mapToSupabase = (data: Partial<Tank>) => ({
-  name: data.name,
-  fuel_type_id: data.fuelType, // используем fuel_type_id
-  current_volume: data.currentLevelLiters,
-  capacity: data.capacityLiters,
-  min_volume: data.minLevelPercent,
-  max_volume: data.capacityLiters, // используем capacity как max_volume
-  status: data.status || 'active',
-  last_calibration: data.lastCalibration,
-  metadata: {
-    temperature: data.temperature,
-    waterLevelMm: data.waterLevelMm,
-    density: data.density,
-    location: data.location,
-    supplier: data.supplier,
-    sensors: data.sensors,
-    linkedPumps: data.linkedPumps,
-    notifications: data.notifications,
-    thresholds: data.thresholds
-  },
-  trading_point_id: data.trading_point_id,
-  updated_at: new Date().toISOString()
-});
+const mapToSupabase = (data: Partial<Tank>) => {
+  // Преобразуем название топлива в UUID
+  const fuelTypeId = data.fuelType ? FUEL_TYPE_MAPPING[data.fuelType] : null;
+  
+  if (data.fuelType && !fuelTypeId) {
+    console.warn(`⚠️ Неизвестный тип топлива: ${data.fuelType}, используем null`);
+  }
+  
+  return {
+    name: data.name,
+    fuel_type_id: fuelTypeId, // используем UUID
+    current_volume: data.currentLevelLiters,
+    capacity: data.capacityLiters,
+    min_volume: data.minLevelPercent,
+    max_volume: data.capacityLiters, // используем capacity как max_volume
+    status: data.status || 'active',
+    last_calibration: data.lastCalibration,
+    metadata: {
+      temperature: data.temperature,
+      waterLevelMm: data.waterLevelMm,
+      density: data.density,
+      location: data.location,
+      supplier: data.supplier,
+      sensors: data.sensors,
+      linkedPumps: data.linkedPumps,
+      notifications: data.notifications,
+      thresholds: data.thresholds
+    },
+    trading_point_id: data.trading_point_id,
+    updated_at: new Date().toISOString()
+  };
+};
 
 // API сервис на Supabase
 export const supabaseTanksService = {
   // Получить все резервуары
   async getTanks(tradingPointId?: string): Promise<Tank[]> {
-    console.log('🔄 Loading tanks from Supabase...');
+    console.log(`🔄 [tanksServiceSupabase] Loading tanks from Supabase для точки: ${tradingPointId}...`);
     await delay(300);
     
     try {
-      let query = supabase.from('tanks').select('*').order('name');
+      const queryParams: Record<string, string> = {
+        select: '*',
+        order: 'name'
+      };
       
       if (tradingPointId) {
-        query = query.eq('trading_point_id', tradingPointId);
+        console.log(`🔍 [tanksServiceSupabase] Фильтр по trading_point_id: ${tradingPointId}`);
+        queryParams.trading_point_id = `eq.${tradingPointId}`;
+      } else {
+        console.log(`🔍 [tanksServiceSupabase] Загружаем ВСЕ резервуары (без фильтра)`);
       }
       
-      const { data, error } = await query;
+      console.log(`📡 [tanksServiceSupabase] Отправляем запрос к Supabase...`);
       
-      if (error) {
-        console.error('Ошибка получения резервуаров:', error);
-        throw error;
+      // Преобразуем фильтры для нового клиента
+      const dbFilters: Record<string, any> = {};
+      if (tradingPointId) {
+        dbFilters.trading_point_id = tradingPointId;
+      }
+      
+      const response = await supabaseDatabaseClient.getTanks(dbFilters);
+      
+      console.log(`📡 [tanksServiceSupabase] Ответ от Supabase:`, response);
+      
+      if (!response.success) {
+        console.error('❌ [tanksServiceSupabase] Ошибка получения резервуаров:', response.error);
+        throw new Error(response.error || 'Ошибка загрузки резервуаров');
+      }
+      
+      const data = response.data;
+      console.log(`📊 [tanksServiceSupabase] Сырые данные из Supabase: ${data ? data.length : 0} записей`);
+      if (data && data.length > 0) {
+        console.log(`📊 [tanksServiceSupabase] Первая запись:`, data[0]);
       }
       
       const mappedData = (data || []).map(mapFromSupabase);
-      console.log('✅ Loaded tanks from Supabase:', mappedData.length, 'items');
+      console.log('✅ [tanksServiceSupabase] Финальные данные после мапинга:', mappedData.length, 'items');
+      if (mappedData.length > 0) {
+        console.log('✅ [tanksServiceSupabase] Первый резервуар после мапинга:', mappedData[0]);
+      }
       return mappedData;
       
     } catch (error) {
@@ -165,20 +208,26 @@ export const supabaseTanksService = {
     await delay(200);
     
     try {
-      const { data, error } = await supabase
-        .from('tanks')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const response = await httpClient.get('/rest/v1/tanks', {
+        destination: 'supabase',
+        queryParams: {
+          select: '*',
+          id: `eq.${id}`
+        }
+      });
 
-      if (error) {
-        if (error.code === 'PGRST116') {
+      if (!response.success) {
+        if (response.status === 404) {
           return null; // Не найден
         }
-        throw error;
+        throw new Error(response.error || 'Ошибка получения резервуара');
       }
 
-      const mappedData = mapFromSupabase(data);
+      if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+        return null;
+      }
+
+      const mappedData = mapFromSupabase(response.data[0]);
       console.log('✅ Tank found:', mappedData.name);
       return mappedData;
 
@@ -195,17 +244,22 @@ export const supabaseTanksService = {
     
     try {
       const supabaseData = mapToSupabase(data);
-      const { data: insertedData, error } = await supabase
-        .from('tanks')
-        .insert([supabaseData])
-        .select('*')
-        .single();
+      const response = await httpClient.post('/rest/v1/tanks', supabaseData, {
+        destination: 'supabase',
+        headers: {
+          'Prefer': 'return=representation'
+        }
+      });
 
-      if (error) {
-        throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Ошибка создания резервуара');
       }
 
-      const mappedData = mapFromSupabase(insertedData);
+      if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+        throw new Error('Нет данных после создания резервуара');
+      }
+
+      const mappedData = mapFromSupabase(response.data[0]);
       console.log('✅ Tank created:', mappedData.name);
       return mappedData;
 
@@ -222,18 +276,22 @@ export const supabaseTanksService = {
     
     try {
       const supabaseData = mapToSupabase(updates);
-      const { data: updatedData, error } = await supabase
-        .from('tanks')
-        .update(supabaseData)
-        .eq('id', id)
-        .select('*')
-        .single();
+      const response = await httpClient.patch(`/rest/v1/tanks?id=eq.${id}`, supabaseData, {
+        destination: 'supabase',
+        headers: {
+          'Prefer': 'return=representation'
+        }
+      });
 
-      if (error) {
-        throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Ошибка обновления резервуара');
       }
 
-      const mappedData = mapFromSupabase(updatedData);
+      if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+        throw new Error('Нет данных после обновления резервуара');
+      }
+
+      const mappedData = mapFromSupabase(response.data[0]);
       console.log('✅ Tank updated:', mappedData.name);
       
       return mappedData;
@@ -250,13 +308,12 @@ export const supabaseTanksService = {
     await delay(200);
     
     try {
-      const { error } = await supabase
-        .from('tanks')
-        .delete()
-        .eq('id', id);
+      const response = await httpClient.delete(`/rest/v1/tanks?id=eq.${id}`, {
+        destination: 'supabase'
+      });
 
-      if (error) {
-        throw error;
+      if (!response.success) {
+        throw new Error(response.error || 'Ошибка удаления резервуара');
       }
 
       console.log('✅ Tank deleted');

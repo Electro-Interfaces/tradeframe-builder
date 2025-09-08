@@ -37,108 +37,9 @@ interface SupportTicket {
   assignedTo?: string;
 }
 
-const mockTickets: SupportTicket[] = [
-  {
-    id: "ticket-1",
-    title: "Проблемы с синхронизацией данных",
-    description: "Данные о продажах не синхронизируются с центральной системой уже 2 часа",
-    priority: "high",
-    status: "in_progress",
-    createdAt: "2024-08-30T08:00:00Z",
-    updatedAt: "2024-08-30T10:30:00Z",
-    assignedTo: "Техподдержка TradeControl",
-    messages: [
-      {
-        id: "msg-1",
-        authorId: "user-1",
-        authorName: "Анна Петрова",
-        authorRole: "user",
-        text: "Здравствуйте! У нас проблемы с синхронизацией данных о продажах. Уже 2 часа данные не поступают в центральную систему. Это критично для работы.",
-        timestamp: "2024-08-30T08:00:00Z"
-      },
-      {
-        id: "msg-2",
-        authorId: "support-1",
-        authorName: "Михаил Поддержкин",
-        authorRole: "support",
-        text: "Здравствуйте! Принял вашу заявку в работу. Проверяю состояние серверов синхронизации. Ожидайте обновления в течение 30 минут.",
-        timestamp: "2024-08-30T08:15:00Z"
-      },
-      {
-        id: "msg-3",
-        authorId: "support-1",
-        authorName: "Михаил Поддержкин",
-        authorRole: "support",
-        text: "Обнаружили проблему с одним из серверов синхронизации. Производим перезапуск сервисов. Синхронизация должна восстановиться в течение 15 минут.",
-        timestamp: "2024-08-30T10:30:00Z"
-      }
-    ]
-  },
-  {
-    id: "ticket-2",
-    title: "Запрос новой функции: экспорт отчетов в Excel",
-    description: "Нужна возможность экспортировать отчеты о продажах в формате Excel",
-    priority: "medium",
-    status: "waiting_response",
-    createdAt: "2024-08-29T14:20:00Z",
-    updatedAt: "2024-08-29T16:45:00Z",
-    assignedTo: "Продуктовая команда",
-    messages: [
-      {
-        id: "msg-4",
-        authorId: "user-2",
-        authorName: "Иван Сидоров",
-        authorRole: "user",
-        text: "Здравствуйте! Хотелось бы добавить функцию экспорта отчетов в Excel. Это сильно упростит работу с данными для финансового отдела.",
-        timestamp: "2024-08-29T14:20:00Z"
-      },
-      {
-        id: "msg-5",
-        authorId: "support-2",
-        authorName: "Елена Продуктова",
-        authorRole: "support",
-        text: "Спасибо за предложение! Это действительно полезная функция. Передам ваш запрос команде разработки для оценки. Можете уточнить, какие именно отчеты вам нужны в Excel?",
-        timestamp: "2024-08-29T15:30:00Z"
-      }
-    ]
-  },
-  {
-    id: "ticket-3",
-    title: "Не работает мобильная версия",
-    description: "На мобильном устройстве не загружается интерфейс управления ценами",
-    priority: "medium",
-    status: "resolved",
-    createdAt: "2024-08-28T11:10:00Z",
-    updatedAt: "2024-08-28T17:20:00Z",
-    assignedTo: "Техподдержка TradeControl",
-    messages: [
-      {
-        id: "msg-6",
-        authorId: "user-3",
-        authorName: "Мария Козлова",
-        authorRole: "user",
-        text: "На телефоне не работает раздел управления ценами. Страница загружается, но кнопки не реагируют на нажатия.",
-        timestamp: "2024-08-28T11:10:00Z"
-      },
-      {
-        id: "msg-7",
-        authorId: "support-1",
-        authorName: "Михаил Поддержкин",
-        authorRole: "support",
-        text: "Спасибо за сообщение! Воспроизвел проблему. Это связано с последним обновлением. Передаю разработчикам для исправления.",
-        timestamp: "2024-08-28T11:45:00Z"
-      },
-      {
-        id: "msg-8",
-        authorId: "support-1",
-        authorName: "Михаил Поддержкин",
-        authorRole: "support",
-        text: "Проблема исправлена! Пожалуйста, обновите страницу в браузере. Мобильная версия должна работать корректно.",
-        timestamp: "2024-08-28T17:20:00Z"
-      }
-    ]
-  }
-];
+// ❌ MOCK ТИКЕТЫ ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+// ❌ MOCK ТИКЕТЫ ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+const mockTickets: SupportTicket[] = [];
 
 const createTicketSchema = z.object({
   title: z.string().min(1, "Тема обязательна"),
@@ -150,7 +51,7 @@ type CreateTicketFormData = z.infer<typeof createTicketSchema>;
 
 export function TechSupport() {
   const [tickets, setTickets] = useState<SupportTicket[]>(mockTickets);
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(tickets[0]);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [newMessage, setNewMessage] = useState("");

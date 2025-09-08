@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест отображения данных резервуаров</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        .tank-card {
+            background: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 10px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+        .tank-info h3 {
+            color: #f59e0b;
+            margin: 0 0 8px 0;
+        }
+        .level-info {
+            background: #1f2937;
+            padding: 12px;
+            border-radius: 6px;
+        }
+        .level-bar {
+            background: #374151;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .level-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .status-active { background: #10b981; }
+        .status-warning { background: #f59e0b; }
+        .status-error { background: #ef4444; }
+        .sensors {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .sensor {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .sensor-ok { background: #059669; }
+        .sensor-warning { background: #d97706; }
+        .sensor-error { background: #dc2626; }
+    </style>
+</head>
+<body>
+    <h1>🛢️ Тест данных резервуаров</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        async function testTanksData() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                console.log('🔍 Импортируем сервис tanksApiIntegrationService...');
+                const { tanksApiIntegrationService } = await import('./src/services/tanksApiIntegrationService.ts');
+                
+                const tradingPointId = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+                console.log(`🏪 Тестируем получение резервуаров для ТП: ${tradingPointId}`);
+                
+                // Получаем демо-данные резервуаров
+                const tanks = tanksApiIntegrationService.generateDemoTanks(tradingPointId);
+                
+                console.log('📋 Полученные резервуары:', tanks);
+                
+                let html = '<h2>📊 Данные резервуаров с остатками топлива</h2>';
+                html += `<p><strong>Количество резервуаров:</strong> ${tanks.length}</p>`;
+                
+                tanks.forEach((tank, index) => {
+                    const fillPercent = Math.round((tank.currentLevelLiters / tank.capacityLiters) * 100);
+                    
+                    html += `
+                        <div class="tank-card">
+                            <div class="tank-info">
+                                <h3>${tank.name}</h3>
+                                <p><strong>Тип топлива:</strong> ${tank.fuelType}</p>
+                                <p><strong>Статус:</strong> <span style="color: ${
+                                    tank.status === 'active' ? '#10b981' : 
+                                    tank.status === 'warning' ? '#f59e0b' : '#ef4444'
+                                }">${tank.status}</span></p>
+                                <p><strong>Температура:</strong> ${tank.temperature}°C</p>
+                                <p><strong>Плотность:</strong> ${tank.density}</p>
+                            </div>
+                            
+                            <div class="level-info">
+                                <h4>📈 Остатки топлива</h4>
+                                <p><strong>Текущий остаток:</strong> ${tank.currentLevelLiters.toLocaleString()} л</p>
+                                <p><strong>Емкость:</strong> ${tank.capacityLiters.toLocaleString()} л</p>
+                                <p><strong>Заполнено:</strong> ${fillPercent}%</p>
+                                
+                                <div class="level-bar">
+                                    <div class="level-fill status-${tank.status}" style="width: ${fillPercent}%"></div>
+                                </div>
+                                
+                                <p><strong>Подтоварная вода:</strong> ${tank.waterLevelMm} мм</p>
+                            </div>
+                            
+                            <div class="sensors">
+                                <h4>🔧 Датчики</h4>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                    ${tank.sensors.map(sensor => 
+                                        `<span class="sensor sensor-${sensor.status}">${sensor.name}: ${sensor.status}</span>`
+                                    ).join('')}
+                                </div>
+                                
+                                <div style="margin-top: 12px;">
+                                    <p><strong>Последнее обновление:</strong></p>
+                                    <p style="font-size: 12px; color: #9ca3af;">${tank.lastUpdateTime}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = html;
+                
+                // Проверяем ключевые данные
+                console.log('✅ ПРОВЕРКА ДАННЫХ:');
+                console.log(`- Резервуар №1: ${tanks[0].currentLevelLiters}л из ${tanks[0].capacityLiters}л (${Math.round(tanks[0].currentLevelLiters/tanks[0].capacityLiters*100)}%)`);
+                console.log(`- Резервуар №2: ${tanks[1].currentLevelLiters}л из ${tanks[1].capacityLiters}л (${Math.round(tanks[1].currentLevelLiters/tanks[1].capacityLiters*100)}%)`);
+                console.log(`- Резервуар №3: ${tanks[2].currentLevelLiters}л из ${tanks[2].capacityLiters}л (${Math.round(tanks[2].currentLevelLiters/tanks[2].capacityLiters*100)}%)`);
+                
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                resultsDiv.innerHTML = `
+                    <div style="color: #ef4444; background: #7f1d1d; padding: 16px; border-radius: 8px;">
+                        <h3>❌ Ошибка загрузки данных</h3>
+                        <p>${error.message}</p>
+                        <pre style="background: #1f2937; padding: 12px; border-radius: 4px; margin-top: 8px; font-size: 12px; overflow-x: auto;">${error.stack}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        // Запускаем тест
+        testTanksData();
+    </script>
+</body>
+</html>

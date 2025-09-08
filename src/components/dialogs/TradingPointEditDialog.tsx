@@ -33,6 +33,7 @@ export function TradingPointEditDialog({
   const [formData, setFormData] = useState<TradingPointUpdateInput>({
     name: "",
     description: "",
+    external_id: "",
     geolocation: {
       latitude: 0,
       longitude: 0,
@@ -78,6 +79,7 @@ export function TradingPointEditDialog({
       setFormData({
         name: tradingPoint.name || "",
         description: tradingPoint.description || "",
+        external_id: tradingPoint.external_id || "",
         geolocation: {
           latitude: tradingPoint.geolocation.latitude || 0,
           longitude: tradingPoint.geolocation.longitude || 0,
@@ -165,6 +167,7 @@ export function TradingPointEditDialog({
       setFormData({
         name: tradingPoint.name || "",
         description: tradingPoint.description || "",
+        external_id: tradingPoint.external_id || "",
         geolocation: {
           latitude: tradingPoint.geolocation.latitude || 0,
           longitude: tradingPoint.geolocation.longitude || 0,
@@ -280,10 +283,14 @@ export function TradingPointEditDialog({
                 </Label>
                 <Input
                   id="external_id"
-                  value={tradingPoint?.external_id || ""}
-                  readOnly
-                  className="bg-slate-900 border-slate-700 text-blue-400 font-mono text-sm cursor-not-allowed"
+                  value={formData.external_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, external_id: e.target.value }))}
+                  placeholder="ID для синхронизации с торговым API (например, 77)"
+                  className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 font-mono"
                 />
+                <p className="text-xs text-slate-400">
+                  Используется для синхронизации с торговой системой. Для АЗС сети Норд Лайн используйте значение 77
+                </p>
               </div>
 
               <div className="space-y-2">

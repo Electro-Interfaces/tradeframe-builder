@@ -40,13 +40,8 @@ const LoginPageWithLegal = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Предустановленные учетные записи для демонстрации
-  const demoAccounts = [
-    { email: 'admin@tradeframe.com', password: 'admin123', role: 'System Admin', icon: '👨‍💼' },
-    { email: 'network.admin@demo-azs.ru', password: 'admin123', role: 'Network Admin', icon: '🏢' },
-    { email: 'manager@demo-azs.ru', password: 'admin123', role: 'Manager', icon: '📊' },
-    { email: 'operator@demo-azs.ru', password: 'admin123', role: 'Operator', icon: '⛽' }
-  ];
+  // ❌ ДЕМО УЧЕТКИ ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+  const demoAccounts = [];
 
   // Загрузка правовых документов
   useEffect(() => {

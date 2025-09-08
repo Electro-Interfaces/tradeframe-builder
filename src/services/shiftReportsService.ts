@@ -4,7 +4,7 @@
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
-import { getApiBaseUrl } from '@/services/apiConfigService';
+import { apiConfigServiceDB } from './apiConfigServiceDB';
 
 export type ShiftStatus = 'draft' | 'closed' | 'synchronized' | 'archived';
 export type DocumentType = 'z-report' | 'acceptance-act' | 'transfer-act' | 'correction' | 'invoice';
@@ -338,7 +338,10 @@ let nextDocumentId = 1;
 let nextFuelPositionId = 1;
 
 // API Base URL для централизованного управления
-const getApiUrl = () => getApiBaseUrl();
+const getApiUrl = async () => {
+  const connection = await apiConfigServiceDB.getCurrentConnection();
+  return connection?.url || '';
+};
 
 // Функция для сохранения изменений
 const saveShiftReports = () => {

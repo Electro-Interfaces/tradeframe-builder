@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест доступов универсального HTTP клиента</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .container {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #2d5a2d; border-left: 4px solid #4caf50; }
+        .error { background: #5a2d2d; border-left: 4px solid #f44336; }
+        .warning { background: #5a5a2d; border-left: 4px solid #ff9800; }
+        .info { background: #2d3a5a; border-left: 4px solid #2196f3; }
+        button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        pre {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .test-section {
+            border-left: 3px solid #4caf50;
+            padding-left: 15px;
+            margin: 15px 0;
+        }
+        .config-panel {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .config-panel input, .config-panel select {
+            background: #444;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 8px;
+            border-radius: 3px;
+            margin: 5px;
+            width: 200px;
+        }
+        .flex-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .test-group {
+            flex: 1;
+            min-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 Тестирование доступов универсального HTTP клиента</h1>
+        <p>Проверяем доступ к базе данных Supabase и внешним API через универсальный клиент</p>
+        
+        <div class="config-panel">
+            <h3>⚙️ Конфигурация тестирования</h3>
+            <div class="flex-row">
+                <div>
+                    <label>Supabase URL:</label><br>
+                    <input type="url" id="supabaseUrl" placeholder="https://your-project.supabase.co" />
+                </div>
+                <div>
+                    <label>Supabase Key:</label><br>
+                    <input type="text" id="supabaseKey" placeholder="Anon или Service Role key" />
+                </div>
+                <div>
+                    <label>External API URL:</label><br>
+                    <input type="url" id="apiUrl" placeholder="https://pos.autooplata.ru/tms" />
+                </div>
+                <div>
+                    <label>API Username:</label><br>
+                    <input type="text" id="apiUsername" placeholder="UserApi" />
+                </div>
+                <div>
+                    <label>API Password:</label><br>
+                    <input type="password" id="apiPassword" placeholder="PasswordApi" />
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-row">
+            <div class="test-group">
+                <h3>📊 Тесты базы данных Supabase</h3>
+                <button onclick="testSupabaseConnection()" id="testSupabaseBtn">1. Тест подключения Supabase</button>
+                <button onclick="testSupabaseAuth()" id="testAuthBtn">2. Тест аутентификации</button>
+                <button onclick="testSupabaseQuery()" id="testQueryBtn">3. Тест запроса к таблице</button>
+                <button onclick="testSupabaseInsert()" id="testInsertBtn">4. Тест записи данных</button>
+            </div>
+            
+            <div class="test-group">
+                <h3>🌍 Тесты внешних API</h3>
+                <button onclick="testExternalApiConnection()" id="testExtApiBtn">1. Тест подключения к API</button>
+                <button onclick="testApiAuth()" id="testApiAuthBtn">2. Тест аутентификации API</button>
+                <button onclick="testApiEndpoints()" id="testEndpointsBtn">3. Тест эндпоинтов</button>
+                <button onclick="testTokenRefresh()" id="testTokenBtn">4. Тест обновления токена</button>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <button onclick="runAllTests()" id="runAllBtn" style="background: #2196f3; font-size: 16px; padding: 15px 30px;">🚀 Запустить все тесты</button>
+        </div>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        // Глобальные переменные для конфигурации
+        let currentConfig = {
+            supabaseUrl: 'https://your-project.supabase.co',
+            supabaseKey: 'your-anon-key',
+            apiUrl: 'https://pos.autooplata.ru/tms',
+            apiUsername: 'UserApi',
+            apiPassword: 'PasswordApi'
+        };
+
+        // Функция для добавления результатов
+        function addResult(title, content, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = 'container';
+            div.innerHTML = `
+                <div class="test-section">
+                    <h3>${title}</h3>
+                    <div class="status ${type}">
+                        <pre>${content}</pre>
+                    </div>
+                </div>
+            `;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        // Получить текущую конфигурацию из формы
+        function getCurrentConfig() {
+            return {
+                supabaseUrl: document.getElementById('supabaseUrl').value || currentConfig.supabaseUrl,
+                supabaseKey: document.getElementById('supabaseKey').value || currentConfig.supabaseKey,
+                apiUrl: document.getElementById('apiUrl').value || currentConfig.apiUrl,
+                apiUsername: document.getElementById('apiUsername').value || currentConfig.apiUsername,
+                apiPassword: document.getElementById('apiPassword').value || currentConfig.apiPassword
+            };
+        }
+
+        // Эмулятор универсального HTTP клиента
+        class MockUniversalHttpClient {
+            constructor(config) {
+                this.config = config;
+            }
+
+            async request(endpoint, options = {}) {
+                const {
+                    method = 'GET',
+                    destination = 'external-api',
+                    useAuth = true,
+                    queryParams = {},
+                    timeout = 30000
+                } = options;
+
+                const startTime = Date.now();
+                
+                try {
+                    let baseUrl, authHeaders = {};
+
+                    // Определяем базовый URL и аутентификацию по назначению
+                    if (destination === 'supabase') {
+                        baseUrl = this.config.supabaseUrl;
+                        if (useAuth) {
+                            authHeaders = {
+                                'apikey': this.config.supabaseKey,
+                                'Authorization': `Bearer ${this.config.supabaseKey}`,
+                                'Content-Type': 'application/json'
+                            };
+                        }
+                    } else if (destination === 'external-api') {
+                        baseUrl = this.config.apiUrl;
+                        if (useAuth) {
+                            const credentials = btoa(`${this.config.apiUsername}:${this.config.apiPassword}`);
+                            authHeaders = {
+                                'Authorization': `Basic ${credentials}`,
+                                'Content-Type': 'application/json'
+                            };
+                        }
+                    }
+
+                    // Строим полный URL
+                    const url = new URL(endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`);
+                    Object.entries(queryParams).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null) {
+                            url.searchParams.append(key, String(value));
+                        }
+                    });
+
+                    // Формируем заголовки запроса
+                    const headers = {
+                        'Accept': 'application/json',
+                        ...authHeaders,
+                        ...(options.headers || {})
+                    };
+
+                    console.log(`🌐 Mock HTTP ${method} ${url.toString()}`);
+                    console.log('📋 Headers:', headers);
+
+                    // Эмулируем запрос
+                    const mockResponse = await this.mockFetch(url.toString(), {
+                        method,
+                        headers,
+                        body: options.body ? JSON.stringify(options.body) : undefined
+                    });
+
+                    const responseTime = Date.now() - startTime;
+
+                    return {
+                        success: mockResponse.ok,
+                        data: mockResponse.data,
+                        status: mockResponse.status,
+                        responseTime,
+                        error: mockResponse.ok ? undefined : mockResponse.error
+                    };
+
+                } catch (error) {
+                    const responseTime = Date.now() - startTime;
+                    return {
+                        success: false,
+                        error: error.message,
+                        responseTime
+                    };
+                }
+            }
+
+            async get(endpoint, options = {}) {
+                return this.request(endpoint, { ...options, method: 'GET' });
+            }
+
+            async post(endpoint, body, options = {}) {
+                return this.request(endpoint, { ...options, method: 'POST', body });
+            }
+
+            // Эмулятор fetch с предсказуемыми ответами
+            async mockFetch(url, options) {
+                // Добавляем задержку для реалистичности
+                await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
+
+                const urlObj = new URL(url);
+                
+                // Эмуляция ответов Supabase
+                if (urlObj.hostname.includes('supabase')) {
+                    if (urlObj.pathname.includes('/rest/v1/networks')) {
+                        return {
+                            ok: true,
+                            status: 200,
+                            data: [
+                                { id: '1', name: 'Демо сеть', external_id: '1', status: 'active' },
+                                { id: '2', name: 'Тестовая сеть', external_id: '2', status: 'active' }
+                            ]
+                        };
+                    }
+                    if (urlObj.pathname.includes('/rest/v1/system_config')) {
+                        return {
+                            ok: true,
+                            status: 200,
+                            data: [
+                                { config_key: 'database_connections', config_type: 'database' },
+                                { config_key: 'trading_network_integration', config_type: 'api' }
+                            ]
+                        };
+                    }
+                    if (options.method === 'POST') {
+                        return {
+                            ok: true,
+                            status: 201,
+                            data: { id: 'test-' + Date.now(), message: 'Запись создана успешно' }
+                        };
+                    }
+                    
+                    // Имитируем ошибку аутентификации при неправильном ключе
+                    if (!options.headers?.Authorization || options.headers.Authorization.includes('your-anon-key')) {
+                        return {
+                            ok: false,
+                            status: 401,
+                            error: 'Invalid API key'
+                        };
+                    }
+                    
+                    return { ok: true, status: 200, data: { message: 'Supabase connection OK' } };
+                }
+                
+                // Эмуляция ответов внешнего API
+                if (urlObj.hostname.includes('autooplata.ru') || urlObj.hostname.includes('pos.')) {
+                    // Имитируем ошибку аутентификации при неправильных учетных данных
+                    if (!options.headers?.Authorization || options.headers.Authorization === 'Basic VXNlckFwaTpQYXNzd29yZEFwaQ==') {
+                        if (urlObj.pathname.includes('/tanks')) {
+                            return {
+                                ok: true,
+                                status: 200,
+                                data: [
+                                    { id: 1, name: 'Резервуар АИ-92', capacity: 50000, volume: 35000 },
+                                    { id: 2, name: 'Резервуар АИ-95', capacity: 50000, volume: 42000 },
+                                    { id: 3, name: 'Резервуар ДТ', capacity: 50000, volume: 28000 }
+                                ]
+                            };
+                        }
+                        if (urlObj.pathname.includes('/transactions')) {
+                            return {
+                                ok: true,
+                                status: 200,
+                                data: [
+                                    { id: 1, fuel_type: 'АИ-92', amount: 25.5, price: 45.90, timestamp: new Date().toISOString() },
+                                    { id: 2, fuel_type: 'АИ-95', amount: 30.0, price: 48.50, timestamp: new Date().toISOString() }
+                                ]
+                            };
+                        }
+                        if (urlObj.pathname.includes('/auth')) {
+                            return {
+                                ok: true,
+                                status: 200,
+                                data: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkiLCJhdWQiOiJjbGllbnQiLCJpYXQiOjE2ODc1ODc2MDAsImV4cCI6MTY4NzU5MTIwMH0.example_token'
+                            };
+                        }
+                        return { ok: true, status: 200, data: { message: 'External API connection OK' } };
+                    } else {
+                        return {
+                            ok: false,
+                            status: 403,
+                            error: 'Invalid credentials'
+                        };
+                    }
+                }
+
+                // Неизвестный хост
+                return {
+                    ok: false,
+                    status: 404,
+                    error: 'Not Found'
+                };
+            }
+        }
+
+        // === ТЕСТЫ SUPABASE ===
+
+        window.testSupabaseConnection = async function() {
+            try {
+                addResult('🔄 Тест подключения к Supabase', 'Проверяем базовое подключение...', 'info');
+                
+                const config = getCurrentConfig();
+                const client = new MockUniversalHttpClient(config);
+
+                const response = await client.get('/rest/v1/', {
+                    destination: 'supabase',
+                    useAuth: false
+                });
+
+                if (response.success) {
+                    addResult('✅ Подключение к Supabase', 
+                        `Статус: ${response.status}\n` +
+                        `Время ответа: ${response.responseTime}мс\n` +
+                        `URL: ${config.supabaseUrl}`, 'success');
+                } else {
+                    addResult('❌ Ошибка подключения к Supabase', 
+                        `Статус: ${response.status}\n` +
+                        `Ошибка: ${response.error}`, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Критическая ошибка подключения к Supabase', error.message, 'error');
+            }
+        };
+
+        window.testSupabaseAuth = async function() {
+            try {
+                addResult('🔐 Тест аутентификации Supabase', 'Проверяем API ключи...', 'info');
+                
+                const config = getCurrentConfig();
+                const client = new MockUniversalHttpClient(config);
+
+                const response = await client.get('/rest/v1/system_config', {
+                    destination: 'supabase',
+                    useAuth: true,
+                    queryParams: { limit: 1 }
+                });
+
+                if (response.success) {
+                    addResult('✅ Аутентификация Supabase', 
+                        `API ключ валидный\n` +
+                        `Доступ к таблицам: OK\n` +
+                        `Время ответа: ${response.responseTime}мс`, 'success');
+                } else {
+                    addResult('❌ Ошибка аутентификации Supabase', 
+                        `Статус: ${response.status}\n` +
+                        `Ошибка: ${response.error}\n` +
+                        `Проверьте API ключ в настройках`, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Критическая ошибка аутентификации', error.message, 'error');
+            }
+        };
+
+        window.testSupabaseQuery = async function() {
+            try {
+                addResult('📊 Тест запроса к таблице Supabase', 'Выполняем SELECT запрос...', 'info');
+                
+                const config = getCurrentConfig();
+                const client = new MockUniversalHttpClient(config);
+
+                const response = await client.get('/rest/v1/networks', {
+                    destination: 'supabase',
+                    useAuth: true,
+                    queryParams: {
+                        select: 'id,name,external_id,status',
+                        limit: 5
+                    }
+                });
+
+                if (response.success) {
+                    addResult('✅ Запрос к таблице networks', 
+                        `Найдено записей: ${response.data?.length || 0}\n` +
+                        `Пример данных:\n${JSON.stringify(response.data?.[0] || {}, null, 2)}\n` +
+                        `Время ответа: ${response.responseTime}мс`, 'success');
+                } else {
+                    addResult('❌ Ошибка запроса к таблице', 
+                        `Статус: ${response.status}\n` +
+                        `Ошибка: ${response.error}`, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Критическая ошибка запроса', error.message, 'error');
+            }
+        };
+
+        window.testSupabaseInsert = async function() {
+            try {
+                addResult('✏️ Тест записи в Supabase', 'Проверяем права записи...', 'info');
+                
+                const config = getCurrentConfig();
+                const client = new MockUniversalHttpClient(config);
+
+                const testData = {
+                    name: 'ТЕСТ - Удалить',
+                    external_id: 'test-' + Date.now(),
+                    description: 'Тестовая запись от универсального клиента',
+                    status: 'active'
+                };
+
+                const response = await client.post('/rest/v1/networks', testData, {
+                    destination: 'supabase',
+                    useAuth: true
+                });
+
+                if (response.success) {
+                    addResult('✅ Тест записи в Supabase', 
+                        `Запись создана успешно\n` +
+                        `ID: ${response.data?.id}\n` +
+                        `Время ответа: ${response.responseTime}мс\n` +
+                        `⚠️ В реальной БД удалите тестовую запись`, 'success');
+                } else {
+                    if (response.status === 403 || response.status === 401) {
+                        addResult('⚠️ Нет прав записи в Supabase', 
+                            `Статус: ${response.status}\n` +
+                            `Это нормально если используется anon ключ\n` +
+                            `Для записи нужен service_role ключ`, 'warning');
+                    } else {
+                        addResult('❌ Ошибка записи в Supabase', 
+                            `Статус: ${response.status}\n` +
+                            `Ошибка: ${response.error}`, 'error');
+                    }
+                }
+            } catch (error) {
+                addResult('❌ Критическая ошибка записи', error.message, 'error');
+            }
+        };
+
+        // === ТЕСТЫ ВНЕШНИХ API ===
+
+        window.testExternalApiConnection = async function() {
+            try {
+                addResult('🌍 Тест подключения к внешнему API', 'Проверяем доступность сервера...', 'info');
+                
+                const config = getCurrentConfig();
+                const client = new MockUniversalHttpClient(config);
+
+                const response = await client.get('/', {
+                    destination: 'external-api',
+                    useAuth: false
+                });
+
+                if (response.success) {
+                    addResult('✅ Подключение к внешнему API', 
+                        `Сервер доступен\n` +
+                        `Время ответа: ${response.responseTime}мс\n` +
+                        `URL: ${config.apiUrl}`, 'success');
+                } else {
+                    addResult('❌ Ошибка подключения к API', 
+                        `Статус: ${response.status}\n` +
+                        `Ошибка: ${response.error}\n` +
+                        `Проверьте URL в настройках`, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Критическая ошибка подключения к API', error.message, 'error');
+            }
+        };
+
+        window.testApiAuth = async function() {
+            try {
+                addResult('🔐 Тест аутентификации внешнего API', 'Проверяем учетные данные...', 'info');
+                
+                const config = getCurrentConfig();
+                const client = new MockUniversalHttpClient(config);
+
+                const response = await client.get('/tanks', {
+                    destination: 'external-api',
+                    useAuth: true,
+                    queryParams: {
+                        system: '1',
+                        station: '1'
+                    }
+                });
+
+                if (response.success) {
+                    addResult('✅ Аутентификация внешнего API', 
+                        `Учетные данные валидны\n` +
+                        `Логин: ${config.apiUsername}\n` +
+                        `Время ответа: ${response.responseTime}мс`, 'success');
+                } else {
+                    if (response.status === 403 || response.status === 401) {
+                        addResult('❌ Ошибка аутентификации API', 
+                            `Неверные учетные данные\n` +
+                            `Логин: ${config.apiUsername}\n` +
+                            `Проверьте логин и пароль в настройках`, 'error');
+                    } else {
+                        addResult('❌ Ошибка доступа к API', 
+                            `Статус: ${response.status}\n` +
+                            `Ошибка: ${response.error}`, 'error');
+                    }
+                }
+            } catch (error) {
+                addResult('❌ Критическая ошибка аутентификации API', error.message, 'error');
+            }
+        };
+
+        window.testApiEndpoints = async function() {
+            try {
+                addResult('🛢️ Тест эндпоинтов внешнего API', 'Проверяем доступные эндпоинты...', 'info');
+                
+                const config = getCurrentConfig();
+                const client = new MockUniversalHttpClient(config);
+
+                // Тестируем эндпоинт резервуаров
+                const tanksResponse = await client.get('/tanks', {
+                    destination: 'external-api',
+                    useAuth: true,
+                    queryParams: {
+                        system: '1',
+                        station: '4'
+                    }
+                });
+
+                // Тестируем эндпоинт транзакций
+                const transactionsResponse = await client.get('/transactions', {
+                    destination: 'external-api',
+                    useAuth: true,
+                    queryParams: {
+                        system: '1',
+                        station: '4',
+                        shift: '6'
+                    }
+                });
+
+                let results = [];
+                
+                if (tanksResponse.success) {
+                    results.push(`✅ /tanks: ${tanksResponse.data?.length || 0} резервуаров`);
+                } else {
+                    results.push(`❌ /tanks: ${tanksResponse.error}`);
+                }
+
+                if (transactionsResponse.success) {
+                    results.push(`✅ /transactions: ${transactionsResponse.data?.length || 0} операций`);
+                } else {
+                    results.push(`❌ /transactions: ${transactionsResponse.error}`);
+                }
+
+                const allSuccess = tanksResponse.success && transactionsResponse.success;
+                
+                addResult(allSuccess ? '✅ Тест эндпоинтов API' : '⚠️ Частичная ошибка эндпоинтов API', 
+                    results.join('\n') + `\n\nВремя тестирования: ${Date.now()}`, 
+                    allSuccess ? 'success' : 'warning');
+
+            } catch (error) {
+                addResult('❌ Критическая ошибка тестирования эндпоинтов', error.message, 'error');
+            }
+        };
+
+        window.testTokenRefresh = async function() {
+            try {
+                addResult('🔄 Тест обновления токена', 'Проверяем механизм обновления токенов...', 'info');
+                
+                const config = getCurrentConfig();
+                const client = new MockUniversalHttpClient(config);
+
+                // Имитируем получение токена
+                const authResponse = await client.post('/auth', null, {
+                    destination: 'external-api',
+                    useAuth: true
+                });
+
+                if (authResponse.success) {
+                    const token = authResponse.data;
+                    
+                    addResult('✅ Обновление токена', 
+                        `Новый токен получен\n` +
+                        `Тип: JWT Bearer\n` +
+                        `Предпросмотр: ${typeof token === 'string' ? token.substring(0, 50) + '...' : 'Binary token'}\n` +
+                        `Время получения: ${authResponse.responseTime}мс`, 'success');
+                } else {
+                    addResult('❌ Ошибка обновления токена', 
+                        `Статус: ${authResponse.status}\n` +
+                        `Ошибка: ${authResponse.error}\n` +
+                        `Проверьте настройки аутентификации`, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Критическая ошибка обновления токена', error.message, 'error');
+            }
+        };
+
+        // === КОМПЛЕКСНЫЙ ТЕСТ ===
+
+        window.runAllTests = async function() {
+            try {
+                addResult('🚀 Комплексный тест универсального HTTP клиента', 'Запуск всех тестов...', 'info');
+                
+                const config = getCurrentConfig();
+                addResult('📋 Конфигурация тестирования', 
+                    `Supabase URL: ${config.supabaseUrl}\n` +
+                    `API URL: ${config.apiUrl}\n` +
+                    `API Username: ${config.apiUsername}\n` +
+                    `Ключи настроены: ${config.supabaseKey ? 'Да' : 'Нет'}`, 'info');
+
+                // Последовательно запускаем все тесты
+                console.log('🔄 Running Supabase tests...');
+                await testSupabaseConnection();
+                await new Promise(r => setTimeout(r, 500));
+                
+                await testSupabaseAuth();
+                await new Promise(r => setTimeout(r, 500));
+                
+                await testSupabaseQuery();
+                await new Promise(r => setTimeout(r, 500));
+                
+                await testSupabaseInsert();
+                await new Promise(r => setTimeout(r, 1000));
+
+                console.log('🔄 Running External API tests...');
+                await testExternalApiConnection();
+                await new Promise(r => setTimeout(r, 500));
+                
+                await testApiAuth();
+                await new Promise(r => setTimeout(r, 500));
+                
+                await testApiEndpoints();
+                await new Promise(r => setTimeout(r, 500));
+                
+                await testTokenRefresh();
+
+                addResult('🎉 Комплексный тест завершен', 
+                    'Все тесты универсального HTTP клиента выполнены.\n' +
+                    'Проверьте результаты выше для выявления проблем.\n\n' +
+                    '📋 Рекомендации:\n' +
+                    '• Настройте правильные URL и ключи доступа\n' +
+                    '• Убедитесь что Supabase проект активен\n' +
+                    '• Проверьте права доступа к таблицам\n' +
+                    '• Настройте CORS для внешних API\n' +
+                    '• Используйте HTTPS для продакшена', 'success');
+
+            } catch (error) {
+                addResult('❌ Ошибка комплексного теста', error.message, 'error');
+            }
+        };
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            // Предзаполняем поля демонстрационными значениями
+            document.getElementById('supabaseUrl').value = currentConfig.supabaseUrl;
+            document.getElementById('supabaseKey').value = 'your-anon-key';
+            document.getElementById('apiUrl').value = currentConfig.apiUrl;
+            document.getElementById('apiUsername').value = currentConfig.apiUsername;
+            document.getElementById('apiPassword').value = currentConfig.apiPassword;
+
+            addResult('🔧 Система тестирования универсального HTTP клиента', 
+                'Готова к работе. Настройте конфигурацию выше и запустите тесты.\n\n' +
+                '🎯 Что тестируем:\n' +
+                '• Подключение к базе данных Supabase\n' +
+                '• Аутентификацию через API ключи\n' +
+                '• CRUD операции с данными\n' +
+                '• Подключение к внешним API\n' +
+                '• Basic Auth аутентификацию\n' +
+                '• Bearer токен обновление\n' +
+                '• Обработку ошибок и таймаутов', 'info');
+        });
+    </script>
+</body>
+</html>

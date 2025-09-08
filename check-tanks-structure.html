@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка структуры резервуаров</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">🏪 Проверка структуры резервуаров</h1>
+        
+        <div class="space-y-4">
+            <button onclick="loadAllTanks()" 
+                    class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                📋 Загрузить все резервуары
+            </button>
+            
+            <button onclick="loadTradingPoints()" 
+                    class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded ml-2">
+                🏪 Загрузить торговые точки
+            </button>
+            
+            <button onclick="checkEquipmentTable()" 
+                    class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded ml-2">
+                🔍 Проверить таблицу equipment
+            </button>
+        </div>
+
+        <div id="results" class="mt-6 space-y-4"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://oojbhuwgdxnpcrzljzkm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vamJodXdnZHhucGNyemxqemttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQyMjUzNzksImV4cCI6MjA0OTgwMTM3OX0.KXF1gEiAXWv-HVLCZFoHuIKVcjQIBSUPcROkfVMNHDY';
+
+        async function loadAllTanks() {
+            try {
+                addResult('info', '📋 Загружаем все резервуары из базы данных...');
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/equipment?system_type=eq.fuel_tank&limit=50`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const tanks = await response.json();
+                addResult('success', `✅ Найдено ${tanks.length} резервуаров в таблице equipment`);
+                
+                // Группируем по торговым точкам
+                const groupedByTP = {};
+                tanks.forEach(tank => {
+                    const tpId = tank.trading_point_id;
+                    if (!groupedByTP[tpId]) {
+                        groupedByTP[tpId] = [];
+                    }
+                    groupedByTP[tpId].push(tank);
+                });
+                
+                addResult('info', `📊 Резервуары распределены по ${Object.keys(groupedByTP).length} торговым точкам:`);
+                
+                Object.entries(groupedByTP).forEach(([tpId, tanksList]) => {
+                    const fuelTypes = [...new Set(tanksList
+                        .filter(t => t.params?.['Тип топлива'])
+                        .map(t => t.params['Тип топлива'])
+                    )];
+                    
+                    addResult('info', 
+                        `🏪 ${tpId}: ${tanksList.length} резервуаров, 
+                         виды топлива: [${fuelTypes.join(', ') || 'НЕ УКАЗАНЫ'}]`
+                    );
+                    
+                    // Показываем первый резервуар для примера структуры
+                    if (tanksList.length > 0) {
+                        const firstTank = tanksList[0];
+                        addResult('debug', 
+                            `   Пример структуры: name="${firstTank.name}", 
+                             status="${firstTank.status}", 
+                             params_keys=[${Object.keys(firstTank.params || {}).join(', ')}]`
+                        );
+                    }
+                });
+                
+            } catch (error) {
+                addResult('error', `❌ Ошибка загрузки резервуаров: ${error.message}`);
+            }
+        }
+
+        async function loadTradingPoints() {
+            try {
+                addResult('info', '🏪 Загружаем торговые точки...');
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/trading_points?limit=20`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const points = await response.json();
+                addResult('success', `✅ Найдено ${points.length} торговых точек`);
+                
+                points.forEach(point => {
+                    addResult('info', `🏪 ${point.name} (ID: ${point.id}) - Сеть: ${point.network_id}`);
+                });
+                
+            } catch (error) {
+                addResult('error', `❌ Ошибка загрузки торговых точек: ${error.message}`);
+            }
+        }
+
+        async function checkEquipmentTable() {
+            try {
+                addResult('info', '🔍 Проверяем структуру таблицы equipment...');
+                
+                // Получаем первые несколько записей для анализа структуры
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/equipment?limit=3`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const equipment = await response.json();
+                addResult('success', `✅ Получено ${equipment.length} записей для анализа`);
+                
+                if (equipment.length > 0) {
+                    const first = equipment[0];
+                    const columns = Object.keys(first);
+                    
+                    addResult('info', `📋 Колонки таблицы equipment: ${columns.join(', ')}`);
+                    
+                    // Анализируем типы системы
+                    const systemTypes = [...new Set(equipment.map(e => e.system_type))];
+                    addResult('info', `🔧 Типы системы в выборке: ${systemTypes.join(', ')}`);
+                    
+                    // Показываем пример записи резервуара
+                    const tank = equipment.find(e => e.system_type === 'fuel_tank');
+                    if (tank) {
+                        addResult('debug', `🏪 Пример резервуара:\n${JSON.stringify(tank, null, 2)}`);
+                    }
+                }
+                
+            } catch (error) {
+                addResult('error', `❌ Ошибка проверки структуры: ${error.message}`);
+            }
+        }
+
+        function addResult(type, message) {
+            const results = document.getElementById('results');
+            const colors = {
+                'info': 'bg-blue-900 border-blue-600 text-blue-200',
+                'success': 'bg-green-900 border-green-600 text-green-200',
+                'debug': 'bg-gray-800 border-gray-600 text-gray-300',
+                'error': 'bg-red-900 border-red-600 text-red-200'
+            };
+            
+            const div = document.createElement('div');
+            div.className = `border-l-4 p-4 rounded ${colors[type] || colors.info}`;
+            div.innerHTML = `
+                <div class="whitespace-pre-wrap font-mono text-sm">${message}</div>
+            `;
+            
+            results.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Автозагрузка при открытии страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTradingPoints();
+        });
+    </script>
+</body>
+</html>

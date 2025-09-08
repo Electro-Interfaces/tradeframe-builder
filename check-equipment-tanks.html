@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка резервуаров в БД</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1e1e1e; color: #fff; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .success { color: #4ade80; background: #166534; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .error { color: #f87171; background: #991b1b; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .info { color: #60a5fa; background: #1e3a8a; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .warning { color: #fbbf24; background: #713f12; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #444; padding: 10px; text-align: left; }
+        th { background: #2d2d2d; }
+        tr:hover { background: #2a2a2a; }
+        button { padding: 10px 20px; margin: 5px; background: #3b82f6; color: white; border: none; cursor: pointer; border-radius: 5px; }
+        button:hover { background: #2563eb; }
+        pre { background: #2d2d2d; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .tank-card { background: #2d2d2d; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛢️ Проверка резервуаров в базе данных</h1>
+        
+        <div class="info">
+            <h3>Тестовая торговая точка: АЗС №4</h3>
+            <p>ID: 6969b08d-1cbe-45c2-ae9c-8002c7022b59</p>
+        </div>
+
+        <button onclick="checkEquipmentTable()">📊 Проверить таблицу equipment</button>
+        <button onclick="checkTanksForTradingPoint()">🛢️ Найти резервуары АЗС №4</button>
+        <button onclick="checkAllTanks()">🔍 Показать ВСЕ резервуары</button>
+        <button onclick="checkFuelTypes()">⛽ Анализ видов топлива</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        // Конфигурация Supabase - используем актуальный SERVICE ROLE ключ
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+        const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+        
+        const tradingPointId = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+        
+        async function makeRequest(endpoint, params = {}) {
+            const url = new URL(`${SUPABASE_URL}/rest/v1/${endpoint}`);
+            Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+            
+            const response = await fetch(url, {
+                headers: {
+                    'apikey': SUPABASE_SERVICE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                }
+            });
+            
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`HTTP ${response.status}: ${error}`);
+            }
+            
+            return response.json();
+        }
+        
+        window.checkEquipmentTable = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">Проверяем структуру таблицы equipment...</div>';
+            
+            try {
+                // Получаем первую запись для анализа структуры
+                const data = await makeRequest('equipment', {
+                    'select': '*',
+                    'limit': '1'
+                });
+                
+                if (data.length > 0) {
+                    const fields = Object.keys(data[0]);
+                    results.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Таблица equipment доступна</h3>
+                            <p>Поля таблицы:</p>
+                            <pre>${fields.join('\n')}</pre>
+                        </div>
+                        <div class="info">
+                            <h3>Пример записи:</h3>
+                            <pre>${JSON.stringify(data[0], null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    results.innerHTML = '<div class="warning">⚠️ Таблица equipment пуста</div>';
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        };
+        
+        window.checkTanksForTradingPoint = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">Ищем резервуары для АЗС №4...</div>';
+            
+            try {
+                // Запрос резервуаров для торговой точки
+                const tanks = await makeRequest('equipment', {
+                    'select': '*',
+                    'trading_point_id': `eq.${tradingPointId}`,
+                    'system_type': 'eq.fuel_tank'
+                });
+                
+                if (tanks.length > 0) {
+                    let html = `<div class="success"><h3>✅ Найдено ${tanks.length} резервуаров</h3></div>`;
+                    
+                    tanks.forEach(tank => {
+                        const fuelType = tank.fuel_type || tank.configuration?.fuel_type || 'НЕ УКАЗАН';
+                        const capacity = tank.capacity || tank.configuration?.capacity || 'НЕ УКАЗАНА';
+                        
+                        html += `
+                            <div class="tank-card">
+                                <h4>📍 ${tank.name}</h4>
+                                <p><strong>ID:</strong> ${tank.id}</p>
+                                <p><strong>Статус:</strong> ${tank.status}</p>
+                                <p><strong>Вид топлива:</strong> ${fuelType}</p>
+                                <p><strong>Вместимость:</strong> ${capacity} л</p>
+                                <p><strong>system_type:</strong> ${tank.system_type}</p>
+                                <details>
+                                    <summary>Полные данные</summary>
+                                    <pre>${JSON.stringify(tank, null, 2)}</pre>
+                                </details>
+                            </div>
+                        `;
+                    });
+                    
+                    results.innerHTML = html;
+                } else {
+                    // Проверим все equipment для этой торговой точки
+                    const allEquipment = await makeRequest('equipment', {
+                        'select': '*',
+                        'trading_point_id': `eq.${tradingPointId}`
+                    });
+                    
+                    results.innerHTML = `
+                        <div class="warning">
+                            <h3>⚠️ Резервуары не найдены для АЗС №4</h3>
+                            <p>Всего оборудования для этой точки: ${allEquipment.length}</p>
+                            ${allEquipment.length > 0 ? `
+                                <p>Типы найденного оборудования:</p>
+                                <pre>${[...new Set(allEquipment.map(e => e.system_type))].join('\n')}</pre>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        };
+        
+        window.checkAllTanks = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">Загружаем ВСЕ резервуары из БД...</div>';
+            
+            try {
+                const allTanks = await makeRequest('equipment', {
+                    'select': '*',
+                    'system_type': 'eq.fuel_tank',
+                    'order': 'trading_point_id,name'
+                });
+                
+                if (allTanks.length > 0) {
+                    // Группируем по торговым точкам
+                    const grouped = {};
+                    allTanks.forEach(tank => {
+                        const tpId = tank.trading_point_id || 'БЕЗ ТОРГОВОЙ ТОЧКИ';
+                        if (!grouped[tpId]) grouped[tpId] = [];
+                        grouped[tpId].push(tank);
+                    });
+                    
+                    let html = `<div class="success"><h3>✅ Всего резервуаров в БД: ${allTanks.length}</h3></div>`;
+                    
+                    Object.keys(grouped).forEach(tpId => {
+                        html += `
+                            <div class="info">
+                                <h4>Торговая точка: ${tpId}</h4>
+                                <p>Резервуаров: ${grouped[tpId].length}</p>
+                                <ul>
+                                    ${grouped[tpId].map(t => `
+                                        <li>${t.name} - ${t.fuel_type || t.configuration?.fuel_type || 'БЕЗ ТОПЛИВА'}</li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    });
+                    
+                    results.innerHTML = html;
+                } else {
+                    results.innerHTML = '<div class="error">❌ В БД нет ни одного резервуара (system_type = fuel_tank)</div>';
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        };
+        
+        window.checkFuelTypes = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">Анализируем виды топлива...</div>';
+            
+            try {
+                const tanks = await makeRequest('equipment', {
+                    'select': '*',
+                    'trading_point_id': `eq.${tradingPointId}`,
+                    'status': 'neq.deleted'
+                });
+                
+                const fuelTypes = new Map();
+                
+                tanks.forEach(tank => {
+                    // Пробуем разные варианты получения топлива
+                    const fuel = tank.fuel_type || 
+                                tank.configuration?.fuel_type || 
+                                tank.params?.fuel_type ||
+                                tank.metadata?.fuel_type;
+                    
+                    if (fuel) {
+                        if (!fuelTypes.has(fuel)) {
+                            fuelTypes.set(fuel, { count: 0, tanks: [] });
+                        }
+                        fuelTypes.get(fuel).count++;
+                        fuelTypes.get(fuel).tanks.push(tank.name);
+                    }
+                });
+                
+                if (fuelTypes.size > 0) {
+                    let html = `<div class="success"><h3>✅ Найдено ${fuelTypes.size} видов топлива</h3></div>`;
+                    
+                    fuelTypes.forEach((data, fuel) => {
+                        html += `
+                            <div class="tank-card">
+                                <h4>⛽ ${fuel}</h4>
+                                <p>Резервуаров: ${data.count}</p>
+                                <p>Резервуары: ${data.tanks.join(', ')}</p>
+                            </div>
+                        `;
+                    });
+                    
+                    results.innerHTML = html;
+                } else {
+                    results.innerHTML = `
+                        <div class="warning">
+                            <h3>⚠️ Виды топлива не найдены</h3>
+                            <p>Проверено ${tanks.length} единиц оборудования</p>
+                            <p>Возможно, топливо хранится в других полях или резервуары не настроены</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        };
+        
+        // Автозапуск проверки при загрузке
+        window.addEventListener('load', () => {
+            checkTanksForTradingPoint();
+        });
+    </script>
+</body>
+</html>

@@ -135,8 +135,9 @@ export default function NetworkEquipmentLog() {
   const isMobile = useIsMobile();
 
   // Отладочная информация
-  console.log('🔍 NetworkEquipmentLog: selectedNetwork =', selectedNetwork);
-  console.log('🔍 NetworkEquipmentLog: selectedTradingPoint =', selectedTradingPoint);
+  console.log('🔍 NetworkEquipmentLog render: selectedNetwork =', selectedNetwork);
+  console.log('🔍 NetworkEquipmentLog render: selectedTradingPoint =', selectedTradingPoint);
+  console.log('🔍 NetworkEquipmentLog render: tradingPoints.length =', tradingPoints.length);
 
   // Состояния данных
   const [equipment, setEquipment] = useState<NetworkEquipmentItem[]>([]);
@@ -185,6 +186,14 @@ export default function NetworkEquipmentLog() {
       loadData();
     }
   }, [activeTab]);
+
+  // Перезагружаем данные при изменении выбора торговой точки
+  useEffect(() => {
+    if (selectedNetwork?.id && tradingPoints.length > 0) {
+      console.log('🔍 UseEffect: selectedTradingPoint changed, reloading data');
+      loadAllData();
+    }
+  }, [selectedTradingPoint]);
 
   const loadTradingPoints = async () => {
     try {
@@ -257,9 +266,17 @@ export default function NetworkEquipmentLog() {
 
   const loadEquipment = async (): Promise<NetworkEquipmentItem[]> => {
     console.log('🔍 LoadEquipment: starting, tradingPoints =', tradingPoints);
+    console.log('🔍 LoadEquipment: selectedTradingPoint =', selectedTradingPoint);
     const equipmentItems: NetworkEquipmentItem[] = [];
     
-    for (const point of tradingPoints) {
+    // Определяем какие торговые точки загружать
+    const pointsToLoad = selectedTradingPoint && selectedTradingPoint !== "all" && selectedTradingPoint !== "" 
+      ? tradingPoints.filter(point => point.id === selectedTradingPoint)
+      : tradingPoints;
+    
+    console.log('🔍 LoadEquipment: pointsToLoad =', pointsToLoad.map(p => p.name));
+    
+    for (const point of pointsToLoad) {
       try {
         console.log('🔍 LoadEquipment: loading for point =', point.id, point.name);
         const response = await currentEquipmentAPI.list({
@@ -291,9 +308,17 @@ export default function NetworkEquipmentLog() {
   };
 
   const loadComponents = async (): Promise<NetworkComponentItem[]> => {
+    console.log('🔍 LoadComponents: selectedTradingPoint =', selectedTradingPoint);
     const componentItems: NetworkComponentItem[] = [];
     
-    for (const point of tradingPoints) {
+    // Определяем какие торговые точки загружать
+    const pointsToLoad = selectedTradingPoint && selectedTradingPoint !== "all" && selectedTradingPoint !== "" 
+      ? tradingPoints.filter(point => point.id === selectedTradingPoint)
+      : tradingPoints;
+    
+    console.log('🔍 LoadComponents: pointsToLoad =', pointsToLoad.map(p => p.name));
+    
+    for (const point of pointsToLoad) {
       try {
         const response = await currentComponentsAPI.list({
           trading_point_id: point.id
@@ -327,11 +352,19 @@ export default function NetworkEquipmentLog() {
     const componentsToUse = componentData || components;
     
     console.log('🔍 LoadCommands: starting, equipmentToUse.length =', equipmentToUse.length, 'componentsToUse.length =', componentsToUse.length);
+    console.log('🔍 LoadCommands: selectedTradingPoint =', selectedTradingPoint);
     // Генерируем реалистичные команды на основе загруженного оборудования
     const mockCommands: NetworkCommandItem[] = [];
     
+    // Определяем какие торговые точки обрабатывать
+    const pointsToLoad = selectedTradingPoint && selectedTradingPoint !== "all" 
+      ? tradingPoints.filter(point => point.id === selectedTradingPoint)
+      : tradingPoints;
+    
+    console.log('🔍 LoadCommands: pointsToLoad =', pointsToLoad.map(p => p.name));
+    
     // Команды для каждой торговой точки
-    for (const point of tradingPoints) {
+    for (const point of pointsToLoad) {
       const pointEquipment = equipmentToUse.filter(eq => eq.tradingPointId === point.id);
       
       // Генерируем команды для каждого оборудования
@@ -503,7 +536,13 @@ export default function NetworkEquipmentLog() {
             <div>
               <h1 className="text-2xl font-semibold text-white">Журнал оборудования</h1>
               <p className="text-slate-400 mt-2">
-                {networkInfo ? `${networkInfo.name} - Просмотр оборудования, компонентов и команд по всем торговым точкам` : 'Загрузка информации о сети...'}
+                {networkInfo ? (
+                  selectedTradingPoint && selectedTradingPoint !== "all" ? (
+                    `${networkInfo.name} - Просмотр оборудования для выбранной торговой точки`
+                  ) : (
+                    `${networkInfo.name} - Просмотр оборудования, компонентов и команд по всем торговым точкам`
+                  )
+                ) : 'Загрузка информации о сети...'}
               </p>
             </div>
             <HelpButton route="/network/equipment-log" variant="text" className="flex-shrink-0" />

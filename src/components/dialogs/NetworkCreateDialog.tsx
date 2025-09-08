@@ -18,7 +18,10 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
   const [formData, setFormData] = useState<NetworkInput>({
     name: "",
     description: "",
-    type: ""
+    type: "",
+    external_id: "",
+    code: "",
+    status: "active"
   });
   const [errors, setErrors] = useState<Partial<NetworkInput>>({});
 
@@ -44,7 +47,10 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
       setFormData({
         name: "",
         description: "",
-        type: ""
+        type: "",
+        external_id: "",
+        code: "",
+        status: "active"
       });
       setErrors({});
       onOpenChange(false);
@@ -59,7 +65,10 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
     setFormData({
       name: "",
       description: "",
-      type: ""
+      type: "",
+      external_id: "",
+      code: "",
+      status: "active"
     });
     setErrors({});
     onOpenChange(false);
@@ -73,6 +82,22 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
         </DialogHeader>
         
         <div className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="external_id" className="text-slate-200 block">
+              ID для API <span className="text-blue-400">*</span>
+            </Label>
+            <Input
+              id="external_id"
+              value={formData.external_id}
+              onChange={(e) => setFormData(prev => ({ ...prev, external_id: e.target.value }))}
+              placeholder="ID для синхронизации с торговым API (например, 1, 15)"
+              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 font-mono"
+            />
+            <p className="text-xs text-slate-400">
+              Используется для синхронизации с торговой системой. Демо сеть АЗС = 1, Норд Лайн = 15
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name" className="text-slate-200 block">
               Название сети <span className="text-red-400">*</span>
@@ -114,6 +139,33 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
                 <SelectItem value="АГЗС" className="text-white hover:bg-slate-700">АГЗС</SelectItem>
                 <SelectItem value="Мойка" className="text-white hover:bg-slate-700">Мойка</SelectItem>
                 <SelectItem value="Прочее" className="text-white hover:bg-slate-700">Прочее</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="code" className="text-slate-200 block">Код сети</Label>
+            <Input
+              id="code"
+              value={formData.code}
+              onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+              placeholder="Уникальный код сети"
+              className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 font-mono"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="status" className="text-slate-200 block">Статус</Label>
+            <Select 
+              value={formData.status} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+            >
+              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                <SelectValue placeholder="Выберите статус" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectItem value="active" className="text-white hover:bg-slate-700">Активная</SelectItem>
+                <SelectItem value="inactive" className="text-white hover:bg-slate-700">Неактивная</SelectItem>
               </SelectContent>
             </Select>
           </div>

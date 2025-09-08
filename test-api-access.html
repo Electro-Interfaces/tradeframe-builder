@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест доступа к API торговой сети</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .success { color: #155724; background: #d4edda; padding: 15px; border: 1px solid #c3e6cb; border-radius: 5px; margin: 10px 0; }
+        .error { color: #721c24; background: #f8d7da; padding: 15px; border: 1px solid #f5c6cb; border-radius: 5px; margin: 10px 0; }
+        .warning { color: #856404; background: #fff3cd; padding: 15px; border: 1px solid #ffeaa7; border-radius: 5px; margin: 10px 0; }
+        .info { color: #0c5460; background: #d1ecf1; padding: 15px; border: 1px solid #bee5eb; border-radius: 5px; margin: 10px 0; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0; }
+        button { padding: 12px 24px; margin: 10px 5px; background: #007bff; color: white; border: none; cursor: pointer; border-radius: 5px; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+        .loading { color: #ffc107; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        .test-result { margin: 10px 0; padding: 15px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тест доступа к API торговой сети</h1>
+        
+        <div class="warning">
+            <h3>⚠️ Проверяем Bearer токен перед настройкой</h3>
+            <p>Убедимся что API ключ валидный и доступ к внешнему API работает корректно</p>
+        </div>
+
+        <div class="card">
+            <h3>🔧 Параметры тестирования</h3>
+            <table>
+                <tr>
+                    <th>Параметр</th>
+                    <th>Значение</th>
+                </tr>
+                <tr>
+                    <td><strong>Базовый URL</strong></td>
+                    <td>https://pos.autooplata.ru/tms</td>
+                </tr>
+                <tr>
+                    <td><strong>Bearer Token</strong></td>
+                    <td><code>eyJhbGci...uIbyXEE</code> (показываем только часть)</td>
+                </tr>
+                <tr>
+                    <td><strong>System ID</strong></td>
+                    <td>15 (демо система)</td>
+                </tr>
+                <tr>
+                    <td><strong>Station ID</strong></td>
+                    <td>4 (демо станция)</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>🚀 Тестирование эндпоинтов</h3>
+            <p>Проверим доступ к основным эндпоинтам API:</p>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="testTanks()" id="testTanksBtn">🛢️ Тест резервуары (/v1/tanks)</button>
+                <button onclick="testTransactions()" id="testTransactionsBtn">📊 Тест транзакции (/v1/transactions)</button>
+                <button onclick="testAll()" id="testAllBtn">🔄 Тест все эндпоинты</button>
+            </div>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://pos.autooplata.ru/tms';
+        const API_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6eyJpZCI6IjYxODkwODMxLUQxNEYtNDY0MC05OUFDLUUxMTIzQTZFNDQzOCIsIm5hbWUiOiJVc2VyQXBpIiwicm9sZSI6MH0sInVzZXIiOnsiaWQiOiI2MTg5MDgzMS1EMTRGLTQ2NDAtOTlBQy1FMTEyM0E2RTQ0MzgiLCJuYW1lIjoiVXNlckFwaSJ9LCJleHAiOjE3NTczMTc5NTR9.fXqRyv-d7cotjD_YcDwSMB5Y9SXVCQB2LN1LXbCzsB8';
+        const SYSTEM_ID = '15';
+        const STATION_ID = '4';
+
+        function addResult(title, success, data, error, responseTime) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${success ? 'success' : 'error'}`;
+            
+            let content = `<h4>${title}</h4>`;
+            
+            if (success) {
+                content += `<p>✅ <strong>Успех!</strong> Ответ получен за ${responseTime}мс</p>`;
+                if (data) {
+                    if (Array.isArray(data)) {
+                        content += `<p>📊 Получено записей: ${data.length}</p>`;
+                        if (data.length > 0) {
+                            content += `<details><summary>Показать первую запись</summary><pre>${JSON.stringify(data[0], null, 2)}</pre></details>`;
+                        }
+                    } else {
+                        content += `<details><summary>Показать ответ</summary><pre>${JSON.stringify(data, null, 2)}</pre></details>`;
+                    }
+                }
+            } else {
+                content += `<p>❌ <strong>Ошибка:</strong> ${error}</p>`;
+                content += `<p>⏱️ Время запроса: ${responseTime}мс</p>`;
+            }
+            
+            resultDiv.innerHTML = content;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function makeApiRequest(endpoint, params = {}) {
+            const url = new URL(`${API_BASE}${endpoint}`);
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    url.searchParams.append(key, String(value));
+                }
+            });
+
+            const startTime = Date.now();
+            
+            try {
+                console.log(`🌐 Запрос: ${url.toString()}`);
+                console.log(`🔐 Authorization: Bearer ${API_TOKEN.substring(0, 20)}...`);
+                
+                const response = await fetch(url.toString(), {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const responseTime = Date.now() - startTime;
+                
+                console.log(`📡 Ответ: ${response.status} ${response.statusText} (${responseTime}ms)`);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}. ${errorText}`);
+                }
+
+                const data = await response.json();
+                return { success: true, data, responseTime };
+                
+            } catch (error) {
+                const responseTime = Date.now() - startTime;
+                console.error(`❌ Ошибка API:`, error);
+                return { success: false, error: error.message, responseTime };
+            }
+        }
+
+        async function testTanks() {
+            const btn = document.getElementById('testTanksBtn');
+            btn.disabled = true;
+            btn.textContent = '🔄 Тестирую резервуары...';
+            
+            const result = await makeApiRequest('/v1/tanks', {
+                system: SYSTEM_ID,
+                station: STATION_ID
+            });
+
+            addResult('🛢️ Тест резервуары (/v1/tanks)', result.success, result.data, result.error, result.responseTime);
+            
+            btn.disabled = false;
+            btn.textContent = '🛢️ Тест резервуары (/v1/tanks)';
+            
+            return result;
+        }
+
+        async function testTransactions() {
+            const btn = document.getElementById('testTransactionsBtn');
+            btn.disabled = true;
+            btn.textContent = '🔄 Тестирую транзакции...';
+            
+            // Тестируем транзакции за последний день
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const dateFrom = yesterday.toISOString().split('T')[0];
+            
+            const result = await makeApiRequest('/v1/transactions', {
+                system: SYSTEM_ID,
+                station: STATION_ID,
+                date_from: dateFrom
+            });
+
+            addResult('📊 Тест транзакции (/v1/transactions)', result.success, result.data, result.error, result.responseTime);
+            
+            btn.disabled = false;
+            btn.textContent = '📊 Тест транзакции (/v1/transactions)';
+            
+            return result;
+        }
+
+        async function testAll() {
+            const btn = document.getElementById('testAllBtn');
+            btn.disabled = true;
+            btn.textContent = '🔄 Тестирую все...';
+            
+            // Очищаем предыдущие результаты
+            document.getElementById('results').innerHTML = '';
+            
+            console.log('🚀 Начинаем полное тестирование API...');
+            
+            const tanksResult = await testTanks();
+            const transactionsResult = await testTransactions();
+            
+            // Общий результат
+            const allSuccess = tanksResult.success && transactionsResult.success;
+            addResult(
+                '🎯 Общий результат тестирования',
+                allSuccess,
+                null,
+                allSuccess ? null : 'Некоторые тесты не прошли',
+                0
+            );
+            
+            btn.disabled = false;
+            btn.textContent = '🔄 Тест все эндпоинты';
+            
+            if (allSuccess) {
+                const successDiv = document.createElement('div');
+                successDiv.className = 'success';
+                successDiv.innerHTML = `
+                    <h3>🎉 Все тесты прошли успешно!</h3>
+                    <p>✅ Bearer токен валидный</p>
+                    <p>✅ Доступ к API работает</p>
+                    <p>✅ Эндпоинты отвечают корректно</p>
+                    <p><strong>Можно смело настраивать параметры в разделе "Обмен данными"!</strong></p>
+                `;
+                document.getElementById('results').appendChild(successDiv);
+            } else {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.innerHTML = `
+                    <h3>⚠️ Обнаружены проблемы</h3>
+                    <p>Проверьте результаты тестирования выше и убедитесь что:</p>
+                    <ul>
+                        <li>Bearer токен не истек</li>
+                        <li>API сервис доступен</li>
+                        <li>Нет сетевых ошибок</li>
+                    </ul>
+                `;
+                document.getElementById('results').appendChild(errorDiv);
+            }
+        }
+
+        // Автоматически запускаем тест при загрузке страницы
+        window.onload = () => {
+            setTimeout(testAll, 1000);
+        };
+    </script>
+</body>
+</html>

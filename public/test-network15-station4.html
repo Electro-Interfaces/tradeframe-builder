@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>🛢️ Запрос данных резервуаров сети 15 АЗС код 4</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .warning { color: #fbbf24; }
+        .info { color: #60a5fa; }
+        pre { background: #262626; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 400px; }
+        h2 { border-bottom: 2px solid #444; padding-bottom: 10px; }
+        .tank-card { background: #333; margin: 10px 0; padding: 15px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>🛢️ Запрос данных резервуаров через универсальный HTTP клиент</h1>
+    <p><strong>Сеть:</strong> 15, <strong>АЗС код:</strong> 4</p>
+    <div id="results"></div>
+
+    <script type="module">
+        import { httpClient } from '/src/services/universalHttpClient.js';
+        import { tradingNetworkConfigService } from '/src/services/tradingNetworkConfigService.js';
+        
+        const results = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const className = type;
+            results.innerHTML += `<div class="${className}">${message}</div>`;
+            console.log(message);
+        }
+
+        async function testNetwork15Station4() {
+            log('🚀 ЗАПРОС ДАННЫХ РЕЗЕРВУАРОВ СЕТИ 15 АЗС КОД 4', 'info');
+            
+            try {
+                // 1. Проверяем конфигурацию
+                log('\n📋 Шаг 1: Проверяем конфигурацию торговой сети...', 'info');
+                const config = tradingNetworkConfigService.getConfigSync();
+                
+                if (!config.enabled) {
+                    log('❌ Торговая сеть отключена!', 'error');
+                    return;
+                }
+                
+                if (!config.baseUrl || !config.endpoints?.tanks) {
+                    log('❌ API не настроен!', 'error');
+                    return;
+                }
+                
+                log(`✅ Базовый URL: ${config.baseUrl}`, 'success');
+                log(`✅ Эндпоинт: ${config.endpoints.tanks}`, 'success');
+                log(`✅ Аутентификация: ${config.authType || 'не настроена'}`, 'success');
+                
+                // 2. Формируем параметры запроса
+                log('\n📡 Шаг 2: Отправляем запрос к API...', 'info');
+                
+                const queryParams = {
+                    system: '15',    // Сеть 15
+                    station: '4'     // АЗС код 4
+                };
+                
+                log(`📋 Параметры запроса:`, 'info');
+                log(`   - system: ${queryParams.system}`, 'info');
+                log(`   - station: ${queryParams.station}`, 'info');
+                log(`📍 Полный URL: ${config.baseUrl}${config.endpoints.tanks}?system=${queryParams.system}&station=${queryParams.station}`, 'info');
+                
+                // 3. Выполняем запрос через универсальный HTTP клиент
+                const response = await httpClient.get(config.endpoints.tanks, {
+                    destination: 'external-api',
+                    queryParams: queryParams,
+                    timeout: 10000
+                });
+                
+                log(`\n📊 Шаг 3: Анализируем ответ API...`, 'info');
+                log(`🔢 HTTP статус: ${response.status || 'N/A'}`, response.success ? 'success' : 'error');
+                log(`⏱️ Время ответа: ${response.responseTime}мс`, 'info');
+                log(`✅ Успешно: ${response.success}`, response.success ? 'success' : 'error');
+                
+                if (!response.success) {
+                    log(`❌ Ошибка API: ${response.error}`, 'error');
+                    if (response.data) {
+                        results.innerHTML += '<h2>Данные ошибки:</h2>';
+                        results.innerHTML += '<pre>' + JSON.stringify(response.data, null, 2) + '</pre>';
+                    }
+                    return;
+                }
+                
+                // 4. Обрабатываем данные резервуаров
+                if (!response.data || !Array.isArray(response.data)) {
+                    log(`❌ API вернул неверный формат данных`, 'error');
+                    results.innerHTML += '<pre>' + JSON.stringify(response.data, null, 2) + '</pre>';
+                    return;
+                }
+                
+                log(`✅ Получено резервуаров: ${response.data.length}`, 'success');
+                results.innerHTML += '<h2>📊 Данные резервуаров сети 15 АЗС код 4:</h2>';
+                
+                // 5. Отображаем детали каждого резервуара
+                response.data.forEach((tank, index) => {
+                    const currentVolume = parseFloat(tank.volume_end) || 0;
+                    const maxVolume = parseFloat(tank.volume_max) || 0;
+                    const levelPercent = maxVolume > 0 ? (currentVolume / maxVolume * 100) : 0;
+                    const temperature = parseFloat(tank.temperature) || 0;
+                    const density = parseFloat(tank.density) || 0;
+                    const waterLevel = parseFloat(tank.water?.level) || 0;
+                    
+                    results.innerHTML += `
+                        <div class="tank-card">
+                            <h3>🛢️ Резервуар №${tank.number}</h3>
+                            <p><strong>📊 Объем:</strong> ${Math.round(currentVolume).toLocaleString('ru-RU')}л из ${Math.round(maxVolume).toLocaleString('ru-RU')}л</p>
+                            <p><strong>📈 Заполнение:</strong> ${Math.round(levelPercent)}% (${levelPercent.toFixed(2)}%)</p>
+                            <p><strong>🌡️ Температура:</strong> ${temperature.toFixed(1)}°C</p>
+                            <p><strong>⚖️ Плотность:</strong> ${density.toFixed(2)} кг/м³</p>
+                            <p><strong>💧 Подтоварная вода:</strong> ${waterLevel.toFixed(1)} мм</p>
+                            <p><strong>📅 Время обновления:</strong> ${tank.dt}</p>
+                            <p><strong>🔧 Состояние:</strong> ${tank.state === 1 ? '✅ Активен' : '❌ Неактивен'}</p>
+                        </div>
+                    `;
+                    
+                    log(`🛢️ Резервуар №${tank.number}: ${Math.round(currentVolume).toLocaleString('ru-RU')}л/${Math.round(maxVolume).toLocaleString('ru-RU')}л (${Math.round(levelPercent)}%)`, 'info');
+                });
+                
+                // 6. Показываем сырые данные
+                results.innerHTML += '<h2>📋 Сырые данные от API:</h2>';
+                results.innerHTML += '<pre>' + JSON.stringify(response.data, null, 2) + '</pre>';
+                
+                log(`\n🎉 ЗАПРОС ВЫПОЛНЕН УСПЕШНО!`, 'success');
+                
+            } catch (error) {
+                log(`❌ КРИТИЧЕСКАЯ ОШИБКА: ${error.message}`, 'error');
+                console.error('Полная ошибка:', error);
+            }
+        }
+
+        // Запускаем тест
+        testNetwork15Station4();
+    </script>
+</body>
+</html>

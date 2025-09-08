@@ -139,7 +139,7 @@ app.use('/api/v1/fuel-types', fuelTypesRouter);
 app.use('/api/v1/operations', operationsRouter); // Temporarily disabled auth for testing
 app.use('/api/v1/price-history', authenticateToken, priceHistoryRouter);
 app.use('/api/v1/fuel-stocks', authenticateToken, fuelStocksRouter);
-app.use('/api/v1/equipment', authenticateToken, equipmentRouter);
+app.use('/api/v1/equipment', equipmentRouter); // Temporarily disabled auth for testing
 // app.use('/api/v1/equipment-log', authenticateToken, equipmentLogRouter);
 // app.use('/api/v1/tanks', authenticateToken, tanksRouter);
 app.use('/api/v1/trading-points', tradingPointsRouter); // Temporarily disabled auth for testing

@@ -1,9 +1,12 @@
 /**
  * Сервис для работы с инструкциями
- * Содержит mock-данные для всех страниц системы
+ * ОБНОВЛЕН: Использует централизованную конфигурацию из раздела "Обмен данными"
+ * Поддерживает переключение между localStorage (mock) и Supabase (database)
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { apiConfigServiceDB } from './apiConfigServiceDB';
+import { instructionsSupabaseService } from './instructionsSupabaseService';
 import type {
   InstructionTopic,
   InstructionVersion,
@@ -1628,8 +1631,53 @@ console.log('👀 Просмотров загружено:', views.length);
 
 // Сервис для работы с инструкциями
 export const instructionsService = {
+  // ====== ИНИЦИАЛИЗАЦИЯ И КОНФИГУРАЦИЯ ======
+
+  async initialize(): Promise<void> {
+    try {
+      await apiConfigServiceDB.initialize();
+      console.log('✅ InstructionsService инициализирован с централизованной конфигурацией');
+    } catch (error) {
+      console.warn('⚠️ Ошибка инициализации InstructionsService:', error);
+    }
+  },
+
+  async isMockMode(): Promise<boolean> {
+    try {
+      return await apiConfigServiceDB.isMockMode();
+    } catch (error) {
+      console.warn('⚠️ Ошибка проверки режима, используется mock режим:', error);
+      return true;
+    }
+  },
+
+  // ====== УПРАВЛЕНИЕ ТЕМАМИ ======
+
   // Получить все темы
   async getTopics(filters?: InstructionFilters): Promise<InstructionTopic[]> {
+    try {
+      const isMock = await this.isMockMode();
+      
+      if (isMock) {
+        console.log('🔄 InstructionsService: Используется localStorage режим');
+        return this._getTopicsLocal(filters);
+      } else {
+        console.log('🔄 InstructionsService: Используется Supabase режим');
+        try {
+          return await instructionsSupabaseService.getTopics(filters);
+        } catch (error) {
+          console.warn('⚠️ Fallback на localStorage:', error);
+          return this._getTopicsLocal(filters);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Ошибка получения тем инструкций:', error);
+      return this._getTopicsLocal(filters);
+    }
+  },
+
+  // Локальная версия получения тем (для fallback)
+  async _getTopicsLocal(filters?: InstructionFilters): Promise<InstructionTopic[]> {
     await new Promise(resolve => setTimeout(resolve, 150));
     
     let filteredTopics = [...topics];
@@ -1677,6 +1725,29 @@ export const instructionsService = {
 
   // Получить инструкцию для пользователя
   async getInstructionForUser(routeOrKey: string): Promise<InstructionForUser | null> {
+    try {
+      const isMock = await this.isMockMode();
+      
+      if (isMock) {
+        console.log('🔄 InstructionsService: Используется localStorage режим для getInstructionForUser');
+        return this._getInstructionForUserLocal(routeOrKey);
+      } else {
+        console.log('🔄 InstructionsService: Используется Supabase режим для getInstructionForUser');
+        try {
+          return await instructionsSupabaseService.getInstructionForUser(routeOrKey);
+        } catch (error) {
+          console.warn('⚠️ Fallback на localStorage:', error);
+          return this._getInstructionForUserLocal(routeOrKey);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Ошибка получения инструкции для пользователя:', error);
+      return this._getInstructionForUserLocal(routeOrKey);
+    }
+  },
+
+  // Локальная версия получения инструкции для пользователя (для fallback)
+  async _getInstructionForUserLocal(routeOrKey: string): Promise<InstructionForUser | null> {
     await new Promise(resolve => setTimeout(resolve, 120));
     
     console.log('🔍 Ищем инструкцию для:', routeOrKey);

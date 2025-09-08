@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Проверка торговых точек операций</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; margin: 10px 5px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Проверка торговых точек операций</h1>
+    
+    <div>
+        <button onclick="checkOperationsTradingPoints()">1️⃣ Проверить торговые точки операций</button>
+        <button onclick="checkAllTradingPoints()">2️⃣ Список всех торговых точек</button>
+        <button onclick="checkOperationsWithoutFilter()">3️⃣ Все операции без фильтра</button>
+    </div>
+    
+    <div id="logs"></div>
+    <div id="results"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.innerHTML = `${new Date().toLocaleTimeString()} - ${message}`;
+            logsDiv.appendChild(logEntry);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        async function checkOperationsTradingPoints() {
+            log('🔍 Проверяем в каких торговых точках сохранены операции...', 'info');
+            
+            try {
+                const response = await fetch('/supabase-proxy/rest/v1/operations?select=trading_point_id&order=start_time.desc', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDkwMDAsImV4cCI6MjA1MjUyNTAwMH0.Mn0fYenKB2H0fRD8u_7aTpTw_M-iqGCrVk5M5hKZkN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDkwMDAsImV4cCI6MjA1MjUyNTAwMH0.Mn0fYenKB2H0fRD8u_7aTpTw_M-iqGCrVk5M5hKZkN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const operations = await response.json();
+                log(`✅ Найдено операций в БД: ${operations.length}`, 'success');
+                
+                // Группируем по торговым точкам
+                const tradingPointGroups = {};
+                operations.forEach(op => {
+                    const tpId = op.trading_point_id;
+                    if (!tradingPointGroups[tpId]) {
+                        tradingPointGroups[tpId] = 0;
+                    }
+                    tradingPointGroups[tpId]++;
+                });
+                
+                log('📊 Распределение операций по торговым точкам:', 'info');
+                Object.entries(tradingPointGroups).forEach(([tpId, count]) => {
+                    log(`   ${tpId}: ${count} операций`, 'info');
+                });
+                
+                const resultsDiv = document.getElementById('results');
+                let html = '<h3>📊 Распределение операций по торговым точкам</h3><table>';
+                html += '<tr><th>Trading Point ID</th><th>Количество операций</th></tr>';
+                Object.entries(tradingPointGroups).forEach(([tpId, count]) => {
+                    html += `<tr><td>${tpId}</td><td>${count}</td></tr>`;
+                });
+                html += '</table>';
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                log(`❌ Ошибка проверки: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkAllTradingPoints() {
+            log('🔍 Загружаем все торговые точки...', 'info');
+            
+            try {
+                const response = await fetch('/supabase-proxy/rest/v1/trading_points?select=id,name,external_id', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDkwMDAsImV4cCI6MjA1MjUyNTAwMH0.Mn0fYenKB2H0fRD8u_7aTpTw_M-iqGCrVk5M5hKZkN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDkwMDAsImV4cCI6MjA1MjUyNTAwMH0.Mn0fYenKB2H0fRD8u_7aTpTw_M-iqGCrVk5M5hKZkN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY'
+                    }
+                });
+                
+                const tradingPoints = await response.json();
+                log(`✅ Найдено торговых точек: ${tradingPoints.length}`, 'success');
+                
+                tradingPoints.forEach(tp => {
+                    log(`   ${tp.id} - ${tp.name} (external_id: ${tp.external_id})`, 'info');
+                });
+                
+                const resultsDiv = document.getElementById('results');
+                let html = '<h3>🏪 Все торговые точки</h3><table>';
+                html += '<tr><th>ID</th><th>Название</th><th>External ID</th></tr>';
+                tradingPoints.forEach(tp => {
+                    html += `<tr><td>${tp.id}</td><td>${tp.name}</td><td>${tp.external_id || 'null'}</td></tr>`;
+                });
+                html += '</table>';
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                log(`❌ Ошибка загрузки торговых точек: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkOperationsWithoutFilter() {
+            log('🔍 Проверяем все операции без фильтра...', 'info');
+            
+            try {
+                const response = await fetch('/supabase-proxy/rest/v1/operations?select=id,trading_point_id,start_time,transaction_id&order=start_time.desc&limit=10', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDkwMDAsImV4cCI6MjA1MjUyNTAwMH0.Mn0fYenKB2H0fRD8u_7aTpTw_M-iqGCrVk5M5hKZkN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDkwMDAsImV4cCI6MjA1MjUyNTAwMH0.Mn0fYenKB2H0fRD8u_7aTpTw_M-iqGCrVk5M5hKZkN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY'
+                    }
+                });
+                
+                const operations = await response.json();
+                log(`✅ Последние 10 операций:`, 'success');
+                
+                operations.forEach((op, index) => {
+                    log(`   ${index + 1}. ID: ${op.id}, Trading Point: ${op.trading_point_id}, Time: ${op.start_time}, Transaction: ${op.transaction_id}`, 'info');
+                });
+                
+                const resultsDiv = document.getElementById('results');
+                let html = '<h3>📋 Последние 10 операций</h3><table>';
+                html += '<tr><th>ID</th><th>Trading Point ID</th><th>Start Time</th><th>Transaction ID</th></tr>';
+                operations.forEach(op => {
+                    html += `<tr><td>${op.id}</td><td>${op.trading_point_id}</td><td>${op.start_time}</td><td>${op.transaction_id}</td></tr>`;
+                });
+                html += '</table>';
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                log(`❌ Ошибка проверки операций: ${error.message}`, 'error');
+            }
+        }
+
+        // Автоматически проверяем при загрузке
+        window.onload = () => {
+            log('🚀 Страница диагностики загружена', 'success');
+            checkOperationsTradingPoints();
+        };
+    </script>
+</body>
+</html>

@@ -89,38 +89,8 @@ router.get('/', async (req: Request, res: Response) => { // Temporarily disabled
     const params = ListApiTemplatesSchema.parse(req.query);
     
     // TODO: Заменить на реальный репозиторий
-    const mockTemplates = [
-      {
-        id: 'api_auth_autooplata',
-        name: 'Авторизация в Autooplata TMS',
-        description: 'Получение JWT токена для авторизации в системе управления терминалами',
-        scope: 'global',
-        mode: 'sync',
-        status: 'active',
-        http_method: 'POST',
-        url_template: 'https://api.autooplata.ru/auth/login',
-        timeout_ms: 15000,
-        version: '1.0.0',
-        is_system: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: 'api_get_prices',
-        name: 'Получение цен с АЗС',
-        description: 'Получение актуальных цен на топливо с конкретной АЗС через TMS Autooplata',
-        scope: 'trading_point',
-        mode: 'sync',
-        status: 'active',
-        http_method: 'GET',
-        url_template: 'https://api.autooplata.ru/system/{system_id}/station/{station_number}/prices',
-        timeout_ms: 10000,
-        version: '1.0.0',
-        is_system: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ];
+    // ❌ MOCK API ШАБЛОНЫ ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+    const mockTemplates: any[] = [];
     
     let filtered = mockTemplates;
     

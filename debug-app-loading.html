@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Debug App Loading</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #0f0; 
+            padding: 20px;
+            line-height: 1.4;
+        }
+        .section { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border: 1px solid #0f0;
+            background: #0a0a0a;
+        }
+        h1 { color: #0ff; }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        pre {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            overflow-x: auto;
+            font-size: 11px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            background: #0a0a0a;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            cursor: pointer;
+            font-family: monospace;
+            margin: 5px;
+        }
+        button:hover {
+            background: #001100;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug загрузки приложения</h1>
+    
+    <div class="section">
+        <h2>Шаг 1: Проверить открытие приложения</h2>
+        <button onclick="openApp()">🚀 Открыть приложение</button>
+        <div id="appResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 2: Попробовать прямые маршруты</h2>
+        <button onclick="openLogin()">🔐 Открыть страницу входа</button>
+        <button onclick="openEquipment()">🔧 Открыть оборудование</button>
+        <button onclick="openTanks()">🛢️ Открыть резервуары</button>
+        <div id="routesResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 3: Очистить кэш и данные</h2>
+        <button onclick="clearCache()">🗑️ Очистить localStorage и перезагрузить</button>
+        <div id="clearResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Что нужно проверить в браузере:</h2>
+        <div class="warning">
+            <p>1. Откройте DevTools (F12)</p>
+            <p>2. Перейдите на вкладку Console</p>
+            <p>3. Найдите красные ошибки JavaScript</p>
+            <p>4. Проверьте вкладку Network на зависшие запросы</p>
+            <p>5. Обратите внимание на логи загрузки модулей</p>
+        </div>
+    </div>
+
+    <script>
+        const log = (containerId, msg, type = '') => {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = msg;
+            document.getElementById(containerId).appendChild(div);
+        };
+
+        function openApp() {
+            log('appResult', '🚀 Открываем главную страницу...', 'warning');
+            window.open('http://localhost:3000/', '_blank');
+            log('appResult', '✅ Страница должна открыться в новой вкладке', 'success');
+            log('appResult', '⚠️ Если видите черный экран, проверьте консоль браузера', 'warning');
+        }
+
+        function openLogin() {
+            log('routesResult', '🔐 Открываем страницу входа...', 'warning');
+            window.open('http://localhost:3000/login', '_blank');
+        }
+
+        function openEquipment() {
+            log('routesResult', '🔧 Открываем страницу оборудования...', 'warning');
+            window.open('http://localhost:3000/point/equipment', '_blank');
+        }
+
+        function openTanks() {
+            log('routesResult', '🛢️ Открываем страницу резервуаров...', 'warning');
+            window.open('http://localhost:3000/point/tanks', '_blank');
+        }
+
+        function clearCache() {
+            log('clearResult', '🗑️ Очищаем localStorage...', 'warning');
+            
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+                log('clearResult', '✅ localStorage и sessionStorage очищены', 'success');
+                
+                log('clearResult', '🔄 Перезагружаем главную страницу...', 'warning');
+                setTimeout(() => {
+                    window.open('http://localhost:3000/', '_blank');
+                }, 1000);
+                
+            } catch (error) {
+                log('clearResult', `❌ Ошибка очистки: ${error.message}`, 'error');
+            }
+        }
+
+        // Автоматически проверяем статус сервера
+        window.onload = function() {
+            log('appResult', '🌐 Проверяем, запущен ли сервер на порту 3000...', 'warning');
+            
+            fetch('http://localhost:3000/')
+                .then(response => {
+                    if (response.ok) {
+                        log('appResult', '✅ Сервер работает на порту 3000', 'success');
+                    } else {
+                        log('appResult', `⚠️ Сервер отвечает с кодом: ${response.status}`, 'warning');
+                    }
+                })
+                .catch(error => {
+                    log('appResult', '❌ Сервер на порту 3000 недоступен!', 'error');
+                    log('appResult', 'Нужно запустить: npm run dev', 'error');
+                });
+        };
+    </script>
+</body>
+</html>

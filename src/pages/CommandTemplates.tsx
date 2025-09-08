@@ -32,8 +32,8 @@ import {
   CreateCommandTemplateRequest,
   UpdateCommandTemplateRequest 
 } from "@/types/commandTemplate";
-import { commandTemplatesStore, COMMAND_CATEGORIES } from "@/mock/commandTemplatesStore";
-import { currentCommandTemplatesAPI } from "@/services/commandTemplates";
+import { COMMAND_CATEGORIES } from "@/utils/commandCategories";
+import { currentCommandTemplatesAPI } from "@/services/apiSwitch";
 import { CommandTemplateForm } from "@/components/commands/CommandTemplateForm";
 
 export default function CommandTemplates() {
@@ -56,7 +56,8 @@ export default function CommandTemplates() {
     setLoading(true);
     try {
       const response = await currentCommandTemplatesAPI.list();
-      setTemplates(response.data);
+      // Supabase API возвращает data напрямую, а не в обертке
+      setTemplates(response.data || response);
     } catch (error) {
       console.error('Failed to load templates:', error);
       toast({
@@ -105,8 +106,20 @@ export default function CommandTemplates() {
 
   // Статистика по категориям
   const categoryStats = useMemo(() => {
-    return commandTemplatesStore.getCategoriesWithCounts();
-  }, []);
+    const stats = {};
+    templates.forEach(template => {
+      if (!stats[template.category]) {
+        stats[template.category] = 0;
+      }
+      stats[template.category]++;
+    });
+    
+    return Object.entries(COMMAND_CATEGORIES).map(([key, categoryInfo]) => ({
+      category: key,
+      count: stats[key] || 0,
+      info: categoryInfo
+    }));
+  }, [templates]);
 
   const getStatusColor = (status: CommandTemplateStatus) => {
     switch (status) {
@@ -186,7 +199,8 @@ export default function CommandTemplates() {
   const handleDuplicateTemplate = async (template: CommandTemplate) => {
     setLoading(true);
     try {
-      await currentCommandTemplatesAPI.duplicate(template.id);
+      // Используем метод clone из Supabase API
+      await currentCommandTemplatesAPI.clone(template.id, `${template.name}_copy`);
       toast({
         title: "Шаблон скопирован",
         description: `Создана копия шаблона "${template.display_name}".`,
@@ -208,7 +222,8 @@ export default function CommandTemplates() {
     const newStatus = template.status === 'active' ? 'inactive' : 'active';
     setLoading(true);
     try {
-      await currentCommandTemplatesAPI.updateStatus(template.id, newStatus);
+      // Обновляем статус через обычный update метод
+      await currentCommandTemplatesAPI.update(template.id, { status: newStatus });
       toast({
         title: `Шаблон ${newStatus === 'active' ? 'активирован' : 'деактивирован'}`,
         description: `Шаблон "${template.display_name}" ${newStatus === 'active' ? 'активирован' : 'деактивирован'}.`,

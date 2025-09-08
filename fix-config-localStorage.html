@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Исправление конфигурации localStorage</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #0f0; 
+            padding: 20px;
+            line-height: 1.4;
+        }
+        .section { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border: 1px solid #0f0;
+            background: #0a0a0a;
+        }
+        h1 { color: #0ff; }
+        h2 { color: #ff0; }
+        .step {
+            margin: 10px 0;
+            padding: 8px;
+            background: #001100;
+            border-left: 3px solid #0f0;
+        }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        pre {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            overflow-x: auto;
+            font-size: 11px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            background: #0a0a0a;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #001100;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Исправление конфигурации localStorage</h1>
+    
+    <div class="section">
+        <h2>Шаг 1: Текущая конфигурация в localStorage</h2>
+        <div id="step1"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 2: Установка правильной конфигурации</h2>
+        <button onclick="updateConfig()">🔄 Обновить конфигурацию</button>
+        <div id="step2"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 3: Проверка результата</h2>
+        <button onclick="checkConfig()">✅ Проверить конфигурацию</button>
+        <div id="step3"></div>
+    </div>
+
+    <script>
+        const log = (containerId, msg, type = '') => {
+            const div = document.createElement('div');
+            div.className = `step ${type}`;
+            div.innerHTML = msg;
+            document.getElementById(containerId).appendChild(div);
+        };
+
+        function checkCurrentConfig() {
+            log('step1', '🔍 Проверяем текущую конфигурацию в localStorage...', 'warning');
+            
+            const savedConfig = localStorage.getItem('trading_network_config');
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    log('step1', '✅ Найдена конфигурация:', 'success');
+                    
+                    const configPreview = {
+                        enabled: config.enabled,
+                        baseUrl: config.baseUrl,
+                        authType: config.authType,
+                        systemId: config.systemId,
+                        defaultStationId: config.defaultStationId,
+                        apiKeyLength: config.apiKey ? config.apiKey.length : 0,
+                        apiKeyStart: config.apiKey ? config.apiKey.substring(0, 50) + '...' : 'отсутствует'
+                    };
+                    
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify(configPreview, null, 2);
+                    document.getElementById('step1').appendChild(pre);
+                    
+                    // Показываем проблемы
+                    if (config.systemId !== '15') {
+                        log('step1', `❌ ПРОБЛЕМА: systemId = "${config.systemId}" (должно быть "15")`, 'error');
+                    }
+                    if (config.defaultStationId !== '4') {
+                        log('step1', `❌ ПРОБЛЕМА: defaultStationId = "${config.defaultStationId}" (должно быть "4")`, 'error');
+                    }
+                    if (!config.baseUrl || config.baseUrl !== 'https://pos.autooplata.ru/tms') {
+                        log('step1', `❌ ПРОБЛЕМА: baseUrl = "${config.baseUrl}" (должно быть "https://pos.autooplata.ru/tms")`, 'error');
+                    }
+                    
+                } catch (e) {
+                    log('step1', `❌ Ошибка парсинга: ${e.message}`, 'error');
+                }
+            } else {
+                log('step1', '⚠️ Конфигурация в localStorage не найдена', 'warning');
+            }
+        }
+
+        function updateConfig() {
+            log('step2', '🔄 Обновляем конфигурацию из интерфейса "Обмен данными"...', 'warning');
+            
+            // Правильная конфигурация из интерфейса
+            const correctConfig = {
+                enabled: true,
+                baseUrl: 'https://pos.autooplata.ru/tms',
+                systemId: '15',
+                defaultStationId: '4',
+                authType: 'bearer',
+                apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6eyJpZCI6IkFDQ0FFNDA4LTYzMzItNDI0NS04NUIxLTI1RjkxNEYzQkQ2NCIsIm5hbWUiOiJVc2VyVGVzdCIsInJvbGUiOjB9LCJ1c2VyIjp7ImlkIjoiQUNDQUU0MDgtNjMzMi00MjQ1LTg1QjEtMjVGOTE0RjNCRDY0IiwibmFtZSI6IlVzZXJUZXN0In0sImV4cCI6MTc1NzE1NzkzN30.7fDPBwtWej80K2ePRXYKXsJH3b3pLSUqtjo2uIbyXEE',
+                timeout: 30000,
+                retryAttempts: 3,
+                endpoints: {
+                    tanks: '/v1/tanks',
+                    transactions: '/v1/transactions'
+                },
+                defaultParams: {
+                    refreshInterval: 60,
+                    maxRecords: 1000,
+                    dateFormat: 'YYYY-MM-DDTHH:mm:ss'
+                }
+            };
+            
+            try {
+                localStorage.setItem('trading_network_config', JSON.stringify(correctConfig));
+                log('step2', '✅ Конфигурация успешно обновлена!', 'success');
+                
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify({
+                    baseUrl: correctConfig.baseUrl,
+                    systemId: correctConfig.systemId,
+                    defaultStationId: correctConfig.defaultStationId,
+                    authType: correctConfig.authType,
+                    apiKeyLength: correctConfig.apiKey.length
+                }, null, 2);
+                document.getElementById('step2').appendChild(pre);
+                
+            } catch (error) {
+                log('step2', `❌ Ошибка обновления: ${error.message}`, 'error');
+            }
+        }
+
+        function checkConfig() {
+            log('step3', '🔍 Проверяем обновленную конфигурацию...', 'warning');
+            
+            const savedConfig = localStorage.getItem('trading_network_config');
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    
+                    // Проверяем ключевые параметры
+                    const checks = [
+                        { name: 'baseUrl', expected: 'https://pos.autooplata.ru/tms', actual: config.baseUrl },
+                        { name: 'systemId', expected: '15', actual: config.systemId },
+                        { name: 'defaultStationId', expected: '4', actual: config.defaultStationId },
+                        { name: 'authType', expected: 'bearer', actual: config.authType }
+                    ];
+                    
+                    let allCorrect = true;
+                    
+                    checks.forEach(check => {
+                        if (check.actual === check.expected) {
+                            log('step3', `✅ ${check.name}: "${check.actual}" ✓`, 'success');
+                        } else {
+                            log('step3', `❌ ${check.name}: "${check.actual}" (ожидалось: "${check.expected}")`, 'error');
+                            allCorrect = false;
+                        }
+                    });
+                    
+                    if (allCorrect) {
+                        log('step3', '🎉 Все параметры настроены правильно!', 'success');
+                        log('step3', '📡 Тестируем API запрос с новыми параметрами...', 'warning');
+                        testApiCall(config);
+                    } else {
+                        log('step3', '❌ Есть ошибки в конфигурации', 'error');
+                    }
+                    
+                } catch (e) {
+                    log('step3', `❌ Ошибка парсинга: ${e.message}`, 'error');
+                }
+            } else {
+                log('step3', '❌ Конфигурация не найдена', 'error');
+            }
+        }
+
+        async function testApiCall(config) {
+            const url = `${config.baseUrl}${config.endpoints.tanks}?system=${config.systemId}&station=${config.defaultStationId}`;
+            
+            log('step3', `📡 URL запроса: ${url}`, 'warning');
+            log('step3', `🔑 Токен: ${config.apiKey.substring(0, 50)}...`, 'warning');
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+
+                log('step3', `📊 Статус ответа: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('step3', '✅ API запрос успешен!', 'success');
+                    
+                    if (Array.isArray(data)) {
+                        log('step3', `📦 Получено резервуаров: ${data.length}`, 'success');
+                        
+                        if (data.length > 0) {
+                            const sample = data[0];
+                            log('step3', '<br><strong>📋 Пример данных резервуара:</strong>');
+                            const pre = document.createElement('pre');
+                            pre.textContent = JSON.stringify({
+                                number: sample.number,
+                                fuel_name: sample.fuel_name,
+                                volume: sample.volume,
+                                volume_end: sample.volume_end,
+                                volume_max: sample.volume_max,
+                                temperature: sample.temperature
+                            }, null, 2);
+                            document.getElementById('step3').appendChild(pre);
+                            
+                            log('step3', '🎉 Конфигурация работает! Теперь перезагрузите приложение.', 'success');
+                        }
+                    }
+                    
+                } else {
+                    const errorText = await response.text().catch(() => 'не удалось получить детали');
+                    log('step3', `❌ Ошибка API: ${response.status} ${response.statusText}`, 'error');
+                    log('step3', `📄 Детали: ${errorText.substring(0, 200)}...`);
+                }
+
+            } catch (error) {
+                log('step3', `❌ Ошибка запроса: ${error.message}`, 'error');
+            }
+        }
+
+        // Автоматически проверяем конфигурацию при загрузке
+        checkCurrentConfig();
+    </script>
+</body>
+</html>

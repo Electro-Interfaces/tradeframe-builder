@@ -20,7 +20,7 @@ import {
   DEFAULT_RETRY_POLICY,
   DEFAULT_NOTIFICATION_CONFIG
 } from '@/types/workflows';
-import { mockNewCommandTemplates } from '@/mock/newCommandTemplatesStore';
+import { currentNewTemplatesAPI } from '@/services/newConnectionsService';
 
 interface WorkflowFormProps {
   initialData?: Partial<Workflow>;
@@ -30,6 +30,7 @@ interface WorkflowFormProps {
 
 export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormProps) {
   const [activeTab, setActiveTab] = useState('general');
+  const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
   const [formData, setFormData] = useState<CreateWorkflowRequest>(() => ({
     name: initialData?.name || '',
     description: initialData?.description || '',
@@ -55,6 +56,20 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  // Load templates on mount
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const response = await currentNewTemplatesAPI.list();
+        setAvailableTemplates(response.data);
+      } catch (error) {
+        console.error('Failed to load templates:', error);
+        setAvailableTemplates([]);
+      }
+    };
+    loadTemplates();
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -141,7 +156,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
   };
 
   const getAvailableTemplates = () => {
-    return mockNewCommandTemplates.filter(template => 
+    return availableTemplates.filter(template => 
       !formData.endpoints.some(ep => ep.template_id === template.id)
     );
   };
@@ -514,7 +529,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
               ) : (
                 <div className="space-y-4">
                   {formData.endpoints.map((endpoint, index) => {
-                    const template = mockNewCommandTemplates.find(t => t.id === endpoint.template_id);
+                    const template = availableTemplates.find(t => t.id === endpoint.template_id);
                     return (
                       <Card key={index} className="border-slate-600">
                         <CardContent className="pt-4">
@@ -557,7 +572,7 @@ export function WorkflowForm({ initialData, onSubmit, onCancel }: WorkflowFormPr
                                   <SelectValue placeholder="Выберите template" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {mockNewCommandTemplates.map(template => (
+                                  {availableTemplates.map(template => (
                                     <SelectItem key={template.id} value={template.id}>
                                       {template.name}
                                     </SelectItem>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест быстрой загрузки операций</title>
+</head>
+<body>
+    <h1>Тест быстрой загрузки операций</h1>
+    <button onclick="testFastLoad()">Тестировать быструю загрузку</button>
+    <div id="result"></div>
+
+    <script>
+        async function testFastLoad() {
+            const startTime = Date.now();
+            document.getElementById('result').innerHTML = '⚡ Загрузка...';
+            
+            try {
+                const response = await fetch('https://tohtryzyffcebtyvkxwh.supabase.co/rest/v1/operations?select=id,transaction_id,operation_type,status,start_time,trading_point_id,trading_point_name,fuel_type,quantity,price,total_cost,payment_method&order=start_time.desc&limit=1000', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY'
+                    }
+                });
+                
+                const data = await response.json();
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                document.getElementById('result').innerHTML = `
+                    ✅ Загружено ${data.length} операций за ${duration}мс<br>
+                    📊 Первые 3 операции:<br>
+                    ${data.slice(0, 3).map(op => `${op.transaction_id} - ${op.fuel_type} - ${op.total_cost}₽`).join('<br>')}
+                `;
+                
+            } catch (error) {
+                document.getElementById('result').innerHTML = `❌ Ошибка: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

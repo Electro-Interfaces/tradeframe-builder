@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест фильтрации: Станция 4, Сеть 15</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1e293b; color: white; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .info { background: #374151; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .debug { background: #0f172a; padding: 15px; border-radius: 8px; font-family: monospace; margin: 10px 0; }
+        button { background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin: 5px; }
+        button:hover { background: #2563eb; }
+        .result { background: #374151; padding: 15px; border-radius: 8px; margin: 10px 0; white-space: pre-wrap; }
+        .error { background: #dc2626; color: white; padding: 10px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тест фильтрации операций по станции 4 сети 15</h1>
+        
+        <div class="info">
+            <h3>📊 Данные для тестирования:</h3>
+            <ul>
+                <li><strong>Сеть 15 "Норд Лайн":</strong> UUID: b5e25b51-a950-481e-a09d-ac25e6b5d6ab</li>
+                <li><strong>Станция 4:</strong> UUID: 6969b08d-1cbe-45c2-ae9c-8002c7022b59</li>
+                <li><strong>Операций у станции 4:</strong> должно быть ~15 операций за август 2025</li>
+            </ul>
+        </div>
+
+        <button onclick="testDirectSupabaseFiltering()">🎯 Тест 1: Прямой запрос к Supabase с фильтрацией по UUID</button>
+        <button onclick="testOperationsServiceFiltering()">🔍 Тест 2: Через operationsSupabaseService с фильтрами</button>
+        <button onclick="testSalesAnalysisFiltering()">📈 Тест 3: Через SalesAnalysisSimple (полный стек)</button>
+        <button onclick="clearResults()">🧹 Очистить результаты</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        // Импорт сервисов из основного приложения
+        import { operationsSupabaseService } from './src/services/operationsSupabaseService.ts';
+        import { supabaseClient } from './src/services/supabaseClientBrowser.ts';
+
+        window.testDirectSupabaseFiltering = async function() {
+            console.log('🎯 ТЕСТ 1: Прямой запрос к Supabase');
+            
+            try {
+                const station4UUID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+                
+                // Прямой запрос к Supabase
+                const { data, error } = await supabaseClient
+                    .from('operations')
+                    .select('*')
+                    .eq('trading_point_id', station4UUID)
+                    .eq('status', 'completed');
+
+                const result = {
+                    method: 'Прямой Supabase запрос',
+                    query: `operations.select(*).eq('trading_point_id', '${station4UUID}').eq('status', 'completed')`,
+                    operationsCount: data?.length || 0,
+                    error: error?.message || null,
+                    sampleOperations: data?.slice(0, 3)?.map(op => ({
+                        id: op.id,
+                        trading_point_id: op.trading_point_id,
+                        total_cost: op.total_cost,
+                        quantity: op.quantity,
+                        payment_method: op.payment_method,
+                        created_at: op.created_at
+                    })) || []
+                };
+
+                displayResult('test1', result);
+                console.log('🎯 РЕЗУЛЬТАТ ТЕСТА 1:', result);
+
+            } catch (error) {
+                console.error('❌ Ошибка в тесте 1:', error);
+                displayResult('test1', { error: error.message });
+            }
+        }
+
+        window.testOperationsServiceFiltering = async function() {
+            console.log('🔍 ТЕСТ 2: Через operationsSupabaseService');
+            
+            try {
+                const station4UUID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+                
+                const filters = {
+                    tradingPointId: station4UUID,
+                    status: 'completed',
+                    startDate: '2025-08-01',
+                    endDate: '2025-08-31'
+                };
+
+                console.log('🔍 Используем фильтры:', filters);
+                
+                const operations = await operationsSupabaseService.getOperations(filters);
+
+                const result = {
+                    method: 'operationsSupabaseService.getOperations()',
+                    filters: filters,
+                    operationsCount: operations?.length || 0,
+                    totalRevenue: operations?.reduce((sum, op) => sum + (op.totalCost || 0), 0) || 0,
+                    sampleOperations: operations?.slice(0, 3)?.map(op => ({
+                        id: op.id,
+                        tradingPointId: op.tradingPointId,
+                        totalCost: op.totalCost,
+                        quantity: op.quantity,
+                        paymentMethod: op.paymentMethod
+                    })) || []
+                };
+
+                displayResult('test2', result);
+                console.log('🔍 РЕЗУЛЬТАТ ТЕСТА 2:', result);
+
+            } catch (error) {
+                console.error('❌ Ошибка в тесте 2:', error);
+                displayResult('test2', { error: error.message });
+            }
+        }
+
+        window.testSalesAnalysisFiltering = async function() {
+            console.log('📈 ТЕСТ 3: Через SalesAnalysisSimple');
+            
+            // Этот тест имитирует поведение SalesAnalysisSimple компонента
+            try {
+                const station4UUID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+                
+                // Параметры как в SalesAnalysisSimple
+                const filters = {
+                    tradingPointId: station4UUID,
+                    status: 'completed',
+                    startDate: '2025-08-01',
+                    endDate: '2025-08-31'
+                };
+
+                console.log('📈 SalesAnalysisSimple фильтры:', filters);
+                
+                const operations = await operationsSupabaseService.getOperations(filters);
+                
+                // Вычисляем метрики как в SalesAnalysisSimple
+                const totalRevenue = operations.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+                const totalTransactions = operations.length;
+                const totalFuelLiters = operations.reduce((sum, op) => sum + (op.quantity || 0), 0);
+                const averageTicket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+                
+                const cashlessOperations = operations.filter(op => 
+                    op.paymentMethod === 'bank_card' || 
+                    op.paymentMethod === 'corporate_card'
+                ).length;
+                const cashlessPercentage = totalTransactions > 0 ? (cashlessOperations / totalTransactions) * 100 : 0;
+
+                const result = {
+                    method: 'SalesAnalysisSimple полный стек',
+                    filters: filters,
+                    metrics: {
+                        totalRevenue: totalRevenue.toLocaleString('ru-RU') + ' ₽',
+                        totalTransactions,
+                        totalFuelLiters: totalFuelLiters.toLocaleString('ru-RU') + ' л',
+                        averageTicket: averageTicket.toLocaleString('ru-RU') + ' ₽',
+                        cashlessPercentage: cashlessPercentage.toFixed(1) + '%'
+                    },
+                    operationsCount: operations.length,
+                    uniqueTradingPoints: [...new Set(operations.map(op => op.tradingPointId).filter(Boolean))]
+                };
+
+                displayResult('test3', result);
+                console.log('📈 РЕЗУЛЬТАТ ТЕСТА 3:', result);
+
+            } catch (error) {
+                console.error('❌ Ошибка в тесте 3:', error);
+                displayResult('test3', { error: error.message });
+            }
+        }
+
+        window.clearResults = function() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function displayResult(testId, result) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'result';
+            resultDiv.innerHTML = `
+                <h3>${testId.toUpperCase()}: ${result.method || 'Тест'}</h3>
+                <pre>${JSON.stringify(result, null, 2)}</pre>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        // Автоматически показать информацию о подключении
+        window.addEventListener('load', function() {
+            console.log('🔧 Страница тестирования фильтрации загружена');
+            console.log('🎯 UUID станции 4:', '6969b08d-1cbe-45c2-ae9c-8002c7022b59');
+            console.log('🏪 UUID сети 15:', 'b5e25b51-a950-481e-a09d-ac25e6b5d6ab');
+        });
+    </script>
+</body>
+</html>

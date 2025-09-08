@@ -37,7 +37,7 @@ import {
   CreateComponentRequest,
   ComponentInput
 } from "@/types/component";
-import { componentTemplatesStore } from "@/mock/componentTemplatesStore";
+import { componentsSupabaseAPI } from "@/services/componentsSupabase";
 
 interface ComponentWizardProps {
   open: boolean;
@@ -138,13 +138,21 @@ export function ComponentWizard({
 
   // Загружаем совместимые шаблоны при открытии
   useEffect(() => {
-    if (open && equipmentTemplateId) {
-      const templates = componentTemplatesStore.getCompatibleTemplates(equipmentTemplateId);
-      setCompatibleTemplates(templates);
-    } else if (open) {
-      // Если нет template_id оборудования, показываем все шаблоны
-      setCompatibleTemplates(componentTemplatesStore.getAll());
-    }
+    const loadTemplates = async () => {
+      if (open) {
+        try {
+          // Загружаем все шаблоны из Supabase
+          const templates = await componentsSupabaseAPI.getTemplates();
+          // TODO: добавить фильтрацию по equipmentTemplateId если нужно
+          setCompatibleTemplates(templates);
+        } catch (error) {
+          console.error('Failed to load component templates:', error);
+          setCompatibleTemplates([]);
+        }
+      }
+    };
+
+    loadTemplates();
   }, [open, equipmentTemplateId]);
 
   // Сброс состояния при закрытии
@@ -168,10 +176,20 @@ export function ComponentWizard({
     }
   }, [selectedTemplate, detailsForm]);
 
-  const handleTemplateSelect = (data: TemplateSelectionData) => {
-    const template = componentTemplatesStore.getById(data.template_id);
-    setSelectedTemplate(template);
-    setCurrentStep(2);
+  const handleTemplateSelect = async (data: TemplateSelectionData) => {
+    try {
+      const template = await componentsSupabaseAPI.getTemplate(data.template_id);
+      setSelectedTemplate(template);
+      setCurrentStep(2);
+    } catch (error) {
+      console.error('Failed to load template:', error);
+      // Fallback: поиск в уже загруженных шаблонах
+      const template = compatibleTemplates.find(t => t.id === data.template_id);
+      if (template) {
+        setSelectedTemplate(template);
+        setCurrentStep(2);
+      }
+    }
   };
 
   const handleDetailsSubmit = (data: ComponentDetailsData) => {

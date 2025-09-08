@@ -1,17 +1,23 @@
-// Сервис для работы с API торговой сети (pos.autooplata.ru/tms)
-const BASE_URL = 'https://pos.autooplata.ru/tms';
+/**
+ * 🔄 ОБНОВЛЕННЫЙ СЕРВИС ДЛЯ РАБОТЫ С API ТОРГОВОЙ СЕТИ
+ * 
+ * Теперь использует универсальный HTTP клиент с автоматической конфигурацией
+ * Все параметры берутся из раздела "Обмен данными"
+ */
+
+// Новые импорты для универсальной архитектуры
+import { tanksApi, pricesApi, operationsApi } from './apiEndpoints';
+import { httpClient } from './universalHttpClient';
 
 // Импорт для получения данных о резервуарах
-import { mockEquipmentAPI } from './equipment';
+import { currentSupabaseEquipmentAPI } from './equipmentSupabase';
+// Импорт сервиса маппинга для преобразования кодов топлива
+import { tradingNetworkMappingService } from './tradingNetworkMappingService';
+import { tradingNetworkConfigService } from './tradingNetworkConfigService';
 
-// Стандартные цены по типам топлива (базовые значения)
-const DEFAULT_FUEL_PRICES: Record<string, number> = {
-  'АИ-92': 56.20,
-  'АИ-95': 59.80,
-  'АИ-98': 65.40,
-  'ДТ': 61.90,
-  'АИ-100': 68.50
-};
+// Базовый URL берется из системной конфигурации через универсальный клиент
+// const BASE_URL - удален, теперь используется динамическая конфигурация
+
 
 // Маппинг типов топлива на коды услуг
 const FUEL_SERVICE_CODES: Record<string, number> = {
@@ -22,29 +28,38 @@ const FUEL_SERVICE_CODES: Record<string, number> = {
   'АИ-100': 5
 };
 
-// Хранилище установленных цен (имитация базы данных)
-const STORED_PRICES: Record<string, Record<string, number>> = {};
 
-// Проверка на демо режим (если нет реального токена или API недоступен)
-const USE_MOCK_MODE = true; // Для демо всегда используем mock данные
 
 // Функция для получения видов топлива из резервуаров торговой точки
 async function getFuelTypesFromTanks(stationNumber: number): Promise<string[]> {
   try {
     // Определяем trading_point_id по номеру станции
     // Маппинг: номер станции -> ID торговой точки
-    const stationMapping: Record<number, string> = {
-      77: 'point1',  // АЗС №001 - Центральная
-      78: 'point2',  // АЗС №002 - Северная  
-      79: 'point3',  // АЗС №003 - Южная
-      80: 'point4',  // АЗС №004 - Московское шоссе
-      81: 'point5',  // АЗС №005 - Промзона
+    // Маппинг: номер станции -> UUID торговой точки (основной)
+    const stationToUuidMapping: Record<number, string> = {
+      1: '9baf5375-9929-4774-8366-c0609b9f2a51',   // АЗС №001 - Центральная
+      2: 'point2',   // АЗС №002 - Северная (временно, нужен UUID) 
+      3: 'f2566905-c748-4240-ac31-47b626ab625d',   // АЗС №003 - Южная
+      4: 'point4',   // АЗС №004 - Московское шоссе (временно, нужен UUID)
+      5: 'f7963207-2732-4fae-988e-c73eef7645ca',   // АЗС №005 - Промзона
     };
     
-    const tradingPointId = stationMapping[stationNumber] || `point${stationNumber}`;
+    // Старый маппинг для обратной совместимости
+    const legacyStationMapping: Record<number, string> = {
+      1: 'point1',   // АЗС №001 - Центральная
+      2: 'point2',   // АЗС №002 - Северная  
+      3: 'point3',   // АЗС №003 - Южная
+      4: 'point4',   // АЗС №004 - Московское шоссе
+      5: 'point5',   // АЗС №005 - Промзона
+    };
+    
+    // Сначала пробуем UUID маппинг, потом legacy
+    const tradingPointId = stationToUuidMapping[stationNumber] || legacyStationMapping[stationNumber] || `point${stationNumber}`;
+    
+    console.log(`🏭 getFuelTypesFromTanks: станция ${stationNumber} → tradingPointId: ${tradingPointId}`);
 
     // Получаем оборудование для торговой точки
-    const equipmentResponse = await mockEquipmentAPI.list({
+    const equipmentResponse = await currentSupabaseEquipmentAPI.list({
       trading_point_id: tradingPointId,
       limit: 100
     });
@@ -53,14 +68,14 @@ async function getFuelTypesFromTanks(stationNumber: number): Promise<string[]> {
       id: eq.id,
       name: eq.display_name,
       type: eq.system_type,
-      fuelType: eq.params?.fuelType,
+      fuelType: eq.params?.['Тип топлива'],
       status: eq.status
     })));
 
     // Фильтруем только активные резервуары и извлекаем типы топлива
     const fuelTypes = equipmentResponse.data
-      .filter(eq => eq.system_type === 'fuel_tank' && eq.params?.fuelType && eq.status !== 'deleted')
-      .map(eq => eq.params.fuelType)
+      .filter(eq => eq.system_type === 'fuel_tank' && eq.params?.['Тип топлива'] && eq.status !== 'deleted')
+      .map(eq => eq.params['Тип топлива'])
       .filter((fuelType, index, array) => array.indexOf(fuelType) === index); // убираем дубликаты
 
     console.log(`🔍 Station ${stationNumber} (${tradingPointId}): найдено ${equipmentResponse.data.length} единиц оборудования`);
@@ -68,17 +83,8 @@ async function getFuelTypesFromTanks(stationNumber: number): Promise<string[]> {
 
     return fuelTypes;
   } catch (error) {
-    console.error('Ошибка получения типов топлива из резервуаров:', error);
-    console.log('⚠️ Используется fallback для станции', stationNumber);
-    
-    // Специальный fallback для АЗС №002 (Северная) - только АИ-92
-    if (stationNumber === 78) {
-      console.log('⚠️ Fallback для АЗС №002: [АИ-92]');
-      return ['АИ-92'];
-    }
-    
-    console.log('⚠️ Используется общий fallback: [АИ-92, АИ-95, ДТ]');
-    return ['АИ-92', 'АИ-95', 'ДТ']; // Общий fallback
+    console.error('🚨 ОШИБКА получения типов топлива из резервуаров для станции', stationNumber, ':', error);
+    throw new Error(`Не удалось получить типы топлива для станции ${stationNumber}. Проверьте подключение к базе данных и конфигурацию оборудования.`);
   }
 }
 
@@ -107,75 +113,72 @@ export interface SetPricesRequest {
 class TradingNetworkAPIService {
   private token: string | null = null;
 
-  // Авторизация в системе
+  // ❌ УСТАРЕВШИЙ МЕТОД - используйте универсальный HTTP клиент
   async login(): Promise<string> {
-    try {
-      const response = await fetch(`${BASE_URL}/v1/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: 'UserTest',
-          password: 'sys5tem6'
-        })
-      });
+    throw new Error('Прямая авторизация отключена. Используйте универсальный HTTP клиент с настройками из раздела "Обмен данными".');
+    /*
+    const response = await fetch(`BASEURL_FROM_CONFIG/v1/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/plain, application/json' // Принимаем оба формата
+      },
+      // Учетные данные берутся из конфигурации "Обмен данными"
+      // body: JSON.stringify({ username, password })
+      signal: AbortSignal.timeout(10000) // Таймаут 10 секунд
+    });
 
-      if (!response.ok) {
-        throw new Error(`Ошибка авторизации: ${response.status} ${response.statusText}`);
-      }
-
-      const token = await response.text();
-      this.token = token;
-      return token;
-    } catch (error) {
-      console.error('Ошибка при авторизации в API торговой сети:', error);
-      throw new Error('Не удалось авторизоваться в API торговой сети');
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Неизвестная ошибка');
+      console.error('❌ Ошибка авторизации:', response.status, response.statusText, errorText);
+      throw new Error(`Ошибка авторизации: ${response.status} ${response.statusText} - ${errorText}`);
     }
+
+    const token = await response.text();
+    // Очищаем токен от лишних кавычек, которые могут добавляться от интерфейса
+    this.token = token.replace(/^["']|["']$/g, '');
+    
+    console.log('✅ Авторизация успешна, токен получен');
+    return token;
+    */
   }
 
   // Проверка токена и повторная авторизация при необходимости
   private async ensureAuth(): Promise<void> {
     if (!this.token) {
+      console.log('🔑 Отсутствует токен авторизации, выполняется вход...');
       await this.login();
+    } else {
+      console.log('🔑 Используется существующий токен авторизации');
     }
   }
 
-  // Получение цен с АЗС
+  // Принудительная повторная авторизация
+  async reauth(): Promise<string> {
+    console.log('🔄 Принудительная повторная авторизация...');
+    this.token = null;
+    return await this.login();
+  }
+
+  // ❌ УСТАРЕВШИЙ МЕТОД - используйте newTradingNetworkAPI.getFuelPrices()
   async getPrices(
     stationNumber: number,
     systemId: number = 15,
-    date?: string
+    date?: string,
+    networkId?: string
   ): Promise<TradingNetworkPricesResponse> {
-    // В демо режиме возвращаем данные на основе резервуаров
-    if (USE_MOCK_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 300)); // Имитация задержки сети
-      
-      // Получаем виды топлива из резервуаров
-      const fuelTypes = await getFuelTypesFromTanks(stationNumber);
-      
-      // Формируем цены на основе резервуаров
-      const prices: TradingNetworkPrice[] = fuelTypes.map(fuelType => {
-        const serviceCode = FUEL_SERVICE_CODES[fuelType] || 1;
-        const stationKey = `station_${stationNumber}`;
-        const storedPrice = STORED_PRICES[stationKey]?.[fuelType];
-        const price = storedPrice || DEFAULT_FUEL_PRICES[fuelType] || 50.0;
-        
-        return {
-          service_code: serviceCode,
-          service_name: fuelType,
-          price
-        };
-      });
-      
-      return { prices };
-    }
+    throw new Error('Устаревший метод. Используйте newTradingNetworkAPI.getFuelPrices() с настройками из раздела "Обмен данными".');
+    /*
+    console.log(`🔥 [TRADING API] tradingNetworkAPI.getPrices() вызван для станции ${stationNumber}`);
+    
 
     await this.ensureAuth();
 
     try {
       const dateParam = date || new Date().toISOString();
-      const url = `${BASE_URL}/v1/pos/prices/${stationNumber}?system=${systemId}&date=${encodeURIComponent(dateParam)}`;
+      throw new Error('Прямые API вызовы отключены. Используйте универсальный HTTP клиент и новые методы (newTradingNetworkAPI.getFuelPrices).');
+      
+      const url = `BASEURL_FROM_CONFIG/v1/pos/prices/${stationNumber}?system=${systemId}&date=${encodeURIComponent(dateParam)}`;
 
       const response = await fetch(url, {
         headers: {
@@ -196,51 +199,84 @@ class TradingNetworkAPIService {
           if (!retryResponse.ok) {
             throw new Error(`Ошибка получения цен: ${retryResponse.status} ${retryResponse.statusText}`);
           }
-          return await retryResponse.json();
+          const rawData = await retryResponse.json();
+          return this.applyMappingToPrices(rawData, networkId);
         }
         throw new Error(`Ошибка получения цен: ${response.status} ${response.statusText}`);
       }
 
-      return await response.json();
+      const rawData = await response.json();
+      return this.applyMappingToPrices(rawData, networkId);
     } catch (error) {
       console.error('Ошибка при получении цен с АЗС:', error);
       throw new Error('Не удалось получить цены с торговой точки');
     }
+    */
   }
 
-  // Установка цен на АЗС
+  // Применение маппинга к полученным из API ценам
+  private async applyMappingToPrices(
+    apiResponse: any, 
+    networkId?: string
+  ): Promise<TradingNetworkPricesResponse> {
+    console.log('🔄 Применяем маппинг к ценам от API...');
+    
+    if (!apiResponse.prices) {
+      console.warn('⚠️ API ответ не содержит массив prices');
+      return apiResponse;
+    }
+
+    try {
+      // Инициализируем кэш маппинга, если он пуст
+      const config = await tradingNetworkConfigService.getConfig();
+      if (config.fuelMapping?.enabled) {
+        await tradingNetworkMappingService.initializeCache(config);
+      }
+
+      // Преобразуем цены используя маппинг
+      const mappedPrices: TradingNetworkPrice[] = apiResponse.prices.map((apiPrice: any) => {
+        // Ищем маппинг по API коду
+        const mapping = tradingNetworkMappingService.getMappingForApiCode(
+          apiPrice.service_code, 
+          networkId
+        );
+
+        if (mapping) {
+          console.log(`🔄 Маппинг применен: API код ${apiPrice.service_code} (${apiPrice.service_name}) → ${mapping.internalCode} (${mapping.internalName})`);
+          return {
+            service_code: apiPrice.service_code,
+            service_name: mapping.internalName, // Используем внутреннее название
+            price: apiPrice.price,
+            // Добавляем дополнительные поля для информации
+            internal_code: mapping.internalCode,
+            api_name: apiPrice.service_name
+          };
+        } else {
+          console.warn(`⚠️ Маппинг не найден для API кода ${apiPrice.service_code}, используем исходные данные`);
+          return apiPrice;
+        }
+      });
+
+      console.log(`✅ Маппинг применен к ${mappedPrices.length} ценам`);
+      return { prices: mappedPrices };
+
+    } catch (error) {
+      console.error('❌ Ошибка при применении маппинга к ценам:', error);
+      // Возвращаем исходные данные при ошибке маппинга
+      return apiResponse;
+    }
+  }
+
+  // ❌ УСТАРЕВШИЙ МЕТОД - используйте newTradingNetworkAPI.setFuelPrices()
   async setPrices(
     stationNumber: number,
     prices: Record<string, number>,
     effectiveDate: string,
     systemId: number = 15
   ): Promise<void> {
-    // В демо режиме имитируем успешную установку цен
-    if (USE_MOCK_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Имитация задержки сети
-      
-      const stationKey = `station_${stationNumber}`;
-      if (!STORED_PRICES[stationKey]) {
-        STORED_PRICES[stationKey] = {};
-      }
-      
-      // Получаем виды топлива из резервуаров для валидации
-      const availableFuelTypes = await getFuelTypesFromTanks(stationNumber);
-      
-      // Сохраняем цены только для доступных видов топлива
-      for (const [serviceCodeStr, price] of Object.entries(prices)) {
-        const serviceCode = parseInt(serviceCodeStr);
-        // Находим тип топлива по коду услуги
-        const fuelType = Object.entries(FUEL_SERVICE_CODES).find(([fuel, code]) => code === serviceCode)?.[0];
-        
-        if (fuelType && availableFuelTypes.includes(fuelType)) {
-          STORED_PRICES[stationKey][fuelType] = price;
-        }
-      }
-      
-      console.log(`Mock: Цены установлены для АЗС ${stationNumber}:`, STORED_PRICES[stationKey]);
-      return;
-    }
+    throw new Error('Устаревший метод. Используйте newTradingNetworkAPI.setFuelPrices() с настройками из раздела "Обмен данными".');
+    /*
+    */
 
     await this.ensureAuth();
 
@@ -288,25 +324,6 @@ class TradingNetworkAPIService {
 
   // Получение справочника услуг
   async getServices(systemId: number = 15, stationNumber?: number): Promise<TradingNetworkService[]> {
-    // В демо режиме возвращаем данные на основе всех возможных видов топлива
-    if (USE_MOCK_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 200)); // Имитация задержки сети
-      
-      // Если указан номер станции, получаем топливо только для этой станции
-      if (stationNumber) {
-        const fuelTypes = await getFuelTypesFromTanks(stationNumber);
-        return fuelTypes.map(fuelType => ({
-          service_code: FUEL_SERVICE_CODES[fuelType] || 1,
-          service_name: fuelType
-        }));
-      }
-      
-      // Иначе возвращаем все доступные виды топлива
-      return Object.entries(FUEL_SERVICE_CODES).map(([fuelType, serviceCode]) => ({
-        service_code: serviceCode,
-        service_name: fuelType
-      }));
-    }
 
     await this.ensureAuth();
 
@@ -370,6 +387,217 @@ class TradingNetworkAPIService {
     } catch (error) {
       console.warn('Не удалось получить Swagger документацию, используем известные методы:', error);
       return this.getKnownAPIMethods();
+    }
+  }
+
+  // Получение транзакций с АЗС (НАЙДЕН В ДОКУМЕНТАЦИИ!)
+  async getTransactions(
+    systemId: number = 15,
+    stationNumber?: number,
+    startDate?: string,
+    endDate?: string,
+    shiftId?: string,
+    posId?: string
+  ): Promise<any[]> {
+    console.log(`🔥 [TRADING API] tradingNetworkAPI.getTransactions() для системы ${systemId}, станция: ${stationNumber || 'все'}`);
+    
+
+    await this.ensureAuth();
+
+    try {
+      // Используем правильный endpoint из документации: GET /v1/transactions
+      const params = new URLSearchParams();
+      params.append('system', systemId.toString());
+      
+      // Параметр station обязателен. Если не указан, используем станцию 4 по умолчанию
+      const actualStationNumber = stationNumber || 4;
+      params.append('station', actualStationNumber.toString());
+      
+      console.log(`📍 Запрос для станции: ${actualStationNumber}`);
+      if (startDate) params.append('date_from', startDate);
+      if (endDate) params.append('date_to', endDate);
+      if (shiftId) params.append('shift', shiftId);
+      if (posId) params.append('pos', posId);
+
+      const url = `${BASE_URL}/v1/transactions?${params.toString()}`;
+      console.log(`🔍 Запрос транзакций: ${url}`);
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        // Попробуем повторно авторизоваться и повторить запрос
+        if (response.status === 401) {
+          await this.login();
+          const retryResponse = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${this.token}`,
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (!retryResponse.ok) {
+            const errorText = await retryResponse.text();
+            throw new Error(`Ошибка получения транзакций: ${retryResponse.status} ${retryResponse.statusText} - ${errorText}`);
+          }
+          
+          const retryData = await retryResponse.json();
+          console.log(`✅ Транзакции получены (после повторной авторизации):`, retryData?.length || 0);
+          return retryData || [];
+        }
+        
+        const errorText = await response.text();
+        throw new Error(`Ошибка получения транзакций: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ Транзакции получены:`, data?.length || 0);
+      
+      // ОТЛАДКА: показываем реальную структуру данных от API
+      if (data && data.length > 0) {
+        console.log('🔍 [API RAW] ПЕРВАЯ ТРАНЗАКЦИЯ ОТ ТОРГОВОГО API:', JSON.stringify(data[0], null, 2));
+        console.log('🔍 [API RAW] КЛЮЧИ первой транзакции:', Object.keys(data[0]));
+      }
+      
+      return data || [];
+
+    } catch (error) {
+      console.error('❌ Ошибка при получении транзакций:', error);
+      throw error;
+    }
+  }
+
+  // Загрузка транзакций (POST /v1/transactions)
+  async uploadTransactions(
+    systemId: number = 15,
+    transactionsData: any[]
+  ): Promise<boolean> {
+    console.log(`🔥 [TRADING API] Загрузка транзакций в систему ${systemId}, количество: ${transactionsData.length}`);
+    
+
+    await this.ensureAuth();
+
+    try {
+      const response = await fetch(`${BASE_URL}/v1/transactions?system=${systemId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(transactionsData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ошибка загрузки транзакций: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      console.log(`✅ Транзакции загружены успешно`);
+      return true;
+
+    } catch (error) {
+      console.error('❌ Ошибка при загрузке транзакций:', error);
+      throw error;
+    }
+  }
+
+  // Управление сменами
+  async openShift(systemId: number = 15, stationNumber: number): Promise<boolean> {
+    console.log(`🔥 [TRADING API] Открытие смены для станции ${stationNumber}`);
+    
+
+    await this.ensureAuth();
+
+    try {
+      const response = await fetch(`${BASE_URL}/v1/control/shift_open?system=${systemId}&station=${stationNumber}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ошибка открытия смены: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      console.log(`✅ Смена открыта успешно для станции ${stationNumber}`);
+      return true;
+
+    } catch (error) {
+      console.error('❌ Ошибка при открытии смены:', error);
+      throw error;
+    }
+  }
+
+  async closeShift(systemId: number = 15, stationNumber: number): Promise<boolean> {
+    console.log(`🔥 [TRADING API] Закрытие смены для станции ${stationNumber}`);
+    
+
+    await this.ensureAuth();
+
+    try {
+      const response = await fetch(`${BASE_URL}/v1/control/shift_close?system=${systemId}&station=${stationNumber}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ошибка закрытия смены: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      console.log(`✅ Смена закрыта успешно для станции ${stationNumber}`);
+      return true;
+
+    } catch (error) {
+      console.error('❌ Ошибка при закрытии смены:', error);
+      throw error;
+    }
+  }
+
+  // Получение информации о резервуарах
+  async getTanks(systemId: number = 15, stationNumber?: number): Promise<any[]> {
+    console.log(`🔥 [TRADING API] Получение данных резервуаров для системы ${systemId}, станция: ${stationNumber || 'все'}`);
+    
+
+    await this.ensureAuth();
+
+    try {
+      const params = new URLSearchParams();
+      params.append('system', systemId.toString());
+      if (stationNumber) params.append('station', stationNumber.toString());
+
+      const url = `${BASE_URL}/v1/tanks?${params.toString()}`;
+      console.log(`🔍 Запрос резервуаров: ${url}`);
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ошибка получения данных резервуаров: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ Данные резервуаров получены:`, data?.length || 0);
+      return data || [];
+
+    } catch (error) {
+      console.error('❌ Ошибка при получении данных резервуаров:', error);
+      throw error;
     }
   }
 
@@ -461,6 +689,70 @@ class TradingNetworkAPIService {
           { name: 'system', type: 'number', required: true, description: 'ID системы' },
           { name: 'station', type: 'number', required: true, description: 'Номер станции' }
         ]
+      },
+      {
+        id: 'get_transactions',
+        name: 'Получение транзакций',
+        method: 'GET',
+        endpoint: '/v1/transactions',
+        category: 'transactions',
+        description: 'Получение списка транзакций с торговых точек',
+        parameters: [
+          { name: 'system', type: 'number', required: true, description: 'ID системы' },
+          { name: 'station', type: 'number', required: false, description: 'Номер станции (опционально)' },
+          { name: 'date_from', type: 'string', required: false, description: 'Дата начала' },
+          { name: 'date_to', type: 'string', required: false, description: 'Дата окончания' },
+          { name: 'shift', type: 'string', required: false, description: 'ID смены' },
+          { name: 'pos', type: 'string', required: false, description: 'ID POS терминала' }
+        ]
+      },
+      {
+        id: 'upload_transactions',
+        name: 'Загрузка транзакций',
+        method: 'POST',
+        endpoint: '/v1/transactions',
+        category: 'transactions',
+        description: 'Загрузка транзакций в систему',
+        parameters: [
+          { name: 'system', type: 'number', required: true, description: 'ID системы' },
+          { name: 'body', type: 'array', required: true, description: 'Массив транзакций для загрузки' }
+        ]
+      },
+      {
+        id: 'get_tanks',
+        name: 'Получение данных резервуаров',
+        method: 'GET',
+        endpoint: '/v1/tanks',
+        category: 'monitoring',
+        description: 'Получение информации о резервуарах',
+        parameters: [
+          { name: 'system', type: 'number', required: true, description: 'ID системы' },
+          { name: 'station', type: 'number', required: false, description: 'Номер станции (опционально)' }
+        ]
+      },
+      {
+        id: 'open_shift',
+        name: 'Открыть смену',
+        method: 'POST',
+        endpoint: '/v1/control/shift_open',
+        category: 'control',
+        description: 'Открытие смены на торговой точке',
+        parameters: [
+          { name: 'system', type: 'number', required: true, description: 'ID системы' },
+          { name: 'station', type: 'number', required: true, description: 'Номер станции' }
+        ]
+      },
+      {
+        id: 'close_shift',
+        name: 'Закрыть смену',
+        method: 'POST',
+        endpoint: '/v1/control/shift_close',
+        category: 'control',
+        description: 'Закрытие смены на торговой точке',
+        parameters: [
+          { name: 'system', type: 'number', required: true, description: 'ID системы' },
+          { name: 'station', type: 'number', required: true, description: 'Номер станции' }
+        ]
       }
     ];
   }
@@ -505,6 +797,7 @@ class TradingNetworkAPIService {
     if (path.includes('service')) return 'reference';
     if (path.includes('info')) return 'monitoring';
     if (path.includes('control') || path.includes('restart')) return 'control';
+    if (path.includes('transaction') || path.includes('sale') || path.includes('payment') || path.includes('receipt') || path.includes('history')) return 'transactions';
     return 'other';
   }
 
@@ -537,5 +830,169 @@ export interface TradingNetworkAPIMethodParameter {
   description: string;
 }
 
-// Экспорт экземпляра сервиса
+// Экспорт экземпляра сервиса (LEGACY - для обратной совместимости)
 export const tradingNetworkAPI = new TradingNetworkAPIService();
+
+// === НОВЫЕ МЕТОДЫ С ИСПОЛЬЗОВАНИЕМ УНИВЕРСАЛЬНОГО HTTP КЛИЕНТА ===
+
+/**
+ * 🔄 ОБНОВЛЕННЫЕ МЕТОДЫ - используют универсальный HTTP клиент
+ */
+
+/**
+ * 🛢️ Получить резервуары из торговой сети (НОВЫЙ МЕТОД)
+ * Использует настройки из раздела "Обмен данными"
+ */
+export async function getTanksFromTradingNetwork(systemId: string, stationId: string) {
+  console.log(`🛢️ Получение резервуаров из торговой сети: system=${systemId}, station=${stationId}`);
+  
+  try {
+    const response = await tanksApi.getTanksFromTradingNetwork(systemId, stationId);
+    
+    if (response.success && response.data) {
+      console.log(`✅ Получено ${response.data.length} резервуаров за ${response.responseTime}мс`);
+      return response.data;
+    } else {
+      console.error('❌ Ошибка получения резервуаров:', response.error);
+      throw new Error(response.error || 'Failed to fetch tanks');
+    }
+  } catch (error: any) {
+    console.error('❌ Ошибка API резервуаров:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * 💰 Получить цены из торговой сети (НОВЫЙ МЕТОД)
+ */
+export async function getFuelPricesFromTradingNetwork(systemId: string, stationId: string): Promise<Record<string, number>> {
+  console.log(`💰 Получение цен из торговой сети: system=${systemId}, station=${stationId}`);
+  
+  try {
+    const response = await pricesApi.getPricesFromTradingNetwork(systemId, stationId);
+    
+    if (response.success && response.data) {
+      console.log(`✅ Получены цены для ${Object.keys(response.data).length} видов топлива`);
+      return response.data;
+    } else {
+      console.error('❌ Ошибка получения цен:', response.error);
+      throw new Error(`Не удалось получить цены топлива: ${response.error}`);
+    }
+  } catch (error: any) {
+    console.error('❌ Ошибка API цен:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * 📊 Установить цены в торговой сети (НОВЫЙ МЕТОД)
+ */
+export async function setFuelPricesInTradingNetwork(
+  systemId: string, 
+  stationId: string, 
+  prices: Record<string, number>
+): Promise<boolean> {
+  console.log(`📊 Установка цен в торговой сети:`, prices);
+  
+  try {
+    const response = await pricesApi.setPricesInTradingNetwork(systemId, stationId, prices);
+    
+    if (response.success) {
+      console.log('✅ Цены успешно установлены');
+      return true;
+    } else {
+      console.error('❌ Ошибка установки цен:', response.error);
+      return false;
+    }
+  } catch (error: any) {
+    console.error('❌ Ошибка API установки цен:', error.message);
+    return false;
+  }
+}
+
+/**
+ * 🧾 Получить операции из торговой сети (НОВЫЙ МЕТОД)
+ */
+export async function getOperationsFromTradingNetwork(
+  systemId: string, 
+  stationId: string,
+  params?: {
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+  }
+) {
+  console.log(`🧾 Получение операций из торговой сети: system=${systemId}, station=${stationId}`, params);
+  
+  try {
+    const response = await operationsApi.getOperationsFromTradingNetwork(systemId, stationId, params);
+    
+    if (response.success && response.data) {
+      console.log(`✅ Получено ${response.data.length} операций за ${response.responseTime}мс`);
+      return response.data;
+    } else {
+      console.error('❌ Ошибка получения операций:', response.error);
+      throw new Error(response.error || 'Failed to fetch operations');
+    }
+  } catch (error: any) {
+    console.error('❌ Ошибка API операций:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * 🧪 Тестировать подключение к торговой сети (НОВЫЙ МЕТОД)
+ */
+export async function testTradingNetworkConnection() {
+  console.log('🧪 Тестирование подключения к торговой сети...');
+  
+  try {
+    const response = await httpClient.testExternalApiConnection();
+    
+    if (response.success) {
+      console.log(`✅ Подключение успешно: ${response.responseTime}мс`);
+      return {
+        success: true,
+        responseTime: response.responseTime,
+        data: response.data
+      };
+    } else {
+      console.error('❌ Ошибка подключения:', response.error);
+      return {
+        success: false,
+        error: response.error
+      };
+    }
+  } catch (error: any) {
+    console.error('❌ Критическая ошибка тестирования:', error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 📋 Получить информацию о конфигурации (НОВЫЙ МЕТОД)
+ */
+export async function getTradingNetworkConfig() {
+  console.log('📋 Получение конфигурации торговой сети...');
+  
+  try {
+    const configInfo = await httpClient.getConfigurationInfo();
+    return configInfo.externalApi;
+  } catch (error: any) {
+    console.error('❌ Ошибка получения конфигурации:', error.message);
+    return null;
+  }
+}
+
+// Экспорт всех новых методов для удобства
+export const newTradingNetworkAPI = {
+  getTanks: getTanksFromTradingNetwork,
+  getFuelPrices: getFuelPricesFromTradingNetwork,
+  setFuelPrices: setFuelPricesInTradingNetwork,
+  getOperations: getOperationsFromTradingNetwork,
+  testConnection: testTradingNetworkConnection,
+  getConfig: getTradingNetworkConfig,
+};

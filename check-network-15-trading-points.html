@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Проверка торговых точек сети 15</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #0f0; 
+            padding: 20px;
+            line-height: 1.4;
+        }
+        .section { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border: 1px solid #0f0;
+            background: #0a0a0a;
+        }
+        h1 { color: #0ff; }
+        h2 { color: #ff0; }
+        .step {
+            margin: 10px 0;
+            padding: 8px;
+            background: #001100;
+            border-left: 3px solid #0f0;
+        }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        pre {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            overflow-x: auto;
+            font-size: 11px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            background: #0a0a0a;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            cursor: pointer;
+            font-family: monospace;
+            margin: 5px;
+        }
+        button:hover {
+            background: #001100;
+        }
+    </style>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>🔍 Проверка сети 15 и торговых точек в базе данных</h1>
+    
+    <div class="section">
+        <h2>Шаг 1: Поиск сети 15</h2>
+        <button onclick="findNetwork15()">🏢 Найти сеть 15</button>
+        <div id="networkResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 2: Поиск всех торговых точек сети</h2>
+        <button onclick="findTradingPoints()">🏪 Показать все торговые точки</button>
+        <div id="tradingPointsResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 3: Поиск конкретной станции 4</h2>
+        <button onclick="findStation4()">🎯 Найти станцию 4</button>
+        <div id="station4Result"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 4: Проверка резервуаров для станции 4</h2>
+        <button onclick="checkTanksForStation4()">🛢️ Проверить резервуары</button>
+        <div id="tanksResult"></div>
+    </div>
+
+    <script>
+        const log = (containerId, msg, type = '') => {
+            const div = document.createElement('div');
+            div.className = `step ${type}`;
+            div.innerHTML = msg;
+            document.getElementById(containerId).appendChild(div);
+        };
+
+        // Инициализация Supabase клиента
+        const supabaseUrl = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        let network15Id = null;
+        let station4Id = null;
+
+        async function findNetwork15() {
+            document.getElementById('networkResult').innerHTML = '';
+            log('networkResult', '🔍 Ищем сеть с ID 15...', 'warning');
+            
+            try {
+                // Ищем сети разными способами
+                const queries = [
+                    { filter: 'external_id.eq.15', desc: 'external_id = 15' },
+                    { filter: 'external_id.eq."15"', desc: 'external_id = "15"' },
+                    { filter: 'name.ilike.%15%', desc: 'название содержит "15"' },
+                    { filter: 'name.ilike.%сеть 15%', desc: 'название содержит "сеть 15"' }
+                ];
+
+                let allNetworks = [];
+
+                for (const query of queries) {
+                    const { data: networks, error } = await supabase
+                        .from('networks')
+                        .select('*')
+                        .or(query.filter);
+
+                    if (!error && networks && networks.length > 0) {
+                        log('networkResult', `✅ Найдено сетей через ${query.desc}: ${networks.length}`, 'success');
+                        networks.forEach(network => {
+                            allNetworks.push(network);
+                            log('networkResult', `  • ID: ${network.id}, Название: "${network.name}", external_id: ${network.external_id}`);
+                        });
+                    } else {
+                        log('networkResult', `⚠️ Через ${query.desc}: не найдено`, 'warning');
+                    }
+                }
+
+                // Убираем дубликаты
+                const uniqueNetworks = allNetworks.filter((network, index, self) => 
+                    index === self.findIndex(n => n.id === network.id)
+                );
+
+                if (uniqueNetworks.length > 0) {
+                    // Предпочтем сеть с external_id = 15
+                    const preferred = uniqueNetworks.find(n => n.external_id == 15) || uniqueNetworks[0];
+                    network15Id = preferred.id;
+                    
+                    log('networkResult', `<br>🎯 ВЫБРАННАЯ СЕТЬ:`, 'success');
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify({
+                        id: preferred.id,
+                        name: preferred.name,
+                        external_id: preferred.external_id,
+                        description: preferred.description,
+                        created_at: preferred.created_at
+                    }, null, 2);
+                    document.getElementById('networkResult').appendChild(pre);
+                } else {
+                    log('networkResult', '❌ Сеть 15 не найдена ни одним способом!', 'error');
+                    
+                    // Показываем все сети для справки
+                    const { data: allNets } = await supabase.from('networks').select('*').limit(10);
+                    log('networkResult', '<br>📋 Все доступные сети:', 'warning');
+                    if (allNets) {
+                        allNets.forEach(net => {
+                            log('networkResult', `  • ${net.name} (ID: ${net.id}, external_id: ${net.external_id})`);
+                        });
+                    }
+                }
+
+            } catch (error) {
+                log('networkResult', `❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function findTradingPoints() {
+            document.getElementById('tradingPointsResult').innerHTML = '';
+            
+            if (!network15Id) {
+                log('tradingPointsResult', '⚠️ Сначала найдите сеть 15', 'warning');
+                return;
+            }
+
+            log('tradingPointsResult', `🔍 Ищем торговые точки для сети ${network15Id}...`, 'warning');
+            
+            try {
+                const { data: tradingPoints, error } = await supabase
+                    .from('trading_points')
+                    .select('*')
+                    .eq('network_id', network15Id);
+
+                if (error) {
+                    log('tradingPointsResult', `❌ Ошибка: ${error.message}`, 'error');
+                    return;
+                }
+
+                log('tradingPointsResult', `📊 Найдено торговых точек: ${tradingPoints.length}`, 'success');
+
+                if (tradingPoints.length > 0) {
+                    tradingPoints.forEach((tp, index) => {
+                        log('tradingPointsResult', `<br><strong>🏪 Торговая точка ${index + 1}:</strong>`);
+                        const tpInfo = {
+                            id: tp.id,
+                            name: tp.name,
+                            external_id: tp.external_id,
+                            address: tp.address,
+                            status: tp.status,
+                            created_at: tp.created_at
+                        };
+                        
+                        const pre = document.createElement('pre');
+                        pre.textContent = JSON.stringify(tpInfo, null, 2);
+                        document.getElementById('tradingPointsResult').appendChild(pre);
+                        
+                        // Ищем станцию 4
+                        if (tp.external_id == 4 || tp.name.includes('4') || tp.name.includes('АЗС-004')) {
+                            log('tradingPointsResult', `🎯 ЭТО МОЖЕТ БЫТЬ СТАНЦИЯ 4! 🎯`, 'success');
+                            station4Id = tp.id;
+                        }
+                    });
+                } else {
+                    log('tradingPointsResult', '❌ Торговые точки не найдены для этой сети', 'error');
+                }
+
+            } catch (error) {
+                log('tradingPointsResult', `❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function findStation4() {
+            document.getElementById('station4Result').innerHTML = '';
+            
+            if (!network15Id) {
+                log('station4Result', '⚠️ Сначала найдите сеть 15', 'warning');
+                return;
+            }
+
+            log('station4Result', `🎯 Ищем станцию 4 для сети ${network15Id}...`, 'warning');
+            
+            try {
+                const { data: tradingPoints, error } = await supabase
+                    .from('trading_points')
+                    .select('*')
+                    .eq('network_id', network15Id);
+
+                if (error) {
+                    log('station4Result', `❌ Ошибка: ${error.message}`, 'error');
+                    return;
+                }
+
+                // Ищем станцию 4 разными способами
+                const station4Candidates = tradingPoints.filter(tp => 
+                    tp.external_id == 4 || 
+                    tp.external_id === '4' ||
+                    tp.name.includes('4') || 
+                    tp.name.includes('АЗС-004') ||
+                    tp.name.includes('Станция 4') ||
+                    tp.name.toLowerCase().includes('station 4')
+                );
+
+                if (station4Candidates.length > 0) {
+                    const station4 = station4Candidates[0];
+                    station4Id = station4.id;
+                    
+                    log('station4Result', `✅ НАЙДЕНА СТАНЦИЯ 4:`, 'success');
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify({
+                        id: station4.id,
+                        name: station4.name,
+                        external_id: station4.external_id,
+                        address: station4.address,
+                        network_id: station4.network_id,
+                        status: station4.status
+                    }, null, 2);
+                    document.getElementById('station4Result').appendChild(pre);
+                    
+                    if (station4Candidates.length > 1) {
+                        log('station4Result', `⚠️ Найдено ${station4Candidates.length} кандидатов, выбрана первая`, 'warning');
+                    }
+                } else {
+                    log('station4Result', '❌ Станция 4 не найдена!', 'error');
+                    log('station4Result', 'Все торговые точки этой сети:', 'warning');
+                    tradingPoints.forEach(tp => {
+                        log('station4Result', `  • ${tp.name} (external_id: ${tp.external_id})`);
+                    });
+                }
+
+            } catch (error) {
+                log('station4Result', `❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkTanksForStation4() {
+            document.getElementById('tanksResult').innerHTML = '';
+            
+            if (!station4Id) {
+                log('tanksResult', '⚠️ Сначала найдите станцию 4', 'warning');
+                return;
+            }
+
+            log('tanksResult', `🛢️ Ищем резервуары для станции ${station4Id}...`, 'warning');
+            
+            try {
+                // Ищем оборудование типа fuel_tank
+                const { data: equipment, error } = await supabase
+                    .from('equipment')
+                    .select('*')
+                    .eq('trading_point_id', station4Id)
+                    .eq('system_type', 'fuel_tank');
+
+                if (error) {
+                    log('tanksResult', `❌ Ошибка поиска оборудования: ${error.message}`, 'error');
+                    return;
+                }
+
+                log('tanksResult', `📊 Найдено резервуаров в equipment: ${equipment.length}`, equipment.length > 0 ? 'success' : 'warning');
+
+                if (equipment.length > 0) {
+                    equipment.forEach((tank, index) => {
+                        log('tanksResult', `<br><strong>🛢️ Резервуар ${index + 1} из equipment:</strong>`);
+                        const tankInfo = {
+                            id: tank.id,
+                            name: tank.name,
+                            display_name: tank.display_name,
+                            external_id: tank.external_id,
+                            system_type: tank.system_type,
+                            status: tank.status,
+                            params: tank.params,
+                            template_id: tank.template_id,
+                            installation_date: tank.installation_date
+                        };
+                        
+                        const pre = document.createElement('pre');
+                        pre.textContent = JSON.stringify(tankInfo, null, 2);
+                        document.getElementById('tanksResult').appendChild(pre);
+                    });
+                } else {
+                    log('tanksResult', '❌ Резервуары не найдены в таблице equipment', 'error');
+                    
+                    // Попробуем найти любое оборудование для этой станции
+                    const { data: allEquip } = await supabase
+                        .from('equipment')
+                        .select('*')
+                        .eq('trading_point_id', station4Id);
+                    
+                    log('tanksResult', `📋 Всего оборудования для станции 4: ${allEquip?.length || 0}`, 'warning');
+                    if (allEquip && allEquip.length > 0) {
+                        allEquip.forEach(eq => {
+                            log('tanksResult', `  • ${eq.name || eq.display_name} (тип: ${eq.system_type}, статус: ${eq.status})`);
+                        });
+                    }
+                }
+
+                // Дополнительно проверим localStorage
+                log('tanksResult', '<br>💾 Проверяем данные в localStorage...', 'warning');
+                const tanksData = localStorage.getItem('tanks_data');
+                if (tanksData) {
+                    const tanks = JSON.parse(tanksData);
+                    log('tanksResult', `📦 В localStorage найдено ${tanks.length} резервуаров`, 'success');
+                    
+                    const station4Tanks = tanks.filter(tank => 
+                        tank.name && (
+                            tank.name.includes('4') || 
+                            tank.name.includes('АЗС-004') ||
+                            tank.id?.includes('4')
+                        )
+                    );
+                    
+                    if (station4Tanks.length > 0) {
+                        log('tanksResult', `🛢️ Резервуары станции 4 в localStorage: ${station4Tanks.length}`, 'success');
+                        station4Tanks.forEach((tank, i) => {
+                            log('tanksResult', `  • ${tank.name}: ${tank.fuelType}, ${tank.currentLevelLiters}л`);
+                        });
+                    }
+                } else {
+                    log('tanksResult', '⚠️ Данные резервуаров в localStorage не найдены', 'warning');
+                }
+
+            } catch (error) {
+                log('tanksResult', `❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // Автоматический запуск при загрузке
+        window.onload = function() {
+            findNetwork15();
+        };
+    </script>
+</body>
+</html>

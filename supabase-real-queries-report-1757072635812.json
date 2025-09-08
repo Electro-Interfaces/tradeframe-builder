@@ -1,0 +1,248 @@
+{
+  "timestamp": "2025-09-05T11:43:55.786Z",
+  "totalServices": 9,
+  "testedServices": 9,
+  "passedServices": 0,
+  "failedServices": 9,
+  "criticalServicesPassed": 0,
+  "totalCriticalServices": 6,
+  "services": {
+    "Equipment Supabase": {
+      "status": "failed",
+      "score": 75,
+      "analysis": {
+        "exists": true,
+        "hasSupabaseImport": false,
+        "hasSupabaseQueries": true,
+        "hasRealTableQueries": true,
+        "hasMockQueries": false,
+        "hasDirectDatabaseCalls": true,
+        "hasApiEndpoints": false,
+        "usesSupabaseClient": false,
+        "hasAsyncMethods": true,
+        "exportsCount": 5,
+        "fileSize": 14819,
+        "realQueryScore": 12,
+        "maxScore": 16,
+        "scorePercent": 75,
+        "isReady": false
+      },
+      "critical": true,
+      "issues": [
+        "Отсутствует импорт Supabase"
+      ]
+    },
+    "Operations Supabase": {
+      "status": "failed",
+      "score": 63,
+      "analysis": {
+        "exists": true,
+        "hasSupabaseImport": false,
+        "hasSupabaseQueries": true,
+        "hasRealTableQueries": true,
+        "hasMockQueries": true,
+        "hasDirectDatabaseCalls": false,
+        "hasApiEndpoints": false,
+        "usesSupabaseClient": true,
+        "hasAsyncMethods": true,
+        "exportsCount": 3,
+        "fileSize": 12400,
+        "realQueryScore": 10,
+        "maxScore": 16,
+        "scorePercent": 63,
+        "isReady": false
+      },
+      "critical": true,
+      "issues": [
+        "Отсутствует импорт Supabase",
+        "Обнаружены Mock запросы",
+        "Нет прямых вызовов к БД"
+      ]
+    },
+    "Prices Supabase": {
+      "status": "failed",
+      "score": 63,
+      "analysis": {
+        "exists": true,
+        "hasSupabaseImport": false,
+        "hasSupabaseQueries": true,
+        "hasRealTableQueries": true,
+        "hasMockQueries": false,
+        "hasDirectDatabaseCalls": false,
+        "hasApiEndpoints": false,
+        "usesSupabaseClient": false,
+        "hasAsyncMethods": true,
+        "exportsCount": 5,
+        "fileSize": 11885,
+        "realQueryScore": 10,
+        "maxScore": 16,
+        "scorePercent": 63,
+        "isReady": false
+      },
+      "critical": true,
+      "issues": [
+        "Отсутствует импорт Supabase",
+        "Нет прямых вызовов к БД"
+      ]
+    },
+    "Users Supabase": {
+      "status": "failed",
+      "score": 75,
+      "analysis": {
+        "exists": true,
+        "hasSupabaseImport": false,
+        "hasSupabaseQueries": true,
+        "hasRealTableQueries": true,
+        "hasMockQueries": false,
+        "hasDirectDatabaseCalls": true,
+        "hasApiEndpoints": false,
+        "usesSupabaseClient": false,
+        "hasAsyncMethods": true,
+        "exportsCount": 5,
+        "fileSize": 14151,
+        "realQueryScore": 12,
+        "maxScore": 16,
+        "scorePercent": 75,
+        "isReady": false
+      },
+      "critical": true,
+      "issues": [
+        "Отсутствует импорт Supabase"
+      ]
+    },
+    "Tanks Service Supabase": {
+      "status": "failed",
+      "score": 63,
+      "analysis": {
+        "exists": true,
+        "hasSupabaseImport": false,
+        "hasSupabaseQueries": true,
+        "hasRealTableQueries": true,
+        "hasMockQueries": true,
+        "hasDirectDatabaseCalls": true,
+        "hasApiEndpoints": false,
+        "usesSupabaseClient": false,
+        "hasAsyncMethods": true,
+        "exportsCount": 4,
+        "fileSize": 8136,
+        "realQueryScore": 10,
+        "maxScore": 16,
+        "scorePercent": 63,
+        "isReady": false
+      },
+      "critical": true,
+      "issues": [
+        "Отсутствует импорт Supabase",
+        "Обнаружены Mock запросы"
+      ]
+    },
+    "Components Supabase": {
+      "status": "failed",
+      "score": 63,
+      "analysis": {
+        "exists": true,
+        "hasSupabaseImport": false,
+        "hasSupabaseQueries": true,
+        "hasRealTableQueries": true,
+        "hasMockQueries": false,
+        "hasDirectDatabaseCalls": false,
+        "hasApiEndpoints": false,
+        "usesSupabaseClient": false,
+        "hasAsyncMethods": true,
+        "exportsCount": 2,
+        "fileSize": 11443,
+        "realQueryScore": 10,
+        "maxScore": 16,
+        "scorePercent": 63,
+        "isReady": false
+      },
+      "critical": true,
+      "issues": [
+        "Отсутствует импорт Supabase",
+        "Нет прямых вызовов к БД"
+      ]
+    },
+    "Instructions Supabase": {
+      "status": "failed",
+      "score": 63,
+      "analysis": {
+        "exists": true,
+        "hasSupabaseImport": false,
+        "hasSupabaseQueries": true,
+        "hasRealTableQueries": true,
+        "hasMockQueries": false,
+        "hasDirectDatabaseCalls": false,
+        "hasApiEndpoints": false,
+        "usesSupabaseClient": false,
+        "hasAsyncMethods": true,
+        "exportsCount": 2,
+        "fileSize": 18896,
+        "realQueryScore": 10,
+        "maxScore": 16,
+        "scorePercent": 63,
+        "isReady": false
+      },
+      "critical": false,
+      "issues": [
+        "Отсутствует импорт Supabase",
+        "Нет прямых вызовов к БД"
+      ]
+    },
+    "Messages Supabase": {
+      "status": "failed",
+      "score": 75,
+      "analysis": {
+        "exists": true,
+        "hasSupabaseImport": false,
+        "hasSupabaseQueries": true,
+        "hasRealTableQueries": true,
+        "hasMockQueries": false,
+        "hasDirectDatabaseCalls": false,
+        "hasApiEndpoints": false,
+        "usesSupabaseClient": true,
+        "hasAsyncMethods": true,
+        "exportsCount": 2,
+        "fileSize": 23458,
+        "realQueryScore": 12,
+        "maxScore": 16,
+        "scorePercent": 75,
+        "isReady": false
+      },
+      "critical": false,
+      "issues": [
+        "Отсутствует импорт Supabase",
+        "Нет прямых вызовов к БД"
+      ]
+    },
+    "Workflows Supabase": {
+      "status": "failed",
+      "score": 50,
+      "analysis": {
+        "exists": true,
+        "hasSupabaseImport": false,
+        "hasSupabaseQueries": true,
+        "hasRealTableQueries": true,
+        "hasMockQueries": true,
+        "hasDirectDatabaseCalls": false,
+        "hasApiEndpoints": false,
+        "usesSupabaseClient": false,
+        "hasAsyncMethods": true,
+        "exportsCount": 4,
+        "fileSize": 21588,
+        "realQueryScore": 8,
+        "maxScore": 16,
+        "scorePercent": 50,
+        "isReady": false
+      },
+      "critical": false,
+      "issues": [
+        "Отсутствует импорт Supabase",
+        "Обнаружены Mock запросы",
+        "Нет прямых вызовов к БД"
+      ]
+    }
+  },
+  "overallHealth": 0,
+  "supabaseConnected": false,
+  "mockCompletelyDisabled": true
+}

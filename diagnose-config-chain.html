@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностика цепочки конфигурации</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .container {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #2d5a2d; border-left: 4px solid #4caf50; }
+        .error { background: #5a2d2d; border-left: 4px solid #f44336; }
+        .warning { background: #5a5a2d; border-left: 4px solid #ff9800; }
+        .info { background: #2d3a5a; border-left: 4px solid #2196f3; }
+        button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        pre {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .test-section {
+            border-left: 3px solid #4caf50;
+            padding-left: 15px;
+            margin: 15px 0;
+        }
+        .step-chain {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+        }
+        .step-number {
+            background: #4caf50;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        .step.error .step-number { background: #f44336; }
+        .step.warning .step-number { background: #ff9800; }
+        .arrow {
+            margin: 0 10px;
+            font-size: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Диагностика цепочки конфигурации</h1>
+        <p>Пошаговая проверка получения URL и ключей универсальным HTTP клиентом</p>
+        
+        <button onclick="diagnoseFullChain()" id="diagnoseBtn">🚀 Полная диагностика цепочки</button>
+        <button onclick="testEachStep()" id="testStepsBtn">🔧 Тестировать каждый шаг</button>
+        <button onclick="checkEnvironment()" id="checkEnvBtn">🌍 Проверить переменные окружения</button>
+    </div>
+
+    <div class="container">
+        <h2>📋 Схема цепочки конфигурации</h2>
+        <div class="step-chain">
+            <div class="step" id="step1">
+                <div class="step-number">1</div>
+                <div>
+                    <strong>universalHttpClient.ts</strong><br>
+                    <small>Запрашивает URL для назначения 'supabase'</small>
+                </div>
+            </div>
+            <div class="arrow">⬇</div>
+            
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <div>
+                    <strong>apiConfigServiceDB.getCurrentConnection()</strong><br>
+                    <small>Получает активное подключение из конфигурации</small>
+                </div>
+            </div>
+            <div class="arrow">⬇</div>
+            
+            <div class="step" id="step3">
+                <div class="step-number">3</div>
+                <div>
+                    <strong>systemConfigService.getDatabaseConfig()</strong><br>
+                    <small>Читает конфигурацию из таблицы system_config</small>
+                </div>
+            </div>
+            <div class="arrow">⬇</div>
+            
+            <div class="step" id="step4">
+                <div class="step-number">4</div>
+                <div>
+                    <strong>supabaseConfigClient</strong><br>
+                    <small>Базовый клиент с переменными окружения</small>
+                </div>
+            </div>
+            <div class="arrow">⬇</div>
+            
+            <div class="step" id="step5">
+                <div class="step-number">5</div>
+                <div>
+                    <strong>import.meta.env</strong><br>
+                    <small>VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        // Функция для добавления результатов
+        function addResult(title, content, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = 'container';
+            div.innerHTML = `
+                <div class="test-section">
+                    <h3>${title}</h3>
+                    <div class="status ${type}">
+                        <pre>${content}</pre>
+                    </div>
+                </div>
+            `;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        // Функция для обновления статуса шага
+        function updateStepStatus(stepId, status) {
+            const step = document.getElementById(stepId);
+            if (step) {
+                step.className = `step ${status}`;
+            }
+        }
+
+        // Проверка переменных окружения
+        window.checkEnvironment = function() {
+            addResult('🌍 Проверка переменных окружения', 'Анализируем доступные переменные...', 'info');
+            
+            const envVars = {
+                'VITE_SUPABASE_URL': import.meta.env.VITE_SUPABASE_URL,
+                'VITE_SUPABASE_ANON_KEY': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                'VITE_SUPABASE_SERVICE_KEY': import.meta.env.VITE_SUPABASE_SERVICE_KEY,
+                'MODE': import.meta.env.MODE,
+                'DEV': import.meta.env.DEV,
+                'PROD': import.meta.env.PROD,
+            };
+
+            let report = 'Переменные окружения:\n';
+            let hasErrors = false;
+
+            Object.entries(envVars).forEach(([key, value]) => {
+                if (value) {
+                    if (key.includes('KEY') || key.includes('SECRET')) {
+                        // Скрываем секретные ключи
+                        report += `✅ ${key}: ${value.substring(0, 20)}...\n`;
+                    } else {
+                        report += `✅ ${key}: ${value}\n`;
+                    }
+                } else {
+                    report += `❌ ${key}: НЕ ЗАДАНА\n`;
+                    if (key === 'VITE_SUPABASE_URL' || key === 'VITE_SUPABASE_ANON_KEY') {
+                        hasErrors = true;
+                    }
+                }
+            });
+
+            if (hasErrors) {
+                report += '\n❌ КРИТИЧЕСКИЕ ПЕРЕМЕННЫЕ НЕ ЗАДАНЫ!\n';
+                report += 'Убедитесь что .env файл существует и содержит:\n';
+                report += 'VITE_SUPABASE_URL=https://your-project.supabase.co\n';
+                report += 'VITE_SUPABASE_ANON_KEY=your-anon-key';
+                addResult('❌ Ошибка переменных окружения', report, 'error');
+                updateStepStatus('step5', 'error');
+            } else {
+                report += '\n✅ Все необходимые переменные заданы';
+                addResult('✅ Переменные окружения', report, 'success');
+                updateStepStatus('step5', 'success');
+            }
+        };
+
+        // Эмуляция тестирования каждого шага
+        window.testEachStep = async function() {
+            addResult('🔧 Пошаговое тестирование', 'Проверяем каждый компонент отдельно...', 'info');
+            
+            // Сброс статусов
+            ['step1', 'step2', 'step3', 'step4', 'step5'].forEach(id => {
+                updateStepStatus(id, '');
+            });
+
+            // Шаг 5: Переменные окружения
+            await new Promise(resolve => setTimeout(resolve, 500));
+            checkEnvironment();
+            
+            // Шаг 4: Базовый Supabase клиент
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            addResult('🔧 Шаг 4: Тест базового Supabase клиента', 'Эмулируем создание supabaseConfigClient...', 'info');
+            
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            
+            if (supabaseUrl && supabaseKey) {
+                try {
+                    // Эмулируем тест подключения
+                    const testUrl = `${supabaseUrl}/rest/v1/`;
+                    const response = await fetch(testUrl, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`
+                        }
+                    });
+                    
+                    if (response.status === 200 || response.status === 404) {
+                        addResult('✅ Шаг 4: Базовый Supabase клиент', 
+                            `Подключение к Supabase успешно\n` +
+                            `URL: ${supabaseUrl}\n` +
+                            `Статус: ${response.status}`, 'success');
+                        updateStepStatus('step4', 'success');
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    addResult('❌ Шаг 4: Ошибка базового Supabase клиента', 
+                        `Не удалось подключиться к Supabase:\n${error.message}\n\n` +
+                        `Проверьте:\n` +
+                        `• Правильность URL проекта\n` +
+                        `• Валидность API ключа\n` +
+                        `• Доступность сети`, 'error');
+                    updateStepStatus('step4', 'error');
+                }
+            } else {
+                addResult('❌ Шаг 4: Отсутствуют переменные', 'URL или ключ не заданы', 'error');
+                updateStepStatus('step4', 'error');
+            }
+
+            // Шаг 3: Таблица system_config
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            if (supabaseUrl && supabaseKey) {
+                try {
+                    const configUrl = `${supabaseUrl}/rest/v1/system_config`;
+                    const response = await fetch(configUrl, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        addResult('✅ Шаг 3: Таблица system_config', 
+                            `Таблица доступна\n` +
+                            `Найдено записей: ${data.length}\n` +
+                            `Примеры ключей: ${data.slice(0, 3).map(r => r.config_key).join(', ')}`, 'success');
+                        updateStepStatus('step3', 'success');
+                        
+                        // Проверяем есть ли конфигурация БД
+                        const dbConfig = data.find(r => r.config_key === 'database_connections');
+                        if (dbConfig) {
+                            addResult('✅ Конфигурация БД найдена', 
+                                `Ключ: ${dbConfig.config_key}\n` +
+                                `Тип: ${dbConfig.config_type}\n` +
+                                `Описание: ${dbConfig.description || 'Не указано'}`, 'success');
+                        } else {
+                            addResult('⚠️ Конфигурация БД отсутствует', 
+                                'В system_config нет записи с ключом "database_connections"\n' +
+                                'Это объясняет почему универсальный клиент не может получить URL', 'warning');
+                        }
+                    } else if (response.status === 401 || response.status === 403) {
+                        addResult('⚠️ Шаг 3: Нет доступа к system_config', 
+                            `HTTP ${response.status}: ${response.statusText}\n\n` +
+                            `Возможные причины:\n` +
+                            `• RLS политики блокируют доступ\n` +
+                            `• Нужен service_role ключ\n` +
+                            `• Таблица существует но недоступна`, 'warning');
+                        updateStepStatus('step3', 'warning');
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    if (error.message.includes('404')) {
+                        addResult('❌ Шаг 3: Таблица system_config не существует', 
+                            'Таблица system_config не найдена в БД\n\n' +
+                            'Необходимо создать таблицу:\n' +
+                            'CREATE TABLE system_config (\n' +
+                            '  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n' +
+                            '  config_key text UNIQUE NOT NULL,\n' +
+                            '  config_value jsonb,\n' +
+                            '  config_type text DEFAULT \'general\',\n' +
+                            '  description text,\n' +
+                            '  is_encrypted boolean DEFAULT false,\n' +
+                            '  created_at timestamp with time zone DEFAULT now(),\n' +
+                            '  updated_at timestamp with time zone DEFAULT now()\n' +
+                            ');', 'error');
+                        updateStepStatus('step3', 'error');
+                    } else {
+                        addResult('❌ Шаг 3: Ошибка доступа к system_config', error.message, 'error');
+                        updateStepStatus('step3', 'error');
+                    }
+                }
+            }
+
+            // Шаги 2 и 1 зависят от предыдущих
+            await new Promise(resolve => setTimeout(resolve, 500));
+            addResult('⚠️ Шаги 2 и 1: Зависят от system_config', 
+                'apiConfigServiceDB и universalHttpClient не смогут работать\n' +
+                'без данных в таблице system_config', 'warning');
+            updateStepStatus('step2', 'warning');
+            updateStepStatus('step1', 'warning');
+        };
+
+        // Полная диагностика
+        window.diagnoseFullChain = async function() {
+            addResult('🚀 Полная диагностика цепочки конфигурации', 'Запуск комплексной проверки...', 'info');
+            
+            await testEachStep();
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Итоговый анализ
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            
+            let diagnosis = '🔍 ДИАГНОЗ:\n\n';
+            
+            if (!supabaseUrl || !supabaseKey) {
+                diagnosis += '❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: Отсутствуют переменные окружения\n';
+                diagnosis += 'РЕШЕНИЕ: Создайте .env файл с VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY\n\n';
+            } else {
+                diagnosis += '✅ Переменные окружения настроены\n\n';
+                
+                try {
+                    const configUrl = `${supabaseUrl}/rest/v1/system_config`;
+                    const response = await fetch(configUrl, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`
+                        }
+                    });
+                    
+                    if (response.status === 404) {
+                        diagnosis += '❌ ОСНОВНАЯ ПРОБЛЕМА: Таблица system_config не существует\n';
+                        diagnosis += 'РЕШЕНИЕ: Создайте таблицу system_config в Supabase\n\n';
+                        diagnosis += 'SQL для создания:\n';
+                        diagnosis += 'CREATE TABLE system_config (\n';
+                        diagnosis += '  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n';
+                        diagnosis += '  config_key text UNIQUE NOT NULL,\n';
+                        diagnosis += '  config_value jsonb,\n';
+                        diagnosis += '  config_type text DEFAULT \'general\',\n';
+                        diagnosis += '  description text,\n';
+                        diagnosis += '  is_encrypted boolean DEFAULT false,\n';
+                        diagnosis += '  created_at timestamp with time zone DEFAULT now(),\n';
+                        diagnosis += '  updated_at timestamp with time zone DEFAULT now()\n';
+                        diagnosis += ');\n\n';
+                    } else if (response.status === 401 || response.status === 403) {
+                        diagnosis += '⚠️ ПРОБЛЕМА ДОСТУПА: Нет прав на чтение system_config\n';
+                        diagnosis += 'РЕШЕНИЕ: Настройте RLS политики или используйте service_role ключ\n\n';
+                    } else if (response.ok) {
+                        const data = await response.json();
+                        const dbConfig = data.find(r => r.config_key === 'database_connections');
+                        
+                        if (!dbConfig) {
+                            diagnosis += '⚠️ ПРОБЛЕМА КОНФИГУРАЦИИ: Отсутствует запись database_connections\n';
+                            diagnosis += 'РЕШЕНИЕ: Добавьте конфигурацию БД в раздел "Обмен данными"\n\n';
+                            diagnosis += 'Или выполните SQL:\n';
+                            diagnosis += 'INSERT INTO system_config (config_key, config_value, config_type, description)\n';
+                            diagnosis += 'VALUES (\n';
+                            diagnosis += '  \'database_connections\',\n';
+                            diagnosis += '  \'{"currentConnectionId": "supabase-main", "availableConnections": [{"id": "supabase-main", "name": "Main Supabase", "type": "supabase", "url": "' + supabaseUrl + '", "settings": {"apiKey": "' + supabaseKey + '"}}], "debugMode": false}\',\n';
+                            diagnosis += '  \'database\',\n';
+                            diagnosis += '  \'Database connections configuration\'\n';
+                            diagnosis += ');\n\n';
+                        } else {
+                            diagnosis += '✅ Конфигурация database_connections найдена\n';
+                            diagnosis += 'Система должна работать корректно\n\n';
+                        }
+                    }
+                } catch (error) {
+                    diagnosis += '❌ СЕТЕВАЯ ПРОБЛЕМА: ' + error.message + '\n';
+                    diagnosis += 'РЕШЕНИЕ: Проверьте доступность Supabase проекта\n\n';
+                }
+            }
+            
+            diagnosis += '📋 РЕКОМЕНДУЕМЫЕ ДЕЙСТВИЯ:\n';
+            diagnosis += '1. Убедитесь что .env файл существует и содержит правильные переменные\n';
+            diagnosis += '2. Создайте таблицу system_config если её нет\n';
+            diagnosis += '3. Добавьте конфигурацию database_connections\n';
+            diagnosis += '4. Настройте RLS политики для доступа к system_config\n';
+            diagnosis += '5. Перезапустите приложение после изменений';
+            
+            addResult('🎯 Итоговая диагностика', diagnosis, 'info');
+        };
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            addResult('🔧 Диагностика цепочки конфигурации', 
+                'Инструмент для выявления проблем в получении URL и ключей\n\n' +
+                '🎯 Что проверяем:\n' +
+                '• Переменные окружения (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)\n' +
+                '• Подключение к базовому Supabase клиенту\n' +
+                '• Существование таблицы system_config\n' +
+                '• Наличие конфигурации database_connections\n' +
+                '• Цепочку вызовов в universalHttpClient\n\n' +
+                'Запустите диагностику для получения детального отчета.', 'info');
+        });
+    </script>
+</body>
+</html>

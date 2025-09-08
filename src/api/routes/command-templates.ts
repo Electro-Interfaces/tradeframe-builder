@@ -89,20 +89,8 @@ router.get('/', async (req: Request, res: Response) => { // Temporarily disabled
     const params = ListCommandTemplatesSchema.parse(req.query);
     
     // TODO: Заменить на реальный репозиторий
-    const mockTemplates = [
-      {
-        id: 'cmd_shift_open',
-        name: 'shift_open',
-        display_name: 'Открыть смену',
-        description: 'Открывает новую смену на указанных торговых точках или оборудовании',
-        category: 'shift_operations',
-        status: 'active',
-        is_system: true,
-        version: '1.0.0',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ];
+    // ❌ MOCK ШАБЛОНЫ КОМАНД ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+    const mockTemplates: any[] = [];
     
     res.json({
       success: true,

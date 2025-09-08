@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест универсального HTTP клиента</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .container { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; 
+        }
+        .section { 
+            background: #2a2a2a; 
+            border: 1px solid #444; 
+            border-radius: 8px; 
+            padding: 20px; 
+        }
+        .section h3 { 
+            color: #4CAF50; 
+            margin-top: 0; 
+        }
+        button { 
+            background: #4CAF50; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 5px; 
+            min-width: 120px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { 
+            background: #666; 
+            cursor: not-allowed; 
+        }
+        pre { 
+            background: #333; 
+            padding: 15px; 
+            border-radius: 4px; 
+            overflow-x: auto; 
+            border-left: 4px solid #4CAF50;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+        .error { border-left-color: #f44336; background: #2a1a1a; }
+        .info { border-left-color: #2196F3; background: #1a1a2a; }
+        .input-group { 
+            margin: 10px 0; 
+        }
+        .input-group label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+        }
+        .input-group input, .input-group select { 
+            width: 100%; 
+            padding: 8px; 
+            border: 1px solid #555; 
+            border-radius: 4px; 
+            background: #333; 
+            color: #e0e0e0;
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 4px; 
+            margin: 10px 0; 
+        }
+        .status.success { background: #1b5e20; border: 1px solid #4CAF50; }
+        .status.error { background: #b71c1c; border: 1px solid #f44336; }
+        .status.warning { background: #e65100; border: 1px solid #ff9800; }
+        .config-info { 
+            background: #1a2332; 
+            border: 1px solid #2196F3; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+        }
+        .spinner {
+            border: 2px solid #333;
+            border-top: 2px solid #4CAF50;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>🌐 Тест универсального HTTP клиента</h1>
+    <p><strong>Цель:</strong> Проверить, что все API используют настройки из раздела "Обмен данными"</p>
+
+    <div class="container">
+        <!-- Конфигурация -->
+        <div class="section">
+            <h3>📋 Текущая конфигурация</h3>
+            <button onclick="loadConfig()">🔄 Загрузить конфигурацию</button>
+            <div id="configInfo" class="config-info">Загрузите конфигурацию...</div>
+        </div>
+
+        <!-- Тестирование подключения -->
+        <div class="section">
+            <h3>🧪 Тестирование подключений</h3>
+            <button onclick="testExternalApi()">🌐 Тест внешнего API</button>
+            <button onclick="testSupabase()">🗄️ Тест Supabase</button>
+            <div id="connectionResults"></div>
+        </div>
+
+        <!-- Резервуары -->
+        <div class="section">
+            <h3>🛢️ Тест резервуаров</h3>
+            <div class="input-group">
+                <label>System ID:</label>
+                <input type="text" id="systemId" value="1" placeholder="Введите System ID">
+            </div>
+            <div class="input-group">
+                <label>Station ID:</label>
+                <input type="text" id="stationId" value="1" placeholder="Введите Station ID">
+            </div>
+            <button onclick="getTanks()">🛢️ Получить резервуары</button>
+            <div id="tanksResults"></div>
+        </div>
+
+        <!-- Цены -->
+        <div class="section">
+            <h3>💰 Тест цен</h3>
+            <button onclick="getFuelPrices()">💰 Получить цены</button>
+            <button onclick="testSetPrices()">📊 Тест установки цен</button>
+            <div id="pricesResults"></div>
+        </div>
+
+        <!-- Операции -->
+        <div class="section">
+            <h3>🧾 Тест операций</h3>
+            <button onclick="getOperations()">🧾 Получить операции</button>
+            <div id="operationsResults"></div>
+        </div>
+
+        <!-- Логи -->
+        <div class="section">
+            <h3>📝 Логи и диагностика</h3>
+            <button onclick="clearLogs()">🗑️ Очистить логи</button>
+            <button onclick="downloadLogs()">💾 Скачать логи</button>
+            <pre id="logs">Логи будут появляться здесь...</pre>
+        </div>
+    </div>
+
+    <script type="module">
+        import { httpClient } from './src/services/universalHttpClient.js';
+        import { newTradingNetworkAPI } from './src/services/tradingNetworkAPI.js';
+        import { apiEndpoints } from './src/services/apiEndpoints.js';
+
+        window.logs = [];
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            window.logs.push(logEntry);
+            
+            const logsElement = document.getElementById('logs');
+            logsElement.textContent = window.logs.join('\n');
+            logsElement.scrollTop = logsElement.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function showSpinner(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status info"><span class="spinner"></span>${message}</div>`;
+        }
+
+        // Загрузка конфигурации
+        window.loadConfig = async function() {
+            addLog('🔄 Загрузка конфигурации...');
+            
+            try {
+                const configInfo = await httpClient.getConfigurationInfo();
+                
+                const configHtml = `
+                    <h4>🌐 Внешний API</h4>
+                    <p><strong>Включен:</strong> ${configInfo.externalApi.enabled ? '✅ Да' : '❌ Нет'}</p>
+                    <p><strong>URL:</strong> ${configInfo.externalApi.baseUrl}</p>
+                    <p><strong>Тип авторизации:</strong> ${configInfo.externalApi.authType}</p>
+                    <p><strong>Есть учетные данные:</strong> ${configInfo.externalApi.hasCredentials ? '✅ Да' : '❌ Нет'}</p>
+                    
+                    <h4>🗄️ Supabase</h4>
+                    <p><strong>URL:</strong> ${configInfo.supabase.url}</p>
+                    <p><strong>Тип:</strong> ${configInfo.supabase.type}</p>
+                    <p><strong>Есть API ключ:</strong> ${configInfo.supabase.hasApiKey ? '✅ Да' : '❌ Нет'}</p>
+                `;
+                
+                document.getElementById('configInfo').innerHTML = configHtml;
+                addLog('✅ Конфигурация загружена успешно');
+            } catch (error) {
+                addLog(`❌ Ошибка загрузки конфигурации: ${error.message}`, 'error');
+                showStatus('configInfo', `Ошибка: ${error.message}`, 'error');
+            }
+        };
+
+        // Тестирование внешнего API
+        window.testExternalApi = async function() {
+            addLog('🧪 Тестирование подключения к внешнему API...');
+            showSpinner('connectionResults', 'Тестирование внешнего API...');
+            
+            try {
+                const result = await newTradingNetworkAPI.testConnection();
+                
+                if (result.success) {
+                    showStatus('connectionResults', 
+                        `✅ Подключение к внешнему API успешно! Время ответа: ${result.responseTime}мс`, 
+                        'success'
+                    );
+                    addLog(`✅ Внешний API: подключение успешно (${result.responseTime}мс)`);
+                } else {
+                    showStatus('connectionResults', 
+                        `❌ Ошибка подключения к внешнему API: ${result.error}`, 
+                        'error'
+                    );
+                    addLog(`❌ Внешний API: ошибка - ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('connectionResults', `❌ Критическая ошибка: ${error.message}`, 'error');
+                addLog(`❌ Внешний API: критическая ошибка - ${error.message}`, 'error');
+            }
+        };
+
+        // Тестирование Supabase
+        window.testSupabase = async function() {
+            addLog('🧪 Тестирование подключения к Supabase...');
+            showSpinner('connectionResults', 'Тестирование Supabase...');
+            
+            try {
+                const response = await httpClient.get('/rest/v1/', {
+                    destination: 'supabase'
+                });
+                
+                if (response.success) {
+                    showStatus('connectionResults', 
+                        `✅ Подключение к Supabase успешно! Время ответа: ${response.responseTime}мс`, 
+                        'success'
+                    );
+                    addLog(`✅ Supabase: подключение успешно (${response.responseTime}мс)`);
+                } else {
+                    showStatus('connectionResults', 
+                        `❌ Ошибка подключения к Supabase: ${response.error}`, 
+                        'error'
+                    );
+                    addLog(`❌ Supabase: ошибка - ${response.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('connectionResults', `❌ Критическая ошибка: ${error.message}`, 'error');
+                addLog(`❌ Supabase: критическая ошибка - ${error.message}`, 'error');
+            }
+        };
+
+        // Получение резервуаров
+        window.getTanks = async function() {
+            const systemId = document.getElementById('systemId').value;
+            const stationId = document.getElementById('stationId').value;
+            
+            addLog(`🛢️ Запрос резервуаров: system=${systemId}, station=${stationId}`);
+            showSpinner('tanksResults', 'Получение резервуаров...');
+            
+            try {
+                const tanks = await newTradingNetworkAPI.getTanks(systemId, stationId);
+                
+                showStatus('tanksResults', 
+                    `✅ Получено ${tanks.length} резервуаров`, 
+                    'success'
+                );
+                addLog(`✅ Резервуары: получено ${tanks.length} записей`);
+                
+                // Показываем первые 3 резервуара
+                if (tanks.length > 0) {
+                    const preview = tanks.slice(0, 3).map(tank => 
+                        `Резервуар ${tank.number}: ${tank.fuel_name}, ${tank.volume} л`
+                    ).join('\n');
+                    
+                    document.getElementById('tanksResults').innerHTML += 
+                        `<pre class="info">${preview}${tanks.length > 3 ? `\n... и еще ${tanks.length - 3}` : ''}</pre>`;
+                }
+            } catch (error) {
+                showStatus('tanksResults', `❌ Ошибка: ${error.message}`, 'error');
+                addLog(`❌ Резервуары: ошибка - ${error.message}`, 'error');
+            }
+        };
+
+        // Получение цен
+        window.getFuelPrices = async function() {
+            const systemId = document.getElementById('systemId').value;
+            const stationId = document.getElementById('stationId').value;
+            
+            addLog(`💰 Запрос цен: system=${systemId}, station=${stationId}`);
+            showSpinner('pricesResults', 'Получение цен...');
+            
+            try {
+                const prices = await newTradingNetworkAPI.getFuelPrices(systemId, stationId);
+                
+                const pricesCount = Object.keys(prices).length;
+                showStatus('pricesResults', 
+                    `✅ Получены цены для ${pricesCount} видов топлива`, 
+                    'success'
+                );
+                addLog(`✅ Цены: получено ${pricesCount} записей`);
+                
+                // Показываем цены
+                const pricesText = Object.entries(prices)
+                    .map(([fuel, price]) => `${fuel}: ${price} руб/л`)
+                    .join('\n');
+                
+                document.getElementById('pricesResults').innerHTML += 
+                    `<pre class="info">${pricesText}</pre>`;
+            } catch (error) {
+                showStatus('pricesResults', `❌ Ошибка: ${error.message}`, 'error');
+                addLog(`❌ Цены: ошибка - ${error.message}`, 'error');
+            }
+        };
+
+        // Тест установки цен
+        window.testSetPrices = async function() {
+            const systemId = document.getElementById('systemId').value;
+            const stationId = document.getElementById('stationId').value;
+            
+            const testPrices = {
+                'АИ-92': 56.50,
+                'АИ-95': 60.00,
+                'ДТ': 62.00
+            };
+            
+            addLog(`📊 Тест установки цен: ${JSON.stringify(testPrices)}`);
+            showSpinner('pricesResults', 'Установка тестовых цен...');
+            
+            try {
+                const success = await newTradingNetworkAPI.setFuelPrices(systemId, stationId, testPrices);
+                
+                if (success) {
+                    showStatus('pricesResults', '✅ Цены успешно установлены', 'success');
+                    addLog('✅ Установка цен: успешно');
+                } else {
+                    showStatus('pricesResults', '❌ Ошибка установки цен', 'error');
+                    addLog('❌ Установка цен: неудача', 'error');
+                }
+            } catch (error) {
+                showStatus('pricesResults', `❌ Ошибка: ${error.message}`, 'error');
+                addLog(`❌ Установка цен: ошибка - ${error.message}`, 'error');
+            }
+        };
+
+        // Получение операций
+        window.getOperations = async function() {
+            const systemId = document.getElementById('systemId').value;
+            const stationId = document.getElementById('stationId').value;
+            
+            addLog(`🧾 Запрос операций: system=${systemId}, station=${stationId}`);
+            showSpinner('operationsResults', 'Получение операций...');
+            
+            try {
+                const operations = await newTradingNetworkAPI.getOperations(systemId, stationId, {
+                    limit: 10
+                });
+                
+                showStatus('operationsResults', 
+                    `✅ Получено ${operations.length} операций`, 
+                    'success'
+                );
+                addLog(`✅ Операции: получено ${operations.length} записей`);
+                
+                // Показываем первые 3 операции
+                if (operations.length > 0) {
+                    const preview = operations.slice(0, 3).map(op => 
+                        `${op.timestamp}: ${op.volume}л, ${op.amount} руб`
+                    ).join('\n');
+                    
+                    document.getElementById('operationsResults').innerHTML += 
+                        `<pre class="info">${preview}${operations.length > 3 ? `\n... и еще ${operations.length - 3}` : ''}</pre>`;
+                }
+            } catch (error) {
+                showStatus('operationsResults', `❌ Ошибка: ${error.message}`, 'error');
+                addLog(`❌ Операции: ошибка - ${error.message}`, 'error');
+            }
+        };
+
+        // Очистка логов
+        window.clearLogs = function() {
+            window.logs = [];
+            document.getElementById('logs').textContent = 'Логи очищены...';
+            addLog('🗑️ Логи очищены');
+        };
+
+        // Скачивание логов
+        window.downloadLogs = function() {
+            const logsText = window.logs.join('\n');
+            const blob = new Blob([logsText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `http-client-test-${new Date().toISOString().slice(0, 19)}.log`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            addLog('💾 Логи скачаны');
+        };
+
+        // Автозагрузка конфигурации при открытии страницы
+        window.addEventListener('load', () => {
+            addLog('🚀 Страница тестирования загружена');
+            loadConfig();
+        });
+    </script>
+</body>
+</html>

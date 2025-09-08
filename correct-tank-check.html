@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Правильная проверка резервуаров</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <h1 class="text-xl font-bold mb-4">✅ Проверка резервуаров в ПРАВИЛЬНОЙ базе данных</h1>
+    
+    <div class="bg-green-900 border border-green-600 rounded-lg p-4 mb-4">
+        <p><strong>Используем правильный проект:</strong> tohtryzyffcebtyvkxwh.supabase.co</p>
+        <p><strong>Торговая точка:</strong> 6969b08d-1cbe-45c2-ae9c-8002c7022b59</p>
+    </div>
+    
+    <button onclick="checkTanks()" class="bg-blue-600 px-4 py-2 rounded mb-4">Проверить резервуары</button>
+    <div id="results" class="mt-4 space-y-2"></div>
+
+    <script>
+        // ПРАВИЛЬНЫЕ настройки Supabase из приложения
+        const SUPABASE_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+        const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+        
+        const TRADING_POINT_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+
+        async function checkTanks() {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            
+            function log(message, type = 'info') {
+                const div = document.createElement('div');
+                div.className = type === 'error' ? 'text-red-400 bg-red-900 p-3 rounded' : 
+                                 type === 'success' ? 'text-green-400 bg-green-900 p-3 rounded' : 
+                                 'text-blue-400 bg-blue-900 p-3 rounded';
+                div.textContent = message;
+                results.appendChild(div);
+            }
+            
+            try {
+                log(`🔍 Проверяем резервуары в правильной БД для ТП: ${TRADING_POINT_ID}`);
+                
+                // 1. Проверяем все оборудование для этой торговой точки
+                const url1 = `${SUPABASE_URL}/rest/v1/equipment?trading_point_id=eq.${TRADING_POINT_ID}`;
+                log(`📋 Запрос всего оборудования: ${url1}`);
+                
+                const resp1 = await fetch(url1, {
+                    headers: {
+                        'apikey': SERVICE_ROLE_KEY,
+                        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!resp1.ok) {
+                    throw new Error(`HTTP ${resp1.status}: ${resp1.statusText}`);
+                }
+                
+                const allEquipment = await resp1.json();
+                log(`✅ Всего equipment: ${allEquipment.length}`, 'success');
+                
+                if (allEquipment.length === 0) {
+                    log('❌ ПРОБЛЕМА: Нет оборудования для этой торговой точки!', 'error');
+                    
+                    // Проверим существует ли вообще такая торговая точка
+                    const tpUrl = `${SUPABASE_URL}/rest/v1/trading_points?id=eq.${TRADING_POINT_ID}`;
+                    const tpResp = await fetch(tpUrl, {
+                        headers: {
+                            'apikey': SERVICE_ROLE_KEY,
+                            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
+                        }
+                    });
+                    const tradingPoint = await tpResp.json();
+                    
+                    if (tradingPoint.length === 0) {
+                        log('❌ Торговая точка с таким ID не существует в БД!', 'error');
+                    } else {
+                        log(`✅ Торговая точка существует: ${tradingPoint[0].name}`, 'success');
+                        log('💡 Решение: Нужно создать резервуары для этой торговой точки', 'info');
+                    }
+                    return;
+                }
+                
+                // 2. Показываем все equipment
+                log('📋 Найденное оборудование:', 'info');
+                allEquipment.forEach((eq, i) => {
+                    log(`  ${i+1}. ${eq.name} | type: ${eq.system_type} | status: ${eq.status}`);
+                });
+                
+                // 3. Проверяем резервуары
+                const url2 = `${SUPABASE_URL}/rest/v1/equipment?trading_point_id=eq.${TRADING_POINT_ID}&system_type=eq.fuel_tank`;
+                const resp2 = await fetch(url2, {
+                    headers: {
+                        'apikey': SERVICE_ROLE_KEY,
+                        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`
+                    }
+                });
+                const tanks = await resp2.json();
+                
+                log(`🛢️ Резервуаров (fuel_tank): ${tanks.length}`, tanks.length > 0 ? 'success' : 'error');
+                
+                if (tanks.length > 0) {
+                    log('✅ Найденные резервуары:', 'success');
+                    tanks.forEach((tank, i) => {
+                        const fuelType = tank.params?.['Тип топлива'] || 'НЕ УКАЗАН';
+                        const status = tank.status || 'active';
+                        log(`  ${i+1}. ${tank.name} | Топливо: ${fuelType} | Статус: ${status}`);
+                        
+                        if (!tank.params?.['Тип топлива']) {
+                            log(`    ⚠️ У резервуара "${tank.name}" нет параметра "Тип топлива"!`, 'error');
+                        }
+                        if (tank.status === 'deleted') {
+                            log(`    ⚠️ Резервуар "${tank.name}" помечен как удалённый!`, 'error');
+                        }
+                    });
+                    
+                    // Проверяем валидные резервуары с топливом
+                    const validTanks = tanks.filter(t => t.status !== 'deleted' && t.params?.['Тип топлива']);
+                    const fuelTypes = [...new Set(validTanks.map(t => t.params['Тип топлива']))];
+                    
+                    log(`🔥 ИТОГО валидных резервуаров: ${validTanks.length}`, validTanks.length > 0 ? 'success' : 'error');
+                    log(`🔥 Виды топлива: [${fuelTypes.join(', ')}]`, fuelTypes.length > 0 ? 'success' : 'error');
+                    
+                    if (validTanks.length === 0) {
+                        log('❌ Нет валидных резервуаров с типом топлива!', 'error');
+                        log('💡 Решения:', 'info');
+                        log('   • Добавить параметр "Тип топлива" к резервуарам');
+                        log('   • Проверить статус резервуаров (не должен быть "deleted")');
+                    }
+                } else {
+                    log('❌ Резервуары не найдены!', 'error');
+                    log('💡 Нужно создать резервуары с system_type = "fuel_tank"');
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        // Автозапуск
+        checkTanks();
+    </script>
+</body>
+</html>

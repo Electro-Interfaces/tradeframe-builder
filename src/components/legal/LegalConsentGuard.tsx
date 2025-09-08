@@ -42,8 +42,20 @@ export const LegalConsentGuard: React.FC<LegalConsentGuardProps> = ({
       
     } catch (error) {
       console.error('Ошибка проверки статуса согласий:', error);
-      // В случае ошибки разрешаем доступ (fallback)
-      setIsModalOpen(false);
+      // В случае ошибки БЛОКИРУЕМ доступ из соображений безопасности
+      setIsModalOpen(true);
+      setConsentRequirement({
+        user_id: userId,
+        pending_documents: [{
+          document_type: 'user_agreement',
+          content: 'Не удалось загрузить пользовательское соглашение. Пожалуйста, обратитесь к системному администратору.',
+          version: '1.0',
+          effective_date: new Date().toISOString(),
+          is_current: true,
+          created_at: new Date().toISOString()
+        }],
+        last_check: new Date().toISOString()
+      });
     } finally {
       // Быстро убираем загрузку
       setTimeout(() => setIsLoading(false), 100);

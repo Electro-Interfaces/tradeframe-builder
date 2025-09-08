@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аудит мобильной оптимизации TradeFrame</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .device-frame {
+            border: 16px solid #1f2937;
+            border-radius: 24px;
+            background: #000;
+            position: relative;
+        }
+        .device-frame::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: #374151;
+            border-radius: 2px;
+        }
+        .checklist-item {
+            transition: all 0.2s;
+        }
+        .checklist-item:hover {
+            background: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">📱 Аудит мобильной оптимизации TradeFrame</h1>
+        
+        <!-- Общий статус -->
+        <div class="bg-white rounded-lg shadow-sm border p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold">Общий статус мобильной готовности</h2>
+                <div class="text-3xl font-bold text-orange-600">75%</div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                <div class="bg-orange-500 h-3 rounded-full" style="width: 75%"></div>
+            </div>
+            <p class="text-sm text-gray-600 mt-2">Хорошая базовая оптимизация, но есть области для улучшения</p>
+        </div>
+
+        <!-- Детальный анализ -->
+        <div class="grid gap-6">
+            
+            <!-- 1. Responsive Layout -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center mb-4">
+                    <span class="text-2xl mr-3">✅</span>
+                    <h3 class="text-lg font-semibold">1. Responsive Layout</h3>
+                    <span class="ml-auto bg-green-100 text-green-800 px-2 py-1 rounded text-sm">Отлично</span>
+                </div>
+                <ul class="space-y-2 text-sm">
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Viewport meta tag корректно настроен
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        useIsMobile хук для определения устройства (768px breakpoint)
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Отдельные layout для мобильных и десктоп устройств
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Использование Tailwind responsive classes (md:, lg:)
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 2. Навигация -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center mb-4">
+                    <span class="text-2xl mr-3">✅</span>
+                    <h3 class="text-lg font-semibold">2. Мобильная навигация</h3>
+                    <span class="ml-auto bg-green-100 text-green-800 px-2 py-1 rounded text-sm">Отлично</span>
+                </div>
+                <ul class="space-y-2 text-sm">
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Hamburger menu для мобильных устройств
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Боковое выдвижное меню (Sheet/Sidebar)
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Специальный селектор торговых точек для мобильной версии
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Fixed header с backdrop-blur эффектом
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 3. Touch интерфейсы -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center mb-4">
+                    <span class="text-2xl mr-3">⚠️</span>
+                    <h3 class="text-lg font-semibold">3. Touch-friendly интерфейсы</h3>
+                    <span class="ml-auto bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">Средне</span>
+                </div>
+                <ul class="space-y-2 text-sm">
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Кнопки используют стандартные размеры (h-8 w-8, h-10 w-10)
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-yellow-500 mr-2">⚠</span>
+                        Минимальные размеры touch targets не всегда соблюдены (44px)
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-red-500 mr-2">✗</span>
+                        Отсутствует специфическая оптимизация для touch events
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-yellow-500 mr-2">⚠</span>
+                        Таблицы требуют горизонтального скролла на мобильных
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 4. Производительность -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center mb-4">
+                    <span class="text-2xl mr-3">✅</span>
+                    <h3 class="text-lg font-semibold">4. Производительность</h3>
+                    <span class="ml-auto bg-green-100 text-green-800 px-2 py-1 rounded text-sm">Отлично</span>
+                </div>
+                <ul class="space-y-2 text-sm">
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Code splitting и lazy loading настроены
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Основной бандл уменьшен до ~189KB (gzip: ~56KB)
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Библиотеки разделены на отдельные чанки
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Fast initial load благодаря оптимизации
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 5. Адаптивные компоненты -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center mb-4">
+                    <span class="text-2xl mr-3">⚠️</span>
+                    <h3 class="text-lg font-semibold">5. Адаптивные компоненты</h3>
+                    <span class="ml-auto bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm">Требует улучшения</span>
+                </div>
+                <ul class="space-y-2 text-sm">
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        shadcn/ui компоненты изначально responsive
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-yellow-500 mr-2">⚠</span>
+                        Ограниченное использование responsive breakpoints в кастомных компонентах
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-red-500 mr-2">✗</span>
+                        Таблицы не адаптированы под карточный вид на мобильных
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-red-500 mr-2">✗</span>
+                        Отсутствует паттерн hidden md:block для сложных данных
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 6. UX/UI оптимизация -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center mb-4">
+                    <span class="text-2xl mr-3">⚠️</span>
+                    <h3 class="text-lg font-semibold">6. UX/UI для мобильных</h3>
+                    <span class="ml-auto bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">Средне</span>
+                </div>
+                <ul class="space-y-2 text-sm">
+                    <li class="flex items-center">
+                        <span class="text-green-500 mr-2">✓</span>
+                        Loading состояния с спиннерами и скелетонами
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-yellow-500 mr-2">⚠</span>
+                        Отсутствуют специфические паттерны swipe/touch жестов
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-red-500 mr-2">✗</span>
+                        Нет pull-to-refresh функциональности
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-yellow-500 mr-2">⚠</span>
+                        Модальные окна могут быть большими для мобильных экранов
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Рекомендации -->
+        <div class="bg-white rounded-lg shadow-sm border p-6 mt-8">
+            <h2 class="text-xl font-semibold mb-4">🎯 Рекомендации по улучшению</h2>
+            
+            <div class="space-y-4">
+                <div class="border-l-4 border-red-400 pl-4">
+                    <h4 class="font-medium text-red-800">Высокий приоритет</h4>
+                    <ul class="text-sm text-gray-700 mt-2 space-y-1">
+                        <li>• Реализовать карточный вид для таблиц на мобильных (hidden md:block паттерн)</li>
+                        <li>• Увеличить минимальные размеры touch targets до 44px</li>
+                        <li>• Оптимизировать модальные окна для мобильных экранов</li>
+                    </ul>
+                </div>
+
+                <div class="border-l-4 border-yellow-400 pl-4">
+                    <h4 class="font-medium text-yellow-800">Средний приоритет</h4>
+                    <ul class="text-sm text-gray-700 mt-2 space-y-1">
+                        <li>• Добавить touch/swipe жесты для улучшения UX</li>
+                        <li>• Реализовать pull-to-refresh для списков данных</li>
+                        <li>• Улучшить типографику для мобильных экранов</li>
+                    </ul>
+                </div>
+
+                <div class="border-l-4 border-blue-400 pl-4">
+                    <h4 class="font-medium text-blue-800">Низкий приоритет</h4>
+                    <ul class="text-sm text-gray-700 mt-2 space-y-1">
+                        <li>• Добавить PWA функциональность (манифест, оффлайн режим)</li>
+                        <li>• Оптимизировать изображения и иконки для разных плотностей экрана</li>
+                        <li>• Реализовать адаптивные шрифты и spacing</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Техническая информация -->
+        <div class="bg-gray-100 rounded-lg p-6 mt-8">
+            <h3 class="font-semibold mb-3">📋 Техническая информация</h3>
+            <div class="grid md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p><strong>Breakpoint:</strong> 768px (md:)</p>
+                    <p><strong>Mobile Hook:</strong> useIsMobile()</p>
+                    <p><strong>Viewport:</strong> width=device-width, initial-scale=1.0</p>
+                </div>
+                <div>
+                    <p><strong>Bundle Size:</strong> ~189KB (main)</p>
+                    <p><strong>CSS Framework:</strong> Tailwind CSS</p>
+                    <p><strong>UI Library:</strong> shadcn/ui (Radix)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device preview -->
+        <div class="mt-12 text-center">
+            <h3 class="text-xl font-semibold mb-6">📱 Preview симуляция</h3>
+            <p class="text-gray-600 mb-4">Откройте <a href="http://localhost:3000" target="_blank" class="text-blue-600 underline">http://localhost:3000</a> и используйте DevTools для тестирования:</p>
+            <div class="flex justify-center gap-4 text-sm">
+                <div class="bg-white p-3 rounded border">
+                    <strong>iPhone SE:</strong><br>375x667px
+                </div>
+                <div class="bg-white p-3 rounded border">
+                    <strong>iPhone 12:</strong><br>390x844px
+                </div>
+                <div class="bg-white p-3 rounded border">
+                    <strong>iPad:</strong><br>768x1024px
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('📱 Mobile Audit Report для TradeFrame');
+        console.log('Общая оценка: 75% - Хорошо, но есть области для улучшения');
+        
+        // Добавим интерактивности
+        document.querySelectorAll('.checklist-item').forEach(item => {
+            item.addEventListener('click', () => {
+                item.style.background = item.style.background === 'rgb(239, 246, 255)' ? '' : '#eff6ff';
+            });
+        });
+    </script>
+</body>
+</html>

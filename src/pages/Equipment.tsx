@@ -44,18 +44,27 @@ import {
   EquipmentStatus,
   EquipmentEvent
 } from "@/types/equipment";
-import { 
-  currentEquipmentAPI, 
-  currentEquipmentTemplatesAPI,
+import {
   getEquipmentComponentsHealth,
   ComponentHealthStatus
 } from "@/services/equipment";
-import { currentComponentsAPI } from "@/services/components";
-import { tradingPointsService } from "@/services/tradingPointsService";
-import { tradingPointScanService } from "@/services/tradingPointScanService";
-import { tanksService } from "@/services/tanksService";
-import ComponentHealthIndicator from "@/components/ui/ComponentHealthIndicator";
 import { Component } from "@/types/component";
+
+// НОВЫЕ КЛИЕНТЫ - Прямая работа с Supabase и внешними API
+import { httpClient } from "@/services/universalHttpClient";
+import { createSupabaseClient } from "@/services/supabaseClient";
+
+// Новые сервисы для оборудования
+import { 
+  supabaseEquipmentAPI, 
+  supabaseEquipmentTemplatesAPI 
+} from "@/services/equipmentSupabase";
+
+// Сервисы для компонентов и резервуаров
+import { tanksService } from "@/services/tanksServiceSupabase";
+import { tanksApiIntegrationService } from "@/services/tanksApiIntegrationService";
+import { tanksUnifiedService } from "@/services/tanksUnifiedService";
+import ComponentHealthIndicator from "@/components/ui/ComponentHealthIndicator";
 
 // Утилиты для статусов
 const getStatusIcon = (status: EquipmentStatus) => {
@@ -100,11 +109,30 @@ export default function Equipment() {
   const [tradingPointInfo, setTradingPointInfo] = useState(null);
   
   useEffect(() => {
-    if (selectedTradingPoint) {
-      tradingPointsService.getById(selectedTradingPoint).then(setTradingPointInfo);
-    } else {
-      setTradingPointInfo(null);
-    }
+    const loadTradingPointInfo = async () => {
+      try {
+        if (selectedTradingPoint && selectedTradingPoint !== "all") {
+          console.log('🔄 Загружаем информацию о торговой точке:', selectedTradingPoint);
+          
+          // Используем новый HTTP клиент для получения данных торговой точки
+          const response = await httpClient.getTradingPointById(selectedTradingPoint);
+          if (response.success) {
+            console.log('✅ Информация о торговой точке загружена:', response.data);
+            setTradingPointInfo(response.data);
+          } else {
+            throw new Error(response.error || 'Не удалось получить информацию о торговой точке');
+          }
+        } else {
+          console.log('📝 Сброс информации о торговой точке');
+          setTradingPointInfo(null);
+        }
+      } catch (error) {
+        console.error('❌ Ошибка загрузки информации о торговой точке:', error);
+        setTradingPointInfo(null);
+      }
+    };
+
+    loadTradingPointInfo();
   }, [selectedTradingPoint]);
     
   
@@ -148,16 +176,18 @@ export default function Equipment() {
     }
   }, [selectedTradingPointId]);
   
-  // Загрузка шаблонов с мемоизацией
+  // Загрузка шаблонов с мемоизацией - используем новый Supabase клиент
   const loadTemplates = useCallback(async () => {
     try {
-      const templatesData = await currentEquipmentTemplatesAPI.list();
+      console.log('🔄 Загружаем шаблоны оборудования...');
+      const templatesData = await supabaseEquipmentTemplatesAPI.list();
+      console.log('✅ Шаблоны оборудования загружены:', templatesData.length);
       setTemplates(templatesData);
     } catch (error) {
-      console.error('Failed to load templates:', error);
+      console.error('❌ Ошибка загрузки шаблонов:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось загрузить шаблоны",
+        description: "Не удалось загрузить шаблоны оборудования",
         variant: "destructive"
       });
     }
@@ -192,38 +222,54 @@ export default function Equipment() {
     setComponentHealths(healthMap);
   }, []);
 
-  // Загрузка оборудования с мемоизацией
+  // Загрузка оборудования с мемоизацией - используем новый Supabase API
   const loadEquipment = useCallback(async () => {
-    if (!selectedTradingPointId) return;
+    if (!selectedTradingPointId) {
+      console.log('📝 Не выбрана торговая точка, пропускаем загрузку оборудования');
+      return;
+    }
     
+    console.log('🔄 Начинаем загрузку оборудования для торговой точки:', selectedTradingPointId);
     setLoading(true);
     setError(null);
     
     try {
-      const response = await currentEquipmentAPI.list({
-        trading_point_id: selectedTradingPointId
-      });
-      setEquipment(response.data);
+      let response;
+      if (selectedTradingPointId === "all") {
+        console.log('📦 Загружаем оборудование для всех торговых точек');
+        response = await supabaseEquipmentAPI.list({});
+      } else {
+        console.log('📦 Загружаем оборудование для торговой точки:', selectedTradingPointId);
+        response = await supabaseEquipmentAPI.list({
+          trading_point_id: selectedTradingPointId
+        });
+      }
+      
+      console.log('✅ Оборудование загружено:', response.data?.length, 'единиц');
+      setEquipment(response.data || []);
       
       // Загружаем статусы компонентов для каждого оборудования
-      await loadComponentHealths(response.data);
+      console.log('🔄 Загружаем статусы компонентов...');
+      await loadComponentHealths(response.data || []);
+      console.log('✅ Загрузка завершена успешно');
     } catch (error) {
-      console.error('Failed to load equipment:', error);
+      console.error('❌ Ошибка загрузки оборудования:', error);
       setError('Не удалось загрузить оборудование');
       toast({
         title: "Ошибка",
-        description: "Не удалось загрузить оборудование",
+        description: `Не удалось загрузить оборудование: ${error.message}`,
         variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
-  }, [selectedTradingPointId, toast]);
+  }, [selectedTradingPointId, toast, loadComponentHealths]);
 
-  // Обработчики событий
+  // Обработчики событий - используем новый Supabase API
   const handleCreateEquipment = async (data: CreateEquipmentRequest) => {
     try {
-      await currentEquipmentAPI.create(data);
+      console.log('🔄 Создаём новое оборудование:', data);
+      await supabaseEquipmentAPI.create(data);
       toast({
         title: "Успех",
         description: "Оборудование успешно создано"
@@ -231,7 +277,7 @@ export default function Equipment() {
       loadEquipment();
       setIsWizardOpen(false);
     } catch (error) {
-      console.error('Failed to create equipment:', error);
+      console.error('❌ Ошибка создания оборудования:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось создать оборудование",
@@ -243,15 +289,18 @@ export default function Equipment() {
   
   const handleUpdateEquipment = async (id: string, data: UpdateEquipmentRequest) => {
     try {
-      // Получаем текущие данные оборудования перед обновлением
-      const currentEquipment = equipment.find(eq => eq.id === id);
+      console.log('🔄 Обновляем оборудование:', id, data);
       
-      // Обновляем оборудование
-      await currentEquipmentAPI.update(id, data);
+      // Получаем текущие данные оборудования перед обновлением
+      const currentEquipment = equipment?.find(eq => eq.id === id);
+      
+      // Обновляем оборудование через новый Supabase API
+      await supabaseEquipmentAPI.update(id, data);
       
       // Если это топливный резервуар и были изменены параметры, синхронизируем с резервуарами
       if (currentEquipment?.system_type === "fuel_tank" && data.params) {
         try {
+          console.log('🛢️ Синхронизируем изменения резервуара с базой данных резервуаров...');
           // Ищем связанный резервуар по названию оборудования
           const tanks = await tanksService.getTanks();
           const linkedTank = tanks.find(tank => 
@@ -259,6 +308,7 @@ export default function Equipment() {
           );
           
           if (linkedTank) {
+            console.log('✅ Найден связанный резервуар, обновляем:', linkedTank.id);
             // Обновляем резервуар с новыми параметрами
             await tanksService.updateTank(linkedTank.id, {
               name: data.display_name || linkedTank.name,
@@ -278,7 +328,7 @@ export default function Equipment() {
             });
           }
         } catch (tankError) {
-          console.warn('Failed to sync tank data:', tankError);
+          console.warn('⚠️ Не удалось синхронизировать данные резервуара:', tankError);
           // Не блокируем основной процесс, только логируем предупреждение
         }
       }
@@ -290,7 +340,7 @@ export default function Equipment() {
       loadEquipment();
       setSelectedEquipment(null);
     } catch (error) {
-      console.error('Failed to update equipment:', error);
+      console.error('❌ Ошибка обновления оборудования:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось обновить оборудование",
@@ -302,7 +352,8 @@ export default function Equipment() {
   
   const handleStatusChange = async (id: string, action: EquipmentStatusAction) => {
     try {
-      await currentEquipmentAPI.setStatus(id, action);
+      console.log('🔄 Изменяем статус оборудования:', id, action);
+      await supabaseEquipmentAPI.setStatus(id, action);
       const actionText = {
         enable: 'включено',
         disable: 'отключено',
@@ -316,7 +367,7 @@ export default function Equipment() {
       loadEquipment();
       setSelectedEquipment(null);
     } catch (error) {
-      console.error('Failed to change status:', error);
+      console.error('❌ Ошибка изменения статуса:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось изменить статус",
@@ -328,9 +379,10 @@ export default function Equipment() {
   
   const handleLoadEvents = async (equipmentId: string): Promise<EquipmentEvent[]> => {
     try {
-      return await currentEquipmentAPI.getEvents(equipmentId);
+      console.log('🔄 Загружаем события оборудования:', equipmentId);
+      return await supabaseEquipmentAPI.getEvents(equipmentId);
     } catch (error) {
-      console.error('Failed to load events:', error);
+      console.error('❌ Ошибка загрузки событий:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить события",
@@ -364,7 +416,8 @@ export default function Equipment() {
 
     try {
       setLoading(true);
-      await currentEquipmentAPI.delete(equipmentId);
+      console.log('🗑️ Удаляем оборудование:', equipmentId);
+      await supabaseEquipmentAPI.delete(equipmentId);
       
       toast({
         title: "Оборудование удалено",
@@ -374,7 +427,7 @@ export default function Equipment() {
       // Перезагружаем список оборудования
       await loadEquipment();
     } catch (error) {
-      console.error('Ошибка удаления оборудования:', error);
+      console.error('❌ Ошибка удаления оборудования:', error);
       toast({
         title: "Ошибка удаления",
         description: "Не удалось удалить оборудование. Попробуйте снова.",
@@ -391,17 +444,22 @@ export default function Equipment() {
     }
 
     try {
-      await currentComponentsAPI.delete(component.id);
+      console.log('🗑️ Удаляем компонент:', component.id);
+      
+      // TODO: Здесь нужно будет использовать новый компонентный API когда он будет готов
+      // Пока используем заглушку
+      console.warn('⚠️ Функция удаления компонентов еще не реализована с новыми клиентами');
       
       toast({
-        title: "Компонент удален",
-        description: `Компонент "${component.display_name}" успешно удален`,
+        title: "Функция в разработке",
+        description: "Удаление компонентов будет доступно в следующей версии",
+        variant: "default"
       });
       
       // Перезагружаем список оборудования чтобы обновить количество компонентов
-      await loadEquipment();
+      // await loadEquipment();
     } catch (error) {
-      console.error('Ошибка удаления компонента:', error);
+      console.error('❌ Ошибка удаления компонента:', error);
       toast({
         title: "Ошибка удаления",
         description: "Не удалось удалить компонент. Попробуйте снова.",
@@ -410,68 +468,59 @@ export default function Equipment() {
     }
   };
 
-  // Получение данных от торговой точки через торговое API
+  // Получение данных от торговой точки через внешнее торговое API
   const handleScanTradingPoint = async () => {
     if (!selectedTradingPointId) return;
     
     try {
       setScanningTradingPoint(true);
+      console.log('🔄 Запускаем синхронизацию резервуаров для торговой точки:', selectedTradingPointId);
 
       toast({
-        title: "Запуск сканирования",
-        description: "Опрашиваем торговую точку через торговое API...",
+        title: "Запуск синхронизации резервуаров",
+        description: "Загружаем данные резервуаров из внешнего торгового API...",
       });
 
-      // Сканируем торговую точку
-      const scanResult = await tradingPointScanService.scanTradingPoint(selectedTradingPointId);
+      // Используем унифицированный сервис резервуаров для синхронизации с внешним API
+      // Этот сервис использует httpClient для запросов к внешнему API
+      const syncResult = await tanksUnifiedService.syncIfEmpty(selectedTradingPointId);
       
-      if (!scanResult.success) {
-        throw new Error(scanResult.errors?.join(', ') || 'Неизвестная ошибка сканирования');
-      }
-
-      if (scanResult.equipment_found.length === 0) {
+      if (syncResult.error) {
+        if (syncResult.error.includes('уже существуют')) {
+          // Резервуары уже есть - это нормально
+          console.log('ℹ️ Резервуары уже существуют в базе данных');
+          toast({
+            title: "Резервуары уже существуют",
+            description: "В базе данных уже есть резервуары для этой торговой точки. Для обновления используйте кнопку 'Обновить' на странице резервуаров.",
+            variant: "default",
+          });
+        } else {
+          // Реальная ошибка синхронизации
+          throw new Error(syncResult.error);
+        }
+      } else if (syncResult.synchronized) {
+        // Успешная синхронизация новых данных
+        const stats = tanksUnifiedService.getStatistics(syncResult.tanks);
+        console.log('✅ Синхронизация успешна, создано резервуаров:', stats.total);
         toast({
-          title: "Сканирование завершено",
-          description: "Новое оборудование не найдено",
+          title: "Резервуары созданы",
+          description: `Успешно создано ${stats.total} резервуаров из внешнего API.`,
         });
-        return;
-      }
-
-      toast({
-        title: "Найдено оборудование",
-        description: `Найдено ${scanResult.equipment_found.length} единиц оборудования. Добавляем к торговой точке...`,
-      });
-
-      // Добавляем найденное оборудование
-      const addResult = await tradingPointScanService.addDiscoveredEquipment(
-        selectedTradingPointId, 
-        scanResult.equipment_found
-      );
-
-      // Показываем результат
-      if (addResult.added.length > 0) {
-        const totalComponents = scanResult.components_found.length;
+      } else {
+        // Возвращены существующие данные
+        console.log('ℹ️ Возвращены существующие данные из локальной БД');
         toast({
-          title: "Сканирование завершено успешно",
-          description: `Добавлено ${addResult.added.length} единиц оборудования и ${totalComponents} компонентов`,
+          title: "Резервуары загружены",
+          description: "Резервуары загружены из локальной базы данных.",
         });
       }
 
-      // Показываем ошибки, если есть
-      if (addResult.errors.length > 0) {
-        console.warn('Ошибки при добавлении:', addResult.errors);
-        toast({
-          title: "Частичные ошибки",
-          description: `${addResult.errors.length} ошибок при добавлении. Смотрите консоль.`,
-          variant: "destructive",
-        });
-      }
-
-      // Обновляем список оборудования
+      // Обновляем список оборудования после синхронизации
+      console.log('🔄 Обновляем список оборудования после синхронизации...');
       loadEquipment();
 
     } catch (error: any) {
-      console.error('Ошибка сканирования:', error);
+      console.error('❌ Ошибка сканирования торговой точки:', error);
       toast({
         title: "Ошибка сканирования",
         description: error.message || "Не удалось опросить торговую точку",
@@ -496,7 +545,7 @@ export default function Equipment() {
   };
 
   // Если торговая точка не выбрана
-  if (!selectedTradingPoint) {
+  if (!selectedTradingPoint || selectedTradingPoint === "all") {
     return (
       <MainLayout fullWidth={true}>
         <EmptyState
@@ -518,7 +567,7 @@ export default function Equipment() {
             <div className="flex-1">
               <h1 className="text-xl font-bold text-white">Оборудование</h1>
               <p className="text-sm text-slate-400">
-                {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
+                {selectedTradingPoint === "all" ? "Все торговые точки" : (tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана')}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -530,9 +579,15 @@ export default function Equipment() {
                 className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white text-xs"
               >
                 {scanningTradingPoint ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                    Синхронизация...
+                  </>
                 ) : (
-                  <Scan className="w-3 h-3" />
+                  <>
+                    <Scan className="w-3 h-3 mr-1" />
+                    Создать резервуары из API
+                  </>
                 )}
               </Button>
               <Button 
@@ -690,7 +745,7 @@ export default function Equipment() {
         <EquipmentCommandsEditor
           open={!!editingCommandsEquipmentId}
           onClose={handleCloseCommandsEditor}
-          equipment={equipment.find(eq => eq.id === editingCommandsEquipmentId)}
+          equipment={equipment?.find(eq => eq.id === editingCommandsEquipmentId)}
           onSave={handleCommandsSaved}
         />
       </MainLayout>
@@ -707,7 +762,7 @@ export default function Equipment() {
             <div>
               <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
               <p className="text-slate-400 mt-1">
-                {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
+                {selectedTradingPoint === "all" ? "Все торговые точки" : (tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана')}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -723,7 +778,7 @@ export default function Equipment() {
                 ) : (
                   <Scan className="w-4 h-4 mr-2" />
                 )}
-                Получить данные от ТТ
+                Создать резервуары
               </Button>
             </div>
           </div>
@@ -991,7 +1046,7 @@ export default function Equipment() {
       <EquipmentCommandsEditor
         open={!!editingCommandsEquipmentId}
         onClose={handleCloseCommandsEditor}
-        equipment={equipment.find(eq => eq.id === editingCommandsEquipmentId)}
+        equipment={equipment?.find(eq => eq.id === editingCommandsEquipmentId)}
         onSave={handleCommandsSaved}
       />
     </MainLayout>

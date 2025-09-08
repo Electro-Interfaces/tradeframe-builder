@@ -7,12 +7,13 @@
 import { PersistentStorage } from '@/utils/persistentStorage';
 import { supabaseService } from '@/services/supabaseServiceClient';
 import { createClient } from '@supabase/supabase-js';
+import { errorLogService } from './errorLogService';
 
 export interface DatabaseConnection {
   id: string;
   name: string;
   url: string;
-  type: 'postgresql' | 'mysql' | 'sqlite' | 'mock' | 'supabase' | 'external-api';
+  type: 'postgresql' | 'mysql' | 'sqlite' | 'supabase' | 'external-api'; // ❌ MOCK УДАЛЕН
   description?: string;
   isActive: boolean;
   isDefault: boolean;
@@ -29,10 +30,12 @@ export interface DatabaseConnection {
     serviceRoleKey?: string;
     schema?: string;
     autoApiKey?: boolean;
-    // Настройки для внешнего API с базовой аутентификацией
+    // Настройки для внешнего API
     username?: string;
     password?: string;
     authType?: 'basic' | 'bearer' | 'none';
+    loginEndpoint?: string;
+    swaggerUrl?: string;
   };
 }
 
@@ -43,34 +46,20 @@ export interface ApiConfig {
   lastUpdated: Date;
 }
 
-// Начальная конфигурация с mock и demo подключениями
+// Начальная конфигурация (все параметры должны настраиваться через UI)
 const initialConfig: ApiConfig = {
   currentConnectionId: 'supabase-db',
   debugMode: import.meta.env.DEV || false,
   lastUpdated: new Date(),
   availableConnections: [
-    {
-      id: 'mock',
-      name: 'Mock Data (Демо)',
-      url: 'localStorage',
-      type: 'mock',
-      description: 'Локальные демо-данные в localStorage',
-      isActive: false,
-      isDefault: false,
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date(),
-      settings: {
-        timeout: 1000,
-        retryAttempts: 3
-      }
-    },
+    // ❌ MOCK ПОДКЛЮЧЕНИЕ УДАЛЕНО ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
     {
       id: 'local-db',
       name: 'Локальная БД',
-      url: 'http://localhost:3001/api/v1',
+      url: '', // URL должен быть настроен через UI
       type: 'postgresql',
       description: 'Локальная PostgreSQL база данных',
-      isActive: true,
+      isActive: false,
       isDefault: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -84,7 +73,7 @@ const initialConfig: ApiConfig = {
     {
       id: 'prod-db',
       name: 'Продакшн БД',
-      url: 'https://api.tradeframe.production.com/v1',
+      url: '', // URL должен быть настроен через UI
       type: 'postgresql',
       description: 'Продакшн PostgreSQL база данных',
       isActive: false,
@@ -101,19 +90,20 @@ const initialConfig: ApiConfig = {
     {
       id: 'supabase-db',
       name: 'Supabase БД',
-      url: 'https://tohtryzyffcebtyvkxwh.supabase.co',
+      url: '', // URL должен быть настроен через UI
       type: 'supabase',
-      description: 'Supabase PostgreSQL база данных с REST API (правильный проект)',
+      description: 'Supabase PostgreSQL база данных с REST API (ПРАВИЛЬНЫЙ проект для продуктивной системы)',
       isActive: true,
-      isDefault: true,
+      isDefault: false,
       createdAt: new Date(),
       updatedAt: new Date(),
       settings: {
         timeout: 8000,
         retryAttempts: 3,
         ssl: true,
-        apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
-        serviceRoleKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+        // API ключи должны быть настроены через раздел "Обмен данными"
+        apiKey: '',
+        serviceRoleKey: '',
         schema: 'public',
         autoApiKey: true
       }
@@ -121,20 +111,22 @@ const initialConfig: ApiConfig = {
     {
       id: 'trading-network-api',
       name: 'API торговой сети',
-      url: 'https://pos.autooplata.ru/tms/',
+      url: '', // URL настраивается через раздел "Обмен данными"
       type: 'external-api',
-      description: 'Внешний API торговой сети для интеграции с POS-системой',
+      description: 'Внешний API торговой сети - параметры берутся из раздела "Обмен данными" (localStorage: trading_network_config)',
       isActive: false,
       isDefault: false,
       createdAt: new Date(),
       updatedAt: new Date(),
       settings: {
-        timeout: 10000,
+        timeout: 30000,
         retryAttempts: 3,
         ssl: true,
         authType: 'basic',
-        username: 'UserApi',
-        password: 'lHQfLZHzB3tn'
+        // Учетные данные настраиваются через раздел "Обмен данными"
+        username: '',
+        password: '',
+        swaggerUrl: ''
       }
     }
   ]
@@ -208,12 +200,41 @@ export const apiConfigService = {
   },
 
   /**
-   * Получить текущее активное подключение
+   * Получить текущее активное подключение с обновленными параметрами из раздела "Обмен данными"
    */
   getCurrentConnection(): DatabaseConnection | null {
-    return currentConfig.availableConnections.find(
+    const connection = currentConfig.availableConnections.find(
       conn => conn.id === currentConfig.currentConnectionId
-    ) || null;
+    );
+    
+    if (!connection) return null;
+    
+    // Для внешнего API торговой сети - получаем реальные параметры из localStorage
+    if (connection.id === 'trading-network-api') {
+      try {
+        const tradingNetworkConfig = localStorage.getItem('trading_network_config');
+        if (tradingNetworkConfig) {
+          const config = JSON.parse(tradingNetworkConfig);
+          
+          // Обновляем настройки подключения реальными данными из раздела "Обмен данными"
+          return {
+            ...connection,
+            url: config.baseUrl || connection.url,
+            settings: {
+              ...connection.settings,
+              username: config.username || connection.settings?.username,
+              password: config.password || connection.settings?.password,
+              authType: config.authType || connection.settings?.authType,
+              timeout: config.timeout || connection.settings?.timeout
+            }
+          };
+        }
+      } catch (error) {
+        console.warn('⚠️ Не удалось загрузить реальную конфигурацию торговой сети:', error);
+      }
+    }
+    
+    return connection;
   },
 
   /**
@@ -222,38 +243,30 @@ export const apiConfigService = {
   getCurrentApiUrl(): string {
     const connection = this.getCurrentConnection();
     if (!connection) {
-      console.warn('⚠️ Активное подключение не найдено, используем mock');
-      return 'mock';
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Нет активного подключения к базе данных
+      console.error('❌ КРИТИЧНО: Активное подключение к БД не найдено');
+      throw new Error('Отсутствует активное подключение к базе данных. Система заблокирована.');
     }
     return connection.url;
   },
 
   /**
-   * Проверить используется ли mock режим
+   * ❌ КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ БЕЗОПАСНОСТИ: MOCK РЕЖИМ ПОЛНОСТЬЮ ЗАБЛОКИРОВАН
    */
   isMockMode(): boolean {
-    const connection = this.getCurrentConnection();
-    const result = connection?.type === 'mock' || !connection;
-    
-    console.log('🔍 ApiConfigService.isMockMode() debug:', {
-      hasConnection: !!connection,
-      connectionId: connection?.id,
-      connectionType: connection?.type,
-      connectionUrl: connection?.url,
-      result: result,
-      currentConnectionId: currentConfig.currentConnectionId
-    });
-    
-    return result;
+    // ✅ FAIL-SECURE: Mock режим навсегда заблокирован из соображений безопасности
+    console.log('🔒 Mock режим заблокирован политикой безопасности');
+    return false;
   },
 
   /**
    * Получить текущий режим API
    */
-  getApiMode(): 'mock' | 'http' | 'supabase' {
+  getApiMode(): 'http' | 'supabase' { // ❌ MOCK УДАЛЕН ИЗ ВОЗМОЖНЫХ РЕЖИМОВ
     const connection = this.getCurrentConnection();
-    if (!connection || connection.type === 'mock') {
-      return 'mock';
+    if (!connection) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Нет подключения к базе данных
+      throw new Error('Отсутствует подключение к базе данных. Система заблокирована.');
     }
     if (connection.type === 'supabase') {
       return 'supabase';
@@ -266,7 +279,11 @@ export const apiConfigService = {
    */
   getCurrentConnectionType(): string {
     const connection = this.getCurrentConnection();
-    return connection?.type || 'mock';
+    if (!connection) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Нет подключения к базе данных
+      throw new Error('Отсутствует подключение к базе данных. Система заблокирована.');
+    }
+    return connection.type;
   },
 
   /**
@@ -297,8 +314,8 @@ export const apiConfigService = {
       };
     }
 
-    // Проверяем доступность подключения (если это не mock)
-    if (connection.type !== 'mock') {
+    // Проверяем доступность подключения
+    {
       const testResult = await this.testConnection(connectionId);
       if (!testResult.success) {
         return {
@@ -408,14 +425,7 @@ export const apiConfigService = {
       };
     }
 
-    // Mock подключение всегда успешно
-    if (connection.type === 'mock') {
-      return {
-        success: true,
-        responseTime: 50,
-        details: { mode: 'mock', storage: 'localStorage' }
-      };
-    }
+    // ❌ MOCK ПОДКЛЮЧЕНИЯ УДАЛЕНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
 
     // Supabase подключение
     if (connection.type === 'supabase') {
@@ -599,7 +609,7 @@ export const apiConfigService = {
       currentConnection: connection?.name || 'Неизвестно',
       connectionType: connection?.type || 'unknown',
       totalConnections: currentConfig.availableConnections.length,
-      mockMode: this.isMockMode(),
+      secureMode: true, // ❌ MOCK РЕЖИМ ЗАБЛОКИРОВАН
       debugMode: currentConfig.debugMode,
       lastUpdated: currentConfig.lastUpdated
     };
@@ -653,10 +663,12 @@ export const getApiBaseUrl = (): string => {
 };
 
 /**
- * Хук для проверки mock режима
+ * ❌ MOCK РЕЖИМ НАВСЕГДА ЗАБЛОКИРОВАН - ПОЛИТИКА БЕЗОПАСНОСТИ
  */
 export const isApiMockMode = (): boolean => {
-  return apiConfigService.isMockMode();
+  // ✅ FAIL-SECURE: Mock режим навсегда заблокирован
+  console.warn('🔒 Mock режим заблокирован политикой безопасности физической торговой системы');
+  return false;
 };
 
 // Экспорт для window (в dev режиме)

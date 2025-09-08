@@ -1,30 +1,47 @@
 /**
  * Сервис для работы с торговыми точками
- * Использует только Supabase базу данных
+ * ОБНОВЛЕН: Интегрирован с централизованной конфигурацией из раздела "Обмен данными"
+ * Использует SupabaseConnectionHelper для проверки подключений
  */
 
 import { NetworkId } from '@/types/network';
-import { TradingPoint, TradingPointId, TradingPointInput } from '@/types/tradingpoint';
-import { supabaseService as supabase } from './supabaseServiceClient';
+import { TradingPoint, TradingPointId, TradingPointInput, TradingPointUpdateInput } from '@/types/tradingpoint';
+import { httpClient } from './universalHttpClient';
+import { SupabaseConnectionHelper, executeSupabaseOperation } from './supabaseConnectionHelper';
 
-// API сервис только с Supabase - никакого localStorage!
+// API сервис с централизованной конфигурацией
 export const tradingPointsService = {
-  // Получить все торговые точки (только из Supabase)
-  async getAll(): Promise<TradingPoint[]> {
-    try {
-      console.log('🔄 Loading trading points from Supabase...');
-      
-      const { data, error } = await supabase
-        .from('trading_points')
-        .select('*')
-        .order('name');
-      
-      if (error) {
-        console.error('❌ Supabase error:', error);
-        throw new Error(`Ошибка загрузки торговых точек: ${error.message}`);
-      }
+  /**
+   * Инициализация сервиса
+   */
+  async initialize(): Promise<void> {
+    await SupabaseConnectionHelper.initialize();
+  },
 
-      if (!data) {
+  /**
+   * Получить все торговые точки (только из Supabase)
+   */
+  async getAll(): Promise<TradingPoint[]> {
+    return executeSupabaseOperation(
+      'Загрузка торговых точек',
+      async () => {
+        const response = await httpClient.get('/rest/v1/trading_points', {
+          destination: 'supabase',
+          queryParams: {
+            select: '*',
+            order: 'name'
+          }
+        });
+        
+        if (!response.success) {
+          throw new Error(response.error || 'Ошибка загрузки торговых точек');
+        }
+        
+        const result = { data: response.data, error: null };
+        return result;
+      }
+    ).then(data => {
+      if (!data || data.length === 0) {
         console.warn('⚠️ No trading points data returned from Supabase');
         return [];
       }
@@ -51,36 +68,39 @@ export const tradingPointsService = {
         createdAt: new Date(row.created_at),
         updatedAt: new Date(row.updated_at)
       }));
-      
-    } catch (error) {
-      console.error('💥 Critical error loading trading points:', error);
-      throw error; // Пробрасываем ошибку выше, чтобы UI мог её обработать
-    }
+    });
   },
 
-  // Получить торговые точки по ID сети (только из Supabase)
+  // СУПЕРСКОРОСТНАЯ загрузка торговых точек по ID сети
   async getByNetworkId(networkId: NetworkId): Promise<TradingPoint[]> {
     try {
-      console.log('🔄 Loading trading points for network:', networkId);
+      console.log('⚡ СУПЕРСКОРОСТНАЯ загрузка точек для сети:', networkId);
       
-      const { data, error } = await supabase
-        .from('trading_points')
-        .select('*')
-        .eq('network_id', networkId)
-        .order('name');
-      
-      if (error) {
-        console.error('❌ Error loading trading points by network ID:', error);
-        throw new Error(`Ошибка загрузки торговых точек сети: ${error.message}`);
+      // Прямой HTTP запрос к Supabase
+      const response = await fetch(`https://tohtryzyffcebtyvkxwh.supabase.co/rest/v1/trading_points?select=*&network_id=eq.${networkId}&order=name`, {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      if (!data) return [];
-
-      console.log(`✅ Loaded ${data.length} trading points for network ${networkId}`);
+      const data = await response.json();
       
+      if (!data || !Array.isArray(data)) {
+        console.log(`⚠️ Нет торговых точек для сети ${networkId}`);
+        return [];
+      }
+
+      console.log(`⚡ Загружено ${data.length} торговых точек для сети ${networkId}`);
+      
+      // Преобразуем данные в формат TradingPoint
       return data.map(row => ({
         id: row.id,
-        external_id: row.external_id, // ID для синхронизации с торговым API
+        external_id: row.external_id,
         networkId: row.network_id,
         name: row.name,
         description: row.description || '',
@@ -98,7 +118,7 @@ export const tradingPointsService = {
       }));
       
     } catch (error) {
-      console.error('💥 Critical error loading trading points by network:', error);
+      console.error(`❌ Ошибка загрузки торговых точек для сети ${networkId}:`, error);
       throw error;
     }
   },
@@ -106,25 +126,32 @@ export const tradingPointsService = {
   // Получить торговую точку по ID (только из Supabase)
   async getById(id: TradingPointId): Promise<TradingPoint | null> {
     try {
-      const { data, error } = await supabase
-        .from('trading_points')
-        .select('*')
-        .eq('id', id)
-        .single();
+      console.log(`🔍 [TradingPointsService] Загружаем торговую точку по ID: ${id}`);
       
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Запись не найдена
-          return null;
+      const response = await httpClient.get('/rest/v1/trading_points', {
+        destination: 'supabase',
+        queryParams: {
+          select: '*',
+          id: `eq.${id}`
         }
-        console.error('❌ Error loading trading point by ID:', error);
+      });
+      
+      if (!response.success) {
+        console.error('❌ [TradingPointsService] Ошибка загрузки торговой точки:', response.error);
         return null;
       }
-
-      if (!data) return null;
+      
+      if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+        console.log(`⚠️ [TradingPointsService] Торговая точка ${id} не найдена`);
+        return null;
+      }
+      
+      const data = response.data[0];
+      console.log(`✅ [TradingPointsService] Торговая точка найдена:`, data);
 
       return {
         id: data.id,
+        external_id: data.external_id,
         networkId: data.network_id,
         name: data.name,
         description: data.description || '',
@@ -183,6 +210,7 @@ export const tradingPointsService = {
       
       return {
         id: data.id,
+        external_id: data.external_id,
         networkId: data.network_id,
         name: data.name,
         description: data.description || '',
@@ -205,7 +233,7 @@ export const tradingPointsService = {
   },
 
   // Обновить торговую точку (только в Supabase)
-  async update(id: TradingPointId, input: TradingPointInput): Promise<TradingPoint | null> {
+  async update(id: TradingPointId, input: TradingPointUpdateInput): Promise<TradingPoint | null> {
     try {
       console.log('🔄 Updating trading point in Supabase:', id, input);
       
@@ -215,11 +243,13 @@ export const tradingPointsService = {
           network_id: input.networkId,
           name: input.name,
           description: input.description || null,
+          external_id: input.external_id || null,
           geolocation: input.geolocation || {},
           phone: input.phone || null,
           email: input.email || null,
           website: input.website || null,
           is_blocked: input.isBlocked || false,
+          block_reason: input.blockReason || null,
           schedule: input.schedule || {},
           services: input.services || {},
           updated_at: new Date().toISOString()
@@ -242,6 +272,7 @@ export const tradingPointsService = {
       
       return {
         id: data.id,
+        external_id: data.external_id,
         networkId: data.network_id,
         name: data.name,
         description: data.description || '',

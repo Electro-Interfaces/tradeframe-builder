@@ -18,6 +18,7 @@ import { fuelStocksHistoryService, FuelStockSnapshot } from "@/services/fuelStoc
 import { nomenclatureService } from "@/services/nomenclatureService";
 import { FuelStocksChart } from "@/components/charts/FuelStocksChart";
 import { HelpButton } from "@/components/help/HelpButton";
+import { errorLogService } from "@/services/errorLogService";
 
 interface FuelStockRecord {
   id: string;
@@ -36,100 +37,7 @@ interface FuelStockRecord {
   fillRate?: number;
 }
 
-// Mock данные остатков топлива
-const mockFuelStocks: FuelStockRecord[] = [
-  {
-    id: "1",
-    tankNumber: "Резервуар №1",
-    fuelType: "АИ-95",
-    capacity: 50000,
-    currentLevel: 42500,
-    percentage: 85,
-    lastUpdated: "2024-12-07 14:30",
-    tradingPoint: "АЗС №001 - Московское шоссе",
-    status: 'normal',
-    temperature: 15.2,
-    density: 0.755
-  },
-  {
-    id: "2",
-    tankNumber: "Резервуар №2", 
-    fuelType: "АИ-92",
-    capacity: 40000,
-    currentLevel: 8500,
-    percentage: 21,
-    lastUpdated: "2024-12-07 14:25",
-    tradingPoint: "АЗС №001 - Московское шоссе",
-    status: 'low',
-    temperature: 14.8,
-    density: 0.745
-  },
-  {
-    id: "3",
-    tankNumber: "Резервуар №3",
-    fuelType: "ДТ",
-    capacity: 30000,
-    currentLevel: 2100,
-    percentage: 7,
-    lastUpdated: "2024-12-07 14:20",
-    tradingPoint: "АЗС №001 - Московское шоссе",
-    status: 'critical',
-    temperature: 16.1,
-    density: 0.840
-  },
-  {
-    id: "4",
-    tankNumber: "Резервуар №1",
-    fuelType: "АИ-95",
-    capacity: 45000,
-    currentLevel: 38250,
-    percentage: 85,
-    lastUpdated: "2024-12-07 14:35",
-    tradingPoint: "АЗС №002 - Ленинградский проспект",
-    status: 'normal',
-    temperature: 15.5,
-    density: 0.752
-  },
-  {
-    id: "5",
-    tankNumber: "Резервуар №2",
-    fuelType: "АИ-92", 
-    capacity: 35000,
-    currentLevel: 28700,
-    percentage: 82,
-    lastUpdated: "2024-12-07 14:32",
-    tradingPoint: "АЗС №002 - Ленинградский проспект",
-    status: 'normal',
-    temperature: 14.9,
-    density: 0.748
-  },
-  {
-    id: "6",
-    tankNumber: "Резервуар №3",
-    fuelType: "ДТ",
-    capacity: 40000,
-    currentLevel: 35600,
-    percentage: 89,
-    lastUpdated: "2024-12-07 14:28",
-    tradingPoint: "АЗС №002 - Ленинградский проспект",
-    status: 'normal',
-    temperature: 15.8,
-    density: 0.838
-  },
-  {
-    id: "7",
-    tankNumber: "Резервуар №1",
-    fuelType: "АИ-95",
-    capacity: 35000,
-    currentLevel: 1750,
-    percentage: 5,
-    lastUpdated: "2024-12-07 14:18",
-    tradingPoint: "АЗС №003 - Садовое кольцо",
-    status: 'critical',
-    temperature: 15.0,
-    density: 0.758
-  }
-];
+// ❌ MOCK ДАННЫЕ УДАЛЕНЫ - используются только реальные данные из базы
 
 // Статический список будет заменен на динамический
 const statusTypes = ["Все", "normal", "low", "critical", "overfill"];
@@ -217,11 +125,11 @@ export default function FuelStocksPage() {
         const nomenclature = await nomenclatureService.getAll();
         
         // Фильтруем только активные виды топлива для выбранной сети
-        const networkId = selectedNetwork?.id || '1'; // По умолчанию демо сеть
+        const networkId = selectedNetwork?.id; // Используем только выбранную сеть
         const activeFuelTypes = nomenclature
           .filter(item => 
             item.status === 'active' && 
-            item.networkId === networkId
+            (networkId ? item.networkId === networkId : true)
           )
           .map(item => item.name)
           .sort();
@@ -230,8 +138,18 @@ export default function FuelStocksPage() {
         setFuelTypes(["Все", ...activeFuelTypes]);
       } catch (error) {
         console.error('Ошибка загрузки номенклатуры:', error);
-        // Fallback на статический список
-        setFuelTypes(["Все", "АИ-92", "АИ-95", "АИ-98", "ДТ", "АИ-100"]);
+        // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось загрузить номенклатуру
+        await errorLogService.logCriticalError(
+          'FuelStocksPage',
+          'loadFuelTypes',
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            user_id: selectedNetwork?.id,
+            trading_point_id: selectedTradingPoint,
+            metadata: { component: 'FuelStocksPage', action: 'loadNomenclature' }
+          }
+        );
+        throw new Error('Номенклатура топлива недоступна');
       }
     };
 
@@ -262,83 +180,31 @@ export default function FuelStocksPage() {
         })));
       }
       
-      // If no historical data, try to generate some or fall back to tank-based data
+      // ❌ БЕЗ FALLBACK: Если нет данных - показываем ошибку
       if (snapshots.length === 0) {
-        // Try to get all historical data to trigger generation
-        const allHistoricalData = await fuelStocksHistoryService.getHistoricalData();
-        
-        // Try again to get snapshots after generation
-        snapshots = await fuelStocksHistoryService.getSnapshotAtDateTime(selectedDateTime);
-        
-        // If still no data, generate basic snapshots from current tank data
-        if (snapshots.length === 0) {
-          console.log('🚑 FuelStocksPage: Нет снимков, генерируем из танков...');
-          const { tanksService } = await import('@/services/tanksService');
-          const tanks = await tanksService.getTanks();
-          console.log('📦 FuelStocksPage: Найдено танков:', tanks.length);
-          console.log('📋 Первые танки:', tanks.slice(0, 3).map(t => ({
-            id: t.id,
-            name: t.name,
-            fuelType: t.fuelType,
-            tradingPointId: t.trading_point_id,
-            currentLevel: t.currentLevelLiters
-          })));
-          
-          // Generate snapshots from current tank data
-          snapshots = tanks.map(tank => ({
-            id: `fallback_${tank.id}_${Date.now()}`,
-            tankId: tank.id,
-            tankName: tank.name,
-            fuelType: tank.fuelType,
-            tradingPointId: tank.trading_point_id,
-            timestamp: selectedDateTime,
-            currentLevelLiters: tank.currentLevelLiters,
-            capacityLiters: tank.capacityLiters,
-            levelPercent: Math.round((tank.currentLevelLiters / tank.capacityLiters) * 100 * 100) / 100,
-            temperature: tank.temperature,
-            waterLevelMm: tank.waterLevelMm,
-            density: tank.density,
-            status: tank.status,
-            consumptionRate: 150,
-            fillRate: 0,
-            operationMode: 'normal' as const
-          }));
-        }
+        throw new Error(`Нет данных об остатках топлива на ${selectedDateTime}`);
       }
       
       console.log('📊 FuelStocksPage: Устанавливаем данные:', snapshots.length, 'снимков');
       setHistoricalData(snapshots);
     } catch (error) {
-      console.error('❌ Ошибка загрузки исторических данных:', error);
-      
-      // On error, try to show tank data as fallback
-      try {
-        const { tanksService } = await import('@/services/tanksService');
-        const tanks = await tanksService.getTanks();
-        
-        const fallbackSnapshots = tanks.map(tank => ({
-          id: `error_fallback_${tank.id}`,
-          tankId: tank.id,
-          tankName: tank.name,
-          fuelType: tank.fuelType,
-          tradingPointId: tank.trading_point_id,
-          timestamp: selectedDateTime,
-          currentLevelLiters: tank.currentLevelLiters,
-          capacityLiters: tank.capacityLiters,
-          levelPercent: Math.round((tank.currentLevelLiters / tank.capacityLiters) * 100 * 100) / 100,
-          temperature: tank.temperature,
-          waterLevelMm: tank.waterLevelMm,
-          density: tank.density,
-          status: tank.status,
-          consumptionRate: 150,
-          fillRate: 0,
-          operationMode: 'normal' as const
-        }));
-        
-        setHistoricalData(fallbackSnapshots);
-      } catch (fallbackError) {
-        console.error('Ошибка генерации резервных данных:', fallbackError);
-      }
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: не удалось загрузить данные об остатках топлива
+      await errorLogService.logCriticalError(
+        'FuelStocksPage',
+        'loadHistoricalData', 
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          user_id: selectedNetwork?.id,
+          trading_point_id: selectedTradingPoint,
+          metadata: { 
+            component: 'FuelStocksPage', 
+            action: 'loadHistoricalData',
+            selectedDateTime,
+            networkId: selectedNetwork?.id
+          }
+        }
+      );
+      throw new Error(`Не удалось загрузить данные об остатках топлива: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -400,48 +266,16 @@ export default function FuelStocksPage() {
     return pointNames[pointId] || `Торговая точка ${pointId}`;
   };
 
-  // Используем либо исторические данные, либо mock данные
-  // Изменяем логику: если есть исторические данные, используем их, иначе mock
-  const currentFuelStocks = historicalData.length > 0 
-    ? convertToFuelStockRecords(historicalData)
-    : mockFuelStocks;
+  // ✅ ТОЛЬКО реальные данные - БЕЗ mock fallback
+  const currentFuelStocks = convertToFuelStockRecords(historicalData);
     
-  // Особая отладка для понимания проблемы
-  console.log('🔍 ОТЛАДКА:', {
-    hasSelectedNetwork: !!selectedNetwork,
-    networkId: selectedNetwork?.id,
-    networkName: selectedNetwork?.name,
-    historicalDataCount: historicalData.length,
-    willUseMockData: historicalData.length === 0,
-    currentFuelStocksCount: currentFuelStocks.length,
-    dataSource: historicalData.length > 0 ? 'historical' : 'mock'
-  });
-  
-  console.log('📋 FuelStocksPage: Обработка данных:', {
+  // ✅ Отладка реальных данных
+  console.log('🔍 FuelStocksPage - только реальные данные:', {
     selectedNetworkId: selectedNetwork?.id,
-    historicalDataLength: historicalData.length,
-    currentFuelStocksLength: currentFuelStocks.length,
-    usingMockData: !selectedNetwork,
-    mockDataLength: mockFuelStocks.length,
-    finalDataToShow: selectedNetwork ? convertToFuelStockRecords(historicalData) : mockFuelStocks
+    historicalDataCount: historicalData.length,
+    currentFuelStocksCount: currentFuelStocks.length,
+    loading: loading
   });
-  
-  // Дополнительные логи для понимания потока данных
-  if (selectedNetwork) {
-    console.log('🎯 FuelStocksPage: Используем исторические данные:', {
-      networkSelected: true,
-      networkName: selectedNetwork.name,
-      historicalSnapshots: historicalData.length,
-      convertedRecords: convertToFuelStockRecords(historicalData).length,
-      loading: loading
-    });
-  } else {
-    console.log('📁 FuelStocksPage: Используем mock данные:', {
-      networkSelected: false,
-      mockRecords: mockFuelStocks.length,
-      reason: 'Сеть не выбрана'
-    });
-  }
 
 
   // Фильтрация данных (убрали фильтр по статусу)
@@ -862,14 +696,26 @@ export default function FuelStocksPage() {
             </div>
         </>
 
-        {/* Сообщение о выборе сети */}
+        {/* Ошибка при отсутствии данных */}
         {!selectedNetwork && (
           <div className="report-margins">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-red-900/20 border-red-700">
             <CardContent className="p-8 text-center">
-              <Fuel className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Выберите сеть для просмотра остатков топлива</h3>
-              <p className="text-slate-400">Для отображения данных необходимо выбрать торговую сеть из выпадающего списка выше</p>
+              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-red-400 mb-2">Данные недоступны</h3>
+              <p className="text-red-300">Для отображения остатков топлива необходимо выбрать торговую сеть</p>
+            </CardContent>
+          </Card>
+          </div>
+        )}
+        
+        {currentFuelStocks.length === 0 && selectedNetwork && (
+          <div className="report-margins">
+          <Card className="bg-red-900/20 border-red-700">
+            <CardContent className="p-8 text-center">
+              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-red-400 mb-2">Нет данных об остатках топлива</h3>
+              <p className="text-red-300">Данные на выбранную дату/время отсутствуют в системе</p>
             </CardContent>
           </Card>
           </div>

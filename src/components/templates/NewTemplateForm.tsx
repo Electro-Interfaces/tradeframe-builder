@@ -54,8 +54,8 @@ import {
   TEMPLATE_SCOPE_OPTIONS, 
   TEMPLATE_MODE_OPTIONS, 
   HTTP_METHOD_OPTIONS 
-} from '@/mock/newCommandTemplatesStore';
-import { connectionSettingsStore } from '@/mock/connectionSettingsStore';
+} from '@/utils/templateOptions';
+import { currentConnectionSettingsAPI } from '@/services/newConnectionsService';
 
 // Form validation schema
 const templateSchema = z.object({
@@ -142,8 +142,22 @@ export function NewTemplateForm({ template, onSubmit, onCancel, mode }: NewTempl
   const watchedMethod = watch('method');
   const watchedIdempotencyEnabled = watch('idempotency_enabled');
 
-  // Get available connections
-  const availableConnections = connectionSettingsStore.getActive();
+  // State for available connections
+  const [availableConnections, setAvailableConnections] = useState<any[]>([]);
+
+  // Load available connections on mount
+  useEffect(() => {
+    const loadConnections = async () => {
+      try {
+        const response = await currentConnectionSettingsAPI.list({ status: 'active' });
+        setAvailableConnections(response.data);
+      } catch (error) {
+        console.error('Failed to load connections:', error);
+        setAvailableConnections([]);
+      }
+    };
+    loadConnections();
+  }, []);
 
   // Initialize form with template data
   useEffect(() => {

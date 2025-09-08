@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Диагностика проблемы с резервуарами</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .warning { color: #fbbf24; }
+        .info { color: #60a5fa; }
+        pre { background: #262626; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        h2 { border-bottom: 2px solid #444; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Диагностика проблемы с резервуарами</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { tradingNetworkConfigService } from './src/services/tradingNetworkConfigService.js';
+        import { tradingPointsService } from './src/services/tradingPointsService.js';
+        import { tanksUnifiedService } from './src/services/tanksUnifiedService.js';
+        import { httpClient } from './src/services/universalHttpClient.js';
+
+        const results = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const className = type;
+            results.innerHTML += `<div class="${className}">${message}</div>`;
+            console.log(message);
+        }
+
+        async function diagnose() {
+            log('🚀 Начинаем диагностику...', 'info');
+            
+            // 1. Проверяем конфигурацию торговой сети
+            log('\n📋 ШАГ 1: Проверка конфигурации торговой сети', 'info');
+            try {
+                const config = tradingNetworkConfigService.getConfigSync();
+                log('✅ Конфигурация загружена', 'success');
+                
+                if (!config.enabled) {
+                    log('❌ Торговая сеть ОТКЛЮЧЕНА! Включите в настройках "Обмен данными"', 'error');
+                    return;
+                }
+                log('✅ Торговая сеть включена', 'success');
+                
+                if (!config.baseUrl) {
+                    log('❌ URL внешнего API не настроен! Настройте в "Обмен данными"', 'error');
+                    return;
+                }
+                log(`✅ Базовый URL: ${config.baseUrl}`, 'success');
+                
+                if (!config.endpoints?.tanks) {
+                    log('❌ Эндпоинт для резервуаров не настроен!', 'error');
+                    return;
+                }
+                log(`✅ Эндпоинт резервуаров: ${config.endpoints.tanks}`, 'success');
+                
+                if (!config.apiKey && !config.username) {
+                    log('⚠️ Аутентификация не настроена (API ключ или логин/пароль)', 'warning');
+                }
+                
+                results.innerHTML += '<pre>' + JSON.stringify(config, null, 2) + '</pre>';
+                
+            } catch (error) {
+                log(`❌ Ошибка загрузки конфигурации: ${error.message}`, 'error');
+                return;
+            }
+            
+            // 2. Проверяем выбранную торговую точку
+            log('\n📍 ШАГ 2: Проверка выбранной торговой точки', 'info');
+            try {
+                // Получаем из localStorage выбранную точку
+                const selectedPointId = localStorage.getItem('selectedTradingPointId');
+                
+                if (!selectedPointId || selectedPointId === 'all') {
+                    log('❌ Торговая точка не выбрана! Выберите конкретную точку в интерфейсе', 'error');
+                    return;
+                }
+                log(`✅ Выбрана торговая точка: ${selectedPointId}`, 'success');
+                
+                // Получаем данные торговой точки
+                const tradingPoint = await tradingPointsService.getById(selectedPointId);
+                if (!tradingPoint) {
+                    log(`❌ Торговая точка ${selectedPointId} не найдена в базе!`, 'error');
+                    return;
+                }
+                log(`✅ Торговая точка найдена: ${tradingPoint.name}`, 'success');
+                
+                // Проверяем external_id
+                if (!tradingPoint.external_id) {
+                    log('❌ У торговой точки НЕТ external_id! Это нужно для API', 'error');
+                    log('   Добавьте external_id в настройках торговой точки', 'warning');
+                    return;
+                }
+                log(`✅ External ID: ${tradingPoint.external_id}`, 'success');
+                
+                results.innerHTML += '<pre>' + JSON.stringify(tradingPoint, null, 2) + '</pre>';
+                
+            } catch (error) {
+                log(`❌ Ошибка проверки торговой точки: ${error.message}`, 'error');
+                return;
+            }
+            
+            // 3. Тестируем HTTP запрос к API
+            log('\n🌐 ШАГ 3: Тест HTTP запроса к внешнему API', 'info');
+            try {
+                const config = tradingNetworkConfigService.getConfigSync();
+                const selectedPointId = localStorage.getItem('selectedTradingPointId');
+                const tradingPoint = await tradingPointsService.getById(selectedPointId);
+                
+                const testUrl = config.endpoints.tanks;
+                const testParams = {
+                    system: tradingPoint.external_id,
+                    station: tradingPoint.external_id
+                };
+                
+                log(`📡 Отправляем запрос: ${config.baseUrl}${testUrl}`, 'info');
+                log(`📋 Параметры: ${JSON.stringify(testParams)}`, 'info');
+                
+                const response = await httpClient.get(testUrl, {
+                    destination: 'external-api',
+                    queryParams: testParams
+                });
+                
+                if (response.success) {
+                    log('✅ API ответил успешно!', 'success');
+                    log(`📦 Получено данных: ${JSON.stringify(response.data).length} байт`, 'info');
+                    
+                    if (Array.isArray(response.data)) {
+                        log(`✅ Получено резервуаров: ${response.data.length}`, 'success');
+                        if (response.data.length > 0) {
+                            results.innerHTML += '<pre>' + JSON.stringify(response.data[0], null, 2) + '</pre>';
+                        }
+                    } else {
+                        log('⚠️ API вернул данные не в виде массива', 'warning');
+                        results.innerHTML += '<pre>' + JSON.stringify(response.data, null, 2) + '</pre>';
+                    }
+                } else {
+                    log(`❌ Ошибка API: ${response.error}`, 'error');
+                    log(`   HTTP статус: ${response.status}`, 'error');
+                    if (response.data) {
+                        results.innerHTML += '<pre>' + JSON.stringify(response.data, null, 2) + '</pre>';
+                    }
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка HTTP запроса: ${error.message}`, 'error');
+            }
+            
+            // 4. Тестируем унифицированный сервис
+            log('\n🔧 ШАГ 4: Тест унифицированного сервиса резервуаров', 'info');
+            try {
+                const selectedPointId = localStorage.getItem('selectedTradingPointId');
+                
+                const result = await tanksUnifiedService.getTanksForTradingPoint(selectedPointId);
+                
+                log(`📊 Источник данных: ${result.source}`, 'info');
+                log(`🔄 Синхронизация: ${result.synchronized}`, 'info');
+                
+                if (result.error) {
+                    log(`❌ Ошибка: ${result.error}`, 'error');
+                } else if (result.tanks.length > 0) {
+                    log(`✅ Получено резервуаров: ${result.tanks.length}`, 'success');
+                    results.innerHTML += '<pre>' + JSON.stringify(result.tanks[0], null, 2) + '</pre>';
+                } else {
+                    log('⚠️ Резервуары не найдены', 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка унифицированного сервиса: ${error.message}`, 'error');
+            }
+            
+            log('\n✅ Диагностика завершена', 'success');
+        }
+
+        // Запускаем диагностику
+        diagnose();
+    </script>
+</body>
+</html>

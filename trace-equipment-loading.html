@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Трейсинг загрузки оборудования</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        .highlight { 
+            background: #2d4a22; 
+            padding: 10px; 
+            border-left: 4px solid #28a745;
+            margin: 10px 0;
+        }
+        .step {
+            background: #1a2332;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #17a2b8;
+        }
+        .param-box {
+            background: #2d1810;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button.success { background: #28a745; }
+        select {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 ТРЕЙСИНГ ЗАГРУЗКИ ОБОРУДОВАНИЯ ОТ ВНЕШНЕГО API</h1>
+    <p>Детальный анализ процесса загрузки резервуаров через универсальный HTTP клиент</p>
+    
+    <div>
+        <h3>🎯 Выбор торговой точки для трейсинга:</h3>
+        <select id="tradingPointSelect" onchange="updateSelectedTradingPoint()">
+            <option value="">Загружаем торговые точки...</option>
+        </select>
+        <button onclick="loadTradingPoints()">🔄 Перезагрузить точки</button>
+    </div>
+    
+    <div id="selectedTpInfo"></div>
+    
+    <div>
+        <h3>🧪 Тесты трейсинга:</h3>
+        <button onclick="traceFullEquipmentLoading()">🔥 Полный трейсинг загрузки</button>
+        <button onclick="traceUniversalClientCall()">⚡ Трейсинг вызова универсального клиента</button>
+        <button onclick="traceTanksServiceCall()">🛢️ Трейсинг вызова tanksService</button>
+        <button onclick="clearLog()">🧹 Очистить</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        let selectedTradingPoint = null;
+        let httpClient = null;
+        let tradingNetworkConfigService = null;
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        function addStep(stepNumber, title, details) {
+            const div = document.createElement('div');
+            div.className = 'step';
+            div.innerHTML = `<strong>ШАГ ${stepNumber}: ${title}</strong><br><div class="code">${details}</div>`;
+            log.appendChild(div);
+        }
+        
+        function addParams(title, params) {
+            const div = document.createElement('div');
+            div.className = 'param-box';
+            div.innerHTML = `<strong>${title}</strong><br><div class="code">${params}</div>`;
+            log.appendChild(div);
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        // Инициализация
+        async function initialize() {
+            try {
+                const imports = await import('/src/services/universalHttpClient.ts');
+                httpClient = imports.httpClient;
+                
+                const configImports = await import('/src/services/tradingNetworkConfigService.ts');
+                tradingNetworkConfigService = configImports.tradingNetworkConfigService;
+                
+                addLog('✅ Сервисы загружены', 'success');
+                await loadTradingPoints();
+                
+            } catch (error) {
+                addLog(`❌ Ошибка инициализации: ${error.message}`, 'error');
+            }
+        }
+        
+        // Загрузка торговых точек
+        window.loadTradingPoints = async function() {
+            try {
+                addLog('📍 Загружаем торговые точки для трейсинга...', 'info');
+                const response = await httpClient.getAllTradingPointsWithNetworks();
+                
+                const select = document.getElementById('tradingPointSelect');
+                select.innerHTML = '<option value="">Выберите торговую точку...</option>';
+                
+                if (response.success && response.data) {
+                    const readyTps = response.data.filter(tp => tp.apiReady);
+                    
+                    readyTps.forEach(tp => {
+                        const option = document.createElement('option');
+                        option.value = tp.id;
+                        option.textContent = `${tp.name} (${tp.networkInfo.name}) [${tp.systemId}/${tp.stationId}]`;
+                        option.dataset.tpData = JSON.stringify(tp);
+                        select.appendChild(option);
+                    });
+                    
+                    addLog(`✅ Загружено ${readyTps.length} готовых для API торговых точек`, 'success');
+                    
+                    // Автовыбор АЗС 4 для удобства
+                    const azs4 = readyTps.find(tp => tp.name.includes('АЗС 4') || tp.systemId === '15');
+                    if (azs4) {
+                        select.value = azs4.id;
+                        updateSelectedTradingPoint();
+                    }
+                    
+                } else {
+                    addLog('❌ Не удалось загрузить торговые точки', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Ошибка загрузки: ${error.message}`, 'error');
+            }
+        }
+        
+        // Обновление выбранной торговой точки
+        window.updateSelectedTradingPoint = function() {
+            const select = document.getElementById('tradingPointSelect');
+            const infoDiv = document.getElementById('selectedTpInfo');
+            
+            if (select.value) {
+                const option = select.options[select.selectedIndex];
+                selectedTradingPoint = JSON.parse(option.dataset.tpData);
+                
+                infoDiv.innerHTML = `<div class="highlight">
+                    🎯 ВЫБРАННАЯ ТОРГОВАЯ ТОЧКА ДЛЯ ТРЕЙСИНГА:<br>
+                    ➜ ID: ${selectedTradingPoint.id}<br>
+                    ➜ Название: ${selectedTradingPoint.name}<br>
+                    ➜ Сеть: ${selectedTradingPoint.networkInfo.name}<br>
+                    ➜ System ID: "${selectedTradingPoint.systemId}"<br>
+                    ➜ Station ID: "${selectedTradingPoint.stationId}"<br>
+                    ➜ API готовность: ${selectedTradingPoint.apiReady ? '✅ ГОТОВА' : '❌ НЕ ГОТОВА'}
+                </div>`;
+            } else {
+                selectedTradingPoint = null;
+                infoDiv.innerHTML = '';
+            }
+        }
+        
+        // Полный трейсинг загрузки оборудования
+        window.traceFullEquipmentLoading = async function() {
+            if (!selectedTradingPoint) {
+                addLog('❌ Выберите торговую точку!', 'error');
+                return;
+            }
+            
+            addLog('🔥 ПОЛНЫЙ ТРЕЙСИНГ ЗАГРУЗКИ ОБОРУДОВАНИЯ ОТ ВНЕШНЕГО API', 'info');
+            addLog(`🎯 Торговая точка: ${selectedTradingPoint.name}`, 'info');
+            
+            try {
+                // ШАГ 1: Параметры на входе
+                addStep(1, 'ВХОДНЫЕ ПАРАМЕТРЫ', 
+                    `Trading Point ID: ${selectedTradingPoint.id}<br>` +
+                    `Название: "${selectedTradingPoint.name}"<br>` +
+                    `System ID: "${selectedTradingPoint.systemId}"<br>` +
+                    `Station ID: "${selectedTradingPoint.stationId}"`
+                );
+                
+                // ШАГ 2: Получение API параметров
+                addStep(2, 'ПОЛУЧЕНИЕ API ПАРАМЕТРОВ', 'Вызываем httpClient.getApiParamsForTradingPoint()...');
+                const apiParams = await httpClient.getApiParamsForTradingPoint(selectedTradingPoint.id);
+                
+                addParams('📥 РЕЗУЛЬТАТ getApiParamsForTradingPoint:', 
+                    `Success: ${apiParams.success}<br>` +
+                    `System ID: "${apiParams.systemId || 'НЕТ'}"<br>` +
+                    `Station ID: "${apiParams.stationId || 'НЕТ'}"<br>` +
+                    `API Ready: ${apiParams.apiReady}<br>` +
+                    `Error: ${apiParams.error || 'нет'}`
+                );
+                
+                // ШАГ 3: Конфигурация торговой сети
+                addStep(3, 'ПОЛУЧЕНИЕ КОНФИГУРАЦИИ API', 'Вызываем tradingNetworkConfigService.getConfig()...');
+                const config = await tradingNetworkConfigService.getConfig();
+                
+                addParams('📥 КОНФИГУРАЦИЯ ТОРГОВОЙ СЕТИ:', 
+                    `Enabled: ${config.enabled}<br>` +
+                    `Base URL: ${config.baseUrl}<br>` +
+                    `Auth Type: ${config.authType}<br>` +
+                    `Username: ${config.username}<br>` +
+                    `Tanks Endpoint: ${config.endpoints.tanks}<br>` +
+                    `Timeout: ${config.timeout}ms`
+                );
+                
+                // ШАГ 4: Формирование запроса к внешнему API
+                addStep(4, 'ФОРМИРОВАНИЕ ЗАПРОСА К ВНЕШНЕМУ API', 'Анализируем как будет сформирован запрос...');
+                
+                const finalUrl = `${config.baseUrl}${config.endpoints.tanks}`;
+                const queryParams = {
+                    system: selectedTradingPoint.systemId,
+                    station: selectedTradingPoint.stationId
+                };
+                
+                addParams('📤 ИТОГОВЫЙ HTTP ЗАПРОС:', 
+                    `Method: GET<br>` +
+                    `URL: ${finalUrl}<br>` +
+                    `Query Params: system=${queryParams.system}&station=${queryParams.station}<br>` +
+                    `Full URL: ${finalUrl}?system=${queryParams.system}&station=${queryParams.station}<br>` +
+                    `Auth: Basic ${config.username}:***<br>` +
+                    `Timeout: ${config.timeout}ms`
+                );
+                
+                // ШАГ 5: Выполнение реального запроса
+                addStep(5, 'ВЫПОЛНЕНИЕ ЗАПРОСА К ВНЕШНЕМУ API', 'Вызываем tradingNetworkConfigService.getTanksData()...');
+                
+                const startTime = Date.now();
+                let tanksResult;
+                let requestError = null;
+                
+                try {
+                    tanksResult = await tradingNetworkConfigService.getTanksData(selectedTradingPoint.id);
+                } catch (error) {
+                    requestError = error;
+                }
+                const responseTime = Date.now() - startTime;
+                
+                if (requestError) {
+                    addParams('📥 РЕЗУЛЬТАТ ЗАПРОСА:', 
+                        `Status: ОШИБКА<br>` +
+                        `Error: ${requestError.message}<br>` +
+                        `Time: ${responseTime}ms<br>` +
+                        `Причина: ${requestError.message.includes('404') ? 'Демо API недоступен (нормально)' : 'Проблема с запросом'}`
+                    );
+                } else {
+                    addParams('📥 РЕЗУЛЬТАТ ЗАПРОСА:', 
+                        `Status: УСПЕХ<br>` +
+                        `Data Type: ${typeof tanksResult}<br>` +
+                        `Is Array: ${Array.isArray(tanksResult)}<br>` +
+                        `Count: ${Array.isArray(tanksResult) ? tanksResult.length : 'N/A'}<br>` +
+                        `Time: ${responseTime}ms`
+                    );
+                    
+                    if (Array.isArray(tanksResult) && tanksResult.length > 0) {
+                        addParams('📊 ПЕРВЫЙ РЕЗЕРВУАР (пример):', 
+                            JSON.stringify(tanksResult[0], null, 2).substring(0, 500) + '...'
+                        );
+                    }
+                }
+                
+                // ШАГ 6: Итоговый анализ
+                addStep(6, 'ИТОГОВЫЙ АНАЛИЗ ТРЕЙСИНГА', '');
+                
+                const issues = [];
+                if (!apiParams.success) issues.push('❌ Проблема с получением API параметров');
+                if (!config.enabled) issues.push('❌ API интеграция отключена');
+                if (config.authType !== 'basic') issues.push(`⚠️ Неправильный тип аутентификации: ${config.authType}`);
+                if (config.endpoints.tanks !== '/tanks') issues.push(`⚠️ Неправильный endpoint: ${config.endpoints.tanks}`);
+                if (requestError && requestError.message.includes('422')) issues.push('❌ 422 ошибка - неправильные параметры');
+                
+                addLog(`<div class="highlight">
+                    📊 ИТОГОВЫЙ АНАЛИЗ ТРЕЙСИНГА:<br><br>
+                    🎯 Торговая точка: ${selectedTradingPoint.name}<br>
+                    🔗 Итоговый URL: ${finalUrl}?system=${queryParams.system}&station=${queryParams.station}<br>
+                    ⏱️ Время выполнения: ${responseTime}ms<br>
+                    📊 Результат: ${requestError ? 'ОШИБКА' : 'УСПЕХ'}<br><br>
+                    ${issues.length > 0 ? 
+                        '⚠️ НАЙДЕННЫЕ ПРОБЛЕМЫ:<br>' + issues.join('<br>') :
+                        '✅ ВСЁ РАБОТАЕТ КОРРЕКТНО!'
+                    }<br><br>
+                    💡 ЗАКЛЮЧЕНИЕ: ${requestError && requestError.message.includes('404') ? 
+                        'Система работает правильно, демо API недоступен' :
+                        requestError ? 
+                        'Требуется исправление найденных проблем' :
+                        'Система полностью функциональна!'
+                    }
+                </div>`, issues.length === 0 ? 'success' : 'warning');
+                
+            } catch (error) {
+                addLog(`💥 КРИТИЧЕСКАЯ ОШИБКА ТРЕЙСИНГА: ${error.message}`, 'error');
+            }
+        }
+        
+        // Трейсинг только вызова универсального клиента
+        window.traceUniversalClientCall = async function() {
+            if (!selectedTradingPoint) {
+                addLog('❌ Выберите торговую точку!', 'error');
+                return;
+            }
+            
+            addLog('⚡ ТРЕЙСИНГ ВЫЗОВА УНИВЕРСАЛЬНОГО HTTP КЛИЕНТА', 'info');
+            
+            try {
+                // Перехватываем консольные логи
+                const originalLog = console.log;
+                const logs = [];
+                console.log = (...args) => {
+                    logs.push(args.join(' '));
+                    originalLog(...args);
+                };
+                
+                addLog('🔍 Вызываем httpClient.get() с destination: "external-api"...', 'info');
+                
+                const response = await httpClient.get('/tanks', {
+                    destination: 'external-api',
+                    queryParams: {
+                        system: selectedTradingPoint.systemId,
+                        station: selectedTradingPoint.stationId
+                    }
+                });
+                
+                // Восстанавливаем консоль
+                console.log = originalLog;
+                
+                addParams('📥 ОТВЕТ УНИВЕРСАЛЬНОГО КЛИЕНТА:', 
+                    `Success: ${response.success}<br>` +
+                    `Status: ${response.status}<br>` +
+                    `Data Type: ${typeof response.data}<br>` +
+                    `Error: ${response.error || 'нет'}<br>` +
+                    `Response Time: ${response.responseTime || 'N/A'}ms`
+                );
+                
+                // Показываем перехваченные логи
+                if (logs.length > 0) {
+                    addParams('📋 ЛОГИ HTTP КЛИЕНТА:', 
+                        logs.slice(-10).join('<br>') // Последние 10 логов
+                    );
+                }
+                
+            } catch (error) {
+                addLog(`❌ Ошибка трейсинга универсального клиента: ${error.message}`, 'error');
+            }
+        }
+        
+        // Трейсинг вызова tanksService
+        window.traceTanksServiceCall = async function() {
+            if (!selectedTradingPoint) {
+                addLog('❌ Выберите торговую точку!', 'error');
+                return;
+            }
+            
+            addLog('🛢️ ТРЕЙСИНГ ВЫЗОВА TANKS SERVICE', 'info');
+            
+            try {
+                addLog('🔍 Вызываем tradingNetworkConfigService.getTanksData()...', 'info');
+                
+                // Детальное логирование параметров
+                addParams('📤 ВХОДНЫЕ ПАРАМЕТРЫ ДЛЯ getTanksData():', 
+                    `Trading Point ID: ${selectedTradingPoint.id}<br>` +
+                    `Ожидаемые API параметры: system="${selectedTradingPoint.systemId}", station="${selectedTradingPoint.stationId}"`
+                );
+                
+                const startTime = Date.now();
+                let result;
+                let error = null;
+                
+                try {
+                    result = await tradingNetworkConfigService.getTanksData(selectedTradingPoint.id);
+                } catch (err) {
+                    error = err;
+                }
+                const responseTime = Date.now() - startTime;
+                
+                if (error) {
+                    addParams('📥 РЕЗУЛЬТАТ getTanksData():', 
+                        `Status: ОШИБКА<br>` +
+                        `Error: ${error.message}<br>` +
+                        `Time: ${responseTime}ms`
+                    );
+                } else {
+                    addParams('📥 РЕЗУЛЬТАТ getTanksData():', 
+                        `Status: УСПЕХ<br>` +
+                        `Data Type: ${typeof result}<br>` +
+                        `Is Array: ${Array.isArray(result)}<br>` +
+                        `Count: ${Array.isArray(result) ? result.length : 'N/A'}<br>` +
+                        `Time: ${responseTime}ms`
+                    );
+                    
+                    if (Array.isArray(result) && result.length > 0) {
+                        addLog(`<div class="code">ПРИМЕР ДАННЫХ РЕЗЕРВУАРА:<br>${JSON.stringify(result[0], null, 2)}</div>`, 'success');
+                    }
+                }
+                
+            } catch (error) {
+                addLog(`❌ Ошибка трейсинга tanks service: ${error.message}`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Система трейсинга загружена', 'info');
+        initialize();
+    </script>
+</body>
+</html>

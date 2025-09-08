@@ -27,87 +27,15 @@ interface StationFuelStock {
   movements: FuelMovement[];
 }
 
-const mockNetworkMovements: FuelMovement[] = [
-  {
-    fuelType: "АИ-92",
-    startBalance: 78450,
-    income: 25000,
-    expense: 18320,
-    endBalance: 85130,
-    capacity: 120000,
-    fillPercentage: 70.9,
-    criticalLevel: 15
-  },
-  {
-    fuelType: "АИ-95",
-    startBalance: 95230,
-    income: 30000,
-    expense: 28450,
-    endBalance: 96780,
-    capacity: 150000,
-    fillPercentage: 64.5,
-    criticalLevel: 15
-  },
-  {
-    fuelType: "АИ-98",
-    startBalance: 12450,
-    income: 8000,
-    expense: 5230,
-    endBalance: 15220,
-    capacity: 25000,
-    fillPercentage: 60.9,
-    criticalLevel: 15
-  },
-  {
-    fuelType: "ДТ",
-    startBalance: 45670,
-    income: 20000,
-    expense: 22100,
-    endBalance: 43570,
-    capacity: 80000,
-    fillPercentage: 54.5,
-    criticalLevel: 15
-  }
-];
+// ❌ MOCK ДАННЫЕ ТОПЛИВНЫХ ОСТАТКОВ ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+// ❌ Удалены фиктивные остатки топлива: АИ-92 (85,130л), АИ-95 (96,780л), АИ-98 (15,220л), ДТ (43,570л)
+// ✅ Топливные остатки должны загружаться ТОЛЬКО из реальных источников
+const mockNetworkMovements: FuelMovement[] = [];
 
-const mockStationMovements: StationFuelStock[] = [
-  {
-    stationId: "station-1",
-    stationName: "АЗС-001 (Московское шоссе)",
-    movements: [
-      {
-        fuelType: "АИ-92",
-        startBalance: 15690,
-        income: 5000,
-        expense: 3664,
-        endBalance: 17026,
-        capacity: 24000,
-        fillPercentage: 70.9,
-        criticalLevel: 15
-      },
-      {
-        fuelType: "АИ-95",
-        startBalance: 19046,
-        income: 6000,
-        expense: 5690,
-        endBalance: 19356,
-        capacity: 30000,
-        fillPercentage: 64.5,
-        criticalLevel: 15
-      },
-      {
-        fuelType: "ДТ",
-        startBalance: 9134,
-        income: 4000,
-        expense: 4420,
-        endBalance: 8714,
-        capacity: 16000,
-        fillPercentage: 54.5,
-        criticalLevel: 15
-      }
-    ]
-  }
-];
+// ❌ MOCK ДАННЫЕ АЗС ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+// ❌ Удалены фиктивные данные "АЗС-001 (Московское шоссе)" с остатками топлива
+// ✅ Данные АЗС должны загружаться ТОЛЬКО из реальных источников
+const mockStationMovements: StationFuelStock[] = [];
 
 interface FuelStocksProps {
   isNetworkOnly: boolean;

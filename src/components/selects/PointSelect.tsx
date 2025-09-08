@@ -21,15 +21,23 @@ export function PointSelect({ value, onValueChange, className, disabled, network
   useEffect(() => {
     const loadTradingPoints = async () => {
       try {
+        console.log('🏪 PointSelect: Loading trading points for network:', networkId);
+        
         let data;
         if (networkId) {
+          console.log('🎯 PointSelect: Using getByNetworkId with:', networkId);
           data = await tradingPointsService.getByNetworkId(networkId);
+          console.log('✅ PointSelect: Loaded filtered points:', data.length);
         } else {
+          console.log('⚠️ PointSelect: No networkId provided, loading ALL trading points');
           data = await tradingPointsService.getAll();
+          console.log('📊 PointSelect: Loaded ALL points:', data.length);
         }
+        
         setTradingPoints(data);
+        console.log('🔍 PointSelect: Final trading points set:', data.map(p => ({ id: p.id, name: p.name, networkId: p.networkId })));
       } catch (error) {
-        console.error('Error loading trading points:', error);
+        console.error('❌ PointSelect: Error loading trading points:', error);
         setTradingPoints([]);
       }
     };

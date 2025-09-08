@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Прямой тест API сети 15, станции 4</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #0f0; 
+            padding: 20px;
+            line-height: 1.4;
+        }
+        .section { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border: 1px solid #0f0;
+            background: #0a0a0a;
+        }
+        h1 { color: #0ff; }
+        h2 { color: #ff0; }
+        .step {
+            margin: 10px 0;
+            padding: 8px;
+            background: #001100;
+            border-left: 3px solid #0f0;
+        }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        pre {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            overflow-x: auto;
+            font-size: 11px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            background: #0a0a0a;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            cursor: pointer;
+            font-family: monospace;
+            margin: 5px;
+        }
+        button:hover {
+            background: #001100;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Прямой тест API резервуаров сети 15, станции 4</h1>
+    
+    <div class="section">
+        <h2>Конфигурация</h2>
+        <div class="step">
+            <strong>URL:</strong> https://pos.autooplata.ru/tms/v1/tanks?system=15&station=4<br>
+            <strong>Token:</strong> eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6eyJpZCI6IkFDQ0FFNDA4LTYzMzItNDI0NS04NUIxLTI1RjkxNEYzQkQ2NCIsIm5hbWUiOiJVc2VyVGVzdCIsInJvbGUiOjB9LCJ1c2VyIjp7ImlkIjoiQUNDQUU0MDgtNjMzMi00MjQ1LTg1QjEtMjVGOTE0RjNCRDY0IiwibmFtZSI6IlVzZXJUZXN0In0sImV4cCI6MTc1NzE1NzkzN30.7fDPBwtWej80K2ePRXYKXsJH3b3pLSUqtjo2uIbyXEE
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Тест получения данных резервуаров</h2>
+        <button onclick="testTanksAPI()">🚀 Получить данные резервуаров</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const log = (msg, type = '') => {
+            const div = document.createElement('div');
+            div.className = `step ${type}`;
+            div.innerHTML = msg;
+            document.getElementById('result').appendChild(div);
+        };
+
+        const config = {
+            url: 'https://pos.autooplata.ru/tms/v1/tanks?system=15&station=4',
+            token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6eyJpZCI6IkFDQ0FFNDA4LTYzMzItNDI0NS04NUIxLTI1RjkxNEYzQkQ2NCIsIm5hbWUiOiJVc2VyVGVzdCIsInJvbGUiOjB9LCJ1c2VyIjp7ImlkIjoiQUNDQUU0MDgtNjMzMi00MjQ1LTg1QjEtMjVGOTE0RjNCRDY0IiwibmFtZSI6IlVzZXJUZXN0In0sImV4cCI6MTc1NzE1NzkzN30.7fDPBwtWej80K2ePRXYKXsJH3b3pLSUqtjo2uIbyXEE'
+        };
+
+        async function testTanksAPI() {
+            document.getElementById('result').innerHTML = '';
+            
+            log('🌐 Выполняем запрос к API торговой сети...', 'warning');
+            log(`📡 URL: ${config.url}`);
+            log(`🔑 Token: ${config.token.substring(0, 50)}...`);
+            
+            try {
+                const response = await fetch(config.url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${config.token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+
+                log(`📊 HTTP Status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ Запрос выполнен успешно!', 'success');
+                    
+                    if (Array.isArray(data)) {
+                        log(`📦 Получено резервуаров: ${data.length}`, 'success');
+                        
+                        if (data.length > 0) {
+                            log('<br><strong>📋 ДЕТАЛИ ВСЕХ РЕЗЕРВУАРОВ:</strong>', 'success');
+                            
+                            data.forEach((tank, index) => {
+                                log(`<br><strong>🛢️ Резервуар №${tank.number || (index + 1)}:</strong>`);
+                                
+                                // Подробная информация о резервуаре
+                                const tankDetails = {
+                                    number: tank.number,
+                                    fuel: tank.fuel,
+                                    fuel_name: tank.fuel_name,
+                                    state: tank.state,
+                                    // Объемы
+                                    volume: tank.volume,
+                                    volume_begin: tank.volume_begin,
+                                    volume_end: tank.volume_end,
+                                    volume_max: tank.volume_max,
+                                    volume_free: tank.volume_free,
+                                    // Массы
+                                    amount_begin: tank.amount_begin,
+                                    amount_end: tank.amount_end,
+                                    // Уровни
+                                    level: tank.level,
+                                    water: tank.water,
+                                    // Физические характеристики
+                                    temperature: tank.temperature,
+                                    density: tank.density,
+                                    // Отпуск
+                                    release: tank.release,
+                                    // Время обновления
+                                    dt: tank.dt
+                                };
+                                
+                                const pre = document.createElement('pre');
+                                pre.textContent = JSON.stringify(tankDetails, null, 2);
+                                document.getElementById('result').appendChild(pre);
+                                
+                                // Анализ данных
+                                const volumeMain = parseFloat(tank.volume || '0');
+                                const volumeEnd = parseFloat(tank.volume_end || '0');
+                                const volumeMax = parseFloat(tank.volume_max || '0');
+                                const fillPercent = volumeMax > 0 ? ((volumeMain || volumeEnd) / volumeMax * 100).toFixed(1) : 0;
+                                
+                                log(`📊 АНАЛИЗ резервуара №${tank.number}:`, 'warning');
+                                log(`  • Топливо: ${tank.fuel_name} (код: ${tank.fuel})`);
+                                log(`  • Состояние: ${tank.state} (1=активен, 0=выключен)`);
+                                log(`  • Объем основной: ${tank.volume}л`);
+                                log(`  • Объем конечный: ${tank.volume_end}л`);
+                                log(`  • Максимальная емкость: ${tank.volume_max}л`);
+                                log(`  • Заполнение: ${fillPercent}%`);
+                                log(`  • Температура: ${tank.temperature}°C`);
+                                log(`  • Плотность: ${tank.density}`);
+                                log(`  • Последнее обновление: ${tank.dt}`);
+                            });
+                            
+                            // Сводка по типам топлива
+                            const fuelSummary = {};
+                            data.forEach(tank => {
+                                if (!fuelSummary[tank.fuel_name]) {
+                                    fuelSummary[tank.fuel_name] = 0;
+                                }
+                                fuelSummary[tank.fuel_name]++;
+                            });
+                            
+                            log('<br><strong>📊 СВОДКА ПО ТИПАМ ТОПЛИВА:</strong>', 'success');
+                            Object.entries(fuelSummary).forEach(([fuelType, count]) => {
+                                log(`  • ${fuelType}: ${count} резервуар(ов)`);
+                            });
+                            
+                        } else {
+                            log('⚠️ Массив резервуаров пустой', 'warning');
+                        }
+                    } else {
+                        log('⚠️ Ответ не является массивом:', 'warning');
+                        const pre = document.createElement('pre');
+                        pre.textContent = JSON.stringify(data, null, 2);
+                        document.getElementById('result').appendChild(pre);
+                    }
+                    
+                } else {
+                    log(`❌ HTTP Error: ${response.status} ${response.statusText}`, 'error');
+                    
+                    const errorText = await response.text().catch(() => 'не удалось получить детали ошибки');
+                    log(`📄 Response Body:`, 'error');
+                    const pre = document.createElement('pre');
+                    pre.textContent = errorText.substring(0, 1000);
+                    document.getElementById('result').appendChild(pre);
+                    
+                    if (response.status === 500) {
+                        log('💡 Возможные причины ошибки 500:', 'warning');
+                        log('  • Неверные параметры system или station');
+                        log('  • Станция не существует в системе');
+                        log('  • Проблемы с авторизацией или токеном');
+                        log('  • Внутренняя ошибка сервера торговой сети');
+                    }
+                }
+
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+                
+                if (error.message.includes('CORS')) {
+                    log('🚫 CORS Error - это нормально для браузера', 'warning');
+                    log('💡 API должно работать из приложения, а не из браузера', 'warning');
+                } else if (error.message.includes('Failed to fetch')) {
+                    log('🌐 Сервер недоступен или заблокирован', 'warning');
+                }
+            }
+        }
+
+        // Автоматически запускаем тест при загрузке
+        window.onload = function() {
+            console.log('🚀 Автоматический запуск теста API...');
+            testTanksAPI();
+        };
+    </script>
+</body>
+</html>

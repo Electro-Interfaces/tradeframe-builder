@@ -127,7 +127,10 @@ export function SimpleLayout({ children }: { children: React.ReactNode }) {
     <>
       <header className="h-16 bg-slate-900 border-b border-slate-700 flex items-center px-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-white">TradeControl</h1>
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-xs">DW</span>
+          </div>
+          <h1 className="text-lg font-semibold text-white">DW TradeFrame</h1>
         </div>
       </header>
       <main className="w-full px-4 md:px-6 lg:px-8">

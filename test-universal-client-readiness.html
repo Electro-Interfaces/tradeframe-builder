@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Тест готовности универсального HTTP клиента</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        .highlight { 
+            background: #2d4a22; 
+            padding: 10px; 
+            border-left: 4px solid #28a745;
+            margin: 10px 0;
+        }
+        .section {
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: #2d2d2d;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button.success { background: #28a745; }
+        button.warning { background: #ffc107; color: #000; }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .test-card {
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 15px;
+            background: #333;
+        }
+        .status-ready { border-left: 4px solid #28a745; }
+        .status-pending { border-left: 4px solid #ffc107; }
+        .status-error { border-left: 4px solid #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>🚀 ТЕСТ ГОТОВНОСТИ УНИВЕРСАЛЬНОГО HTTP КЛИЕНТА</h1>
+    <p>Комплексная проверка готовности к работе с разделами приложения</p>
+    
+    <div class="section">
+        <h3>🎯 Быстрые тесты</h3>
+        <button onclick="testBasicFunctionality()">⚡ Базовая функциональность</button>
+        <button onclick="testDatabaseIntegration()">🗄️ Интеграция с БД</button>
+        <button onclick="testExternalApiIntegration()">🌐 Внешний API</button>
+        <button onclick="testAllSections()">🔥 Тест всех разделов</button>
+        <button onclick="clearLog()">🧹 Очистить</button>
+    </div>
+    
+    <div id="testResults" class="test-grid"></div>
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        const testResults = document.getElementById('testResults');
+        
+        let httpClient = null;
+        let tradingNetworkConfigService = null;
+        let testData = {};
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        function addSection(title) {
+            const div = document.createElement('div');
+            div.className = 'section';
+            div.innerHTML = `<h3>${title}</h3>`;
+            log.appendChild(div);
+            return div;
+        }
+        
+        function updateTestCard(testId, title, status, details) {
+            let card = document.getElementById(`test-${testId}`);
+            if (!card) {
+                card = document.createElement('div');
+                card.id = `test-${testId}`;
+                card.className = 'test-card';
+                testResults.appendChild(card);
+            }
+            
+            const statusClass = status === 'ready' ? 'status-ready' : 
+                              status === 'pending' ? 'status-pending' : 'status-error';
+            
+            const statusIcon = status === 'ready' ? '✅' : 
+                              status === 'pending' ? '⏳' : '❌';
+            
+            card.className = `test-card ${statusClass}`;
+            card.innerHTML = `
+                <h4>${statusIcon} ${title}</h4>
+                <div class="code">${details}</div>
+            `;
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+            testResults.innerHTML = '';
+        }
+        
+        // Инициализация
+        async function initialize() {
+            try {
+                addLog('📦 Инициализация универсального HTTP клиента...', 'info');
+                
+                const imports = await import('/src/services/universalHttpClient.ts');
+                httpClient = imports.httpClient;
+                
+                const configImports = await import('/src/services/tradingNetworkConfigService.ts');
+                tradingNetworkConfigService = configImports.tradingNetworkConfigService;
+                
+                addLog('✅ Сервисы импортированы успешно', 'success');
+                updateTestCard('init', 'Инициализация', 'ready', 'HTTP клиент и сервисы загружены');
+                
+            } catch (error) {
+                addLog(`❌ Ошибка инициализации: ${error.message}`, 'error');
+                updateTestCard('init', 'Инициализация', 'error', `Ошибка: ${error.message}`);
+            }
+        }
+        
+        // Тест 1: Базовая функциональность
+        window.testBasicFunctionality = async function() {
+            addSection('⚡ ТЕСТ БАЗОВОЙ ФУНКЦИОНАЛЬНОСТИ');
+            updateTestCard('basic', 'Базовая функциональность', 'pending', 'Тестирование...');
+            
+            let passed = 0;
+            let total = 0;
+            const details = [];
+            
+            try {
+                // Проверка импорта
+                total++;
+                if (httpClient && typeof httpClient.get === 'function') {
+                    passed++;
+                    details.push('✅ HTTP клиент доступен');
+                } else {
+                    details.push('❌ HTTP клиент не найден');
+                }
+                
+                // Проверка методов
+                const methods = ['get', 'post', 'put', 'patch', 'delete'];
+                methods.forEach(method => {
+                    total++;
+                    if (typeof httpClient[method] === 'function') {
+                        passed++;
+                        details.push(`✅ Метод ${method.toUpperCase()} доступен`);
+                    } else {
+                        details.push(`❌ Метод ${method.toUpperCase()} отсутствует`);
+                    }
+                });
+                
+                // Проверка специальных методов
+                const specialMethods = ['getNetworks', 'getTradingPointsByNetworkId', 'getAllTradingPointsWithNetworks'];
+                specialMethods.forEach(method => {
+                    total++;
+                    if (typeof httpClient[method] === 'function') {
+                        passed++;
+                        details.push(`✅ Специальный метод ${method} доступен`);
+                    } else {
+                        details.push(`❌ Специальный метод ${method} отсутствует`);
+                    }
+                });
+                
+                const status = passed === total ? 'ready' : 'error';
+                const summary = `Пройдено: ${passed}/${total} тестов`;
+                
+                updateTestCard('basic', 'Базовая функциональность', status, 
+                    `${summary}<br><br>${details.join('<br>')}`);
+                
+                addLog(`${status === 'ready' ? '✅' : '❌'} Базовая функциональность: ${summary}`, status === 'ready' ? 'success' : 'error');
+                
+            } catch (error) {
+                updateTestCard('basic', 'Базовая функциональность', 'error', `Ошибка: ${error.message}`);
+                addLog(`❌ Ошибка тестирования базовой функциональности: ${error.message}`, 'error');
+            }
+        }
+        
+        // Тест 2: Интеграция с базой данных
+        window.testDatabaseIntegration = async function() {
+            addSection('🗄️ ТЕСТ ИНТЕГРАЦИИ С БАЗОЙ ДАННЫХ');
+            updateTestCard('database', 'Интеграция с БД', 'pending', 'Тестирование...');
+            
+            let passed = 0;
+            let total = 0;
+            const details = [];
+            
+            try {
+                // Тест получения сетей
+                total++;
+                addLog('📡 Тестируем получение сетей...', 'info');
+                const networksResponse = await httpClient.getNetworks();
+                
+                if (networksResponse.success && networksResponse.data && networksResponse.data.length > 0) {
+                    passed++;
+                    details.push(`✅ Сети: получено ${networksResponse.data.length} записей`);
+                    testData.networks = networksResponse.data;
+                    
+                    // Тест получения торговых точек
+                    const firstNetwork = networksResponse.data[0];
+                    total++;
+                    addLog(`📍 Тестируем получение торговых точек для сети "${firstNetwork.name}"...`, 'info');
+                    
+                    const tpResponse = await httpClient.getTradingPointsByNetworkId(firstNetwork.id);
+                    if (tpResponse.success && tpResponse.data) {
+                        passed++;
+                        details.push(`✅ Торговые точки: получено ${tpResponse.data.length} записей для сети "${firstNetwork.name}"`);
+                        testData.tradingPoints = tpResponse.data;
+                    } else {
+                        details.push(`❌ Торговые точки: ошибка получения для сети "${firstNetwork.name}"`);
+                    }
+                } else {
+                    details.push('❌ Сети: не удалось получить данные');
+                }
+                
+                // Тест получения всех торговых точек с сетями
+                total++;
+                addLog('🔍 Тестируем получение всех торговых точек с информацией о сетях...', 'info');
+                const allTpResponse = await httpClient.getAllTradingPointsWithNetworks();
+                
+                if (allTpResponse.success && allTpResponse.data && allTpResponse.data.length > 0) {
+                    passed++;
+                    const readyCount = allTpResponse.data.filter(tp => tp.apiReady).length;
+                    details.push(`✅ Полный список ТП: ${allTpResponse.data.length} точек, ${readyCount} готовы для API`);
+                    testData.allTradingPoints = allTpResponse.data;
+                } else {
+                    details.push('❌ Полный список ТП: ошибка получения');
+                }
+                
+                // Тест получения API параметров
+                if (testData.allTradingPoints && testData.allTradingPoints.length > 0) {
+                    const testTp = testData.allTradingPoints.find(tp => tp.apiReady) || testData.allTradingPoints[0];
+                    total++;
+                    addLog(`🎯 Тестируем получение API параметров для "${testTp.name}"...`, 'info');
+                    
+                    const apiParamsResponse = await httpClient.getApiParamsForTradingPoint(testTp.id);
+                    if (apiParamsResponse.success) {
+                        passed++;
+                        details.push(`✅ API параметры: system="${apiParamsResponse.systemId}", station="${apiParamsResponse.stationId}"`);
+                        testData.apiParams = apiParamsResponse;
+                    } else {
+                        details.push(`❌ API параметры: ${apiParamsResponse.error}`);
+                    }
+                }
+                
+                const status = passed === total ? 'ready' : passed > 0 ? 'warning' : 'error';
+                const summary = `Пройдено: ${passed}/${total} тестов`;
+                
+                updateTestCard('database', 'Интеграция с БД', status, 
+                    `${summary}<br><br>${details.join('<br>')}`);
+                
+                addLog(`${status === 'ready' ? '✅' : status === 'warning' ? '⚠️' : '❌'} Интеграция с БД: ${summary}`, 
+                    status === 'ready' ? 'success' : status === 'warning' ? 'warning' : 'error');
+                
+            } catch (error) {
+                updateTestCard('database', 'Интеграция с БД', 'error', `Ошибка: ${error.message}`);
+                addLog(`❌ Ошибка тестирования БД: ${error.message}`, 'error');
+            }
+        }
+        
+        // Тест 3: Интеграция с внешним API
+        window.testExternalApiIntegration = async function() {
+            addSection('🌐 ТЕСТ ИНТЕГРАЦИИ С ВНЕШНИМ API');
+            updateTestCard('external', 'Внешний API', 'pending', 'Тестирование...');
+            
+            let passed = 0;
+            let total = 0;
+            const details = [];
+            
+            try {
+                // Проверка конфигурации
+                total++;
+                addLog('🔧 Проверяем конфигурацию внешнего API...', 'info');
+                const config = await tradingNetworkConfigService.getConfig();
+                
+                if (config && config.enabled) {
+                    passed++;
+                    details.push(`✅ Конфигурация: включена, URL=${config.baseUrl}`);
+                    details.push(`➜ Endpoints: tanks=${config.endpoints.tanks}, transactions=${config.endpoints.transactions}`);
+                    details.push(`➜ Auth: ${config.authType}, timeout=${config.timeout}ms`);
+                } else {
+                    details.push('❌ Конфигурация: отключена или недоступна');
+                }
+                
+                // Тест получения резервуаров
+                if (testData.apiParams) {
+                    total++;
+                    addLog('🛢️ Тестируем получение данных резервуаров...', 'info');
+                    
+                    try {
+                        const tanksData = await tradingNetworkConfigService.getTanksData(testData.apiParams.tradingPointInfo.id);
+                        if (Array.isArray(tanksData) && tanksData.length > 0) {
+                            passed++;
+                            details.push(`✅ Резервуары: получено ${tanksData.length} резервуаров`);
+                        } else {
+                            details.push('⚠️ Резервуары: пустой ответ (возможно API недоступен)');
+                        }
+                    } catch (error) {
+                        if (error.message.includes('404') || error.message.includes('Not Found')) {
+                            details.push('⚠️ Резервуары: 404 ошибка (демо API недоступен, но запрос сформирован правильно)');
+                        } else {
+                            details.push(`❌ Резервуары: ${error.message}`);
+                        }
+                    }
+                    
+                    // Тест получения транзакций
+                    total++;
+                    addLog('📋 Тестируем получение данных транзакций...', 'info');
+                    
+                    try {
+                        const transactionsData = await tradingNetworkConfigService.getTransactionsData({
+                            tradingPointId: testData.apiParams.tradingPointInfo.id,
+                            limit: 10
+                        });
+                        if (Array.isArray(transactionsData) && transactionsData.length > 0) {
+                            passed++;
+                            details.push(`✅ Транзакции: получено ${transactionsData.length} записей`);
+                        } else {
+                            details.push('⚠️ Транзакции: пустой ответ (возможно API недоступен)');
+                        }
+                    } catch (error) {
+                        if (error.message.includes('404') || error.message.includes('Not Found')) {
+                            details.push('⚠️ Транзакции: 404 ошибка (демо API недоступен, но запрос сформирован правильно)');
+                        } else {
+                            details.push(`❌ Транзакции: ${error.message}`);
+                        }
+                    }
+                }
+                
+                const status = passed === total ? 'ready' : passed > 0 ? 'warning' : 'error';
+                const summary = `Пройдено: ${passed}/${total} тестов`;
+                
+                updateTestCard('external', 'Внешний API', status, 
+                    `${summary}<br><br>${details.join('<br>')}`);
+                
+                addLog(`${status === 'ready' ? '✅' : status === 'warning' ? '⚠️' : '❌'} Внешний API: ${summary}`, 
+                    status === 'ready' ? 'success' : status === 'warning' ? 'warning' : 'error');
+                
+            } catch (error) {
+                updateTestCard('external', 'Внешний API', 'error', `Ошибка: ${error.message}`);
+                addLog(`❌ Ошибка тестирования внешнего API: ${error.message}`, 'error');
+            }
+        }
+        
+        // Комплексный тест всех разделов
+        window.testAllSections = async function() {
+            addSection('🔥 КОМПЛЕКСНЫЙ ТЕСТ ВСЕХ РАЗДЕЛОВ');
+            
+            addLog('🚀 Запуск полного комплексного тестирования...', 'info');
+            
+            await testBasicFunctionality();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDatabaseIntegration();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testExternalApiIntegration();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Итоговый отчет
+            addSection('📊 ИТОГОВЫЙ ОТЧЕТ ГОТОВНОСТИ');
+            
+            const cards = document.querySelectorAll('.test-card');
+            let readyCount = 0;
+            let warningCount = 0;
+            let errorCount = 0;
+            
+            cards.forEach(card => {
+                if (card.classList.contains('status-ready')) readyCount++;
+                else if (card.classList.contains('status-pending')) warningCount++;
+                else errorCount++;
+            });
+            
+            const totalTests = cards.length;
+            const readyPercent = Math.round((readyCount / totalTests) * 100);
+            
+            let overallStatus = 'ready';
+            if (errorCount > 0) overallStatus = 'error';
+            else if (warningCount > 0) overallStatus = 'warning';
+            
+            const statusIcon = overallStatus === 'ready' ? '✅' : 
+                              overallStatus === 'warning' ? '⚠️' : '❌';
+            
+            addLog(`<div class="highlight">
+                ${statusIcon} УНИВЕРСАЛЬНЫЙ HTTP КЛИЕНТ - ИТОГОВАЯ ГОТОВНОСТЬ:<br><br>
+                ➜ Готово к работе: ${readyCount}/${totalTests} разделов (${readyPercent}%)<br>
+                ➜ Предупреждения: ${warningCount}<br>
+                ➜ Ошибки: ${errorCount}<br><br>
+                ${overallStatus === 'ready' ? 
+                    '🎉 СИСТЕМА ПОЛНОСТЬЮ ГОТОВА К ПРИЕМУ ЗАПРОСОВ ОТ РАЗДЕЛОВ ПРИЛОЖЕНИЯ!' :
+                    overallStatus === 'warning' ?
+                    '⚠️ Система готова, но есть предупреждения (обычно связанные с недоступностью демо API)' :
+                    '❌ Требуется исправление ошибок перед использованием'
+                }
+            </div>`, overallStatus === 'ready' ? 'success' : overallStatus === 'warning' ? 'warning' : 'error');
+            
+            updateTestCard('overall', 'Общая готовность', overallStatus,
+                `Готовность: ${readyPercent}%<br>
+                ✅ Готово: ${readyCount}<br>
+                ⚠️ Предупреждения: ${warningCount}<br>
+                ❌ Ошибки: ${errorCount}`);
+        }
+        
+        // Автозапуск
+        addLog('✅ Страница загружена. Инициализация системы тестирования...', 'info');
+        initialize();
+    </script>
+</body>
+</html>

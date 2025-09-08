@@ -1,10 +1,13 @@
 /**
  * Сервис для работы со статусами компонентов оборудования
- * Включает персистентное хранение в localStorage
+ * ОБНОВЛЕН: Интегрирован с централизованной конфигурацией
+ * Поддерживает переключение между localStorage и Supabase
  */
 
 import { ComponentStatus } from '@/types/component';
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { apiConfigServiceDB } from './apiConfigServiceDB';
+import { ComponentStatusSupabaseService } from './componentStatusSupabaseService';
 
 export interface ComponentStatusRecord {
   id: string;
@@ -48,148 +51,58 @@ export interface ComponentHealthMetrics {
   avgUptime: number;
 }
 
-// Начальные данные статусов компонентов
-const initialComponentStatuses: ComponentStatusRecord[] = [
-  {
-    id: "CS-001",
-    componentId: "COMP-001",
-    equipmentId: "EQ-001",
-    status: "online",
-    statusMessage: "Датчик работает нормально",
-    lastOnline: "2024-08-30T10:00:00Z",
-    uptime: 86400,
-    downtime: 0,
-    errorCount: 0,
-    responseTime: 150,
-    signalStrength: 95,
-    temperature: 22.5,
-    voltage: 12.1,
-    metadata: {
-      sensorType: "fuel_level",
-      calibrationDate: "2024-08-01",
-      accuracy: "±0.5mm"
-    },
-    createdAt: new Date('2024-08-29T10:00:00Z'),
-    updatedAt: new Date('2024-08-30T10:00:00Z')
-  },
-  {
-    id: "CS-002",
-    componentId: "COMP-002",
-    equipmentId: "EQ-001",
-    status: "error",
-    statusMessage: "Ошибка связи с принтером",
-    lastOnline: "2024-08-30T08:30:00Z",
-    lastOffline: "2024-08-30T09:15:00Z",
-    uptime: 82800,
-    downtime: 2700,
-    errorCount: 3,
-    lastError: "COMM_ERROR: Timeout waiting for printer response",
-    lastErrorTime: "2024-08-30T09:15:00Z",
-    responseTime: 0,
-    signalStrength: 0,
-    temperature: 35.2,
-    voltage: 11.8,
-    metadata: {
-      printerModel: "ThermalPrinter-58",
-      paperLevel: "low",
-      lastMaintenance: "2024-07-15"
-    },
-    createdAt: new Date('2024-08-29T08:30:00Z'),
-    updatedAt: new Date('2024-08-30T09:15:00Z')
-  },
-  {
-    id: "CS-003",
-    componentId: "COMP-003",
-    equipmentId: "EQ-001",
-    status: "offline",
-    statusMessage: "Пинпад отключен для обслуживания",
-    lastOnline: "2024-08-30T07:00:00Z",
-    lastOffline: "2024-08-30T07:05:00Z",
-    uptime: 79200,
-    downtime: 10800,
-    errorCount: 1,
-    lastError: "MAINTENANCE_MODE: Device scheduled for maintenance",
-    lastErrorTime: "2024-08-30T07:05:00Z",
-    responseTime: 0,
-    signalStrength: 0,
-    metadata: {
-      deviceModel: "VeriFone V200c",
-      firmwareVersion: "1.2.3",
-      maintenanceScheduled: true
-    },
-    createdAt: new Date('2024-08-29T07:00:00Z'),
-    updatedAt: new Date('2024-08-30T07:05:00Z')
-  },
-  {
-    id: "CS-004",
-    componentId: "COMP-004",
-    equipmentId: "EQ-002",
-    status: "online",
-    statusMessage: "Сервер функционирует нормально",
-    lastOnline: "2024-08-30T00:00:00Z",
-    uptime: 172800,
-    downtime: 0,
-    errorCount: 0,
-    responseTime: 25,
-    signalStrength: 100,
-    temperature: 28.1,
-    voltage: 220.5,
-    metadata: {
-      serverType: "industrial",
-      cpuUsage: 35,
-      memoryUsage: 68,
-      diskUsage: 45,
-      networkLatency: 12
-    },
-    createdAt: new Date('2024-08-28T00:00:00Z'),
-    updatedAt: new Date('2024-08-30T10:00:00Z')
-  },
-  {
-    id: "CS-005",
-    componentId: "COMP-005",
-    equipmentId: "EQ-002",
-    status: "disabled",
-    statusMessage: "ИБП отключен администратором",
-    lastOnline: "2024-08-29T18:00:00Z",
-    lastOffline: "2024-08-29T18:00:00Z",
-    uptime: 57600,
-    downtime: 57600,
-    errorCount: 0,
-    responseTime: 0,
-    signalStrength: 0,
-    voltage: 0,
-    metadata: {
-      upsModel: "APC Smart-UPS 1500VA",
-      batteryLevel: 95,
-      adminDisabled: true,
-      disableReason: "Scheduled replacement"
-    },
-    createdAt: new Date('2024-08-28T18:00:00Z'),
-    updatedAt: new Date('2024-08-29T18:00:00Z')
-  }
-];
+// ❌ MOCK ДАННЫЕ УДАЛЕНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+// ❌ MOCK ДАННЫЕ УДАЛЕНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+const mockComponentStatuses: ComponentStatusRecord[] = [];
 
-// Загружаем данные из localStorage
-const componentStatusesData: ComponentStatusRecord[] = PersistentStorage.load<ComponentStatusRecord>('componentStatuses', initialComponentStatuses);
+// ❌ ЗАГРУЗКА ДАННЫХ ЗАБЛОКИРОВАНА - используется только Supabase
+const componentStatusesData: ComponentStatusRecord[] = [];
 let nextId = Math.max(...componentStatusesData.map(cs => parseInt(cs.id.replace('CS-', '')) || 0)) + 1;
+
+// Экземпляр Supabase сервиса
+const componentStatusSupabaseService = new ComponentStatusSupabaseService();
 
 // Функция для сохранения изменений
 const saveComponentStatuses = () => {
   PersistentStorage.save('componentStatuses', componentStatusesData);
 };
 
-// API сервис с персистентным хранением
+// API сервис с централизованной конфигурацией
 export const componentStatusService = {
+  async initialize(): Promise<void> {
+    try {
+      await apiConfigServiceDB.initialize();
+      console.log('✅ ComponentStatusService инициализирован');
+    } catch (error) {
+      console.warn('⚠️ Ошибка инициализации ComponentStatusService:', error);
+    }
+  },
+
+  // ❌ MOCK РЕЖИМ ЗАБЛОКИРОВАН
+  async isMockMode(): Promise<boolean> {
+    return false; // Mock режим навсегда отключен
+  },
+
   // Получить все статусы компонентов
   async getAll(): Promise<ComponentStatusRecord[]> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    return [...componentStatusesData].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    try {
+      console.log('🔄 ComponentStatusService.getAll: Используется только Supabase');
+      return await componentStatusSupabaseService.getAll();
+    } catch (error) {
+      console.error('❌ Ошибка получения статусов компонентов:', error);
+      throw new Error('Не удалось получить статусы компонентов. Настройте подключение к Supabase в разделе "Обмен данными".');
+    }
   },
 
   // Получить статус компонента по ID
   async getById(id: string): Promise<ComponentStatusRecord | null> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return componentStatusesData.find(cs => cs.id === id) || null;
+    try {
+      console.log(`🔄 ComponentStatusService.getById(${id}): Используется только Supabase`);
+      return await componentStatusSupabaseService.getById(id);
+    } catch (error) {
+      console.error(`❌ Ошибка получения статуса компонента ${id}:`, error);
+      throw new Error(`Не удалось получить статус компонента ${id}. Настройте подключение к Supabase в разделе "Обмен данными".`);
+    }
   },
 
   // Получить статус по ID компонента

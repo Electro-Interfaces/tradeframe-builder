@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностика данных резервуаров</title>
+</head>
+<body>
+    <h1>Диагностика данных резервуаров</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        // Импортируем сервис напрямую
+        async function checkTanksData() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                console.log('🔍 Загружаем модуль equipmentSupabase...');
+                const { equipmentSupabaseService } = await import('./src/services/equipmentSupabase.ts');
+                
+                const tradingPointId = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+                console.log(`📊 Запрашиваем оборудование для ТП: ${tradingPointId}`);
+                
+                const result = await equipmentSupabaseService.list({
+                    trading_point_id: tradingPointId,
+                    system_type: 'fuel_tank'
+                });
+                
+                console.log('📋 Результат запроса:', result);
+                
+                let html = '<h2>Данные оборудования (тип: fuel_tank)</h2>';
+                
+                if (result.data && result.data.length > 0) {
+                    result.data.forEach((item, index) => {
+                        html += `
+                            <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;">
+                                <h3>Резервуар ${index + 1}</h3>
+                                <p><strong>ID:</strong> ${item.id}</p>
+                                <p><strong>Название:</strong> ${item.display_name || item.name}</p>
+                                <p><strong>Статус:</strong> ${item.status}</p>
+                                <p><strong>Тип системы:</strong> ${item.system_type}</p>
+                                <p><strong>params:</strong> <pre>${JSON.stringify(item.params, null, 2)}</pre></p>
+                                <p><strong>default_params:</strong> <pre>${JSON.stringify(item.default_params, null, 2)}</pre></p>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>Оборудование не найдено!</p>';
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                resultsDiv.innerHTML = `<p style="color: red;">Ошибка: ${error.message}</p>`;
+            }
+        }
+        
+        // Запускаем проверку
+        checkTanksData();
+    </script>
+</body>
+</html>

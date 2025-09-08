@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔧 Диагностика селекторов</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; background: #1e293b; color: white; padding: 20px; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { background: #374151; padding: 20px; border-radius: 8px; margin: 15px 0; }
+        .success { background: #10b981; color: white; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .error { background: #dc2626; color: white; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .warning { background: #f59e0b; color: black; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .info { background: #3b82f6; color: white; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .debug { background: #0f172a; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; overflow-x: auto; margin: 10px 0; white-space: pre-wrap; }
+        button { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin: 5px; }
+        button:hover { background: #2563eb; }
+        .network-list, .trading-points-list { max-height: 300px; overflow-y: auto; border: 1px solid #4b5563; border-radius: 6px; margin: 10px 0; }
+        .network-item, .tp-item { padding: 10px; border-bottom: 1px solid #4b5563; cursor: pointer; }
+        .network-item:hover, .tp-item:hover { background: #4b5563; }
+        .selected { background: #10b981 !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Диагностика селекторов сетей и торговых точек</h1>
+        
+        <div class="section">
+            <h3>🔍 Инструкция по диагностике:</h3>
+            <p><strong>1.</strong> Откройте DevTools (F12) и перейдите на вкладку Console</p>
+            <p><strong>2.</strong> Запустите тесты ниже и следите за логами</p>
+            <p><strong>3.</strong> Убедитесь, что данные загружаются с правильного Supabase URL</p>
+            <p><strong>4.</strong> Проверьте, что UUID торговых точек корректны</p>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Тесты диагностики:</h3>
+            <button onclick="testSupabaseConnection()">🔌 Тест подключения Supabase</button>
+            <button onclick="testNetworksService()">🏢 Тест networksService</button>
+            <button onclick="testTradingPointsService()">🏪 Тест tradingPointsService</button>
+            <button onclick="testSelectionContext()">⚙️ Тест SelectionContext</button>
+            <button onclick="openMainApp()">🌐 Главное приложение</button>
+            <button onclick="clearResults()">🗑️ Очистить</button>
+        </div>
+
+        <div class="section">
+            <h3>🏢 Загруженные сети:</h3>
+            <div id="networks-list" class="network-list">
+                <div class="info">Нажмите "Тест networksService" для загрузки</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🏪 Торговые точки выбранной сети:</h3>
+            <div id="trading-points-list" class="trading-points-list">
+                <div class="info">Выберите сеть выше для загрузки торговых точек</div>
+            </div>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        let networks = [];
+        let selectedNetworkId = null;
+        let tradingPoints = [];
+
+        // Константы с правильными настройками
+        const CORRECT_URL = 'https://dlvggjmirqhmdylfwngm.supabase.co';
+        const CORRECT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsdmdnam1pcnFobWR5bGZ3bmdtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNTY5Njg2NSwiZXhwIjoyMDUxMjcyODY1fQ.SLOvfECCNMeWX-V7Hl4mjfyDGfTLUmLF9GCn3R3NfAY';
+
+        window.testSupabaseConnection = async function() {
+            addResult('🔌 Проверка подключения к Supabase...', 'info');
+
+            try {
+                const endpoint = `${CORRECT_URL}/rest/v1/networks?select=id,name&limit=1`;
+                
+                addResult(`🔗 Тестируем URL: ${endpoint}`, 'debug');
+
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'apikey': CORRECT_KEY,
+                        'Authorization': `Bearer ${CORRECT_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('✅ Подключение к Supabase работает!', 'success');
+                    addResult(`📊 Тестовый запрос вернул ${data.length} записей`, 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+            } catch (error) {
+                addResult(`❌ Ошибка подключения к Supabase: ${error.message}`, 'error');
+                addResult(`🔧 Возможные причины: неправильный URL, ключ или проблемы с сетью`, 'warning');
+            }
+        }
+
+        window.testNetworksService = async function() {
+            addResult('🏢 Тестирование networksService...', 'info');
+
+            try {
+                const endpoint = `${CORRECT_URL}/rest/v1/networks?select=id,name,description,code,status,external_id,settings,created_at,updated_at&order=name`;
+                
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'apikey': CORRECT_KEY,
+                        'Authorization': `Bearer ${CORRECT_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                networks = data || [];
+
+                if (networks.length === 0) {
+                    addResult('⚠️ В базе данных не найдено ни одной сети!', 'warning');
+                } else {
+                    addResult(`✅ Загружено сетей: ${networks.length}`, 'success');
+                    
+                    // Подсчитываем торговые точки для каждой сети
+                    const networksWithCounts = await Promise.all(
+                        networks.map(async (network) => {
+                            const countEndpoint = `${CORRECT_URL}/rest/v1/trading_points?select=id&eq.network_id=${network.id}`;
+                            try {
+                                const countResponse = await fetch(countEndpoint, {
+                                    headers: {
+                                        'apikey': CORRECT_KEY,
+                                        'Authorization': `Bearer ${CORRECT_KEY}`,
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+                                const countData = await countResponse.json();
+                                return { ...network, tradingPointsCount: countData?.length || 0 };
+                            } catch (error) {
+                                console.error(`Ошибка подсчета точек для сети ${network.name}:`, error);
+                                return { ...network, tradingPointsCount: 0 };
+                            }
+                        })
+                    );
+
+                    displayNetworks(networksWithCounts);
+                }
+                
+            } catch (error) {
+                addResult(`❌ Ошибка загрузки сетей: ${error.message}`, 'error');
+            }
+        }
+
+        window.testTradingPointsService = async function() {
+            if (!selectedNetworkId) {
+                addResult('⚠️ Сначала выберите сеть для загрузки торговых точек', 'warning');
+                return;
+            }
+
+            addResult(`🏪 Загружаем торговые точки для сети ${selectedNetworkId}...`, 'info');
+
+            try {
+                const endpoint = `${CORRECT_URL}/rest/v1/trading_points?select=*&eq.network_id=${selectedNetworkId}&order=name`;
+                
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'apikey': CORRECT_KEY,
+                        'Authorization': `Bearer ${CORRECT_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                tradingPoints = data || [];
+
+                if (tradingPoints.length === 0) {
+                    addResult('⚠️ В выбранной сети не найдено торговых точек!', 'warning');
+                } else {
+                    addResult(`✅ Загружено торговых точек: ${tradingPoints.length}`, 'success');
+                    displayTradingPoints(tradingPoints);
+                }
+                
+            } catch (error) {
+                addResult(`❌ Ошибка загрузки торговых точек: ${error.message}`, 'error');
+            }
+        }
+
+        window.testSelectionContext = function() {
+            addResult('⚙️ Тестирование SelectionContext...', 'info');
+            addResult('🔍 Откройте главное приложение и проверьте:', 'info');
+            addResult('1. Загружаются ли селекторы сетей и торговых точек', 'info');
+            addResult('2. Работает ли переключение между сетями', 'info');
+            addResult('3. Отображаются ли торговые точки при выборе сети', 'info');
+            addResult('4. Сохраняется ли выбор в localStorage', 'info');
+            
+            // Проверяем localStorage
+            const savedNetwork = localStorage.getItem('selectedNetworkId');
+            const savedTradingPoint = localStorage.getItem('selectedTradingPoint');
+            
+            if (savedNetwork) {
+                addResult(`📊 В localStorage сохранена сеть: ${savedNetwork}`, 'success');
+            } else {
+                addResult('⚠️ В localStorage не найдена сохраненная сеть', 'warning');
+            }
+            
+            if (savedTradingPoint) {
+                addResult(`📊 В localStorage сохранена торговая точка: ${savedTradingPoint}`, 'success');
+            } else {
+                addResult('⚠️ В localStorage не найдена сохраненная торговая точка', 'warning');
+            }
+        }
+
+        window.openMainApp = function() {
+            window.open('http://localhost:3000', '_blank');
+        }
+
+        window.clearResults = function() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function displayNetworks(networksData) {
+            const container = document.getElementById('networks-list');
+            container.innerHTML = '';
+
+            if (!networksData || networksData.length === 0) {
+                container.innerHTML = '<div class="warning">Сети не найдены</div>';
+                return;
+            }
+
+            networksData.forEach(network => {
+                const div = document.createElement('div');
+                div.className = 'network-item';
+                div.innerHTML = `
+                    <strong>${network.name}</strong> (ID: ${network.id})
+                    <br>Код: ${network.external_id || 'N/A'} | Торговых точек: ${network.tradingPointsCount || 0}
+                    <br>UUID: <code>${network.id}</code>
+                `;
+                div.onclick = () => selectNetwork(network);
+                container.appendChild(div);
+            });
+        }
+
+        function selectNetwork(network) {
+            selectedNetworkId = network.id;
+            
+            // Обновляем визуальное выделение
+            document.querySelectorAll('.network-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            addResult(`✅ Выбрана сеть: ${network.name} (${network.id})`, 'success');
+            
+            // Автоматически загружаем торговые точки
+            testTradingPointsService();
+        }
+
+        function displayTradingPoints(pointsData) {
+            const container = document.getElementById('trading-points-list');
+            container.innerHTML = '';
+
+            if (!pointsData || pointsData.length === 0) {
+                container.innerHTML = '<div class="warning">Торговые точки не найдены</div>';
+                return;
+            }
+
+            pointsData.forEach(point => {
+                const div = document.createElement('div');
+                div.className = 'tp-item';
+                div.innerHTML = `
+                    <strong>${point.name || 'Без названия'}</strong>
+                    <br>Код станции: ${point.station_code || 'N/A'} | External ID: ${point.external_id || 'N/A'}
+                    <br>UUID: <code>${point.id}</code>
+                    <br>Адрес: ${point.address || 'N/A'}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type;
+            if (type === 'debug') {
+                div.innerHTML = `<pre>${message}</pre>`;
+            } else {
+                div.textContent = message;
+            }
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        // Автоматически запускаем базовые тесты при загрузке
+        window.addEventListener('load', function() {
+            addResult('🔧 Диагностика селекторов загружена', 'info');
+            addResult('📋 Нажмите "Тест подключения Supabase" для начала диагностики', 'info');
+        });
+    </script>
+</body>
+</html>

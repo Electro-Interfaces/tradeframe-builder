@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Проверка торгового API</title>
+  <meta charset="utf-8">
+</head>
+<body>
+  <h1>🔧 Проверка доступности торгового API</h1>
+  
+  <div id="status">Готов к тестированию</div>
+  <button onclick="testAPI()">🧪 Тестировать API</button>
+  
+  <h2>Результаты:</h2>
+  <pre id="results"></pre>
+
+  <script>
+    const log = (message) => {
+      const results = document.getElementById('results');
+      results.textContent += new Date().toISOString() + ' - ' + message + '\n';
+      console.log(message);
+    };
+
+    const testAPI = async () => {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = 'Тестирую торговое API...';
+      
+      try {
+        log('🚀 Начинаем тестирование торгового API');
+        log('📡 URL: https://azs.scloud.kz/api/transactions');
+        
+        // Тест 1: Простой ping-тест
+        log('🔍 Тест 1: Проверяем доступность домена');
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+        
+        const response = await fetch('https://azs.scloud.kz/api/transactions', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            system_id: 15,
+            station_number: 4,
+            date_from: '2025-09-08',
+            date_to: '2025-09-08'
+          })
+        });
+        
+        clearTimeout(timeoutId);
+        
+        log(`✅ Ответ получен! Статус: ${response.status} ${response.statusText}`);
+        log(`📊 Content-Type: ${response.headers.get('content-type')}`);
+        log(`📊 Response OK: ${response.ok}`);
+        
+        if (response.ok) {
+          try {
+            const data = await response.json();
+            log(`✅ JSON успешно распарсен`);
+            log(`📊 Тип ответа: ${typeof data}`);
+            log(`📊 Ключи в ответе: ${Object.keys(data || {}).join(', ')}`);
+            
+            if (data && data.data) {
+              log(`📊 Количество транзакций: ${data.data.length}`);
+            } else if (data && data.transactions) {
+              log(`📊 Количество транзакций: ${data.transactions.length}`);
+            } else {
+              log(`📊 Полный ответ: ${JSON.stringify(data, null, 2)}`);
+            }
+            
+            statusDiv.textContent = '✅ API доступен и отвечает!';
+          } catch (jsonError) {
+            const responseText = await response.text();
+            log(`❌ Ошибка парсинга JSON: ${jsonError.message}`);
+            log(`📊 Сырой ответ: ${responseText.substring(0, 500)}`);
+            statusDiv.textContent = '⚠️ API отвечает, но не JSON';
+          }
+        } else {
+          const errorText = await response.text();
+          log(`❌ API вернул ошибку: ${response.status} - ${errorText}`);
+          statusDiv.textContent = '❌ API вернул ошибку';
+        }
+        
+      } catch (error) {
+        log(`💥 КРИТИЧЕСКАЯ ОШИБКА: ${error.name}: ${error.message}`);
+        
+        if (error.name === 'AbortError') {
+          log(`⏰ Таймаут: API не ответил за 10 секунд`);
+          statusDiv.textContent = '⏰ Таймаут API (10 секунд)';
+        } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          log(`🌐 Сетевая ошибка: Возможны проблемы с CORS или недоступность сервера`);
+          statusDiv.textContent = '🌐 Сетевая ошибка / CORS';
+        } else {
+          statusDiv.textContent = `💥 Ошибка: ${error.message}`;
+        }
+        
+        log(`📊 Stack trace: ${error.stack}`);
+      }
+      
+      log('🏁 Тестирование завершено');
+    };
+  </script>
+</body>
+</html>

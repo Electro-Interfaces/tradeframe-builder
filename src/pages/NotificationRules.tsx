@@ -44,107 +44,11 @@ interface NotificationRule {
   };
 }
 
-// Mock данные пользователей
-const mockUsers = [
-  { id: "1", name: "Иван Петров", email: "ivan.petrov@azs.com", role: "Администратор" },
-  { id: "2", name: "Анна Сидорова", email: "anna.sidorova@azs.com", role: "Менеджер сети" },
-  { id: "3", name: "Дмитрий Козлов", email: "dmitry.kozlov@azs.com", role: "Технический специалист" },
-  { id: "4", name: "Елена Морозова", email: "elena.morozova@azs.com", role: "Оператор" },
-];
-
-const mockNotificationRules: NotificationRule[] = [
-  {
-    id: "1",
-    name: "Критический уровень топлива",
-    description: "Уведомление при низком уровне топлива в резервуарах",
-    isActive: true,
-    priority: "critical",
-    trigger: {
-      type: "tank_level",
-      label: "Уровень в резервуаре: Меньше 15%"
-    },
-    conditions: {
-      condition: "less_than",
-      value: 15,
-      fuelType: "АИ-95"
-    },
-    channels: [
-      { type: "email", enabled: true },
-      { type: "telegram", enabled: true },
-      { type: "webhook", enabled: false }
-    ],
-    recipients: ["manager@azs.com", "operator@azs.com"],
-    messageTemplate: "🚨 КРИТИЧЕСКИЙ УРОВЕНЬ! На точке {{point.name}} в резервуаре {{tank.name}} осталось {{tank.level}}% топлива {{tank.fuelType}}",
-    userId: "2",
-    userName: "Анна Сидорова",
-    createdAt: "2024-08-15T10:00:00Z",
-    updatedAt: "2024-08-20T14:30:00Z",
-    lastTriggered: {
-      date: "2024-08-29T08:30:00Z",
-      status: "sent"
-    }
-  },
-  {
-    id: "2",
-    name: "Оборудование в офлайне",
-    description: "Уведомление о переходе оборудования в офлайн статус",
-    isActive: true,
-    priority: "warning",
-    trigger: {
-      type: "equipment_status",
-      label: "Статус оборудования: Офлайн"
-    },
-    conditions: {
-      equipmentType: "ТРК",
-      newStatus: "offline"
-    },
-    channels: [
-      { type: "email", enabled: true },
-      { type: "telegram", enabled: false },
-      { type: "webhook", enabled: true }
-    ],
-    recipients: ["tech@azs.com"],
-    messageTemplate: "⚠️ Оборудование {{equipment.name}} ({{equipment.type}}) на точке {{point.name}} перешло в статус 'Офлайн'",
-    userId: "3",
-    userName: "Дмитрий Козлов",
-    createdAt: "2024-08-10T12:00:00Z",
-    updatedAt: "2024-08-25T16:45:00Z",
-    lastTriggered: {
-      date: "2024-08-28T14:15:00Z",
-      status: "sent"
-    }
-  },
-  {
-    id: "3",
-    name: "Завершение ночного регламента",
-    description: "Информирование о завершении ночных регламентов",
-    isActive: false,
-    priority: "info",
-    trigger: {
-      type: "workflow_completed",
-      label: "Регламент завершен: Ежедневное закрытие смены"
-    },
-    conditions: {
-      workflowId: "workflow_1",
-      status: "success"
-    },
-    channels: [
-      { type: "email", enabled: true },
-      { type: "telegram", enabled: false },
-      { type: "webhook", enabled: false }
-    ],
-    recipients: ["manager@azs.com"],
-    messageTemplate: "✅ Регламент '{{workflow.name}}' успешно завершен. Время выполнения: {{workflow.duration}}",
-    userId: "2",
-    userName: "Анна Сидорова",
-    createdAt: "2024-08-05T09:00:00Z",
-    updatedAt: "2024-08-28T08:15:00Z"
-  }
-];
+const mockNotificationRules: NotificationRule[] = [];
 
 export default function NotificationRules() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
-  const [rules, setRules] = useState<NotificationRule[]>(mockNotificationRules);
+  const [rules, setRules] = useState<NotificationRule[]>([]);
   const [selectedRule, setSelectedRule] = useState<NotificationRule | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);

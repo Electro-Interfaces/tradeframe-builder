@@ -1,5 +1,5 @@
 import { Equipment, EquipmentComponent, EquipmentEvent, EquipmentStatusAction, EquipmentTemplate } from '@/types/equipment';
-import { mockEquipmentAPI } from './equipment';
+// ❌ Mock импорт удален - файл предназначен только для миграционных данных
 
 // Обновленные резервуары для всех АЗС демо сети
 const newEquipmentData: Equipment[] = [

@@ -7,6 +7,7 @@
 
 import { apiConfigService, DatabaseConnection } from '@/services/apiConfigService';
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { httpClient } from './universalHttpClient';
 
 export type ServiceModule = 
   | 'networks'
@@ -516,12 +517,12 @@ export const partialMigrationService = {
 
     for (const endpoint of config.apiEndpoints) {
       try {
-        const response = await fetch(`${baseUrl}${endpoint}/health`, {
-          method: 'GET',
-          signal: AbortSignal.timeout(5000)
+        const response = await httpClient.get(`${endpoint}/health`, {
+          destination: 'supabase',
+          timeout: 5000
         });
-        results[endpoint] = response.ok;
-        if (!response.ok) overallSuccess = false;
+        results[endpoint] = response.success;
+        if (!response.success) overallSuccess = false;
       } catch (error) {
         results[endpoint] = false;
         overallSuccess = false;

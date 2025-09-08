@@ -3,7 +3,7 @@
  * Переключен на работу с Supabase
  */
 
-import { PersistentStorage } from '../utils/persistentStorage';
+import { PersistentStorage } from '@/utils/persistentStorage';
 
 // Экспортируем все из нового Supabase сервиса
 export * from './tanksServiceSupabase';
@@ -14,6 +14,7 @@ export interface Tank {
   name: string;
   fuelType: string;
   currentLevelLiters: number;
+  bookBalance: number; // Книжный остаток
   capacityLiters: number;
   minLevelPercent: number;
   criticalLevelPercent: number;
@@ -29,6 +30,8 @@ export interface Tank {
   sensors: Array<{
     name: string;
     status: 'ok' | 'error';
+    value?: string;
+    timestamp?: string;
   }>;
   linkedPumps: Array<{
     id: number;
@@ -55,6 +58,15 @@ export interface Tank {
   trading_point_id: string;
   created_at: string;
   updated_at: string;
+  // Новые поля для реальных данных с API
+  apiData?: {
+    levelPercent: number;        // Процент заполнения
+    releaseVolume: number;       // Объем выданного топлива
+    releaseAmount: number;       // Сумма выданного топлива
+    fuelCode: number;           // Код топлива
+    stateCode: number;          // Код состояния
+    lastSync: string;           // Время последней синхронизации
+  };
 }
 
 export interface TankEvent {
@@ -882,45 +894,9 @@ const initialCalibrations: TankCalibration[] = [
   }
 ];
 
-// Загружаем данные из localStorage
-let mockTanks: Tank[] = PersistentStorage.load<Tank>('tanks', initialTanks);
-let mockTankEvents: TankEvent[] = PersistentStorage.load<TankEvent>('tankEvents', initialTankEvents);
-let mockDrains: DrainOperation[] = PersistentStorage.load<DrainOperation>('drainOperations', initialDrains);
-let mockCalibrations: TankCalibration[] = PersistentStorage.load<TankCalibration>('tankCalibrations', initialCalibrations);
+// ❌ LOCALSTORAGE И MOCK ДАННЫЕ УДАЛЕНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
 
-// Функции для сохранения изменений
-const saveTanks = () => PersistentStorage.save('tanks', mockTanks);
-const saveTankEvents = () => PersistentStorage.save('tankEvents', mockTankEvents);
-const saveDrains = () => PersistentStorage.save('drainOperations', mockDrains);
-const saveCalibrations = () => PersistentStorage.save('tankCalibrations', mockCalibrations);
-
-// Функция для сброса и обновления данных резервуаров (для связанной схемы)
-const resetTanksData = () => {
-  PersistentStorage.remove('tanks');
-  PersistentStorage.remove('tankEvents');
-  PersistentStorage.remove('drainOperations');
-  PersistentStorage.remove('tankCalibrations');
-  
-  mockTanks = [...initialTanks];
-  mockTankEvents = [...initialTankEvents];
-  mockDrains = [...initialDrains];
-  mockCalibrations = [...initialCalibrations];
-  
-  saveTanks();
-  saveTankEvents();
-  saveDrains();
-  saveCalibrations();
-  
-  console.log('🔄 Tanks data reset to match Equipment schema');
-};
-
-// Принудительная очистка localStorage для синхронизации
-PersistentStorage.remove('tanks');
-PersistentStorage.remove('tankEvents');
-PersistentStorage.remove('drainOperations');
-PersistentStorage.remove('tankCalibrations');
-// Для демонстрации связанной схемы - раскомментируйте следующую строку
-resetTanksData();
+// ❌ MOCK ФУНКЦИИ УДАЛЕНЫ - ИСПОЛЬЗУЕТСЯ ТОЛЬКО SUPABASE
 
 // API сервис на Supabase
 export const tanksService = {
@@ -983,60 +959,23 @@ export const tanksService = {
   },
 
   // Обновить резервуар
-  async updateTank(id: number, updates: Partial<Tank>): Promise<Tank> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const index = mockTanks.findIndex(tank => tank.id === id);
-    if (index === -1) {
-      throw new Error(`Резервуар с ID ${id} не найден`);
-    }
-
-    const updated = {
-      ...mockTanks[index],
-      ...updates,
-      updated_at: new Date().toISOString()
-    };
-
-    mockTanks[index] = updated;
-    saveTanks();
-    
-    return updated;
+  async updateTank(id: string, updates: Partial<Tank>): Promise<Tank> {
+    throw new Error('Mock updateTank удален - используйте tanksServiceSupabase');
   },
 
   // Получить события резервуара
-  async getTankEvents(tankId: number, limit = 10): Promise<TankEvent[]> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    return mockTankEvents
-      .filter(event => event.tankId === tankId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, limit);
+  async getTankEvents(tankId: string, limit = 10): Promise<TankEvent[]> {
+    throw new Error('Mock getTankEvents удален - используйте tanksServiceSupabase');
   },
 
   // Добавить событие резервуара
   async addTankEvent(event: Omit<TankEvent, 'id'>): Promise<TankEvent> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const newEvent: TankEvent = {
-      ...event,
-      id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    };
-
-    mockTankEvents.push(newEvent);
-    saveTankEvents();
-    
-    return newEvent;
+    throw new Error('Mock addTankEvent удален - используйте tanksServiceSupabase');
   },
 
   // Получить операции слива
-  async getDrains(tankId?: number): Promise<DrainOperation[]> {
-    await new Promise(resolve => setTimeout(resolve, 180));
-    
-    if (tankId) {
-      return mockDrains.filter(drain => drain.tankId === tankId);
-    }
-    return [...mockDrains].sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+  async getDrains(tankId?: string): Promise<DrainOperation[]> {
+    throw new Error('Mock getDrains удален - используйте tanksServiceSupabase');
   },
 
   // Создать операцию слива
@@ -1056,26 +995,12 @@ export const tanksService = {
 
   // Обновить операцию слива
   async updateDrain(id: string, updates: Partial<DrainOperation>): Promise<DrainOperation> {
-    await new Promise(resolve => setTimeout(resolve, 250));
-    
-    const index = mockDrains.findIndex(drain => drain.id === id);
-    if (index === -1) {
-      throw new Error(`Операция слива с ID ${id} не найдена`);
-    }
-
-    const updated = { ...mockDrains[index], ...updates };
-    mockDrains[index] = updated;
-    saveDrains();
-    
-    return updated;
+    throw new Error('Mock updateDrain удален - используйте tanksServiceSupabase');
   },
 
   // Получить калибровки резервуара
-  async getTankCalibrations(tankId: number): Promise<TankCalibration[]> {
-    await new Promise(resolve => setTimeout(resolve, 120));
-    return mockCalibrations
-      .filter(cal => cal.tankId === tankId)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  async getTankCalibrations(tankId: string): Promise<TankCalibration[]> {
+    throw new Error('Mock getTankCalibrations удален - используйте tanksServiceSupabase');
   },
 
   // Добавить калибровку
@@ -1091,16 +1016,7 @@ export const tanksService = {
     mockCalibrations.push(newCalibration);
     saveCalibrations();
     
-    // Обновляем дату последней калибровки в резервуаре
-    const tankIndex = mockTanks.findIndex(tank => tank.id === calibration.tankId);
-    if (tankIndex >= 0) {
-      mockTanks[tankIndex] = {
-        ...mockTanks[tankIndex],
-        lastCalibration: calibration.date,
-        updated_at: new Date().toISOString()
-      };
-      saveTanks();
-    }
+    // ❌ Mock обновление удалено - используйте tanksServiceSupabase
     
     return newCalibration;
   },
@@ -1118,9 +1034,7 @@ export const tanksService = {
     const params = equipmentData.params;
     const now = new Date().toISOString();
 
-    // Найдём следующий доступный ID
-    const maxId = Math.max(0, ...mockTanks.map(t => t.id));
-    const newId = maxId + 1;
+    throw new Error('Mock createTankFromEquipment удален - используйте tanksServiceSupabase');
     
     const newTank: Tank = {
       // Базовые характеристики
@@ -1199,35 +1113,7 @@ export const tanksService = {
 
   // Удалить резервуар (при удалении оборудования)
   async deleteTankByEquipment(equipmentId: string): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    // Находим резервуар, созданный из данного оборудования
-    // (можно использовать поиск по событиям или добавить поле equipment_id в Tank)
-    const tankEvents = mockTankEvents.filter(event => 
-      event.metadata?.equipmentId === equipmentId && 
-      event.metadata?.source === 'equipment_sync'
-    );
-    
-    for (const event of tankEvents) {
-      const tankIndex = mockTanks.findIndex(tank => tank.id === event.tankId);
-      if (tankIndex >= 0) {
-        // Добавляем событие об удалении
-        await this.addTankEvent({
-          tankId: event.tankId,
-          type: 'maintenance',
-          title: 'Резервуар удалён',
-          description: `Резервуар удалён из-за удаления связанного оборудования`,
-          timestamp: new Date().toISOString(),
-          operatorName: 'Система',
-          severity: 'warning',
-          metadata: { equipmentId, source: 'equipment_sync' }
-        });
-
-        // Удаляем резервуар
-        mockTanks.splice(tankIndex, 1);
-        saveTanks();
-      }
-    }
+    throw new Error('Mock deleteTankByEquipment удален - используйте tanksServiceSupabase');
   },
 
   // Синхронизация с оборудованием - получить резервуары по торговой точке
@@ -1251,31 +1137,6 @@ export const tanksService = {
     // Получаем существующие резервуары для данной торговой точки
     const existingTanks = await this.getTanks(tradingPointId);
     
-    // Находим резервуары, которые были созданы из оборудования
-    const syncedTankIds = new Set<number>();
-    
-    for (const event of mockTankEvents) {
-      if (event.metadata?.source === 'equipment_sync') {
-        syncedTankIds.add(event.tankId);
-      }
-    }
-
-    // Создаём резервуары для нового оборудования
-    for (const equipment of tankEquipment) {
-      // Проверяем, есть ли уже резервуар для этого оборудования
-      const hasExistingTank = mockTankEvents.some(event => 
-        event.metadata?.equipmentId === equipment.id && 
-        event.metadata?.source === 'equipment_sync'
-      );
-      
-      if (!hasExistingTank) {
-        await this.createTankFromEquipment(equipment.id, {
-          name: equipment.name,
-          display_name: equipment.display_name,
-          trading_point_id: tradingPointId,
-          params: equipment.params
-        });
-      }
-    }
+    throw new Error('Mock syncWithEquipment удален - используйте tanksServiceSupabase');
   }
 };

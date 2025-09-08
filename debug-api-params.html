@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Диагностика API параметров</title>
+    <style>
+        body { font-family: monospace; background: #1e1e1e; color: #fff; padding: 20px; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .code { background: #0d1117; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Диагностика API параметров для АЗС 4</h1>
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+        }
+        
+        async function debugApiParams() {
+            addLog('🧪 ДИАГНОСТИКА API ПАРАМЕТРОВ<br>');
+            
+            const TARGET_TP_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59'; // АЗС 4
+            
+            try {
+                // Импортируем сервисы
+                addLog('📦 Импорт сервисов...');
+                const { tradingPointsService } = await import('./src/services/tradingPointsService.js');
+                const { networksService } = await import('./src/services/networksService.js');
+                addLog('✅ Сервисы импортированы', 'success');
+                
+                // ШАГ 1: Получаем торговую точку
+                addLog('<br>🔍 ШАГ 1: Получение торговой точки...');
+                const tradingPoint = await tradingPointsService.getById(TARGET_TP_ID);
+                
+                if (!tradingPoint) {
+                    addLog('❌ Торговая точка не найдена!', 'error');
+                    return;
+                }
+                
+                addLog('✅ Торговая точка найдена:', 'success');
+                addLog(`<div class="code">
+                    ID: ${tradingPoint.id}<br>
+                    Название: ${tradingPoint.name}<br>
+                    Network ID: ${tradingPoint.networkId}<br>
+                    External ID: ${tradingPoint.external_id}<br>
+                    Код торговой точки для API: ${tradingPoint.external_id || tradingPoint.code || 'НЕТ'}
+                </div>`);
+                
+                const stationId = tradingPoint.external_id || tradingPoint.code || '';
+                if (!stationId) {
+                    addLog('❌ У торговой точки НЕТ external_id или code!', 'error');
+                    return;
+                }
+                
+                // ШАГ 2: Получаем сеть
+                addLog('<br>🌐 ШАГ 2: Получение сети...');
+                if (!tradingPoint.networkId) {
+                    addLog('❌ У торговой точки НЕТ networkId!', 'error');
+                    return;
+                }
+                
+                const network = await networksService.getById(tradingPoint.networkId);
+                if (!network) {
+                    addLog('❌ Сеть не найдена!', 'error');
+                    return;
+                }
+                
+                addLog('✅ Сеть найдена:', 'success');
+                addLog(`<div class="code">
+                    ID: ${network.id}<br>
+                    Название: ${network.name}<br>
+                    External ID: ${network.external_id || 'НЕТ'}<br>
+                    Code: ${network.code || 'НЕТ'}<br>
+                    Status: ${network.status}
+                </div>`);
+                
+                const systemId = network.external_id || network.name || '';
+                
+                // ШАГ 3: Анализ параметров
+                addLog('<br>📋 ШАГ 3: Анализ API параметров...');
+                addLog(`<div class="code">
+                    System ID: "${systemId}"<br>
+                    Station ID: "${stationId}"<br>
+                    Оба параметра заполнены: ${systemId && stationId ? '✅ ДА' : '❌ НЕТ'}
+                </div>`);
+                
+                if (!systemId) {
+                    addLog('🔍 ПРОБЛЕМА НАЙДЕНА: У сети нет external_id!', 'warning');
+                    addLog('💡 РЕШЕНИЕ: Нужно добавить external_id в сеть в базе данных', 'warning');
+                    
+                    // Проверим, какие сети вообще есть
+                    addLog('<br>🔍 Проверим все сети в системе...');
+                    const allNetworks = await networksService.getAll();
+                    
+                    addLog(`<div class="code">Всего сетей в системе: ${allNetworks.length}</div>`);
+                    allNetworks.forEach((net, index) => {
+                        addLog(`<div class="code">
+                            ${index + 1}. ${net.name}<br>
+                            &nbsp;&nbsp;&nbsp;External ID: ${net.external_id || 'НЕТ'}<br>
+                            &nbsp;&nbsp;&nbsp;Code: ${net.code || 'НЕТ'}<br>
+                            &nbsp;&nbsp;&nbsp;Status: ${net.status}
+                        </div>`);
+                    });
+                    
+                } else if (!stationId) {
+                    addLog('🔍 ПРОБЛЕМА: У торговой точки нет external_id или code!', 'warning');
+                } else {
+                    addLog('✅ Все параметры в порядке!', 'success');
+                    addLog(`<div class="code">
+                        API будет вызываться с параметрами:<br>
+                        system=${systemId}<br>
+                        station=${stationId}
+                    </div>`, 'success');
+                }
+                
+            } catch (error) {
+                addLog('💥 Критическая ошибка:', 'error');
+                addLog(`<div class="code">${error.message}<br><br>Stack: ${error.stack}</div>`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        debugApiParams();
+    </script>
+</body>
+</html>

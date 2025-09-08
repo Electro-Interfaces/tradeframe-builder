@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Проверка конфигурации в localStorage</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .warning { color: #fbbf24; }
+        pre { background: #262626; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>📱 Проверка конфигурации в localStorage</h1>
+    <div id="results"></div>
+    <button onclick="createBaseConfig()" style="margin: 10px; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 4px;">Создать базовую конфигурацию</button>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const className = type;
+            results.innerHTML += `<div class="${className}">${message}</div>`;
+        }
+
+        function checkConfig() {
+            log('🔍 Проверяем localStorage...', 'info');
+            
+            // Проверяем ключи конфигурации торговой сети
+            const tradingConfigKey = 'tradingNetworkConfig';
+            const tradingConfig = localStorage.getItem(tradingConfigKey);
+            
+            if (!tradingConfig) {
+                log('❌ Конфигурация торговой сети НЕ найдена в localStorage!', 'error');
+                log('   Создайте конфигурацию через кнопку ниже или в разделе "Обмен данными"', 'warning');
+            } else {
+                log('✅ Конфигурация торговой сети найдена', 'success');
+                try {
+                    const config = JSON.parse(tradingConfig);
+                    results.innerHTML += '<pre>' + JSON.stringify(config, null, 2) + '</pre>';
+                    
+                    if (!config.enabled) {
+                        log('⚠️ Торговая сеть отключена!', 'warning');
+                    }
+                    if (!config.baseUrl) {
+                        log('⚠️ Базовый URL не настроен!', 'warning');
+                    }
+                    if (!config.endpoints?.tanks) {
+                        log('⚠️ Эндпоинт резервуаров не настроен!', 'warning');
+                    }
+                } catch (error) {
+                    log('❌ Ошибка парсинга конфигурации: ' + error.message, 'error');
+                }
+            }
+            
+            // Проверяем выбранную торговую точку
+            const selectedPointId = localStorage.getItem('selectedTradingPointId');
+            if (!selectedPointId || selectedPointId === 'all') {
+                log('❌ Торговая точка не выбрана!', 'error');
+                log('   Выберите конкретную торговую точку в интерфейсе', 'warning');
+            } else {
+                log(`✅ Выбрана торговая точка: ${selectedPointId}`, 'success');
+            }
+            
+            // Проверяем все ключи в localStorage
+            log('\n📋 Все ключи в localStorage:', 'info');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                log(`${key}: ${value ? value.substring(0, 100) + '...' : 'пусто'}`, 'info');
+            }
+        }
+
+        function createBaseConfig() {
+            log('\n🏗️ Создаем базовую конфигурацию...', 'info');
+            
+            const config = {
+                enabled: true,
+                baseUrl: 'https://api.example.com',
+                apiKey: 'your-api-key-here',
+                authType: 'bearer',
+                timeout: 30000,
+                maxRetries: 3,
+                endpoints: {
+                    tanks: '/api/tanks',
+                    operations: '/api/operations',
+                    prices: '/api/prices'
+                },
+                networkId: 'main-network'
+            };
+            
+            localStorage.setItem('tradingNetworkConfig', JSON.stringify(config));
+            log('✅ Базовая конфигурация создана', 'success');
+            log('⚠️ ВАЖНО: Замените URL и API ключ на реальные значения!', 'warning');
+            
+            // Перепроверяем
+            checkConfig();
+        }
+
+        // Запускаем проверку
+        checkConfig();
+    </script>
+</body>
+</html>

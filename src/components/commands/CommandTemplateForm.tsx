@@ -21,7 +21,7 @@ import {
   CreateCommandTemplateRequest,
   UpdateCommandTemplateRequest
 } from "@/types/commandTemplate";
-import { COMMAND_CATEGORIES } from "@/mock/commandTemplatesStore";
+import { COMMAND_CATEGORIES } from "@/utils/commandCategories";
 
 const commandTemplateSchema = z.object({
   name: z.string().min(1, "Техническое название обязательно").max(100),

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Правильный поиск торговых точек</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        .highlight { 
+            background: #2d4a22; 
+            padding: 10px; 
+            border-left: 4px solid #28a745;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🎯 ПРАВИЛЬНЫЙ ПОИСК ТОРГОВЫХ ТОЧЕК</h1>
+    <p>Поиск торговых точек по параметру сети, а не по прямому ID</p>
+    
+    <button onclick="testCorrectSearch()">🚀 Правильный поиск</button>
+    <button onclick="clearLog()">🧹 Очистить</button>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        window.testCorrectSearch = async function() {
+            addLog('🎯 ПРАВИЛЬНЫЙ АЛГОРИТМ ПОИСКА ТОРГОВЫХ ТОЧЕК', 'info');
+            
+            try {
+                const { httpClient } = await import('/src/services/universalHttpClient.ts');
+                
+                // ШАГ 1: Получаем все сети
+                addLog('🌐 ШАГ 1: Получаем все доступные сети...', 'info');
+                
+                const networksResponse = await httpClient.get('/rest/v1/networks', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code',
+                        order: 'name'
+                    }
+                });
+                
+                if (!networksResponse.success || !networksResponse.data) {
+                    addLog('❌ Не удалось получить список сетей', 'error');
+                    return;
+                }
+                
+                addLog(`✅ Найдено сетей: ${networksResponse.data.length}`, 'success');
+                networksResponse.data.forEach((network, index) => {
+                    addLog(`<div class="code">
+                        Сеть ${index + 1}: ${network.name}<br>
+                        - ID: ${network.id}<br>
+                        - External ID: ${network.external_id || 'НЕТ'}<br>
+                        - Code: ${network.code || 'НЕТ'}
+                    </div>`, 'info');
+                });
+                
+                // ШАГ 2: Для каждой сети получаем торговые точки
+                addLog('📍 ШАГ 2: Получаем торговые точки для каждой сети...', 'info');
+                
+                let allTradingPoints = [];
+                
+                for (const network of networksResponse.data) {
+                    addLog(`🔍 Поиск торговых точек для сети "${network.name}" (ID: ${network.id})...`, 'info');
+                    
+                    const tpResponse = await httpClient.get('/rest/v1/trading_points', {
+                        destination: 'supabase',
+                        queryParams: {
+                            select: 'id,name,external_id,code,network_id',
+                            network_id: `eq.${network.id}`,
+                            order: 'name'
+                        }
+                    });
+                    
+                    if (tpResponse.success && tpResponse.data) {
+                        addLog(`✅ Найдено торговых точек в сети "${network.name}": ${tpResponse.data.length}`, 'success');
+                        
+                        tpResponse.data.forEach((tp, tpIndex) => {
+                            // Добавляем информацию о родительской сети
+                            tp.networkInfo = network;
+                            allTradingPoints.push(tp);
+                            
+                            addLog(`<div class="code">
+                                ТП ${tpIndex + 1}: ${tp.name}<br>
+                                - ID: ${tp.id}<br>
+                                - External ID: ${tp.external_id || 'НЕТ'}<br>
+                                - Code: ${tp.code || 'НЕТ'}<br>
+                                - Сеть: ${network.name}
+                            </div>`, 'info');
+                        });
+                    } else {
+                        addLog(`⚠️ Торговых точек в сети "${network.name}" не найдено`, 'warning');
+                    }
+                }
+                
+                // ШАГ 3: Анализ API готовности
+                addLog('🔧 ШАГ 3: Анализ готовности для внешнего API...', 'info');
+                
+                let readyTradingPoints = [];
+                
+                allTradingPoints.forEach(tp => {
+                    const systemId = tp.networkInfo.external_id || tp.networkInfo.code || '';
+                    const stationId = tp.external_id || tp.code || '';
+                    const ready = !!(systemId && stationId);
+                    
+                    if (ready) {
+                        readyTradingPoints.push({
+                            ...tp,
+                            systemId,
+                            stationId
+                        });
+                    }
+                    
+                    addLog(`<div class="code" style="background: ${ready ? '#2d4a22' : '#4a2d2d'};">
+                        ${tp.name} ${ready ? '✅ ГОТОВА' : '❌ НЕ ГОТОВА'}<br>
+                        - System ID: "${systemId}"<br>
+                        - Station ID: "${stationId}"<br>
+                        - ID торговой точки: ${tp.id}
+                    </div>`, ready ? 'success' : 'error');
+                });
+                
+                // ШАГ 4: Итоговая статистика
+                addLog('📊 ШАГ 4: Итоговая статистика...', 'info');
+                
+                addLog(`<div class="highlight">
+                    СТАТИСТИКА:<br>
+                    ➜ Всего сетей: ${networksResponse.data.length}<br>
+                    ➜ Всего торговых точек: ${allTradingPoints.length}<br>
+                    ➜ Готовых для API: ${readyTradingPoints.length}<br>
+                    ➜ Процент готовности: ${allTradingPoints.length > 0 ? Math.round(readyTradingPoints.length / allTradingPoints.length * 100) : 0}%
+                </div>`, readyTradingPoints.length > 0 ? 'success' : 'warning');
+                
+                // ШАГ 5: Показать готовые для API торговые точки
+                if (readyTradingPoints.length > 0) {
+                    addLog('🎉 ШАГ 5: Торговые точки готовые для внешнего API:', 'success');
+                    
+                    readyTradingPoints.forEach((tp, index) => {
+                        const apiUrl = `https://pos.autooplata.ru/tms/tanks?system=${tp.systemId}&station=${tp.stationId}`;
+                        addLog(`<div class="highlight">
+                            ${index + 1}. ${tp.name}<br>
+                            ➜ ID: ${tp.id}<br>
+                            ➜ System: "${tp.systemId}" (от сети: ${tp.networkInfo.name})<br>
+                            ➜ Station: "${tp.stationId}"<br>
+                            ➜ API URL: ${apiUrl}
+                        </div>`, 'success');
+                    });
+                    
+                    // Рекомендация по использованию
+                    const firstReady = readyTradingPoints[0];
+                    addLog(`💡 Рекомендация: Используйте торговую точку "${firstReady.name}" (ID: ${firstReady.id}) для тестирования внешнего API`, 'success');
+                } else {
+                    addLog('⚠️ Ни одна торговая точка не готова для внешнего API', 'warning');
+                    addLog('💡 Необходимо добавить external_id в таблицы networks и trading_points', 'warning');
+                }
+                
+                // ШАГ 6: Проверка конкретного ID (если он есть в списке)
+                const TARGET_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+                const targetTp = allTradingPoints.find(tp => tp.id === TARGET_ID);
+                
+                if (targetTp) {
+                    addLog(`🎯 НАЙДЕНА ИСКОМАЯ ТОРГОВАЯ ТОЧКА: ${targetTp.name}`, 'success');
+                    const systemId = targetTp.networkInfo.external_id || targetTp.networkInfo.code || '';
+                    const stationId = targetTp.external_id || targetTp.code || '';
+                    
+                    addLog(`<div class="highlight">
+                        РЕКВИЗИТЫ ИСКОМОЙ ТОРГОВОЙ ТОЧКИ:<br>
+                        ➜ Название: ${targetTp.name}<br>
+                        ➜ ID: ${targetTp.id}<br>
+                        ➜ Сеть: ${targetTp.networkInfo.name}<br>
+                        ➜ System ID: "${systemId}"<br>
+                        ➜ Station ID: "${stationId}"<br>
+                        ➜ Готовность: ${systemId && stationId ? '✅ ГОТОВА' : '❌ НЕ ГОТОВА'}
+                    </div>`, systemId && stationId ? 'success' : 'error');
+                } else {
+                    addLog(`❌ Искомая торговая точка ${TARGET_ID} НЕ найдена среди доступных`, 'error');
+                }
+                
+            } catch (error) {
+                addLog(`💥 КРИТИЧЕСКАЯ ОШИБКА: ${error.message}`, 'error');
+                addLog(`<div class="code">${error.stack}</div>`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Страница загружена. Автозапуск правильного поиска...', 'info');
+        setTimeout(testCorrectSearch, 1000);
+    </script>
+</body>
+</html>

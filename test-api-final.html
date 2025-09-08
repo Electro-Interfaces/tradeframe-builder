@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Финальный тест API pos.autooplata.ru</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #0f0; 
+            padding: 20px;
+            line-height: 1.4;
+        }
+        .section { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border: 1px solid #0f0;
+            background: #0a0a0a;
+        }
+        h1 { color: #0ff; }
+        h2 { color: #ff0; }
+        .step {
+            margin: 10px 0;
+            padding: 8px;
+            background: #001100;
+            border-left: 3px solid #0f0;
+        }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        pre {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            overflow-x: auto;
+            font-size: 11px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            background: #0a0a0a;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            cursor: pointer;
+            font-family: monospace;
+            margin: 5px;
+        }
+        button:hover {
+            background: #001100;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Финальный тест API pos.autooplata.ru</h1>
+    
+    <div class="section">
+        <h2>Параметры подключения из интерфейса "Обмен данными"</h2>
+        <div class="step">
+            <strong>URL:</strong> https://pos.autooplata.ru/tms<br>
+            <strong>System ID:</strong> 15<br>
+            <strong>Station ID:</strong> 4<br>
+            <strong>Auth Type:</strong> Bearer Token<br>
+            <strong>Token:</strong> eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6eyJpZCI6IkFDQ0FFNDA4LTYzMzItNDI0NS04NUIxLTI1RjkxNEYzQkQ2NCIsIm5hbWUiOiJVc2VyVGVzdCIsInJvbGUiOjB9LCJ1c2VyIjp7ImlkIjoiQUNDQUU0MDgtNjMzMi00MjQ1LTg1QjEtMjVGOTE0RjNCRDY0IiwibmFtZSI6IlVzZXJUZXN0In0sImV4cCI6MTc1NzE1NzkzN30.7fDPBwtWej80K2ePRXYKXsJH3b3pLSUqtjo2uIbyXEE
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Тест запроса к резервуарам</h2>
+        <button onclick="testTanksAPI()">🚀 Тест получения данных резервуаров</button>
+        <div id="tanksResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Тест запроса к транзакциям</h2>
+        <button onclick="testTransactionsAPI()">📊 Тест получения транзакций</button>
+        <div id="transactionsResult"></div>
+    </div>
+
+    <script>
+        const log = (containerId, msg, type = '') => {
+            const div = document.createElement('div');
+            div.className = `step ${type}`;
+            div.innerHTML = msg;
+            document.getElementById(containerId).appendChild(div);
+        };
+
+        const config = {
+            baseUrl: 'https://pos.autooplata.ru/tms',
+            systemId: '15',
+            stationId: '4',
+            token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6eyJpZCI6IkFDQ0FFNDA4LTYzMzItNDI0NS04NUIxLTI1RjkxNEYzQkQ2NCIsIm5hbWUiOiJVc2VyVGVzdCIsInJvbGUiOjB9LCJ1c2VyIjp7ImlkIjoiQUNDQUU0MDgtNjMzMi00MjQ1LTg1QjEtMjVGOTE0RjNCRDY0IiwibmFtZSI6IlVzZXJUZXN0In0sImV4cCI6MTc1NzE1NzkzN30.7fDPBwtWej80K2ePRXYKXsJH3b3pLSUqtjo2uIbyXEE'
+        };
+
+        async function testTanksAPI() {
+            document.getElementById('tanksResult').innerHTML = '';
+            
+            const url = `${config.baseUrl}/v1/tanks?system=${config.systemId}&station=${config.stationId}`;
+            
+            log('tanksResult', '🌐 Тестируем получение данных резервуаров...', 'warning');
+            log('tanksResult', `📡 URL: ${url}`);
+            log('tanksResult', `🔑 Token: ${config.token.substring(0, 50)}...`);
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${config.token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+
+                log('tanksResult', `📊 HTTP Status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('tanksResult', '✅ Запрос выполнен успешно!', 'success');
+                    
+                    if (Array.isArray(data)) {
+                        log('tanksResult', `📦 Получено резервуаров: ${data.length}`, 'success');
+                        
+                        if (data.length > 0) {
+                            log('tanksResult', '<br><strong>📋 Данные резервуаров:</strong>');
+                            
+                            data.forEach((tank, index) => {
+                                log('tanksResult', `<strong>Резервуар ${tank.number || index + 1}:</strong>`);
+                                const tankData = {
+                                    number: tank.number,
+                                    fuel: tank.fuel,
+                                    fuel_name: tank.fuel_name,
+                                    state: tank.state,
+                                    volume: tank.volume,
+                                    volume_end: tank.volume_end,
+                                    volume_max: tank.volume_max,
+                                    temperature: tank.temperature,
+                                    density: tank.density,
+                                    dt: tank.dt
+                                };
+                                
+                                const pre = document.createElement('pre');
+                                pre.textContent = JSON.stringify(tankData, null, 2);
+                                document.getElementById('tanksResult').appendChild(pre);
+                            });
+                            
+                            log('tanksResult', '🎉 Данные резервуаров получены и готовы к использованию!', 'success');
+                        } else {
+                            log('tanksResult', '⚠️ Массив резервуаров пустой', 'warning');
+                        }
+                    } else {
+                        log('tanksResult', '⚠️ Ответ не является массивом:', 'warning');
+                        const pre = document.createElement('pre');
+                        pre.textContent = JSON.stringify(data, null, 2);
+                        document.getElementById('tanksResult').appendChild(pre);
+                    }
+                    
+                } else {
+                    log('tanksResult', `❌ HTTP Error: ${response.status} ${response.statusText}`, 'error');
+                    
+                    const errorText = await response.text().catch(() => 'не удалось получить детали ошибки');
+                    log('tanksResult', `📄 Response Body:`, 'error');
+                    const pre = document.createElement('pre');
+                    pre.textContent = errorText.substring(0, 1000);
+                    document.getElementById('tanksResult').appendChild(pre);
+                }
+
+            } catch (error) {
+                log('tanksResult', `❌ Network Error: ${error.message}`, 'error');
+                
+                if (error.message.includes('CORS')) {
+                    log('tanksResult', '🚫 CORS Error - API блокирует запросы из браузера', 'warning');
+                    log('tanksResult', '💡 Это нормально - запрос должен работать из приложения', 'warning');
+                } else if (error.message.includes('Failed to fetch')) {
+                    log('tanksResult', '🌐 Сервер недоступен или блокирован', 'warning');
+                }
+            }
+        }
+
+        async function testTransactionsAPI() {
+            document.getElementById('transactionsResult').innerHTML = '';
+            
+            const url = `${config.baseUrl}/v1/transactions?system=${config.systemId}&station=${config.stationId}`;
+            
+            log('transactionsResult', '🌐 Тестируем получение транзакций...', 'warning');
+            log('transactionsResult', `📡 URL: ${url}`);
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${config.token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+
+                log('transactionsResult', `📊 HTTP Status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('transactionsResult', '✅ Запрос выполнен успешно!', 'success');
+                    
+                    if (Array.isArray(data)) {
+                        log('transactionsResult', `📦 Получено транзакций: ${data.length}`, 'success');
+                        
+                        if (data.length > 0) {
+                            const sample = data[0];
+                            log('transactionsResult', '<br><strong>📋 Пример транзакции:</strong>');
+                            const pre = document.createElement('pre');
+                            pre.textContent = JSON.stringify(sample, null, 2);
+                            document.getElementById('transactionsResult').appendChild(pre);
+                        }
+                    } else {
+                        log('transactionsResult', '⚠️ Ответ не является массивом:', 'warning');
+                        const pre = document.createElement('pre');
+                        pre.textContent = JSON.stringify(data, null, 2);
+                        document.getElementById('transactionsResult').appendChild(pre);
+                    }
+                    
+                } else {
+                    const errorText = await response.text().catch(() => 'не удалось получить детали ошибки');
+                    log('transactionsResult', `❌ HTTP Error: ${response.status} ${response.statusText}`, 'error');
+                    log('transactionsResult', `📄 Response Body: ${errorText.substring(0, 300)}...`);
+                }
+
+            } catch (error) {
+                log('transactionsResult', `❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Показываем конфигурацию при загрузке
+        console.log('🔧 Конфигурация для тестов:', config);
+    </script>
+</body>
+</html>

@@ -31,7 +31,7 @@ import {
   TemplateMode, 
   TemplateStatus 
 } from "@/types/connections";
-import { newCommandTemplatesStore, TEMPLATE_SCOPE_OPTIONS, TEMPLATE_STATUS_OPTIONS } from "@/mock/newCommandTemplatesStore";
+import { TEMPLATE_SCOPE_OPTIONS } from "@/utils/templateOptions";
 import { currentNewTemplatesAPI } from "@/services/newConnectionsService";
 import { NewTemplateForm } from "@/components/templates/NewTemplateForm";
 import { 
@@ -60,8 +60,8 @@ export default function NewCommandTemplates() {
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const response = newCommandTemplatesStore.getAll();
-      setTemplates(response);
+      const response = await currentNewTemplatesAPI.list();
+      setTemplates(response.data || response);
     } catch (error) {
       console.error('Failed to load templates:', error);
       toast({

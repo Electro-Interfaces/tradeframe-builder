@@ -22,23 +22,25 @@ import {
   NewTemplateId
 } from '@/types/connections';
 
-import { connectionSettingsStore } from '@/mock/connectionSettingsStore';
-import { newCommandTemplatesStore } from '@/mock/newCommandTemplatesStore';
+// Mock данные перемещены в localStorage для совместимости
 import { PersistentStorage } from '@/utils/persistentStorage';
 
 // Base URL for API
-import { getApiBaseUrl, isApiMockMode } from '@/services/apiConfigService';
-const API_BASE_URL = getApiBaseUrl();
+import { apiConfigServiceDB } from './apiConfigServiceDB';
+import { httpClient } from './universalHttpClient';
 
 // Utility for HTTP requests with tracing
 class ApiClient {
+  private async getApiUrl(): Promise<string> {
+    const connection = await apiConfigServiceDB.getCurrentConnection();
+    return connection?.url || '';
+  }
+
   private async request<T>(
     endpoint: string, 
-    options: RequestInit = {}
+    options: any = {}
   ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
     const headers = {
-      'Content-Type': 'application/json',
       'Accept': 'application/problem+json',
       'X-Trace-Id': this.generateTraceId(),
       ...options.headers,
@@ -49,17 +51,20 @@ class ApiClient {
       headers['Idempotency-Key'] = this.generateIdempotencyKey();
     }
 
-    const response = await fetch(url, {
-      ...options,
+    const response = await httpClient.request(endpoint, {
+      destination: 'supabase',
+      method: options.method || 'GET',
+      body: options.body ? JSON.parse(options.body) : undefined,
       headers,
+      ...options
     });
 
-    if (!response.ok) {
+    if (!response.success) {
       throw new NewApiError({
         type: 'https://api.company.com/problems/api-error',
         title: 'API Error',
-        status: response.status,
-        detail: await response.text(),
+        status: response.status || 500,
+        detail: response.error || 'Request failed',
         trace_id: headers['X-Trace-Id']
       });
     }
@@ -137,10 +142,9 @@ let connectionSettingsData: ConnectionSettings[] = PersistentStorage.load<Connec
 // User templates stored in localStorage (system templates come from store)
 const userTemplatesData: NewCommandTemplate[] = PersistentStorage.load<NewCommandTemplate>('new_templates_v1', []);
 
-// Get all templates (system + user)
+// Get all templates (user only - system templates managed separately)
 const getAllTemplates = (): NewCommandTemplate[] => {
-  const systemTemplates = newCommandTemplatesStore.getSystem();
-  return [...systemTemplates, ...userTemplatesData];
+  return [...userTemplatesData];
 };
 
 // Save user data to localStorage
@@ -152,11 +156,7 @@ const saveUserTemplates = () => {
   PersistentStorage.save('new_templates_v1', userTemplatesData);
 };
 
-// Initialize with some demo data if empty
-if (connectionSettingsData.length === 0) {
-  connectionSettingsData = connectionSettingsStore.getAll();
-  saveConnectionSettings();
-}
+// Initialize with empty data (will be populated from Supabase or user input)
 
 // Mock API for Connection Settings
 export const connectionSettingsAPI = {

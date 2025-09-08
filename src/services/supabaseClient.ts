@@ -1,7 +1,9 @@
 /**
- * Supabase REST API клиент без дополнительных зависимостей
- * Использует стандартный fetch для работы с Supabase REST API
+ * Supabase REST API клиент с универсальным HTTP клиентом
+ * Использует httpClient для работы с Supabase REST API
  */
+
+import { httpClient } from './universalHttpClient';
 
 export interface SupabaseConfig {
   url: string;
@@ -96,8 +98,10 @@ class QueryBuilder {
       url.searchParams.set('offset', this.query.offset.toString());
     }
 
-    const response = await fetch(url.toString(), {
+    const response = await httpClient.request({
       method: 'GET',
+      url: url.toString(),
+      destination: 'supabase',
       headers: {
         'apikey': this.client.apiKey,
         'Authorization': `Bearer ${this.client.apiKey}`,
@@ -106,15 +110,14 @@ class QueryBuilder {
       }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (response.status >= 400) {
       return {
         data: null,
-        error: `HTTP ${response.status}: ${errorText}`
+        error: `HTTP ${response.status}: ${response.statusText}`
       };
     }
 
-    const data = await response.json();
+    const data = response.data;
     return {
       data: Array.isArray(data) ? data : [data],
       error: null
@@ -131,26 +134,27 @@ class QueryBuilder {
   async insertAndSelect(data: any[]) {
     const url = `${this.client.baseUrl}/rest/v1/${this.table}`;
     
-    const response = await fetch(url, {
+    const response = await httpClient.request({
       method: 'POST',
+      url,
+      destination: 'supabase',
       headers: {
         'apikey': this.client.apiKey,
         'Authorization': `Bearer ${this.client.apiKey}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
       },
-      body: JSON.stringify(data.length === 1 ? data[0] : data)
+      data: data.length === 1 ? data[0] : data
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (response.status >= 400) {
       return {
         data: null,
-        error: `HTTP ${response.status}: ${errorText}`
+        error: `HTTP ${response.status}: ${response.statusText}`
       };
     }
 
-    const responseData = await response.json();
+    const responseData = response.data;
     return {
       data: Array.isArray(responseData) ? responseData : [responseData],
       error: null
@@ -215,8 +219,10 @@ export class SupabaseClient {
         url.searchParams.set('offset', options.offset.toString());
       }
 
-      const response = await fetch(url.toString(), {
+      const response = await httpClient.request({
         method: 'GET',
+        url: url.toString(),
+        destination: 'supabase',
         headers: {
           'apikey': this.apiKey,
           'Authorization': `Bearer ${this.apiKey}`,
@@ -225,15 +231,14 @@ export class SupabaseClient {
         }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (response.status >= 400) {
         return {
           data: null,
-          error: `HTTP ${response.status}: ${errorText}`
+          error: `HTTP ${response.status}: ${response.statusText}`
         };
       }
 
-      const data = await response.json();
+      const data = response.data;
       return {
         data: Array.isArray(data) ? data : [data],
         error: null,
@@ -253,26 +258,27 @@ export class SupabaseClient {
    */
   async insert<T = any>(table: string, data: Record<string, any> | Record<string, any>[]): Promise<SupabaseResponse<T>> {
     try {
-      const response = await fetch(`${this.baseUrl}/rest/v1/${table}`, {
+      const response = await httpClient.request({
         method: 'POST',
+        url: `${this.baseUrl}/rest/v1/${table}`,
+        destination: 'supabase',
         headers: {
           'apikey': this.apiKey,
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
         },
-        body: JSON.stringify(data)
+        data: data
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (response.status >= 400) {
         return {
           data: null,
-          error: `HTTP ${response.status}: ${errorText}`
+          error: `HTTP ${response.status}: ${response.statusText}`
         };
       }
 
-      const result = await response.json();
+      const result = response.data;
       return {
         data: Array.isArray(result) ? result : [result],
         error: null
@@ -302,26 +308,27 @@ export class SupabaseClient {
         url.searchParams.set(`${key}`, `eq.${value}`);
       });
 
-      const response = await fetch(url.toString(), {
+      const response = await httpClient.request({
         method: 'PATCH',
+        url: url.toString(),
+        destination: 'supabase',
         headers: {
           'apikey': this.apiKey,
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
         },
-        body: JSON.stringify(data)
+        data: data
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (response.status >= 400) {
         return {
           data: null,
-          error: `HTTP ${response.status}: ${errorText}`
+          error: `HTTP ${response.status}: ${response.statusText}`
         };
       }
 
-      const result = await response.json();
+      const result = response.data;
       return {
         data: Array.isArray(result) ? result : [result],
         error: null
@@ -342,32 +349,29 @@ export class SupabaseClient {
     try {
       const url = new URL(`${this.baseUrl}/rest/v1/${table}`);
       
-      // Добавляем условия WHERE
+      // Формируем query параметры для WHERE условий
+      const queryParams: Record<string, string> = {};
       Object.entries(where).forEach(([key, value]) => {
-        url.searchParams.set(`${key}`, `eq.${value}`);
+        queryParams[key] = `eq.${value}`;
       });
 
-      const response = await fetch(url.toString(), {
-        method: 'DELETE',
+      const response = await httpClient.delete(`/rest/v1/${table}`, {
+        destination: 'supabase',
+        queryParams,
         headers: {
-          'apikey': this.apiKey,
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
           'Prefer': 'return=representation'
         }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (!response.success) {
         return {
           data: null,
-          error: `HTTP ${response.status}: ${errorText}`
+          error: response.error || `Request failed`
         };
       }
 
-      const result = await response.text();
       return {
-        data: result ? JSON.parse(result) : [],
+        data: response.data || [],
         error: null
       };
 
@@ -385,30 +389,24 @@ export class SupabaseClient {
   async testConnection(): Promise<{ success: boolean; error?: string; info?: any }> {
     try {
       // Пробуем получить информацию о базе данных
-      const response = await fetch(`${this.baseUrl}/rest/v1/`, {
-        method: 'GET',
-        headers: {
-          'apikey': this.apiKey,
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await httpClient.get('/rest/v1/', {
+        destination: 'supabase'
       });
 
-      if (response.ok) {
+      if (response.success) {
         return {
           success: true,
           info: {
-            status: response.status,
-            statusText: response.statusText,
+            status: response.status || 200,
+            statusText: 'OK',
             url: this.baseUrl,
             schema: this.schema
           }
         };
       } else {
-        const errorText = await response.text();
         return {
           success: false,
-          error: `HTTP ${response.status}: ${errorText}`
+          error: response.error || 'Connection test failed'
         };
       }
 

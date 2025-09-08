@@ -1,11 +1,15 @@
 /**
  * Сервис авторизации с поддержкой мультитенантности и гранулярных разрешений
- * Использует localStorage для хранения и WebCrypto для хеширования паролей
+ * ОБНОВЛЕН: Использует централизованную конфигурацию из раздела "Обмен данными"
+ * Поддерживает переключение между localStorage (mock) и Supabase (database)
  */
 
 import { CryptoUtils, type PasswordHash } from '@/utils/crypto'
 import { PermissionChecker } from '@/utils/permissions'
 import { persistentStorage } from '@/utils/persistentStorage'
+import { apiConfigServiceDB } from './apiConfigServiceDB'
+import { SupabaseAuthService } from './supabaseAuthService'
+import { errorLogService } from './errorLogService'
 import type {
   User,
   Session,
@@ -28,9 +32,85 @@ export class AuthService {
   private static readonly REFRESH_DURATION = 30 * 24 * 60 * 60 * 1000 // 30 дней
 
   /**
+   * Инициализация сервиса авторизации
+   */
+  static async initialize(): Promise<void> {
+    try {
+      await apiConfigServiceDB.initialize();
+      console.log('✅ AuthService инициализирован с централизованной конфигурацией');
+    } catch (error) {
+      console.warn('⚠️ Ошибка инициализации AuthService, используется fallback режим:', error);
+    }
+  }
+
+  /**
+   * Проверить нужно ли использовать mock режим (localStorage)
+   */
+  private static async isMockMode(): Promise<boolean> {
+    try {
+      return await apiConfigServiceDB.isMockMode();
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Не удается определить режим безопасности
+      console.error('❌ КРИТИЧНО: Ошибка определения режима безопасности:', error);
+      await errorLogService.logCriticalError(
+        'AuthService',
+        'isMockMode',
+        error instanceof Error ? error : new Error(String(error))
+      );
+      
+      // ✅ FAIL-SECURE: При неопределенности блокируем доступ
+      throw new Error('Не удается определить режим безопасности системы. Доступ заблокирован.');
+    }
+  }
+
+  /**
    * Авторизация пользователя
    */
   static async login(credentials: LoginCredentials): Promise<{
+    user: User
+    session: Session
+    token: string
+  }> {
+    try {
+      // Проверяем режим работы
+      const isMock = await this.isMockMode();
+      
+      if (isMock) {
+        // Режим localStorage (mock)
+        console.log('🔄 AuthService: Используется localStorage режим');
+        return await this.loginMock(credentials);
+      } else {
+        // Режим базы данных (Supabase)
+        console.log('🔄 AuthService: Используется Supabase режим');
+        return await this.loginSupabase(credentials);
+      }
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА БЕЗОПАСНОСТИ: НЕТ FALLBACK НА MOCK АУТЕНТИФИКАЦИЮ!
+      console.error('❌ КРИТИЧНО: Ошибка авторизации - система заблокирована:', error);
+      
+      // Логируем критическую ошибку аутентификации
+      await errorLogService.logCriticalError(
+        'AuthService',
+        'login',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { 
+            service: 'AuthService',
+            email: credentials.email,
+            securityEvent: 'AUTHENTICATION_SYSTEM_FAILURE'
+          }
+        }
+      );
+      
+      // ✅ FAIL-SECURE: При ошибках аутентификации система БЛОКИРУЕТСЯ
+      throw new Error('Система аутентификации недоступна. Доступ заблокирован из соображений безопасности.');
+    }
+  }
+
+  /**
+   * Авторизация через localStorage (mock режим)
+   */
+  private static async loginMock(credentials: LoginCredentials): Promise<{
     user: User
     session: Session
     token: string
@@ -97,6 +177,63 @@ export class AuthService {
   }
 
   /**
+   * Авторизация через Supabase (database режим)
+   */
+  private static async loginSupabase(credentials: LoginCredentials): Promise<{
+    user: User
+    session: Session
+    token: string
+  }> {
+    try {
+      const authUser = await SupabaseAuthService.login(credentials.email, credentials.password);
+      
+      // Преобразуем SupabaseUser в User для совместимости
+      const user: User = {
+        id: authUser.id,
+        tenant_id: authUser.networkId || 'default',
+        email: authUser.email,
+        name: authUser.name,
+        status: 'active',
+        roles: [{ role_code: authUser.role, permissions: authUser.permissions }],
+        pwd_hash: '', // не нужно в этом режиме
+        pwd_salt: '', // не нужно в этом режиме
+        created_at: new Date(),
+        updated_at: new Date(),
+        last_login: new Date(),
+        version: 1
+      };
+
+      // Создаем сессию
+      const now = new Date()
+      const session: Session = {
+        id: CryptoUtils.generateSessionToken(),
+        user_id: user.id,
+        tenant_id: user.tenant_id,
+        issued_at: now,
+        expires_at: new Date(now.getTime() + this.SESSION_DURATION),
+        refresh_expires_at: new Date(now.getTime() + this.REFRESH_DURATION),
+        is_active: true
+      }
+
+      // Создаем токен
+      const tokenData = {
+        user_id: user.id,
+        tenant_id: user.tenant_id,
+        issued_at: session.issued_at.getTime(),
+        expires_at: session.expires_at.getTime()
+      }
+      const token = CryptoUtils.createSessionData(tokenData)
+      localStorage.setItem(this.SESSION_KEY, token)
+
+      console.log('✅ AuthService: Supabase авторизация успешна');
+      return { user, session, token }
+    } catch (error) {
+      console.error('❌ AuthService: Ошибка Supabase авторизации:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Выход из системы
    */
   static async logout(sessionId?: string): Promise<void> {
@@ -121,6 +258,40 @@ export class AuthService {
    * Регистрация нового пользователя
    */
   static async register(input: CreateUserInput): Promise<User> {
+    try {
+      const isMock = await this.isMockMode();
+      
+      if (isMock) {
+        console.log('🔄 AuthService: Регистрация через localStorage');
+        return await this.registerMock(input);
+      } else {
+        console.log('🔄 AuthService: Регистрация через Supabase');
+        return await this.registerSupabase(input);
+      }
+    } catch (error) {
+      // ❌ КРИТИЧЕСКАЯ ОШИБКА: Система регистрации недоступна
+      console.error('❌ КРИТИЧНО: Ошибка регистрации пользователей:', error);
+      await errorLogService.logCriticalError(
+        'AuthService',
+        'register',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { 
+            email: input.email,
+            securityEvent: 'USER_REGISTRATION_FAILURE'
+          }
+        }
+      );
+      
+      // ✅ FAIL-SECURE: При ошибках регистрации блокируем процесс
+      throw new Error('Система регистрации недоступна. Регистрация новых пользователей временно заблокирована.');
+    }
+  }
+
+  /**
+   * Регистрация через localStorage (mock режим)
+   */
+  private static async registerMock(input: CreateUserInput): Promise<User> {
     const users = await this.getUsers()
     
     // Проверяем уникальность email
@@ -168,13 +339,88 @@ export class AuthService {
   }
 
   /**
+   * Регистрация через Supabase (database режим)
+   */
+  private static async registerSupabase(input: CreateUserInput): Promise<User> {
+    try {
+      // ❌ КРИТИЧЕСКАЯ УЯЗВИМОСТЬ УСТРАНЕНА: Регистрация через Supabase ОБЯЗАТЕЛЬНА
+      console.error('❌ КРИТИЧНО: Регистрация через Supabase не настроена должным образом');
+      await errorLogService.logCriticalError(
+        'AuthService',
+        'registerSupabase',
+        new Error('Supabase регистрация не настроена'),
+        {
+          metadata: { 
+            email: input.email,
+            securityEvent: 'SUPABASE_REGISTRATION_NOT_IMPLEMENTED'
+          }
+        }
+      );
+      
+      // ✅ FAIL-SECURE: Блокируем регистрацию без надлежащей Supabase интеграции
+      throw new Error('Регистрация пользователей через Supabase не настроена. Обратитесь к системному администратору.');
+    } catch (error) {
+      console.error('❌ AuthService: Ошибка регистрации через Supabase:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Получить текущего пользователя
    */
   static async getCurrentUser(): Promise<User | null> {
-    const session = await this.getCurrentSession()
-    if (!session) return null
+    try {
+      const session = await this.getCurrentSession()
+      if (!session) return null
 
-    return await this.getUserById(session.user_id)
+      const isMock = await this.isMockMode();
+      if (isMock) {
+        return await this.getUserById(session.user_id)
+      } else {
+        // В database режиме можем получить пользователя через Supabase
+        try {
+          const authUser = await SupabaseAuthService.getCurrentUser();
+          if (!authUser) return null;
+
+          // Преобразуем для совместимости
+          const user: User = {
+            id: authUser.id,
+            tenant_id: authUser.networkId || 'default',
+            email: authUser.email,
+            name: authUser.name,
+            status: 'active',
+            roles: [{ role_code: authUser.role, permissions: authUser.permissions }],
+            pwd_hash: '',
+            pwd_salt: '',
+            created_at: new Date(),
+            updated_at: new Date(),
+            version: 1
+          };
+          
+          return user;
+        } catch (error) {
+          // ❌ КРИТИЧЕСКАЯ ОШИБКА: Система управления пользователями недоступна
+          console.error('❌ КРИТИЧНО: Ошибка получения пользователя из Supabase:', error);
+          await errorLogService.logCriticalError(
+            'AuthService',
+            'getCurrentUser',
+            error instanceof Error ? error : new Error(String(error)),
+            {
+              metadata: { 
+                userId: session.user_id,
+                securityEvent: 'USER_DATA_RETRIEVAL_FAILURE'
+              }
+            }
+          );
+          
+          // ✅ FAIL-SECURE: При невозможности получить пользователя блокируем доступ
+          throw new Error('Не удается получить данные пользователя. Доступ заблокирован из соображений безопасности.');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Ошибка получения текущего пользователя:', error);
+      return null;
+    }
   }
 
   /**

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Поиск торговой точки по ID</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        .section {
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: #2d2d2d;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🎯 ПОИСК ТОРГОВОЙ ТОЧКИ ПО ID</h1>
+    <p>Поиск реквизитов для конкретной торговой точки: <strong>6969b08d-1cbe-45c2-ae9c-8002c7022b59</strong></p>
+    
+    <div class="section">
+        <h3>🚀 Тестирование</h3>
+        <button onclick="findTradingPointById()">🎯 Найти торговую точку</button>
+        <button onclick="testDbConnection()">🔗 Тест подключения к БД</button>
+        <button onclick="clearLog()">🧹 Очистить</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const TRADING_POINT_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        function addSection(title) {
+            const div = document.createElement('div');
+            div.className = 'section';
+            div.innerHTML = `<h3>${title}</h3>`;
+            log.appendChild(div);
+            return div;
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        // Тест подключения к БД
+        window.testDbConnection = async function() {
+            const section = addSection('🔗 ТЕСТ ПОДКЛЮЧЕНИЯ К БАЗЕ ДАННЫХ');
+            
+            try {
+                addLog('📦 Импорт универсального HTTP клиента...', 'info');
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                addLog('✅ HTTP клиент импортирован', 'success');
+                
+                // Тест базового подключения
+                addLog('🏥 Проверка базового подключения...', 'info');
+                const healthResponse = await httpClient.get('/rest/v1/', {
+                    destination: 'supabase',
+                    timeout: 10000
+                });
+                
+                addLog(`<div class="code">
+                    Success: ${healthResponse.success}<br>
+                    Status: ${healthResponse.status}<br>
+                    Response Time: ${healthResponse.responseTime}ms<br>
+                    Error: ${healthResponse.error || 'нет'}
+                </div>`, healthResponse.success ? 'success' : 'error');
+                
+                if (healthResponse.success) {
+                    addLog('✅ Подключение к Supabase работает!', 'success');
+                    addLog('🔧 Прямые реквизиты в universalHttpClient.ts работают корректно', 'success');
+                } else {
+                    addLog('❌ Подключение к Supabase не работает!', 'error');
+                    return;
+                }
+                
+                // Проверка доступа к таблице trading_points
+                addLog('📍 Проверка доступа к таблице trading_points...', 'info');
+                const tableResponse = await httpClient.get('/rest/v1/trading_points', {
+                    destination: 'supabase',
+                    queryParams: { 
+                        select: 'count',
+                        head: 'true'
+                    }
+                });
+                
+                if (tableResponse.success) {
+                    addLog('✅ Доступ к таблице trading_points получен', 'success');
+                } else {
+                    addLog('❌ Нет доступа к таблице trading_points', 'error');
+                    addLog(`Ошибка: ${tableResponse.error}`, 'error');
+                }
+                
+            } catch (error) {
+                addLog(`💥 Критическая ошибка: ${error.message}`, 'error');
+                addLog(`<div class="code">${error.stack}</div>`, 'error');
+            }
+        }
+        
+        // Поиск торговой точки по ID
+        window.findTradingPointById = async function() {
+            const section = addSection(`🎯 ПОИСК ТОРГОВОЙ ТОЧКИ: ${TRADING_POINT_ID}`);
+            
+            try {
+                addLog('📦 Импорт HTTP клиента...', 'info');
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                
+                // Шаг 1: Поиск торговой точки по ID
+                addLog(`📍 Поиск торговой точки с ID: ${TRADING_POINT_ID}`, 'info');
+                
+                const tradingPointResponse = await httpClient.get('/rest/v1/trading_points', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code,network_id',
+                        id: `eq.${TRADING_POINT_ID}`
+                    }
+                });
+                
+                if (!tradingPointResponse.success) {
+                    addLog('❌ Ошибка при поиске торговой точки', 'error');
+                    addLog(`Ошибка: ${tradingPointResponse.error}`, 'error');
+                    return;
+                }
+                
+                if (!tradingPointResponse.data || tradingPointResponse.data.length === 0) {
+                    addLog('❌ Торговая точка с данным ID не найдена', 'error');
+                    addLog('💡 Проверьте правильность ID в базе данных', 'warning');
+                    return;
+                }
+                
+                const tradingPoint = tradingPointResponse.data[0];
+                addLog('✅ Торговая точка найдена!', 'success');
+                addLog(`<div class="code">
+                    ID: ${tradingPoint.id}<br>
+                    Название: ${tradingPoint.name}<br>
+                    External ID: ${tradingPoint.external_id || '❌ НЕТ'}<br>
+                    Code: ${tradingPoint.code || '❌ НЕТ'}<br>
+                    Network ID: ${tradingPoint.network_id || '❌ НЕТ'}
+                </div>`, 'success');
+                
+                // Определение Station ID для API
+                const stationId = tradingPoint.external_id || tradingPoint.code || '';
+                addLog(`📋 Station ID для API: "${stationId}"`, stationId ? 'success' : 'error');
+                
+                if (!stationId) {
+                    addLog('❌ У торговой точки нет external_id или code для Station ID!', 'error');
+                    addLog('💡 Добавьте external_id в таблицу trading_points для этой записи', 'warning');
+                    addLog(`<div class="code">UPDATE trading_points SET external_id = '4' WHERE id = '${TRADING_POINT_ID}';</div>`, 'warning');
+                }
+                
+                // Шаг 2: Поиск связанной сети
+                if (!tradingPoint.network_id) {
+                    addLog('❌ У торговой точки нет network_id!', 'error');
+                    return;
+                }
+                
+                addLog(`🌐 Поиск сети с ID: ${tradingPoint.network_id}`, 'info');
+                
+                const networkResponse = await httpClient.get('/rest/v1/networks', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code,status',
+                        id: `eq.${tradingPoint.network_id}`
+                    }
+                });
+                
+                if (!networkResponse.success || !networkResponse.data || networkResponse.data.length === 0) {
+                    addLog('❌ Связанная сеть не найдена!', 'error');
+                    return;
+                }
+                
+                const network = networkResponse.data[0];
+                addLog('✅ Связанная сеть найдена!', 'success');
+                addLog(`<div class="code">
+                    ID: ${network.id}<br>
+                    Название: ${network.name}<br>
+                    External ID: ${network.external_id || '❌ НЕТ'}<br>
+                    Code: ${network.code || '❌ НЕТ'}<br>
+                    Status: ${network.status || 'неизвестен'}
+                </div>`, 'success');
+                
+                // Определение System ID для API
+                const systemId = network.external_id || network.code || '';
+                addLog(`📋 System ID для API: "${systemId}"`, systemId ? 'success' : 'error');
+                
+                if (!systemId) {
+                    addLog('❌ У сети нет external_id или code для System ID!', 'error');
+                    addLog('💡 Добавьте external_id в таблицу networks для этой записи', 'warning');
+                    addLog(`<div class="code">UPDATE networks SET external_id = '15' WHERE id = '${network.id}';</div>`, 'warning');
+                }
+                
+                // Шаг 3: Итоговая оценка готовности для API
+                addLog('🎯 ИТОГОВЫЕ РЕКВИЗИТЫ ДЛЯ ВНЕШНЕГО API:', 'info');
+                
+                const ready = !!(systemId && stationId);
+                
+                addLog(`<div class="code">
+                    System ID (от сети): "${systemId}" ${systemId ? '✅' : '❌'}<br>
+                    Station ID (от торговой точки): "${stationId}" ${stationId ? '✅' : '❌'}<br>
+                    Готовность для API: ${ready ? '✅ ГОТОВО' : '❌ НЕ ГОТОВО'}<br>
+                    ${ready ? 'Полный URL для API:' : 'Требуется настройка БД'}
+                </div>`, ready ? 'success' : 'error');
+                
+                if (ready) {
+                    const apiUrl = `https://pos.autooplata.ru/tms/tanks?system=${systemId}&station=${stationId}`;
+                    addLog(`<div class="code">
+                        GET ${apiUrl}<br>
+                        Authorization: Basic UserApi:PasswordApi
+                    </div>`, 'success');
+                    addLog('🎉 Все реквизиты найдены! Внешний API должен работать.', 'success');
+                    addLog('💡 Кнопка "Создать резервуары" теперь должна работать корректно', 'success');
+                } else {
+                    addLog('⚠️ Не все реквизиты найдены. Добавьте external_id в соответствующие таблицы.', 'warning');
+                }
+                
+                // Шаг 4: Проверка через tradingNetworkConfigService (если доступен)
+                addLog('🔧 Проверка через tradingNetworkConfigService...', 'info');
+                try {
+                    const { tradingNetworkConfigService } = await import('./src/services/tradingNetworkConfigService.js');
+                    const apiParams = await tradingNetworkConfigService.getApiParamsFromDB(TRADING_POINT_ID);
+                    
+                    if (apiParams) {
+                        addLog('✅ API параметры получены через сервис', 'success');
+                        addLog(`<div class="code">
+                            System ID из сервиса: "${apiParams.systemId}"<br>
+                            Station ID из сервиса: "${apiParams.stationId}"<br>
+                            Соответствует прямому поиску: ${apiParams.systemId === systemId && apiParams.stationId === stationId ? '✅ ДА' : '❌ НЕТ'}
+                        </div>`, 'success');
+                    } else {
+                        addLog('❌ API параметры НЕ получены через сервис', 'error');
+                    }
+                } catch (serviceError) {
+                    addLog(`⚠️ Ошибка работы с сервисом: ${serviceError.message}`, 'warning');
+                }
+                
+            } catch (error) {
+                addLog(`💥 Критическая ошибка поиска: ${error.message}`, 'error');
+                addLog(`<div class="code">${error.stack}</div>`, 'error');
+            }
+        }
+        
+        // Автозапуск поиска
+        addLog('✅ Страница загружена. Начинаем поиск торговой точки...', 'info');
+        setTimeout(() => {
+            findTradingPointById();
+        }, 1000);
+    </script>
+</body>
+</html>

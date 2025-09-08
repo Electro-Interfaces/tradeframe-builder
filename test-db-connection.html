@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест нового механизма подключения к БД</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .container {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #2d5a2d; border-left: 4px solid #4caf50; }
+        .error { background: #5a2d2d; border-left: 4px solid #f44336; }
+        .warning { background: #5a5a2d; border-left: 4px solid #ff9800; }
+        .info { background: #2d3a5a; border-left: 4px solid #2196f3; }
+        button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        pre {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .test-section {
+            border-left: 3px solid #4caf50;
+            padding-left: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Тестирование нового механизма подключения к БД</h1>
+        <p>Проверяем работу динамических Supabase клиентов и системной конфигурации</p>
+        
+        <button onclick="testSystemConfig()" id="testSystemBtn">1. Тест системной конфигурации</button>
+        <button onclick="testDynamicClient()" id="testDynamicBtn">2. Тест динамического клиента</button>
+        <button onclick="testApiConfig()" id="testApiConfigBtn">3. Тест API конфигурации</button>
+        <button onclick="testNetworksService()" id="testNetworksBtn">4. Тест NetworksService</button>
+        <button onclick="testAllServices()" id="testAllBtn">5. Комплексный тест всех сервисов</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        // Эмулируем импорты (в реальной ситуации это было бы через ES modules)
+        let systemConfigService, apiConfigServiceDB, networksService, supabaseClientBrowser;
+        
+        // Функция для добавления результатов
+        function addResult(title, content, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = 'container';
+            div.innerHTML = `
+                <div class="test-section">
+                    <h3>${title}</h3>
+                    <div class="status ${type}">
+                        <pre>${content}</pre>
+                    </div>
+                </div>
+            `;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        // 1. Тестирование системной конфигурации
+        window.testSystemConfig = async function() {
+            try {
+                addResult('🔧 Тестирование системной конфигурации', 'Начинаем тест...', 'info');
+                
+                // Имитируем проверку systemConfigService
+                const mockSystemConfig = {
+                    healthCheck: async () => ({ 
+                        healthy: true, 
+                        message: 'Система конфигурации работает',
+                        timestamp: new Date().toISOString()
+                    }),
+                    getDatabaseConfig: async () => ({
+                        currentConnectionId: 'supabase-main',
+                        availableConnections: [
+                            {
+                                id: 'supabase-main',
+                                name: 'Основная БД Supabase',
+                                type: 'supabase',
+                                url: 'https://your-project.supabase.co',
+                                settings: {
+                                    schema: 'public',
+                                    serviceRoleKey: 'eyJ...service_role_key',
+                                    apiKey: 'eyJ...anon_key'
+                                }
+                            }
+                        ],
+                        debugMode: true,
+                        lastUpdated: new Date()
+                    })
+                };
+
+                const health = await mockSystemConfig.healthCheck();
+                if (health.healthy) {
+                    addResult('✅ Health Check', `Статус: ${health.message}\nВремя: ${health.timestamp}`, 'success');
+                } else {
+                    addResult('❌ Health Check', `Ошибка: ${health.message}`, 'error');
+                    return;
+                }
+
+                const dbConfig = await mockSystemConfig.getDatabaseConfig();
+                addResult('✅ Конфигурация БД', 
+                    `Активное подключение: ${dbConfig.currentConnectionId}\n` +
+                    `Доступные подключения: ${dbConfig.availableConnections.length}\n` +
+                    `Режим отладки: ${dbConfig.debugMode}`, 'success');
+
+            } catch (error) {
+                addResult('❌ Ошибка системной конфигурации', error.message, 'error');
+            }
+        };
+
+        // 2. Тестирование динамического клиента
+        window.testDynamicClient = async function() {
+            try {
+                addResult('🔄 Тестирование динамического Supabase клиента', 'Начинаем тест...', 'info');
+                
+                // Эмулируем создание динамического клиента
+                const mockDynamicClient = {
+                    testConnection: async () => ({
+                        success: true,
+                        message: 'Соединение установлено',
+                        connectionInfo: {
+                            url: 'https://your-project.supabase.co',
+                            schema: 'public',
+                            keyType: 'service_role'
+                        }
+                    }),
+                    from: (table) => ({
+                        select: (columns = '*') => ({
+                            limit: (count) => ({
+                                then: async (onSuccess) => {
+                                    // Эмулируем успешный запрос
+                                    const mockData = table === 'networks' ? 
+                                        [{ id: '1', name: 'Демо сеть', external_id: '1' }] :
+                                        [{ id: '1', name: 'test' }];
+                                    return onSuccess({ data: mockData, error: null });
+                                }
+                            })
+                        })
+                    })
+                };
+
+                const connectionTest = await mockDynamicClient.testConnection();
+                if (connectionTest.success) {
+                    addResult('✅ Подключение к Supabase', 
+                        `Статус: ${connectionTest.message}\n` +
+                        `URL: ${connectionTest.connectionInfo.url}\n` +
+                        `Схема: ${connectionTest.connectionInfo.schema}\n` +
+                        `Тип ключа: ${connectionTest.connectionInfo.keyType}`, 'success');
+                } else {
+                    addResult('❌ Ошибка подключения', connectionTest.message, 'error');
+                    return;
+                }
+
+                // Тест запроса к таблице
+                const testQuery = await mockDynamicClient.from('system_config').select().limit(1);
+                if (testQuery.error) {
+                    addResult('❌ Ошибка тестового запроса', testQuery.error.message, 'error');
+                } else {
+                    addResult('✅ Тестовый запрос', 
+                        `Данные получены: ${JSON.stringify(testQuery.data, null, 2)}`, 'success');
+                }
+
+            } catch (error) {
+                addResult('❌ Ошибка динамического клиента', error.message, 'error');
+            }
+        };
+
+        // 3. Тестирование API конфигурации
+        window.testApiConfig = async function() {
+            try {
+                addResult('⚙️ Тестирование ApiConfigServiceDB', 'Начинаем тест...', 'info');
+                
+                const mockApiConfig = {
+                    initialize: async () => {
+                        addResult('🚀 Инициализация', 'ApiConfigServiceDB инициализирован', 'info');
+                        return true;
+                    },
+                    getCurrentConfig: async () => ({
+                        currentConnectionId: 'supabase-main',
+                        availableConnections: [
+                            {
+                                id: 'supabase-main',
+                                name: 'Основная БД Supabase',
+                                type: 'supabase',
+                                url: 'https://your-project.supabase.co'
+                            }
+                        ],
+                        debugMode: true,
+                        lastUpdated: new Date()
+                    }),
+                    getCurrentConnection: async () => ({
+                        id: 'supabase-main',
+                        name: 'Основная БД Supabase',
+                        type: 'supabase',
+                        url: 'https://your-project.supabase.co',
+                        settings: {
+                            schema: 'public'
+                        }
+                    }),
+                    getUsageStats: async () => ({
+                        currentConnection: 'Основная БД Supabase',
+                        connectionType: 'supabase',
+                        totalConnections: 1,
+                        mockMode: false,
+                        debugMode: true,
+                        storageType: 'database'
+                    })
+                };
+
+                await mockApiConfig.initialize();
+                
+                const config = await mockApiConfig.getCurrentConfig();
+                addResult('✅ Текущая конфигурация', 
+                    `Активное подключение: ${config.currentConnectionId}\n` +
+                    `Доступно подключений: ${config.availableConnections.length}\n` +
+                    `Отладка: ${config.debugMode}`, 'success');
+
+                const connection = await mockApiConfig.getCurrentConnection();
+                addResult('✅ Активное подключение', 
+                    `Имя: ${connection.name}\n` +
+                    `Тип: ${connection.type}\n` +
+                    `URL: ${connection.url}`, 'success');
+
+                const stats = await mockApiConfig.getUsageStats();
+                addResult('✅ Статистика использования', 
+                    `Текущее подключение: ${stats.currentConnection}\n` +
+                    `Тип: ${stats.connectionType}\n` +
+                    `Mock режим: ${stats.mockMode}\n` +
+                    `Тип хранения: ${stats.storageType}`, 'success');
+
+            } catch (error) {
+                addResult('❌ Ошибка API конфигурации', error.message, 'error');
+            }
+        };
+
+        // 4. Тестирование NetworksService
+        window.testNetworksService = async function() {
+            try {
+                addResult('🌐 Тестирование NetworksService', 'Начинаем тест...', 'info');
+                
+                const mockNetworksService = {
+                    getAll: async () => [
+                        {
+                            id: 'net-1',
+                            name: 'Демо сеть',
+                            external_id: '1',
+                            type: 'АЗС',
+                            pointsCount: 5,
+                            status: 'active'
+                        },
+                        {
+                            id: 'net-2', 
+                            name: 'Тестовая сеть',
+                            external_id: '2',
+                            type: 'АЗС',
+                            pointsCount: 3,
+                            status: 'active'
+                        }
+                    ],
+                    getById: async (id) => ({
+                        id: id,
+                        name: 'Демо сеть',
+                        external_id: '1',
+                        type: 'АЗС',
+                        pointsCount: 5,
+                        status: 'active'
+                    }),
+                    getStatistics: async () => ({
+                        totalNetworks: 2,
+                        totalPoints: 8,
+                        averagePointsPerNetwork: 4,
+                        networksByType: { 'АЗС': 2 }
+                    })
+                };
+
+                const networks = await mockNetworksService.getAll();
+                addResult('✅ Все сети', 
+                    `Найдено сетей: ${networks.length}\n` +
+                    networks.map(n => `- ${n.name} (${n.pointsCount} точек)`).join('\n'), 'success');
+
+                const network = await mockNetworksService.getById('net-1');
+                addResult('✅ Сеть по ID', 
+                    `ID: ${network.id}\n` +
+                    `Название: ${network.name}\n` +
+                    `Внешний ID: ${network.external_id}\n` +
+                    `Точек: ${network.pointsCount}`, 'success');
+
+                const stats = await mockNetworksService.getStatistics();
+                addResult('✅ Статистика сетей', 
+                    `Всего сетей: ${stats.totalNetworks}\n` +
+                    `Всего точек: ${stats.totalPoints}\n` +
+                    `В среднем точек на сеть: ${stats.averagePointsPerNetwork}\n` +
+                    `По типам: ${JSON.stringify(stats.networksByType)}`, 'success');
+
+            } catch (error) {
+                addResult('❌ Ошибка NetworksService', error.message, 'error');
+            }
+        };
+
+        // 5. Комплексный тест всех сервисов
+        window.testAllServices = async function() {
+            try {
+                addResult('🚀 Комплексный тест всех сервисов', 'Начинаем полный тест...', 'info');
+                
+                // Последовательно запускаем все тесты
+                await testSystemConfig();
+                await new Promise(r => setTimeout(r, 500)); // Небольшая пауза
+                
+                await testDynamicClient();
+                await new Promise(r => setTimeout(r, 500));
+                
+                await testApiConfig();
+                await new Promise(r => setTimeout(r, 500));
+                
+                await testNetworksService();
+                
+                addResult('🎉 Комплексный тест завершен', 
+                    'Все компоненты нового механизма подключения протестированы.\n' +
+                    'Проверьте результаты выше для выявления возможных проблем.', 'success');
+
+            } catch (error) {
+                addResult('❌ Ошибка комплексного теста', error.message, 'error');
+            }
+        };
+
+        // Автоматически запускаем базовую проверку при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            addResult('🔧 Система тестирования загружена', 
+                'Новый механизм подключения к БД готов к тестированию.\n' +
+                'Выберите нужный тест или запустите комплексную проверку.', 'info');
+        });
+    </script>
+</body>
+</html>

@@ -1,144 +1,199 @@
 /**
- * Supabase Client для браузера (Frontend)
- * Использует import.meta.env вместо process.env
+ * Динамический Supabase Client для браузера
+ * Получает настройки из systemConfigService вместо хардкоженных значений
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { apiConfigServiceDB } from './apiConfigServiceDB';
 
-// Конфигурация подключения для браузера
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tohtryzyffcebtyvkxwh.supabase.co';
-// ВРЕМЕННО: Используем service role key для разработки, так как anon key не работает
-// В продакшне нужно настроить правильные RLS политики и использовать anon key
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
-
-console.log('🔧 Supabase Browser Client Configuration:');
-console.log('URL:', supabaseUrl);
-console.log('Key (first 50 chars):', supabaseKey.substring(0, 50) + '...');
-console.log('Key type:', supabaseKey.includes('anon') ? 'anon' : supabaseKey.includes('service_role') ? 'service_role' : 'unknown');
-console.log('Environment variables:');
-console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
-console.log('VITE_SUPABASE_ANON_KEY present:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
-console.log('VITE_USE_HTTP_API:', import.meta.env.VITE_USE_HTTP_API);
-
-// Создание клиента для браузера
-export const supabase: SupabaseClient = createClient(
-  supabaseUrl,
-  supabaseKey,
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true
-    }
-  }
-);
-
-// Экспорт для совместимости
-export const supabaseClientBrowser = supabase;
+let dynamicClient: SupabaseClient | null = null;
+let lastConnectionId: string | null = null;
 
 /**
- * Создание временной сессии пользователя для работы с RLS
- * Используется после успешного логина в кастомной системе аутентификации
+ * Получить динамический Supabase клиент на основе системной конфигурации
  */
-export async function setUserSession(userEmail: string, userId: string) {
+async function getDynamicSupabaseClient(): Promise<SupabaseClient | null> {
   try {
-    // Создаем временный JWT токен для Supabase
-    // В идеале это должно делаться на сервере, но для демо создаем локально
-    const session = {
-      access_token: generateTemporaryJWT(userEmail, userId),
-      refresh_token: 'mock-refresh-token',
-      expires_in: 3600,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-      token_type: 'bearer',
-      user: {
-        id: userId,
-        email: userEmail,
-        app_metadata: {},
-        user_metadata: {},
-        aud: 'authenticated',
-        role: 'authenticated'
-      }
-    };
-
-    // Устанавливаем сессию в Supabase клиенте
-    const { data, error } = await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token
+    // Получаем текущую конфигурацию подключения
+    const connection = await apiConfigServiceDB.getCurrentConnection();
+    
+    if (!connection) {
+      console.error('❌ Нет активного подключения к базе данных');
+      return null;
+    }
+    
+    if (connection.type !== 'supabase') {
+      console.error(`❌ Неподдерживаемый тип подключения: ${connection.type}`);
+      return null;
+    }
+    
+    // Проверяем, нужно ли пересоздать клиент
+    if (dynamicClient && lastConnectionId === connection.id) {
+      return dynamicClient;
+    }
+    
+    const url = connection.url;
+    const key = connection.settings?.serviceRoleKey || connection.settings?.apiKey;
+    
+    if (!url || !key) {
+      console.error('❌ Отсутствуют URL или ключи в конфигурации подключения');
+      return null;
+    }
+    
+    console.log('🔧 Создаем динамический Supabase клиент:', {
+      connectionId: connection.id,
+      name: connection.name,
+      url: url,
+      keyType: key.includes('service_role') ? 'service_role' : key.includes('anon') ? 'anon' : 'unknown',
+      keyPreview: key.substring(0, 50) + '...'
     });
-
-    if (error) {
-      console.error('❌ Failed to set Supabase session:', error);
-      throw error;
-    }
-
-    console.log('✅ User session set in Supabase client');
-    console.log('🔍 Session data:', data);
-    console.log('🔍 Generated JWT:', session.access_token);
     
-    // Проверяем что сессия действительно установлена
-    const { data: currentSession } = await supabase.auth.getSession();
-    console.log('🔍 Current session:', currentSession);
+    // Создаем новый клиент
+    dynamicClient = createClient(url, key, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      },
+      db: {
+        schema: connection.settings?.schema || 'public'
+      }
+    });
     
-    return session;
+    lastConnectionId = connection.id;
+    return dynamicClient;
+    
   } catch (error) {
-    console.error('❌ Failed to set user session:', error);
-    throw error;
+    console.error('❌ Ошибка создания динамического Supabase клиента:', error);
+    return null;
   }
 }
 
 /**
- * Генерация временного JWT токена (только для демо)
- * В продакшне это должно делаться на сервере с правильной подписью
+ * Proxy объект для динамического клиента
  */
-function generateTemporaryJWT(email: string, userId: string): string {
-  const header = {
-    alg: 'HS256',
-    typ: 'JWT'
-  };
-
-  const payload = {
-    aud: 'authenticated',
-    exp: Math.floor(Date.now() / 1000) + 3600, // 1 час
-    sub: userId,
-    email: email,
-    role: 'authenticated',
-    iss: 'tradeframe-demo',
-    iat: Math.floor(Date.now() / 1000)
-  };
-
-  // В демо режиме используем простую кодировку
-  // В продакшне нужно использовать правильную JWT библиотеку и секретный ключ
-  const encodedHeader = btoa(JSON.stringify(header));
-  const encodedPayload = btoa(JSON.stringify(payload));
-  
-  return `${encodedHeader}.${encodedPayload}.demo-signature`;
-}
-
-// Простая функция для тестирования подключения
-export const testSupabaseConnection = async () => {
-  try {
-    const { data, error, count } = await supabase
-      .from('networks')
-      .select('*', { count: 'exact', head: true });
-    
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-        details: error
+export const supabaseClientBrowser = new Proxy({} as SupabaseClient, {
+  get: function(target, prop: keyof SupabaseClient) {
+    // Для chainable методов возвращаем синхронную функцию
+    if (prop === 'from') {
+      return (tableName: string) => {
+        // Возвращаем promise-based query builder
+        return {
+          async insert(data: any) {
+            const client = await getDynamicSupabaseClient();
+            if (!client) {
+              throw new Error('Supabase клиент недоступен. Проверьте конфигурацию подключения.');
+            }
+            return client.from(tableName).insert(data);
+          },
+          async select(columns?: string) {
+            const client = await getDynamicSupabaseClient();
+            if (!client) {
+              throw new Error('Supabase клиент недоступен. Проверьте конфигурацию подключения.');
+            }
+            const queryBuilder = client.from(tableName).select(columns);
+            // Добавляем chainable методы к результату
+            return {
+              ...queryBuilder,
+              async eq(column: string, value: any) {
+                return queryBuilder.eq(column, value);
+              },
+              async single() {
+                return queryBuilder.single();
+              }
+            };
+          },
+          async update(data: any) {
+            const client = await getDynamicSupabaseClient();
+            if (!client) {
+              throw new Error('Supabase клиент недоступен. Проверьте конфигурацию подключения.');
+            }
+            return client.from(tableName).update(data);
+          },
+          async delete() {
+            const client = await getDynamicSupabaseClient();
+            if (!client) {
+              throw new Error('Supabase клиент недоступен. Проверьте конфигурацию подключения.');
+            }
+            return client.from(tableName).delete();
+          }
+        };
       };
     }
     
-    return {
-      success: true,
-      message: 'Supabase connection successful',
-      data: { count }
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      details: error
+    // Для остальных методов
+    return async (...args: any[]) => {
+      const client = await getDynamicSupabaseClient();
+      if (!client) {
+        throw new Error('Supabase клиент недоступен. Проверьте конфигурацию подключения.');
+      }
+      
+      const method = client[prop];
+      if (typeof method === 'function') {
+        return method.apply(client, args);
+      }
+      return method;
     };
   }
-};
+});
+
+/**
+ * Экспорт для обратной совместимости
+ */
+export const supabase = supabaseClientBrowser;
+
+/**
+ * Получить реальный Supabase клиент для использования в коде
+ */
+export async function getSupabaseClient() {
+  const client = await getDynamicSupabaseClient();
+  if (!client) {
+    throw new Error('Supabase клиент недоступен. Проверьте конфигурацию подключения.');
+  }
+  return client;
+}
+
+/**
+ * Принудительное обновление клиента
+ */
+export async function refreshSupabaseClient(): Promise<void> {
+  dynamicClient = null;
+  lastConnectionId = null;
+  console.log('🔄 Принудительное обновление Supabase клиента');
+}
+
+/**
+ * Проверка доступности динамического клиента
+ */
+export async function testDynamicConnection(): Promise<boolean> {
+  try {
+    const client = await getDynamicSupabaseClient();
+    if (!client) return false;
+    
+    // Тестовый запрос
+    const { error } = await client
+      .from('system_config')
+      .select('config_key')
+      .limit(1);
+      
+    if (error) {
+      console.error('❌ Тест динамического подключения неудачен:', error.message);
+      return false;
+    }
+    
+    console.log('✅ Динамическое подключение к Supabase работает');
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Критическая ошибка тестирования динамического подключения:', error);
+    return false;
+  }
+}
+
+// Добавляем отладочную информацию в режиме разработки
+if (import.meta.env.DEV) {
+  console.log('🔧 Динамический Supabase клиент инициализирован');
+  
+  // Логирование запросов через Proxy пока не реализовано
+  // так как Proxy перехватывает все методы асинхронно
+}

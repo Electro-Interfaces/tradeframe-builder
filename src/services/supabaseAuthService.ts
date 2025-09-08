@@ -4,6 +4,7 @@
  */
 
 import { supabaseService } from '@/services/supabaseServiceClient';
+import { apiConfigServiceDB } from './apiConfigServiceDB';
 import * as bcrypt from 'bcryptjs';
 
 interface SupabaseUser {
@@ -30,19 +31,20 @@ export interface AuthUser {
 }
 
 export class SupabaseAuthService {
-  private static getSupabaseClient() {
-    const config = apiConfigService.getCurrentConnection();
+  private static async getSupabaseClient() {
+    const config = await apiConfigServiceDB.getCurrentConnection();
     if (!config || config.type !== 'supabase') {
       throw new Error('Supabase connection not configured');
     }
     if (!config.url || !config.settings?.apiKey) {
       throw new Error('Supabase URL or API Key not configured');
     }
-    return createSupabaseFromSettings(config.url, config.settings.apiKey, config.settings.schema || 'public');
+    // Use the existing supabaseService client instead of creating a new one
+    return supabaseService;
   }
   
-  private static get supabase() {
-    return this.getSupabaseClient();
+  private static async supabase() {
+    return await this.getSupabaseClient();
   }
 
   /**
@@ -83,21 +85,11 @@ export class SupabaseAuthService {
 
       const user: SupabaseUser = users[0];
 
-      // Для демо-режима принимаем пароль 'admin123' для известных пользователей
-      const isDemoUser = ['admin@tradeframe.com', 'network.admin@demo-azs.ru', 'manager@demo-azs.ru', 'operator@demo-azs.ru']
-        .includes(user.email);
-      
-      if (isDemoUser) {
-        // Для демо-пользователей принимаем пароль 'admin123'
-        if (password !== 'admin123') {
-          throw new Error('Неверный пароль. Используйте пароль: admin123');
-        }
-      } else {
-        // Для остальных пользователей проверяем хэш пароля
-        const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-        if (!isPasswordValid) {
-          throw new Error('Неверный пароль');
-        }
+      // ❌ ДЕМО ПОЛЬЗОВАТЕЛИ ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+      // Только проверка реального хэша пароля
+      const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+      if (!isPasswordValid) {
+        throw new Error('Неверный пароль');
       }
 
       // Получаем разрешения на основе роли
@@ -203,7 +195,8 @@ export class SupabaseAuthService {
    */
   static async getUsers(): Promise<SupabaseUser[]> {
     try {
-      const { data: users, error } = await this.supabase
+      const supabaseClient = await this.supabase();
+      const { data: users, error } = await supabaseClient
         .from('users')
         .select('*')
         .is('deleted_at', null)

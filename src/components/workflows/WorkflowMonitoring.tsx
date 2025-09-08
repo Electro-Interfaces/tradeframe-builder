@@ -18,7 +18,7 @@ import {
   Zap
 } from 'lucide-react';
 import { Workflow, WorkflowExecution } from '@/types/workflows';
-import workflowsService from '@/services/workflowsService';
+import workflowsService from '@/services/workflowsSupabaseService';
 
 interface MonitoringStats {
   total_workflows: number;

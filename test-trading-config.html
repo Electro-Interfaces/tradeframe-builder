@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест конфигурации торгового API</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #0f0; 
+            padding: 20px;
+            line-height: 1.4;
+        }
+        .section { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border: 1px solid #0f0;
+            background: #0a0a0a;
+        }
+        h1 { color: #0ff; }
+        h2 { color: #ff0; }
+        .step {
+            margin: 10px 0;
+            padding: 8px;
+            background: #001100;
+            border-left: 3px solid #0f0;
+        }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        pre {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            overflow-x: auto;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Тест конфигурации торгового API</h1>
+    
+    <div class="section">
+        <h2>Шаг 1: Проверка текущей конфигурации</h2>
+        <div id="step1"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 2: Тест подключения с новыми настройками</h2>
+        <div id="step2"></div>
+    </div>
+
+    <script>
+        const log = (containerId, msg, type = '') => {
+            const div = document.createElement('div');
+            div.className = `step ${type}`;
+            div.innerHTML = msg;
+            document.getElementById(containerId).appendChild(div);
+        };
+
+        async function testConfig() {
+            // Шаг 1: Проверим что сохранено в localStorage
+            log('step1', '🔍 Проверяем сохраненную конфигурацию...', 'warning');
+            
+            const savedConfig = localStorage.getItem('trading_network_config');
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    log('step1', '✅ Найдена конфигурация в localStorage:', 'success');
+                    
+                    const configPreview = {
+                        enabled: config.enabled,
+                        baseUrl: config.baseUrl,
+                        authType: config.authType,
+                        hasApiKey: !!config.apiKey,
+                        systemId: config.systemId,
+                        defaultStationId: config.defaultStationId
+                    };
+                    
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify(configPreview, null, 2);
+                    document.getElementById('step1').appendChild(pre);
+                    
+                } catch (e) {
+                    log('step1', `❌ Ошибка парсинга: ${e.message}`, 'error');
+                }
+            } else {
+                log('step1', '⚠️ Конфигурация в localStorage не найдена', 'warning');
+                log('step1', 'Будет использована конфигурация по умолчанию');
+            }
+
+            // Шаг 2: Тест подключения с правильными параметрами
+            log('step2', '🌐 Тестируем подключение с обновленной конфигурацией...', 'warning');
+            
+            const testUrl = 'https://api-demo.1c-tradeservice.ru/api/v1/stations/4/tanks';
+            const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6eyJpZCI6IkFDQ0FFNDA4LTYzMzItNDI0NS04NUIxLTI1RjkxNEYzQkQ2NCIsIm5hbWUiOiJVc2VyVGVzdCIsInJvbGUiOjB9LCJ1c2VyIjp7ImlkIjoiQUNDQUU0MDgtNjMzMi00MjQ1LTg1QjEtMjVGOTE0RjNCRDY0IiwibmFtZSI6IlVzZXJUZXN0In0sImV4cCI6MTc1NzE1NzkzN30.7fDPBwtWej80K2ePRXYKXsJH3b3pLSUqtjo2uIbyXEE';
+            
+            try {
+                log('step2', `📡 URL: ${testUrl}`);
+                log('step2', `🔑 Token: ${testToken.substring(0, 50)}...`);
+                
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${testToken}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+
+                log('step2', `📊 Статус: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('step2', '✅ Подключение успешно!', 'success');
+                    
+                    const tanks = data.tanks || data;
+                    if (Array.isArray(tanks)) {
+                        log('step2', `📦 Получено резервуаров: ${tanks.length}`, 'success');
+                        
+                        // Показываем первый резервуар как пример
+                        if (tanks.length > 0) {
+                            log('step2', '<br><strong>📋 Пример данных резервуара:</strong>');
+                            const sampleTank = tanks[0];
+                            const sample = {
+                                number: sampleTank.number,
+                                fuel_name: sampleTank.fuel_name,
+                                volume_end: sampleTank.volume_end,
+                                volume_max: sampleTank.volume_max,
+                                temperature: sampleTank.temperature
+                            };
+                            
+                            const pre = document.createElement('pre');
+                            pre.textContent = JSON.stringify(sample, null, 2);
+                            document.getElementById('step2').appendChild(pre);
+                            
+                            log('step2', '🎉 Данные из торгового API получены успешно!', 'success');
+                            log('step2', 'Теперь нужно обновить настройки в разделе "Обмен данными"');
+                        }
+                    }
+                    
+                } else {
+                    log('step2', `❌ Ошибка: ${response.status} ${response.statusText}`, 'error');
+                    const errorText = await response.text().catch(() => 'не удалось получить детали');
+                    log('step2', `📄 Детали: ${errorText.substring(0, 200)}...`);
+                }
+
+            } catch (error) {
+                log('step2', `❌ Ошибка сети: ${error.message}`, 'error');
+                
+                if (error.message.includes('CORS')) {
+                    log('step2', '🚫 Проблема с CORS - нужен прокси или настройка сервера', 'warning');
+                } else if (error.message.includes('Failed to fetch')) {
+                    log('step2', '🌐 Сервер недоступен или заблокирован', 'warning');
+                }
+            }
+
+            // Рекомендации
+            log('step2', '<br><strong>💡 Следующие шаги:</strong>', 'warning');
+            log('step2', '1. Обновите настройки в разделе "Настройки" → "Обмен данными"');
+            log('step2', '2. Укажите URL: https://api-demo.1c-tradeservice.ru/api');
+            log('step2', '3. Выберите тип авторизации: Bearer Token');
+            log('step2', '4. Вставьте токен из этого теста');
+            log('step2', '5. Сохраните настройки и проверьте подключение');
+        }
+
+        testConfig();
+    </script>
+</body>
+</html>

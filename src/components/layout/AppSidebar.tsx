@@ -144,7 +144,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   ];
 
   const settingsMenuItems = [
-    { title: "Настройки подключения", url: "/settings/connections", icon: Wifi },
+    { title: "Обмен данными", url: "/settings/data-exchange", icon: Database },
     { title: "Номенклатура", url: "/settings/nomenclature", icon: FuelIcon },
     { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types", icon: HardDrive },
     { title: "Типы компонентов", url: "/settings/dictionaries/component-types", icon: Component },
@@ -154,7 +154,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
 
   const serviceMenuItems = [
     { title: "Частичная миграция", url: "/settings/partial-migration", icon: Cog },
-    { title: "Настройки БД", url: "/settings/database", icon: Database },
     { title: "Инспектор данных", url: "/admin/data-inspector", icon: HardDrive },
   ];
 

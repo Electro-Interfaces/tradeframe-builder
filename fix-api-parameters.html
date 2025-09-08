@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Исправление API параметров</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        .highlight { 
+            background: #2d4a22; 
+            padding: 10px; 
+            border-left: 4px solid #28a745;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button.success { background: #28a745; }
+        button.warning { background: #ffc107; color: #000; }
+    </style>
+</head>
+<body>
+    <h1>🔧 ИСПРАВЛЕНИЕ API ПАРАМЕТРОВ</h1>
+    <p>Установка правильных external_id для System ID: "15" и Station ID: "4"</p>
+    
+    <div>
+        <button onclick="fixApiParameters()">🚀 Исправить API параметры</button>
+        <button onclick="testApiParameters()">🧪 Проверить API параметры</button>
+        <button onclick="clearLog()">🧹 Очистить логи</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const TARGET_TP_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        // Исправление API параметров
+        window.fixApiParameters = async function() {
+            addLog('🔧 ИСПРАВЛЕНИЕ API ПАРАМЕТРОВ', 'info');
+            addLog('Устанавливаем: System ID = "15", Station ID = "4"', 'info');
+            
+            try {
+                const { httpClient } = await import('/src/services/universalHttpClient.ts');
+                
+                // Шаг 1: Ищем сеть "Норд Лайн" и устанавливаем external_id = "15"
+                addLog('🔍 Ищем сеть "Норд Лайн"...', 'info');
+                
+                const networksResponse = await httpClient.get('/rest/v1/networks', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id'
+                    }
+                });
+                
+                if (networksResponse.success && networksResponse.data) {
+                    const nordLineNetwork = networksResponse.data.find(n => 
+                        n.name.toLowerCase().includes('норд') || 
+                        n.name.toLowerCase().includes('nord')
+                    );
+                    
+                    if (nordLineNetwork) {
+                        addLog(`✅ Найдена сеть: "${nordLineNetwork.name}" (ID: ${nordLineNetwork.id})`, 'success');
+                        addLog(`Текущий external_id: "${nordLineNetwork.external_id || 'НЕТ'}"`, 'info');
+                        
+                        // Обновляем external_id сети на "15"
+                        const updateNetworkResponse = await httpClient.patch(`/rest/v1/networks?id=eq.${nordLineNetwork.id}`, {
+                            destination: 'supabase',
+                            body: {
+                                external_id: "15"
+                            }
+                        });
+                        
+                        if (updateNetworkResponse.success) {
+                            addLog(`✅ Сеть обновлена: external_id = "15"`, 'success');
+                        } else {
+                            addLog(`❌ Ошибка обновления сети: ${updateNetworkResponse.error}`, 'error');
+                            return;
+                        }
+                    } else {
+                        addLog('❌ Сеть "Норд Лайн" не найдена', 'error');
+                        return;
+                    }
+                }
+                
+                // Шаг 2: Ищем торговую точку АЗС №4 и устанавливаем external_id = "4"
+                addLog('🔍 Ищем торговую точку "АЗС №4"...', 'info');
+                
+                const tpResponse = await httpClient.get(`/rest/v1/trading_points?id=eq.${TARGET_TP_ID}`, {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id'
+                    }
+                });
+                
+                if (tpResponse.success && tpResponse.data && tpResponse.data.length > 0) {
+                    const azs4 = tpResponse.data[0];
+                    addLog(`✅ Найдена торговая точка: "${azs4.name}" (ID: ${azs4.id})`, 'success');
+                    addLog(`Текущий external_id: "${azs4.external_id || 'НЕТ'}"`, 'info');
+                    
+                    // Обновляем external_id торговой точки на "4"
+                    const updateTpResponse = await httpClient.patch(`/rest/v1/trading_points?id=eq.${TARGET_TP_ID}`, {
+                        destination: 'supabase',
+                        body: {
+                            external_id: "4"
+                        }
+                    });
+                    
+                    if (updateTpResponse.success) {
+                        addLog(`✅ Торговая точка обновлена: external_id = "4"`, 'success');
+                    } else {
+                        addLog(`❌ Ошибка обновления торговой точки: ${updateTpResponse.error}`, 'error');
+                        return;
+                    }
+                } else {
+                    addLog('❌ Торговая точка АЗС №4 не найдена', 'error');
+                    return;
+                }
+                
+                addLog('<div class="highlight">✅ ВСЕ ПАРАМЕТРЫ УСПЕШНО ИСПРАВЛЕНЫ!</div>', 'success');
+                addLog('System ID: "15" (от сети Норд Лайн)', 'success');
+                addLog('Station ID: "4" (от торговой точки АЗС №4)', 'success');
+                
+            } catch (error) {
+                addLog(`💥 КРИТИЧЕСКАЯ ОШИБКА: ${error.message}`, 'error');
+            }
+        }
+        
+        // Проверка API параметров
+        window.testApiParameters = async function() {
+            addLog('🧪 ПРОВЕРКА API ПАРАМЕТРОВ', 'info');
+            
+            try {
+                const { httpClient } = await import('/src/services/universalHttpClient.ts');
+                
+                // Проверяем через getAllTradingPointsWithNetworks
+                const response = await httpClient.getAllTradingPointsWithNetworks();
+                
+                if (response.success && response.data) {
+                    const azs4 = response.data.find(tp => tp.id === TARGET_TP_ID);
+                    
+                    if (azs4) {
+                        addLog(`<div class="highlight">
+                            ПРОВЕРКА АЗС №4:<br>
+                            ➜ Название: ${azs4.name}<br>
+                            ➜ Сеть: ${azs4.networkInfo.name}<br>
+                            ➜ System ID: "${azs4.systemId}"<br>
+                            ➜ Station ID: "${azs4.stationId}"<br>
+                            ➜ API готовность: ${azs4.apiReady ? '✅ ГОТОВА' : '❌ НЕ ГОТОВА'}<br>
+                            ➜ Правильные параметры: ${azs4.systemId === '15' && azs4.stationId === '4' ? '✅ ДА' : '❌ НЕТ'}
+                        </div>`, azs4.systemId === '15' && azs4.stationId === '4' ? 'success' : 'error');
+                        
+                        if (azs4.systemId === '15' && azs4.stationId === '4') {
+                            addLog(`🎯 API URL: https://pos.autooplata.ru/tms/tanks?system=${azs4.systemId}&station=${azs4.stationId}`, 'success');
+                        }
+                    } else {
+                        addLog('❌ АЗС №4 не найдена', 'error');
+                    }
+                } else {
+                    addLog('❌ Не удалось получить торговые точки', 'error');
+                }
+                
+            } catch (error) {
+                addLog(`💥 ОШИБКА ПРОВЕРКИ: ${error.message}`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Страница загружена. Готов исправить API параметры!', 'info');
+    </script>
+</body>
+</html>

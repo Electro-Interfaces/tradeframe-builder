@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>🔍 Отладка источника данных резервуаров</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .warning { color: #fbbf24; }
+        .info { color: #60a5fa; }
+        .highlight { background: #fbbf24; color: #000; padding: 2px 4px; }
+        pre { background: #262626; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 200px; }
+        h2 { border-bottom: 2px solid #444; padding-bottom: 10px; }
+        .step { margin: 20px 0; border-left: 3px solid #60a5fa; padding-left: 15px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 ПОЛНАЯ ОТЛАДКА: Откуда берутся данные резервуаров</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { tanksUnifiedService } from '/src/services/tanksUnifiedService.js';
+        import { tanksService } from '/src/services/tanksServiceSupabase.js';
+
+        const results = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const className = type;
+            results.innerHTML += `<div class="${className}">${message}</div>`;
+            console.log(message);
+        }
+
+        async function debugDataSource() {
+            log('🚀 НАЧИНАЕМ ПОЛНУЮ ОТЛАДКУ ИСТОЧНИКА ДАННЫХ...', 'info');
+            
+            // Получаем выбранную торговую точку
+            const selectedPointId = localStorage.getItem('selectedTradingPointId');
+            log(`📍 Выбранная торговая точка: ${selectedPointId || 'НЕ ВЫБРАНА'}`, selectedPointId ? 'success' : 'error');
+            
+            if (!selectedPointId || selectedPointId === 'all') {
+                log('❌ СТОП! Торговая точка не выбрана. Выберите конкретную точку в интерфейсе.', 'error');
+                return;
+            }
+
+            results.innerHTML += '<div class="step"><h2>ШАГ 1: Проверка таблицы tanks в Supabase</h2>';
+            try {
+                log('🔍 Проверяем таблицу tanks напрямую...', 'info');
+                const directTanks = await tanksService.getTanks(selectedPointId);
+                log(`📊 Найдено записей в таблице tanks: ${directTanks.length}`, directTanks.length > 0 ? 'success' : 'warning');
+                
+                if (directTanks.length > 0) {
+                    log(`<span class="highlight">НАЙДЕН ИСТОЧНИК!</span> Данные берутся из таблицы tanks`, 'success');
+                    results.innerHTML += '<pre>' + JSON.stringify(directTanks.slice(0, 2), null, 2) + '</pre>';
+                    
+                    // Анализируем данные
+                    directTanks.forEach((tank, index) => {
+                        log(`🛢️ Резервуар ${index + 1}: ${tank.name} (${tank.fuelType}) - ${tank.currentLevelLiters}/${tank.capacityLiters}л`, 'info');
+                    });
+                } else {
+                    log('✅ Таблица tanks пуста - это правильно, данные должны приходить из API', 'success');
+                }
+            } catch (error) {
+                log(`❌ Ошибка при проверке таблицы tanks: ${error.message}`, 'error');
+            }
+            results.innerHTML += '</div>';
+
+            results.innerHTML += '<div class="step"><h2>ШАГ 2: Проверка таблицы equipment</h2>';
+            try {
+                log('🔍 Проверяем таблицу equipment (тип fuel_tank)...', 'info');
+                const { equipmentSupabaseService } = await import('/src/services/equipmentSupabase.js');
+                const equipmentList = await equipmentSupabaseService.list({
+                    trading_point_id: selectedPointId,
+                    system_type: 'fuel_tank'
+                });
+                
+                const equipmentCount = equipmentList.data ? equipmentList.data.length : 0;
+                log(`📊 Найдено оборудования типа fuel_tank: ${equipmentCount}`, equipmentCount > 0 ? 'success' : 'warning');
+                
+                if (equipmentCount > 0) {
+                    log(`<span class="highlight">ВОЗМОЖНЫЙ ИСТОЧНИК!</span> Данные могут браться из equipment`, 'warning');
+                    results.innerHTML += '<pre>' + JSON.stringify(equipmentList.data.slice(0, 2), null, 2) + '</pre>';
+                    
+                    // Анализируем данные оборудования
+                    equipmentList.data.forEach((equipment, index) => {
+                        log(`⚙️ Оборудование ${index + 1}: ${equipment.display_name || equipment.name}`, 'info');
+                    });
+                } else {
+                    log('ℹ️ Оборудование типа fuel_tank не найдено', 'info');
+                }
+            } catch (error) {
+                log(`❌ Ошибка при проверке equipment: ${error.message}`, 'error');
+            }
+            results.innerHTML += '</div>';
+
+            results.innerHTML += '<div class="step"><h2>ШАГ 3: Тестирование tanksUnifiedService</h2>';
+            try {
+                log('🔧 Вызываем tanksUnifiedService.getTanksForTradingPoint()...', 'info');
+                const unifiedResult = await tanksUnifiedService.getTanksForTradingPoint(selectedPointId);
+                
+                log(`📊 Результат tanksUnifiedService:`, 'info');
+                log(`   - Источник: ${unifiedResult.source}`, 'info');
+                log(`   - Синхронизировано: ${unifiedResult.synchronized}`, 'info');
+                log(`   - Количество резервуаров: ${unifiedResult.tanks.length}`, 'info');
+                log(`   - Ошибка: ${unifiedResult.error || 'НЕТ'}`, unifiedResult.error ? 'error' : 'success');
+                
+                if (unifiedResult.tanks.length > 0) {
+                    log(`<span class="highlight">ЭТО ИСТОЧНИК ДАННЫХ НА СТРАНИЦЕ!</span>`, 'success');
+                    results.innerHTML += '<pre>' + JSON.stringify(unifiedResult.tanks.slice(0, 2), null, 2) + '</pre>';
+                    
+                    // Детальный анализ каждого резервуара
+                    unifiedResult.tanks.forEach((tank, index) => {
+                        log(`🛢️ Резервуар ${index + 1}: ID=${tank.id}, Название=${tank.name}, Топливо=${tank.fuelType}`, 'info');
+                        log(`   Уровень: ${tank.currentLevelLiters}л из ${tank.capacityLiters}л`, 'info');
+                        log(`   Температура: ${tank.temperature}°C, Плотность: ${tank.density}кг/м³`, 'info');
+                    });
+                } else {
+                    log('❌ tanksUnifiedService вернул пустой результат', 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка в tanksUnifiedService: ${error.message}`, 'error');
+            }
+            results.innerHTML += '</div>';
+
+            results.innerHTML += '<div class="step"><h2>ШАГ 4: Проверка localStorage</h2>';
+            try {
+                log('💾 Проверяем localStorage на наличие кэшированных данных...', 'info');
+                
+                const keys = Object.keys(localStorage);
+                const tankKeys = keys.filter(key => 
+                    key.toLowerCase().includes('tank') || 
+                    key.toLowerCase().includes('reservoir') ||
+                    key.toLowerCase().includes('fuel')
+                );
+                
+                if (tankKeys.length > 0) {
+                    log(`<span class="highlight">НАЙДЕНЫ ПОДОЗРИТЕЛЬНЫЕ КЛЮЧИ В localStorage!</span>`, 'warning');
+                    tankKeys.forEach(key => {
+                        const value = localStorage.getItem(key);
+                        log(`   ${key}: ${value ? value.substring(0, 100) + '...' : 'пусто'}`, 'warning');
+                    });
+                } else {
+                    log('✅ Подозрительных данных в localStorage не найдено', 'success');
+                }
+            } catch (error) {
+                log(`❌ Ошибка проверки localStorage: ${error.message}`, 'error');
+            }
+            results.innerHTML += '</div>';
+
+            log('\n🎯 ВЫВОД: Найден точный источник данных!', 'success');
+        }
+
+        // Запускаем отладку
+        debugDataSource();
+    </script>
+</body>
+</html>

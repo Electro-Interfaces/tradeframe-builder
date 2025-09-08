@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Диагностика настроек браузера</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <h1 class="text-xl font-bold mb-4">🔍 Диагностика настроек доступа к базе в браузере</h1>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-blue-900 border border-blue-600 rounded-lg p-4">
+            <h3 class="font-bold text-lg mb-2">🎯 Ожидаемые настройки</h3>
+            <p><strong>URL:</strong> tohtryzyffcebtyvkxwh.supabase.co</p>
+            <p><strong>Service Key:</strong> ...kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY</p>
+        </div>
+        <div class="bg-green-900 border border-green-600 rounded-lg p-4">
+            <h3 class="font-bold text-lg mb-2">✅ Из .env файла</h3>
+            <p><strong>VITE_SUPABASE_URL:</strong> tohtryzyffcebtyvkxwh.supabase.co</p>
+            <p><strong>VITE_SUPABASE_ANON_KEY:</strong> ...NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI</p>
+        </div>
+    </div>
+    
+    <button onclick="runDiagnostics()" class="bg-purple-600 px-4 py-2 rounded mb-4">🔧 Запустить диагностику</button>
+    <div id="results" class="mt-4 space-y-2"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type === 'error' ? 'text-red-400 bg-red-900 p-3 rounded border border-red-600' : 
+                             type === 'success' ? 'text-green-400 bg-green-900 p-3 rounded border border-green-600' : 
+                             type === 'warning' ? 'text-yellow-400 bg-yellow-900 p-3 rounded border border-yellow-600' :
+                             'text-blue-400 bg-blue-900 p-3 rounded border border-blue-600';
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function runDiagnostics() {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            
+            log('🔍 <strong>Шаг 1: Проверка переменных окружения в браузере</strong>');
+            
+            // Эмулируем проверку import.meta.env через fetch в приложении
+            log('⚠️ Переменные окружения доступны только внутри Vite приложения');
+            log('📝 Проверим через прямые запросы с разными ключами...');
+            
+            // Проверим с ключом из .env
+            testWithEnvKey();
+        }
+        
+        async function testWithEnvKey() {
+            log('<br>🧪 <strong>Шаг 2: Тест с ключом из .env файла</strong>');
+            
+            const ENV_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+            const ENV_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NzU0NDgsImV4cCI6MjA3MjQ1MTQ0OH0.NMpuTp08vLuxhRLxbI9lOAo6JI22-8eDcMRylE3MoqI';
+            
+            log(`🌐 URL: ${ENV_URL}`);
+            log(`🔑 Anon Key: ${ENV_ANON_KEY.substring(0, 50)}...`);
+            
+            try {
+                const response = await fetch(`${ENV_URL}/rest/v1/equipment?limit=1`, {
+                    headers: {
+                        'apikey': ENV_ANON_KEY,
+                        'Authorization': `Bearer ${ENV_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`📊 Status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ <strong>Anon key РАБОТАЕТ!</strong> Получено записей: ${data.length}`, 'success');
+                    
+                    if (data.length > 0) {
+                        log(`📋 Пример записи: ${data[0].name || 'без имени'}`);
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ <strong>Anon key НЕ РАБОТАЕТ</strong>`, 'error');
+                    log(`📝 Ошибка: ${errorText}`, 'error');
+                    
+                    // Попробуем с service key
+                    await testWithServiceKey();
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка запроса: ${error.message}`, 'error');
+                await testWithServiceKey();
+            }
+        }
+        
+        async function testWithServiceKey() {
+            log('<br>🔧 <strong>Шаг 3: Тест с Service Role ключом</strong>');
+            
+            const ENV_URL = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+            const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+            
+            log(`🔑 Service Role Key: ${SERVICE_KEY.substring(0, 50)}...`);
+            
+            try {
+                const response = await fetch(`${ENV_URL}/rest/v1/equipment?trading_point_id=eq.6969b08d-1cbe-45c2-ae9c-8002c7022b59&system_type=eq.fuel_tank`, {
+                    headers: {
+                        'apikey': SERVICE_KEY,
+                        'Authorization': `Bearer ${SERVICE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`📊 Status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ <strong>Service key РАБОТАЕТ!</strong> Найдено резервуаров: ${data.length}`, 'success');
+                    
+                    if (data.length > 0) {
+                        log('<strong>🛢️ Найденные резервуары:</strong>', 'success');
+                        data.forEach((tank, i) => {
+                            const fuelType = tank.params?.['Тип топлива'] || 'НЕ УКАЗАН';
+                            log(`  ${i+1}. ${tank.name} | Топливо: ${fuelType} | Статус: ${tank.status}`);
+                        });
+                    } else {
+                        log('⚠️ Service key работает, но резервуаров для этой ТП не найдено', 'warning');
+                    }
+                    
+                    await checkBrowserEquipmentAPI();
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ <strong>Service key НЕ РАБОТАЕТ</strong>`, 'error');
+                    log(`📝 Ошибка: ${errorText}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Ошибка запроса: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkBrowserEquipmentAPI() {
+            log('<br>🌐 <strong>Шаг 4: Проверка через Equipment API из браузерного приложения</strong>');
+            log('⚠️ Для этого нужно открыть реальную страницу приложения');
+            log('📝 Проверьте в консоли браузера на http://localhost:3000/point/prices:');
+            log('   1. Откройте DevTools (F12)');
+            log('   2. В Console выполните:');
+            log('   <code>window.supabaseTest?.services?.equipment?.list({ trading_point_id: "6969b08d-1cbe-45c2-ae9c-8002c7022b59", system_type: "fuel_tank" })</code>', 'info');
+            log('   3. Или проверьте логи с нашими добавленными 🔍 [EQUIPMENT API] префиксами');
+            
+            log('<br>💡 <strong>Возможные проблемы:</strong>', 'warning');
+            log('   • Браузер использует anon key, но RLS блокирует доступ к equipment');
+            log('   • Переменные окружения не загружаются правильно');
+            log('   • Несоответствие ключей в разных файлах конфигурации');
+            log('   • Кеширование старых настроек в браузере');
+        }
+        
+        // Автозапуск
+        runDiagnostics();
+    </script>
+</body>
+</html>

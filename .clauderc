@@ -1,0 +1,22 @@
+# Claude Code Configuration
+# Настройки проекта для Claude Code
+
+# Автозапуск серверов
+auto_start_servers=true
+
+# Основные команды проекта
+dev_command="npm run dev"
+api_command="npm run api:dev" 
+build_command="npm run build"
+lint_command="npm run lint"
+
+# Порты
+frontend_port=3000
+api_port=3001
+
+# Ограничения и правила
+# - Всегда использовать существующие компоненты из src/components/ui/
+# - Следовать TypeScript конвенциям проекта
+# - Использовать Tailwind CSS для стилизации
+# - Предпочитать редактирование существующих файлов созданию новых
+# - Не создавать документацию без явного запроса пользователя

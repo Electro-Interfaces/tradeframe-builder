@@ -1,9 +1,12 @@
 /**
  * Сервис для работы с сообщениями, уведомлениями и оповещениями
- * Включает персистентное хранение в localStorage
+ * ОБНОВЛЕН: Использует централизованную конфигурацию из раздела "Обмен данными"
+ * Поддерживает переключение между localStorage (mock) и Supabase (database)
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
+import { apiConfigServiceDB } from './apiConfigServiceDB';
+import { messagesSupabaseService } from './messagesSupabaseService';
 
 export type MessageType = 'chat' | 'system' | 'alert' | 'info' | 'warning' | 'error';
 export type TicketStatus = 'new' | 'open' | 'in_progress' | 'waiting_response' | 'resolved' | 'closed';
@@ -433,12 +436,72 @@ const saveNotifications = () => {
 
 // API сервис сообщений с персистентным хранением
 export const messagesService = {
+  // ====== ИНИЦИАЛИЗАЦИЯ И КОНФИГУРАЦИЯ ======
+
+  async initialize(): Promise<void> {
+    try {
+      await apiConfigServiceDB.initialize();
+      console.log('✅ MessagesService инициализирован с централизованной конфигурацией');
+    } catch (error) {
+      console.warn('⚠️ Ошибка инициализации MessagesService:', error);
+    }
+  },
+
+  async isMockMode(): Promise<boolean> {
+    try {
+      return await apiConfigServiceDB.isMockMode();
+    } catch (error) {
+      console.warn('⚠️ Ошибка проверки режима, используется mock режим:', error);
+      return true;
+    }
+  },
+
   // ====== ЧАТ СООБЩЕНИЯ ======
 
   // Получить все сообщения чата
   async getAllChatMessages(): Promise<ChatMessage[]> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    return [...chatMessagesData].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    try {
+      const isMock = await this.isMockMode();
+      
+      if (isMock) {
+        console.log('🔄 MessagesService: Используется localStorage режим');
+        return [...chatMessagesData].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      } else {
+        console.log('🔄 MessagesService: Используется Supabase режим');
+        try {
+          return await messagesSupabaseService.getAllMessages();
+        } catch (error) {
+          console.warn('⚠️ Fallback на localStorage:', error);
+          return [...chatMessagesData].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        }
+      }
+    } catch (error) {
+      console.error('❌ Ошибка получения сообщений:', error);
+      return [...chatMessagesData].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    }
+  },
+
+  // DEPRECATED: Используйте getAllChatMessages()
+  async getAllMessages(): Promise<ChatMessage[]> {
+    try {
+      const isMock = await this.isMockMode();
+      
+      if (isMock) {
+        console.log('🔄 MessagesService: Используется localStorage режим');
+        return PersistentStorage.getItem('messages') || [];
+      } else {
+        console.log('🔄 MessagesService: Используется Supabase режим');
+        try {
+          return await messagesSupabaseService.getAllMessages();
+        } catch (error) {
+          console.warn('⚠️ Fallback на localStorage:', error);
+          return PersistentStorage.getItem('messages') || [];
+        }
+      }
+    } catch (error) {
+      console.error('❌ Ошибка получения сообщений:', error);
+      return PersistentStorage.getItem('messages') || [];
+    }
   },
 
   // Отправить сообщение в чат

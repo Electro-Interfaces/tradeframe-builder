@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔧 ИСПРАВЛЕНИЕ СЕЛЕКТОРОВ - Пошаговая инструкция</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; background: #1e293b; color: white; padding: 20px; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .critical { background: #ff6b35; color: white; padding: 20px; border-radius: 8px; margin: 20px 0; font-weight: bold; }
+        .section { background: #374151; padding: 20px; border-radius: 8px; margin: 15px 0; }
+        .success { background: #10b981; color: white; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .error { background: #dc2626; color: white; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .warning { background: #f59e0b; color: black; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .info { background: #3b82f6; color: white; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .step { background: #4b5563; padding: 15px; border-left: 4px solid #3b82f6; margin: 10px 0; }
+        .code { background: #0f172a; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; overflow-x: auto; margin: 10px 0; white-space: pre-wrap; }
+        button { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin: 5px; }
+        button:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 ИСПРАВЛЕНИЕ СЕЛЕКТОРОВ - Пошаговая инструкция</h1>
+        
+        <div class="critical">
+            <h2>🚨 ПРОБЛЕМА ДИАГНОСТИРОВАНА!</h2>
+            <p>PointSelect компонент показывает ВСЕ торговые точки из базы данных, игнорируя выбранную сеть!</p>
+        </div>
+
+        <div class="section">
+            <h3>🔍 Диагностика проблемы:</h3>
+            <div class="info">
+                <h4>✅ Что работает правильно:</h4>
+                <ul>
+                    <li>✅ <strong>tradingPointsService.getByNetworkId()</strong> - правильно фильтрует по network_id</li>
+                    <li>✅ <strong>MainLayout</strong> - правильно загружает отфильтрованные торговые точки для мобильной версии</li>
+                    <li>✅ <strong>Database</strong> - в базе есть правильные связи между сетями и торговыми точками</li>
+                </ul>
+            </div>
+            
+            <div class="error">
+                <h4>❌ Что работает неправильно:</h4>
+                <ul>
+                    <li>❌ <strong>PointSelect в Header</strong> - показывает все торговые точки вместо фильтрации по сети</li>
+                    <li>❌ <strong>NetworkId передача</strong> - возможно неправильно передается networkId в PointSelect</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📋 Пошаговая диагностика:</h3>
+            
+            <div class="step">
+                <h4>Шаг 1: Откройте главное приложение</h4>
+                <button onclick="openMainApp()">🌐 Главное приложение</button>
+                <p>Откройте приложение и DevTools (F12) → Console</p>
+            </div>
+            
+            <div class="step">
+                <h4>Шаг 2: Выберите сеть 15 "Норд Лайн"</h4>
+                <p>В верхнем селекторе выберите сеть "Норд Лайн" и следите за логами</p>
+                <div class="code">Ожидаемые логи:
+🏪 PointSelect: Loading trading points for network: b5e25b51-a950-481e-a09d-ac25e6b5d6ab
+🎯 PointSelect: Using getByNetworkId with: b5e25b51-a950-481e-a09d-ac25e6b5d6ab
+🔄 Loading trading points for network: b5e25b51-a950-481e-a09d-ac25e6b5d6ab
+✅ Loaded 1 trading points for network b5e25b51-a950-481e-a09d-ac25e6b5d6ab
+✅ PointSelect: Loaded filtered points: 1</div>
+            </div>
+            
+            <div class="step">
+                <h4>Шаг 3: Проверьте селектор торговых точек</h4>
+                <p>Кликните на селектор торговых точек (рядом с селектором сетей)</p>
+                <div class="success">✅ <strong>ПРАВИЛЬНО:</strong> Должна показываться только "АЗС 4" или аналогичная станция</div>
+                <div class="error">❌ <strong>НЕПРАВИЛЬНО:</strong> Показываются все станции (АЗС 1, АЗС 2, АЗС 3, АЗС 4, АЗС №001, и т.д.)</div>
+            </div>
+            
+            <div class="step">
+                <h4>Шаг 4: Анализ логов</h4>
+                <p>Если в логах вы видите:</p>
+                <div class="code">⚠️ PointSelect: No networkId provided, loading ALL trading points
+📊 PointSelect: Loaded ALL points: [большое число]</div>
+                <p>Значит проблема в передаче <code>networkId</code> в PointSelect компонент!</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🛠️ Возможные решения:</h3>
+            
+            <div class="warning">
+                <h4>Решение 1: Проверить передачу networkId в Header</h4>
+                <p>В файле <strong>src/components/layout/Header.tsx</strong> на строке ~100:</p>
+                <div class="code">networkId={selectedNetwork}</div>
+                <p>Убедиться, что <code>selectedNetwork</code> содержит правильный UUID сети</p>
+            </div>
+            
+            <div class="warning">
+                <h4>Решение 2: Синхронизировать с MainLayout</h4>
+                <p>Использовать те же отфильтрованные торговые точки из MainLayout, а не загружать заново в PointSelect</p>
+            </div>
+            
+            <div class="warning">
+                <h4>Решение 3: Добавить fallback логику</h4>
+                <p>Если networkId не передается, заблокировать селектор торговых точек</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Дополнительные тесты:</h3>
+            <button onclick="testNetwork15Only()">🏪 Тест торговых точек сети 15</button>
+            <button onclick="testAllNetworks()">📊 Тест всех сетей</button>
+            <button onclick="openDiagnosticPages()">🔍 Открыть диагностические страницы</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Константы
+        const CORRECT_URL = 'https://dlvggjmirqhmdylfwngm.supabase.co';
+        const CORRECT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsdmdnam1pcnFobWR5bGZ3bmdtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNTY5Njg2NSwiZXhwIjoyMDUxMjcyODY1fQ.SLOvfECCNMeWX-V7Hl4mjfyDGfTLUmLF9GCn3R3NfAY';
+        const NETWORK_15_UUID = 'b5e25b51-a950-481e-a09d-ac25e6b5d6ab';
+
+        window.openMainApp = function() {
+            addResult('🌐 Открываем главное приложение для диагностики...', 'info');
+            addResult('📋 ВАЖНО: Откройте DevTools (F12) → Console и следите за логами!', 'warning');
+            window.open('http://localhost:3000', '_blank');
+        }
+
+        window.testNetwork15Only = async function() {
+            addResult('🏪 Быстрый тест: торговые точки только сети 15...', 'info');
+
+            try {
+                const endpoint = `${CORRECT_URL}/rest/v1/trading_points?select=id,name,network_id&eq.network_id=${NETWORK_15_UUID}`;
+                
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'apikey': CORRECT_KEY,
+                        'Authorization': `Bearer ${CORRECT_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                const count = data?.length || 0;
+
+                if (count === 1) {
+                    addResult(`✅ В сети 15 найдена ${count} торговая точка - это правильно!`, 'success');
+                    addResult(`📍 ${data[0].name} (UUID: ${data[0].id})`, 'success');
+                } else {
+                    addResult(`❌ В сети 15 найдено ${count} торговых точек - это неправильно!`, 'error');
+                }
+
+            } catch (error) {
+                addResult(`❌ Ошибка теста: ${error.message}`, 'error');
+            }
+        }
+
+        window.testAllNetworks = async function() {
+            addResult('📊 Тест: группировка торговых точек по сетям...', 'info');
+
+            try {
+                const endpoint = `${CORRECT_URL}/rest/v1/trading_points?select=id,name,network_id&order=name`;
+                
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'apikey': CORRECT_KEY,
+                        'Authorization': `Bearer ${CORRECT_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                // Группируем по сетям
+                const byNetwork = {};
+                data.forEach(point => {
+                    const netId = point.network_id;
+                    if (!byNetwork[netId]) {
+                        byNetwork[netId] = [];
+                    }
+                    byNetwork[netId].push(point);
+                });
+
+                addResult(`📊 Всего найдено ${Object.keys(byNetwork).length} сетей с торговыми точками:`, 'info');
+                
+                Object.keys(byNetwork).forEach(networkId => {
+                    const points = byNetwork[networkId];
+                    const isNetwork15 = networkId === NETWORK_15_UUID;
+                    const status = isNetwork15 ? 'success' : 'info';
+                    
+                    addResult(`🏢 Сеть ${networkId}: ${points.length} точек${isNetwork15 ? ' (СЕТЬ 15 - НОРД ЛАЙН!)' : ''}`, status);
+                });
+
+            } catch (error) {
+                addResult(`❌ Ошибка теста: ${error.message}`, 'error');
+            }
+        }
+
+        window.openDiagnosticPages = function() {
+            window.open('./debug-selectors.html', '_blank');
+            window.open('./debug-selector-issue.html', '_blank');
+        }
+
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        // Автоматически запускаем базовые тесты при загрузке
+        window.addEventListener('load', function() {
+            addResult('🔧 Инструкция по исправлению селекторов загружена', 'info');
+            addResult('📋 Следуйте пошаговой инструкции выше для диагностики проблемы', 'info');
+            testNetwork15Only();
+        });
+    </script>
+</body>
+</html>

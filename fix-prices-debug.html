@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Исправление проблемы с ценами</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">🛠️ Диагностика и исправление проблемы с ценами</h1>
+        
+        <div class="bg-red-900 border border-red-600 rounded-lg p-4 mb-6">
+            <h2 class="text-lg font-semibold mb-2">❌ Проблема: Не отображаются виды топлива на странице цен</h2>
+            <p>Выполняем пошаговую диагностику для выявления причины...</p>
+        </div>
+
+        <div class="space-y-4 mb-6">
+            <button onclick="step1_checkConsole()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                1️⃣ Проверить консоль браузера
+            </button>
+            <button onclick="step2_checkTradingPoint()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded ml-2">
+                2️⃣ Проверить торговую точку
+            </button>
+            <button onclick="step3_checkTanks()" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded ml-2">
+                3️⃣ Проверить резервуары
+            </button>
+            <button onclick="step4_fixData()" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded ml-2">
+                4️⃣ Исправить данные
+            </button>
+            <button onclick="clearResults()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded ml-2">
+                🧹 Очистить
+            </button>
+        </div>
+
+        <div id="results" class="space-y-4"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://oojbhuwgdxnpcrzljzkm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vamJodXdnZHhucGNyemxqemttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQyMjUzNzksImV4cCI6MjA0OTgwMTM3OX0.KXF1gEiAXWv-HVLCZFoHuIKVcjQIBSUPcROkfVMNHDY';
+
+        function step1_checkConsole() {
+            addResult('info', '1️⃣ Шаг 1: Проверка консоли браузера');
+            addResult('info', '📋 Инструкции:');
+            addResult('info', '   1. Откройте http://localhost:3000/point/prices в новой вкладке');
+            addResult('info', '   2. Нажмите F12 для открытия DevTools');
+            addResult('info', '   3. Перейдите на вкладку Console');
+            addResult('info', '   4. Выберите любую торговую точку в селекторе');
+            addResult('info', '   5. Найдите логи, начинающиеся с "🔥 [PRICES SERVICE]"');
+            
+            addResult('warning', '❗ Что искать в консоли:');
+            addResult('warning', '   • "🔥 [PRICES SERVICE] Получение видов топлива для [ID]"');
+            addResult('warning', '   • "🏪 [PRICES SERVICE] Найдено X резервуаров"');
+            addResult('warning', '   • "⚠️ [PRICES SERVICE] Резервуары не найдены" - если есть эта ошибка');
+            addResult('warning', '   • Любые красные ошибки');
+            
+            addResult('info', '🔍 После проверки консоли переходите к шагу 2');
+        }
+
+        async function step2_checkTradingPoint() {
+            addResult('info', '2️⃣ Шаг 2: Проверка доступных торговых точек');
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/trading_points?limit=20`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const points = await response.json();
+                addResult('success', `✅ Найдено ${points.length} торговых точек:`);
+                
+                if (points.length === 0) {
+                    addResult('error', '❌ ПРОБЛЕМА: В таблице trading_points нет данных!');
+                    addResult('error', '   Решение: Создайте торговые точки в разделе "Сети" приложения');
+                    return;
+                }
+
+                points.forEach((point, i) => {
+                    addResult('info', `   ${i+1}. ${point.name} (ID: ${point.id}) - Сеть: ${point.network_id}`);
+                });
+
+                addResult('info', '✅ Торговые точки найдены. Переходим к проверке резервуаров...');
+                
+                // Автоматически проверяем резервуары для первой точки
+                if (points.length > 0) {
+                    await checkTanksForPoint(points[0].id, points[0].name);
+                }
+
+            } catch (error) {
+                addResult('error', `❌ Ошибка проверки торговых точек: ${error.message}`);
+            }
+        }
+
+        async function step3_checkTanks() {
+            addResult('info', '3️⃣ Шаг 3: Детальная проверка резервуаров');
+            
+            try {
+                // Получаем все резервуары
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/equipment?system_type=eq.fuel_tank&limit=50`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const tanks = await response.json();
+                addResult('success', `✅ Найдено ${tanks.length} резервуаров в базе данных`);
+
+                if (tanks.length === 0) {
+                    addResult('error', '❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: Резервуары не найдены!');
+                    addResult('error', '   Причины:');
+                    addResult('error', '   1. Таблица equipment пуста');
+                    addResult('error', '   2. Нет записей с system_type="fuel_tank"');
+                    addResult('error', '   3. Резервуары не созданы в приложении');
+                    addResult('info', '💡 Решение: Создайте резервуары в разделе "Резервуары" приложения');
+                    return;
+                }
+
+                // Группируем по торговым точкам
+                const groupedByTP = {};
+                tanks.forEach(tank => {
+                    const tpId = tank.trading_point_id;
+                    if (!groupedByTP[tpId]) {
+                        groupedByTP[tpId] = [];
+                    }
+                    groupedByTP[tpId].push(tank);
+                });
+
+                addResult('info', `📊 Резервуары распределены по ${Object.keys(groupedByTP).length} торговым точкам:`);
+
+                Object.entries(groupedByTP).forEach(([tpId, tanksList]) => {
+                    const validTanks = tanksList.filter(t => t.status !== 'deleted');
+                    const tanksWithFuel = tanksList.filter(t => t.status !== 'deleted' && t.params?.['Тип топлива']);
+                    
+                    const fuelTypes = [...new Set(tanksWithFuel.map(t => t.params['Тип топлива']))];
+
+                    let statusClass = 'success';
+                    if (tanksWithFuel.length === 0) statusClass = 'error';
+                    else if (tanksWithFuel.length < validTanks.length) statusClass = 'warning';
+
+                    addResult(statusClass, 
+                        `🏪 TP ID: ${tpId} | 
+                         Всего: ${tanksList.length} | 
+                         Валидных: ${validTanks.length} | 
+                         С типом топлива: ${tanksWithFuel.length} | 
+                         Виды: [${fuelTypes.join(', ') || 'НЕТ'}]`
+                    );
+
+                    // Показываем проблемные резервуары
+                    const problematicTanks = validTanks.filter(t => !t.params?.['Тип топлива']);
+                    if (problematicTanks.length > 0) {
+                        addResult('warning', 
+                            `   ⚠️ Резервуары без типа топлива: ${problematicTanks.map(t => t.name).join(', ')}`
+                        );
+                    }
+                });
+
+            } catch (error) {
+                addResult('error', `❌ Ошибка проверки резервуаров: ${error.message}`);
+            }
+        }
+
+        async function step4_fixData() {
+            addResult('info', '4️⃣ Шаг 4: Исправление данных');
+            addResult('warning', '⚠️ Определяем тип проблемы и предлагаем решения...');
+
+            try {
+                // Проверяем торговые точки
+                const tpResponse = await fetch(`${SUPABASE_URL}/rest/v1/trading_points?limit=20`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const tradingPoints = await tpResponse.json();
+
+                // Проверяем резервуары  
+                const tanksResponse = await fetch(`${SUPABASE_URL}/rest/v1/equipment?system_type=eq.fuel_tank&limit=50`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const tanks = await tanksResponse.json();
+
+                addResult('info', `📊 Статистика: ${tradingPoints.length} торговых точек, ${tanks.length} резервуаров`);
+
+                if (tradingPoints.length === 0) {
+                    addResult('error', '❌ ПРОБЛЕМА 1: Нет торговых точек');
+                    addResult('info', '💡 РЕШЕНИЕ: Создайте торговые точки:');
+                    addResult('info', '   1. Откройте http://localhost:3000/admin/networks');
+                    addResult('info', '   2. Создайте новую сеть');
+                    addResult('info', '   3. Добавьте торговые точки в сеть');
+                    return;
+                }
+
+                if (tanks.length === 0) {
+                    addResult('error', '❌ ПРОБЛЕМА 2: Нет резервуаров');
+                    addResult('info', '💡 РЕШЕНИЕ: Создайте резервуары:');
+                    addResult('info', '   1. Откройте http://localhost:3000/point/tanks');
+                    addResult('info', '   2. Выберите торговую точку');
+                    addResult('info', '   3. Добавьте резервуары с параметром "Тип топлива"');
+                    return;
+                }
+
+                // Проверяем резервуары с типом топлива
+                const tanksWithFuel = tanks.filter(t => t.status !== 'deleted' && t.params?.['Тип топлива']);
+                
+                if (tanksWithFuel.length === 0) {
+                    addResult('error', '❌ ПРОБЛЕМА 3: У резервуаров не указан тип топлива');
+                    addResult('info', '💡 РЕШЕНИЕ: Обновите параметры резервуаров:');
+                    addResult('info', '   1. Откройте http://localhost:3000/point/tanks');
+                    addResult('info', '   2. Выберите торговую точку');
+                    addResult('info', '   3. Отредактируйте каждый резервуар');
+                    addResult('info', '   4. Добавьте параметр "Тип топлива" (например: АИ-92, АИ-95, ДТ)');
+                    
+                    // Показываем резервуары для исправления
+                    const problemTanks = tanks.filter(t => t.status !== 'deleted');
+                    addResult('warning', `📝 Резервуары требующие обновления (${problemTanks.length}):`);
+                    problemTanks.slice(0, 5).forEach(tank => {
+                        addResult('warning', `   • ${tank.name} (ID: ${tank.id}) - ТП: ${tank.trading_point_id}`);
+                    });
+                    
+                    return;
+                }
+
+                addResult('success', '✅ Данные в порядке! Возможные причины:');
+                addResult('info', '   1. Выбрана торговая точка без резервуаров');
+                addResult('info', '   2. Проблема с загрузкой в браузере - обновите страницу');
+                addResult('info', '   3. Ошибка в коде - проверьте консоль браузера');
+
+            } catch (error) {
+                addResult('error', `❌ Ошибка диагностики: ${error.message}`);
+            }
+        }
+
+        async function checkTanksForPoint(pointId, pointName) {
+            addResult('info', `🔍 Проверяем резервуары для "${pointName}" (ID: ${pointId}):`);
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/equipment?trading_point_id=eq.${pointId}&system_type=eq.fuel_tank&limit=100`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const tanks = await response.json();
+                
+                if (tanks.length === 0) {
+                    addResult('error', `   ❌ У торговой точки "${pointName}" нет резервуаров!`);
+                    return;
+                }
+
+                const validTanks = tanks.filter(t => t.status !== 'deleted' && t.params?.['Тип топлива']);
+                const fuelTypes = [...new Set(validTanks.map(t => t.params['Тип топлива']))];
+
+                if (validTanks.length === 0) {
+                    addResult('warning', `   ⚠️ У "${pointName}": ${tanks.length} резервуаров, но ни у одного нет типа топлива`);
+                } else {
+                    addResult('success', `   ✅ У "${pointName}": ${validTanks.length} резервуаров с топливом: [${fuelTypes.join(', ')}]`);
+                }
+
+            } catch (error) {
+                addResult('error', `   ❌ Ошибка проверки: ${error.message}`);
+            }
+        }
+
+        function addResult(type, message) {
+            const results = document.getElementById('results');
+            const colors = {
+                'info': 'bg-blue-900 border-blue-600 text-blue-200',
+                'success': 'bg-green-900 border-green-600 text-green-200',
+                'warning': 'bg-yellow-900 border-yellow-600 text-yellow-200',
+                'error': 'bg-red-900 border-red-600 text-red-200'
+            };
+            
+            const div = document.createElement('div');
+            div.className = `border-l-4 p-4 rounded ${colors[type] || colors.info}`;
+            div.innerHTML = `
+                <div class="whitespace-pre-wrap font-mono text-sm">${message}</div>
+            `;
+            
+            results.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Автозапуск диагностики
+        document.addEventListener('DOMContentLoaded', () => {
+            addResult('info', '🚀 Запуск автоматической диагностики...');
+            setTimeout(() => {
+                step2_checkTradingPoint();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

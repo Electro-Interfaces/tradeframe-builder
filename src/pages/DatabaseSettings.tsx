@@ -30,7 +30,9 @@ import {
   Activity,
   AlertTriangle
 } from 'lucide-react';
-import { apiConfigService, DatabaseConnection } from '@/services/apiConfigService';
+import { apiConfigServiceDB, DatabaseConnection } from '@/services/apiConfigServiceDB';
+import { SystemTelegramSettings } from '@/components/admin/SystemTelegramSettings';
+import { TradingNetworkSettings } from '@/components/settings/TradingNetworkSettings';
 
 export default function DatabaseSettings() {
   const { toast } = useToast();
@@ -63,16 +65,27 @@ export default function DatabaseSettings() {
     loadConnections();
   }, []);
 
-  const loadConnections = () => {
-    const config = apiConfigService.getCurrentConfig();
-    setConnections(config.availableConnections);
-    setCurrentConnectionId(config.currentConnectionId);
+  const loadConnections = async () => {
+    try {
+      const config = await apiConfigServiceDB.getCurrentConfig();
+      if (config) {
+        setConnections(config.availableConnections);
+        setCurrentConnectionId(config.currentConnectionId);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки подключений:', error);
+      toast({
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить конфигурацию подключений",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSwitchConnection = async (connectionId: string) => {
     setLoading(true);
     try {
-      const result = await apiConfigService.switchConnection(connectionId);
+      const result = await apiConfigServiceDB.switchConnection(connectionId);
       if (result.success) {
         setCurrentConnectionId(connectionId);
         toast({
@@ -108,7 +121,7 @@ export default function DatabaseSettings() {
     setTestResults(prev => ({ ...prev, [connectionId]: { testing: true } }));
     
     try {
-      const result = await apiConfigService.testConnection(connectionId);
+      const result = await apiConfigServiceDB.testConnection(connectionId);
       setTestResults(prev => ({ ...prev, [connectionId]: result }));
       
       toast({
@@ -131,7 +144,7 @@ export default function DatabaseSettings() {
     setTestResults({});
     
     try {
-      const results = await apiConfigService.testAllConnections();
+      const results = await apiConfigServiceDB.testAllConnections();
       setTestResults(results);
       
       const successful = Object.values(results).filter(r => r.success).length;
@@ -154,7 +167,7 @@ export default function DatabaseSettings() {
 
   const handleAddConnection = async () => {
     try {
-      await apiConfigService.addConnection({
+      await apiConfigServiceDB.addConnection({
         name: newConnection.name,
         url: newConnection.url,
         type: newConnection.type,
@@ -207,7 +220,7 @@ export default function DatabaseSettings() {
     if (!deleteConnectionId) return;
     
     try {
-      await apiConfigService.deleteConnection(deleteConnectionId);
+      await apiConfigServiceDB.deleteConnection(deleteConnectionId);
       loadConnections();
       setDeleteConnectionId(null);
       
@@ -254,43 +267,63 @@ export default function DatabaseSettings() {
     }
   };
 
-  const stats = apiConfigService.getUsageStats();
+  const [stats, setStats] = useState<any>({
+    currentConnection: 'Загрузка...',
+    connectionType: 'Загрузка...',
+    mockMode: false,
+    totalConnections: 0,
+    lastUpdated: new Date().toISOString(),
+    debugMode: false
+  });
+
+  // Загружаем статистику
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const statsData = await apiConfigServiceDB.getUsageStats();
+        setStats(statsData);
+      } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+      }
+    };
+    loadStats();
+  }, [connections, currentConnectionId]);
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full h-full report-full-width">
+      <div className="space-y-6">
         {/* Заголовок */}
-        <div className="mb-6 pt-4 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-          <h1 className="text-3xl font-bold text-foreground">
-            Настройки подключения к БД
+        <div className="px-4 md:px-6 lg:px-8 py-4">
+          <h1 className="text-2xl font-semibold text-white">
+            Обмен данными
           </h1>
-          <p className="text-muted-foreground">
-            Управление подключениями к базам данных и переключение между ними
+          <p className="text-gray-400 text-sm mt-1">
+            Настройка подключений к внешним системам и управление обменом данными
           </p>
         </div>
 
         {/* Статистика */}
-        <div className="grid gap-4 md:grid-cols-4 mx-4 md:mx-6 lg:mx-8 mb-6">
-          <Card>
+        <div className="grid gap-4 md:grid-cols-4 px-4 md:px-6 lg:px-8">
+          <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Активное подключение</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-200">Активное подключение</CardTitle>
               <Database className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.currentConnection}</div>
+              <div className="text-2xl font-bold text-white">{stats.currentConnection}</div>
               <p className="text-xs text-muted-foreground">
                 Тип: {stats.connectionType}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Режим работы</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-200">Режим работы</CardTitle>
               {stats.mockMode ? <WifiOff className="h-4 w-4 text-yellow-500" /> : <Wifi className="h-4 w-4 text-green-500" />}
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-white">
                 {stats.mockMode ? 'MOCK' : 'DATABASE'}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -299,26 +332,26 @@ export default function DatabaseSettings() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Всего подключений</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-200">Всего подключений</CardTitle>
               <Settings className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalConnections}</div>
+              <div className="text-2xl font-bold text-white">{stats.totalConnections}</div>
               <p className="text-xs text-muted-foreground">
                 Настроенных подключений
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-slate-800 border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Последнее обновление</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-200">Последнее обновление</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-sm font-bold">
+              <div className="text-sm font-bold text-white">
                 {new Date(stats.lastUpdated).toLocaleDateString()}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -329,11 +362,11 @@ export default function DatabaseSettings() {
         </div>
 
         {/* Панель управления */}
-        <Card className="mx-4 md:mx-6 lg:mx-8">
+        <Card className="mx-4 md:mx-6 lg:mx-8 bg-slate-800 border-slate-700 rounded-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Подключения к базам данных</CardTitle>
+                <CardTitle className="text-white">Подключения к базам данных</CardTitle>
                 <CardDescription>
                   Управляйте подключениями и переключайтесь между разными источниками данных
                 </CardDescription>
@@ -530,38 +563,38 @@ export default function DatabaseSettings() {
               {connections.map((connection) => (
                 <div
                   key={connection.id}
-                  className={`p-4 border rounded-lg transition-all ${
+                  className={`p-4 border rounded-lg transition-all bg-slate-700/50 border-slate-600 hover:bg-slate-700 ${
                     connection.id === currentConnectionId 
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20' 
-                      : 'border-border hover:border-border/80'
+                      ? 'ring-2 ring-blue-500' 
+                      : ''
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1">
                       <div className="flex items-center gap-2">
                         {getConnectionStatusIcon(connection.id)}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{connection.name}</h3>
-                            <Badge className={`text-xs ${getConnectionTypeColor(connection.type)}`}>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium text-white">{connection.name}</h3>
+                            <Badge className={`text-xs text-white ${getConnectionTypeColor(connection.type)}`}>
                               {connection.type.toUpperCase()}
                             </Badge>
                             {connection.id === currentConnectionId && (
-                              <Badge variant="default" className="text-xs">
+                              <Badge className="text-xs bg-green-600 text-white">
                                 АКТИВНО
                               </Badge>
                             )}
                             {connection.isDefault && (
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs border-gray-400 text-gray-300">
                                 СИСТЕМНОЕ
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-gray-400 truncate">
                             {connection.description || connection.url}
                           </p>
                           {testResults[connection.id] && (
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-gray-500 mt-1">
                               {testResults[connection.id].success 
                                 ? `Время ответа: ${testResults[connection.id].responseTime}мс`
                                 : `Ошибка: ${testResults[connection.id].error}`
@@ -572,43 +605,39 @@ export default function DatabaseSettings() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 ml-4">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleTestConnection(connection.id)}
                         disabled={testResults[connection.id]?.testing}
+                        className="hover:bg-slate-600 text-gray-300 hover:text-white"
+                        title="Тестировать подключение"
                       >
                         <TestTube className="h-4 w-4" />
                       </Button>
                       
-                      {connection.id !== currentConnectionId && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleSwitchConnection(connection.id)}
-                          disabled={loading}
-                        >
-                          Переключиться
-                        </Button>
-                      )}
+                      {/* Кнопки редактирования и удаления для всех подключений кроме системных без возможности удаления */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingConnection(connection)}
+                        className="hover:bg-slate-600 text-gray-300 hover:text-white"
+                        title="Редактировать"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       
                       {!connection.isDefault && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingConnection(connection)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteConnectionId(connection.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteConnectionId(connection.id)}
+                          className="hover:bg-red-500/20 text-red-400 hover:text-red-300"
+                          title="Удалить"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -619,9 +648,9 @@ export default function DatabaseSettings() {
         </Card>
 
         {/* Дополнительные настройки */}
-        <Card>
+        <Card className="mx-4 md:mx-6 lg:mx-8 bg-slate-800 border-slate-700 rounded-lg">
           <CardHeader>
-            <CardTitle>Дополнительные настройки</CardTitle>
+            <CardTitle className="text-white">Дополнительные настройки</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -634,21 +663,43 @@ export default function DatabaseSettings() {
                 </div>
                 <Switch
                   checked={stats.debugMode}
-                  onCheckedChange={(checked) => apiConfigService.setDebugMode(checked)}
+                  onCheckedChange={async (checked) => {
+                    await apiConfigServiceDB.setDebugMode(checked);
+                    setStats(prev => ({ ...prev, debugMode: checked }));
+                  }}
                 />
               </div>
               
               <Separator />
               
+              {/* Telegram интеграция */}
+              <SystemTelegramSettings />
+              
+              <Separator />
+              
+              {/* Настройки торговой сети */}
+              <TradingNetworkSettings />
+              
+              <Separator />
+              
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => {
-                  const config = apiConfigService.exportConfig();
-                  const blob = new Blob([config], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'database-config.json';
-                  a.click();
+                <Button variant="outline" onClick={async () => {
+                  try {
+                    const config = await apiConfigServiceDB.exportConfig();
+                    const blob = new Blob([config], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'database-config.json';
+                    a.click();
+                    toast({ title: "Конфигурация экспортирована" });
+                  } catch (error: any) {
+                    toast({
+                      title: "Ошибка экспорта",
+                      description: error.message,
+                      variant: "destructive"
+                    });
+                  }
                 }}>
                   <Download className="h-4 w-4 mr-2" />
                   Экспорт конфигурации
@@ -658,17 +709,25 @@ export default function DatabaseSettings() {
                   const input = document.createElement('input');
                   input.type = 'file';
                   input.accept = '.json';
-                  input.onchange = (e: any) => {
+                  input.onchange = async (e: any) => {
                     const file = e.target.files[0];
                     if (file) {
                       const reader = new FileReader();
-                      reader.onload = (e: any) => {
-                        const success = apiConfigService.importConfig(e.target.result);
-                        if (success) {
-                          loadConnections();
-                          toast({ title: "Конфигурация импортирована" });
-                        } else {
-                          toast({ title: "Ошибка импорта", variant: "destructive" });
+                      reader.onload = async (e: any) => {
+                        try {
+                          const success = await apiConfigServiceDB.importConfig(e.target.result);
+                          if (success) {
+                            await loadConnections();
+                            toast({ title: "Конфигурация импортирована" });
+                          } else {
+                            toast({ title: "Ошибка импорта", variant: "destructive" });
+                          }
+                        } catch (error: any) {
+                          toast({
+                            title: "Ошибка импорта",
+                            description: error.message,
+                            variant: "destructive"
+                          });
                         }
                       };
                       reader.readAsText(file);
@@ -680,11 +739,19 @@ export default function DatabaseSettings() {
                   Импорт конфигурации
                 </Button>
                 
-                <Button variant="outline" onClick={() => {
+                <Button variant="outline" onClick={async () => {
                   if (confirm('Сбросить все настройки к значениям по умолчанию?')) {
-                    apiConfigService.resetToDefault();
-                    loadConnections();
-                    toast({ title: "Настройки сброшены" });
+                    try {
+                      await apiConfigServiceDB.resetToDefault();
+                      await loadConnections();
+                      toast({ title: "Настройки сброшены" });
+                    } catch (error: any) {
+                      toast({
+                        title: "Ошибка сброса",
+                        description: error.message,
+                        variant: "destructive"
+                      });
+                    }
                   }
                 }}>
                   <RotateCcw className="h-4 w-4 mr-2" />
@@ -844,14 +911,14 @@ export default function DatabaseSettings() {
                   </Button>
                   <Button onClick={async () => {
                     try {
-                      await apiConfigService.updateConnection(editingConnection.id, {
+                      await apiConfigServiceDB.updateConnection(editingConnection.id, {
                         name: editingConnection.name,
                         url: editingConnection.url,
                         description: editingConnection.description,
                         settings: editingConnection.settings
                       });
                       setEditingConnection(null);
-                      loadConnections();
+                      await loadConnections();
                       toast({ title: "Подключение обновлено" });
                     } catch (error: any) {
                       toast({

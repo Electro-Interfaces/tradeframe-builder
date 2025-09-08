@@ -17,13 +17,10 @@ const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Предустановленные учетные записи для демонстрации
-  const demoAccounts = [
-    { email: 'admin@tradeframe.com', password: 'admin123', role: 'System Admin' },
-    { email: 'network.admin@demo-azs.ru', password: 'admin123', role: 'Network Admin' },
-    { email: 'manager@demo-azs.ru', password: 'admin123', role: 'Manager' },
-    { email: 'operator@demo-azs.ru', password: 'admin123', role: 'Operator' }
-  ];
+  // ❌ КРИТИЧЕСКАЯ УГРОЗА БЕЗОПАСНОСТИ УСТРАНЕНА!
+  // ❌ ДЕМО УЧЕТНЫЕ ЗАПИСИ С АДМИНИСТРАТИВНЫМИ ПРАВАМИ ЗАБЛОКИРОВАНЫ
+  // ✅ ТОЛЬКО реальная аутентификация через Supabase Auth
+  const demoAccounts: any[] = [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,34 +110,36 @@ const LoginPage = () => {
           </CardContent>
         </Card>
 
-        {/* Демо учетные записи */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Демо учетные записи</CardTitle>
-            <CardDescription className="text-xs">
-              Нажмите для быстрого входа
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-2">
-              {demoAccounts.map((account) => (
-                <Button
-                  key={account.email}
-                  variant="outline"
-                  size="sm"
-                  className="justify-start text-xs h-auto py-2"
-                  onClick={() => handleDemoLogin(account.email, account.password)}
-                  disabled={isLoading}
-                >
-                  <div className="text-left">
-                    <div className="font-medium">{account.role}</div>
-                    <div className="text-gray-500">{account.email}</div>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* ❌ ДЕМО УЧЕТНЫЕ ЗАПИСИ ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ */}
+        {demoAccounts.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Демо учетные записи</CardTitle>
+              <CardDescription className="text-xs">
+                Нажмите для быстрого входа
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-2">
+                {demoAccounts.map((account) => (
+                  <Button
+                    key={account.email}
+                    variant="outline"
+                    size="sm"
+                    className="justify-start text-xs h-auto py-2"
+                    onClick={() => handleDemoLogin(account.email, account.password)}
+                    disabled={isLoading}
+                  >
+                    <div className="text-left">
+                      <div className="font-medium">{account.role}</div>
+                      <div className="text-gray-500">{account.email}</div>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Информация о системе */}
         <div className="text-center text-sm text-gray-500">

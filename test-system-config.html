@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Тест системной конфигурации</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🧪 ТЕСТ СИСТЕМНОЙ КОНФИГУРАЦИИ</h1>
+    <p>Проверка доступности настроек из раздела "Обмен данными"</p>
+    
+    <button onclick="testSystemConfig()">🚀 Запустить тест</button>
+    <button onclick="clearLog()">🧹 Очистить</button>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        window.testSystemConfig = async function() {
+            addLog('🔍 Начало теста системной конфигурации', 'info');
+            
+            try {
+                // Тест 1: Импорт сервисов
+                addLog('📦 Импорт сервисов...', 'info');
+                const { systemConfigService } = await import('./src/services/systemConfigService.js');
+                const { tradingNetworkConfigService } = await import('./src/services/tradingNetworkConfigService.js');
+                const { apiConfigServiceDB } = await import('./src/services/apiConfigServiceDB.js');
+                addLog('✅ Сервисы импортированы', 'success');
+                
+                // Тест 2: Health check системной конфигурации
+                addLog('🏥 Проверка доступности системной конфигурации...', 'info');
+                const healthCheck = await systemConfigService.healthCheck();
+                addLog(`<div class="code">
+                    Доступность: ${healthCheck.healthy ? '✅ ДА' : '❌ НЕТ'}<br>
+                    Ошибка: ${healthCheck.error || 'отсутствует'}
+                </div>`, healthCheck.healthy ? 'success' : 'error');
+                
+                if (!healthCheck.healthy) {
+                    addLog('❌ Системная конфигурация недоступна!', 'error');
+                    return;
+                }
+                
+                // Тест 3: Получение конфигурации торговой сети
+                addLog('🌐 Получение конфигурации торговой сети...', 'info');
+                try {
+                    const tradingConfig = await tradingNetworkConfigService.getConfig();
+                    addLog('✅ Конфигурация торговой сети получена', 'success');
+                    addLog(`<div class="code">
+                        Включена: ${tradingConfig.enabled}<br>
+                        Base URL: ${tradingConfig.baseUrl}<br>
+                        System ID: ${tradingConfig.systemId}<br>
+                        Station ID: ${tradingConfig.defaultStationId}<br>
+                        Auth Type: ${tradingConfig.authType}<br>
+                        Username: ${tradingConfig.username}<br>
+                        Password: ${tradingConfig.password ? '✅ есть' : '❌ нет'}<br>
+                        Endpoints: ${JSON.stringify(tradingConfig.endpoints, null, 2)}
+                    </div>`, 'info');
+                } catch (error) {
+                    addLog(`❌ Ошибка получения конфигурации торговой сети: ${error.message}`, 'error');
+                }
+                
+                // Тест 4: Получение конфигурации подключений к БД
+                addLog('🗄️ Получение конфигурации подключений к БД...', 'info');
+                try {
+                    const dbConfig = await systemConfigService.getDatabaseConfig();
+                    addLog('✅ Конфигурация БД получена', 'success');
+                    addLog(`<div class="code">
+                        Текущее подключение: ${dbConfig.currentConnectionId}<br>
+                        Количество подключений: ${dbConfig.availableConnections.length}<br>
+                        Отладочный режим: ${dbConfig.debugMode}
+                    </div>`, 'info');
+                    
+                    // Показываем детали подключений
+                    dbConfig.availableConnections.forEach((conn, index) => {
+                        addLog(`<div class="code">
+                            Подключение ${index + 1}:<br>
+                            - ID: ${conn.id}<br>
+                            - Название: ${conn.name}<br>
+                            - URL: ${conn.url}<br>
+                            - Тип: ${conn.type}<br>
+                            - Активно: ${conn.isActive}<br>
+                            - По умолчанию: ${conn.isDefault}<br>
+                            - API Key: ${conn.settings?.apiKey ? 'есть (' + conn.settings.apiKey.substring(0, 20) + '...)' : 'нет'}
+                        </div>`, 'info');
+                    });
+                } catch (error) {
+                    addLog(`❌ Ошибка получения конфигурации БД: ${error.message}`, 'error');
+                }
+                
+                // Тест 5: Получение текущего подключения
+                addLog('🔌 Получение текущего подключения...', 'info');
+                try {
+                    const currentConnection = await apiConfigServiceDB.getCurrentConnection();
+                    if (currentConnection) {
+                        addLog('✅ Текущее подключение найдено', 'success');
+                        addLog(`<div class="code">
+                            ID: ${currentConnection.id}<br>
+                            Название: ${currentConnection.name}<br>
+                            URL: ${currentConnection.url}<br>
+                            Тип: ${currentConnection.type}<br>
+                            API Key: ${currentConnection.settings?.apiKey ? 'есть (' + currentConnection.settings.apiKey.substring(0, 20) + '...)' : 'нет'}
+                        </div>`, 'success');
+                    } else {
+                        addLog('❌ Текущее подключение не найдено', 'error');
+                    }
+                } catch (error) {
+                    addLog(`❌ Ошибка получения текущего подключения: ${error.message}`, 'error');
+                }
+                
+                // Тест 6: Получение всех конфигураций системы
+                addLog('📋 Получение всех системных конфигураций...', 'info');
+                try {
+                    const allConfigs = await systemConfigService.getConfigsByType('general');
+                    addLog(`✅ Найдено системных конфигураций: ${allConfigs.length}`, 'success');
+                    
+                    allConfigs.forEach(config => {
+                        addLog(`<div class="code">
+                            Ключ: ${config.config_key}<br>
+                            Тип: ${config.config_type}<br>
+                            Описание: ${config.description || 'нет'}<br>
+                            Создано: ${config.created_at || 'неизвестно'}
+                        </div>`, 'info');
+                    });
+                } catch (error) {
+                    addLog(`❌ Ошибка получения системных конфигураций: ${error.message}`, 'error');
+                }
+                
+                addLog('🏁 Тест системной конфигурации завершен', 'success');
+                
+            } catch (error) {
+                addLog(`💥 Критическая ошибка теста: ${error.message}`, 'error');
+                addLog(`<div class="code">${error.stack}</div>`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Страница загружена. Нажмите "Запустить тест" для проверки конфигурации.', 'info');
+    </script>
+</body>
+</html>

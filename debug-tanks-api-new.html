@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отладка API резервуаров</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #0f172a; color: #fff; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .log { background: #1e293b; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; }
+        .error { background: #dc2626; }
+        .success { background: #16a34a; }
+        .warning { background: #ea580c; }
+        button { padding: 10px 20px; margin: 10px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #2563eb; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛢️ Отладка API резервуаров</h1>
+        
+        <div>
+            <button onclick="testTanksApi()">Тестировать API резервуаров</button>
+            <button onclick="clearLogs()">Очистить логи</button>
+        </div>
+        
+        <div id="logs"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+            logsDiv.appendChild(logDiv);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testTanksApi() {
+            log('🚀 Начинаем тест API резервуаров...');
+            
+            try {
+                // Динамически импортируем модули
+                const { tanksUnifiedService } = await import('/src/services/tanksUnifiedService.ts');
+                const tradingPointId = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+                
+                log(`🔍 Используем торговую точку: ${tradingPointId}`);
+                
+                // Вызываем функцию загрузки резервуаров
+                log('📡 Вызываем tanksUnifiedService.getTanksForTradingPoint...');
+                const result = await tanksUnifiedService.getTanksForTradingPoint(tradingPointId);
+                
+                log(`✅ Результат получен:`, 'success');
+                log(`<pre>Источник: ${result.source}
+Синхронизирован: ${result.synchronized}
+Количество резервуаров: ${result.tanks.length}
+Ошибка: ${result.error || 'нет'}</pre>`);
+                
+                if (result.tanks.length > 0) {
+                    log('🛢️ Данные резервуаров:', 'success');
+                    result.tanks.forEach((tank, index) => {
+                        const fillPercent = Math.round((tank.currentLevelLiters / tank.capacityLiters) * 100);
+                        log(`<pre>Резервуар ${index + 1}:
+  ID: ${tank.id}
+  Название: ${tank.name}
+  Тип топлива: ${tank.fuelType}
+  Текущий объём: ${tank.currentLevelLiters.toFixed(2)} л
+  Вместимость: ${tank.capacityLiters.toFixed(2)} л
+  Заполнение: ${fillPercent}%
+  Минимальный уровень: ${tank.minLevelPercent}%
+  Критический уровень: ${tank.criticalLevelPercent}%
+  Температура: ${tank.temperature}°C
+  Плотность: ${tank.density}
+  Статус: ${tank.status}</pre>`);
+                    });
+                } else {
+                    log('⚠️ Резервуары не найдены', 'warning');
+                }
+                
+                if (result.error) {
+                    log(`❌ Ошибка: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Критическая ошибка: ${error.message}`, 'error');
+                console.error('Детальная ошибка:', error);
+            }
+        }
+    </script>
+</body>
+</html>

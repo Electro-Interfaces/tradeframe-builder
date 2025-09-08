@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Проверка данных станции 4</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; background: #1e293b; color: white; padding: 20px; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { background: #374151; padding: 20px; border-radius: 8px; margin: 15px 0; }
+        .debug { background: #0f172a; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; overflow-x: auto; }
+        button { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin: 5px; font-size: 14px; }
+        button:hover { background: #2563eb; }
+        .success { background: #10b981; color: white; padding: 10px; border-radius: 6px; margin: 10px 0; }
+        .error { background: #dc2626; color: white; padding: 10px; border-radius: 6px; margin: 10px 0; }
+        .warning { background: #f59e0b; color: black; padding: 10px; border-radius: 6px; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { padding: 12px; border: 1px solid #4b5563; text-align: left; }
+        th { background: #4b5563; }
+        tr:nth-child(even) { background: #374151; }
+        .metric { display: inline-block; background: #4b5563; padding: 15px; margin: 10px; border-radius: 8px; text-align: center; min-width: 120px; }
+        .metric-label { display: block; font-size: 12px; color: #9ca3af; margin-bottom: 5px; }
+        .metric-value { display: block; font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Проверка данных станции 4 (Сеть 15)</h1>
+        
+        <div class="section">
+            <h3>📋 Контрольные данные:</h3>
+            <div class="debug">
+UUID станции 4: 6969b08d-1cbe-45c2-ae9c-8002c7022b59
+UUID сети 15:   b5e25b51-a950-481e-a09d-ac25e6b5d6ab
+Название сети:  "Норд Лайн"
+Код станции:    4
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Тесты проверки данных:</h3>
+            <button onclick="testSupabaseConnection()">🔌 Тест 1: Проверить подключение к Supabase</button>
+            <button onclick="testStation4Operations()">🎯 Тест 2: Операции станции 4 напрямую</button>
+            <button onclick="testNetwork15TradingPoints()">🏪 Тест 3: Торговые точки сети 15</button>
+            <button onclick="testFilteringLogic()">🔍 Тест 4: Логика фильтрации</button>
+            <button onclick="runAllTests()">🚀 Запустить все тесты</button>
+            <button onclick="clearResults()">🗑️ Очистить</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        const STATION_4_UUID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+        const NETWORK_15_UUID = 'b5e25b51-a950-481e-a09d-ac25e6b5d6ab';
+        
+        let supabaseClient;
+        let operationsService;
+
+        // Инициализация Supabase клиента
+        async function initializeServices() {
+            try {
+                const { createClient } = await import('https://cdn.skypack.dev/@supabase/supabase-js');
+                
+                // Используем конфигурацию из приложения
+                const supabaseUrl = 'https://dlvggjmirqhmdylfwngm.supabase.co';
+                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsdmdnam1pcnFobWR5bGZ3bmdtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNTY5Njg2NSwiZXhwIjoyMDUxMjcyODY1fQ.SLOvfECCNMeWX-V7Hl4mjfyDGfTLUmLF9GCn3R3NfAY'; // service_role key
+                
+                supabaseClient = createClient(supabaseUrl, supabaseKey);
+                
+                console.log('✅ Supabase клиент инициализирован');
+                return true;
+            } catch (error) {
+                console.error('❌ Ошибка инициализации Supabase:', error);
+                return false;
+            }
+        }
+
+        window.testSupabaseConnection = async function() {
+            const results = document.getElementById('results');
+            addResult('🔌 Тест подключения к Supabase...', 'info');
+
+            try {
+                if (!supabaseClient) {
+                    const initialized = await initializeServices();
+                    if (!initialized) {
+                        throw new Error('Не удалось инициализировать Supabase клиент');
+                    }
+                }
+
+                // Простой запрос для проверки подключения
+                const { data, error } = await supabaseClient
+                    .from('operations')
+                    .select('count')
+                    .limit(1);
+
+                if (error) throw error;
+
+                addResult('✅ Подключение к Supabase успешно', 'success');
+                addResult(`📊 База данных доступна`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Ошибка подключения: ${error.message}`, 'error');
+            }
+        }
+
+        window.testStation4Operations = async function() {
+            addResult('🎯 Поиск операций станции 4...', 'info');
+
+            try {
+                if (!supabaseClient) await initializeServices();
+
+                // Получаем операции для станции 4
+                const { data, error } = await supabaseClient
+                    .from('operations')
+                    .select('*')
+                    .eq('trading_point_id', STATION_4_UUID)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const operationsCount = data?.length || 0;
+                
+                if (operationsCount === 0) {
+                    addResult('⚠️ Операции для станции 4 не найдены', 'warning');
+                    addResult(`🔍 UUID станции: ${STATION_4_UUID}`, 'info');
+                } else {
+                    addResult(`✅ Найдено операций для станции 4: ${operationsCount}`, 'success');
+                    
+                    // Вычисляем метрики
+                    const totalRevenue = data.reduce((sum, op) => sum + (op.total_cost || 0), 0);
+                    const totalFuel = data.reduce((sum, op) => sum + (op.quantity || 0), 0);
+                    const avgTicket = operationsCount > 0 ? totalRevenue / operationsCount : 0;
+                    
+                    // Показываем метрики
+                    const metricsHtml = `
+                        <div class="section">
+                            <h4>📊 Метрики станции 4:</h4>
+                            <div class="metric">
+                                <span class="metric-label">Операций</span>
+                                <span class="metric-value">${operationsCount}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Выручка</span>
+                                <span class="metric-value">${totalRevenue.toLocaleString('ru-RU')} ₽</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Топливо</span>
+                                <span class="metric-value">${totalFuel.toLocaleString('ru-RU')} л</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Средний чек</span>
+                                <span class="metric-value">${avgTicket.toLocaleString('ru-RU')} ₽</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.getElementById('results').innerHTML += metricsHtml;
+                    
+                    // Показываем примеры операций
+                    const samplesTable = `
+                        <div class="section">
+                            <h4>🧾 Примеры операций:</h4>
+                            <table>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Дата</th>
+                                    <th>Сумма</th>
+                                    <th>Литры</th>
+                                    <th>Способ оплаты</th>
+                                    <th>Топливо</th>
+                                </tr>
+                                ${data.slice(0, 5).map(op => `
+                                    <tr>
+                                        <td>${op.id}</td>
+                                        <td>${new Date(op.created_at).toLocaleDateString('ru-RU')}</td>
+                                        <td>${(op.total_cost || 0).toLocaleString('ru-RU')} ₽</td>
+                                        <td>${(op.quantity || 0).toLocaleString('ru-RU')} л</td>
+                                        <td>${op.payment_method || 'N/A'}</td>
+                                        <td>${op.fuel_type || 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        </div>
+                    `;
+                    
+                    document.getElementById('results').innerHTML += samplesTable;
+                }
+                
+            } catch (error) {
+                addResult(`❌ Ошибка поиска операций: ${error.message}`, 'error');
+            }
+        }
+
+        window.testNetwork15TradingPoints = async function() {
+            addResult('🏪 Поиск торговых точек сети 15...', 'info');
+
+            try {
+                if (!supabaseClient) await initializeServices();
+
+                // Получаем торговые точки сети 15
+                const { data, error } = await supabaseClient
+                    .from('trading_points')
+                    .select('*')
+                    .eq('network_id', NETWORK_15_UUID);
+
+                if (error) throw error;
+
+                const pointsCount = data?.length || 0;
+                
+                if (pointsCount === 0) {
+                    addResult('⚠️ Торговые точки сети 15 не найдены', 'warning');
+                } else {
+                    addResult(`✅ Найдено торговых точек в сети 15: ${pointsCount}`, 'success');
+                    
+                    // Ищем станцию 4
+                    const station4 = data.find(tp => tp.id === STATION_4_UUID);
+                    
+                    if (station4) {
+                        addResult(`✅ Станция 4 найдена в сети 15`, 'success');
+                        addResult(`📍 Название: ${station4.name || 'N/A'}`, 'info');
+                        addResult(`🎯 UUID: ${station4.id}`, 'info');
+                    } else {
+                        addResult('⚠️ Станция 4 не найдена в сети 15', 'warning');
+                    }
+                    
+                    // Показываем все торговые точки сети
+                    const pointsTable = `
+                        <div class="section">
+                            <h4>🏪 Торговые точки сети 15:</h4>
+                            <table>
+                                <tr>
+                                    <th>UUID</th>
+                                    <th>Название</th>
+                                    <th>Код станции</th>
+                                    <th>Адрес</th>
+                                </tr>
+                                ${data.map(tp => `
+                                    <tr${tp.id === STATION_4_UUID ? ' style="background: #10b981; color: white;"' : ''}>
+                                        <td>${tp.id}</td>
+                                        <td>${tp.name || 'N/A'}</td>
+                                        <td>${tp.station_code || 'N/A'}</td>
+                                        <td>${tp.address || 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        </div>
+                    `;
+                    
+                    document.getElementById('results').innerHTML += pointsTable;
+                }
+                
+            } catch (error) {
+                addResult(`❌ Ошибка поиска торговых точек: ${error.message}`, 'error');
+            }
+        }
+
+        window.testFilteringLogic = async function() {
+            addResult('🔍 Тест логики фильтрации...', 'info');
+
+            try {
+                if (!supabaseClient) await initializeServices();
+
+                // Тест 1: Все операции
+                const { data: allOps, error: allError } = await supabaseClient
+                    .from('operations')
+                    .select('trading_point_id, total_cost')
+                    .eq('status', 'completed');
+
+                if (allError) throw allError;
+
+                // Тест 2: Операции только станции 4
+                const { data: station4Ops, error: station4Error } = await supabaseClient
+                    .from('operations')
+                    .select('trading_point_id, total_cost')
+                    .eq('status', 'completed')
+                    .eq('trading_point_id', STATION_4_UUID);
+
+                if (station4Error) throw station4Error;
+
+                const allOperationsCount = allOps?.length || 0;
+                const station4OperationsCount = station4Ops?.length || 0;
+                
+                const allRevenue = allOps?.reduce((sum, op) => sum + (op.total_cost || 0), 0) || 0;
+                const station4Revenue = station4Ops?.reduce((sum, op) => sum + (op.total_cost || 0), 0) || 0;
+
+                addResult(`📊 Всего операций в системе: ${allOperationsCount}`, 'info');
+                addResult(`🎯 Операций станции 4: ${station4OperationsCount}`, 'info');
+                addResult(`💰 Общая выручка системы: ${allRevenue.toLocaleString('ru-RU')} ₽`, 'info');
+                addResult(`💰 Выручка станции 4: ${station4Revenue.toLocaleString('ru-RU')} ₽`, 'info');
+
+                // Проверка корректности фильтрации
+                if (station4OperationsCount > 0 && station4OperationsCount < allOperationsCount) {
+                    addResult('✅ Фильтрация работает корректно', 'success');
+                    addResult(`🔢 Станция 4 составляет ${((station4OperationsCount / allOperationsCount) * 100).toFixed(1)}% от всех операций`, 'success');
+                } else if (station4OperationsCount === 0) {
+                    addResult('⚠️ Операций для станции 4 не найдено', 'warning');
+                } else if (station4OperationsCount === allOperationsCount) {
+                    addResult('❌ ПРОБЛЕМА: Фильтрация не работает - возвращаются все операции!', 'error');
+                }
+                
+                // Уникальные торговые точки в операциях станции 4
+                const uniquePoints = [...new Set(station4Ops?.map(op => op.trading_point_id).filter(Boolean))];
+                addResult(`🏪 Уникальных торговых точек в операциях: ${uniquePoints.length}`, 'info');
+                
+                if (uniquePoints.length === 1 && uniquePoints[0] === STATION_4_UUID) {
+                    addResult('✅ Все операции принадлежат станции 4', 'success');
+                } else {
+                    addResult(`❌ ПРОБЛЕМА: Найдены операции других станций: ${uniquePoints.filter(id => id !== STATION_4_UUID).join(', ')}`, 'error');
+                }
+                
+            } catch (error) {
+                addResult(`❌ Ошибка теста фильтрации: ${error.message}`, 'error');
+            }
+        }
+
+        window.runAllTests = async function() {
+            clearResults();
+            addResult('🚀 Запуск полного набора тестов...', 'info');
+            
+            await testSupabaseConnection();
+            await testStation4Operations();
+            await testNetwork15TradingPoints();
+            await testFilteringLogic();
+            
+            addResult('✅ Все тесты завершены', 'success');
+        }
+
+        window.clearResults = function() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        // Автоматически инициализируем при загрузке
+        window.addEventListener('load', async function() {
+            console.log('🔬 Страница проверки данных загружена');
+            addResult('📋 Готов к проверке данных станции 4', 'info');
+        });
+    </script>
+</body>
+</html>

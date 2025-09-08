@@ -3,7 +3,8 @@
  * Интеграция с Price History API
  */
 
-import { apiConfigService } from './apiConfigService';
+import { apiConfigServiceDB } from './apiConfigServiceDB';
+import { httpClient } from './universalHttpClient';
 
 // Типы для API
 export interface PriceHistoryRecord {
@@ -80,7 +81,10 @@ export interface PaginatedPriceHistory {
 }
 
 class PriceHistoryServiceClass {
-  private apiUrl = apiConfigService.getCurrentApiUrl();
+  private async getApiUrl() {
+    const connection = await apiConfigServiceDB.getCurrentConnection();
+    return connection?.url || '';
+  }
 
   /**
    * Получить историю цен с фильтрацией
@@ -91,7 +95,7 @@ class PriceHistoryServiceClass {
   ): Promise<PaginatedPriceHistory> {
     try {
       // Если в режиме моков - используем mock данные
-      if (apiConfigService.isMockMode()) {
+      if (await apiConfigServiceDB.isMockMode()) {
         return this.getMockPriceHistory(filters, pagination);
       }
 
@@ -115,7 +119,7 @@ class PriceHistoryServiceClass {
    */
   async getCurrentPrices(filters: Pick<PriceHistoryFilters, 'tradingPointId' | 'networkId' | 'fuelTypeId'> = {}): Promise<PriceHistoryRecord[]> {
     try {
-      if (apiConfigService.isMockMode()) {
+      if (await apiConfigServiceDB.isMockMode()) {
         return this.getMockCurrentPrices(filters);
       }
 
@@ -138,7 +142,7 @@ class PriceHistoryServiceClass {
    */
   async getPriceChanges(days: number = 7, filters: Pick<PriceHistoryFilters, 'tradingPointId' | 'networkId'> = {}): Promise<any[]> {
     try {
-      if (apiConfigService.isMockMode()) {
+      if (await apiConfigServiceDB.isMockMode()) {
         return this.getMockPriceChanges(days, filters);
       }
 
@@ -170,7 +174,7 @@ class PriceHistoryServiceClass {
     metadata?: any;
   }): Promise<PriceHistoryRecord> {
     try {
-      if (apiConfigService.isMockMode()) {
+      if (await apiConfigServiceDB.isMockMode()) {
         return this.createMockPriceRecord(priceData);
       }
 
@@ -192,7 +196,7 @@ class PriceHistoryServiceClass {
    */
   async deactivatePriceRecord(id: string, reason?: string): Promise<PriceHistoryRecord> {
     try {
-      if (apiConfigService.isMockMode()) {
+      if (await apiConfigServiceDB.isMockMode()) {
         throw new Error('Deactivation not supported in mock mode');
       }
 
@@ -231,7 +235,8 @@ class PriceHistoryServiceClass {
   }
 
   private async apiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const url = `${this.apiUrl}${endpoint}`;
+    const apiUrl = await this.getApiUrl();
+    const url = `${apiUrl}${endpoint}`;
     
     const defaultOptions: RequestInit = {
       headers: {
@@ -240,19 +245,21 @@ class PriceHistoryServiceClass {
       }
     };
     
-    const response = await fetch(url, { ...defaultOptions, ...options });
+    const response = await httpClient.request(endpoint, {
+      destination: 'supabase',
+      ...options
+    });
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+    if (!response.success) {
       throw {
-        status: response.status,
-        statusText: response.statusText,
-        message: errorData.error || 'API request failed',
-        details: errorData.details
+        status: response.status || 500,
+        statusText: 'Request failed',
+        message: response.error || 'API request failed',
+        details: response.data
       };
     }
     
-    return await response.json();
+    return response.data;
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -273,7 +280,7 @@ class PriceHistoryServiceClass {
     // Трансформируем записи API в формат UI
     const uiRecords: PriceHistoryUI[] = records.map((record: PriceHistoryRecord, index: number) => {
       // Для получения oldPrice нужно найти предыдущую запись для того же топлива и точки
-      const oldPrice = this.findPreviousPrice(records, record, index) || record.price * 0.95; // fallback
+      const oldPrice = this.findPreviousPrice(records, record, index) || null;
       
       const dateTime = new Date(record.effective_from);
       
@@ -319,103 +326,11 @@ class PriceHistoryServiceClass {
   // MOCK DATA METHODS (для совместимости)
   // ============================================
 
+  // ❌ MOCK ДАННЫЕ ЗАБЛОКИРОВАНЫ
   private async getMockPriceHistory(filters: PriceHistoryFilters, pagination: PaginationParams): Promise<PaginatedPriceHistory> {
-    // Mock данные из PriceHistoryPage.tsx
-    const mockData: PriceHistoryUI[] = [
-      {
-        id: "1",
-        date: "2024-12-07",
-        time: "09:15",
-        fuelType: "АИ-95",
-        oldPrice: 52.50,
-        newPrice: 53.20,
-        changeReason: "Изменение оптовых цен",
-        changedBy: "Администратор сети",
-        status: 'applied'
-      },
-      {
-        id: "2", 
-        date: "2024-12-07",
-        time: "09:15",
-        fuelType: "АИ-92",
-        oldPrice: 49.80,
-        newPrice: 50.45,
-        changeReason: "Изменение оптовых цен",
-        changedBy: "Администратор сети",
-        status: 'applied'
-      },
-      {
-        id: "3",
-        date: "2024-12-06",
-        time: "14:30",
-        fuelType: "ДТ",
-        oldPrice: 51.20,
-        newPrice: 51.95,
-        changeReason: "Корректировка маржи",
-        changedBy: "Менеджер АЗС №001",
-        tradingPoint: "АЗС №001 - Московское шоссе",
-        status: 'applied'
-      },
-      {
-        id: "4",
-        date: "2024-12-05", 
-        time: "16:45",
-        fuelType: "АИ-95",
-        oldPrice: 52.80,
-        newPrice: 52.50,
-        changeReason: "Снижение для повышения конкурентоспособности",
-        changedBy: "Директор сети",
-        status: 'applied'
-      },
-      {
-        id: "5",
-        date: "2024-12-04",
-        time: "11:20",
-        fuelType: "АИ-92",
-        oldPrice: 50.10,
-        newPrice: 49.80,
-        changeReason: "Снижение для повышения конкурентоспособности", 
-        changedBy: "Директор сети",
-        status: 'applied'
-      },
-      {
-        id: "6",
-        date: "2024-12-08",
-        time: "08:00",
-        fuelType: "АИ-95", 
-        oldPrice: 53.20,
-        newPrice: 53.80,
-        changeReason: "Плановое повышение",
-        changedBy: "Система",
-        status: 'pending'
-      }
-    ];
-
-    // Применяем фильтры
-    let filteredData = mockData.filter(record => {
-      if (filters.startDate && record.date < filters.startDate) return false;
-      if (filters.endDate && record.date > filters.endDate) return false;
-      if (filters.fuelTypeId && record.fuelType !== this.mapFuelTypeIdToName(filters.fuelTypeId)) return false;
-      return true;
-    });
-
-    // Пагинация
-    const page = pagination.page || 1;
-    const limit = pagination.limit || 50;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedData = filteredData.slice(startIndex, endIndex);
-
-    return {
-      data: paginatedData,
-      pagination: {
-        page,
-        limit,
-        total: filteredData.length,
-        pages: Math.ceil(filteredData.length / limit)
-      },
-      filters
-    };
+    throw new Error('Mock данные заблокированы. Настройте подключение к Supabase в разделе "Обмен данными".');
+    
+    // ❌ MOCK ДАННЫЕ УДАЛЕНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
   }
 
   private async getMockCurrentPrices(filters: any): Promise<PriceHistoryRecord[]> {

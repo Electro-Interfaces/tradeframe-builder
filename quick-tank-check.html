@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Быстрая проверка резервуаров</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <h1 class="text-xl font-bold mb-4">Проверка резервуаров для торговой точки</h1>
+    <button onclick="checkTanks()" class="bg-blue-600 px-4 py-2 rounded">Проверить</button>
+    <div id="results" class="mt-4 space-y-2"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://oojbhuwgdxnpcrzljzkm.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vamJodXdnZHhucGNyemxqemttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQyMjUzNzksImV4cCI6MjA0OTgwMTM3OX0.KXF1gEiAXWv-HVLCZFoHuIKVcjQIBSUPcROkfVMNHDY';
+        
+        const TRADING_POINT_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+
+        async function checkTanks() {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            
+            function log(message, type = 'info') {
+                const div = document.createElement('div');
+                div.className = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-green-400' : 'text-blue-400';
+                div.textContent = message;
+                results.appendChild(div);
+            }
+            
+            try {
+                log(`Проверяем резервуары для ТП: ${TRADING_POINT_ID}`);
+                
+                // 1. Проверим все резервуары для этой торговой точки
+                const url1 = `${SUPABASE_URL}/rest/v1/equipment?trading_point_id=eq.${TRADING_POINT_ID}`;
+                log(`URL 1 (все equipment): ${url1}`);
+                
+                const resp1 = await fetch(url1, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                const allEquipment = await resp1.json();
+                log(`Всего equipment для ТП: ${allEquipment.length}`, 'info');
+                
+                // 2. Проверим только резервуары
+                const url2 = `${SUPABASE_URL}/rest/v1/equipment?trading_point_id=eq.${TRADING_POINT_ID}&system_type=eq.fuel_tank`;
+                log(`URL 2 (только fuel_tank): ${url2}`);
+                
+                const resp2 = await fetch(url2, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                const tanks = await resp2.json();
+                log(`Резервуаров (fuel_tank): ${tanks.length}`, tanks.length > 0 ? 'success' : 'error');
+                
+                if (allEquipment.length > 0) {
+                    log('Примеры equipment:', 'info');
+                    allEquipment.slice(0, 3).forEach((eq, i) => {
+                        log(`  ${i+1}. ${eq.name} (system_type: ${eq.system_type}, status: ${eq.status})`);
+                    });
+                }
+                
+                if (tanks.length > 0) {
+                    log('Найденные резервуары:', 'success');
+                    tanks.forEach((tank, i) => {
+                        const fuelType = tank.params?.['Тип топлива'] || 'НЕ УКАЗАН';
+                        log(`  ${i+1}. ${tank.name} - Тип топлива: ${fuelType} (status: ${tank.status})`);
+                    });
+                } else {
+                    log('Резервуары не найдены!', 'error');
+                    log('Возможные причины:', 'error');
+                    log('- Нет оборудования с system_type = fuel_tank', 'error');
+                    log('- Неправильный trading_point_id', 'error');
+                    log('- Оборудование не создано в системе', 'error');
+                }
+                
+                // 3. Проверим существует ли вообще такая торговая точка
+                const url3 = `${SUPABASE_URL}/rest/v1/trading_points?id=eq.${TRADING_POINT_ID}`;
+                const resp3 = await fetch(url3, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                const tradingPoint = await resp3.json();
+                
+                if (tradingPoint.length > 0) {
+                    log(`✅ Торговая точка существует: ${tradingPoint[0].name}`, 'success');
+                } else {
+                    log(`❌ Торговая точка с ID ${TRADING_POINT_ID} не найдена!`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        checkTanks();
+    </script>
+</body>
+</html>

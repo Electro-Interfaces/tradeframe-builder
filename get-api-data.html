@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Data</title>
+    <style>body{font-family:monospace;background:#000;color:#0f0;padding:20px}</style>
+</head>
+<body>
+    <h1>Данные из торгового API:</h1>
+    <div id="data">Загрузка...</div>
+    <script>
+        console.log('🚀 Запрос к API...');
+        
+        const url = 'https://api-demo.1c-tradeservice.ru/api/v1/stations/4/tanks';
+        const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6eyJpZCI6IkFDQ0FFNDA4LTYzMzItNDI0NS04NUIxLTI1RjkxNEYzQkQ2NCIsIm5hbWUiOiJVc2VyVGVzdCIsInJvbGUiOjB9LCJ1c2VyIjp7ImlkIjoiQUNDQUU0MDgtNjMzMi00MjQ1LTg1QjEtMjVGOTE0RjNCRDY0IiwibmFtZSI6IlVzZXJUZXN0In0sImV4cCI6MTc1NzE1NzkzN30.7fDPBwtWej80K2ePRXYKXsJH3b3pLSUqtjo2uIbyXEE';
+        
+        fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            console.log('✅ Данные получены:', data);
+            document.getElementById('data').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        })
+        .catch(e => {
+            console.error('❌ Ошибка:', e);
+            document.getElementById('data').innerHTML = '❌ Ошибка: ' + e.message;
+        });
+    </script>
+</body>
+</html>

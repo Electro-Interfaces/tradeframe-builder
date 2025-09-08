@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔗 Проверка доступа к БД через localhost</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔗 ПРОВЕРКА ДОСТУПА К БАЗЕ ДАННЫХ</h1>
+    <p>Проверка универсального HTTP клиента через Vite dev server</p>
+    
+    <button onclick="testDbAccess()">🚀 Проверить доступ к БД</button>
+    <button onclick="clearLog()">🧹 Очистить</button>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        window.testDbAccess = async function() {
+            addLog('🔗 Начало проверки доступа к базе данных', 'info');
+            
+            try {
+                // Импорт через Vite dev server
+                addLog('📦 Импорт universalHttpClient через Vite...', 'info');
+                const { httpClient } = await import('/src/services/universalHttpClient.ts');
+                addLog('✅ HTTP клиент успешно импортирован', 'success');
+                
+                // Проверка конфигурации
+                addLog('🔧 Проверка встроенной конфигурации...', 'info');
+                const configInfo = await httpClient.getConfigurationInfo();
+                addLog(`<div class="code">
+                    Supabase URL: ${configInfo.supabase.url || 'встроенный'}<br>
+                    Supabase Type: ${configInfo.supabase.type}<br>
+                    Has API Key: ${configInfo.supabase.hasApiKey ? '✅ ДА' : '❌ НЕТ'}
+                </div>`, 'info');
+                
+                // Тест подключения к Supabase
+                addLog('🏥 Тест подключения к Supabase REST API...', 'info');
+                const response = await httpClient.get('/rest/v1/', {
+                    destination: 'supabase',
+                    timeout: 10000
+                });
+                
+                addLog(`<div class="code">
+                    Success: ${response.success}<br>
+                    Status: ${response.status}<br>
+                    Response Time: ${response.responseTime}ms<br>
+                    Error: ${response.error || 'нет'}<br>
+                    Data Type: ${typeof response.data}
+                </div>`, response.success ? 'success' : 'error');
+                
+                if (response.success) {
+                    addLog('✅ ДОСТУП К БАЗЕ ДАННЫХ РАБОТАЕТ!', 'success');
+                    addLog('🎉 Универсальный HTTP клиент успешно подключается к Supabase', 'success');
+                    
+                    // Дополнительный тест - запрос к таблице networks
+                    addLog('📋 Дополнительная проверка - запрос к таблице networks...', 'info');
+                    const tableResponse = await httpClient.get('/rest/v1/networks', {
+                        destination: 'supabase',
+                        queryParams: { 
+                            select: 'id,name',
+                            limit: '3'
+                        },
+                        timeout: 5000
+                    });
+                    
+                    if (tableResponse.success) {
+                        addLog('✅ Доступ к таблицам подтвержден', 'success');
+                        if (tableResponse.data && tableResponse.data.length > 0) {
+                            addLog(`📊 Найдено сетей в БД: ${tableResponse.data.length}`, 'success');
+                            tableResponse.data.forEach((network, index) => {
+                                addLog(`- Сеть ${index + 1}: ${network.name}`, 'info');
+                            });
+                        }
+                    } else {
+                        addLog('⚠️ Подключение есть, но доступ к таблицам ограничен', 'warning');
+                        addLog(`Ошибка таблицы: ${tableResponse.error}`, 'warning');
+                    }
+                    
+                    // Проверка доступа к торговым точкам
+                    addLog('📍 Проверка доступа к торговым точкам...', 'info');
+                    const tpResponse = await httpClient.get('/rest/v1/trading_points', {
+                        destination: 'supabase',
+                        queryParams: { 
+                            select: 'id,name',
+                            limit: '3'
+                        },
+                        timeout: 5000
+                    });
+                    
+                    if (tpResponse.success) {
+                        addLog('✅ Доступ к торговым точкам подтвержден', 'success');
+                        if (tpResponse.data && tpResponse.data.length > 0) {
+                            addLog(`📊 Найдено торговых точек в БД: ${tpResponse.data.length}`, 'success');
+                        }
+                    } else {
+                        addLog('⚠️ Нет доступа к торговым точкам', 'warning');
+                    }
+                    
+                } else {
+                    addLog('❌ ДОСТУП К БАЗЕ ДАННЫХ НЕ РАБОТАЕТ!', 'error');
+                    addLog('💡 Возможные причины:', 'warning');
+                    addLog('- Неверный URL Supabase', 'warning');
+                    addLog('- Неверный или истекший API ключ', 'warning');
+                    addLog('- Проблемы с сетевым подключением', 'warning');
+                }
+                
+            } catch (error) {
+                addLog('❌ КРИТИЧЕСКАЯ ОШИБКА ДОСТУПА К БД', 'error');
+                addLog(`<div class="code">
+                    Тип ошибки: ${error.name}<br>
+                    Сообщение: ${error.message}<br>
+                    Stack: ${error.stack}
+                </div>`, 'error');
+                
+                if (error.message.includes('Failed to fetch')) {
+                    addLog('💡 Проблема с загрузкой модуля. Убедитесь что Vite dev server запущен на localhost:3000', 'warning');
+                }
+            }
+        }
+        
+        // Автозапуск через секунду
+        addLog('✅ Страница загружена. Автозапуск через 1 секунду...', 'info');
+        setTimeout(testDbAccess, 1000);
+    </script>
+</body>
+</html>

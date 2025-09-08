@@ -1,6 +1,7 @@
 /**
  * Сервис для работы с пользователями через Supabase
- * Заменяет localStorage на реальную базу данных
+ * УПРОЩЕН: Убраны checkConnection и все проверки подключения
+ * Прямые вызовы Supabase с четкими ошибками
  */
 
 import { supabaseService } from './supabaseServiceClient'
@@ -31,10 +32,13 @@ export interface UserStatistics {
 const supabase = supabaseService
 
 export class UserSupabaseService {
+
   /**
    * Получить всех пользователей из Supabase
    */
   static async getAllUsers(includeDeleted = false): Promise<User[]> {
+    console.log('🔍 UserSupabaseService.getAllUsers() called');
+
     try {
       let query = supabase.from('users').select(`
         *,
@@ -56,17 +60,18 @@ export class UserSupabaseService {
       const response = await query
 
       if (response.error) {
-        console.error('Ошибка получения пользователей:', response.error)
-        return []
+        console.error('❌ Database error loading users:', response.error);
+        throw new Error(`Database unavailable: ${response.error.message}`);
       }
 
       // Преобразуем в нужный формат
+      console.log('✅ Loaded users from Supabase:', response.data?.length || 0);
       return response.data?.map(user => ({
         id: user.id,
         email: user.email,
         name: user.name || user.full_name || 'Пользователь',
         phone: user.phone,
-        status: user.status || 'active',
+        status: user.is_active ? 'active' : 'inactive', // Преобразуем is_active в status
         roles: user.roles?.map((r: any) => ({
           role_id: r.role?.id,
           role_name: r.role?.name,
@@ -79,11 +84,11 @@ export class UserSupabaseService {
         last_login: user.last_login ? new Date(user.last_login) : null,
         version: user.version || 1,
         deleted_at: user.deleted_at ? new Date(user.deleted_at) : undefined
-      })) || []
+      })) || [];
 
     } catch (error) {
-      console.error('Критическая ошибка получения пользователей:', error)
-      return []
+      console.error('Критическая ошибка получения пользователей:', error);
+      return [];
     }
   }
 
@@ -91,6 +96,8 @@ export class UserSupabaseService {
    * Получить пользователя по ID
    */
   static async getUserById(id: string): Promise<User | null> {
+    console.log(`🔍 UserSupabaseService.getUserById(${id}) called`);
+
     try {
       const response = await supabase
         .from('users')
@@ -110,8 +117,13 @@ export class UserSupabaseService {
         .eq('id', id)
         .is('deleted_at', null)
 
-      if (response.error || !response.data?.length) {
-        return null
+      if (response.error) {
+        console.error('❌ Database error loading user by ID:', response.error);
+        throw new Error(`Database unavailable: ${response.error.message}`);
+      }
+      
+      if (!response.data?.length) {
+        return null;
       }
 
       const user = response.data[0]
@@ -120,7 +132,7 @@ export class UserSupabaseService {
         email: user.email,
         name: user.name || user.full_name || 'Пользователь',
         phone: user.phone,
-        status: user.status || 'active',
+        status: user.is_active ? 'active' : 'inactive',
         roles: user.roles?.map((r: any) => ({
           role_id: r.role?.id,
           role_name: r.role?.name,
@@ -136,8 +148,8 @@ export class UserSupabaseService {
       }
 
     } catch (error) {
-      console.error('Ошибка получения пользователя по ID:', error)
-      return null
+      console.error('❌ UserSupabaseService.getUserById error:', error);
+      throw error;
     }
   }
 
@@ -164,8 +176,13 @@ export class UserSupabaseService {
         .eq('email', email.toLowerCase())
         .is('deleted_at', null)
 
-      if (response.error || !response.data?.length) {
-        return null
+      if (response.error) {
+        console.error('❌ Database error loading user by ID:', response.error);
+        throw new Error(`Database unavailable: ${response.error.message}`);
+      }
+      
+      if (!response.data?.length) {
+        return null;
       }
 
       const user = response.data[0]
@@ -174,7 +191,7 @@ export class UserSupabaseService {
         email: user.email,
         name: user.name || user.full_name || 'Пользователь',
         phone: user.phone,
-        status: user.status || 'active',
+        status: user.is_active ? 'active' : 'inactive',
         roles: user.roles?.map((r: any) => ({
           role_id: r.role?.id,
           role_name: r.role?.name,
@@ -199,6 +216,8 @@ export class UserSupabaseService {
    * Создать нового пользователя
    */
   static async createUser(input: CreateUserInput & { tenantId: string, roles?: string[] }): Promise<User> {
+    console.log('📝 UserSupabaseService.createUser() called');
+
     try {
       // Проверяем уникальность email
       const existingUser = await this.getUserByEmail(input.email)
@@ -457,7 +476,69 @@ export class UserSupabaseService {
   static async updateUserStatus(id: string, status: UserStatus): Promise<User> {
     return this.updateUser(id, { status })
   }
+
+  /**
+   * Создать тестовых пользователей для демонстрации системы
+   */
+  static async createTestUsers(tenantId: string): Promise<User[]> {
+    console.log('👥 Создание тестовых пользователей...')
+
+    const testUsersData = [
+      {
+        email: 'admin@tradeframe.ru',
+        name: 'Системный администратор',
+        phone: '+7 (999) 123-45-67',
+        status: 'active' as UserStatus,
+        tenantId,
+        roles: [] // Роли будут назначены отдельно
+      },
+      {
+        email: 'manager@tradeframe.ru', 
+        name: 'Менеджер сети',
+        phone: '+7 (999) 234-56-78',
+        status: 'active' as UserStatus,
+        tenantId,
+        roles: []
+      },
+      {
+        email: 'operator@tradeframe.ru',
+        name: 'Оператор АЗС',
+        phone: '+7 (999) 345-67-89',
+        status: 'active' as UserStatus,
+        tenantId,
+        roles: []
+      }
+    ]
+
+    const createdUsers: User[] = []
+
+    for (const userData of testUsersData) {
+      try {
+        // Проверяем, существует ли уже такой пользователь
+        const existingUser = await this.getUserByEmail(userData.email)
+        if (existingUser) {
+          console.log(`⚠️ Пользователь ${userData.email} уже существует`)
+          createdUsers.push(existingUser)
+          continue
+        }
+
+        // Создаем нового пользователя
+        const newUser = await this.createUser(userData)
+        createdUsers.push(newUser)
+        console.log(`✅ Создан пользователь: ${newUser.email}`)
+
+      } catch (error) {
+        console.error(`❌ Ошибка создания пользователя ${userData.email}:`, error)
+      }
+    }
+
+    console.log(`✅ Обработано ${createdUsers.length} тестовых пользователей`)
+    return createdUsers
+  }
 }
 
 // Экспортируем как основной сервис пользователей
 export const UserService = UserSupabaseService
+
+// Также экспортируем класс для совместимости
+export const usersSupabaseService = UserSupabaseService

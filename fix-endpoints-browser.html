@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Исправление эндпоинтов API</title>
+</head>
+<body>
+    <h1>🔧 Исправление эндпоинтов торгового API</h1>
+    <button onclick="fixEndpoints()">Исправить эндпоинты</button>
+    <div id="result"></div>
+
+    <script>
+        async function fixEndpoints() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '🔄 Исправляю эндпоинты...';
+            
+            try {
+                // Получаем текущую конфигурацию
+                const getResponse = await fetch('/supabase-proxy/rest/v1/system_config?key=eq.trading_network_config', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDkwMDAsImV4cCI6MjA1MjUyNTAwMH0.Mn0fYenKB2H0fRD8u_7aTpTw_M-iqGCrVk5M5hKZkN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDkwMDAsImV4cCI6MjA1MjUyNTAwMH0.Mn0fYenKB2H0fRD8u_7aTpTw_M-iqGCrVk5M5hKZkN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!getResponse.ok) {
+                    throw new Error(`Ошибка получения конфигурации: ${getResponse.status}`);
+                }
+                
+                const data = await getResponse.json();
+                console.log('📄 Текущая конфигурация:', data);
+                
+                if (!data || data.length === 0) {
+                    throw new Error('Конфигурация не найдена');
+                }
+                
+                const config = data[0];
+                const currentValue = config.value;
+                
+                resultDiv.innerHTML += '<br>📄 Текущие эндпоинты: ' + JSON.stringify(currentValue.endpoints);
+                
+                // Обновляем эндпоинты
+                const updatedValue = {
+                    ...currentValue,
+                    endpoints: {
+                        tanks: '/v1/tanks',
+                        transactions: '/v1/transactions'
+                    }
+                };
+                
+                resultDiv.innerHTML += '<br>✏️ Новые эндпоинты: ' + JSON.stringify(updatedValue.endpoints);
+                
+                // Сохраняем
+                const updateResponse = await fetch('/supabase-proxy/rest/v1/system_config?key=eq.trading_network_config', {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDkwMDAsImV4cCI6MjA1MjUyNTAwMH0.Mn0fYenKB2H0fRD8u_7aTpTw_M-iqGCrVk5M5hKZkN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDkwMDAsImV4cCI6MjA1MjUyNTAwMH0.Mn0fYenKB2H0fRD8u_7aTpTw_M-iqGCrVk5M5hKZkN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        value: updatedValue,
+                        updated_at: new Date().toISOString()
+                    })
+                });
+                
+                if (!updateResponse.ok) {
+                    throw new Error(`Ошибка обновления: ${updateResponse.status} ${await updateResponse.text()}`);
+                }
+                
+                const updatedData = await updateResponse.json();
+                
+                resultDiv.innerHTML += '<br><br>✅ <strong>Эндпоинты успешно обновлены!</strong>';
+                resultDiv.innerHTML += '<br>🎯 Обновленная конфигурация: ' + JSON.stringify(updatedData[0].value.endpoints);
+                resultDiv.innerHTML += '<br><br>💡 <strong>Теперь перейдите на страницу настроек и протестируйте соединение!</strong>';
+                
+                console.log('✅ Успешно обновлено:', updatedData);
+                
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                resultDiv.innerHTML += '<br><br>❌ <strong>Ошибка:</strong> ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

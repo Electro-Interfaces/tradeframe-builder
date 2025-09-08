@@ -78,6 +78,7 @@ export interface TradingPointInput {
 }
 
 export interface TradingPointUpdateInput extends TradingPointInput {
+  external_id?: string; // ID для синхронизации с торговым API
   isBlocked?: boolean;
   blockReason?: string;
 }

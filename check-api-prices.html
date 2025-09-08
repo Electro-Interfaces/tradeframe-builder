@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка API цен</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1e1e1e; color: #fff; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .success { color: #4ade80; background: #166534; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .error { color: #f87171; background: #991b1b; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .info { color: #60a5fa; background: #1e3a8a; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .warning { color: #fbbf24; background: #713f12; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; background: #3b82f6; color: white; border: none; cursor: pointer; border-radius: 5px; }
+        button:hover { background: #2563eb; }
+        pre { background: #2d2d2d; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .fuel-card { background: #2d2d2d; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛢️ Проверка API цен торговой сети</h1>
+        
+        <div class="info">
+            <h3>Параметры запроса:</h3>
+            <p>System: 15, Station: 4 (АЗС №4)</p>
+        </div>
+
+        <button onclick="checkPricesAPI()">💰 Проверить endpoint /v1/prices</button>
+        <button onclick="checkFuelPricesAPI()">⛽ Проверить endpoint /v1/fuel-prices</button>
+        <button onclick="checkTanksAPI()">🛢️ Проверить резервуары /v1/tanks</button>
+        <button onclick="getTokenStatus()">🔐 Статус токена</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        // Загружаем конфигурацию из localStorage или используем дефолтную
+        function getConfig() {
+            try {
+                const stored = localStorage.getItem('tradingNetworkConfig');
+                if (stored) {
+                    const config = JSON.parse(stored);
+                    console.log('Используем конфигурацию из localStorage:', config);
+                    return config;
+                }
+            } catch (e) {
+                console.warn('Не удалось загрузить конфигурацию из localStorage:', e);
+            }
+            
+            // Дефолтная конфигурация
+            return {
+                baseUrl: 'https://pos.autooplata.ru/tms',
+                username: 'UserApi',
+                password: 'lHQfLZHzB3tn',
+                authType: 'basic'
+            };
+        }
+        
+        async function getAuthToken() {
+            const config = getConfig();
+            
+            if (config.authType === 'basic' && config.username && config.password) {
+                // Получаем токен через Basic Auth
+                const authResponse = await fetch(`${config.baseUrl}/v1/auth`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: config.username,
+                        password: config.password
+                    })
+                });
+                
+                if (authResponse.ok) {
+                    const authData = await authResponse.json();
+                    console.log('Получен новый токен через Basic Auth');
+                    return authData.token || authData.access_token;
+                }
+            }
+            
+            // Если не удалось получить новый токен, используем сохраненный
+            return config.apiKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6eyJpZCI6IjYxODkwODMxLUQxNEYtNDY0MC05OUFDLUUxMTIzQTZFNDQzOCIsIm5hbWUiOiJVc2VyQXBpIiwicm9sZSI6MH0sInVzZXIiOnsiaWQiOiI2MTg5MDgzMS1EMTRGLTQ2NDAtOTlBQy1FMTEyM0E2RTQ0MzgiLCJuYW1lIjoiVXNlckFwaSJ9LCJleHAiOjE3NTczMTc5NTR9.fXqRyv-d7cotjD_YcDwSMB5Y9SXVCQB2LN1LXbCzsB8';
+        }
+        
+        async function makeAPIRequest(endpoint, params = {}) {
+            const config = getConfig();
+            const token = await getAuthToken();
+            
+            const url = new URL(`${config.baseUrl}${endpoint}`);
+            Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+            
+            console.log('Запрос к:', url.toString());
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            });
+            
+            const responseText = await response.text();
+            let data;
+            
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                data = responseText;
+            }
+            
+            return {
+                status: response.status,
+                ok: response.ok,
+                data: data,
+                headers: Object.fromEntries(response.headers.entries())
+            };
+        }
+        
+        window.checkPricesAPI = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">Запрашиваем цены через /v1/prices...</div>';
+            
+            try {
+                const response = await makeAPIRequest('/v1/prices', {
+                    system: '15',
+                    station: '4'
+                });
+                
+                if (response.ok) {
+                    results.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Endpoint /v1/prices работает</h3>
+                            <p>Статус: ${response.status}</p>
+                        </div>
+                        <div class="info">
+                            <h3>Ответ API:</h3>
+                            <pre>${JSON.stringify(response.data, null, 2)}</pre>
+                        </div>
+                    `;
+                    
+                    // Анализируем структуру данных
+                    analyzeData(response.data);
+                } else {
+                    results.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Ошибка API</h3>
+                            <p>Статус: ${response.status}</p>
+                            <pre>${JSON.stringify(response.data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Ошибка запроса: ${error.message}</div>`;
+            }
+        };
+        
+        window.checkFuelPricesAPI = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">Запрашиваем цены через /v1/fuel-prices...</div>';
+            
+            try {
+                const response = await makeAPIRequest('/v1/fuel-prices', {
+                    system: '15',
+                    station: '4'
+                });
+                
+                if (response.ok) {
+                    results.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Endpoint /v1/fuel-prices работает</h3>
+                            <p>Статус: ${response.status}</p>
+                        </div>
+                        <div class="info">
+                            <h3>Ответ API:</h3>
+                            <pre>${JSON.stringify(response.data, null, 2)}</pre>
+                        </div>
+                    `;
+                    
+                    analyzeData(response.data);
+                } else {
+                    results.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Endpoint не найден или ошибка</h3>
+                            <p>Статус: ${response.status}</p>
+                            <pre>${JSON.stringify(response.data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Ошибка запроса: ${error.message}</div>`;
+            }
+        };
+        
+        window.checkTanksAPI = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">Запрашиваем резервуары через /v1/tanks...</div>';
+            
+            try {
+                const response = await makeAPIRequest('/v1/tanks', {
+                    system: '15',
+                    station: '4'
+                });
+                
+                if (response.ok && response.data) {
+                    // Извлекаем виды топлива из резервуаров
+                    const fuelTypes = new Set();
+                    
+                    if (Array.isArray(response.data)) {
+                        response.data.forEach(tank => {
+                            if (tank.fuel_name) {
+                                fuelTypes.add(tank.fuel_name);
+                            }
+                        });
+                    }
+                    
+                    results.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Endpoint /v1/tanks работает</h3>
+                            <p>Найдено резервуаров: ${response.data.length}</p>
+                            <p>Виды топлива: ${Array.from(fuelTypes).join(', ')}</p>
+                        </div>
+                        <div class="info">
+                            <h3>Данные резервуаров:</h3>
+                            <pre>${JSON.stringify(response.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    results.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Ошибка получения резервуаров</h3>
+                            <p>Статус: ${response.status}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Ошибка запроса: ${error.message}</div>`;
+            }
+        };
+        
+        window.getTokenStatus = async function() {
+            const config = getConfig();
+            const token = await getAuthToken();
+            
+            // Декодируем JWT токен
+            try {
+                const parts = token.split('.');
+                const payload = JSON.parse(atob(parts[1]));
+                const exp = new Date(payload.exp * 1000);
+                const now = new Date();
+                const isExpired = exp < now;
+                
+                document.getElementById('results').innerHTML = `
+                    <div class="${isExpired ? 'error' : 'success'}">
+                        <h3>🔐 Статус токена</h3>
+                        <p>Токен ${isExpired ? '❌ истек' : '✅ действителен'}</p>
+                        <p>Истекает: ${exp.toLocaleString()}</p>
+                        <p>Пользователь: ${payload.user?.name || 'Unknown'}</p>
+                    </div>
+                `;
+            } catch (e) {
+                document.getElementById('results').innerHTML = `
+                    <div class="warning">
+                        <h3>⚠️ Не удалось декодировать токен</h3>
+                    </div>
+                `;
+            }
+        };
+        
+        function analyzeData(data) {
+            const resultsDiv = document.getElementById('results');
+            let analysis = '<div class="warning"><h3>📊 Анализ структуры данных:</h3>';
+            
+            if (Array.isArray(data)) {
+                analysis += `<p>Тип: Массив (${data.length} элементов)</p>`;
+                if (data.length > 0) {
+                    analysis += '<p>Первый элемент:</p>';
+                    analysis += `<pre>${JSON.stringify(data[0], null, 2)}</pre>`;
+                    
+                    // Извлекаем виды топлива
+                    const fuelTypes = data.map(item => 
+                        item.fuel_name || item.fuel_type || item.name || 'Неизвестно'
+                    );
+                    analysis += `<p>Виды топлива: ${fuelTypes.join(', ')}</p>`;
+                }
+            } else if (typeof data === 'object' && data !== null) {
+                analysis += '<p>Тип: Объект</p>';
+                analysis += `<p>Ключи: ${Object.keys(data).join(', ')}</p>`;
+                
+                // Проверяем разные варианты структуры
+                if (data.fuels) {
+                    analysis += '<p>Найден массив fuels</p>';
+                    analysis += `<pre>${JSON.stringify(data.fuels, null, 2)}</pre>`;
+                } else if (data.prices) {
+                    analysis += '<p>Найден массив prices</p>';
+                    analysis += `<pre>${JSON.stringify(data.prices, null, 2)}</pre>`;
+                } else if (data.data) {
+                    analysis += '<p>Найден вложенный data</p>';
+                    analysis += `<pre>${JSON.stringify(data.data, null, 2)}</pre>`;
+                }
+            }
+            
+            analysis += '</div>';
+            resultsDiv.innerHTML += analysis;
+        }
+        
+        // Автозапуск при загрузке
+        window.addEventListener('load', () => {
+            checkPricesAPI();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Проверка таблиц Supabase</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <h1>🔍 ПРОВЕРКА ТАБЛИЦ В SUPABASE</h1>
+    <p>Проверяем какие таблицы действительно существуют</p>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        async function checkTables() {
+            addLog('🔍 Проверяем существующие таблицы в Supabase...', 'info');
+            
+            try {
+                const { httpClient } = await import('/src/services/universalHttpClient.ts');
+                
+                const tablesToCheck = [
+                    'equipment',
+                    'equipment_templates', 
+                    'components',
+                    'component_templates',
+                    'tanks',
+                    'networks',
+                    'trading_points',
+                    'operations'
+                ];
+                
+                addLog('📊 Проверяем таблицы:', 'info');
+                
+                for (const table of tablesToCheck) {
+                    try {
+                        addLog(`  → Проверяем таблицу: ${table}`, 'info');
+                        
+                        const response = await httpClient.get(`/rest/v1/${table}`, {
+                            destination: 'supabase',
+                            queryParams: { 
+                                select: '*', 
+                                limit: '1'
+                            }
+                        });
+                        
+                        if (response.success) {
+                            const count = Array.isArray(response.data) ? response.data.length : 0;
+                            addLog(`    ✅ ${table} - существует (${count} записей в выборке)`, 'success');
+                        } else {
+                            addLog(`    ❌ ${table} - ошибка: ${response.error}`, 'error');
+                        }
+                        
+                    } catch (error) {
+                        if (error.message.includes('404')) {
+                            addLog(`    ❌ ${table} - НЕ СУЩЕСТВУЕТ (404)`, 'error');
+                        } else {
+                            addLog(`    ⚠️ ${table} - ошибка: ${error.message}`, 'warning');
+                        }
+                    }
+                    
+                    await new Promise(r => setTimeout(r, 500));
+                }
+                
+                addLog('---', 'info');
+                addLog('🏁 Проверка завершена', 'success');
+                
+            } catch (error) {
+                addLog(`❌ Критическая ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Проверка таблиц загружена', 'info');
+        checkTables();
+    </script>
+</body>
+</html>

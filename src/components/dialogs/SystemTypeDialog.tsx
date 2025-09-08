@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { SystemType, SystemTypeInput, systemTypesAPI } from "@/services/systemTypesService";
+import { SystemType, SystemTypeInput, systemTypesAPI } from "@/services/systemTypesSupabaseService";
 
 const systemTypeSchema = z.object({
   label: z.string().min(1, "Название обязательно"),

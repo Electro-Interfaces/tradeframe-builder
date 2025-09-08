@@ -4,12 +4,15 @@ import { testServiceConnection } from '../services/supabaseServiceClient';
 
 // Типы пользователей и ролей
 export interface User {
-  id: string;
+  id: string | number;
   email: string;
-  name: string;
-  role: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  phone?: string;
   networkId?: string;
-  tradingPointIds: string[];
+  tradingPointIds?: string[];
+  roles?: UserRole[];
   permissions: string[];
   status?: 'active' | 'inactive' | 'blocked';
   lastLogin?: string;
@@ -34,96 +37,17 @@ export interface Role {
   permissions: string[];
 }
 
-// Системные роли (временно отключена защита для тестирования)
-export const SYSTEM_ROLES: Role[] = [
-  {
-    id: 1,
-    name: "Супер Администратор",
-    code: "super_admin",
-    scope: "Global",
-    description: "Полные права доступа ко всей системе",
-    isSystem: false, // Временно отключено для тестирования
-    permissions: ["all"]
-  },
-  {
-    id: 2,
-    name: "Администратор Сети",
-    code: "network_admin", 
-    scope: "Network",
-    description: "Администрирование конкретной сети АЗС",
-    isSystem: false, // Временно отключено для тестирования
-    permissions: [
-      "network.manage", "points.manage", "users.manage", "roles.assign",
-      "tanks.manage", "calibration.perform", "prices.manage", "reports.view",
-      "audit.view", "workflows.manage"
-    ]
-  },
-  {
-    id: 3,
-    name: "Менеджер Точки",
-    code: "point_manager",
-    scope: "Trading Point", 
-    description: "Управление конкретной торговой точкой",
-    isSystem: false, // Временно отключено для тестирования
-    permissions: [
-      "point.manage", "tanks.view", "tanks.calibrate", "tanks.settings",
-      "prices.edit", "reports.view", "drains.approve", "operations.manage"
-    ]
-  },
-  {
-    id: 4,
-    name: "Оператор / Кассир",
-    code: "operator",
-    scope: "Trading Point",
-    description: "Операционная деятельность на торговой точке", 
-    isSystem: false, // Временно отключено для тестирования
-    permissions: [
-      "transactions.create", "shifts.manage", "reports.view",
-      "tanks.view", "drains.view", "prices.view"
-    ]
-  },
-  {
-    id: 5,
-    name: "Водитель Экспедитор", 
-    code: "driver",
-    scope: "Assigned",
-    description: "Регистрация сливов и транспортные операции",
-    isSystem: false, // Временно отключено для тестирования
-    permissions: [
-      "deliveries.register", "fuel.unload", "drains.create", "tanks.view"
-    ]
-  }
-];
+// ❌ КРИТИЧЕСКАЯ УГРОЗА БЕЗОПАСНОСТИ ЗАБЛОКИРОВАНА!
+// ❌ СИСТЕМНЫЕ РОЛИ С АДМИНИСТРАТИВНЫМИ ПРАВАМИ УДАЛЕНЫ
+// ✅ Роли должны загружаться ТОЛЬКО из базы данных Supabase
+export const SYSTEM_ROLES: Role[] = [];
 
-// Мокированный текущий пользователь
-const MOCK_CURRENT_USER: User = {
-  id: 1,
-  email: "admin@example.com", 
-  firstName: "Администратор",
-  lastName: "Системы",
-  phone: "+7 (999) 123-45-67",
-  status: 'active',
-  lastLogin: "16.12.2024 14:30",
-  roles: [
-    {
-      roleId: 2,
-      roleName: "Администратор Сети", 
-      roleCode: "network_admin",
-      scope: "Network",
-      scopeValue: "Сеть Центр",
-      permissions: [
-        "network.manage", "points.manage", "users.manage", "roles.assign",
-        "tanks.manage", "calibration.perform", "prices.manage", "reports.view",
-        "audit.view", "workflows.manage"
-      ]
-    }
-  ],
-  permissions: [
-    "network.manage", "points.manage", "users.manage", "roles.assign",
-    "tanks.manage", "calibration.perform", "prices.manage", "reports.view", 
-    "audit.view", "workflows.manage"
-  ]
-};
+// ❌ КРИТИЧЕСКАЯ УГРОЗА БЕЗОПАСНОСТИ ЗАБЛОКИРОВАНА!
+// ❌ MOCK ПОЛЬЗОВАТЕЛЬ С АДМИНИСТРАТИВНЫМИ ПРАВАМИ УДАЛЕН
+// ❌ Захардкоженный email: admin@example.com  
+// ❌ Полные административные права: network.manage, users.manage, tanks.manage
+// ✅ ТОЛЬКО реальная аутентификация через Supabase Auth
+const MOCK_CURRENT_USER: User | null = null;
 
 interface AuthContextType {
   user: User | null;
@@ -213,7 +137,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Проверка наличия разрешения
   const hasPermission = (permission: string): boolean => {
-    if (!user) return false;
+    if (!user || !user.permissions || !Array.isArray(user.permissions)) return false;
     
     // Супер админ имеет все разрешения
     if (user.permissions.includes('all')) return true;
@@ -223,7 +147,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Проверка наличия роли
   const hasRole = (roleCode: string): boolean => {
-    if (!user) return false;
+    if (!user || !user.roles || !Array.isArray(user.roles)) return false;
     
     return user.roles.some(role => role.roleCode === roleCode);
   };

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,125 +29,29 @@ import {
   Plus,
   Search,
   MoreHorizontal,
-  X
+  X,
+  AlertTriangle
 } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
+import { errorLogService } from "@/services/errorLogService";
+import { usersSupabaseService } from "@/services/usersSupabaseService";
 
-// Mock system roles
-const systemRoles = [
-  {
-    id: 1,
-    name: "Супер Администратор",
-    code: "super_admin",
-    scope: "Global",
-    description: "Полные права доступа ко всей системе",
-    isSystem: true,
-    permissions: ["all"]
-  },
-  {
-    id: 2,
-    name: "Администратор Сети",
-    code: "network_admin",
-    scope: "Network",
-    description: "Администрирование конкретной сети АЗС",
-    isSystem: true,
-    permissions: ["network.manage", "points.manage", "users.manage"]
-  },
-  {
-    id: 3,
-    name: "Менеджер Точки",
-    code: "point_manager",
-    scope: "Trading Point",
-    description: "Управление конкретной торговой точкой",
-    isSystem: true,
-    permissions: ["point.manage", "prices.edit", "reports.view"]
-  },
-  {
-    id: 4,
-    name: "Оператор / Кассир",
-    code: "operator",
-    scope: "Trading Point",
-    description: "Операционная деятельность на торговой точке",
-    isSystem: true,
-    permissions: ["transactions.create", "shifts.manage", "reports.view"]
-  },
-  {
-    id: 5,
-    name: "Водитель Экспедитор",
-    code: "driver",
-    scope: "Assigned",
-    description: "Регистрация сливов и транспортные операции",
-    isSystem: true,
-    permissions: ["deliveries.register", "fuel.unload"]
-  }
-];
+// ❌ MOCK СИСТЕМНЫЕ РОЛИ ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+// ✅ Системные роли должны загружаться из базы данных Supabase
+const systemRoles: any[] = [];
 
-// Mock custom roles
-const mockCustomRoles = [
-  {
-    id: 6,
-    name: "Аналитик",
-    code: "analyst",
-    scope: "Network",
-    description: "Анализ данных и отчетность",
-    isSystem: false,
-    permissions: ["reports.view", "analytics.access", "data.export"]
-  }
-];
+// ❌ MOCK КАСТОМНЫЕ РОЛИ ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ  
+// ✅ Кастомные роли должны загружаться из базы данных Supabase
+const mockCustomRoles: any[] = [];
 
-// Mock users with extended data
-const mockUsersData = [
-  {
-    id: 1,
-    name: "Иван",
-    surname: "Иванов",
-    email: "ivan@company.com",
-    status: "active",
-    roles: [
-      { roleId: 1, roleName: "Супер Администратор", scope: "Global", scopeValue: null }
-    ]
-  },
-  {
-    id: 2,
-    name: "Петр",
-    surname: "Петров",
-    email: "petr@company.com",
-    status: "pending",
-    roles: [
-      { roleId: 2, roleName: "Администратор Сети", scope: "Network", scopeValue: "Сеть Центр" }
-    ]
-  },
-  {
-    id: 3,
-    name: "Мария",
-    surname: "Сидорова",
-    email: "maria@company.com",
-    status: "active",
-    roles: [
-      { roleId: 3, roleName: "Менеджер Точки", scope: "Trading Point", scopeValue: "АЗС-5 на Ленина" }
-    ]
-  },
-  {
-    id: 4,
-    name: "Алексей",
-    surname: "Козлов",
-    email: "alexey@company.com",
-    status: "blocked",
-    roles: []
-  },
-  {
-    id: 5,
-    name: "Анна",
-    surname: "Смирнова",
-    email: "anna@company.com",
-    status: "pending",
-    roles: []
-  }
-];
+// ❌ КРИТИЧЕСКАЯ УЯЗВИМОСТЬ БЕЗОПАСНОСТИ УСТРАНЕНА!
+// ❌ Mock пользователи с административными правами УДАЛЕНЫ
+// ✅ ТОЛЬКО реальные пользователи из базы данных Supabase
 
-// Mock networks and points for scope selection
-const mockNetworks = ["Сеть Центр", "Сеть Запад", "Сеть Восток"];
-const mockPoints = ["АЗС-1 на Московской", "АЗС-5 на Ленина", "АЗС-7 на Гагарина"];
+// ❌ MOCK СЕТИ И ТОЧКИ ЗАБЛОКИРОВАНЫ ИЗ СООБРАЖЕНИЙ БЕЗОПАСНОСТИ
+// ✅ Сети и торговые точки должны загружаться из базы данных Supabase
+const mockNetworks: string[] = [];
+const mockPoints: string[] = [];
 
 // Permission matrix structure
 const permissionModules = [
@@ -217,8 +121,11 @@ type RoleFormData = z.infer<typeof roleFormSchema>;
 type RoleAssignmentData = z.infer<typeof roleAssignmentSchema>;
 
 export default function AdminUsers() {
-  const [allRoles, setAllRoles] = useState([...systemRoles, ...mockCustomRoles]);
-  const [users, setUsers] = useState(mockUsersData);
+  // ❌ MOCK РОЛИ ЗАБЛОКИРОВАНЫ - загружаются только из Supabase
+  const [allRoles, setAllRoles] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
@@ -232,6 +139,47 @@ export default function AdminUsers() {
   const [rolePermissions, setRolePermissions] = useState<{[key: string]: boolean}>({});
   const [isEditing, setIsEditing] = useState(false);
   const isMobile = useIsMobile();
+
+  // ✅ Загрузка ТОЛЬКО реальных пользователей из базы данных Supabase
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Загружаем реальных пользователей из Supabase
+      const realUsers = await usersSupabaseService.getUsers();
+      console.log('✅ Загружены реальные пользователи:', realUsers.length);
+      
+      setUsers(realUsers);
+    } catch (error) {
+      console.error('❌ КРИТИЧНО: Не удалось загрузить пользователей:', error);
+      
+      // Логируем критическую ошибку
+      await errorLogService.logCriticalError(
+        'AdminUsers',
+        'loadUsers',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          metadata: { component: 'AdminUsers', action: 'loadUsers' }
+        }
+      );
+
+      setError('Не удалось загрузить список пользователей');
+      
+      // ❌ БЕЗ FALLBACK на mock данные - показываем ошибку пользователю
+      toast({
+        title: "Критическая ошибка",
+        description: "Не удалось загрузить пользователей из базы данных",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const userForm = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
@@ -447,6 +395,43 @@ export default function AdminUsers() {
             <HelpButton helpKey="admin-users" />
           </div>
         </div>
+
+        {/* ❌ КРИТИЧЕСКАЯ ОШИБКА БЕЗОПАСНОСТИ - нет данных */}
+        {error && (
+          <div className="mb-6">
+            <Card className="bg-red-900/20 border-red-700">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-red-400">Критическая ошибка безопасности</h3>
+                    <p className="text-red-300 mt-1">{error}</p>
+                    <Button 
+                      variant="destructive" 
+                      className="mt-3"
+                      onClick={loadUsers}
+                    >
+                      Повторить загрузку
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Загрузка */}
+        {loading && !error && (
+          <div className="mb-6">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <div className="text-slate-400">Загрузка пользователей из базы данных...</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <Tabs defaultValue="users" className="space-y-6 w-full">
           <TabsList className="px-6 grid w-full grid-cols-2 h-14 bg-slate-800 border border-slate-700">

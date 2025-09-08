@@ -1,6 +1,7 @@
 /**
  * Service for managing workflow automation
- * Handles CRUD operations, execution management, and scheduling
+ * ОБНОВЛЕН: Интегрирован с централизованной конфигурацией  
+ * Поддерживает переключение между localStorage и Supabase
  */
 
 import { 
@@ -21,26 +22,38 @@ import {
   DEFAULT_NOTIFICATION_CONFIG
 } from '@/types/workflows';
 
-import { workflowsStore } from '@/mock/workflowsStore';
+// Mock данные удалены, используется localStorage или Supabase
+import { apiConfigServiceDB } from './apiConfigServiceDB';
+import { WorkflowsSupabaseService } from './workflowsSupabaseService';
 
 class WorkflowsService {
   private workflows: Map<string, Workflow> = new Map();
   private executions: Map<string, WorkflowExecution> = new Map();
   private runningExecutions: Set<string> = new Set();
+  private workflowsSupabaseService: WorkflowsSupabaseService = new WorkflowsSupabaseService();
 
   constructor() {
-    this.loadMockData();
+    // Данные загружаются по требованию из localStorage или Supabase
   }
 
-  private loadMockData() {
-    workflowsStore.getAll().forEach(workflow => {
-      this.workflows.set(workflow.id, { ...workflow });
-    });
-    
-    workflowsStore.getAllExecutions().forEach(execution => {
-      this.executions.set(execution.id, { ...execution });
-    });
+  async initialize(): Promise<void> {
+    try {
+      await apiConfigServiceDB.initialize();
+      console.log('✅ WorkflowsService инициализирован');
+    } catch (error) {
+      console.warn('⚠️ Ошибка инициализации WorkflowsService:', error);
+    }
   }
+
+  async isMockMode(): Promise<boolean> {
+    try {
+      return await apiConfigServiceDB.isMockMode();
+    } catch (error) {
+      return true;
+    }
+  }
+
+  // Mock данные удалены - используется Supabase или localStorage
 
   private generateId(): string {
     return `wf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -52,6 +65,28 @@ class WorkflowsService {
 
   // CRUD Operations
   async listWorkflows(params: ListWorkflowsParams = {}): Promise<ListWorkflowsResponse> {
+    try {
+      const isMock = await this.isMockMode();
+      
+      if (isMock) {
+        console.log('🔄 WorkflowsService.listWorkflows: Используется localStorage режим');
+        return this.processLocalStorageWorkflows(params);
+      } else {
+        console.log('🔄 WorkflowsService.listWorkflows: Используется Supabase режим');
+        try {
+          return await this.workflowsSupabaseService.listWorkflows(params);
+        } catch (error) {
+          console.warn('⚠️ Fallback на localStorage:', error);
+          return this.processLocalStorageWorkflows(params);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Ошибка получения списка workflow:', error);
+      return this.processLocalStorageWorkflows(params);
+    }
+  }
+
+  private processLocalStorageWorkflows(params: ListWorkflowsParams): ListWorkflowsResponse {
     let workflows = Array.from(this.workflows.values());
 
     // Apply filters
@@ -102,7 +137,25 @@ class WorkflowsService {
   }
 
   async getWorkflow(id: string): Promise<Workflow | null> {
-    return this.workflows.get(id) || null;
+    try {
+      const isMock = await this.isMockMode();
+      
+      if (isMock) {
+        console.log(`🔄 WorkflowsService.getWorkflow(${id}): Используется localStorage режим`);
+        return this.workflows.get(id) || null;
+      } else {
+        console.log(`🔄 WorkflowsService.getWorkflow(${id}): Используется Supabase режим`);
+        try {
+          return await this.workflowsSupabaseService.getWorkflow(id);
+        } catch (error) {
+          console.warn('⚠️ Fallback на localStorage:', error);
+          return this.workflows.get(id) || null;
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Ошибка получения workflow ${id}:`, error);
+      return this.workflows.get(id) || null;
+    }
   }
 
   async createWorkflow(request: CreateWorkflowRequest): Promise<Workflow> {

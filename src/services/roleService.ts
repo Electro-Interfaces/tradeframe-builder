@@ -341,6 +341,12 @@ export class RoleService {
    * Получить статистику по ролям
    */
   static async getRoleStatistics(): Promise<{
+    totalRoles: number
+    activeRoles: number
+    inactiveRoles: number
+    systemRoles: number
+    customRoles: number
+    // Legacy aliases for backward compatibility
     total: number
     active: number
     inactive: number
@@ -349,17 +355,37 @@ export class RoleService {
   }> {
     try {
       const roles = await this.getAllRoles()
+      const total = roles.length
+      const active = roles.filter(r => r.is_active).length
+      const inactive = roles.filter(r => !r.is_active).length
+      const system = roles.filter(r => r.is_system).length
+      const custom = roles.filter(r => !r.is_system).length
       
       return {
-        total: roles.length,
-        active: roles.filter(r => r.is_active).length,
-        inactive: roles.filter(r => !r.is_active).length,
-        system: roles.filter(r => r.is_system).length,
-        custom: roles.filter(r => !r.is_system).length
+        // New naming convention
+        totalRoles: total,
+        activeRoles: active,
+        inactiveRoles: inactive,
+        systemRoles: system,
+        customRoles: custom,
+        // Legacy aliases for backward compatibility
+        total,
+        active,
+        inactive,
+        system,
+        custom
       }
     } catch (error) {
       console.error('Failed to get role statistics:', error)
-      return { total: 0, active: 0, inactive: 0, system: 0, custom: 0 }
+      const zeroStats = { total: 0, active: 0, inactive: 0, system: 0, custom: 0 }
+      return {
+        totalRoles: 0,
+        activeRoles: 0,
+        inactiveRoles: 0,
+        systemRoles: 0,
+        customRoles: 0,
+        ...zeroStats
+      }
     }
   }
 

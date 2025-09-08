@@ -1,31 +1,74 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { operationsSupabaseService } from "@/services/operationsSupabaseService";
+import { tradingPointsService } from "@/services/tradingPointsService";
+import { Network } from "@/types/network";
+import { TradingPoint } from "@/types/tradingpoint";
 
-// Mock data для графиков
-const mockFuelData = [
-  { name: "АИ-95", value: 45, amount: 1281234, color: "#60a5fa" },
-  { name: "АИ-92", value: 35, amount: 996223, color: "#4ade80" },
-  { name: "ДТ", value: 20, amount: 570178, color: "#9ca3af" }
-];
+interface FuelData {
+  name: string;
+  value: number;
+  amount: number;
+  color: string;
+}
 
-const mockPaymentData = [
-  { name: "Банк. карты", value: 65, amount: 1850763, color: "#3b82f6" },
-  { name: "Наличные", value: 25, amount: 711909, color: "#10b981" },
-  { name: "Корп. карты", value: 10, amount: 284963, color: "#6b7280" }
-];
+interface PaymentData {
+  name: string;
+  value: number;
+  amount: number;
+  color: string;
+}
 
-const mockTrendData = [
-  { period: "01.12", revenue: 245000, transactions: 87 },
-  { period: "02.12", revenue: 267000, transactions: 92 },
-  { period: "03.12", revenue: 298000, transactions: 105 },
-  { period: "04.12", revenue: 276000, transactions: 98 },
-  { period: "05.12", revenue: 312000, transactions: 112 },
-  { period: "06.12", revenue: 289000, transactions: 101 },
-  { period: "07.12", revenue: 334000, transactions: 118 }
-];
+interface TrendData {
+  period: string;
+  revenue: number;
+  transactions: number;
+}
+
+interface ChartsData {
+  fuelData: FuelData[];
+  paymentData: PaymentData[];
+  trendData: TrendData[];
+  loading: boolean;
+}
 
 // Простая круговая диаграмма с CSS
-const FuelChart = () => {
+const FuelChart = ({ data, loading }: { data: FuelData[], loading: boolean }) => {
+  if (loading) {
+    return (
+      <div className="w-full h-64 flex items-center justify-center">
+        <div className="animate-pulse space-y-3">
+          <div className="w-32 h-32 bg-slate-600 rounded-full mx-auto"></div>
+          <div className="space-y-2">
+            <div className="h-4 bg-slate-600 rounded w-24"></div>
+            <div className="h-4 bg-slate-600 rounded w-20"></div>
+            <div className="h-4 bg-slate-600 rounded w-28"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="w-full h-64 flex items-center justify-center text-slate-400">
+        <div className="text-center">
+          <div className="text-lg mb-2">📊</div>
+          <div>Нет данных для отображения</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Вычисляем углы для conic-gradient
+  let currentAngle = 0;
+  const gradientStops = data.map((item) => {
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + (item.value * 3.6);
+    currentAngle = endAngle;
+    return `${item.color} ${startAngle}deg ${endAngle}deg`;
+  }).join(', ');
+
   return (
     <div className="w-full h-64 flex flex-col items-center justify-center px-2">
       {/* Диаграмма */}
@@ -35,11 +78,7 @@ const FuelChart = () => {
           <div 
             className="absolute inset-0 rounded-full"
             style={{
-              background: `conic-gradient(
-                #60a5fa 0deg ${mockFuelData[0].value * 3.6}deg,
-                #4ade80 ${mockFuelData[0].value * 3.6}deg ${(mockFuelData[0].value + mockFuelData[1].value) * 3.6}deg,
-                #9ca3af ${(mockFuelData[0].value + mockFuelData[1].value) * 3.6}deg 360deg
-              )`
+              background: `conic-gradient(${gradientStops})`
             }}
           />
           {/* Центральный круг */}
@@ -53,7 +92,7 @@ const FuelChart = () => {
         
         {/* Легенда */}
         <div className="space-y-2 min-w-0 flex-1">
-          {mockFuelData.map((item, index) => (
+          {data.map((item, index) => (
             <div key={index} className="flex items-center gap-2">
               <div 
                 className="w-3 h-3 rounded flex-shrink-0"
@@ -61,7 +100,7 @@ const FuelChart = () => {
               ></div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-white truncate">{item.name}</div>
-                <div className="text-xs text-slate-400 truncate">{item.value}% • {item.amount.toLocaleString()} ₽</div>
+                <div className="text-xs text-slate-400 truncate">{item.value.toFixed(1)}% • {item.amount.toLocaleString()} ₽</div>
               </div>
             </div>
           ))}
@@ -72,7 +111,42 @@ const FuelChart = () => {
 };
 
 // Диаграмма способов оплаты
-const PaymentChart = () => {
+const PaymentChart = ({ data, loading }: { data: PaymentData[], loading: boolean }) => {
+  if (loading) {
+    return (
+      <div className="w-full h-64 flex items-center justify-center">
+        <div className="animate-pulse space-y-3">
+          <div className="w-32 h-32 bg-slate-600 rounded-full mx-auto"></div>
+          <div className="space-y-2">
+            <div className="h-4 bg-slate-600 rounded w-24"></div>
+            <div className="h-4 bg-slate-600 rounded w-20"></div>
+            <div className="h-4 bg-slate-600 rounded w-28"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="w-full h-64 flex items-center justify-center text-slate-400">
+        <div className="text-center">
+          <div className="text-lg mb-2">💳</div>
+          <div>Нет данных для отображения</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Вычисляем углы для conic-gradient
+  let currentAngle = 0;
+  const gradientStops = data.map((item) => {
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + (item.value * 3.6);
+    currentAngle = endAngle;
+    return `${item.color} ${startAngle}deg ${endAngle}deg`;
+  }).join(', ');
+
   return (
     <div className="w-full h-64 flex flex-col items-center justify-center px-2">
       {/* Диаграмма */}
@@ -82,11 +156,7 @@ const PaymentChart = () => {
           <div 
             className="absolute inset-0 rounded-full"
             style={{
-              background: `conic-gradient(
-                #3b82f6 0deg ${mockPaymentData[0].value * 3.6}deg,
-                #10b981 ${mockPaymentData[0].value * 3.6}deg ${(mockPaymentData[0].value + mockPaymentData[1].value) * 3.6}deg,
-                #6b7280 ${(mockPaymentData[0].value + mockPaymentData[1].value) * 3.6}deg 360deg
-              )`
+              background: `conic-gradient(${gradientStops})`
             }}
           />
           {/* Центральный круг */}
@@ -100,7 +170,7 @@ const PaymentChart = () => {
         
         {/* Легенда */}
         <div className="space-y-2 min-w-0 flex-1">
-          {mockPaymentData.map((item, index) => (
+          {data.map((item, index) => (
             <div key={index} className="flex items-center gap-2">
               <div 
                 className="w-3 h-3 rounded flex-shrink-0"
@@ -108,7 +178,7 @@ const PaymentChart = () => {
               ></div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-white truncate">{item.name}</div>
-                <div className="text-xs text-slate-400 truncate">{item.value}% • {item.amount.toLocaleString()} ₽</div>
+                <div className="text-xs text-slate-400 truncate">{item.value.toFixed(1)}% • {item.amount.toLocaleString()} ₽</div>
               </div>
             </div>
           ))}
@@ -119,13 +189,38 @@ const PaymentChart = () => {
 };
 
 // Простой столбчатый график
-const TrendChart = () => {
-  const maxRevenue = Math.max(...mockTrendData.map(d => d.revenue));
+const TrendChart = ({ data, loading }: { data: TrendData[], loading: boolean }) => {
+  if (loading) {
+    return (
+      <div className="w-full h-64 flex items-center justify-center">
+        <div className="animate-pulse flex space-x-2">
+          <div className="w-8 h-32 bg-slate-600 rounded"></div>
+          <div className="w-8 h-24 bg-slate-600 rounded"></div>
+          <div className="w-8 h-40 bg-slate-600 rounded"></div>
+          <div className="w-8 h-28 bg-slate-600 rounded"></div>
+          <div className="w-8 h-36 bg-slate-600 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="w-full h-64 flex items-center justify-center text-slate-400">
+        <div className="text-center">
+          <div className="text-lg mb-2">📊</div>
+          <div>Нет данных для отображения</div>
+        </div>
+      </div>
+    );
+  }
+
+  const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
   
   return (
     <div className="w-full h-64 p-4">
       <div className="h-48 flex items-end justify-between gap-1">
-        {mockTrendData.map((item, index) => (
+        {data.map((item, index) => (
           <div key={index} className="flex-1 flex flex-col items-center group">
             <div className="relative w-full max-w-8">
               <div 
@@ -157,37 +252,177 @@ const TrendChart = () => {
   );
 };
 
-// Дополнительные метрики
-const MetricsGrid = () => {
-  const metrics = [
-    { label: "Пиковые часы", value: "14:00-18:00", icon: "⏰", trend: "+5%" },
-    { label: "Конверсия", value: "78.5%", icon: "📈", trend: "+2.1%" },
-    { label: "Средняя очередь", value: "3.2 мин", icon: "⏱️", trend: "-0.8%" },
-    { label: "Повторные клиенты", value: "45%", icon: "🔄", trend: "+12%" }
-  ];
-
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {metrics.map((metric, index) => (
-        <div key={index} className="bg-slate-700 rounded-lg p-4 text-center hover:bg-slate-600 transition-colors">
-          <div className="text-2xl mb-2">{metric.icon}</div>
-          <div className="text-white font-semibold">{metric.value}</div>
-          <div className="text-slate-400 text-sm mb-1">{metric.label}</div>
-          <div className={`text-xs font-medium ${metric.trend.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
-            {metric.trend}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
+// 🚨 УДАЛЕН: Дополнительные метрики с демо данными
+// ❌ БЕЗОПАСНОСТЬ: Блок содержал фиктивные демо показатели:
+// - "Пиковые часы: 14:00-18:00" 
+// - "Конверсия: 78.5%" 
+// - "Средняя очередь: 3.2 мин"
+// - "Повторные клиенты: 45%"
+// 
+// ✅ FAIL-SECURE: В физической топливной системе показ фиктивных метрик
+// может привести к неверным управленческим решениям и финансовым потерям.
+// Удален полностью до реализации реальных расчетов метрик.
 
 interface SalesAnalysisChartsSimpleProps {
-  selectedNetwork?: string;
+  selectedNetwork?: Network | null;
   selectedTradingPoint?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  groupBy?: string;
 }
 
-export function SalesAnalysisChartsSimple({ selectedNetwork, selectedTradingPoint }: SalesAnalysisChartsSimpleProps) {
+export function SalesAnalysisChartsSimple({ selectedNetwork, selectedTradingPoint, dateFrom, dateTo, groupBy }: SalesAnalysisChartsSimpleProps) {
+  const [chartsData, setChartsData] = useState<ChartsData>({
+    fuelData: [],
+    paymentData: [],
+    trendData: [],
+    loading: true
+  });
+
+  // Загрузка данных для графиков
+  useEffect(() => {
+    async function loadChartsData() {
+      if (!selectedNetwork) {
+        setChartsData(prev => ({ ...prev, loading: false }));
+        return;
+      }
+
+      try {
+        setChartsData(prev => ({ ...prev, loading: true }));
+
+        // Подготавливаем фильтры
+        const filters: any = {};
+        
+        // Если выбрана конкретная торговая точка
+        if (selectedTradingPoint && selectedTradingPoint !== "all") {
+          // Используем UUID торговой точки напрямую для фильтрации
+          filters.tradingPointId = selectedTradingPoint;
+          console.log('🎯 Charts: Фильтруем по торговой точке (UUID):', { 
+            selectedTradingPoint
+          });
+        } else {
+          console.log('📊 Charts: Загружаем данные по всей сети');
+        }
+
+        // Фильтр по завершенным операциям с переданными датами или за последнюю неделю
+        let startDateValue, endDateValue;
+        
+        if (dateFrom && dateTo) {
+          startDateValue = dateFrom;
+          endDateValue = dateTo;
+          console.log('📅 Charts using provided date range:', { dateFrom, dateTo });
+        } else {
+          const endDate = new Date();
+          const startDate = new Date();
+          startDate.setDate(startDate.getDate() - 7);
+          startDateValue = startDate.toISOString().split('T')[0];
+          endDateValue = endDate.toISOString().split('T')[0];
+          console.log('📅 Charts using default 7-day range:', { startDateValue, endDateValue });
+        }
+        
+        filters.status = 'completed';
+        filters.startDate = startDateValue;
+        filters.endDate = endDateValue;
+        
+        if (groupBy) {
+          console.log('📊 Charts grouping by:', groupBy);
+          filters.groupBy = groupBy;
+        }
+
+        console.log('📊 Charts: Loading operations with filters:', filters);
+        
+        // Получаем операции из Supabase
+        const operations = await operationsSupabaseService.getOperations(filters);
+        
+        console.log('📊 Charts: Loaded operations:', operations.length);
+        
+        // Детальное логирование для диагностики
+        if (selectedTradingPoint && selectedTradingPoint !== "all") {
+          const uniqueTradingPoints = [...new Set(operations.map(op => op.tradingPointId).filter(Boolean))];
+          console.log('📊 Charts: Диагностика фильтрации по торговой точке:');
+          console.log('   - Выбранная торговая точка:', selectedTradingPoint);
+          console.log('   - Операций получено после фильтрации:', operations.length);
+          console.log('   - Уникальные торговые точки в операциях:', uniqueTradingPoints);
+        }
+        
+        // Обрабатываем данные по видам топлива
+        const fuelStats: Record<string, { count: number, amount: number }> = {};
+        const paymentStats: Record<string, { count: number, amount: number }> = {};
+        const dailyStats: Record<string, { revenue: number, transactions: number }> = {};
+
+        operations.forEach(op => {
+          const cost = op.totalCost || 0;
+          
+          // Статистика по топливу
+          if (op.fuelType) {
+            if (!fuelStats[op.fuelType]) {
+              fuelStats[op.fuelType] = { count: 0, amount: 0 };
+            }
+            fuelStats[op.fuelType].count++;
+            fuelStats[op.fuelType].amount += cost;
+          }
+
+          // Статистика по оплате
+          if (op.paymentMethod) {
+            const paymentName = op.paymentMethod === 'bank_card' ? 'Банк. карты' :
+                               op.paymentMethod === 'cash' ? 'Наличные' :
+                               op.paymentMethod === 'corporate_card' ? 'Корп. карты' : 'Другое';
+            
+            if (!paymentStats[paymentName]) {
+              paymentStats[paymentName] = { count: 0, amount: 0 };
+            }
+            paymentStats[paymentName].count++;
+            paymentStats[paymentName].amount += cost;
+          }
+
+          // Статистика по дням
+          const day = new Date(op.startTime).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+          if (!dailyStats[day]) {
+            dailyStats[day] = { revenue: 0, transactions: 0 };
+          }
+          dailyStats[day].revenue += cost;
+          dailyStats[day].transactions++;
+        });
+
+        // Конвертируем в нужный формат
+        const totalAmount = operations.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+        
+        const fuelColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+        const fuelData: FuelData[] = Object.entries(fuelStats).map(([name, stats], index) => ({
+          name,
+          value: totalAmount > 0 ? (stats.amount / totalAmount) * 100 : 0,
+          amount: stats.amount,
+          color: fuelColors[index % fuelColors.length]
+        }));
+
+        const paymentColors = ['#3b82f6', '#10b981', '#6b7280'];
+        const paymentData: PaymentData[] = Object.entries(paymentStats).map(([name, stats], index) => ({
+          name,
+          value: totalAmount > 0 ? (stats.amount / totalAmount) * 100 : 0,
+          amount: stats.amount,
+          color: paymentColors[index % paymentColors.length]
+        }));
+
+        const trendData: TrendData[] = Object.entries(dailyStats)
+          .map(([period, stats]) => ({ period, ...stats }))
+          .sort((a, b) => a.period.localeCompare(b.period));
+
+        setChartsData({
+          fuelData,
+          paymentData,
+          trendData,
+          loading: false
+        });
+
+      } catch (error) {
+        console.error('❌ Error loading charts data:', error);
+        setChartsData(prev => ({ ...prev, loading: false }));
+      }
+    }
+
+    loadChartsData();
+  }, [selectedNetwork, selectedTradingPoint, dateFrom, dateTo, groupBy]);
+
   return (
     <div className="space-y-6">
       {/* Основные графики */}
@@ -201,7 +436,7 @@ export function SalesAnalysisChartsSimple({ selectedNetwork, selectedTradingPoin
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4">
-            <FuelChart />
+            <FuelChart data={chartsData.fuelData} loading={chartsData.loading} />
           </CardContent>
         </Card>
 
@@ -213,7 +448,7 @@ export function SalesAnalysisChartsSimple({ selectedNetwork, selectedTradingPoin
             </CardTitle>
           </CardHeader>
           <CardContent className="relative p-4">
-            <TrendChart />
+            <TrendChart data={chartsData.trendData} loading={chartsData.loading} />
           </CardContent>
         </Card>
 
@@ -225,7 +460,7 @@ export function SalesAnalysisChartsSimple({ selectedNetwork, selectedTradingPoin
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4">
-            <PaymentChart />
+            <PaymentChart data={chartsData.paymentData} loading={chartsData.loading} />
           </CardContent>
         </Card>
         </div>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Проверка резервуаров АЗС-004 в базе данных</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1a1a1a; 
+            color: #0f0; 
+            padding: 20px;
+            line-height: 1.4;
+        }
+        .section { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border: 1px solid #0f0;
+            background: #0a0a0a;
+        }
+        h1 { color: #0ff; }
+        h2 { color: #ff0; }
+        .step {
+            margin: 10px 0;
+            padding: 8px;
+            background: #001100;
+            border-left: 3px solid #0f0;
+        }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        pre {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            overflow-x: auto;
+            font-size: 11px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            background: #0a0a0a;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            cursor: pointer;
+            font-family: monospace;
+            margin: 5px;
+        }
+        button:hover {
+            background: #001100;
+        }
+    </style>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>🔍 Проверка резервуаров АЗС-004 (сеть 15, станция 4)</h1>
+    
+    <div class="section">
+        <h2>Шаг 1: Поиск торговой точки</h2>
+        <button onclick="findTradingPoint()">🔍 Найти торговую точку сети 15, станции 4</button>
+        <div id="tradingPointResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 2: Проверка оборудования типа fuel_tank</h2>
+        <button onclick="checkFuelTankEquipment()">🛢️ Проверить оборудование резервуаров</button>
+        <div id="equipmentResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Шаг 3: Проверка данных резервуаров в tanksService</h2>
+        <button onclick="checkTanksService()">📊 Проверить данные в tanksService</button>
+        <div id="tanksResult"></div>
+    </div>
+
+    <script>
+        const log = (containerId, msg, type = '') => {
+            const div = document.createElement('div');
+            div.className = `step ${type}`;
+            div.innerHTML = msg;
+            document.getElementById(containerId).appendChild(div);
+        };
+
+        // Инициализация Supabase клиента
+        const supabaseUrl = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        let foundTradingPointId = null;
+
+        async function findTradingPoint() {
+            document.getElementById('tradingPointResult').innerHTML = '';
+            log('tradingPointResult', '🔍 Ищем торговую точку сети 15, станции 4...', 'warning');
+            
+            try {
+                // Сначала найдем сеть с external_id = 15 или названием содержащим "15"
+                const { data: networks, error: networksError } = await supabase
+                    .from('networks')
+                    .select('*')
+                    .or('external_id.eq.15,external_id.eq."15",name.ilike.%15%');
+
+                if (networksError) {
+                    log('tradingPointResult', `❌ Ошибка поиска сетей: ${networksError.message}`, 'error');
+                    return;
+                }
+
+                log('tradingPointResult', `📊 Найдено сетей: ${networks.length}`, 'success');
+                networks.forEach(network => {
+                    log('tradingPointResult', `  Сеть: ${network.name} (ID: ${network.id}, external_id: ${network.external_id})`);
+                });
+
+                if (networks.length === 0) {
+                    log('tradingPointResult', '❌ Сеть с ID 15 не найдена', 'error');
+                    return;
+                }
+
+                // Теперь найдем торговые точки для этих сетей
+                const networkIds = networks.map(n => n.id);
+                const { data: tradingPoints, error: tpError } = await supabase
+                    .from('trading_points')
+                    .select('*')
+                    .in('network_id', networkIds);
+
+                if (tpError) {
+                    log('tradingPointResult', `❌ Ошибка поиска торговых точек: ${tpError.message}`, 'error');
+                    return;
+                }
+
+                log('tradingPointResult', `📍 Найдено торговых точек: ${tradingPoints.length}`, 'success');
+
+                // Ищем точку со станцией 4
+                const station4Points = tradingPoints.filter(tp => 
+                    tp.external_id === '4' || 
+                    tp.external_id === 4 || 
+                    tp.name.includes('4') || 
+                    tp.name.includes('АЗС-004') ||
+                    tp.name.includes('Станция 4')
+                );
+
+                if (station4Points.length > 0) {
+                    const targetPoint = station4Points[0];
+                    foundTradingPointId = targetPoint.id;
+                    
+                    log('tradingPointResult', `✅ Найдена торговая точка станции 4:`, 'success');
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify({
+                        id: targetPoint.id,
+                        name: targetPoint.name,
+                        external_id: targetPoint.external_id,
+                        network_id: targetPoint.network_id,
+                        address: targetPoint.address
+                    }, null, 2);
+                    document.getElementById('tradingPointResult').appendChild(pre);
+                } else {
+                    log('tradingPointResult', '⚠️ Торговая точка станции 4 не найдена. Все торговые точки:', 'warning');
+                    tradingPoints.forEach(tp => {
+                        log('tradingPointResult', `  ТП: ${tp.name} (ID: ${tp.id}, external_id: ${tp.external_id})`);
+                    });
+                }
+
+            } catch (error) {
+                log('tradingPointResult', `❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkFuelTankEquipment() {
+            document.getElementById('equipmentResult').innerHTML = '';
+            
+            if (!foundTradingPointId) {
+                log('equipmentResult', '⚠️ Сначала найдите торговую точку', 'warning');
+                return;
+            }
+
+            log('equipmentResult', `🛢️ Ищем оборудование типа fuel_tank для торговой точки ${foundTradingPointId}...`, 'warning');
+            
+            try {
+                const { data: equipment, error } = await supabase
+                    .from('equipment')
+                    .select('*')
+                    .eq('trading_point_id', foundTradingPointId)
+                    .eq('system_type', 'fuel_tank');
+
+                if (error) {
+                    log('equipmentResult', `❌ Ошибка поиска оборудования: ${error.message}`, 'error');
+                    return;
+                }
+
+                log('equipmentResult', `📊 Найдено оборудования fuel_tank: ${equipment.length}`, 'success');
+
+                if (equipment.length > 0) {
+                    equipment.forEach((tank, index) => {
+                        log('equipmentResult', `<br><strong>🛢️ Резервуар ${index + 1}:</strong>`);
+                        const tankInfo = {
+                            id: tank.id,
+                            name: tank.name,
+                            display_name: tank.display_name,
+                            external_id: tank.external_id,
+                            status: tank.status,
+                            params: tank.params
+                        };
+                        
+                        const pre = document.createElement('pre');
+                        pre.textContent = JSON.stringify(tankInfo, null, 2);
+                        document.getElementById('equipmentResult').appendChild(pre);
+                    });
+                    
+                    log('equipmentResult', `<br>✅ Найдено ${equipment.length} резервуаров в таблице equipment`, 'success');
+                } else {
+                    log('equipmentResult', '❌ Резервуары типа fuel_tank не найдены в таблице equipment', 'error');
+                    
+                    // Попробуем найти любое оборудование для этой точки
+                    const { data: allEquipment } = await supabase
+                        .from('equipment')
+                        .select('*')
+                        .eq('trading_point_id', foundTradingPointId);
+                    
+                    log('equipmentResult', `📋 Всего оборудования для этой точки: ${allEquipment?.length || 0}`, 'warning');
+                    if (allEquipment && allEquipment.length > 0) {
+                        allEquipment.forEach(eq => {
+                            log('equipmentResult', `  - ${eq.name} (тип: ${eq.system_type}, статус: ${eq.status})`);
+                        });
+                    }
+                }
+
+            } catch (error) {
+                log('equipmentResult', `❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkTanksService() {
+            document.getElementById('tanksResult').innerHTML = '';
+            log('tanksResult', '📊 Проверяем данные в localStorage и танках...', 'warning');
+            
+            try {
+                // Проверим данные из localStorage
+                const tanksData = localStorage.getItem('tanks_data');
+                if (tanksData) {
+                    const tanks = JSON.parse(tanksData);
+                    log('tanksResult', `💾 В localStorage найдено резервуаров: ${tanks.length}`, 'success');
+                    
+                    const station4Tanks = tanks.filter(tank => 
+                        tank.name && (
+                            tank.name.includes('4') || 
+                            tank.name.includes('АЗС-004') ||
+                            tank.id?.includes('4')
+                        )
+                    );
+                    
+                    if (station4Tanks.length > 0) {
+                        log('tanksResult', `🛢️ Резервуары станции 4 в localStorage:`, 'success');
+                        station4Tanks.forEach((tank, index) => {
+                            log('tanksResult', `<br><strong>Резервуар ${index + 1}:</strong>`);
+                            const tankInfo = {
+                                id: tank.id,
+                                name: tank.name,
+                                fuelType: tank.fuelType,
+                                currentLevelLiters: tank.currentLevelLiters,
+                                capacityLiters: tank.capacityLiters,
+                                status: tank.status
+                            };
+                            
+                            const pre = document.createElement('pre');
+                            pre.textContent = JSON.stringify(tankInfo, null, 2);
+                            document.getElementById('tanksResult').appendChild(pre);
+                        });
+                    } else {
+                        log('tanksResult', '⚠️ В localStorage нет резервуаров для станции 4', 'warning');
+                        log('tanksResult', 'Все резервуары в localStorage:', 'warning');
+                        tanks.slice(0, 3).forEach(tank => {
+                            log('tanksResult', `  - ${tank.name} (ID: ${tank.id})`);
+                        });
+                    }
+                } else {
+                    log('tanksResult', '❌ Данные резервуаров не найдены в localStorage', 'error');
+                }
+
+                // Проверим также конфигурацию торговой сети
+                const tradingConfig = localStorage.getItem('trading_network_config');
+                if (tradingConfig) {
+                    const config = JSON.parse(tradingConfig);
+                    log('tanksResult', '<br>🔧 Конфигурация торговой сети:', 'warning');
+                    const configInfo = {
+                        baseUrl: config.baseUrl,
+                        systemId: config.systemId,
+                        defaultStationId: config.defaultStationId,
+                        enabled: config.enabled
+                    };
+                    
+                    const pre = document.createElement('pre');
+                    pre.textContent = JSON.stringify(configInfo, null, 2);
+                    document.getElementById('tanksResult').appendChild(pre);
+                } else {
+                    log('tanksResult', '❌ Конфигурация торговой сети не найдена', 'error');
+                }
+
+            } catch (error) {
+                log('tanksResult', `❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // Автоматически запускаем поиск торговой точки при загрузке
+        window.onload = function() {
+            console.log('🔍 Автоматический поиск торговой точки...');
+            findTradingPoint();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пошаговый тест универсального HTTP клиента</title>
+    <style>
+        body { font-family: 'Courier New', monospace; margin: 20px; background: #1e1e1e; color: #fff; }
+        .step { margin: 20px 0; padding: 15px; border-left: 3px solid #007acc; background: #2d2d30; }
+        .success { border-left-color: #28a745; background: #1a3d1a; }
+        .error { border-left-color: #dc3545; background: #3d1a1a; }
+        .warning { border-left-color: #ffc107; background: #3d3d1a; }
+        .code { background: #0d1117; padding: 10px; margin: 10px 0; border-radius: 5px; white-space: pre-wrap; }
+        .highlight { color: #79c0ff; }
+        .param { color: #7ee787; }
+        button { padding: 10px 20px; margin: 10px; background: #238636; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #2ea043; }
+        button:disabled { background: #656d76; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Пошаговый тест универсального HTTP клиента</h1>
+    <p>Этот тест проверяет каждый шаг работы универсального HTTP клиента для загрузки резервуаров АЗС 4</p>
+    
+    <button onclick="runFullTest()">🚀 Запустить полный тест</button>
+    <button onclick="clearLog()">🗑️ Очистить лог</button>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(title, content, type = 'step') {
+            const div = document.createElement('div');
+            div.className = `step ${type}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <div>${content}</div>
+            `;
+            log.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function addCode(code) {
+            return `<div class="code">${code}</div>`;
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        window.runFullTest = async function() {
+            clearLog();
+            addLog('🚀 НАЧИНАЕМ ПОШАГОВЫЙ ТЕСТ', 'Проверяем работу универсального HTTP клиента для АЗС 4');
+            
+            const TARGET_TP_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59';
+            
+            try {
+                // ШАГ 1: Импорт модулей
+                addLog('📦 ШАГ 1: Импорт модулей', 'Импортируем необходимые сервисы...');
+                
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                const { tradingNetworkConfigService } = await import('./src/services/tradingNetworkConfigService.js');
+                const { tanksApiIntegrationService } = await import('./src/services/tanksApiIntegrationService.js');
+                
+                addLog('✅ ИМПОРТ ЗАВЕРШЕН', 'Все модули импортированы успешно', 'success');
+                
+                // ШАГ 2: Получение конфигурации
+                addLog('🔧 ШАГ 2: Получение конфигурации торговой сети', 'Проверяем настройки из раздела "Обмен данными"...');
+                
+                let config;
+                try {
+                    config = await tradingNetworkConfigService.getConfig();
+                    
+                    addLog('✅ КОНФИГУРАЦИЯ ПОЛУЧЕНА (ASYNC)', 
+                        addCode(`Enabled: <span class="param">${config.enabled}</span>
+Base URL: <span class="param">${config.baseUrl}</span>
+Auth Type: <span class="param">${config.authType}</span>
+Username: <span class="param">${config.username || 'не указан'}</span>
+Password: <span class="param">${config.password ? '***' : 'не указан'}</span>
+Endpoints: <span class="param">${JSON.stringify(config.endpoints, null, 2)}</span>`), 'success');
+                        
+                } catch (asyncError) {
+                    addLog('❌ ОШИБКА ASYNC КОНФИГУРАЦИИ', 
+                        `Ошибка: ${asyncError.message}`, 'error');
+                    
+                    // Пробуем синхронную версию
+                    try {
+                        config = tradingNetworkConfigService.getConfigSync();
+                        addLog('⚠️ ИСПОЛЬЗУЕМ SYNC КОНФИГУРАЦИЮ', 
+                            addCode(`Enabled: <span class="param">${config.enabled}</span>
+Base URL: <span class="param">${config.baseUrl}</span>
+Auth Type: <span class="param">${config.authType}</span>
+Username: <span class="param">${config.username}</span>`), 'warning');
+                    } catch (syncError) {
+                        addLog('💥 КРИТИЧЕСКАЯ ОШИБКА КОНФИГУРАЦИИ', 
+                            `Не удалось получить конфигурацию: ${syncError.message}`, 'error');
+                        return;
+                    }
+                }
+                
+                // ШАГ 3: Получение API параметров
+                addLog('🆔 ШАГ 3: Получение API параметров для АЗС 4', 
+                    `Получаем system и station ID для торговой точки: ${TARGET_TP_ID}`);
+                
+                // Имитируем getApiParams из tanksApiIntegrationService
+                const { tradingPointsService } = await import('./src/services/tradingPointsService.js');
+                const { networksService } = await import('./src/services/networksService.js');
+                
+                const tradingPoint = await tradingPointsService.getById(TARGET_TP_ID);
+                if (!tradingPoint) {
+                    addLog('❌ ТОРГОВАЯ ТОЧКА НЕ НАЙДЕНА', `ID: ${TARGET_TP_ID}`, 'error');
+                    return;
+                }
+                
+                const stationId = tradingPoint.external_id || tradingPoint.code || '';
+                let systemId = '';
+                
+                if (tradingPoint.network_id) {
+                    const network = await networksService.getById(tradingPoint.network_id);
+                    if (network) {
+                        systemId = network.external_id || network.name || '';
+                    }
+                }
+                
+                addLog('✅ API ПАРАМЕТРЫ ПОЛУЧЕНЫ', 
+                    addCode(`Торговая точка: <span class="highlight">${tradingPoint.name}</span>
+Station ID: <span class="param">"${stationId}"</span>
+Сеть: <span class="highlight">${tradingPoint.network_id ? 'найдена' : 'не найдена'}</span>
+System ID: <span class="param">"${systemId}"</span>
+
+Итоговые параметры для API:
+- system: <span class="param">${systemId}</span>
+- station: <span class="param">${stationId}</span>`), 'success');
+                
+                if (!systemId || !stationId) {
+                    addLog('❌ ОТСУТСТВУЮТ ОБЯЗАТЕЛЬНЫЕ ПАРАМЕТРЫ', 
+                        'Не хватает system или station ID для API запроса', 'error');
+                    return;
+                }
+                
+                // ШАГ 4: Тест универсального HTTP клиента
+                addLog('🌐 ШАГ 4: Тест универсального HTTP клиента', 
+                    'Делаем запрос через httpClient.get()...');
+                
+                const endpoint = config.endpoints.tanks || '/tanks';
+                const queryParams = {
+                    system: systemId,
+                    station: stationId
+                };
+                
+                const fullTestUrl = `${config.baseUrl}${endpoint}?system=${systemId}&station=${stationId}`;
+                
+                addLog('📋 ПАРАМЕТРЫ ЗАПРОСА', 
+                    addCode(`Endpoint: <span class="param">${endpoint}</span>
+Destination: <span class="param">external-api</span>
+Query Params: <span class="param">${JSON.stringify(queryParams, null, 2)}</span>
+Полный URL: <span class="highlight">${fullTestUrl}</span>`));
+                
+                const startTime = Date.now();
+                
+                const response = await httpClient.get(endpoint, {
+                    destination: 'external-api',
+                    queryParams: queryParams,
+                    timeout: 15000,
+                    retryAttempts: 1
+                });
+                
+                const responseTime = Date.now() - startTime;
+                
+                // ШАГ 5: Анализ ответа
+                addLog('📊 ШАГ 5: Анализ ответа от API', 
+                    `Время выполнения: ${responseTime}ms`);
+                
+                addLog('📋 ДЕТАЛИ ОТВЕТА', 
+                    addCode(`Success: <span class="param">${response.success}</span>
+Status: <span class="param">${response.status || 'не указан'}</span>
+Error: <span class="param">${response.error || 'нет'}</span>
+Response Time: <span class="param">${response.responseTime || responseTime}ms</span>
+Data Type: <span class="param">${response.data ? typeof response.data : 'нет данных'}</span>`));
+                
+                if (response.success && response.data) {
+                    if (Array.isArray(response.data)) {
+                        addLog('✅ ДАННЫЕ ПОЛУЧЕНЫ УСПЕШНО', 
+                            addCode(`Количество резервуаров: <span class="highlight">${response.data.length}</span>
+
+${response.data.length > 0 ? 
+    `Первый резервуар:\n<span class="param">${JSON.stringify(response.data[0], null, 2)}</span>` : 
+    'Массив пустой'
+                }`), 'success');
+                    } else {
+                        addLog('⚠️ НЕОЖИДАННЫЙ ФОРМАТ ДАННЫХ', 
+                            addCode(`Данные: <span class="param">${JSON.stringify(response.data, null, 2)}</span>`), 'warning');
+                    }
+                } else {
+                    addLog('❌ ОШИБКА ПОЛУЧЕНИЯ ДАННЫХ', 
+                        addCode(`HTTP Status: <span class="param">${response.status}</span>
+Error: <span class="param">${response.error}</span>
+Headers: <span class="param">${response.headers ? JSON.stringify(response.headers, null, 2) : 'не указаны'}</span>
+Raw Data: <span class="param">${response.data ? JSON.stringify(response.data, null, 2) : 'нет данных'}</span>`), 'error');
+                }
+                
+                // ШАГ 6: Сравнение с прямым запросом
+                addLog('🔄 ШАГ 6: Сравнение с прямым запросом', 
+                    'Делаем тот же запрос напрямую через fetch()...');
+                
+                try {
+                    const directStartTime = Date.now();
+                    const authString = btoa(`${config.username}:${config.password}`);
+                    
+                    const directResponse = await fetch(fullTestUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Basic ${authString}`,
+                            'Accept': 'application/json',
+                            'User-Agent': 'tradeframe-builder/1.0'
+                        },
+                        timeout: 10000
+                    });
+                    
+                    const directResponseTime = Date.now() - directStartTime;
+                    
+                    addLog('📊 РЕЗУЛЬТАТ ПРЯМОГО ЗАПРОСА', 
+                        addCode(`Status: <span class="param">${directResponse.status} ${directResponse.statusText}</span>
+Time: <span class="param">${directResponseTime}ms</span>
+Headers: <span class="param">${JSON.stringify(Object.fromEntries(directResponse.headers.entries()), null, 2)}</span>`));
+                    
+                    if (directResponse.ok) {
+                        const directData = await directResponse.json();
+                        addLog('✅ ПРЯМОЙ ЗАПРОС УСПЕШЕН', 
+                            addCode(`Резервуаров: <span class="highlight">${Array.isArray(directData) ? directData.length : 'не массив'}</span>
+                            
+${Array.isArray(directData) && directData.length > 0 ? 
+    `Первый резервуар:\n<span class="param">${JSON.stringify(directData[0], null, 2)}</span>` : 
+    `Данные: <span class="param">${JSON.stringify(directData, null, 2)}</span>`
+                            }`), 'success');
+                        
+                        // Сравнение результатов
+                        const httpClientWorks = response.success && Array.isArray(response.data) && response.data.length > 0;
+                        const directWorks = Array.isArray(directData) && directData.length > 0;
+                        
+                        if (httpClientWorks && directWorks) {
+                            addLog('🎉 ОБА МЕТОДА РАБОТАЮТ', 
+                                'HTTP клиент и прямой запрос возвращают данные', 'success');
+                        } else if (directWorks && !httpClientWorks) {
+                            addLog('⚠️ ПРОБЛЕМА В HTTP КЛИЕНТЕ', 
+                                'Прямой запрос работает, но HTTP клиент не возвращает данные', 'warning');
+                        } else {
+                            addLog('❌ ПРОБЛЕМА В API ИЛИ ПАРАМЕТРАХ', 
+                                'Ни один из методов не возвращает данные', 'error');
+                        }
+                        
+                    } else {
+                        const directError = await directResponse.text();
+                        addLog('❌ ПРЯМОЙ ЗАПРОС НЕУДАЧЕН', 
+                            addCode(`Error: <span class="param">${directResponse.status} - ${directError}</span>`), 'error');
+                    }
+                    
+                } catch (directError) {
+                    addLog('💥 ОШИБКА ПРЯМОГО ЗАПРОСА', 
+                        `Fetch error: ${directError.message}`, 'error');
+                }
+                
+                addLog('🏁 ТЕСТ ЗАВЕРШЕН', 
+                    'Все шаги выполнены. Проверьте результаты выше.', 'success');
+                
+            } catch (error) {
+                addLog('💥 КРИТИЧЕСКАЯ ОШИБКА ТЕСТА', 
+                    addCode(`Error: <span class="param">${error.message}</span>
+Stack: <span class="param">${error.stack}</span>`), 'error');
+            }
+        }
+    </script>
+</body>
+</html>

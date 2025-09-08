@@ -1,0 +1,31 @@
+{
+  "name": "tradeframe-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram Bot для системы TradeFrame - обработка верификации пользователей",
+  "main": "telegram-bot-handler.js",
+  "scripts": {
+    "start": "node telegram-bot-handler.js",
+    "dev": "nodemon telegram-bot-handler.js",
+    "test": "node test-bot.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "tradeframe",
+    "verification",
+    "authentication"
+  ],
+  "author": "TradeFrame Development Team",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

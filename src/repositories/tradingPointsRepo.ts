@@ -1,6 +1,5 @@
 import { TradingPoint, TradingPointId, TradingPointInput, TradingPointUpdateInput, NetworkId } from '@/types/tradingpoint';
-import { tradingPointsStore } from '@/mock/tradingPointsStore';
-import { networksStore } from '@/mock/networksStore';
+import { supabase } from '@/services/supabaseAuthService';
 
 const MOCK_API_DELAY = 150;
 
@@ -8,99 +7,107 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const tradingPointsRepo = {
   async getAll(): Promise<TradingPoint[]> {
-    await delay(MOCK_API_DELAY);
-    return tradingPointsStore.getAll();
+    const { data, error } = await supabase
+      .from('trading_points')
+      .select('*')
+      .eq('is_active', true)
+      .order('name');
+    
+    if (error) throw error;
+    return data || [];
   },
 
   async getById(id: TradingPointId): Promise<TradingPoint | null> {
-    await delay(MOCK_API_DELAY);
-    return tradingPointsStore.getById(id) || null;
+    const { data, error } = await supabase
+      .from('trading_points')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) return null;
+    return data;
   },
 
   async getByNetworkId(networkId: NetworkId): Promise<TradingPoint[]> {
-    await delay(MOCK_API_DELAY);
-    return tradingPointsStore.getByNetworkId(networkId);
+    const { data, error } = await supabase
+      .from('trading_points')
+      .select('*')
+      .eq('network_id', networkId)
+      .eq('is_active', true)
+      .order('name');
+    
+    if (error) throw error;
+    return data || [];
   },
 
   async create(networkId: NetworkId, input: TradingPointInput): Promise<TradingPoint> {
-    await delay(MOCK_API_DELAY);
-    
     if (!input.name?.trim()) {
       throw new Error('Название торговой точки обязательно');
     }
 
-    const tradingPointInput: TradingPointInput = {
-      name: input.name,
-      description: input.description,
-      geolocation: input.geolocation,
-      phone: input.phone,
-      email: input.email,
-      website: input.website,
-      isBlocked: input.isBlocked,
-      schedule: input.schedule,
-      services: input.services
-    };
-
-    const created = tradingPointsStore.create(tradingPointInput);
+    const { data, error } = await supabase
+      .from('trading_points')
+      .insert({
+        network_id: networkId,
+        name: input.name,
+        description: input.description,
+        geolocation: input.geolocation,
+        phone: input.phone,
+        email: input.email,
+        website: input.website,
+        is_blocked: input.isBlocked,
+        schedule: input.schedule,
+        services: input.services,
+        is_active: true
+      })
+      .select()
+      .single();
     
-    // Update network points count
-    const count = tradingPointsStore.getCountByNetworkId(networkId);
-    networksStore.updatePointsCount(networkId, count);
-    
-    return created;
+    if (error) throw error;
+    return data;
   },
 
   async update(id: TradingPointId, input: TradingPointUpdateInput): Promise<TradingPoint> {
-    await delay(MOCK_API_DELAY);
-    
     if (!input.name?.trim()) {
       throw new Error('Название торговой точки обязательно');
     }
 
-    const tradingPointInput: TradingPointInput = {
-      name: input.name,
-      description: input.description,
-      geolocation: input.geolocation,
-      phone: input.phone,
-      email: input.email,
-      website: input.website,
-      isBlocked: input.isBlocked,
-      schedule: input.schedule,
-      services: input.services
-    };
-
-    const updated = tradingPointsStore.update(id, tradingPointInput);
-    if (!updated) {
-      throw new Error('Торговая точка не найдена');
-    }
+    const { data, error } = await supabase
+      .from('trading_points')
+      .update({
+        name: input.name,
+        description: input.description,
+        geolocation: input.geolocation,
+        phone: input.phone,
+        email: input.email,
+        website: input.website,
+        is_blocked: input.isBlocked,
+        schedule: input.schedule,
+        services: input.services,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
     
-    return updated;
+    if (error) throw error;
+    if (!data) throw new Error('Торговая точка не найдена');
+    
+    return data;
   },
 
   async delete(id: TradingPointId): Promise<void> {
-    await delay(MOCK_API_DELAY);
+    const { error } = await supabase
+      .from('trading_points')
+      .delete()
+      .eq('id', id);
     
-    // Get the trading point to find its network ID before deletion
-    const tradingPoint = tradingPointsStore.getById(id);
-    if (!tradingPoint) {
-      throw new Error('Торговая точка не найдена');
-    }
-    
-    const networkId = tradingPoint.networkId;
-    const success = tradingPointsStore.remove(id);
-    if (!success) {
-      throw new Error('Торговая точка не найдена');
-    }
-    
-    // Update network points count after deletion
-    const count = tradingPointsStore.getCountByNetworkId(networkId);
-    networksStore.updatePointsCount(networkId, count);
+    if (error) throw error;
   },
 
   // Simplified methods - remove complex functionality for now
   async addExternalCode(pointId: TradingPointId, system: string, code: string, description?: string): Promise<TradingPoint> {
-    await delay(MOCK_API_DELAY);
-    const point = tradingPointsStore.getById(pointId);
+    const point = await this.getById(pointId);
     if (!point) {
       throw new Error('Торговая точка не найдена');
     }
@@ -108,8 +115,7 @@ export const tradingPointsRepo = {
   },
 
   async removeExternalCode(pointId: TradingPointId, externalCodeId: string): Promise<TradingPoint> {
-    await delay(MOCK_API_DELAY);
-    const point = tradingPointsStore.getById(pointId);
+    const point = await this.getById(pointId);
     if (!point) {
       throw new Error('Торговая точка не найдена');
     }

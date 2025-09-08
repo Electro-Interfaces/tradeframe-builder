@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Быстрый тест готовности</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        .highlight { 
+            background: #2d4a22; 
+            padding: 10px; 
+            border-left: 4px solid #28a745;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button.success { background: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>⚡ БЫСТРЫЙ ТЕСТ ГОТОВНОСТИ УНИВЕРСАЛЬНОГО HTTP КЛИЕНТА</h1>
+    <p>Проверяем основные функции без зависания</p>
+    
+    <div>
+        <button onclick="testQuickReadiness()">🚀 Быстрая проверка</button>
+        <button onclick="testApiConfigSimple()">⚙️ Проверить API конфигурацию</button>
+        <button onclick="clearLog()">🧹 Очистить</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        let httpClient = null;
+        let tradingNetworkConfigService = null;
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        // Инициализация
+        async function initialize() {
+            try {
+                const imports = await import('/src/services/universalHttpClient.ts');
+                httpClient = imports.httpClient;
+                
+                const configImports = await import('/src/services/tradingNetworkConfigService.ts');
+                tradingNetworkConfigService = configImports.tradingNetworkConfigService;
+                
+                addLog('✅ HTTP клиент и сервисы загружены', 'success');
+                
+            } catch (error) {
+                addLog(`❌ Ошибка инициализации: ${error.message}`, 'error');
+            }
+        }
+        
+        // Быстрый тест готовности
+        window.testQuickReadiness = async function() {
+            addLog('🚀 БЫСТРЫЙ ТЕСТ ГОТОВНОСТИ СИСТЕМЫ', 'info');
+            
+            let results = [];
+            
+            try {
+                // 1. Проверка HTTP клиента
+                addLog('📡 Тест 1: HTTP клиент...', 'info');
+                if (httpClient && typeof httpClient.get === 'function') {
+                    results.push('✅ HTTP клиент: готов');
+                } else {
+                    results.push('❌ HTTP клиент: не найден');
+                }
+                
+                // 2. Проверка специальных методов
+                addLog('🔧 Тест 2: специальные методы...', 'info');
+                const methods = ['getNetworks', 'getTradingPointsByNetworkId', 'getAllTradingPointsWithNetworks', 'getApiParamsForTradingPoint'];
+                let methodsOk = 0;
+                methods.forEach(method => {
+                    if (typeof httpClient[method] === 'function') {
+                        methodsOk++;
+                    }
+                });
+                results.push(`✅ Специальные методы: ${methodsOk}/${methods.length}`);
+                
+                // 3. Быстрый тест базы данных
+                addLog('🗄️ Тест 3: подключение к базе данных...', 'info');
+                const networksResponse = await Promise.race([
+                    httpClient.getNetworks(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                ]);
+                
+                if (networksResponse.success && networksResponse.data) {
+                    results.push(`✅ База данных: ${networksResponse.data.length} сетей найдено`);
+                } else {
+                    results.push('❌ База данных: ошибка подключения');
+                }
+                
+                // 4. Проверка готовых для API торговых точек
+                addLog('🎯 Тест 4: торговые точки с API...', 'info');
+                const allTpResponse = await Promise.race([
+                    httpClient.getAllTradingPointsWithNetworks(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                ]);
+                
+                if (allTpResponse.success && allTpResponse.data) {
+                    const readyCount = allTpResponse.data.filter(tp => tp.apiReady).length;
+                    results.push(`✅ Торговые точки: ${readyCount}/${allTpResponse.data.length} готовы для API`);
+                    
+                    // Показываем готовые торговые точки
+                    const readyTps = allTpResponse.data.filter(tp => tp.apiReady);
+                    if (readyTps.length > 0) {
+                        addLog('<div class="code">ГОТОВЫЕ ДЛЯ API ТОРГОВЫЕ ТОЧКИ:<br>' + 
+                            readyTps.map(tp => `• ${tp.name}: system="${tp.systemId}", station="${tp.stationId}"`).join('<br>') + 
+                            '</div>', 'success');
+                    }
+                } else {
+                    results.push('❌ Торговые точки: ошибка получения');
+                }
+                
+                // Итоговый результат
+                const successCount = results.filter(r => r.startsWith('✅')).length;
+                const totalTests = results.length;
+                const readyPercent = Math.round((successCount / totalTests) * 100);
+                
+                addLog(`<div class="highlight">
+                    📊 ИТОГОВЫЙ РЕЗУЛЬТАТ БЫСТРОГО ТЕСТА:<br><br>
+                    ${results.join('<br>')}<br><br>
+                    🎯 ГОТОВНОСТЬ СИСТЕМЫ: ${readyPercent}%<br>
+                    ${readyPercent >= 75 ? 
+                        '🎉 СИСТЕМА ГОТОВА К РАБОТЕ!' : 
+                        readyPercent >= 50 ? 
+                        '⚠️ Система частично готова' : 
+                        '❌ Требуется доработка'
+                    }
+                </div>`, readyPercent >= 75 ? 'success' : readyPercent >= 50 ? 'warning' : 'error');
+                
+            } catch (error) {
+                addLog(`❌ Ошибка быстрого теста: ${error.message}`, 'error');
+            }
+        }
+        
+        // Простая проверка API конфигурации
+        window.testApiConfigSimple = async function() {
+            addLog('⚙️ ПРОСТАЯ ПРОВЕРКА API КОНФИГУРАЦИИ', 'info');
+            
+            try {
+                addLog('🔧 Получаем конфигурацию с таймаутом...', 'info');
+                
+                // Добавляем таймаут чтобы не зависнуть
+                const config = await Promise.race([
+                    tradingNetworkConfigService.getConfig(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Таймаут получения конфигурации (5 сек)')), 5000))
+                ]);
+                
+                addLog(`<div class="code">
+                    ✅ КОНФИГУРАЦИЯ ВНЕШНЕГО API:<br>
+                    ➜ Включена: ${config.enabled ? 'ДА' : 'НЕТ'}<br>
+                    ➜ Base URL: ${config.baseUrl}<br>
+                    ➜ Auth Type: ${config.authType}<br>
+                    ➜ Endpoints:<br>
+                    &nbsp;&nbsp;- Tanks: ${config.endpoints.tanks}<br>
+                    &nbsp;&nbsp;- Transactions: ${config.endpoints.transactions}<br>
+                    ➜ Timeout: ${config.timeout}ms
+                </div>`, 'success');
+                
+                // Проверяем правильность настроек
+                const problems = [];
+                if (config.authType !== 'basic') problems.push(`AuthType должен быть 'basic', а не '${config.authType}'`);
+                if (config.endpoints.tanks !== '/tanks') problems.push(`Tanks endpoint должен быть '/tanks', а не '${config.endpoints.tanks}'`);
+                if (config.endpoints.transactions !== '/transactions') problems.push(`Transactions endpoint должен быть '/transactions', а не '${config.endpoints.transactions}'`);
+                
+                if (problems.length > 0) {
+                    addLog(`<div class="highlight">
+                        ⚠️ НАЙДЕНЫ ПРОБЛЕМЫ:<br>
+                        ${problems.map(p => `• ${p}`).join('<br>')}<br><br>
+                        💡 Используйте инструмент сброса конфигурации для исправления
+                    </div>`, 'warning');
+                } else {
+                    addLog('✅ Конфигурация API корректная!', 'success');
+                }
+                
+            } catch (error) {
+                if (error.message.includes('Таймаут')) {
+                    addLog(`⚠️ ${error.message} - возможны проблемы с apiConfigServiceDB`, 'warning');
+                } else {
+                    addLog(`❌ Ошибка получения конфигурации: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Быстрый тест готовности загружен', 'info');
+        initialize();
+    </script>
+</body>
+</html>

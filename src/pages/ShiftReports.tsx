@@ -18,7 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { shiftReportsService, ShiftReport, FuelPosition, ShiftDocument } from "@/services/shiftReportsService";
+import { shiftReportsSupabaseService, ShiftReport, FuelPosition, ShiftDocument } from "@/services/shiftReportsSupabaseService";
 import { 
   FileText, 
   Eye, 
@@ -71,8 +71,8 @@ export default function ShiftReports() {
       try {
         setLoading(true);
         const data = selectedTradingPoint?.id 
-          ? await shiftReportsService.getShiftReportsByTradingPoint(selectedTradingPoint.id)
-          : await shiftReportsService.getAllShiftReports();
+          ? await shiftReportsSupabaseService.getShiftReportsByTradingPoint(selectedTradingPoint.id)
+          : await shiftReportsSupabaseService.getAllShiftReports();
         setShiftReports(data);
       } catch (error) {
         console.error('Ошибка загрузки сменных отчетов:', error);

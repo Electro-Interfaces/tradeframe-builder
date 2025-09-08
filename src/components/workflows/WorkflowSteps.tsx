@@ -47,15 +47,8 @@ interface Command {
   jsonSchema: string;
 }
 
-import { commandTemplatesStore } from "@/mock/commandTemplatesStore";
-
-// Адаптируем шаблоны команд для использования в WorkflowSteps
-const mockCommands: Command[] = commandTemplatesStore.getActive().map(template => ({
-  id: template.id,
-  name: template.display_name,
-  description: template.description,
-  jsonSchema: JSON.stringify(template.param_schema)
-}));
+import { commandTemplatesSupabaseAPI } from "@/services/commandTemplatesSupabase";
+import { useEffect } from 'react';
 
 interface SortableStepProps {
   step: WorkflowStep;
@@ -135,12 +128,33 @@ interface StepFormProps {
 }
 
 function StepForm({ step, onSave, onCancel }: StepFormProps) {
+  const [commands, setCommands] = useState<Command[]>([]);
   const [selectedCommandId, setSelectedCommandId] = useState(step?.commandId || "");
   const [targetType, setTargetType] = useState(step?.target.type || 'all_trading_points');
   const [targetValue, setTargetValue] = useState(step?.target.value || "");
   const [params, setParams] = useState<Record<string, any>>(step?.params || {});
 
-  const selectedCommand = mockCommands.find(cmd => cmd.id === selectedCommandId);
+  // Load commands on mount
+  useEffect(() => {
+    const loadCommands = async () => {
+      try {
+        const response = await commandTemplatesSupabaseAPI.list();
+        const adaptedCommands: Command[] = response.data.map(template => ({
+          id: template.id,
+          name: template.display_name || template.name,
+          description: template.description || '',
+          jsonSchema: JSON.stringify(template.param_schema || {})
+        }));
+        setCommands(adaptedCommands);
+      } catch (error) {
+        console.error('Failed to load command templates:', error);
+        setCommands([]);
+      }
+    };
+    loadCommands();
+  }, []);
+
+  const selectedCommand = commands.find(cmd => cmd.id === selectedCommandId);
 
   const getTargetDescription = () => {
     switch (targetType) {
@@ -187,7 +201,7 @@ function StepForm({ step, onSave, onCancel }: StepFormProps) {
             <SelectValue placeholder="Выберите команду" />
           </SelectTrigger>
           <SelectContent>
-            {mockCommands.map((command) => (
+            {commands.map((command) => (
               <SelectItem key={command.id} value={command.id}>
                 <div>
                   <div className="font-medium">{command.name}</div>

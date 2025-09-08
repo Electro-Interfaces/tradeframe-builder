@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Debug Equipment API</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔧 DEBUG EQUIPMENT API</h1>
+    <p>Проверяем что именно возвращает Equipment API</p>
+    
+    <div>
+        <button onclick="testEquipmentAPI()">🔍 Тест Equipment API</button>
+        <button onclick="testDirectSupabase()">📡 Прямой Supabase запрос</button>
+        <button onclick="clearLog()">🧹 Очистить</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        let currentEquipmentAPI = null;
+        let supabase = null;
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+            console.log(message.replace(/<[^>]*>/g, ''));
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        // Инициализация
+        async function initialize() {
+            try {
+                const apiSwitchImports = await import('/src/services/apiSwitch.ts');
+                currentEquipmentAPI = apiSwitchImports.currentEquipmentAPI;
+                
+                const supabaseImports = await import('/src/services/supabaseClientBrowser.ts');
+                supabase = supabaseImports.supabase;
+                
+                addLog('✅ API сервисы загружены', 'success');
+                
+            } catch (error) {
+                addLog(`❌ Ошибка инициализации: ${error.message}`, 'error');
+                console.error('Initialization error:', error);
+            }
+        }
+        
+        // Тест Equipment API
+        window.testEquipmentAPI = async function() {
+            addLog('🔍 ТЕСТ EQUIPMENT API', 'info');
+            
+            try {
+                addLog('📞 Вызываем currentEquipmentAPI.list({trading_point_id: "6969b08d-1cbe-45c2-ae9c-8002c7022b59"})...', 'info');
+                
+                const result = await currentEquipmentAPI.list({
+                    trading_point_id: "6969b08d-1cbe-45c2-ae9c-8002c7022b59"
+                });
+                
+                addLog(`<div class="code">
+                    ✅ РЕЗУЛЬТАТ EQUIPMENT API:<br>
+                    Type: ${typeof result}<br>
+                    Has .data: ${result.hasOwnProperty('data')}<br>
+                    Has .error: ${result.hasOwnProperty('error')}<br>
+                    Data is array: ${Array.isArray(result.data)}<br>
+                    Data length: ${result.data?.length || 0}<br>
+                    Structure: ${JSON.stringify(Object.keys(result), null, 2)}<br>
+                    <br>
+                    Methods available:<br>
+                    ${Object.getOwnPropertyNames(Object.getPrototypeOf(result)).filter(name => typeof result[name] === 'function').join(', ')}
+                </div>`, 'success');
+                
+                if (result.data && result.data.length > 0) {
+                    addLog(`<div class="code">
+                        ПЕРВАЯ ЗАПИСЬ:<br>
+                        ${JSON.stringify(result.data[0], null, 2).slice(0, 500)}...
+                    </div>`, 'info');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Ошибка Equipment API: ${error.message}`, 'error');
+                console.error('Equipment API error:', error);
+                
+                // Проверяем что именно пришло в ошибке
+                if (error.toString().includes('query.eq is not a function')) {
+                    addLog('🚨 НАЙДЕНА ОШИБКА: query.eq is not a function - возвращается query builder вместо результата!', 'error');
+                }
+            }
+        }
+        
+        // Прямой Supabase запрос
+        window.testDirectSupabase = async function() {
+            addLog('📡 ПРЯМОЙ SUPABASE ЗАПРОС', 'info');
+            
+            try {
+                addLog('📞 Вызываем supabase.from("equipment").select("*").eq("trading_point_id", "6969b08d-1cbe-45c2-ae9c-8002c7022b59")...', 'info');
+                
+                const query = supabase
+                    .from('equipment')
+                    .select('*')
+                    .eq('trading_point_id', '6969b08d-1cbe-45c2-ae9c-8002c7022b59');
+                    
+                addLog(`<div class="code">
+                    QUERY BUILDER:<br>
+                    Type: ${typeof query}<br>
+                    Has .eq: ${typeof query.eq === 'function'}<br>
+                    Methods: ${Object.getOwnPropertyNames(Object.getPrototypeOf(query)).filter(name => typeof query[name] === 'function').slice(0, 10).join(', ')}...
+                </div>`, 'info');
+                
+                const { data, error } = await query;
+                
+                if (error) {
+                    addLog(`❌ Supabase error: ${error.message}`, 'error');
+                    return;
+                }
+                
+                addLog(`<div class="code">
+                    ✅ РЕЗУЛЬТАТ SUPABASE:<br>
+                    Data type: ${typeof data}<br>
+                    Is array: ${Array.isArray(data)}<br>
+                    Length: ${data?.length || 0}
+                </div>`, 'success');
+                
+            } catch (error) {
+                addLog(`❌ Ошибка прямого запроса: ${error.message}`, 'error');
+                console.error('Direct Supabase error:', error);
+            }
+        }
+        
+        // Автозапуск
+        addLog('✅ Debug Equipment API загружен', 'info');
+        initialize();
+    </script>
+</body>
+</html>

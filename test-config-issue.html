@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест проблемы с конфигурацией</title>
+    <style>
+        body { font-family: monospace; background: #1e1e1e; color: #fff; padding: 20px; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .code { background: #0d1117; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Тест проблемы с конфигурацией торговой сети</h1>
+    <div id="log"></div>
+
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            log.appendChild(div);
+        }
+        
+        async function testConfigIssue() {
+            addLog('🧪 ТЕСТИРУЕМ ПРОБЛЕМУ С КОНФИГУРАЦИЕЙ<br>');
+            
+            try {
+                // Импортируем сервис конфигурации
+                const { tradingNetworkConfigService } = await import('./src/services/tradingNetworkConfigService.js');
+                
+                addLog('📦 Сервис конфигурации импортирован', 'success');
+                
+                // Тест 1: Async версия
+                addLog('<br>🔄 ТЕСТ 1: Async getConfig()');
+                try {
+                    const asyncConfig = await tradingNetworkConfigService.getConfig();
+                    addLog('✅ Async конфигурация работает:', 'success');
+                    addLog(`<div class="code">
+                        Enabled: ${asyncConfig.enabled}<br>
+                        Base URL: ${asyncConfig.baseUrl}<br>
+                        Auth Type: ${asyncConfig.authType}<br>
+                        Username: ${asyncConfig.username}<br>
+                        Password: ${asyncConfig.password ? '***' : 'не указан'}<br>
+                        Endpoints: ${JSON.stringify(asyncConfig.endpoints, null, 2)}
+                    </div>`);
+                    
+                    // Если async работает, значит проблема не в конфигурации
+                    addLog('🎯 КОНФИГУРАЦИЯ РАБОТАЕТ! Проблема может быть в другом месте.', 'success');
+                    
+                } catch (asyncError) {
+                    addLog('❌ Async конфигурация НЕ РАБОТАЕТ:', 'error');
+                    addLog(`<div class="code">Ошибка: ${asyncError.message}</div>`, 'error');
+                    
+                    // Тест 2: Sync версия как fallback
+                    addLog('<br>🔄 ТЕСТ 2: Sync getConfigSync() как fallback');
+                    try {
+                        const syncConfig = tradingNetworkConfigService.getConfigSync();
+                        addLog('⚠️ Sync конфигурация работает (fallback):', 'warning');
+                        addLog(`<div class="code">
+                            Enabled: ${syncConfig.enabled}<br>
+                            Base URL: ${syncConfig.baseUrl}<br>
+                            Auth Type: ${syncConfig.authType}<br>
+                            Username: ${syncConfig.username}<br>
+                            Password: ${syncConfig.password ? '***' : 'не указан'}
+                        </div>`);
+                        
+                        addLog('🔍 ДИАГНОЗ: HTTP клиент использует async версию, но работает только sync!', 'warning');
+                        addLog('💡 РЕШЕНИЕ: Нужно исправить getConfig() или использовать fallback в HTTP клиенте', 'warning');
+                        
+                    } catch (syncError) {
+                        addLog('❌ Sync конфигурация ТОЖЕ НЕ РАБОТАЕТ:', 'error');
+                        addLog(`<div class="code">Ошибка: ${syncError.message}</div>`, 'error');
+                        
+                        addLog('💥 КРИТИЧНО: Обе версии конфигурации не работают!', 'error');
+                    }
+                }
+                
+                // Тест 3: Прямая проверка systemConfig
+                addLog('<br>🔄 ТЕСТ 3: Проверка systemConfigService');
+                try {
+                    const { systemConfigService } = await import('./src/services/systemConfigService.js');
+                    const systemConfig = await systemConfigService.getConfig('trading_network_config');
+                    
+                    if (systemConfig) {
+                        addLog('✅ SystemConfig найден:', 'success');
+                        addLog(`<div class="code">${JSON.stringify(systemConfig, null, 2)}</div>`);
+                    } else {
+                        addLog('⚠️ SystemConfig не найден - используется default config', 'warning');
+                    }
+                    
+                } catch (systemError) {
+                    addLog('❌ SystemConfigService не работает:', 'error');
+                    addLog(`<div class="code">Ошибка: ${systemError.message}</div>`, 'error');
+                    addLog('💡 Это объясняет, почему async getConfig() не работает!', 'warning');
+                }
+                
+                // Тест 4: Проверка localStorage
+                addLog('<br>🔄 ТЕСТ 4: Проверка localStorage конфигурации');
+                const localStorageConfig = localStorage.getItem('trading_network_config');
+                if (localStorageConfig) {
+                    try {
+                        const parsedConfig = JSON.parse(localStorageConfig);
+                        addLog('✅ localStorage конфигурация найдена:', 'success');
+                        addLog(`<div class="code">${JSON.stringify(parsedConfig, null, 2)}</div>`);
+                    } catch (parseError) {
+                        addLog('❌ localStorage конфигурация повреждена', 'error');
+                    }
+                } else {
+                    addLog('⚠️ localStorage конфигурации нет', 'warning');
+                }
+                
+            } catch (importError) {
+                addLog('💥 Ошибка импорта:', 'error');
+                addLog(`<div class="code">${importError.message}</div>`, 'error');
+            }
+        }
+        
+        // Автозапуск
+        testConfigIssue();
+    </script>
+</body>
+</html>

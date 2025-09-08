@@ -4,84 +4,104 @@
  */
 
 import { Network, NetworkId, NetworkInput } from '@/types/network';
-import { supabaseService as supabase } from './supabaseServiceClient';
+import { httpClient } from './universalHttpClient';
+import { supabaseClientBrowser } from './supabaseClientBrowser';
 
 // API сервис только с Supabase - никакого localStorage!
 export const networksService = {
-  // Получить все сети с подсчетом торговых точек (только из Supabase)
+  // СУПЕРСКОРОСТНАЯ загрузка сетей с подсчетом торговых точек
   async getAll(): Promise<Network[]> {
     try {
-      console.log('🔄 Loading networks from Supabase with trading points count...');
+      console.log('⚡ СУПЕРСКОРОСТНАЯ загрузка сетей...');
       
-      // Сначала загружаем все сети
-      const { data: networksData, error: networksError } = await supabase
-        .from('networks')
-        .select('id, name, description, code, status, external_id, settings, created_at, updated_at')
-        .order('name');
-      
-      if (networksError) {
-        console.error('❌ Supabase networks error:', networksError);
-        throw new Error(`Ошибка загрузки сетей: ${networksError.message}`);
+      // Прямой HTTP запрос к Supabase как в операциях
+      const response = await fetch('https://tohtryzyffcebtyvkxwh.supabase.co/rest/v1/networks?select=*&order=name', {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      if (!networksData) {
-        console.warn('⚠️ No networks data returned from Supabase');
-        return [];
-      }
-
-      console.log('✅ Loaded networks from Supabase:', networksData.length, 'networks');
+      const networksData = await response.json();
+      console.log(`⚡ Загружено ${networksData.length} сетей`);
       
-      // Теперь для каждой сети подсчитываем количество торговых точек
+      // Подсчитаем торговые точки для каждой сети через прямые запросы
       const networksWithCount = await Promise.all(
         networksData.map(async (network) => {
-          const { count, error: countError } = await supabase
-            .from('trading_points')
-            .select('*', { count: 'exact', head: true })
-            .eq('network_id', network.id);
-          
-          if (countError) {
-            console.error(`❌ Error counting points for network ${network.name}:`, countError);
+          try {
+            // Прямой HTTP запрос для подсчета точек
+            const pointsResponse = await fetch(`https://tohtryzyffcebtyvkxwh.supabase.co/rest/v1/trading_points?select=id&network_id=eq.${network.id}`, {
+              headers: {
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY',
+                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY'
+              }
+            });
+            
+            const points = await pointsResponse.json();
+            const count = Array.isArray(points) ? points.length : 0;
+            
+            return {
+              id: network.id,
+              external_id: network.external_id,
+              name: network.name,
+              description: network.description || '',
+              type: 'АЗС',
+              pointsCount: count,
+              code: network.code,
+              status: network.status,
+              settings: network.settings,
+              created_at: network.created_at,
+              updated_at: network.updated_at
+            };
+          } catch (pointError) {
+            console.error(`❌ Ошибка подсчета точек для сети ${network.name}:`, pointError);
+            return {
+              id: network.id,
+              external_id: network.external_id,
+              name: network.name,
+              description: network.description || '',
+              type: 'АЗС',
+              pointsCount: 0,
+              code: network.code,
+              status: network.status,
+              settings: network.settings,
+              created_at: network.created_at,
+              updated_at: network.updated_at
+            };
           }
-          
-          return {
-            id: network.id,
-            external_id: network.external_id,
-            name: network.name,
-            description: network.description || '',
-            type: 'АЗС', // По умолчанию, можно добавить это поле в БД
-            pointsCount: count || 0, // Используем точный подсчет из Supabase
-            code: network.code,
-            status: network.status,
-            settings: network.settings,
-            created_at: network.created_at,
-            updated_at: network.updated_at
-          };
         })
       );
       
-      console.log('🔍 Sample network with points count:', networksWithCount[0]);
+      console.log(`✅ Загружено ${networksWithCount.length} сетей с подсчетом точек`);
       return networksWithCount;
       
     } catch (error) {
-      console.error('💥 Critical error loading networks:', error);
-      throw error; // Пробрасываем ошибку выше, чтобы UI мог её обработать
+      console.error('❌ Ошибка загрузки сетей:', error);
+      throw error;
     }
   },
 
   // Получить сеть по ID (только из Supabase)
   async getById(id: NetworkId): Promise<Network | null> {
     try {
-      const { data, error } = await supabase
-        .from('networks')
-        .select('id, name, description, code, status, external_id, settings, created_at, updated_at')
-        .eq('id', id)
-        .single();
+      const response = await httpClient.get('/rest/v1/networks', {
+        destination: 'supabase',
+        queryParams: {
+          select: 'id,name,description,code,status,external_id,settings,created_at,updated_at',
+          id: `eq.${id}`
+        }
+      });
       
-      if (error) {
-        console.error('❌ Error loading network by ID:', error);
+      if (!response.success || !response.data) {
+        console.error('❌ Error loading network by ID:', response.error);
         return null;
       }
 
+      const data = Array.isArray(response.data) ? response.data[0] : response.data;
       if (!data) return null;
 
       return {
@@ -108,27 +128,29 @@ export const networksService = {
     try {
       console.log('🔄 Creating network in Supabase:', input);
       
-      const { data, error } = await supabase
-        .from('networks')
-        .insert({
-          name: input.name,
-          code: input.code || input.name.toLowerCase().replace(/\s+/g, '_'),
-          description: input.description,
-          status: input.status || 'active',
-          external_id: input.external_id
-        })
-        .select()
-        .single();
+      const response = await httpClient.post('/rest/v1/networks', {
+        name: input.name,
+        code: input.code || input.name.toLowerCase().replace(/\s+/g, '_'),
+        description: input.description,
+        status: input.status || 'active',
+        external_id: input.external_id
+      }, {
+        destination: 'supabase',
+        headers: {
+          'Prefer': 'return=representation'
+        }
+      });
       
-      if (error) {
-        console.error('❌ Supabase error creating network:', error);
-        throw new Error(`Ошибка создания сети: ${error.message}`);
+      if (!response.success) {
+        console.error('❌ Supabase error creating network:', response.error);
+        throw new Error(`Ошибка создания сети: ${response.error}`);
       }
 
-      if (!data) {
+      if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
         throw new Error('Нет данных после создания сети');
       }
 
+      const data = response.data[0];
       console.log('✅ Network created in Supabase:', data);
       
       return {
@@ -155,30 +177,31 @@ export const networksService = {
     try {
       console.log('🔄 Updating network in Supabase:', id, input);
       
-      const { data, error } = await supabase
-        .from('networks')
-        .update({
-          name: input.name,
-          code: input.code,
-          description: input.description,
-          status: input.status,
-          external_id: input.external_id,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await httpClient.patch(`/rest/v1/networks?id=eq.${id}`, {
+        name: input.name,
+        code: input.code,
+        description: input.description,
+        status: input.status,
+        external_id: input.external_id,
+        updated_at: new Date().toISOString()
+      }, {
+        destination: 'supabase',
+        headers: {
+          'Prefer': 'return=representation'
+        }
+      });
       
-      if (error) {
-        console.error('❌ Supabase error updating network:', error);
-        throw new Error(`Ошибка обновления сети: ${error.message}`);
+      if (!response.success) {
+        console.error('❌ Supabase error updating network:', response.error);
+        throw new Error(`Ошибка обновления сети: ${response.error}`);
       }
 
-      if (!data) {
+      if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
         console.warn('⚠️ No data returned after network update');
         return null;
       }
 
+      const data = response.data[0];
       console.log('✅ Network updated in Supabase:', data);
       
       return {
@@ -205,14 +228,13 @@ export const networksService = {
     try {
       console.log('🔄 Deleting network in Supabase:', id);
       
-      const { error } = await supabase
-        .from('networks')
-        .delete()
-        .eq('id', id);
+      const response = await httpClient.delete(`/rest/v1/networks?id=eq.${id}`, {
+        destination: 'supabase'
+      });
       
-      if (error) {
-        console.error('❌ Supabase error deleting network:', error);
-        throw new Error(`Ошибка удаления сети: ${error.message}`);
+      if (!response.success) {
+        console.error('❌ Supabase error deleting network:', response.error);
+        throw new Error(`Ошибка удаления сети: ${response.error}`);
       }
 
       console.log('✅ Network deleted from Supabase:', id);
@@ -237,20 +259,23 @@ export const networksService = {
     try {
       console.log('🔍 Searching networks in Supabase:', query);
       
-      const { data, error } = await supabase
-        .from('networks')
-        .select('id, name, description, code, status, external_id, settings, created_at, updated_at')
-        .or(`name.ilike.%${query}%,description.ilike.%${query}%,code.ilike.%${query}%`)
-        .order('name');
+      const response = await httpClient.get('/rest/v1/networks', {
+        destination: 'supabase',
+        queryParams: {
+          select: 'id,name,description,code,status,external_id,settings,created_at,updated_at',
+          or: `name.ilike.%${query}%,description.ilike.%${query}%,code.ilike.%${query}%`,
+          order: 'name'
+        }
+      });
       
-      if (error) {
-        console.error('❌ Supabase error searching networks:', error);
-        throw new Error(`Ошибка поиска сетей: ${error.message}`);
+      if (!response.success) {
+        console.error('❌ Supabase error searching networks:', response.error);
+        throw new Error(`Ошибка поиска сетей: ${response.error}`);
       }
 
-      if (!data) return [];
+      if (!response.data || !Array.isArray(response.data)) return [];
 
-      return data.map(row => ({
+      return response.data.map(row => ({
         id: row.id,
         external_id: row.external_id,
         name: row.name,

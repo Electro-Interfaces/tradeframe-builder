@@ -4,9 +4,10 @@
  */
 
 import { PersistentStorage } from '@/utils/persistentStorage';
-import { apiConfigService } from './apiConfigService';
+import { apiConfigServiceDB } from './apiConfigServiceDB';
 // Убран неиспользуемый импорт
 import { supabaseService as officialSupabase } from './supabaseServiceClient';
+import { httpClient } from './universalHttpClient';
 import {
   DocumentType,
   DocumentVersion,
@@ -416,30 +417,30 @@ const httpApiMethods = {
   /**
    * HTTP запрос к API
    */
-  async apiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const apiUrl = apiConfigService.getCurrentApiUrl();
-    const url = `${apiUrl}${endpoint}`;
+  async apiRequest(endpoint: string, options: any = {}): Promise<any> {
+    const response = await httpClient.request(endpoint, {
+      destination: 'supabase',
+      ...options
+    });
     
-    const defaultOptions: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...httpApiMethods.getAuthHeaders()
-      }
-    };
-    
-    const response = await fetch(url, { ...defaultOptions, ...options });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+    if (!response.success) {
       throw {
-        status: response.status,
-        statusText: response.statusText,
-        message: errorData.error || 'API request failed',
-        details: errorData.details
+        status: response.status || 500,
+        statusText: 'Request failed',
+        message: response.error || 'API request failed',
+        details: response.data
       };
     }
     
-    return await response.json();
+    return response.data;
+  },
+
+  /**
+   * Helper для получения API URL
+   */
+  async getApiUrl(): Promise<string> {
+    const connection = await apiConfigServiceDB.getCurrentConnection();
+    return connection?.url || '';
   },
 
   /**
@@ -501,7 +502,7 @@ const httpApiMethods = {
 
 // Supabase helper methods
 const saveAcceptanceToSupabase = async (versionId: string, userId: string, email: string, source: AcceptanceSource): Promise<UserDocumentAcceptance> => {
-  const config = apiConfigService.getCurrentConnection();
+  const config = await apiConfigServiceDB.getCurrentConnection();
   if (!config || config.type !== 'supabase') {
     throw new Error('Supabase connection not configured');
   }
@@ -531,36 +532,30 @@ const saveAcceptanceToSupabase = async (versionId: string, userId: string, email
   // Validate that we have proper UUID for user_id
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(actualUserId)) {
-    console.warn('⚠️ User ID is not a valid UUID, attempting to find user by email');
-    // For demo purposes, generate a UUID or use a fallback
-    // In production, you would query the users table to get the UUID by email
-    const fallbackUuid = crypto.randomUUID();
-    console.log('🔄 Using fallback UUID:', fallbackUuid);
-    
-    // Save acceptance with fallback UUID using official client
-    const { data, error } = await supabase
-      .from('user_document_acceptances')
-      .insert({
-        user_id: fallbackUuid,
-        user_email: actualEmail,
-        doc_type_code: version.doc_type_code,
-        doc_version: version.version  // Добавляем версию документа
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('❌ Error saving to Supabase with fallback UUID:', error);
-      throw new Error('Failed to save acceptance: ' + error);
-    }
-    
-    console.log('✅ Successfully saved to Supabase database with fallback UUID');
-    return { ...acceptance, id: data?.[0]?.id || acceptance.id };
+    console.error('❌ User ID is not a valid UUID:', actualUserId);
+    throw new Error('Недопустимый ID пользователя. Требуется действительная аутентификация пользователя.');
+  }
+
+  // Save acceptance with valid UUID
+  const { data, error } = await supabase
+    .from('user_document_acceptances')
+    .insert({
+      user_id: actualUserId,
+      user_email: actualEmail,
+      doc_type_code: version.doc_type_code,
+      doc_version: version.version
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('❌ Error saving to Supabase:', error);
+    throw new Error('Failed to save acceptance: ' + error);
   }
   
-  // Create acceptance record
+  // Create acceptance record to return
   const acceptance: UserDocumentAcceptance = {
-    id: crypto.randomUUID(),
+    id: data.id || crypto.randomUUID(),
     user_id: actualUserId,
     user_name: 'User',
     user_email: actualEmail,
@@ -572,37 +567,13 @@ const saveAcceptanceToSupabase = async (versionId: string, userId: string, email
     user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server',
     source,
     immutable: true,
-    created_at: new Date().toISOString()
+    created_at: data.created_at || new Date().toISOString()
   };
-  
-  // Проверим текущую сессию перед сохранением
-  const { data: sessionData } = await supabase.auth.getSession();
-  console.log('🔍 Supabase session before insert:', sessionData);
-  
-  // Save to Supabase using official client (only columns that exist in table)
-  const { data, error } = await supabase
-    .from('user_document_acceptances')
-    .insert({
-      user_id: actualUserId,  // UUID from users table
-      user_email: actualEmail,  // Email for reference
-      doc_type_code: version.doc_type_code,
-      doc_version: version.version,  // Добавляем версию документа
-    })
-    .select()
-    .single();
-  
-  console.log('🔍 Insert result:', { data, error });
-    
-  if (error) {
-    console.error('❌ Error saving to Supabase:', error);
-    throw new Error('Failed to save acceptance: ' + error);
-  }
   
   console.log('✅ Successfully saved to Supabase database');
   return acceptance;
-};
+}
 
-// Основной сервис
 export const legalDocumentsService = {
   // === РАБОТА С ТИПАМИ ДОКУМЕНТОВ ===
   
@@ -816,27 +787,29 @@ export const legalDocumentsService = {
     }
     
     const versionId = versionIdOrType;
-    const apiMode = apiConfigService.getApiMode();
+    const isMockMode = await apiConfigServiceDB.isMockMode();
+    const config = await apiConfigServiceDB.getCurrentConnection();
+    const apiMode = config?.type || 'mock';
     
     // Try Supabase first
-    if (apiMode === 'supabase') {
+    if (!isMockMode && apiMode === 'supabase') {
       try {
         const actualUserId = userId || getCurrentUser().id;
         const actualUserEmail = getCurrentUser().email;
         return await saveAcceptanceToSupabase(versionId, actualUserId, actualUserEmail, source);
       } catch (error) {
-        console.error('Supabase legal documents error:', error);
-        console.warn('Falling back to mock data due to Supabase error');
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить правовые документы из Supabase:', error);
+        throw new Error(`Правовые документы недоступны: ${error instanceof Error ? error.message : 'ошибка базы данных'}. Обратитесь к администратору.`);
       }
     }
     
     // Try HTTP API
-    if (apiMode === 'http') {
+    if (!isMockMode && apiMode === 'http') {
       try {
         return await httpApiMethods.acceptDocumentFromAPI(versionId, source);
       } catch (error) {
-        console.error('Legal documents API error:', error);
-        console.warn('Falling back to mock data due to API error');
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить правовые документы из внешнего API:', error);
+        throw new Error(`Внешняя система правовых документов недоступна: ${error instanceof Error ? error.message : 'ошибка API'}. Обратитесь к администратору.`);
       }
     }
     
@@ -894,12 +867,14 @@ export const legalDocumentsService = {
 
   async getUserConsentRequirement(userId: string): Promise<UserConsentRequirement> {
     // Try API first
-    if (apiConfigService.getApiMode() === 'http') {
+    const isMockMode = await apiConfigServiceDB.isMockMode();
+    const config = await apiConfigServiceDB.getCurrentConnection();
+    if (!isMockMode && config?.type === 'http') {
       try {
         return await httpApiMethods.getUserConsentRequirementFromAPI(userId);
       } catch (error) {
-        console.error('Legal documents API error:', error);
-        console.warn('Falling back to mock data due to API error');
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить правовые документы из внешнего API:', error);
+        throw new Error(`Внешняя система правовых документов недоступна: ${error instanceof Error ? error.message : 'ошибка API'}. Обратитесь к администратору.`);
       }
     }
     
@@ -999,10 +974,12 @@ export const legalDocumentsService = {
   // === ЖУРНАЛЫ И СТАТИСТИКА ===
 
   async getAcceptanceJournal(filters: AcceptanceJournalFilters = {}): Promise<UserDocumentAcceptance[]> {
-    const apiMode = apiConfigService.getApiMode();
+    const isMockMode = await apiConfigServiceDB.isMockMode();
+    const config = await apiConfigServiceDB.getCurrentConnection();
+    const apiMode = config?.type || 'mock';
     
     // Попытка получить данные из Supabase
-    if (apiMode === 'supabase') {
+    if (!isMockMode && apiMode === 'supabase') {
       try {
         const { data, error } = await officialSupabase
           .from('user_document_acceptances')
@@ -1048,7 +1025,8 @@ export const legalDocumentsService = {
           return filtered;
         }
       } catch (error) {
-        console.error('❌ Error loading from Supabase, falling back to mock data:', error);
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось загрузить документы из Supabase:', error);
+        throw new Error(`База данных правовых документов недоступна: ${error instanceof Error ? error.message : 'неизвестная ошибка'}`);
       }
     }
     
@@ -1139,12 +1117,14 @@ export const legalDocumentsService = {
 
   async getDocumentStatistics(): Promise<DocumentStatistics[]> {
     // Try API first
-    if (apiConfigService.getApiMode() === 'http') {
+    const isMockMode = await apiConfigServiceDB.isMockMode();
+    const config = await apiConfigServiceDB.getCurrentConnection();
+    if (!isMockMode && config?.type === 'http') {
       try {
         return await httpApiMethods.getDocumentStatisticsFromAPI();
       } catch (error) {
-        console.error('Legal documents API error:', error);
-        console.warn('Falling back to mock data due to API error');
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось получить правовые документы из внешнего API:', error);
+        throw new Error(`Внешняя система правовых документов недоступна: ${error instanceof Error ? error.message : 'ошибка API'}. Обратитесь к администратору.`);
       }
     }
     

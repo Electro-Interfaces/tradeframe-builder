@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Полный тест универсального HTTP клиента</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #fff; 
+            padding: 20px; 
+            line-height: 1.4;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .code { 
+            background: #0d1117; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #444;
+            overflow-x: auto;
+        }
+        .test-section {
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #2d2d2d;
+        }
+        .test-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 10px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>🧪 ПОЛНЫЙ ТЕСТ УНИВЕРСАЛЬНОГО HTTP КЛИЕНТА</h1>
+    <div>Тестируем: Supabase подключение → Внешний API → Параметры сети и торговой точки</div>
+    
+    <div class="test-section">
+        <div class="test-header">🎯 УПРАВЛЕНИЕ ТЕСТАМИ</div>
+        <button onclick="runAllTests()">🚀 Запустить все тесты</button>
+        <button onclick="clearLog()">🧹 Очистить логи</button>
+        <button onclick="testSupabaseOnly()">🗄️ Только Supabase</button>
+        <button onclick="testExternalApiOnly()">🌐 Только внешний API</button>
+        <button onclick="testParametersOnly()">🔧 Только параметры</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script type="module">
+        const TARGET_TP_ID = '6969b08d-1cbe-45c2-ae9c-8002c7022b59'; // АЗС 4
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'normal', section = 'general') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${section.toUpperCase()}] ${message}`;
+            log.appendChild(div);
+            console.log(`[${section.toUpperCase()}] ${message.replace(/<[^>]*>/g, '')}`);
+        }
+        
+        function addSection(title) {
+            const div = document.createElement('div');
+            div.className = 'test-section';
+            div.innerHTML = `<div class="test-header">${title}</div><div id="section-${Date.now()}"></div>`;
+            log.appendChild(div);
+        }
+        
+        window.clearLog = function() {
+            log.innerHTML = '';
+        }
+        
+        // ТЕСТ 1: Supabase подключение через HTTP клиент
+        window.testSupabaseOnly = async function() {
+            addSection('🗄️ ТЕСТ SUPABASE ПОДКЛЮЧЕНИЯ');
+            
+            try {
+                addLog('📦 Импорт HTTP клиента...', 'info', 'supabase');
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                addLog('✅ HTTP клиент импортирован', 'success', 'supabase');
+                
+                // Тест 1.1: Проверка конфигурации Supabase
+                addLog('🔧 Проверка конфигурации Supabase...', 'info', 'supabase');
+                
+                // Тест базового подключения к Supabase - получим список таблиц через REST API
+                addLog('📡 Тестируем базовое подключение к Supabase...', 'info', 'supabase');
+                
+                const configResponse = await httpClient.get('/rest/v1/', {
+                    destination: 'supabase'
+                });
+                
+                addLog('📊 Ответ базового подключения:', 'info', 'supabase');
+                addLog(`<div class="code">
+                    Success: ${configResponse.success}<br>
+                    Status: ${configResponse.status}<br>
+                    Error: ${configResponse.error || 'нет'}<br>
+                    Headers: ${JSON.stringify(configResponse.headers, null, 2)}
+                </div>`, 'info', 'supabase');
+                
+                if (!configResponse.success) {
+                    addLog('❌ Базовое подключение к Supabase не работает!', 'error', 'supabase');
+                    addLog(`💡 Проверьте URL и ключи Supabase в конфигурации`, 'warning', 'supabase');
+                    return false;
+                }
+                
+                // Тест 1.2: Получение сетей
+                addLog('🌐 Тестируем получение сетей из Supabase...', 'info', 'supabase');
+                
+                const networksResponse = await httpClient.get('/rest/v1/networks', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,code,status',
+                        limit: '5'
+                    }
+                });
+                
+                addLog('📊 Результат запроса сетей:', 'info', 'supabase');
+                addLog(`<div class="code">
+                    Success: ${networksResponse.success}<br>
+                    Status: ${networksResponse.status}<br>
+                    Count: ${networksResponse.data ? networksResponse.data.length : 0}<br>
+                    Error: ${networksResponse.error || 'нет'}
+                </div>`, 'info', 'supabase');
+                
+                if (networksResponse.success && networksResponse.data && networksResponse.data.length > 0) {
+                    addLog('✅ Сети успешно получены из Supabase!', 'success', 'supabase');
+                    addLog(`📋 Пример сети: ${JSON.stringify(networksResponse.data[0], null, 2)}`, 'info', 'supabase');
+                } else {
+                    addLog('⚠️ Нет данных о сетях в Supabase или ошибка доступа', 'warning', 'supabase');
+                }
+                
+                // Тест 1.3: Получение торговых точек
+                addLog('📍 Тестируем получение торговых точек из Supabase...', 'info', 'supabase');
+                
+                const tradingPointsResponse = await httpClient.get('/rest/v1/trading_points', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: 'id,name,external_id,network_id,code',
+                        limit: '5'
+                    }
+                });
+                
+                addLog('📊 Результат запроса торговых точек:', 'info', 'supabase');
+                addLog(`<div class="code">
+                    Success: ${tradingPointsResponse.success}<br>
+                    Status: ${tradingPointsResponse.status}<br>
+                    Count: ${tradingPointsResponse.data ? tradingPointsResponse.data.length : 0}<br>
+                    Error: ${tradingPointsResponse.error || 'нет'}
+                </div>`, 'info', 'supabase');
+                
+                if (tradingPointsResponse.success && tradingPointsResponse.data && tradingPointsResponse.data.length > 0) {
+                    addLog('✅ Торговые точки успешно получены из Supabase!', 'success', 'supabase');
+                    addLog(`📋 Пример торговой точки: ${JSON.stringify(tradingPointsResponse.data[0], null, 2)}`, 'info', 'supabase');
+                } else {
+                    addLog('⚠️ Нет данных о торговых точках в Supabase или ошибка доступа', 'warning', 'supabase');
+                }
+                
+                // Тест 1.4: Специальный тест для АЗС 4
+                addLog('🔍 Тестируем получение конкретной торговой точки АЗС 4...', 'info', 'supabase');
+                
+                const azs4Response = await httpClient.get('/rest/v1/trading_points', {
+                    destination: 'supabase',
+                    queryParams: {
+                        select: '*',
+                        id: `eq.${TARGET_TP_ID}`
+                    }
+                });
+                
+                addLog('📊 Результат запроса АЗС 4:', 'info', 'supabase');
+                addLog(`<div class="code">
+                    Success: ${azs4Response.success}<br>
+                    Status: ${azs4Response.status}<br>
+                    Found: ${azs4Response.data && azs4Response.data.length > 0}<br>
+                    Error: ${azs4Response.error || 'нет'}
+                </div>`, 'info', 'supabase');
+                
+                if (azs4Response.success && azs4Response.data && azs4Response.data.length > 0) {
+                    addLog('✅ АЗС 4 найдена в Supabase!', 'success', 'supabase');
+                    const azs4Data = azs4Response.data[0];
+                    addLog(`<div class="code">
+                        ID: ${azs4Data.id}<br>
+                        Название: ${azs4Data.name}<br>
+                        External ID: ${azs4Data.external_id || 'НЕТ'}<br>
+                        Network ID: ${azs4Data.network_id || 'НЕТ'}<br>
+                        Code: ${azs4Data.code || 'НЕТ'}
+                    </div>`, 'success', 'supabase');
+                    return azs4Data;
+                } else {
+                    addLog('❌ АЗС 4 не найдена в Supabase!', 'error', 'supabase');
+                    return null;
+                }
+                
+            } catch (error) {
+                addLog('💥 Критическая ошибка теста Supabase:', 'error', 'supabase');
+                addLog(`<div class="code">${error.message}<br><br>Stack: ${error.stack}</div>`, 'error', 'supabase');
+                return null;
+            }
+        }
+        
+        // ТЕСТ 2: Внешний API торговой сети
+        window.testExternalApiOnly = async function() {
+            addSection('🌐 ТЕСТ ВНЕШНЕГО API ТОРГОВОЙ СЕТИ');
+            
+            try {
+                addLog('📦 Импорт сервисов для внешнего API...', 'info', 'external');
+                const { httpClient } = await import('./src/services/universalHttpClient.js');
+                const { tradingNetworkConfigService } = await import('./src/services/tradingNetworkConfigService.js');
+                addLog('✅ Сервисы импортированы', 'success', 'external');
+                
+                // Тест 2.1: Получение конфигурации торговой сети
+                addLog('🔧 Получение конфигурации торговой сети...', 'info', 'external');
+                
+                let config;
+                try {
+                    config = await tradingNetworkConfigService.getConfig();
+                    addLog('✅ Async конфигурация получена', 'success', 'external');
+                } catch (asyncError) {
+                    addLog('⚠️ Async конфигурация не работает, пробуем sync...', 'warning', 'external');
+                    try {
+                        config = tradingNetworkConfigService.getConfigSync();
+                        addLog('✅ Sync конфигурация получена', 'success', 'external');
+                    } catch (syncError) {
+                        addLog('❌ Обе конфигурации не работают!', 'error', 'external');
+                        addLog(`<div class="code">Async: ${asyncError.message}<br>Sync: ${syncError.message}</div>`, 'error', 'external');
+                        return null;
+                    }
+                }
+                
+                addLog('📋 Конфигурация торговой сети:', 'info', 'external');
+                addLog(`<div class="code">
+                    Enabled: ${config.enabled}<br>
+                    Base URL: ${config.baseUrl}<br>
+                    Auth Type: ${config.authType}<br>
+                    Username: ${config.username}<br>
+                    Password: ${config.password ? '***' : 'НЕТ'}<br>
+                    Endpoints: ${JSON.stringify(config.endpoints, null, 2)}
+                </div>`, 'info', 'external');
+                
+                if (!config.enabled) {
+                    addLog('⚠️ Внешний API отключен в конфигурации!', 'warning', 'external');
+                    return null;
+                }
+                
+                if (!config.baseUrl || !config.username || !config.password) {
+                    addLog('❌ Неполная конфигурация внешнего API!', 'error', 'external');
+                    return null;
+                }
+                
+                // Тест 2.2: Тестовый запрос к внешнему API
+                addLog('📡 Тестируем подключение к внешнему API...', 'info', 'external');
+                
+                const testEndpoint = config.endpoints?.tanks || '/tanks';
+                const testParams = { system: 'test', station: '1' }; // тестовые параметры
+                
+                addLog(`📋 Параметры теста: endpoint=${testEndpoint}, params=${JSON.stringify(testParams)}`, 'info', 'external');
+                
+                const startTime = Date.now();
+                const apiResponse = await httpClient.get(testEndpoint, {
+                    destination: 'external-api',
+                    queryParams: testParams,
+                    timeout: 10000
+                });
+                const responseTime = Date.now() - startTime;
+                
+                addLog('📊 Ответ внешнего API:', 'info', 'external');
+                addLog(`<div class="code">
+                    Success: ${apiResponse.success}<br>
+                    Status: ${apiResponse.status}<br>
+                    Time: ${responseTime}ms<br>
+                    Error: ${apiResponse.error || 'нет'}<br>
+                    Data Type: ${typeof apiResponse.data}<br>
+                    Data Length: ${Array.isArray(apiResponse.data) ? apiResponse.data.length : 'не массив'}
+                </div>`, 'info', 'external');
+                
+                if (apiResponse.success) {
+                    addLog('✅ Внешний API отвечает!', 'success', 'external');
+                    if (apiResponse.data && Array.isArray(apiResponse.data) && apiResponse.data.length > 0) {
+                        addLog(`📋 Пример данных: ${JSON.stringify(apiResponse.data[0], null, 2)}`, 'success', 'external');
+                    }
+                    return config;
+                } else {
+                    addLog('❌ Внешний API не отвечает или ошибка подключения', 'error', 'external');
+                    addLog(`💡 Проверьте URL, аутентификацию и сетевое подключение`, 'warning', 'external');
+                    return null;
+                }
+                
+            } catch (error) {
+                addLog('💥 Критическая ошибка теста внешнего API:', 'error', 'external');
+                addLog(`<div class="code">${error.message}<br><br>Stack: ${error.stack}</div>`, 'error', 'external');
+                return null;
+            }
+        }
+        
+        // ТЕСТ 3: Параметры сети и торговой точки
+        window.testParametersOnly = async function() {
+            addSection('🔧 ТЕСТ ПАРАМЕТРОВ СЕТИ И ТОРГОВОЙ ТОЧКИ');
+            
+            try {
+                addLog('📦 Импорт сервисов...', 'info', 'params');
+                const { tradingPointsService } = await import('./src/services/tradingPointsService.js');
+                const { networksService } = await import('./src/services/networksService.js');
+                addLog('✅ Сервисы импортированы', 'success', 'params');
+                
+                // Тест 3.1: Получение торговой точки АЗС 4
+                addLog(`🔍 Получение торговой точки ${TARGET_TP_ID}...`, 'info', 'params');
+                
+                const tradingPoint = await tradingPointsService.getById(TARGET_TP_ID);
+                
+                if (!tradingPoint) {
+                    addLog('❌ Торговая точка не найдена!', 'error', 'params');
+                    return null;
+                }
+                
+                addLog('✅ Торговая точка найдена:', 'success', 'params');
+                addLog(`<div class="code">
+                    ID: ${tradingPoint.id}<br>
+                    Название: ${tradingPoint.name}<br>
+                    External ID: ${tradingPoint.external_id || 'НЕТ'}<br>
+                    Network ID: ${tradingPoint.networkId || 'НЕТ'}<br>
+                    Code: ${tradingPoint.code || 'НЕТ'}
+                </div>`, 'success', 'params');
+                
+                // Определение Station ID
+                const stationId = tradingPoint.external_id || tradingPoint.code || '';
+                addLog(`📋 Station ID: "${stationId}" ${stationId ? '✅' : '❌'}`, stationId ? 'success' : 'error', 'params');
+                
+                if (!stationId) {
+                    addLog('❌ У торговой точки нет external_id или code для Station ID!', 'error', 'params');
+                    return null;
+                }
+                
+                // Тест 3.2: Получение сети
+                if (!tradingPoint.networkId) {
+                    addLog('❌ У торговой точки нет networkId!', 'error', 'params');
+                    return null;
+                }
+                
+                addLog(`🌐 Получение сети ${tradingPoint.networkId}...`, 'info', 'params');
+                
+                const network = await networksService.getById(tradingPoint.networkId);
+                
+                if (!network) {
+                    addLog('❌ Сеть не найдена!', 'error', 'params');
+                    return null;
+                }
+                
+                addLog('✅ Сеть найдена:', 'success', 'params');
+                addLog(`<div class="code">
+                    ID: ${network.id}<br>
+                    Название: ${network.name}<br>
+                    External ID: ${network.external_id || 'НЕТ'}<br>
+                    Code: ${network.code || 'НЕТ'}<br>
+                    Status: ${network.status}
+                </div>`, 'success', 'params');
+                
+                // Определение System ID
+                const systemId = network.external_id || network.code || network.name || '';
+                addLog(`📋 System ID: "${systemId}" ${systemId ? '✅' : '❌'}`, systemId ? 'success' : 'error', 'params');
+                
+                if (!systemId) {
+                    addLog('❌ У сети нет external_id, code или name для System ID!', 'error', 'params');
+                    addLog('💡 Это основная причина проблемы с API параметрами!', 'warning', 'params');
+                    return null;
+                }
+                
+                // Тест 3.3: Финальные параметры API
+                addLog('🎯 ИТОГОВЫЕ ПАРАМЕТРЫ API:', 'success', 'params');
+                addLog(`<div class="code">
+                    System ID: "${systemId}"<br>
+                    Station ID: "${stationId}"<br>
+                    Оба параметра заполнены: ${systemId && stationId ? '✅ ДА' : '❌ НЕТ'}<br>
+                    Готов для API: ${systemId && stationId ? '✅ ДА' : '❌ НЕТ'}
+                </div>`, systemId && stationId ? 'success' : 'error', 'params');
+                
+                return {
+                    tradingPoint,
+                    network,
+                    systemId,
+                    stationId,
+                    ready: !!(systemId && stationId)
+                };
+                
+            } catch (error) {
+                addLog('💥 Критическая ошибка теста параметров:', 'error', 'params');
+                addLog(`<div class="code">${error.message}<br><br>Stack: ${error.stack}</div>`, 'error', 'params');
+                return null;
+            }
+        }
+        
+        // ПОЛНЫЙ ТЕСТ
+        window.runAllTests = async function() {
+            addLog('🚀 ЗАПУСК ПОЛНОГО ТЕСТИРОВАНИЯ УНИВЕРСАЛЬНОГО HTTP КЛИЕНТА', 'info', 'main');
+            addLog('='.repeat(80), 'info', 'main');
+            
+            // Тест 1: Supabase
+            const supabaseResult = await testSupabaseOnly();
+            
+            // Тест 2: Внешний API
+            const externalApiResult = await testExternalApiOnly();
+            
+            // Тест 3: Параметры
+            const parametersResult = await testParametersOnly();
+            
+            // Финальный анализ
+            addSection('📊 ФИНАЛЬНЫЙ АНАЛИЗ');
+            
+            addLog('🏁 РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ:', 'info', 'summary');
+            addLog(`<div class="code">
+                Supabase подключение: ${supabaseResult ? '✅ РАБОТАЕТ' : '❌ НЕ РАБОТАЕТ'}<br>
+                Внешний API: ${externalApiResult ? '✅ РАБОТАЕТ' : '❌ НЕ РАБОТАЕТ'}<br>
+                Параметры сети/точки: ${parametersResult && parametersResult.ready ? '✅ ГОТОВЫ' : '❌ НЕ ГОТОВЫ'}
+            </div>`, 'info', 'summary');
+            
+            if (supabaseResult && externalApiResult && parametersResult && parametersResult.ready) {
+                addLog('🎉 ВСЕ ТЕСТЫ ПРОЙДЕНЫ! Универсальный HTTP клиент готов к работе!', 'success', 'summary');
+                addLog('💡 Кнопка "Создать резервуары" должна работать без ошибок', 'success', 'summary');
+            } else {
+                addLog('⚠️ ЕСТЬ ПРОБЛЕМЫ:', 'warning', 'summary');
+                
+                if (!supabaseResult) {
+                    addLog('🔧 Supabase: Проверьте URL и ключи доступа к базе данных', 'warning', 'summary');
+                }
+                
+                if (!externalApiResult) {
+                    addLog('🔧 Внешний API: Проверьте конфигурацию в разделе "Обмен данными"', 'warning', 'summary');
+                }
+                
+                if (!parametersResult || !parametersResult.ready) {
+                    addLog('🔧 Параметры: Добавьте external_id в сеть или торговую точку в базе данных', 'warning', 'summary');
+                }
+            }
+        }
+        
+        // Автозапуск при загрузке
+        addLog('✅ Страница загружена. Нажмите "Запустить все тесты" для начала тестирования.', 'info', 'main');
+        
+    </script>
+</body>
+</html>

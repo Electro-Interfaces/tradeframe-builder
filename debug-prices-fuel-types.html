@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отладка видов топлива - TradeFrame</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">🔍 Отладка видов топлива для цен</h1>
+        
+        <!-- Параметры тестирования -->
+        <div class="bg-gray-800 rounded-lg p-4 mb-6">
+            <h2 class="text-lg font-semibold mb-3">Настройки тестирования</h2>
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Trading Point ID:</label>
+                    <input type="text" id="tradingPointId" 
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" 
+                           placeholder="Введите ID торговой точки">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">System Type:</label>
+                    <input type="text" id="systemType" value="fuel_tank"
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Limit:</label>
+                    <input type="number" id="limit" value="100"
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                </div>
+            </div>
+            <div class="mt-4">
+                <button onclick="debugFuelTypes()" 
+                        class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded mr-2">
+                    🔍 Отладить виды топлива
+                </button>
+                <button onclick="checkTanksDirectly()" 
+                        class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded mr-2">
+                    🏪 Проверить резервуары напрямую
+                </button>
+                <button onclick="clearResults()" 
+                        class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded">
+                    🧹 Очистить
+                </button>
+            </div>
+        </div>
+
+        <!-- Результаты -->
+        <div id="results" class="space-y-4"></div>
+    </div>
+
+    <script>
+        // Supabase connection
+        const SUPABASE_URL = 'https://oojbhuwgdxnpcrzljzkm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vamJodXdnZHhucGNyemxqemttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQyMjUzNzksImV4cCI6MjA0OTgwMTM3OX0.KXF1gEiAXWv-HVLCZFoHuIKVcjQIBSUPcROkfVMNHDY';
+
+        async function debugFuelTypes() {
+            const tradingPointId = document.getElementById('tradingPointId').value.trim();
+            if (!tradingPointId) {
+                addResult('error', 'Введите Trading Point ID');
+                return;
+            }
+
+            addResult('info', `🔥 Начинаем отладку для торговой точки: ${tradingPointId}`);
+            
+            try {
+                // 1. Проверяем резервуары
+                addResult('info', '📋 Шаг 1: Получение резервуаров...');
+                const tanks = await getTanksFromAPI(tradingPointId);
+                
+                if (!tanks || tanks.length === 0) {
+                    addResult('error', '❌ Резервуары не найдены или ошибка API');
+                    return;
+                }
+                
+                addResult('success', `✅ Найдено ${tanks.length} резервуаров`);
+                
+                // 2. Анализируем параметры резервуаров
+                addResult('info', '🔍 Шаг 2: Анализ параметров резервуаров...');
+                
+                tanks.forEach((tank, index) => {
+                    const fuelType = tank.params?.['Тип топлива'];
+                    const capacity = tank.params?.['Вместимость (л)'];
+                    const level = tank.params?.['Текущий уровень (л)'];
+                    
+                    const logData = {
+                        index: index + 1,
+                        id: tank.id,
+                        name: tank.name,
+                        status: tank.status,
+                        fuelType: fuelType || 'НЕ УКАЗАН',
+                        capacity: capacity || 'НЕ УКАЗАН',
+                        level: level || 'НЕ УКАЗАН',
+                        allParams: Object.keys(tank.params || {})
+                    };
+                    
+                    const statusClass = tank.status !== 'deleted' && fuelType ? 'info' : 'warning';
+                    addResult(statusClass, 
+                        `Резервуар ${index + 1}: ${tank.name} | 
+                         Статус: ${tank.status} | 
+                         Тип топлива: ${fuelType || 'НЕ УКАЗАН'} | 
+                         Вместимость: ${capacity || 'НЕ УКАЗАН'} л | 
+                         Все параметры: [${Object.keys(tank.params || {}).join(', ')}]`
+                    );
+                });
+                
+                // 3. Группировка по видам топлива
+                addResult('info', '📊 Шаг 3: Группировка по видам топлива...');
+                
+                const fuelTypesMap = new Map();
+                const validTanks = tanks.filter(tank => tank.status !== 'deleted' && tank.params?.['Тип топлива']);
+                
+                addResult('info', `Валидных резервуаров для обработки: ${validTanks.length} из ${tanks.length}`);
+                
+                validTanks.forEach(tank => {
+                    const fuelType = tank.params['Тип топлива'];
+                    const capacity = parseFloat(tank.params['Вместимость (л)']) || 0;
+                    const level = parseFloat(tank.params['Текущий уровень (л)']) || 0;
+                    
+                    if (!fuelTypesMap.has(fuelType)) {
+                        fuelTypesMap.set(fuelType, {
+                            tanks: [],
+                            totalVolume: 0,
+                            currentLevel: 0
+                        });
+                    }
+                    
+                    const fuelData = fuelTypesMap.get(fuelType);
+                    fuelData.tanks.push(tank);
+                    fuelData.totalVolume += capacity;
+                    fuelData.currentLevel += level;
+                });
+                
+                // 4. Показываем итоговый результат
+                addResult('info', `🏁 Итого найдено ${fuelTypesMap.size} видов топлива:`);
+                
+                fuelTypesMap.forEach((data, fuelType) => {
+                    addResult('success', 
+                        `${fuelType}: ${data.tanks.length} резервуаров, 
+                         общий объём ${data.totalVolume} л, 
+                         текущий уровень ${data.currentLevel} л`
+                    );
+                });
+                
+                if (fuelTypesMap.size === 0) {
+                    addResult('error', '❌ Виды топлива не найдены! Проверьте параметры резервуаров.');
+                }
+                
+            } catch (error) {
+                addResult('error', `❌ Ошибка отладки: ${error.message}`);
+                console.error('Debug error:', error);
+            }
+        }
+
+        async function checkTanksDirectly() {
+            const tradingPointId = document.getElementById('tradingPointId').value.trim();
+            if (!tradingPointId) {
+                addResult('error', 'Введите Trading Point ID');
+                return;
+            }
+
+            try {
+                addResult('info', `🏪 Проверка резервуаров напрямую через Supabase API...`);
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/equipment?trading_point_id=eq.${tradingPointId}&system_type=eq.fuel_tank&limit=100`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const tanks = await response.json();
+                addResult('success', `✅ Получено ${tanks.length} резервуаров через прямой API`);
+                
+                tanks.forEach((tank, index) => {
+                    addResult('info', 
+                        `Резервуар ${index + 1}: ${tank.name} | 
+                         ID: ${tank.id} | 
+                         Статус: ${tank.status} | 
+                         Trading Point: ${tank.trading_point_id} | 
+                         Params: ${JSON.stringify(tank.params, null, 2).substring(0, 200)}...`
+                    );
+                });
+                
+            } catch (error) {
+                addResult('error', `❌ Ошибка прямого запроса: ${error.message}`);
+                console.error('Direct API error:', error);
+            }
+        }
+
+        async function getTanksFromAPI(tradingPointId) {
+            // Имитация вызова equipmentSupabase API
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/equipment?trading_point_id=eq.${tradingPointId}&system_type=eq.fuel_tank&limit=100`, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        }
+
+        function addResult(type, message) {
+            const results = document.getElementById('results');
+            const colors = {
+                'info': 'bg-blue-900 border-blue-600 text-blue-200',
+                'success': 'bg-green-900 border-green-600 text-green-200', 
+                'warning': 'bg-yellow-900 border-yellow-600 text-yellow-200',
+                'error': 'bg-red-900 border-red-600 text-red-200'
+            };
+            
+            const div = document.createElement('div');
+            div.className = `border-l-4 p-4 rounded ${colors[type] || colors.info}`;
+            div.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="whitespace-pre-wrap font-mono text-sm">${message}</div>
+                    <span class="text-xs opacity-70">${new Date().toLocaleTimeString()}</span>
+                </div>
+            `;
+            
+            results.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Автоматически подставляем ID если есть в URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoId = urlParams.get('id');
+        if (autoId) {
+            document.getElementById('tradingPointId').value = autoId;
+        }
+    </script>
+</body>
+</html>

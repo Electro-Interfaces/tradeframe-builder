@@ -10,17 +10,42 @@ export default defineConfig(({ mode }) => ({
     host: "0.0.0.0",
     port: 3000,
     allowedHosts: [".e2b.dev"],
+    proxy: {
+      '/api/trading-network': {
+        target: 'https://pos.autooplata.ru/tms',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/trading-network/, ''),
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('🌐 Proxying request:', req.method, req.url);
+          });
+        }
+      },
+      '/supabase-proxy': {
+        target: 'https://tohtryzyffcebtyvkxwh.supabase.co',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/supabase-proxy/, ''),
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('🔗 Proxying Supabase request:', req.method, req.url);
+          });
+        }
+      }
+    }
   },
   plugins: [
     react(),
     // Temporarily disabled: mode === 'development' && componentTagger(),
   ].filter(Boolean),
   build: {
-    chunkSizeWarningLimit: 1500,
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: {
+          // React core и router
           react: ["react", "react-dom", "react-router-dom"],
+          
+          // UI библиотеки - разделение на группы
           radix: [
             "@radix-ui/react-accordion",
             "@radix-ui/react-alert-dialog",
@@ -50,8 +75,48 @@ export default defineConfig(({ mode }) => ({
             "@radix-ui/react-toggle-group",
             "@radix-ui/react-tooltip",
           ],
-          charts: ["recharts"],
+          
+          // Формы и валидация
+          forms: ["react-hook-form", "@hookform/resolvers", "zod"],
+          
+          // Data fetching
           query: ["@tanstack/react-query"],
+          supabase: ["@supabase/supabase-js"],
+          
+          // Графики и визуализация
+          charts: ["recharts"],
+          
+          // Иконки и утилиты
+          icons: ["lucide-react"],
+          utils: ["clsx", "tailwind-merge", "class-variance-authority", "date-fns"],
+          
+          // Drag and drop
+          dnd: ["@dnd-kit/core", "@dnd-kit/sortable", "@dnd-kit/utilities"],
+          
+          // Таблицы и офисные файлы
+          office: ["xlsx"],
+          
+          // Node.js модули (если используются в клиенте)
+          node: ["node-fetch"],
+        },
+        // Оптимизация именования чанков
+        chunkFileNames: (chunkInfo) => {
+          if (chunkInfo.name) {
+            return `[name]-[hash].js`;
+          }
+          return '[name]-[hash].js';
+        },
+        // Оптимизация entry chunks
+        entryFileNames: 'index-[hash].js',
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name?.split('.') || [];
+          let extType = info[info.length - 1];
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(extType)) {
+            extType = 'img';
+          } else if (/woff|woff2/.test(extType)) {
+            extType = 'fonts';
+          }
+          return `${extType}/[name]-[hash][extname]`;
         },
       },
     },
