@@ -42,9 +42,9 @@ async function setupNetworksTable() {
         status: 'active'
       },
       {
-        name: 'Норд Лайн',
-        code: 'nord_line',
-        description: 'Сеть АЗС Норд Лайн',
+        name: 'БТО',
+        code: 'bto',
+        description: 'Сеть АЗС БТО',
         status: 'active'
       }
     ];

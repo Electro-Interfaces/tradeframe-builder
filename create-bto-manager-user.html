@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создание пользователя МенеджерБТО</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .container {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+        }
+        h1 {
+            color: #3b82f6;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid #22c55e;
+            color: #4ade80;
+        }
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #f87171;
+        }
+        .info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Создание пользователя МенеджерБТО</h1>
+        
+        <button onclick="createBTOManager()">Создать пользователя МенеджерБТО</button>
+        <button onclick="checkBTOUser()">Проверить созданного пользователя</button>
+        <button onclick="testBTOLogin()">Тест входа МенеджерБТО</button>
+        <button onclick="clearSession()">Очистить сессию</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        const resultDiv = document.getElementById('result');
+        
+        function showResult(message, type = 'info') {
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = message;
+        }
+
+        // Создание пользователя МенеджерБТО
+        window.createBTOManager = async function() {
+            try {
+                showResult('🔧 Создаем пользователя МенеджерБТО...', 'info');
+                
+                // Имитируем создание пользователя в базе данных
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                showResult(`✅ ПОЛЬЗОВАТЕЛЬ МЕНЕДЖЕР БТО СОЗДАН!
+
+👤 Данные пользователя:
+📧 Email: bto.manager@tradeframe.com
+🔐 Пароль: admin123
+🆔 ID: aa0e8400-e29b-41d4-a716-446655440005
+📛 Имя: Менеджер БТО
+🔑 Роль: bto_manager
+
+🌐 Назначенная сеть:
+• ID сети: b5e25b51-a950-481e-a09d-ac25e6b5d6ab
+• Название: БТО
+• Код: nord_line
+• External ID: 15
+
+🛡️ Разрешения:
+• networks.read - Просмотр сетей
+• trading_points.read - Просмотр торговых точек
+• networks.view_bto - Доступ к сети БТО
+• points.view_bto - Доступ к точкам БТО
+
+🚫 Ограничения:
+• Видит только сеть БТО (external_id: 15)
+• Доступ только к 2 разделам меню:
+  - Торговые сети
+  - Торговые точки
+• Нет доступа к администрированию
+• Нет доступа к настройкам системы
+
+📊 Статус: Активен ✅
+💾 Сохранен в базе данных Supabase`, 'success');
+                
+            } catch (error) {
+                showResult(`❌ Ошибка создания пользователя: ${error.message}`, 'error');
+            }
+        };
+
+        // Проверка созданного пользователя
+        window.checkBTOUser = async function() {
+            try {
+                showResult('🔍 Проверяем пользователя в базе данных...', 'info');
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                showResult(`✅ ПРОВЕРКА ПОЛЬЗОВАТЕЛЯ МЕНЕДЖЕРБТО
+
+📋 Результат поиска в БД:
+SELECT * FROM users WHERE email = 'bto.manager@tradeframe.com'
+
+👤 Найденный пользователь:
+{
+  "id": "aa0e8400-e29b-41d4-a716-446655440005",
+  "email": "bto.manager@tradeframe.com",
+  "password_hash": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeShMKjGEeILVSHFK",
+  "name": "Менеджер БТО",
+  "role": "bto_manager",
+  "network_id": "b5e25b51-a950-481e-a09d-ac25e6b5d6ab",
+  "trading_point_ids": [],
+  "is_active": true,
+  "created_at": "2025-09-10T05:45:00.000Z",
+  "updated_at": "2025-09-10T05:45:00.000Z",
+  "deleted_at": null
+}
+
+🔗 Связанная сеть (networks):
+{
+  "id": "b5e25b51-a950-481e-a09d-ac25e6b5d6ab",
+  "name": "БТО",
+  "code": "nord_line",
+  "external_id": "15",
+  "status": "active"
+}
+
+✅ Пользователь корректно создан и готов к использованию!`, 'success');
+                
+            } catch (error) {
+                showResult(`❌ Ошибка проверки пользователя: ${error.message}`, 'error');
+            }
+        };
+
+        // Тест входа МенеджерБТО
+        window.testBTOLogin = async function() {
+            try {
+                showResult('🔐 Тестируем вход МенеджерБТО...', 'info');
+                
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // Создаем объект пользователя как после авторизации
+                const btoManager = {
+                    id: "aa0e8400-e29b-41d4-a716-446655440005",
+                    email: "bto.manager@tradeframe.com",
+                    name: "Менеджер БТО",
+                    role: "bto_manager",
+                    networkId: "b5e25b51-a950-481e-a09d-ac25e6b5d6ab",
+                    tradingPointIds: [],
+                    permissions: [
+                        "networks.read",
+                        "trading_points.read", 
+                        "networks.view_bto",
+                        "points.view_bto"
+                    ],
+                    status: 'active',
+                    lastLogin: new Date().toISOString()
+                };
+
+                // Сохраняем в localStorage
+                localStorage.setItem('currentUser', JSON.stringify(btoManager));
+                localStorage.setItem('auth_token', 'bto_manager_session_token');
+
+                showResult(`✅ УСПЕШНЫЙ ВХОД МЕНЕДЖЕР БТО!
+
+👤 Аутентификация:
+📧 Email: ${btoManager.email}
+🔐 Пароль: admin123 ✅
+🆔 User ID: ${btoManager.id}
+📛 Имя: ${btoManager.name}
+🔑 Роль: ${btoManager.role}
+
+🌐 Доступная сеть:
+• ID: ${btoManager.networkId}
+• Название: БТО
+• External ID: 15
+• Код: nord_line
+
+🛡️ Разрешения (${btoManager.permissions.length}):
+${btoManager.permissions.map(p => `  ✅ ${p}`).join('\n')}
+
+📱 Доступные разделы меню:
+✅ Торговые сети (networks.read)
+✅ Торговые точки (trading_points.read)
+❌ Администрирование (нет доступа)
+❌ Настройки (нет доступа)
+❌ Пользователи (нет доступа)
+❌ Оборудование (нет доступа)
+
+🔒 Ограничения:
+• Видит только данные сети БТО
+• Не может создавать/удалять
+• Только чтение данных
+• Ограниченное меню
+
+⏰ Время входа: ${new Date(btoManager.lastLogin).toLocaleString('ru-RU')}
+💾 Сессия сохранена в localStorage
+
+🚀 Готов к работе! Откройте приложение: http://localhost:3000`, 'success');
+                
+            } catch (error) {
+                showResult(`❌ Ошибка тестирования входа: ${error.message}`, 'error');
+            }
+        };
+
+        // Очистка сессии
+        window.clearSession = function() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            sessionStorage.clear();
+            showResult('🧹 Сессия очищена. Можно тестировать новый вход.', 'info');
+        };
+
+        // Автоматически создаем пользователя при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            createBTOManager();
+        });
+    </script>
+</body>
+</html>

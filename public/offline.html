@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>TradeControl - Офлайн</title>
+    <meta name="theme-color" content="#1e293b">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 400px;
+            padding: 2rem;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 20px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        h1 {
+            color: #3b82f6;
+            margin: 0 0 1rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        p {
+            color: #94a3b8;
+            line-height: 1.6;
+            margin: 0 0 2rem;
+        }
+
+        .retry-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            min-height: 44px;
+            min-width: 120px;
+        }
+
+        .retry-btn:hover {
+            background: #2563eb;
+        }
+
+        .status {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .status.checking {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .status.online {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .status.offline {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 1.25rem;
+            }
+        }
+
+        /* Safe area support */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🌐</div>
+        <h1>Нет подключения к интернету</h1>
+        <p>TradeControl временно недоступен. Проверьте подключение к сети и попробуйте снова.</p>
+        
+        <button class="retry-btn" onclick="retryConnection()">
+            Повторить попытку
+        </button>
+        
+        <div id="status" class="status checking">
+            Проверка подключения...
+        </div>
+    </div>
+
+    <script>
+        let isOnline = navigator.onLine;
+        let checkInterval;
+
+        function updateStatus(online) {
+            const status = document.getElementById('status');
+            if (online) {
+                status.className = 'status online';
+                status.textContent = '✓ Подключение восстановлено';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                status.className = 'status offline';
+                status.textContent = '✗ Нет подключения к интернету';
+            }
+        }
+
+        function checkConnection() {
+            fetch('/', { 
+                method: 'HEAD',
+                cache: 'no-store'
+            })
+            .then(response => {
+                if (response.ok) {
+                    updateStatus(true);
+                    if (checkInterval) {
+                        clearInterval(checkInterval);
+                    }
+                }
+            })
+            .catch(() => {
+                updateStatus(false);
+            });
+        }
+
+        function retryConnection() {
+            const status = document.getElementById('status');
+            status.className = 'status checking';
+            status.textContent = 'Проверка подключения...';
+            
+            checkConnection();
+        }
+
+        // Слушаем изменения состояния сети
+        window.addEventListener('online', () => {
+            updateStatus(true);
+        });
+
+        window.addEventListener('offline', () => {
+            updateStatus(false);
+        });
+
+        // Периодическая проверка соединения
+        checkInterval = setInterval(checkConnection, 5000);
+
+        // Первоначальная проверка
+        setTimeout(checkConnection, 1000);
+
+        // Информация в консоль
+        console.log('TradeControl PWA - Offline Page');
+        console.log('Navigator online:', navigator.onLine);
+        console.log('Service Worker registered:', 'serviceWorker' in navigator);
+    </script>
+</body>
+</html>

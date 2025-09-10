@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Tables Status Check</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .test { margin: 15px 0; padding: 20px; border-radius: 10px; }
+        .success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4caf50; }
+        .error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+        .info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196f3; }
+        .warning { background: rgba(255, 152, 0, 0.2); border: 1px solid #ff9800; }
+        pre { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
+        .button { 
+            background: #4caf50; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            margin: 10px 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .button:hover { background: #45a049; transform: translateY(-2px); }
+        .button.secondary { background: #2196f3; }
+        .button.secondary:hover { background: #1976d2; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2); }
+        th { background: rgba(255,255,255,0.1); font-weight: bold; }
+        .status-exists { color: #4caf50; }
+        .status-missing { color: #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Проверка статуса таблиц в Supabase</h1>
+        
+        <div class="test info">
+            <h3>📊 Проверяем доступность всех необходимых таблиц</h3>
+            <p>Проверим какие таблицы существуют в базе данных, а какие отсутствуют</p>
+            <button class="button" onclick="checkAllTables()">ПРОВЕРИТЬ ВСЕ ТАБЛИЦЫ</button>
+            <button class="button secondary" onclick="checkSpecificTables()">ПРОВЕРИТЬ ОСНОВНЫЕ ТАБЛИЦЫ</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const config = {
+            url: 'https://ssvazdgnmatbdynkhkqo.supabase.co',
+            apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0'
+        };
+
+        // Таблицы, которые приложение пытается использовать
+        const expectedTables = [
+            'page_help',        // Инструкции ✅
+            'networks',         // Торговые сети ❌ 
+            'trading_points',   // Торговые точки ❌
+            'operations',       // Операции
+            'prices',           // Цены
+            'tanks',            // Резервуары
+            'equipment',        // Оборудование
+            'equipment_templates', // Шаблоны оборудования
+            'users',            // Пользователи
+            'roles',            // Роли
+            'permissions',      // Разрешения
+            'fuel_types',       // Виды топлива
+            'legal_documents'   // Правовые документы
+        ];
+
+        function addResult(title, type, data) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+
+        window.checkAllTables = async function() {
+            addResult('🔍 Начинаем проверку всех таблиц...', 'info', 'Подключаемся к Supabase и проверяем доступность таблиц');
+            
+            const tableStatus = {};
+            const existingTables = [];
+            const missingTables = [];
+
+            for (const tableName of expectedTables) {
+                try {
+                    const response = await fetch(`${config.url}/rest/v1/${tableName}?select=count&limit=0`, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': config.apiKey,
+                            'Authorization': `Bearer ${config.apiKey}`,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'count=exact'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const count = response.headers.get('Content-Range')?.split('/')[1] || 'unknown';
+                        tableStatus[tableName] = { exists: true, count: count, status: response.status };
+                        existingTables.push(tableName);
+                    } else if (response.status === 404) {
+                        tableStatus[tableName] = { exists: false, error: 'Table not found', status: 404 };
+                        missingTables.push(tableName);
+                    } else {
+                        tableStatus[tableName] = { exists: false, error: `HTTP ${response.status}`, status: response.status };
+                        missingTables.push(tableName);
+                    }
+                } catch (error) {
+                    tableStatus[tableName] = { exists: false, error: error.message, status: 'error' };
+                    missingTables.push(tableName);
+                }
+
+                // Небольшая пауза между запросами
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            // Результаты
+            const resultsHtml = `
+                <h4>📋 Результаты проверки таблиц:</h4>
+                <table>
+                    <tr>
+                        <th>Таблица</th>
+                        <th>Статус</th>
+                        <th>Количество записей</th>
+                        <th>Детали</th>
+                    </tr>
+                    ${expectedTables.map(table => {
+                        const status = tableStatus[table];
+                        const statusText = status.exists ? 
+                            `<span class="status-exists">✅ Существует</span>` : 
+                            `<span class="status-missing">❌ Отсутствует</span>`;
+                        const countText = status.exists ? status.count : '-';
+                        const details = status.exists ? `HTTP ${status.status}` : status.error;
+                        
+                        return `<tr>
+                            <td><strong>${table}</strong></td>
+                            <td>${statusText}</td>
+                            <td>${countText}</td>
+                            <td>${details}</td>
+                        </tr>`;
+                    }).join('')}
+                </table>
+            `;
+
+            addResult('📊 Полный статус таблиц', existingTables.length === expectedTables.length ? 'success' : 'warning', {
+                summary: {
+                    total_tables: expectedTables.length,
+                    existing_tables: existingTables.length,
+                    missing_tables: missingTables.length,
+                    success_rate: `${Math.round((existingTables.length / expectedTables.length) * 100)}%`
+                },
+                existing: existingTables,
+                missing: missingTables,
+                detailed_status: tableStatus
+            });
+
+            // Добавляем HTML таблицу
+            const htmlDiv = document.createElement('div');
+            htmlDiv.className = 'test info';
+            htmlDiv.innerHTML = `<h3>📋 Детализированный отчет</h3>${resultsHtml}`;
+            document.getElementById('results').appendChild(htmlDiv);
+
+            if (missingTables.length > 0) {
+                addResult('⚠️ Отсутствующие таблицы', 'warning', {
+                    message: 'Следующие таблицы отсутствуют в базе данных и могут вызывать ошибки',
+                    missing_tables: missingTables,
+                    impact: 'Приложение будет показывать ошибки 404 при попытке доступа к этим разделам',
+                    solution: 'Нужно создать отсутствующие таблицы или отключить соответствующие разделы'
+                });
+            }
+        };
+
+        window.checkSpecificTables = async function() {
+            // Проверяем только критически важные таблицы
+            const criticalTables = ['page_help', 'users', 'roles', 'networks', 'trading_points'];
+            
+            addResult('🎯 Проверяем критически важные таблицы', 'info', 
+                `Проверяем: ${criticalTables.join(', ')}`);
+
+            for (const table of criticalTables) {
+                try {
+                    const response = await fetch(`${config.url}/rest/v1/${table}?limit=3`, {
+                        headers: {
+                            'apikey': config.apiKey,
+                            'Authorization': `Bearer ${config.apiKey}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        addResult(`✅ ${table}`, 'success', {
+                            status: 'EXISTS',
+                            records: data.length,
+                            sample_data: data[0] || 'No data',
+                            table_accessible: true
+                        });
+                    } else {
+                        addResult(`❌ ${table}`, 'error', {
+                            status: 'MISSING OR INACCESSIBLE',
+                            http_status: response.status,
+                            error: await response.text()
+                        });
+                    }
+                } catch (error) {
+                    addResult(`❌ ${table}`, 'error', {
+                        status: 'ERROR',
+                        error: error.message
+                    });
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        };
+
+        // Автоматически запускаем проверку при загрузке
+        setTimeout(checkSpecificTables, 1000);
+    </script>
+</body>
+</html>

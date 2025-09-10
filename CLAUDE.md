@@ -59,6 +59,12 @@ This is a React-based trading platform UI built with:
 - **React Query (TanStack Query)** - Data fetching and caching
 - **React Hook Form + Zod** - Form handling and validation
 
+### 📋 Feature Implementation Status
+**✅ Active sections:** Network overview, operations-transactions, prices, tanks, equipment, user management, roles, instructions, external database settings
+**🚫 Unused sections (not implemented):** Price history, fuel stocks, equipment log, network notifications, messages, shift reports, nomenclature, equipment types, component types, API command templates, workflows, partial migration, DB initialization, data inspector, DB settings
+
+> **Important:** Unused sections appear in sidebar menu ("РАЗНОЕ") but have no functional implementation. See `UNUSED_FEATURES.md` for complete list and `src/components/layout/AppSidebar.tsx` lines 152-169 for code location.
+
 ## Project Structure
 
 ### Key Directories

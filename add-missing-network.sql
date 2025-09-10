@@ -4,11 +4,11 @@
 -- Добавляем сеть с external_id = "2" если её нет
 INSERT INTO public.networks (name, code, external_id, status, description, settings)
 SELECT 
-    'Норд Лайн Москва',
-    'NORDLINE_MSK', 
+    'БТО Москва',
+    'BTO_MSK', 
     '2',
     'active',
-    'Московское отделение сети Норд Лайн',
+    'Московское отделение сети БТО',
     '{}'::jsonb
 WHERE NOT EXISTS (
     SELECT 1 FROM public.networks WHERE external_id = '2'

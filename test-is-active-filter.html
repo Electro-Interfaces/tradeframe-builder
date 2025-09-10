@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test is_active Filter</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 10px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .error { background: #fde8e8; border-color: #f44336; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        .warning { background: #fff3e0; border-color: #ff9800; }
+        pre { background: #f4f4f4; padding: 10px; overflow: auto; font-size: 12px; max-height: 400px; }
+        .button { 
+            background: #2196f3; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+        }
+        .button:hover { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test is_active Filter Issue</h1>
+    
+    <div class="test warning">
+        <h3>🎯 Гипотеза</h3>
+        <p><strong>Проблема:</strong> Записи в page_help имеют is_active = false или null</p>
+        <p><strong>Фильтр:</strong> InstructionsService.getTopics() использует .eq('is_active', true)</p>
+        <p><strong>Результат:</strong> Записи не проходят фильтр и не отображаются</p>
+    </div>
+    
+    <div class="test">
+        <h3>🧪 Тесты фильтров</h3>
+        <button class="button" onclick="testWithActiveFilter()">1. With is_active=true Filter</button>
+        <button class="button" onclick="testWithoutActiveFilter()">2. Without is_active Filter</button>
+        <button class="button" onclick="checkActiveValues()">3. Check is_active Values</button>
+        <button class="button" onclick="updateActiveStatus()">4. Set Records Active</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        const results = document.getElementById('results');
+        
+        function addResult(title, type, data) {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+
+        async function getSupabaseClient() {
+            const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+            
+            const supabaseUrl = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+            const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+
+            return createClient(supabaseUrl, serviceRoleKey);
+        }
+
+        window.testWithActiveFilter = async function() {
+            try {
+                const supabase = await getSupabaseClient();
+                
+                // Same query as in InstructionsService.getTopics()
+                const { data, error } = await supabase
+                    .from('page_help')
+                    .select('*')
+                    .is('deleted_at', null)
+                    .eq('is_active', true)  // This is the problematic filter
+                    .order('route');
+
+                if (error) {
+                    addResult('❌ Query with is_active=true Filter Failed', 'error', error);
+                } else {
+                    addResult('📋 Query with is_active=true Filter', 'info', {
+                        found_records: data.length,
+                        records: data,
+                        note: 'This is the exact query from InstructionsService.getTopics()'
+                    });
+                }
+            } catch (error) {
+                addResult('❌ Test Error', 'error', error.message);
+            }
+        };
+
+        window.testWithoutActiveFilter = async function() {
+            try {
+                const supabase = await getSupabaseClient();
+                
+                // Same query but WITHOUT the is_active filter
+                const { data, error } = await supabase
+                    .from('page_help')
+                    .select('*')
+                    .is('deleted_at', null)
+                    .order('route');
+
+                if (error) {
+                    addResult('❌ Query without is_active Filter Failed', 'error', error);
+                } else {
+                    addResult('📋 Query without is_active Filter', 'success', {
+                        found_records: data.length,
+                        records: data,
+                        note: 'This shows ALL records regardless of is_active value'
+                    });
+                }
+            } catch (error) {
+                addResult('❌ Test Error', 'error', error.message);
+            }
+        };
+
+        window.checkActiveValues = async function() {
+            try {
+                const supabase = await getSupabaseClient();
+                
+                const { data, error } = await supabase
+                    .from('page_help')
+                    .select('id, route, title, is_active')
+                    .is('deleted_at', null);
+
+                if (error) {
+                    addResult('❌ Check Values Failed', 'error', error);
+                } else {
+                    const activeStats = {
+                        total: data.length,
+                        active_true: data.filter(r => r.is_active === true).length,
+                        active_false: data.filter(r => r.is_active === false).length,
+                        active_null: data.filter(r => r.is_active === null).length,
+                    };
+                    
+                    addResult('📊 is_active Values Analysis', 'info', {
+                        statistics: activeStats,
+                        all_records: data.map(r => ({
+                            route: r.route,
+                            title: r.title,
+                            is_active: r.is_active
+                        }))
+                    });
+                }
+            } catch (error) {
+                addResult('❌ Check Error', 'error', error.message);
+            }
+        };
+
+        window.updateActiveStatus = async function() {
+            try {
+                const supabase = await getSupabaseClient();
+                
+                // Update all records to set is_active = true
+                const { data, error } = await supabase
+                    .from('page_help')
+                    .update({ is_active: true })
+                    .is('deleted_at', null)
+                    .select();
+
+                if (error) {
+                    addResult('❌ Update Failed', 'error', error);
+                } else {
+                    addResult('✅ Records Updated to is_active = true', 'success', {
+                        updated_count: data.length,
+                        updated_records: data.map(r => ({
+                            route: r.route,
+                            title: r.title,
+                            is_active: r.is_active
+                        })),
+                        note: 'Now try reloading the Instructions page - data should appear!'
+                    });
+                }
+            } catch (error) {
+                addResult('❌ Update Error', 'error', error.message);
+            }
+        };
+
+        // Auto-run tests
+        setTimeout(() => {
+            testWithActiveFilter();
+            setTimeout(testWithoutActiveFilter, 1000);
+            setTimeout(checkActiveValues, 2000);
+        }, 500);
+    </script>
+</body>
+</html>

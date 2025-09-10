@@ -1,0 +1,6 @@
+<svg width="167" height="167" viewBox="0 0 167 167" xmlns="http://www.w3.org/2000/svg">
+  <rect width="167" height="167" fill="#1e293b" rx="20.875"/>
+  <rect x="20.875" y="20.875" width="125.25" height="125.25" fill="#3b82f6" rx="13.861"/>
+  <text x="83.5" y="96.86" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="41.75" font-weight="bold">TC</text>
+  <rect x="41.75" y="110.22" width="83.5" height="2.505" fill="white" rx="1.2525"/>
+</svg>

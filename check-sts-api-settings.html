@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка настроек STS API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1e293b;
+            color: white;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #334155;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .config-item {
+            background: #475569;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+        .label {
+            font-weight: bold;
+            color: #60a5fa;
+        }
+        .value {
+            color: #e2e8f0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.ok {
+            background: #059669;
+            color: white;
+        }
+        .status.error {
+            background: #dc2626;
+            color: white;
+        }
+        .status.warning {
+            background: #d97706;
+            color: white;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .log {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #475569;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Проверка настроек STS API</h1>
+        
+        <div class="section">
+            <h2>📋 Текущие настройки</h2>
+            <div id="config-display">
+                <p>Загрузка настроек...</p>
+            </div>
+            
+            <button class="button" onclick="loadConfig()">🔄 Обновить настройки</button>
+            <button class="button" onclick="testConnection()">🔍 Тест подключения</button>
+            <button class="button" onclick="clearConfig()">🗑️ Очистить настройки</button>
+        </div>
+
+        <div class="section">
+            <h2>⚙️ Установить тестовые настройки</h2>
+            <p>Нажмите кнопку ниже, чтобы установить настройки из вашего примера:</p>
+            <div class="config-item">
+                <div class="label">URL:</div>
+                <div class="value">https://pos.autooplata.ru/tms</div>
+            </div>
+            <div class="config-item">
+                <div class="label">Username:</div>
+                <div class="value">UserApi</div>
+            </div>
+            <div class="config-item">
+                <div class="label">Password:</div>
+                <div class="value">••••••••••••</div>
+            </div>
+            
+            <button class="button" onclick="setTestConfig()">✅ Установить эти настройки</button>
+        </div>
+
+        <div class="section">
+            <h2>📊 Логи</h2>
+            <div id="logs" class="log">
+                Логи появятся здесь...\n
+            </div>
+            <button class="button" onclick="clearLogs()">🧹 Очистить логи</button>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('logs');
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').textContent = 'Логи очищены...\n';
+        }
+
+        function loadConfig() {
+            log('🔄 Загружаем конфигурацию из localStorage...');
+            
+            try {
+                const savedConfig = localStorage.getItem('sts-api-config');
+                const configDisplay = document.getElementById('config-display');
+                
+                if (!savedConfig) {
+                    configDisplay.innerHTML = `
+                        <div class="config-item">
+                            <span class="status error">❌ НЕ НАСТРОЕНО</span>
+                            <p>Настройки STS API не найдены в localStorage</p>
+                        </div>
+                    `;
+                    log('❌ Настройки не найдены в localStorage');
+                    return;
+                }
+
+                const config = JSON.parse(savedConfig);
+                log('✅ Настройки загружены из localStorage');
+                
+                const isValid = config.enabled && config.url && config.username && config.password;
+                
+                configDisplay.innerHTML = `
+                    <div class="config-item">
+                        <div class="label">Статус:</div>
+                        <span class="status ${isValid ? 'ok' : 'error'}">
+                            ${isValid ? '✅ НАСТРОЕНО' : '❌ НЕПОЛНЫЕ НАСТРОЙКИ'}
+                        </span>
+                    </div>
+                    <div class="config-item">
+                        <div class="label">URL API:</div>
+                        <div class="value">${config.url || 'НЕ УСТАНОВЛЕН'}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="label">Username:</div>
+                        <div class="value">${config.username || 'НЕ УСТАНОВЛЕН'}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="label">Password:</div>
+                        <div class="value">${config.password ? '••••••••••••' : 'НЕ УСТАНОВЛЕН'}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="label">Включен:</div>
+                        <div class="value">${config.enabled ? 'ДА' : 'НЕТ'}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="label">Timeout:</div>
+                        <div class="value">${config.timeout || 30000} мс</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="label">Токен:</div>
+                        <div class="value">${config.token ? config.token.substring(0, 20) + '...' : 'НЕТ ТОКЕНА'}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="label">Истечение токена:</div>
+                        <div class="value">${config.tokenExpiry ? new Date(config.tokenExpiry).toLocaleString() : 'НЕ УСТАНОВЛЕНО'}</div>
+                    </div>
+                `;
+
+                log(`📋 URL: ${config.url}`);
+                log(`📋 Username: ${config.username}`);
+                log(`📋 Password: ${config.password ? 'УСТАНОВЛЕН' : 'НЕ УСТАНОВЛЕН'}`);
+                log(`📋 Enabled: ${config.enabled}`);
+                log(`📋 Token: ${config.token ? 'ЕСТЬ' : 'НЕТ'}`);
+
+            } catch (error) {
+                log(`❌ Ошибка загрузки конфигурации: ${error.message}`);
+                document.getElementById('config-display').innerHTML = `
+                    <div class="config-item">
+                        <span class="status error">❌ ОШИБКА</span>
+                        <p>Ошибка парсинга настроек: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function setTestConfig() {
+            log('⚙️ Устанавливаем тестовые настройки...');
+            
+            const testConfig = {
+                url: 'https://pos.autooplata.ru/tms',
+                username: 'UserApi',
+                password: prompt('Введите пароль для UserApi:'),
+                enabled: true,
+                timeout: 30000
+            };
+
+            if (!testConfig.password) {
+                log('❌ Пароль не введен, настройки не сохранены');
+                return;
+            }
+
+            try {
+                localStorage.setItem('sts-api-config', JSON.stringify(testConfig));
+                log('✅ Тестовые настройки сохранены в localStorage');
+                log(`📋 URL: ${testConfig.url}`);
+                log(`📋 Username: ${testConfig.username}`);
+                log(`📋 Password: УСТАНОВЛЕН`);
+                
+                // Обновляем отображение
+                loadConfig();
+            } catch (error) {
+                log(`❌ Ошибка сохранения настроек: ${error.message}`);
+            }
+        }
+
+        async function testConnection() {
+            log('🔍 Тестируем подключение к STS API...');
+            
+            try {
+                const savedConfig = localStorage.getItem('sts-api-config');
+                if (!savedConfig) {
+                    log('❌ Настройки не найдены');
+                    return;
+                }
+
+                const config = JSON.parse(savedConfig);
+                
+                if (!config.enabled || !config.url || !config.username || !config.password) {
+                    log('❌ Неполные настройки для подключения');
+                    return;
+                }
+
+                log(`🔗 Подключаемся к ${config.url}/v1/login...`);
+                
+                const response = await fetch(`${config.url}/v1/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: config.username,
+                        password: config.password
+                    }),
+                    signal: AbortSignal.timeout(config.timeout || 30000),
+                });
+
+                log(`📡 Ответ сервера: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    const tokenResponse = await response.text();
+                    const cleanToken = tokenResponse.replace(/"/g, '');
+                    
+                    log('✅ Авторизация успешна!');
+                    log(`🔑 Получен токен: ${cleanToken.substring(0, 20)}...`);
+                    
+                    // Сохраняем токен в настройки
+                    config.token = cleanToken;
+                    config.tokenExpiry = Date.now() + (20 * 60 * 1000); // 20 минут
+                    localStorage.setItem('sts-api-config', JSON.stringify(config));
+                    
+                    log('💾 Токен сохранен в настройки');
+                    loadConfig(); // Обновляем отображение
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Ошибка авторизации: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                log(`❌ Ошибка подключения: ${error.message}`);
+            }
+        }
+
+        function clearConfig() {
+            if (confirm('Вы уверены, что хотите очистить все настройки STS API?')) {
+                localStorage.removeItem('sts-api-config');
+                log('🗑️ Настройки очищены');
+                loadConfig();
+            }
+        }
+
+        // Загружаем настройки при открытии страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Страница загружена');
+            loadConfig();
+        });
+    </script>
+</body>
+</html>

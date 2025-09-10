@@ -8,7 +8,7 @@ SELECT id, name, code, description, status, created_at FROM networks ORDER BY na
 -- Вставляем начальные данные торговых сетей
 INSERT INTO networks (name, code, description, status) VALUES
 ('Демо сеть АЗС', 'demo_azs', 'Демонстрационная сеть заправочных станций', 'active'),
-('Норд Лайн', 'nord_line', 'Сеть АЗС Норд Лайн', 'active')
+('БТО', 'bto', 'Сеть АЗС БТО', 'active')
 ON CONFLICT (code) DO NOTHING;
 
 -- Проверяем результат

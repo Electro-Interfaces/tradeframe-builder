@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Profile Section Issues</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test { margin: 15px 0; padding: 20px; border-radius: 10px; }
+        .success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4caf50; }
+        .error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+        .info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196f3; }
+        .warning { background: rgba(255, 152, 0, 0.2); border: 1px solid #ff9800; }
+        pre { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
+        .button { 
+            background: #4caf50; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            margin: 10px 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .button:hover { background: #45a049; transform: translateY(-2px); }
+        .button.secondary { background: #2196f3; }
+        .button.secondary:hover { background: #1976d2; }
+        .button.danger { background: #f44336; }
+        .button.danger:hover { background: #da190b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Исправление проблем раздела профиль</h1>
+        
+        <div class="test info">
+            <h3>🎯 План исправления раздела профиль</h3>
+            <p>Поскольку таблица users существует и пользователи отображаются в разделе "Пользователи", 
+               проблема скорее всего в сервисах профиля или настройках localStorage.</p>
+            <button class="button" onclick="fixProfileServices()">1️⃣ ИСПРАВИТЬ СЕРВИСЫ</button>
+            <button class="button secondary" onclick="setupCurrentUser()">2️⃣ НАСТРОИТЬ ПОЛЬЗОВАТЕЛЯ</button>
+            <button class="button" onclick="testProfilePage()">3️⃣ ТЕСТ ПРОФИЛЯ</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const config = {
+            url: 'https://ssvazdgnmatbdynkhkqo.supabase.co',
+            apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0'
+        };
+
+        function addResult(title, type, data) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+
+        window.fixProfileServices = async function() {
+            addResult('🔧 Исправляем настройки сервисов профиля...', 'info', 'Настраиваем localStorage для правильной работы');
+            
+            // 1. Настраиваем externalDatabase
+            const externalDbConfig = {
+                url: config.url,
+                apiKey: config.apiKey,
+                status: 'connected',
+                lastUpdated: new Date().toISOString()
+            };
+
+            localStorage.setItem('externalDatabase', JSON.stringify(externalDbConfig));
+            
+            // 2. Настраиваем supabaseSettings 
+            localStorage.setItem('supabaseSettings', JSON.stringify(externalDbConfig));
+            
+            // 3. Настраиваем dataSourceConfig
+            const dataSourceConfig = {
+                useDatabase: true,
+                databaseConnected: true,
+                supabaseUrl: config.url,
+                apiKey: config.apiKey,
+                lastCheck: new Date().toISOString(),
+                status: 'connected'
+            };
+            
+            localStorage.setItem('dataSourceConfig', JSON.stringify(dataSourceConfig));
+
+            addResult('✅ Настройки сервисов исправлены', 'success', {
+                externalDatabase: 'CONFIGURED',
+                supabaseSettings: 'CONFIGURED', 
+                dataSourceConfig: 'CONFIGURED',
+                message: 'Все сервисы настроены на правильную БД'
+            });
+        };
+
+        window.setupCurrentUser = async function() {
+            addResult('👤 Настраиваем текущего пользователя...', 'info', 'Загружаем и устанавливаем активного пользователя');
+            
+            try {
+                // Получаем первого активного пользователя из БД
+                const response = await fetch(`${config.url}/rest/v1/users?status=eq.active&limit=1`, {
+                    headers: {
+                        'apikey': config.apiKey,
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    if (users.length > 0) {
+                        const user = users[0];
+                        
+                        // Создаем объект currentUser для localStorage
+                        const currentUser = {
+                            id: user.id,
+                            tenant_id: user.tenant_id,
+                            email: user.email,
+                            name: user.name,
+                            firstName: user.first_name,
+                            lastName: user.last_name,
+                            phone: user.phone,
+                            status: user.status,
+                            roles: [],
+                            permissions: [],
+                            direct_permissions: [],
+                            preferences: user.preferences || {},
+                            lastLogin: user.last_login,
+                            created_at: user.created_at,
+                            updated_at: user.updated_at
+                        };
+
+                        // Сохраняем в localStorage
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        
+                        // Также сохраняем для AuthContext
+                        const authUser = {
+                            email: user.email,
+                            name: user.name,
+                            firstName: user.first_name,
+                            lastName: user.last_name,
+                            isAuthenticated: true
+                        };
+                        
+                        localStorage.setItem('auth_user', JSON.stringify(authUser));
+
+                        addResult('✅ Текущий пользователь настроен', 'success', {
+                            user: currentUser,
+                            message: 'Пользователь успешно установлен в localStorage'
+                        });
+                    } else {
+                        addResult('⚠️ Активные пользователи не найдены', 'warning', {
+                            message: 'В таблице users нет активных пользователей',
+                            recommendation: 'Создайте активного пользователя в БД'
+                        });
+                    }
+                } else {
+                    addResult('❌ Ошибка загрузки пользователей', 'error', {
+                        status: response.status,
+                        error: await response.text()
+                    });
+                }
+            } catch (error) {
+                addResult('❌ Ошибка настройки пользователя', 'error', error.message);
+            }
+        };
+
+        window.testProfilePage = async function() {
+            addResult('🧪 Тестируем страницу профиля...', 'info', 'Проверяем доступность и работу страницы');
+            
+            try {
+                // 1. Проверяем доступность страницы профиля
+                const profileResponse = await fetch('http://localhost:3006/profile', {
+                    method: 'GET',
+                    headers: { 'Accept': 'text/html' }
+                });
+
+                if (profileResponse.ok) {
+                    addResult('✅ Страница профиля доступна', 'success', {
+                        url: 'http://localhost:3006/profile',
+                        status: profileResponse.status,
+                        accessible: true
+                    });
+                    
+                    // 2. Проверяем localStorage настройки
+                    const localStorageCheck = {
+                        externalDatabase: localStorage.getItem('externalDatabase') ? 'EXISTS' : 'MISSING',
+                        currentUser: localStorage.getItem('currentUser') ? 'EXISTS' : 'MISSING',
+                        auth_user: localStorage.getItem('auth_user') ? 'EXISTS' : 'MISSING',
+                        dataSourceConfig: localStorage.getItem('dataSourceConfig') ? 'EXISTS' : 'MISSING'
+                    };
+
+                    addResult('📊 Проверка localStorage', 'info', {
+                        localStorage_status: localStorageCheck,
+                        all_ready: Object.values(localStorageCheck).every(v => v === 'EXISTS'),
+                        message: 'Настройки для работы профиля'
+                    });
+
+                } else if (profileResponse.status === 404) {
+                    // Пробуем другой порт
+                    const profileResponse2 = await fetch('http://localhost:3005/profile', {
+                        method: 'GET',
+                        headers: { 'Accept': 'text/html' }
+                    });
+
+                    if (profileResponse2.ok) {
+                        addResult('✅ Страница профиля найдена на порту 3005', 'success', {
+                            correct_url: 'http://localhost:3005/profile',
+                            status: profileResponse2.status
+                        });
+                    } else {
+                        addResult('❌ Страница профиля недоступна', 'error', {
+                            tried_ports: [3006, 3005],
+                            note: 'Убедитесь что dev server запущен'
+                        });
+                    }
+                } else {
+                    addResult('❌ Проблема с доступом к профилю', 'error', {
+                        status: profileResponse.status,
+                        statusText: profileResponse.statusText
+                    });
+                }
+
+                // 3. Открываем страницу профиля в новой вкладке
+                window.open('http://localhost:3005/profile', '_blank');
+                
+            } catch (error) {
+                addResult('❌ Ошибка тестирования профиля', 'error', {
+                    error: error.message,
+                    note: 'Проверьте что приложение запущено'
+                });
+            }
+        };
+
+        // Автоматически запускаем исправления
+        setTimeout(() => {
+            fixProfileServices();
+            setTimeout(setupCurrentUser, 1000);
+        }, 500);
+    </script>
+</body>
+</html>

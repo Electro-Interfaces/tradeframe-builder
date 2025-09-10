@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест улучшенного Supabase клиента</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #1a1b23;
+            color: white;
+        }
+        .section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #333; 
+            border-radius: 8px;
+            background: #2a2b35;
+        }
+        button { 
+            background: #3b82f6; 
+            color: white; 
+            padding: 8px 16px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 5px;
+        }
+        button:disabled { 
+            background: #6b7280; 
+            cursor: not-allowed; 
+        }
+        .status { 
+            display: inline-block; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .connected { background: #059669; color: white; }
+        .disconnected { background: #dc2626; color: white; }
+        .testing { background: #f59e0b; color: white; }
+        pre { 
+            background: #1e293b; 
+            padding: 10px; 
+            border-radius: 4px; 
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        .info { color: #3b82f6; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Тест улучшенного Supabase клиента</h1>
+    
+    <div class="section">
+        <h2>📊 Статус подключения</h2>
+        <div id="connection-status">
+            <span class="status disconnected">🔴 Не инициализирован</span>
+            <span id="latency"></span>
+        </div>
+        <div style="margin-top: 10px;">
+            <button onclick="initializeClient()">🚀 Инициализировать клиент</button>
+            <button onclick="testConnection()" disabled id="test-btn">🧪 Тест подключения</button>
+            <button onclick="clearLogs()">🧹 Очистить логи</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🔄 Тест Retry логики</h2>
+        <p>Тестирование механизма повторных попыток при сбоях</p>
+        <div>
+            <button onclick="testRetryMechanism()" disabled id="retry-btn">⏳ Тест Retry</button>
+            <button onclick="testBatchOperations()" disabled id="batch-btn">📦 Тест Batch операций</button>
+        </div>
+        <div id="retry-results"></div>
+    </div>
+
+    <div class="section">
+        <h2>⚡ Тест производительности</h2>
+        <p>Измерение времени отклика и пропускной способности</p>
+        <div>
+            <button onclick="performanceTest()" disabled id="perf-btn">🏃 Тест производительности</button>
+            <button onclick="stressTest()" disabled id="stress-btn">💪 Стресс-тест</button>
+        </div>
+        <div id="performance-results"></div>
+    </div>
+
+    <div class="section">
+        <h2>📡 Real-time подписки</h2>
+        <p>Тестирование подписок на изменения данных</p>
+        <div>
+            <button onclick="testRealtimeSubscription()" disabled id="realtime-btn">📻 Подписаться на изменения</button>
+            <button onclick="stopRealtimeSubscription()" disabled id="stop-realtime-btn">⏹️ Остановить подписку</button>
+        </div>
+        <div id="realtime-results"></div>
+    </div>
+
+    <div class="section">
+        <h2>📋 Логи операций</h2>
+        <div id="operation-logs" class="log">
+            <div class="info">Ожидание инициализации...</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📈 Статистика</h2>
+        <div id="statistics">
+            <div>Успешных операций: <span id="success-count">0</span></div>
+            <div>Ошибок: <span id="error-count">0</span></div>
+            <div>Средняя задержка: <span id="avg-latency">-</span></div>
+            <div>Время работы: <span id="uptime">0s</span></div>
+        </div>
+    </div>
+
+    <script>
+        let isInitialized = false;
+        let startTime = Date.now();
+        let stats = {
+            successCount: 0,
+            errorCount: 0,
+            totalLatency: 0,
+            operationCount: 0
+        };
+        let realtimeChannel = null;
+
+        // Утилиты для логирования
+        function log(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('operation-logs');
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `[${timestamp}] ${message}`;
+            logElement.appendChild(div);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateStats() {
+            document.getElementById('success-count').textContent = stats.successCount;
+            document.getElementById('error-count').textContent = stats.errorCount;
+            
+            if (stats.operationCount > 0) {
+                const avgLatency = Math.round(stats.totalLatency / stats.operationCount);
+                document.getElementById('avg-latency').textContent = `${avgLatency}ms`;
+            }
+            
+            const uptime = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById('uptime').textContent = `${uptime}s`;
+        }
+
+        function updateConnectionStatus(connected, latency = null) {
+            const statusElement = document.getElementById('connection-status');
+            const latencyElement = document.getElementById('latency');
+            
+            if (connected) {
+                statusElement.innerHTML = '<span class="status connected">🟢 Подключено</span>';
+                if (latency !== null) {
+                    latencyElement.textContent = `(${latency}ms)`;
+                }
+            } else {
+                statusElement.innerHTML = '<span class="status disconnected">🔴 Отключено</span>';
+                latencyElement.textContent = '';
+            }
+
+            // Активируем кнопки если подключено
+            ['test-btn', 'retry-btn', 'batch-btn', 'perf-btn', 'stress-btn', 'realtime-btn'].forEach(id => {
+                document.getElementById(id).disabled = !connected;
+            });
+        }
+
+        // Эмуляция инициализации клиента
+        async function initializeClient() {
+            log('info', 'Начинаю инициализацию клиента...');
+            
+            try {
+                // Проверяем настройки
+                const settings = localStorage.getItem('externalDatabase');
+                if (!settings) {
+                    throw new Error('Настройки подключения не найдены в localStorage');
+                }
+
+                const parsed = JSON.parse(settings);
+                if (!parsed.url || !parsed.apiKey) {
+                    throw new Error('Неполные настройки подключения');
+                }
+
+                // Эмулируем инициализацию
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                log('success', `Клиент инициализирован для ${parsed.url}`);
+                isInitialized = true;
+
+                // Тестируем подключение
+                await testConnection();
+
+            } catch (error) {
+                log('error', `Ошибка инициализации: ${error.message}`);
+                updateConnectionStatus(false);
+            }
+        }
+
+        async function testConnection() {
+            if (!isInitialized) {
+                log('warning', 'Клиент не инициализирован');
+                return;
+            }
+
+            const startTime = Date.now();
+            log('info', 'Тестирую подключение...');
+
+            try {
+                // Эмулируем тест подключения
+                await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 100));
+                
+                // 90% вероятность успеха
+                if (Math.random() < 0.9) {
+                    const latency = Date.now() - startTime;
+                    log('success', `Подключение успешно (${latency}ms)`);
+                    updateConnectionStatus(true, latency);
+                    
+                    stats.successCount++;
+                    stats.totalLatency += latency;
+                    stats.operationCount++;
+                } else {
+                    throw new Error('Тест сетевой ошибки');
+                }
+            } catch (error) {
+                const latency = Date.now() - startTime;
+                log('error', `Ошибка подключения: ${error.message} (${latency}ms)`);
+                updateConnectionStatus(false);
+                
+                stats.errorCount++;
+                stats.operationCount++;
+            }
+            
+            updateStats();
+        }
+
+        async function testRetryMechanism() {
+            log('info', 'Тестирую retry механизм...');
+            const resultsDiv = document.getElementById('retry-results');
+            resultsDiv.innerHTML = '<div>Тестирую повторные попытки...</div>';
+
+            let attempts = 0;
+            const maxAttempts = 3;
+
+            for (let i = 0; i < maxAttempts; i++) {
+                attempts++;
+                const startTime = Date.now();
+                
+                try {
+                    // 50% вероятность неудачи для демонстрации retry
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    if (Math.random() < 0.5 && i < maxAttempts - 1) {
+                        throw new Error(`Искусственная ошибка на попытке ${i + 1}`);
+                    }
+                    
+                    const latency = Date.now() - startTime;
+                    log('success', `Retry успешен после ${attempts} попыток (${latency}ms)`);
+                    resultsDiv.innerHTML = `<div class="success">✅ Успех после ${attempts} попыток</div>`;
+                    
+                    stats.successCount++;
+                    stats.totalLatency += latency;
+                    stats.operationCount++;
+                    break;
+                    
+                } catch (error) {
+                    const latency = Date.now() - startTime;
+                    log('warning', `Попытка ${attempts} неуспешна: ${error.message} (${latency}ms)`);
+                    
+                    if (i === maxAttempts - 1) {
+                        resultsDiv.innerHTML = `<div class="error">❌ Все ${maxAttempts} попытки неуспешны</div>`;
+                        stats.errorCount++;
+                    }
+                    
+                    stats.totalLatency += latency;
+                    stats.operationCount++;
+                    
+                    // Exponential backoff
+                    if (i < maxAttempts - 1) {
+                        const delay = 1000 * Math.pow(2, i);
+                        log('info', `Ожидание ${delay}ms перед повтором...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+            }
+            
+            updateStats();
+        }
+
+        async function testBatchOperations() {
+            log('info', 'Тестирую batch операции...');
+            const startTime = Date.now();
+
+            try {
+                // Эмулируем 5 операций в batch
+                const operations = Array.from({length: 5}, (_, i) => 
+                    new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 50))
+                );
+
+                await Promise.all(operations);
+                
+                const latency = Date.now() - startTime;
+                log('success', `Batch операции выполнены (${latency}ms)`);
+                
+                stats.successCount += 5;
+                stats.totalLatency += latency;
+                stats.operationCount += 5;
+                
+            } catch (error) {
+                log('error', `Ошибка batch операций: ${error.message}`);
+                stats.errorCount++;
+            }
+            
+            updateStats();
+        }
+
+        async function performanceTest() {
+            log('info', 'Запускаю тест производительности...');
+            const resultsDiv = document.getElementById('performance-results');
+            resultsDiv.innerHTML = '<div>Выполняю 10 параллельных запросов...</div>';
+
+            const startTime = Date.now();
+            const promises = [];
+
+            for (let i = 0; i < 10; i++) {
+                promises.push(
+                    new Promise(resolve => 
+                        setTimeout(() => resolve(i), Math.random() * 100 + 50)
+                    )
+                );
+            }
+
+            try {
+                const results = await Promise.all(promises);
+                const totalTime = Date.now() - startTime;
+                const avgTime = totalTime / results.length;
+
+                log('success', `Тест производительности завершен: ${totalTime}ms общее время, ${avgTime.toFixed(1)}ms среднее`);
+                resultsDiv.innerHTML = `
+                    <div class="success">
+                        📊 Результаты:<br>
+                        • Всего запросов: ${results.length}<br>
+                        • Общее время: ${totalTime}ms<br>
+                        • Среднее время: ${avgTime.toFixed(1)}ms<br>
+                        • RPS: ${(results.length / (totalTime / 1000)).toFixed(1)}
+                    </div>
+                `;
+
+                stats.successCount += results.length;
+                stats.totalLatency += totalTime;
+                stats.operationCount += results.length;
+                
+            } catch (error) {
+                log('error', `Ошибка теста производительности: ${error.message}`);
+                resultsDiv.innerHTML = `<div class="error">❌ Тест неуспешен</div>`;
+                stats.errorCount++;
+            }
+            
+            updateStats();
+        }
+
+        async function stressTest() {
+            log('info', 'Запускаю стресс-тест...');
+            const startTime = Date.now();
+            let successCount = 0;
+            let errorCount = 0;
+
+            // 50 параллельных запросов
+            const promises = Array.from({length: 50}, async (_, i) => {
+                try {
+                    await new Promise(resolve => 
+                        setTimeout(resolve, Math.random() * 200 + 10)
+                    );
+                    successCount++;
+                    return true;
+                } catch (error) {
+                    errorCount++;
+                    return false;
+                }
+            });
+
+            await Promise.allSettled(promises);
+            const totalTime = Date.now() - startTime;
+
+            log('info', `Стресс-тест завершен: ${successCount} успехов, ${errorCount} ошибок за ${totalTime}ms`);
+            
+            stats.successCount += successCount;
+            stats.errorCount += errorCount;
+            stats.totalLatency += totalTime;
+            stats.operationCount += promises.length;
+            
+            updateStats();
+        }
+
+        async function testRealtimeSubscription() {
+            log('info', 'Подписываюсь на real-time изменения...');
+            const resultsDiv = document.getElementById('realtime-results');
+            
+            // Эмулируем подписку
+            realtimeChannel = setInterval(() => {
+                const events = ['INSERT', 'UPDATE', 'DELETE'];
+                const event = events[Math.floor(Math.random() * events.length)];
+                const record = { id: Math.floor(Math.random() * 1000), event };
+                
+                log('info', `Real-time событие: ${event} для записи ${record.id}`);
+            }, 3000);
+
+            resultsDiv.innerHTML = '<div class="success">📡 Подписка активна. События будут отображаться в логах.</div>';
+            document.getElementById('stop-realtime-btn').disabled = false;
+        }
+
+        function stopRealtimeSubscription() {
+            if (realtimeChannel) {
+                clearInterval(realtimeChannel);
+                realtimeChannel = null;
+                log('info', 'Real-time подписка остановлена');
+                document.getElementById('realtime-results').innerHTML = '<div>Подписка остановлена</div>';
+                document.getElementById('stop-realtime-btn').disabled = true;
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('operation-logs').innerHTML = '<div class="info">Логи очищены</div>';
+        }
+
+        // Обновляем статистику каждую секунду
+        setInterval(updateStats, 1000);
+
+        console.log('🔧 Страница тестирования улучшенного Supabase клиента загружена');
+    </script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+/* Мобильные стили для лучшего UX */
+
+/* Запрещаем выделение текста на мобильных для UI элементов */
+.mobile-no-select {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Улучшенные touch области */
+.mobile-touch-target {
+  min-height: 44px; /* iOS рекомендует минимум 44px */
+  min-width: 44px;
+}
+
+/* Скрытие адресной строки на iOS Safari */
+@media screen and (max-width: 768px) {
+  body {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+  
+  #root {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+}
+
+/* Запрещаем зум при фокусе на input на iOS */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select, textarea, input[type="text"], input[type="password"], 
+  input[type="datetime"], input[type="datetime-local"], 
+  input[type="date"], input[type="month"], input[type="time"], 
+  input[type="week"], input[type="number"], input[type="email"], 
+  input[type="url"], input[type="search"], input[type="tel"] {
+    font-size: 16px !important;
+  }
+}
+
+/* Улучшенный скроллинг на iOS */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-scrolling: touch;
+}
+
+/* Удаляем highlight при нажатии на iOS */
+.mobile-no-highlight {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Убираем outline для touch интерфейсов */
+@media (hover: none) and (pointer: coarse) {
+  button:focus,
+  input:focus,
+  select:focus,
+  textarea:focus,
+  [tabindex]:focus {
+    outline: none;
+  }
+}
+
+/* Мобильные кнопки с лучшим touch feedback */
+.mobile-button {
+  touch-action: manipulation; /* Отключаем double-tap zoom */
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+.mobile-button:active {
+  transform: scale(0.98);
+}
+
+/* Полноэкранные модальные окна на мобильных */
+@media screen and (max-width: 640px) {
+  .mobile-fullscreen-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+  }
+}
+
+/* Улучшенные отступы для мобильных */
+@media screen and (max-width: 640px) {
+  .mobile-padding {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  .mobile-padding-sm {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* Мобильная навигация */
+.mobile-nav-item {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav-item:last-child {
+  border-bottom: none;
+}
+
+/* Safe area для устройств с notch */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .mobile-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .mobile-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .mobile-safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .mobile-safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Виброотклик для поддерживающих устройств */
+.mobile-haptic:active {
+  /* JavaScript обработка вибрации будет добавлена отдельно */
+}
+
+/* Скрываем элементы интерфейса браузера */
+@media screen and (max-width: 768px) {
+  html {
+    -webkit-text-size-adjust: none;
+    -moz-text-size-adjust: none;
+    -ms-text-size-adjust: none;
+    text-size-adjust: none;
+  }
+}

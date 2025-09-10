@@ -12,7 +12,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserService } from "@/services/userService";
+import { currentUserService } from "@/services/currentUserService";
+import { DatabaseStatusIndicator } from "@/components/database/DatabaseStatusIndicator";
 import { Shield, Mail, Lock, User, Settings, Calendar, MapPin, Network, AlertCircle } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 
@@ -36,9 +37,14 @@ interface PasswordFormData {
 export default function Profile() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
-  const { user, refreshUser } = useAuth();
+  const { user: authUser, refreshUser } = useAuth();
+  
+  // Все хуки должны быть объявлены до любых условных возвратов
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  
+  // Используем данные из AuthContext (которые теперь загружаются из БД)
+  const user = authUser;
   
   // Форма профиля
   const {
@@ -72,31 +78,50 @@ export default function Profile() {
     watch: watchPassword
   } = useForm<PasswordFormData>();
 
+  // Логируем состояние
+  console.log('Profile.tsx: authUser =', authUser);
+  
+  // Показываем состояние загрузки профиля (после всех хуков)
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-slate-400">Загрузка профиля...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   // Обработчик обновления профиля
   const onSubmitProfile = async (data: ProfileFormData) => {
     setIsLoading(true);
     try {
-      // Используем простое localStorage для демо версии
-      const userData = {
-        ...user,
+      const updatedUser = await currentUserService.updateCurrentUserProfile({
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone
-      };
-      localStorage.setItem('currentUser', JSON.stringify(userData));
-      
-      await refreshUser();
-      
-      toast({
-        title: "Профиль обновлен",
-        description: "Ваши данные успешно сохранены.",
       });
       
-      resetProfile(data);
-    } catch (error) {
+      if (updatedUser) {
+        // Обновляем данные в AuthContext
+        await refreshUser();
+        
+        toast({
+          title: "Профиль обновлен",
+          description: "Ваши данные успешно сохранены.",
+        });
+        
+        resetProfile(data);
+      } else {
+        throw new Error("Не удалось обновить профиль");
+      }
+    } catch (error: any) {
       toast({
         title: "Ошибка",
-        description: "Не удалось обновить профиль.",
+        description: error.message || "Произошла ошибка при сохранении профиля.",
         variant: "destructive"
       });
     } finally {
@@ -117,18 +142,13 @@ export default function Profile() {
 
     setIsLoading(true);
     try {
-      // Демо версия - просто обновляем localStorage
-      const userData = {
-        ...user,
-        email: data.newEmail
-      };
-      localStorage.setItem('currentUser', JSON.stringify(userData));
-      
-      await refreshUser();
+      // TODO: Implement email change in currentUserService
+      // await currentUserService.changeEmail(data.newEmail);
       
       toast({
-        title: "Email изменен",
-        description: "Ваш email успешно обновлен.",
+        title: "Функция недоступна",
+        description: "Смена email временно недоступна. Обратитесь к администратору.",
+        variant: "destructive"
       });
       
       resetEmail();
@@ -156,12 +176,13 @@ export default function Profile() {
 
     setIsLoading(true);
     try {
-      // В демо версии просто показываем успешное изменение
-      // В реальной системе здесь был бы вызов API
+      // TODO: Implement password change in currentUserService
+      // await currentUserService.changePassword(data.currentPassword, data.newPassword);
       
       toast({
-        title: "Пароль изменен",
-        description: "Ваш пароль успешно обновлен.",
+        title: "Функция недоступна",
+        description: "Смена пароля временно недоступна. Обратитесь к администратору.",
+        variant: "destructive"
       });
       
       resetPassword();
@@ -191,12 +212,15 @@ export default function Profile() {
             <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
               Управляйте своей личной информацией, безопасностью и правами доступа
             </p>
+            <div className="mt-3">
+              <DatabaseStatusIndicator />
+            </div>
           </div>
           <HelpButton helpKey="profile" />
         </div>
 
         {/* Информационные карточки */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-4'}`}>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Email</CardTitle>
@@ -250,7 +274,7 @@ export default function Profile() {
 
         {/* Табы с настройками */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
             <TabsTrigger value="profile">Профиль</TabsTrigger>
             <TabsTrigger value="security">Безопасность</TabsTrigger>
             <TabsTrigger value="permissions">Права доступа</TabsTrigger>
@@ -268,7 +292,7 @@ export default function Profile() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmitProfile(onSubmitProfile)} className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
                     <div className="space-y-2">
                       <Label htmlFor="firstName">Имя</Label>
                       <Input

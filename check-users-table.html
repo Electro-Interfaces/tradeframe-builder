@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка таблицы пользователей</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a8b;
+        }
+        .log {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👥 Проверка таблицы пользователей</h1>
+        
+        <button onclick="checkUsersTable()">1. Проверить таблицу users</button>
+        <button onclick="listUsers()">2. Показать пользователей</button>
+        <button onclick="createTestUser()">3. Создать тестового пользователя</button>
+        <button onclick="clearLog()">Очистить лог</button>
+
+        <div id="log" class="log">Готов к проверке пользователей...\n</div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://ssvazdgnmatbdynkhkqo.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
+
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.textContent += `[${timestamp}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = 'Лог очищен...\n';
+        }
+
+        async function checkUsersTable() {
+            log('Проверяем существование таблицы users...');
+
+            try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/users?limit=0`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`Ответ сервера: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    log('✅ SUCCESS: Таблица users существует и доступна');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ ERROR: ${errorText}`);
+                    
+                    if (response.status === 404) {
+                        log('⚠️  Таблица users не существует - требуется создание');
+                    }
+                }
+            } catch (error) {
+                log(`❌ ERROR: Network error: ${error.message}`);
+            }
+        }
+
+        async function listUsers() {
+            log('Получаем список пользователей...');
+
+            try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/users?order=created_at.desc`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    log(`✅ SUCCESS: Найдено пользователей: ${users.length}`);
+                    
+                    if (users.length === 0) {
+                        log('ℹ️  Пользователей нет в базе данных');
+                    } else {
+                        log('📋 Список пользователей:');
+                        users.forEach((user, i) => {
+                            log(`${i+1}. ${user.name} (${user.email}) - ${user.status}`);
+                        });
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ ERROR: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                log(`❌ ERROR: Network error: ${error.message}`);
+            }
+        }
+
+        async function createTestUser() {
+            log('Создаем тестового пользователя...');
+
+            const testUser = {
+                tenant_id: '00000000-0000-0000-0000-000000000001',
+                email: 'test@example.com',
+                name: 'Тестовый пользователь',
+                status: 'active',
+                pwd_salt: 'test_salt',
+                pwd_hash: 'test_hash',
+                preferences: {}
+            };
+
+            try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/users`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(testUser)
+                });
+
+                if (response.ok) {
+                    const createdUser = await response.json();
+                    log(`✅ SUCCESS: Тестовый пользователь создан`);
+                    log(`👤 Пользователь: ${createdUser[0].name} (${createdUser[0].email})`);
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ ERROR: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                log(`❌ ERROR: Network error: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

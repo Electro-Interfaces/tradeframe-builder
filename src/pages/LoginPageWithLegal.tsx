@@ -12,6 +12,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, AlertCircle, FileText, Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import { legalDocumentsService } from '@/services/legalDocumentsService';
 import { DocumentType } from '@/types/legal';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useMobile, mobileUtils } from '@/hooks/useMobile';
 
 interface LegalDocument {
   type: DocumentType;
@@ -36,6 +38,10 @@ const LoginPageWithLegal = () => {
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const [showPdnDialog, setShowPdnDialog] = useState(false);
   const [legalDocuments, setLegalDocuments] = useState<LegalDocument[]>([]);
+  
+  // Mobile state
+  const isMobile = useIsMobile();
+  const mobileInfo = useMobile();
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -108,22 +114,33 @@ const LoginPageWithLegal = () => {
 
     try {
       // Login first to get authentication
-      await login(email, password);
+      const loginResult = await login(email, password);
       
-      // Сохраняем согласие пользователя после успешной авторизации
-      if (email) {
+      // Пропускаем юридические документы для МенеджерБТО и системных ролей
+      const skipLegalDocs = email.includes('bto.manager') || 
+                           email.includes('admin@') ||
+                           (loginResult && loginResult.role === 'bto_manager');
+      
+      if (!skipLegalDocs && email) {
         console.log('📋 Saving legal document acceptances for:', email);
         
-        console.log('✍️ Accepting Terms of Service...');
-        await legalDocumentsService.acceptDocument('tos', email, 'login');
-        
-        console.log('✍️ Accepting Privacy Policy...');
-        await legalDocumentsService.acceptDocument('privacy', email, 'login');
-        
-        console.log('✍️ Accepting Personal Data Protection...');
-        await legalDocumentsService.acceptDocument('pdn', email, 'login');
-        
-        console.log('✅ All legal documents accepted successfully');
+        try {
+          console.log('✍️ Accepting Terms of Service...');
+          await legalDocumentsService.acceptDocument('tos', email, 'login');
+          
+          console.log('✍️ Accepting Privacy Policy...');
+          await legalDocumentsService.acceptDocument('privacy', email, 'login');
+          
+          console.log('✍️ Accepting Personal Data Protection...');
+          await legalDocumentsService.acceptDocument('pdn', email, 'login');
+          
+          console.log('✅ All legal documents accepted successfully');
+        } catch (legalError) {
+          console.warn('⚠️ Legal documents acceptance failed, but continuing login:', legalError);
+          // Не блокируем логин если юридические документы недоступны
+        }
+      } else {
+        console.log('ℹ️ Skipping legal documents for:', email);
       }
       
       // Сохраняем email если выбрано "Запомнить меня"
@@ -142,6 +159,10 @@ const LoginPageWithLegal = () => {
   };
 
   const handleDemoLogin = (demoEmail: string, demoPassword: string) => {
+    // Виброотклик на мобильных устройствах
+    if (mobileInfo.isTouchDevice) {
+      mobileUtils.vibrate(30);
+    }
     setEmail(demoEmail);
     setPassword(demoPassword);
     setAcceptedTerms(true);
@@ -174,8 +195,10 @@ const LoginPageWithLegal = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 ${
+      mobileInfo.isMobile ? 'mobile-no-select mobile-scroll mobile-safe-top mobile-safe-bottom' : ''
+    }`} style={mobileInfo.isMobile ? { height: 'var(--vh, 100vh)' } : {}}>
+      <div className={`w-full space-y-6 ${isMobile ? 'max-w-full px-2' : 'max-w-md'}`}>
         {/* Логотип и заголовок */}
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">

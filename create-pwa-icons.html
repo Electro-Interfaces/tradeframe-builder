@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🎨 Создание PWA иконок для TradeControl</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #0f172a; 
+            color: white; 
+        }
+        canvas { 
+            border: 2px solid #3b82f6; 
+            margin: 10px; 
+            border-radius: 8px; 
+        }
+        .download-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+        }
+        .download-btn:hover { background: #2563eb; }
+        .icon-preview { display: inline-block; margin: 10px; text-align: center; }
+        h2 { color: #3b82f6; }
+    </style>
+</head>
+<body>
+    <h1>🎨 Генератор PWA иконок TradeControl</h1>
+    
+    <div id="icons-container"></div>
+    
+    <button onclick="generateAllIcons()" class="download-btn">
+        🚀 Создать все иконки PWA
+    </button>
+    
+    <button onclick="downloadAllIcons()" class="download-btn">
+        📦 Скачать все иконки
+    </button>
+
+    <script>
+        let generatedIcons = {};
+
+        function createIcon(size, type = 'regular') {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            // Настройки дизайна
+            const colors = {
+                background: '#1e293b',
+                primary: '#3b82f6',
+                accent: '#ffffff',
+                border: '#334155'
+            };
+
+            // Очистка и фон
+            ctx.fillStyle = colors.background;
+            ctx.fillRect(0, 0, size, size);
+
+            // Скругленные углы
+            const cornerRadius = size * 0.125; // 12.5% для современного вида
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, cornerRadius);
+            ctx.fillStyle = colors.background;
+            ctx.fill();
+
+            // Основной прямоугольник
+            const padding = size * 0.125;
+            const innerSize = size - (padding * 2);
+            const innerCorner = innerSize * 0.083; // 8.3%
+            
+            ctx.beginPath();
+            ctx.roundRect(padding, padding, innerSize, innerSize, innerCorner);
+            ctx.fillStyle = colors.primary;
+            ctx.fill();
+
+            // Текст "TC"
+            const fontSize = size * 0.25;
+            ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            ctx.fillStyle = colors.accent;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TC', size / 2, size / 2 - fontSize * 0.05);
+
+            // Подчеркивание
+            const lineWidth = size * 0.5;
+            const lineHeight = size * 0.008;
+            const lineY = size / 2 + fontSize * 0.4;
+            
+            ctx.beginPath();
+            ctx.roundRect(
+                (size - lineWidth) / 2, 
+                lineY, 
+                lineWidth, 
+                lineHeight, 
+                lineHeight / 2
+            );
+            ctx.fillStyle = colors.accent;
+            ctx.fill();
+
+            // Для maskable иконок - добавляем безопасную зону
+            if (type === 'maskable') {
+                // Добавляем дополнительный padding для безопасной зоны
+                const safeZone = size * 0.1;
+                ctx.globalCompositeOperation = 'source-over';
+                
+                // Рисуем иконку меньшего размера по центру
+                const scale = 0.8;
+                const scaledSize = size * scale;
+                const offset = (size - scaledSize) / 2;
+                
+                // Очищаем и перерисовываем с учетом безопасной зоны
+                ctx.clearRect(0, 0, size, size);
+                ctx.fillStyle = colors.background;
+                ctx.fillRect(0, 0, size, size);
+                
+                // Основной элемент в безопасной зоне
+                ctx.beginPath();
+                ctx.roundRect(offset, offset, scaledSize, scaledSize, cornerRadius * scale);
+                ctx.fillStyle = colors.primary;
+                ctx.fill();
+                
+                // Текст масштабированный
+                ctx.font = `bold ${fontSize * scale}px Arial, sans-serif`;
+                ctx.fillStyle = colors.accent;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('TC', size / 2, size / 2 - fontSize * scale * 0.05);
+                
+                // Линия масштабированная
+                ctx.beginPath();
+                ctx.roundRect(
+                    (size - lineWidth * scale) / 2, 
+                    size / 2 + fontSize * scale * 0.4, 
+                    lineWidth * scale, 
+                    lineHeight * scale, 
+                    lineHeight * scale / 2
+                );
+                ctx.fillStyle = colors.accent;
+                ctx.fill();
+            }
+
+            return canvas;
+        }
+
+        function generateAllIcons() {
+            const container = document.getElementById('icons-container');
+            container.innerHTML = '';
+
+            const iconSizes = [
+                { size: 72, name: 'icon-72x72.png', desc: 'Android (ldpi)' },
+                { size: 96, name: 'icon-96x96.png', desc: 'Android (mdpi)' },
+                { size: 128, name: 'icon-128x128.png', desc: 'Chrome Store' },
+                { size: 144, name: 'icon-144x144.png', desc: 'Android (xhdpi)' },
+                { size: 152, name: 'icon-152x152.png', desc: 'iPad Touch' },
+                { size: 192, name: 'icon-192x192.png', desc: 'Android (xxhdpi)' },
+                { size: 384, name: 'icon-384x384.png', desc: 'Android Splash' },
+                { size: 512, name: 'icon-512x512.png', desc: 'PWA Standard' }
+            ];
+
+            const maskableIcons = [
+                { size: 192, name: 'icon-192x192-maskable.png', desc: 'Maskable 192' },
+                { size: 512, name: 'icon-512x512-maskable.png', desc: 'Maskable 512' }
+            ];
+
+            // Создаем обычные иконки
+            iconSizes.forEach(icon => {
+                const canvas = createIcon(icon.size, 'regular');
+                generatedIcons[icon.name] = canvas;
+                
+                const preview = document.createElement('div');
+                preview.className = 'icon-preview';
+                preview.innerHTML = `
+                    <h3>${icon.desc}</h3>
+                    <canvas width="${icon.size}" height="${icon.size}" style="max-width: 100px; max-height: 100px;"></canvas>
+                    <br>
+                    <span>${icon.size}x${icon.size}</span>
+                    <br>
+                    <button class="download-btn" onclick="downloadIcon('${icon.name}')">
+                        💾 Скачать
+                    </button>
+                `;
+                
+                // Копируем содержимое на превью
+                const previewCanvas = preview.querySelector('canvas');
+                const previewCtx = previewCanvas.getContext('2d');
+                previewCtx.drawImage(canvas, 0, 0);
+                
+                container.appendChild(preview);
+            });
+
+            // Создаем maskable иконки
+            maskableIcons.forEach(icon => {
+                const canvas = createIcon(icon.size, 'maskable');
+                generatedIcons[icon.name] = canvas;
+                
+                const preview = document.createElement('div');
+                preview.className = 'icon-preview';
+                preview.innerHTML = `
+                    <h3>${icon.desc}</h3>
+                    <canvas width="${icon.size}" height="${icon.size}" style="max-width: 100px; max-height: 100px;"></canvas>
+                    <br>
+                    <span>${icon.size}x${icon.size}</span>
+                    <br>
+                    <button class="download-btn" onclick="downloadIcon('${icon.name}')">
+                        💾 Скачать
+                    </button>
+                `;
+                
+                // Копируем содержимое на превью
+                const previewCanvas = preview.querySelector('canvas');
+                const previewCtx = previewCanvas.getContext('2d');
+                previewCtx.drawImage(canvas, 0, 0);
+                
+                container.appendChild(preview);
+            });
+
+            console.log('✅ Все иконки созданы:', Object.keys(generatedIcons));
+        }
+
+        function downloadIcon(filename) {
+            const canvas = generatedIcons[filename];
+            if (!canvas) return;
+
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+
+        function downloadAllIcons() {
+            Object.keys(generatedIcons).forEach(filename => {
+                setTimeout(() => downloadIcon(filename), 100);
+            });
+        }
+
+        // Полифилл для roundRect если не поддерживается
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+                this.beginPath();
+                this.moveTo(x + radius, y);
+                this.lineTo(x + width - radius, y);
+                this.quadraticCurveTo(x + width, y, x + width, y + radius);
+                this.lineTo(x + width, y + height - radius);
+                this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                this.lineTo(x + radius, y + height);
+                this.quadraticCurveTo(x, y + height, x, y + height - radius);
+                this.lineTo(x, y + radius);
+                this.quadraticCurveTo(x, y, x + radius, y);
+                this.closePath();
+            };
+        }
+
+        // Автоматически создаем иконки при загрузке
+        generateAllIcons();
+    </script>
+</body>
+</html>

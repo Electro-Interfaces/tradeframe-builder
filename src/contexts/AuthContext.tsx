@@ -1,16 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SupabaseAuthService, type AuthUser } from '../services/supabaseAuthService';
 import { testServiceConnection } from '../services/supabaseServiceClient';
+import { currentUserService } from '../services/currentUserService';
+import { type User as DBUser } from '../services/usersService';
 
 // Типы пользователей и ролей
 export interface User {
   id: string;
   email: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   role: string;
   networkId?: string;
   tradingPointIds: string[];
   permissions: string[];
+  roles?: UserRole[];
   status?: 'active' | 'inactive' | 'blocked';
   lastLogin?: string;
 }
@@ -91,6 +97,17 @@ export const SYSTEM_ROLES: Role[] = [
     isSystem: false, // Временно отключено для тестирования
     permissions: [
       "deliveries.register", "fuel.unload", "drains.create", "tanks.view"
+    ]
+  },
+  {
+    id: 6,
+    name: "Менеджер БТО",
+    code: "bto_manager",
+    scope: "Network",
+    description: "Менеджер сети БТО с ограниченным доступом",
+    isSystem: false,
+    permissions: [
+      "networks.read", "trading_points.read", "networks.view_bto", "points.view_bto"
     ]
   }
 ];
@@ -223,7 +240,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Проверка наличия роли
   const hasRole = (roleCode: string): boolean => {
-    if (!user) return false;
+    if (!user || !user.roles || !Array.isArray(user.roles)) return false;
     
     return user.roles.some(role => role.roleCode === roleCode);
   };
@@ -259,7 +276,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Получение основной роли пользователя (для обратной совместимости)
   const getUserRole = (): string => {
-    if (!user || user.roles.length === 0) return 'driver';
+    if (!user || !user.roles || !Array.isArray(user.roles) || user.roles.length === 0) return 'driver';
     
     const primaryRole = user.roles[0];
     
@@ -282,37 +299,79 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(true);
     try {
       console.log('🔐 Starting login process for:', email);
-      const authUser = await SupabaseAuthService.login(email, password);
-      console.log('✅ AuthUser from Supabase:', authUser);
       
-      // Конвертируем AuthUser в User для контекста
-      const contextUser: User = {
-        id: authUser.id,
-        email: authUser.email,
-        name: authUser.name, // Это должно быть "Системный администратор"
-        role: authUser.role,
-        networkId: authUser.networkId,
-        tradingPointIds: authUser.tradingPointIds,
-        permissions: authUser.permissions,
-        status: 'active',
-        lastLogin: new Date().toISOString()
-      };
+      // Сначала попробуем найти пользователя в нашей базе данных
+      const dbUser = await currentUserService.authenticateUser(email, password);
+      
+      if (dbUser) {
+        console.log('✅ User found in database:', dbUser);
+        
+        // Преобразуем пользователя из БД в формат для AuthContext
+        const contextUser: User = {
+          id: dbUser.id.toString(),
+          email: dbUser.email,
+          name: `${dbUser.firstName} ${dbUser.lastName}`.trim(),
+          firstName: dbUser.firstName,
+          lastName: dbUser.lastName,
+          phone: dbUser.phone,
+          role: 'user',
+          networkId: undefined,
+          tradingPointIds: [],
+          permissions: dbUser.permissions || ['basic'],
+          roles: dbUser.roles || [],
+          status: dbUser.status,
+          lastLogin: new Date().toISOString()
+        };
+        
+        console.log('✅ Created user object from DB:', contextUser);
+        setUser(contextUser);
+        
+        // Устанавливаем ID текущего пользователя в сервисе
+        currentUserService.setCurrentUserId(dbUser.id);
+        
+        // Сохраняем пользователя в localStorage
+        if (typeof window !== 'undefined') {
+          try {
+            const userJson = JSON.stringify(contextUser);
+            localStorage.setItem('currentUser', userJson);
+            localStorage.setItem('auth_token', 'database_session');
+            console.log('✅ Successfully saved DB user to localStorage');
+          } catch (error) {
+            console.error('❌ Error saving user to localStorage:', error);
+          }
+        }
+      } else {
+        // Если пользователя нет в БД, пробуем Supabase (fallback)
+        console.log('🔄 User not found in DB, trying Supabase...');
+        const authUser = await SupabaseAuthService.login(email, password);
+        console.log('✅ AuthUser from Supabase:', authUser);
+        
+        // Конвертируем AuthUser в User для контекста
+        const contextUser: User = {
+          id: authUser.id,
+          email: authUser.email,
+          name: authUser.name, // Это должно быть "Системный администратор"
+          role: authUser.role,
+          networkId: authUser.networkId,
+          tradingPointIds: authUser.tradingPointIds,
+          permissions: authUser.permissions,
+          status: 'active',
+          lastLogin: new Date().toISOString()
+        };
 
-      console.log('🎯 Context user being set:', contextUser);
-      setUser(contextUser);
-      
-      // RLS не нужен при использовании service role ключа
-      console.log('✅ Using service role key - RLS bypassed');
-      
-      if (typeof window !== 'undefined') {
-        try {
-          const userJson = JSON.stringify(contextUser);
-          console.log('💾 Saving user as JSON:', userJson);
-          localStorage.setItem('currentUser', userJson);
-          localStorage.setItem('auth_token', 'supabase_session');
-          console.log('✅ Successfully saved to localStorage');
-        } catch (error) {
-          console.error('❌ Error saving user to localStorage:', error);
+        console.log('🎯 Context user being set:', contextUser);
+        setUser(contextUser);
+        
+        // Сохраняем пользователя в localStorage
+        if (typeof window !== 'undefined') {
+          try {
+            const userJson = JSON.stringify(contextUser);
+            localStorage.setItem('currentUser', userJson);
+            localStorage.setItem('auth_token', 'supabase_session');
+            console.log('✅ Successfully saved Supabase user to localStorage');
+          } catch (error) {
+            console.error('❌ Error saving user to localStorage:', error);
+          }
         }
       }
     } catch (error: any) {
@@ -350,19 +409,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = async (): Promise<void> => {
     setLoading(true);
     try {
-      // Симуляция обновления данных пользователя
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // В реальном приложении здесь будет API вызов
       if (user) {
-        const updatedUser = { ...user };
-        setUser(updatedUser);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        // Загружаем обновленные данные пользователя из БД
+        const dbUser = await currentUserService.getCurrentUserProfile();
+        
+        if (dbUser) {
+          const updatedUser: User = {
+            id: dbUser.id.toString(),
+            email: dbUser.email,
+            name: `${dbUser.firstName} ${dbUser.lastName}`.trim(),
+            firstName: dbUser.firstName,
+            lastName: dbUser.lastName,
+            phone: dbUser.phone,
+            role: user.role, // Сохраняем текущую роль
+            networkId: user.networkId,
+            tradingPointIds: user.tradingPointIds,
+            permissions: dbUser.permissions || user.permissions,
+            roles: dbUser.roles || user.roles,
+            status: dbUser.status,
+            lastLogin: new Date().toISOString()
+          };
+          
+          setUser(updatedUser);
+          
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          }
+        } else {
+          // Fallback: просто обновляем lastLogin
+          const updatedUser = { ...user, lastLogin: new Date().toISOString() };
+          setUser(updatedUser);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          }
         }
       }
     } catch (error) {
       console.error('Ошибка обновления пользователя:', error);
+      // В случае ошибки просто обновляем lastLogin
+      if (user) {
+        const updatedUser = { ...user, lastLogin: new Date().toISOString() };
+        setUser(updatedUser);
+      }
     } finally {
       setLoading(false);
     }

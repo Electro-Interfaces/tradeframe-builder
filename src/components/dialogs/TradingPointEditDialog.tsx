@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ export function TradingPointEditDialog({
   onUpdateExternalCode,
   onRemoveExternalCode
 }: TradingPointEditDialogProps) {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic' | 'codes'>('basic');
   const [formData, setFormData] = useState<TradingPointUpdateInput>({
@@ -225,16 +227,16 @@ export function TradingPointEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} bg-slate-800 border-slate-700 overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="text-white">Редактировать торговую точку</DialogTitle>
         </DialogHeader>
         
         {/* Tabs */}
-        <div className="flex space-x-1 bg-slate-700 p-1 rounded-lg mb-6">
+        <div className={`${isMobile ? 'flex flex-col space-y-1' : 'flex space-x-1'} bg-slate-700 p-1 rounded-lg mb-6`}>
           <button
             onClick={() => setActiveTab('basic')}
-            className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`${isMobile ? 'w-full' : 'flex-1'} px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'basic' 
                 ? 'bg-blue-600 text-white' 
                 : 'text-slate-400 hover:text-white hover:bg-slate-600'
@@ -244,7 +246,7 @@ export function TradingPointEditDialog({
           </button>
           <button
             onClick={() => setActiveTab('codes')}
-            className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`${isMobile ? 'w-full' : 'flex-1'} px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'codes' 
                 ? 'bg-blue-600 text-white' 
                 : 'text-slate-400 hover:text-white hover:bg-slate-600'
@@ -261,7 +263,7 @@ export function TradingPointEditDialog({
               <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">Основная информация</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'}`}>
               <div className="space-y-2">
                 <Label htmlFor="id" className="text-slate-200 block">
                   ID торговой точки
@@ -299,7 +301,7 @@ export function TradingPointEditDialog({
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-slate-200 block">
                   Название <span className="text-red-400">*</span>
@@ -367,7 +369,7 @@ export function TradingPointEditDialog({
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">Геолокация</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
               <div className="space-y-2">
                 <Label htmlFor="latitude" className="text-slate-200 block">
                   Широта <span className="text-red-400">*</span>
@@ -409,7 +411,7 @@ export function TradingPointEditDialog({
               <p className="text-red-400 text-sm mt-1">{errors.geolocation}</p>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
               <div className="space-y-2">
                 <Label htmlFor="region" className="text-slate-200 block">Регион</Label>
                 <Input
@@ -458,7 +460,7 @@ export function TradingPointEditDialog({
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">Контактная информация</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'}`}>
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-slate-200 block">Телефон</Label>
                 <Input
@@ -505,7 +507,7 @@ export function TradingPointEditDialog({
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">Услуги</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="selfServiceTerminal"

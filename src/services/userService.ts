@@ -522,7 +522,7 @@ export class UserService {
         roleId: superAdminRole?.id
       },
       {
-        email: 'manager@nordline.ru',
+        email: 'manager@bto.ru',
         name: 'Елена Петрова',
         password: 'Manager123!',
         roleId: networkAdminRole?.id

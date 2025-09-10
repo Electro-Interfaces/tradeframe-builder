@@ -1,703 +1,328 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { EmptyState } from "@/components/ui/empty-state";
 import { useSelection } from "@/context/SelectionContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { stsApiService, TerminalInfo, Tank } from "@/services/stsApi";
+import { MobileButton } from "@/components/ui/mobile-button";
+import { MobileTable } from "@/components/ui/mobile-table";
 import { 
-  Plus, 
-  Edit, 
   Settings, 
   AlertCircle, 
   CheckCircle2, 
-  XCircle, 
-  PowerOff, 
-  Archive, 
   Loader2, 
-  MapPin,
-  ChevronDown,
-  ChevronRight,
-  Power,
-  Trash2,
-  Layers3,
-  Scan
+  RefreshCw,
+  Thermometer,
+  Gauge,
+  Fuel,
+  Database,
+  Banknote,
+  CreditCard
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-// Компоненты оборудования
-import { EquipmentWizard } from "@/components/equipment/EquipmentWizard";
-import { HelpButton } from "@/components/help/HelpButton";
-import { EquipmentDetailCard } from "@/components/equipment/EquipmentDetailCard";
-import { EquipmentComponentsList } from "@/components/equipment/EquipmentComponentsList";
-import { EquipmentCommandsPanel } from "@/components/equipment/EquipmentCommandsPanel";
-import { EquipmentCommandsEditor } from "@/components/equipment/EquipmentCommandsEditor";
+interface TerminalEquipmentItem {
+  id: string;
+  name: string;
+  code: string;
+  location: string;
+  status: 'online' | 'offline' | 'error';
+  statusText: string;
+  billCount?: number;
+  billAmount?: number;
+}
 
-// Типы и API
-import { 
-  Equipment, 
-  EquipmentTemplate,
-  CreateEquipmentRequest, 
-  UpdateEquipmentRequest,
-  EquipmentStatusAction,
-  EquipmentStatus,
-  EquipmentEvent
-} from "@/types/equipment";
-import { 
-  currentEquipmentAPI, 
-  currentEquipmentTemplatesAPI,
-  getEquipmentComponentsHealth,
-  ComponentHealthStatus
-} from "@/services/equipment";
-import { currentComponentsAPI } from "@/services/components";
-import { tradingPointsService } from "@/services/tradingPointsService";
-import { tradingPointScanService } from "@/services/tradingPointScanService";
-import { tanksService } from "@/services/tanksService";
-import ComponentHealthIndicator from "@/components/ui/ComponentHealthIndicator";
-import { Component } from "@/types/component";
-
-// Утилиты для статусов
-const getStatusIcon = (status: EquipmentStatus) => {
+const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'online': return <CheckCircle2 className="w-4 h-4 text-green-600" />;
-    case 'offline': return <AlertCircle className="w-4 h-4 text-yellow-600" />;
-    case 'error': return <XCircle className="w-4 h-4 text-red-600" />;
-    case 'disabled': return <PowerOff className="w-4 h-4 text-gray-600" />;
-    case 'archived': return <Archive className="w-4 h-4 text-slate-600" />;
-    default: return <Settings className="w-4 h-4 text-gray-600" />;
+    case 'online':
+    case 'normal':
+      return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+    case 'warning':
+      return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+    case 'offline':
+    case 'error':
+      return <AlertCircle className="w-4 h-4 text-red-500" />;
+    default:
+      return <Settings className="w-4 h-4 text-gray-500" />;
   }
 };
 
-const getStatusText = (status: EquipmentStatus) => {
+const getStatusColor = (status: string) => {
   switch (status) {
-    case 'online': return 'Онлайн';
-    case 'offline': return 'Офлайн';
-    case 'error': return 'Ошибка';
-    case 'disabled': return 'Отключено';
-    case 'archived': return 'Архив';
-    default: return 'Неизвестно';
+    case 'online':
+    case 'normal':
+      return 'text-green-500';
+    case 'warning':
+      return 'text-yellow-500';
+    case 'offline':
+    case 'error':
+      return 'text-red-500';
+    default:
+      return 'text-gray-500';
   }
 };
 
-const getStatusColor = (status: EquipmentStatus) => {
-  switch (status) {
-    case 'online': return 'bg-green-500';
-    case 'offline': return 'bg-yellow-500';
-    case 'error': return 'bg-red-500';
-    case 'disabled': return 'bg-gray-500';
-    case 'archived': return 'bg-slate-500';
-    default: return 'bg-gray-500';
-  }
+const getFillLevelColor = (level: number) => {
+  if (level >= 70) return 'bg-green-500';
+  if (level >= 40) return 'bg-yellow-500';
+  return 'bg-red-500';
 };
 
 export default function Equipment() {
-  const { selectedTradingPoint } = useSelection();
+  const { selectedNetwork, selectedTradingPoint } = useSelection();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  
-  // Получаем информацию о торговой точке с мемоизацией
-  const [tradingPointInfo, setTradingPointInfo] = useState(null);
-  
-  useEffect(() => {
-    if (selectedTradingPoint) {
-      tradingPointsService.getById(selectedTradingPoint).then(setTradingPointInfo);
-    } else {
-      setTradingPointInfo(null);
-    }
-  }, [selectedTradingPoint]);
-    
-  
-  // Основное состояние
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [templates, setTemplates] = useState<EquipmentTemplate[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [scanningTradingPoint, setScanningTradingPoint] = useState(false);
-  const [editingCommandsEquipmentId, setEditingCommandsEquipmentId] = useState<string | null>(null);
-  
-  
-  // Модальные окна
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
-  
-  // Расширенные ряды таблицы
-  const [expandedRows, setExpandedRows] = useState<string[]>([]);
-  
-  // Состояние для статусов компонентов
-  const [componentHealths, setComponentHealths] = useState<Record<string, {
-    aggregatedStatus: ComponentHealthStatus;
-    componentCount: number;
-    statusBreakdown: Record<string, number>;
-  }>>({});
-  
-  // ID выбранной торговой точки
-  const selectedTradingPointId = useMemo(() => selectedTradingPoint, [selectedTradingPoint]);
+  const [terminalEquipment, setTerminalEquipment] = useState<TerminalEquipmentItem[]>([]);
+  const [tanks, setTanks] = useState<Tank[]>([]);
+  const [terminalInfo, setTerminalInfo] = useState<TerminalInfo | null>(null);
 
-  // Загрузка шаблонов при монтировании
+  // Загружаем данные при монтировании или изменении торговой точки
+  // Упрощенная автоматическая загрузка данных оборудования при инициализации
   useEffect(() => {
-    loadTemplates();
-  }, []);
-  
-  // Загрузка оборудования при смене торговой точки или фильтров
-  useEffect(() => {
-    if (selectedTradingPointId) {
-      loadEquipment();
-    } else {
-      setEquipment([]);
+    console.log('🔧 Инициализация раздела оборудования...');
+    
+    // Обеспечиваем правильную настройку STS API
+    ensureSTSApiConfigured();
+    
+    // Автоматически загружаем данные оборудования при выборе торговой точки
+    if (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedNetwork?.external_id) {
+      console.log('🚀 Автоматическая загрузка данных оборудования для торговой точки:', selectedTradingPoint);
+      loadEquipmentData();
     }
-  }, [selectedTradingPointId]);
-  
-  // Загрузка шаблонов с мемоизацией
-  const loadTemplates = useCallback(async () => {
-    try {
-      const templatesData = await currentEquipmentTemplatesAPI.list();
-      setTemplates(templatesData);
-    } catch (error) {
-      console.error('Failed to load templates:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить шаблоны",
-        variant: "destructive"
-      });
-    }
-  }, [toast]);
-  
-  // Загрузка статусов компонентов для оборудования
-  const loadComponentHealths = useCallback(async (equipmentList: Equipment[]) => {
-    const healthPromises = equipmentList.map(async (eq) => {
+  }, [selectedTradingPoint, selectedNetwork]);
+
+  // Функция для настройки STS API с правильными параметрами
+  const ensureSTSApiConfigured = () => {
+    console.log('🔧 Проверяем и настраиваем STS API конфигурацию...');
+    
+    const correctConfig = {
+      url: 'https://pos.autooplata.ru/tms',
+      username: 'UserApi',
+      password: 'lHQfLZHzB3tn',
+      enabled: true,
+      timeout: 30000,
+      retryAttempts: 3,
+      refreshInterval: 20 * 60 * 1000 // 20 минут
+    };
+    
+    // Проверяем текущую конфигурацию
+    const currentConfig = localStorage.getItem('sts-api-config');
+    let needsUpdate = false;
+    
+    if (currentConfig) {
       try {
-        const health = await getEquipmentComponentsHealth(eq.id);
-        return { equipmentId: eq.id, health };
-      } catch (error) {
-        console.warn(`Failed to load component health for equipment ${eq.id}:`, error);
-        return { 
-          equipmentId: eq.id, 
-          health: { 
-            aggregatedStatus: 'healthy' as ComponentHealthStatus, 
-            componentCount: 0, 
-            statusBreakdown: {} 
-          } 
-        };
+        const parsed = JSON.parse(currentConfig);
+        // Проверяем, что все нужные параметры совпадают
+        if (parsed.url !== correctConfig.url || 
+            parsed.username !== correctConfig.username || 
+            parsed.password !== correctConfig.password ||
+            !parsed.enabled) {
+          needsUpdate = true;
+        }
+      } catch {
+        needsUpdate = true;
       }
-    });
-
-    const results = await Promise.all(healthPromises);
-    const healthMap: Record<string, any> = {};
+    } else {
+      needsUpdate = true;
+    }
     
-    results.forEach(({ equipmentId, health }) => {
-      healthMap[equipmentId] = health;
-    });
+    if (needsUpdate) {
+      console.log('🔧 Обновляем конфигурацию STS API с правильными параметрами');
+      localStorage.setItem('sts-api-config', JSON.stringify(correctConfig));
+    }
     
-    setComponentHealths(healthMap);
-  }, []);
+    return correctConfig;
+  };
 
-  // Загрузка оборудования с мемоизацией
-  const loadEquipment = useCallback(async () => {
-    if (!selectedTradingPointId) return;
+  const loadEquipmentData = async () => {
+    if (!selectedTradingPoint || !selectedNetwork?.external_id) return;
     
     setLoading(true);
-    setError(null);
-    
     try {
-      const response = await currentEquipmentAPI.list({
-        trading_point_id: selectedTradingPointId
-      });
-      setEquipment(response.data);
+      // Обеспечиваем правильную настройку STS API
+      ensureSTSApiConfigured();
       
-      // Загружаем статусы компонентов для каждого оборудования
-      await loadComponentHealths(response.data);
-    } catch (error) {
-      console.error('Failed to load equipment:', error);
-      setError('Не удалось загрузить оборудование');
+      // Параметры для API
+      const contextParams = {
+        networkId: selectedNetwork.external_id,
+        tradingPointId: selectedTradingPoint
+      };
+
+      console.log('🔄 Загружаем данные оборудования из STS API...');
+
+      // Загружаем данные параллельно (stsApiService сам управляет авторизацией)
+      const [terminalInfoData, tanksData] = await Promise.all([
+        stsApiService.getTerminalInfo(contextParams),
+        stsApiService.getTanks(contextParams)
+      ]);
+
+      setTerminalInfo(terminalInfoData);
+      setTanks(tanksData);
+      
+      // Преобразуем данные терминала в формат для отображения
+      const equipmentItems = mapTerminalInfoToEquipment(terminalInfoData);
+      setTerminalEquipment(equipmentItems);
+
       toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить оборудование",
+        title: "Данные загружены",
+        description: "Информация об оборудовании успешно получена от СТС"
+      });
+    } catch (error) {
+      console.error('Ошибка загрузки данных оборудования:', error);
+      toast({
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить данные оборудования. Используются демо-данные.",
         variant: "destructive"
       });
+      // При ошибке показываем заглушку
+      setTerminalEquipment(getMockTerminalEquipment());
+      setTanks(getMockTanks());
     } finally {
       setLoading(false);
     }
-  }, [selectedTradingPointId, toast]);
-
-  // Обработчики событий
-  const handleCreateEquipment = async (data: CreateEquipmentRequest) => {
-    try {
-      await currentEquipmentAPI.create(data);
-      toast({
-        title: "Успех",
-        description: "Оборудование успешно создано"
-      });
-      loadEquipment();
-      setIsWizardOpen(false);
-    } catch (error) {
-      console.error('Failed to create equipment:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось создать оборудование",
-        variant: "destructive"
-      });
-      throw error;
-    }
-  };
-  
-  const handleUpdateEquipment = async (id: string, data: UpdateEquipmentRequest) => {
-    try {
-      // Получаем текущие данные оборудования перед обновлением
-      const currentEquipment = equipment.find(eq => eq.id === id);
-      
-      // Обновляем оборудование
-      await currentEquipmentAPI.update(id, data);
-      
-      // Если это топливный резервуар и были изменены параметры, синхронизируем с резервуарами
-      if (currentEquipment?.system_type === "fuel_tank" && data.params) {
-        try {
-          // Ищем связанный резервуар по названию оборудования
-          const tanks = await tanksService.getTanks();
-          const linkedTank = tanks.find(tank => 
-            tank.name === (data.display_name || currentEquipment.display_name)
-          );
-          
-          if (linkedTank) {
-            // Обновляем резервуар с новыми параметрами
-            await tanksService.updateTank(linkedTank.id, {
-              name: data.display_name || linkedTank.name,
-              fuelType: data.params.fuelType || linkedTank.fuelType,
-              currentLevelLiters: data.params.currentLevelLiters || linkedTank.currentLevelLiters,
-              capacityLiters: data.params.capacityLiters || linkedTank.capacityLiters,
-              minLevelPercent: data.params.minLevelPercent || linkedTank.minLevelPercent,
-              criticalLevelPercent: data.params.criticalLevelPercent || linkedTank.criticalLevelPercent,
-              temperature: data.params.temperature || linkedTank.temperature,
-              waterLevelMm: data.params.waterLevelMm || linkedTank.waterLevelMm,
-              density: data.params.density || linkedTank.density,
-              material: data.params.material || linkedTank.material,
-              status: data.params.status || linkedTank.status,
-              location: data.params.location || linkedTank.location,
-              supplier: data.params.supplier || linkedTank.supplier,
-              lastCalibration: data.params.lastCalibration || linkedTank.lastCalibration
-            });
-          }
-        } catch (tankError) {
-          console.warn('Failed to sync tank data:', tankError);
-          // Не блокируем основной процесс, только логируем предупреждение
-        }
-      }
-      
-      toast({
-        title: "Успех",
-        description: "Оборудование успешно обновлено"
-      });
-      loadEquipment();
-      setSelectedEquipment(null);
-    } catch (error) {
-      console.error('Failed to update equipment:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось обновить оборудование",
-        variant: "destructive"
-      });
-      throw error;
-    }
-  };
-  
-  const handleStatusChange = async (id: string, action: EquipmentStatusAction) => {
-    try {
-      await currentEquipmentAPI.setStatus(id, action);
-      const actionText = {
-        enable: 'включено',
-        disable: 'отключено',
-        archive: 'архивировано'
-      }[action];
-      
-      toast({
-        title: "Успех",
-        description: `Оборудование ${actionText}`
-      });
-      loadEquipment();
-      setSelectedEquipment(null);
-    } catch (error) {
-      console.error('Failed to change status:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось изменить статус",
-        variant: "destructive"
-      });
-      throw error;
-    }
-  };
-  
-  const handleLoadEvents = async (equipmentId: string): Promise<EquipmentEvent[]> => {
-    try {
-      return await currentEquipmentAPI.getEvents(equipmentId);
-    } catch (error) {
-      console.error('Failed to load events:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить события",
-        variant: "destructive"
-      });
-      return [];
-    }
-  };
-  
-  const toggleRowExpansion = (equipmentId: string) => {
-    setExpandedRows(prev => 
-      prev.includes(equipmentId) 
-        ? prev.filter(id => id !== equipmentId)
-        : [...prev, equipmentId]
-    );
   };
 
-  // Обработчики для компонентов
-  const handleEditComponent = (component: Component) => {
-    console.log('Редактирование компонента:', component);
-    toast({
-      title: "Редактирование компонента",
-      description: `Функция редактирования компонента "${component.display_name}" будет доступна в следующей версии.`
+  const handleRefresh = async () => {
+    await loadEquipmentData();
+  };
+
+  // Преобразует данные из TerminalInfo в формат для отображения
+  const mapTerminalInfoToEquipment = (info: TerminalInfo): TerminalEquipmentItem[] => {
+    const equipment: TerminalEquipmentItem[] = [];
+
+    // АЗС (основной терминал)
+    equipment.push({
+      id: 'azs',
+      name: 'АЗС',
+      code: info.terminal.name || 'АЗС',
+      location: '',
+      status: info.terminal.status,
+      statusText: info.terminal.status === 'online' ? 'Онлайн' : 'Офлайн'
     });
-  };
 
-  const handleDeleteEquipment = async (equipmentId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить это оборудование? Это действие необратимо.')) {
-      return;
-    }
+    // POS терминал
+    equipment.push({
+      id: 'pos',
+      name: 'POS',
+      code: info.pos.version || 'POS 1',
+      location: '',
+      status: info.pos.status,
+      statusText: info.pos.status === 'online' ? 'Онлайн' : 'Офлайн'
+    });
 
-    try {
-      setLoading(true);
-      await currentEquipmentAPI.delete(equipmentId);
+    // QR (на основе статуса смены)
+    equipment.push({
+      id: 'qr',
+      name: 'QR',
+      code: 'Готов',
+      location: info.shift ? `Смена №${info.shift.number}` : '',
+      status: info.shift?.state === 'Открытая' ? 'online' : 'offline',
+      statusText: 'Готов'
+    });
+
+    // Купюроприемник с данными о купюрах
+    if (info.devices?.billAcceptor) {
+      // Используем уже обработанный статус из STS API сервиса
+      const deviceStatus = info.devices.billAcceptor.status; // 'online' или 'error'
+      const isOnline = deviceStatus === 'online';
       
-      toast({
-        title: "Оборудование удалено",
-        description: "Оборудование успешно удалено из системы",
-      });
-      
-      // Перезагружаем список оборудования
-      await loadEquipment();
-    } catch (error) {
-      console.error('Ошибка удаления оборудования:', error);
-      toast({
-        title: "Ошибка удаления",
-        description: "Не удалось удалить оборудование. Попробуйте снова.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteComponent = async (component: Component) => {
-    if (!confirm(`Вы уверены, что хотите удалить компонент "${component.display_name}"? Это действие необратимо.`)) {
-      return;
-    }
-
-    try {
-      await currentComponentsAPI.delete(component.id);
-      
-      toast({
-        title: "Компонент удален",
-        description: `Компонент "${component.display_name}" успешно удален`,
+      console.log('🎯 Статус купюроприемника (обработанный):', {
+        status: deviceStatus,
+        isOnline: isOnline,
+        billCount: info.devices.billAcceptor.billCount,
+        billAmount: info.devices.billAcceptor.billAmount,
+        name: info.devices.billAcceptor.name
       });
       
-      // Перезагружаем список оборудования чтобы обновить количество компонентов
-      await loadEquipment();
-    } catch (error) {
-      console.error('Ошибка удаления компонента:', error);
-      toast({
-        title: "Ошибка удаления",
-        description: "Не удалось удалить компонент. Попробуйте снова.",
-        variant: "destructive"
+      equipment.push({
+        id: 'bill-acceptor',
+        name: 'Купюроприемник',
+        code: isOnline ? 'Готов' : 'Ошибка',
+        location: `ID: ${info.devices.billAcceptor.name}`,
+        status: deviceStatus, // Используем уже правильно обработанный статус
+        statusText: isOnline ? 'Готов' : 'Ошибка',
+        billCount: info.devices.billAcceptor.billCount,
+        billAmount: info.devices.billAcceptor.billAmount
       });
     }
-  };
 
-  // Получение данных от торговой точки через торговое API
-  const handleScanTradingPoint = async () => {
-    if (!selectedTradingPointId) return;
-    
-    try {
-      setScanningTradingPoint(true);
-
-      toast({
-        title: "Запуск сканирования",
-        description: "Опрашиваем торговую точку через торговое API...",
+    // Картридер
+    if (info.devices?.cardReader) {
+      equipment.push({
+        id: 'card-reader',
+        name: 'Картридер',
+        code: info.devices.cardReader.status === 'online' ? 'Готов' : 'Ошибка',
+        location: `ID: ${info.devices.cardReader.name}`,
+        status: info.devices.cardReader.status,
+        statusText: info.devices.cardReader.status === 'online' ? 'Готов' : 'Ошибка'
       });
-
-      // Сканируем торговую точку
-      const scanResult = await tradingPointScanService.scanTradingPoint(selectedTradingPointId);
-      
-      if (!scanResult.success) {
-        throw new Error(scanResult.errors?.join(', ') || 'Неизвестная ошибка сканирования');
-      }
-
-      if (scanResult.equipment_found.length === 0) {
-        toast({
-          title: "Сканирование завершено",
-          description: "Новое оборудование не найдено",
-        });
-        return;
-      }
-
-      toast({
-        title: "Найдено оборудование",
-        description: `Найдено ${scanResult.equipment_found.length} единиц оборудования. Добавляем к торговой точке...`,
-      });
-
-      // Добавляем найденное оборудование
-      const addResult = await tradingPointScanService.addDiscoveredEquipment(
-        selectedTradingPointId, 
-        scanResult.equipment_found
-      );
-
-      // Показываем результат
-      if (addResult.added.length > 0) {
-        const totalComponents = scanResult.components_found.length;
-        toast({
-          title: "Сканирование завершено успешно",
-          description: `Добавлено ${addResult.added.length} единиц оборудования и ${totalComponents} компонентов`,
-        });
-      }
-
-      // Показываем ошибки, если есть
-      if (addResult.errors.length > 0) {
-        console.warn('Ошибки при добавлении:', addResult.errors);
-        toast({
-          title: "Частичные ошибки",
-          description: `${addResult.errors.length} ошибок при добавлении. Смотрите консоль.`,
-          variant: "destructive",
-        });
-      }
-
-      // Обновляем список оборудования
-      loadEquipment();
-
-    } catch (error: any) {
-      console.error('Ошибка сканирования:', error);
-      toast({
-        title: "Ошибка сканирования",
-        description: error.message || "Не удалось опросить торговую точку",
-        variant: "destructive",
-      });
-    } finally {
-      setScanningTradingPoint(false);
     }
+
+    // МПС-ридер
+    if (info.devices?.mpsReader) {
+      equipment.push({
+        id: 'mps-reader',
+        name: 'МПС-ридер',
+        code: info.devices.mpsReader.status === 'online' ? 'Готов' : 'Ошибка',
+        location: `ID: ${info.devices.mpsReader.name}`,
+        status: info.devices.mpsReader.status,
+        statusText: info.devices.mpsReader.status === 'online' ? 'Готов' : 'Ошибка'
+      });
+    }
+
+    return equipment;
   };
 
-  // Обработчик редактирования команд
-  const handleEditCommands = (equipmentId: string) => {
-    setEditingCommandsEquipmentId(equipmentId);
-  };
+  // Fallback mock данные
+  const getMockTerminalEquipment = (): TerminalEquipmentItem[] => [
+    { id: 'azs-1', name: 'АЗС', code: 'АЗК 4', location: 'ТК Т-4', status: 'offline', statusText: 'Офлайн' },
+    { id: 'pos-1', name: 'POS', code: 'POS 1', location: '', status: 'online', statusText: 'Онлайн' },
+    { id: 'qr-1', name: 'QR', code: 'Готов', location: 'Смена №13', status: 'online', statusText: 'Готов' },
+    { id: 'inspector-1', name: 'Купюроприемник', code: 'Готов', location: 'ID: 10', status: 'online', statusText: 'Готов', billCount: 341, billAmount: 153450 },
+    { id: 'card-reader-1', name: 'Картридер', code: 'Готов', location: 'ID: 11', status: 'online', statusText: 'Готов' },
+    { id: 'mps-river-1', name: 'МПС-ривер', code: 'Готов', location: 'ID: 15', status: 'online', statusText: 'Готов' }
+  ];
 
-  const handleCloseCommandsEditor = () => {
-    setEditingCommandsEquipmentId(null);
-  };
+  const getMockTanks = (): Tank[] => [
+    {
+      id: 1, name: 'Резервуар №1', fuelType: 'Дизельное топливо',
+      currentLevelLiters: 7595.83, capacityLiters: 10129.88, minLevelPercent: 20, criticalLevelPercent: 10,
+      temperature: 19.0, waterLevelMm: 0, sensors: [], lastCalibration: '', linkedPumps: [],
+      notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+      thresholds: { criticalTemp: { min: -10, max: 40 }, maxWaterLevel: 10, notifications: { critical: true, minimum: true, temperature: true, water: true } }
+    },
+    {
+      id: 2, name: 'Резервуар №2', fuelType: 'АИ-95',
+      currentLevelLiters: 4287.96, capacityLiters: 10303.61, minLevelPercent: 20, criticalLevelPercent: 10,
+      temperature: 18.6, waterLevelMm: 0.58, sensors: [], lastCalibration: '', linkedPumps: [],
+      notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+      thresholds: { criticalTemp: { min: -10, max: 40 }, maxWaterLevel: 10, notifications: { critical: true, minimum: true, temperature: true, water: true } }
+    },
+    {
+      id: 3, name: 'Резервуар №3', fuelType: 'АИ-92',
+      currentLevelLiters: 6266.36, capacityLiters: 10489.90, minLevelPercent: 20, criticalLevelPercent: 10,
+      temperature: 19.0, waterLevelMm: 0, sensors: [], lastCalibration: '', linkedPumps: [],
+      notifications: { enabled: true, drainAlerts: true, levelAlerts: true },
+      thresholds: { criticalTemp: { min: -10, max: 40 }, maxWaterLevel: 10, notifications: { critical: true, minimum: true, temperature: true, water: true } }
+    }
+  ];
 
-  const handleCommandsSaved = () => {
-    loadEquipment(); // Перезагружаем список оборудования
-  };
-
-  // Если торговая точка не выбрана
   if (!selectedTradingPoint) {
     return (
       <MainLayout fullWidth={true}>
-        <EmptyState
-          icon={MapPin}
-          title="Выберите торговую точку" 
-          description="Для просмотра оборудования необходимо выбрать торговую точку в селекторе."
-          className="py-16"
-        />
-      </MainLayout>
-    );
-  }
-
-  // Мобильная версия - карточки
-  if (isMobile) {
-    return (
-      <MainLayout fullWidth={true}>
-        <div className="px-4 pt-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-white">Оборудование</h1>
-              <p className="text-sm text-slate-400">
-                {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleScanTradingPoint}
-                disabled={scanningTradingPoint || loading}
-                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white text-xs"
-              >
-                {scanningTradingPoint ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Scan className="w-3 h-3" />
-                )}
-              </Button>
-              <Button 
-                size="sm" 
-                onClick={() => setIsWizardOpen(true)} 
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
+        <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
+          <div className="mb-6 pt-4">
+            <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
+            <p className="text-slate-400 mt-2">Выберите торговую точку для просмотра оборудования</p>
           </div>
-          
-
-          {loading && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-destructive/10 text-destructive rounded-lg p-4 mb-4">
-              {error}
-            </div>
-          )}
-
-          {!loading && !error && equipment && equipment.length === 0 && (
-            <EmptyState
-              icon={Settings}
-              title="Нет оборудования"
-              description="На этой торговой точке пока нет оборудования"
-              className="py-8"
-            />
-          )}
-
-          {!loading && !error && equipment && equipment.length > 0 && (
-            <div className="space-y-3">
-              {equipment.map(item => {
-                const template = templates.find(t => t.id === item.template_id);
-                return (
-                  <div
-                    key={item.id}
-                    className="bg-slate-800 rounded-lg p-4 border border-slate-700"
-                    onClick={() => setSelectedEquipment(item)}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-medium text-white">{item.display_name}</h3>
-                        <p className="text-sm text-slate-400">
-                          {template?.name || "Неизвестный тип"}
-                        </p>
-                      </div>
-                      {getStatusIcon(item.status)}
-                    </div>
-                    
-                    {item.serial_number && (
-                      <p className="text-xs text-slate-400">
-                        S/N: {item.serial_number}
-                      </p>
-                    )}
-                    
-                    {componentHealths[item.id] && (
-                      <div className="mt-2">
-                        <ComponentHealthIndicator
-                          status={componentHealths[item.id].aggregatedStatus}
-                          componentCount={componentHealths[item.id].componentCount}
-                          statusBreakdown={componentHealths[item.id].statusBreakdown}
-                          size="sm"
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between mt-3">
-                      <Badge variant="secondary" className="text-xs bg-slate-600 text-slate-200">
-                        {getStatusText(item.status)}
-                      </Badge>
-                      
-                      <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-white"
-                          onClick={() => setSelectedEquipment(item)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {item.status !== 'archived' && item.status === 'disabled' && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-green-400"
-                            onClick={() => handleStatusChange(item.id, 'enable')}
-                          >
-                            <Power className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {item.status !== 'archived' && item.status !== 'disabled' && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-yellow-400"
-                            onClick={() => handleStatusChange(item.id, 'disable')}
-                          >
-                            <PowerOff className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {item.status !== 'archived' && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
-                            onClick={() => handleStatusChange(item.id, 'archive')}
-                          >
-                            <Archive className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-600"
-                          onClick={() => handleDeleteEquipment(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
-
-        {/* Wizard для создания */}
-        <EquipmentWizard
-          open={isWizardOpen}
-          onOpenChange={setIsWizardOpen}
-          tradingPointId={selectedTradingPointId}
-          templates={templates}
-          onSubmit={handleCreateEquipment}
-          loading={loading}
-        />
-
-        {/* Карточка детальной информации */}
-        <EquipmentDetailCard
-          open={!!selectedEquipment}
-          onOpenChange={(open) => !open && setSelectedEquipment(null)}
-          equipment={selectedEquipment}
-          onUpdate={handleUpdateEquipment}
-          onStatusChange={handleStatusChange}
-          onLoadEvents={handleLoadEvents}
-        />
-
-        {/* Редактор команд оборудования */}
-        <EquipmentCommandsEditor
-          open={!!editingCommandsEquipmentId}
-          onClose={handleCloseCommandsEditor}
-          equipment={equipment.find(eq => eq.id === editingCommandsEquipmentId)}
-          onSave={handleCommandsSaved}
-        />
       </MainLayout>
     );
   }
 
-  // Десктопная версия - таблица
   return (
     <MainLayout fullWidth={true}>
       <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
@@ -706,294 +331,257 @@ export default function Equipment() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
-              <p className="text-slate-400 mt-1">
-                {tradingPointInfo ? tradingPointInfo.name : 'Торговая точка не выбрана'}
-              </p>
+              <p className="text-slate-400 mt-1">{selectedNetwork?.name || 'БТО АЗС №4'}</p>
             </div>
             <div className="flex items-center gap-3">
-              <HelpButton helpKey="equipment" />
-              <Button
+              <MobileButton
                 variant="outline"
-                onClick={handleScanTradingPoint}
-                disabled={scanningTradingPoint || loading}
-                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                onClick={handleRefresh}
+                disabled={loading}
+                className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
               >
-                {scanningTradingPoint ? (
+                {loading ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <Scan className="w-4 h-4 mr-2" />
+                  <RefreshCw className="w-4 h-4 mr-2" />
                 )}
+                Обновить STS данные
+              </MobileButton>
+              <MobileButton
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+              >
                 Получить данные от ТТ
-              </Button>
+              </MobileButton>
             </div>
           </div>
         </div>
 
-        {/* Секция оборудования */}
-        <div className="bg-slate-800 border border-slate-600 rounded-lg w-full">
-          {/* Заголовок секции с кнопкой добавления */}
-          <div className="px-6 py-4 border-b border-slate-700">
+        {/* Терминальное оборудование */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm">⚙️</span>
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <Settings className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Установленное оборудование</h2>
-                  {!loading && equipment && equipment && equipment.length > 0 && (
-                    <p className="text-sm text-slate-400">
-                      Всего единиц: {equipment && equipment.length}
-                    </p>
-                  )}
+                  <CardTitle className="text-white">Терминальное оборудование</CardTitle>
+                  <p className="text-sm text-slate-400 mt-1">8 ед.</p>
                 </div>
               </div>
-              <Button 
-                onClick={() => setIsWizardOpen(true)} 
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Добавить из шаблона
+              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                <Settings className="w-4 h-4" />
               </Button>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent>
+            {/* Фильтруем оборудование: купюроприемник отдельно, остальное в сетке */}
+            {(() => {
+              const billAcceptor = terminalEquipment.find(eq => eq.name === 'Купюроприемник');
+              const otherEquipment = terminalEquipment.filter(eq => eq.name !== 'Купюроприемник');
+              
+              return (
+                <div className="space-y-6">
+                  {/* Купюроприемник - отдельная большая карточка */}
+                  {billAcceptor && (
+                    <div className="bg-slate-700 rounded-lg p-6 border border-slate-600 hover:border-slate-500 transition-colors">
+                      <div className={`flex items-center ${isMobile ? 'flex-col gap-4' : 'justify-between gap-6'}`}>
+                        {/* Название и ID */}
+                        <div className={`flex items-center gap-3 ${isMobile ? 'w-full justify-center' : ''}`}>
+                          <Banknote className="w-6 h-6 text-green-400" />
+                          <div className={isMobile ? 'text-center' : ''}>
+                            <h3 className="text-lg font-semibold text-white">{billAcceptor.name}</h3>
+                            <p className="text-sm text-slate-400">{billAcceptor.location}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Данные и статус */}
+                        <div className={`${isMobile ? 'w-full grid grid-cols-3 gap-4' : 'flex gap-6'}`}>
+                          {/* Количество купюр */}
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-green-400">
+                              {billAcceptor.billCount || 0}
+                            </div>
+                            <div className="text-sm text-slate-300">купюр</div>
+                          </div>
+                          
+                          {/* Сумма */}
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-blue-400">
+                              {(billAcceptor.billAmount || 0).toLocaleString()}
+                            </div>
+                            <div className="text-sm text-slate-300">₽</div>
+                          </div>
+                          
+                          {/* Статус */}
+                          <div className="flex flex-col items-center gap-2">
+                            {getStatusIcon(billAcceptor.status)}
+                            <Badge 
+                              className={`${
+                                billAcceptor.status === 'online' 
+                                  ? 'bg-green-600 text-white hover:bg-green-700 text-base px-3 py-1 font-semibold' 
+                                  : 'bg-red-600 text-white hover:bg-red-700 text-base px-3 py-1 font-semibold'
+                              }`}
+                            >
+                              {billAcceptor.statusText}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Остальное оборудование в сетке */}
+                  <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'}`}>
+                    {otherEquipment.map((equipment) => (
+                      <div
+                        key={equipment.id}
+                        className="bg-slate-700 rounded-lg p-4 border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-white">{equipment.name}</span>
+                          {getStatusIcon(equipment.status)}
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <div className="text-xs text-slate-300">{equipment.code}</div>
+                          {equipment.location && (
+                            <div className="text-xs text-slate-400">{equipment.location}</div>
+                          )}
+                        </div>
+                        
+                        <div className="mt-3">
+                          <Badge 
+                            className={`text-xs font-semibold ${
+                              equipment.status === 'online' && equipment.statusText === 'Готов'
+                                ? 'bg-green-600 text-white hover:bg-green-700'
+                                : equipment.status === 'online'
+                                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                : 'bg-red-600 text-white hover:bg-red-700'
+                            }`}
+                          >
+                            {equipment.statusText}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
 
-          {/* Состояния загрузки, ошибки и пустого списка */}
-          {loading && (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-              <span className="ml-2 text-slate-400">Загрузка оборудования...</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="px-6 py-8 text-center">
-              <div className="text-red-400 mb-2">{error}</div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => loadEquipment()}
-              >
-                Попробовать снова
+        {/* Резервуары */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                  <Database className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-white">Резервуары</CardTitle>
+                  <p className="text-sm text-slate-400 mt-1">Всего резервуаров: 3</p>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white">
+                Обновить
               </Button>
             </div>
-          )}
-
-          {!loading && !error && equipment && equipment.length === 0 && (
-            <div className="px-6 py-16 text-center">
-              <Settings className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-white mb-2">Нет оборудования</h3>
-              <p className="text-slate-400 mb-4">
-                На этой торговой точке пока нет оборудования.
-              </p>
-              <Button 
-                onClick={() => setIsWizardOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Добавить первое оборудование
-              </Button>
-            </div>
-          )}
-
-          {/* Таблица с оборудованием */}
-          {!loading && !error && equipment && equipment.length > 0 && (
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-sm min-w-full table-fixed">
-                <thead className="bg-slate-700">
+          </CardHeader>
+          <CardContent>
+            <MobileTable showScrollHint={true}>
+              <table className="w-full text-sm min-w-[600px]">
+                <thead className="text-left border-b border-slate-600">
                   <tr>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '5%'}}></th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '30%'}}>НАЗВАНИЕ</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '20%'}}>ТИП</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>СЕРИЙНЫЙ НОМЕР</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>КОМПОНЕНТЫ</th>
-                    <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>СТАТУС</th>
-                    <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
+                    <th className="pb-3 text-slate-300 font-medium">Резервуар</th>
+                    <th className="pb-3 text-slate-300 font-medium">Топливо</th>
+                    <th className="pb-3 text-slate-300 font-medium">Объем емкости</th>
+                    <th className="pb-3 text-slate-300 font-medium">Уровень</th>
+                    <th className="pb-3 text-slate-300 font-medium">Заполнение</th>
+                    <th className="pb-3 text-slate-300 font-medium">Температура</th>
+                    <th className="pb-3 text-slate-300 font-medium">Вода</th>
+                    <th className="pb-3 text-slate-300 font-medium">Датчики</th>
+                    <th className="pb-3 text-slate-300 font-medium">Статус</th>
                   </tr>
                 </thead>
-                <tbody className="bg-slate-800">
-                  {equipment.map((item) => {
-                    const template = templates.find(t => t.id === item.template_id);
-                    const isExpanded = expandedRows.includes(item.id);
-                    const componentsCount = item.componentsCount || 0;
+                <tbody>
+                  {tanks.map((tank) => {
+                    const fillLevel = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
+                    const tankStatus = fillLevel < tank.criticalLevelPercent ? 'critical' : fillLevel < tank.minLevelPercent ? 'warning' : 'normal';
                     
                     return (
-                      <>
-                        <tr
-                          key={item.id}
-                          className="border-b border-slate-600 hover:bg-slate-700 transition-colors"
-                        >
-                          <td className="px-4 md:px-6 py-4">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleRowExpansion(item.id)}
-                              className="p-0 h-6 w-6 text-slate-400 hover:text-white"
-                            >
-                              {isExpanded ? (
-                                <ChevronDown className="w-4 h-4" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4" />
-                              )}
-                            </Button>
-                          </td>
-                          <td 
-                            className="px-6 py-4 font-medium text-white cursor-pointer"
-                            onClick={() => setSelectedEquipment(item)}
-                          >
-                            {item.display_name}
-                          </td>
-                          <td className="px-6 py-4 text-slate-400">
-                            {template?.name || "Неизвестный тип"}
-                          </td>
-                          <td className="px-6 py-4 text-slate-400">
-                            {item.serial_number || "—"}
-                          </td>
-                          <td className="px-4 md:px-6 py-4">
-                            {componentHealths[item.id] ? (
-                              <ComponentHealthIndicator
-                                status={componentHealths[item.id].aggregatedStatus}
-                                componentCount={componentHealths[item.id].componentCount}
-                                statusBreakdown={componentHealths[item.id].statusBreakdown}
-                                size="sm"
+                      <tr key={tank.id} className="border-b border-slate-700 hover:bg-slate-700/30">
+                        <td className="py-4">
+                          <div className="flex items-center gap-2">
+                            <Database className="w-4 h-4 text-green-500" />
+                            <span className="text-white font-medium">{tank.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 text-slate-300">{tank.fuelType}</td>
+                        <td className="py-4 text-slate-300">{tank.capacityLiters.toLocaleString()} л</td>
+                        <td className="py-4 text-slate-300">{tank.currentLevelLiters.toLocaleString()} л</td>
+                        <td className="py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 bg-slate-600 rounded-full h-2 min-w-[60px]">
+                              <div
+                                className={`h-2 rounded-full ${getFillLevelColor(fillLevel)}`}
+                                style={{ width: `${Math.max(fillLevel, 2)}%` }}
                               />
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <div className="rounded-full p-1 bg-slate-700 border border-slate-600">
-                                  <div className="h-3 w-3 rounded-full bg-slate-600 animate-pulse" />
-                                </div>
-                                <span className="text-xs font-medium text-slate-500">...</span>
+                            </div>
+                            <span className="text-sm text-slate-300 min-w-[35px]">{Math.round(fillLevel)}%</span>
+                          </div>
+                        </td>
+                        <td className="py-4 text-slate-300">
+                          <div className="flex items-center gap-1">
+                            <Thermometer className="w-4 h-4 text-blue-400" />
+                            {tank.temperature}°C
+                          </div>
+                        </td>
+                        <td className="py-4 text-slate-300">{tank.waterLevelMm} мм</td>
+                        <td className="py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                              <span className="text-xs text-slate-400">Уровень</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-2 h-2 bg-red-400 rounded-full" />
+                              <span className="text-xs text-slate-400">Температура</span>
+                            </div>
+                            {tank.waterLevelMm > 0 && (
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-green-400 rounded-full" />
+                                <span className="text-xs text-slate-400">Подтоварная вода</span>
                               </div>
                             )}
-                          </td>
-                          <td className="px-4 md:px-6 py-4">
-                            <Badge variant="secondary" className="bg-slate-600 text-slate-200 flex items-center gap-2 w-fit">
-                              <div className={cn("w-2 h-2 rounded-full", getStatusColor(item.status))} />
-                              {getStatusText(item.status)}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 text-slate-400 hover:text-white"
-                                onClick={() => setSelectedEquipment(item)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              {item.status !== 'archived' && item.status === 'disabled' && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-8 w-8 p-0 text-slate-400 hover:text-green-400"
-                                  onClick={() => handleStatusChange(item.id, 'enable')}
-                                >
-                                  <Power className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {item.status !== 'archived' && item.status !== 'disabled' && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-8 w-8 p-0 text-slate-400 hover:text-yellow-400"
-                                  onClick={() => handleStatusChange(item.id, 'disable')}
-                                >
-                                  <PowerOff className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {item.status !== 'archived' && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-8 w-8 p-0 text-slate-400 hover:text-red-400"
-                                  onClick={() => handleStatusChange(item.id, 'archive')}
-                                >
-                                  <Archive className="h-4 w-4" />
-                                </Button>
-                              )}
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 text-slate-400 hover:text-red-600"
-                                onClick={() => handleDeleteEquipment(item.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                        
-                        {/* Раскрывающийся контент с управлением оборудованием и компонентами */}
-                        {isExpanded && (
-                          <tr>
-                            <td colSpan={7} className="p-0">
-                              <div className="bg-slate-900/50 border-l-4 border-blue-500/20 ml-6 mr-2 mb-2">
-                                <div className="space-y-4 p-6">
-                                  {/* Панель управления оборудованием */}
-                                  <EquipmentCommandsPanel 
-                                    equipment={item}
-                                    onRefresh={() => loadEquipment()}
-                                    onEditCommands={handleEditCommands}
-                                  />
-                                  
-                                  {/* Разделитель */}
-                                  <div className="border-t border-slate-700"></div>
-                                  
-                                  {/* Заголовок для компонентов */}
-                                  <div className="flex items-center gap-2">
-                                    <Layers3 className="w-5 h-5 text-slate-400" />
-                                    <h4 className="font-medium text-slate-100">Компоненты оборудования</h4>
-                                  </div>
-                                  
-                                  {/* Список компонентов */}
-                                  <EquipmentComponentsList 
-                                    equipmentId={item.id}
-                                    onEditComponent={handleEditComponent}
-                                    onDeleteComponent={handleDeleteComponent}
-                                  />
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </>
+                          </div>
+                        </td>
+                        <td className="py-4">
+                          <Badge 
+                            variant={tankStatus === 'normal' ? 'default' : 'secondary'}
+                            className={`${
+                              tankStatus === 'normal' 
+                                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                : tankStatus === 'warning'
+                                ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                                : 'bg-red-600 text-white hover:bg-red-700'
+                            }`}
+                          >
+                            {tankStatus === 'normal' ? 'Норма' : tankStatus === 'warning' ? 'Мало' : 'Критично'}
+                          </Badge>
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
               </table>
-            </div>
-          )}
-        </div>
+            </MobileTable>
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Wizard для создания */}
-      <EquipmentWizard
-        open={isWizardOpen}
-        onOpenChange={setIsWizardOpen}
-        tradingPointId={selectedTradingPointId}
-        templates={templates}
-        onSubmit={handleCreateEquipment}
-        loading={loading}
-      />
-
-      {/* Карточка детальной информации */}
-      <EquipmentDetailCard
-        open={!!selectedEquipment}
-        onOpenChange={(open) => !open && setSelectedEquipment(null)}
-        equipment={selectedEquipment}
-        onUpdate={handleUpdateEquipment}
-        onStatusChange={handleStatusChange}
-        onLoadEvents={handleLoadEvents}
-      />
-
-      {/* Редактор команд оборудования */}
-      <EquipmentCommandsEditor
-        open={!!editingCommandsEquipmentId}
-        onClose={handleCloseCommandsEditor}
-        equipment={equipment.find(eq => eq.id === editingCommandsEquipmentId)}
-        onSave={handleCommandsSaved}
-      />
     </MainLayout>
   );
 }

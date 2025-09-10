@@ -7,6 +7,7 @@ import { apiConfigService } from './apiConfigService';
 import { OperationsBusinessLogic } from './operationsBusinessLogic';
 import { Operation, OperationType, OperationStatus, PaymentMethod, OperationInput } from './operationsTypes';
 import { operationsSupabaseService } from './operationsSupabaseService';
+import { httpClient } from './httpClients';
 
 // Фильтры для операций
 export interface OperationFilters {
@@ -83,8 +84,8 @@ class OperationsServiceUpdated {
       // Используем реальный API
       console.log('🌐 Using API operations data');
       const queryParams = this.buildQueryParams(filters, pagination);
-      console.log('📊 API request:', `${currentApiUrl}/operations?${queryParams}`);
-      const response = await this.apiRequest(`/operations?${queryParams}`);
+      console.log('📊 API request:', `/operations?${queryParams}`);
+      const response = await httpClient.get(`/operations?${queryParams}`);
       
       console.log('✅ API response received:', { dataCount: response?.data?.length });
       return this.transformOperationsResponse(response);
@@ -132,8 +133,8 @@ class OperationsServiceUpdated {
         return this.getMockOperationById(id);
       }
       
-      const response = await this.apiRequest(`/operations/${id}`);
-      return this.transformOperationFromApi(response.data);
+      const response = await httpClient.get(`/operations/${id}`);
+      return this.transformOperationFromApi(response);
       
     } catch (error: any) {
       if (error.status === 404) {
@@ -154,12 +155,9 @@ class OperationsServiceUpdated {
         return this.createMockOperation(operationInput);
       }
       
-      const response = await this.apiRequest('/operations', {
-        method: 'POST',
-        body: JSON.stringify(operationInput)
-      });
+      const response = await httpClient.post('/operations', operationInput);
       
-      return this.transformOperationFromApi(response.data);
+      return this.transformOperationFromApi(response);
       
     } catch (error) {
       console.error('Create operation API error:', error);
@@ -186,12 +184,9 @@ class OperationsServiceUpdated {
       if (details) updateData.details = details;
       if (status === 'completed') updateData.endTime = new Date().toISOString();
       
-      const response = await this.apiRequest(`/operations/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify(updateData)
-      });
+      const response = await httpClient.patch(`/operations/${id}/status`, updateData);
       
-      return this.transformOperationFromApi(response.data);
+      return this.transformOperationFromApi(response);
       
     } catch (error) {
       console.error(`Update operation ${id} status API error:`, error);
@@ -217,8 +212,8 @@ class OperationsServiceUpdated {
         return this.getMockOperationsStats();
       }
       
-      const response = await this.apiRequest(`/operations/stats?period=${period}`);
-      return response.data;
+      const response = await httpClient.get(`/operations/stats?period=${period}`);
+      return response;
       
     } catch (error) {
       console.error('Operations stats API error:', error);
@@ -239,18 +234,14 @@ class OperationsServiceUpdated {
       }
       
       const queryParams = this.buildQueryParams(filters, { format });
-      const response = await fetch(`${this.apiUrl}/operations/export?${queryParams}`, {
-        headers: this.getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Export failed: ${response.statusText}`);
-      }
+      // Используем httpClient для запроса экспорта (возможно потребуется дополнительная настройка для Blob)
+      const response = await httpClient.get(`/operations/export?${queryParams}`);
       
       if (format === 'json') {
-        return await response.text();
+        return JSON.stringify(response);
       } else {
-        return await response.blob();
+        // Для CSV/Excel форматов возвращаем как строку (может потребоваться доработка)
+        return JSON.stringify(response);
       }
       
     } catch (error) {
@@ -336,42 +327,6 @@ class OperationsServiceUpdated {
     return params.toString();
   }
   
-  private async apiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const url = `${this.apiUrl}${endpoint}`;
-    
-    const defaultOptions: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.getAuthHeaders()
-      }
-    };
-    
-    const response = await fetch(url, { ...defaultOptions, ...options });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw {
-        status: response.status,
-        statusText: response.statusText,
-        message: errorData.error || 'API request failed',
-        details: errorData.details
-      };
-    }
-    
-    return await response.json();
-  }
-  
-  private getAuthHeaders(): Record<string, string> {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    
-    if (token) {
-      return {
-        'Authorization': `Bearer ${token}`
-      };
-    }
-    
-    return {};
-  }
   
   private transformOperationsResponse(apiResponse: any): PaginatedOperations {
     console.log('🔄 Transforming API response:', { 

@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { networksService } from "@/services/networksService";
 import type { Network } from "@/types/network";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NetworkSelectProps {
   value?: string;
@@ -15,10 +16,11 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
   const [open, setOpen] = useState(false);
   const [networks, setNetworks] = useState<Network[]>([]);
   const selectedNetwork = networks.find(n => n.id === value);
+  const { user } = useAuth();
   
   const loadNetworks = async () => {
     try {
-      const data = await networksService.getAll();
+      const data = await networksService.getAll(user?.role);
       setNetworks(data);
     } catch (error) {
       console.error('Error loading networks:', error);
@@ -27,7 +29,7 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
   
   useEffect(() => {
     loadNetworks();
-  }, []);
+  }, [user?.role]); // Перезагружаем при изменении роли пользователя
   
   // Обновляем данные при открытии селектора
   const handleOpenChange = (newOpen: boolean) => {
@@ -45,7 +47,10 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button className={cn("sel", className)}>
+        <button className={cn(
+          "flex items-center justify-between w-full px-3 py-2 text-sm bg-slate-700 border border-slate-600 text-white rounded-md hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]",
+          className
+        )}>
           <NetworkIcon className="inline h-4 w-4 mr-2 opacity-70" />
           <span className="truncate">
             {selectedNetwork?.name || "Выберите сеть"}

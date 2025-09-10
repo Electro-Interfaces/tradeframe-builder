@@ -36,8 +36,8 @@ class HttpApiClient {
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     
-    // Получение токена авторизации (если есть)
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    // Получение и проверка токена авторизации
+    let token = await this.getValidToken();
     
     const headers = {
       'Content-Type': 'application/json',
@@ -52,11 +52,30 @@ class HttpApiClient {
       headers['Idempotency-Key'] = this.generateIdempotencyKey();
     }
 
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       ...options,
       headers,
       credentials: 'include', // Для работы с cookies
     });
+
+    // Если получили 401, пробуем обновить токен и повторить запрос
+    if (response.status === 401) {
+      console.log('🔄 Token expired, attempting refresh...');
+      token = await this.refreshToken();
+      
+      if (token) {
+        const newHeaders = {
+          ...headers,
+          'Authorization': `Bearer ${token}`,
+        };
+        
+        response = await fetch(url, {
+          ...options,
+          headers: newHeaders,
+          credentials: 'include',
+        });
+      }
+    }
 
     // Обработка ошибок в формате RFC 7807 (Problem Details)
     if (!response.ok) {
@@ -83,6 +102,96 @@ class HttpApiClient {
     }
 
     return response.json();
+  }
+
+  /**
+   * Получение валидного токена с проверкой срока действия
+   */
+  private async getValidToken(): Promise<string | null> {
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const tokenExpiry = localStorage.getItem('auth_token_expiry') || sessionStorage.getItem('auth_token_expiry');
+    
+    if (!token) {
+      return null;
+    }
+    
+    // Проверяем срок действия токена
+    if (tokenExpiry && new Date(tokenExpiry) <= new Date()) {
+      console.log('🕐 Token expired, attempting refresh...');
+      return await this.refreshToken();
+    }
+    
+    return token;
+  }
+
+  /**
+   * Обновление токена через логин/пароль
+   */
+  private async refreshToken(): Promise<string | null> {
+    try {
+      const savedLogin = localStorage.getItem('auth_login') || sessionStorage.getItem('auth_login');
+      const savedPassword = localStorage.getItem('auth_password') || sessionStorage.getItem('auth_password');
+      
+      if (!savedLogin || !savedPassword) {
+        console.error('❌ No saved credentials for token refresh');
+        this.clearAuth();
+        // Перенаправляем на страницу входа
+        window.location.href = '/login';
+        return null;
+      }
+
+      console.log('🔐 Refreshing token with saved credentials...');
+      
+      // Импортируем сервис аутентификации динамически чтобы избежать циклических зависимостей
+      const { SupabaseAuthService } = await import('./supabaseAuthService');
+      
+      const user = await SupabaseAuthService.login(savedLogin, savedPassword);
+      
+      // Генерируем новый токен (в реальной системе это должен быть JWT)
+      const newToken = this.generateAuthToken(user);
+      const expiryTime = new Date(Date.now() + 60 * 60 * 1000); // 1 час
+      
+      // Сохраняем новый токен
+      const storage = localStorage.getItem('auth_login') ? localStorage : sessionStorage;
+      storage.setItem('auth_token', newToken);
+      storage.setItem('auth_token_expiry', expiryTime.toISOString());
+      storage.setItem('auth_user', JSON.stringify(user));
+      
+      console.log('✅ Token refreshed successfully');
+      return newToken;
+      
+    } catch (error) {
+      console.error('❌ Token refresh failed:', error);
+      this.clearAuth();
+      // Перенаправляем на страницу входа
+      window.location.href = '/login';
+      return null;
+    }
+  }
+
+  /**
+   * Генерация токена для пользователя (временная реализация)
+   */
+  private generateAuthToken(user: any): string {
+    const payload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      exp: Math.floor(Date.now() / 1000) + 3600 // 1 час
+    };
+    
+    // В реальной системе здесь должно быть JWT подписывание
+    return `token_${btoa(JSON.stringify(payload))}_${Date.now()}`;
+  }
+
+  /**
+   * Очистка данных аутентификации
+   */
+  private clearAuth(): void {
+    ['auth_token', 'auth_token_expiry', 'auth_user', 'auth_login', 'auth_password'].forEach(key => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
   }
 
   private generateTraceId(): string {
@@ -164,7 +273,7 @@ export class HttpApiError extends Error {
   }
 }
 
-const httpClient = new HttpApiClient();
+export const httpClient = new HttpApiClient();
 
 // ===== HTTP EQUIPMENT API =====
 export const httpEquipmentAPI = {

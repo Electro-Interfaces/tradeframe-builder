@@ -151,7 +151,7 @@ const initialUsers: User[] = [
   },
   {
     id: 2,
-    email: "manager@nordline.ru",
+    email: "manager@bto.ru",
     firstName: "Елена",
     lastName: "Петрова",
     phone: "+7 (812) 987-65-43",

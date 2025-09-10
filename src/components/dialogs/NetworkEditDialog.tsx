@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ interface NetworkEditDialogProps {
 }
 
 export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: NetworkEditDialogProps) {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<NetworkInput>({
     name: "",
@@ -83,7 +85,7 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700">
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-2xl'} bg-slate-800 border-slate-700 overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="text-white">Редактировать сеть</DialogTitle>
         </DialogHeader>
@@ -113,7 +115,7 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
               className="bg-slate-700 border-slate-600 text-white placeholder-slate-400 font-mono"
             />
             <p className="text-xs text-slate-400">
-              Используется для синхронизации с торговой системой. Демо сеть АЗС = 1, Норд Лайн = 15
+              Используется для синхронизации с торговой системой. Демо сеть АЗС = 1, БТО = 15
             </p>
           </div>
 

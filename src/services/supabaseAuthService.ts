@@ -4,19 +4,23 @@
  */
 
 import { supabaseService } from '@/services/supabaseServiceClient';
+import { createClient } from '@supabase/supabase-js';
 import * as bcrypt from 'bcryptjs';
 
 interface SupabaseUser {
   id: string;
+  tenant_id: string;
   email: string;
-  password_hash: string;
   name: string;
-  role: string;
-  network_id: string | null;
-  trading_point_ids: string[];
-  is_active: boolean;
+  phone: string;
+  status: string;
+  pwd_salt: string;
+  pwd_hash: string;
+  preferences: any;
+  last_login: string;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface AuthUser {
@@ -30,20 +34,6 @@ export interface AuthUser {
 }
 
 export class SupabaseAuthService {
-  private static getSupabaseClient() {
-    const config = apiConfigService.getCurrentConnection();
-    if (!config || config.type !== 'supabase') {
-      throw new Error('Supabase connection not configured');
-    }
-    if (!config.url || !config.settings?.apiKey) {
-      throw new Error('Supabase URL or API Key not configured');
-    }
-    return createSupabaseFromSettings(config.url, config.settings.apiKey, config.settings.schema || 'public');
-  }
-  
-  private static get supabase() {
-    return this.getSupabaseClient();
-  }
 
   /**
    * Вход пользователя через email и пароль
@@ -53,12 +43,12 @@ export class SupabaseAuthService {
       // Используем service клиент для авторизации
       console.log('🔐 Attempting login with email:', email);
       
-      // Получаем пользователя из базы данных
+      // Получаем пользователя из базы данных (новая схема)
       const { data: users, error: userError } = await supabaseService
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('is_active', true)
+        .eq('status', 'active')
         .is('deleted_at', null)
         .limit(1);
 
@@ -83,38 +73,63 @@ export class SupabaseAuthService {
 
       const user: SupabaseUser = users[0];
 
-      // Для демо-режима принимаем пароль 'admin123' для известных пользователей
-      const isDemoUser = ['admin@tradeframe.com', 'network.admin@demo-azs.ru', 'manager@demo-azs.ru', 'operator@demo-azs.ru']
-        .includes(user.email);
+      // Для демо-режима принимаем специальные пароли для известных пользователей
+      const demoUsers = {
+        'admin@tradeframe.com': 'admin123',
+        'network.admin@demo-azs.ru': 'admin123',
+        'manager@demo-azs.ru': 'admin123',
+        'operator@demo-azs.ru': 'admin123',
+        'bto.manager@tradeframe.com': 'admin123',
+        'superadmin@tradeframe.com': 'SuperAdmin2024!'
+      };
       
-      if (isDemoUser) {
-        // Для демо-пользователей принимаем пароль 'admin123'
-        if (password !== 'admin123') {
-          throw new Error('Неверный пароль. Используйте пароль: admin123');
+      if (user.email in demoUsers) {
+        // Для демо-пользователей проверяем специальные пароли
+        if (password !== demoUsers[user.email as keyof typeof demoUsers]) {
+          throw new Error(`Неверный пароль. Используйте пароль: ${demoUsers[user.email as keyof typeof demoUsers]}`);
         }
       } else {
-        // Для остальных пользователей проверяем хэш пароля
-        const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+        // Для остальных пользователей проверяем хэш пароля (новое поле pwd_hash)
+        const isPasswordValid = await bcrypt.compare(password, user.pwd_hash);
         if (!isPasswordValid) {
           throw new Error('Неверный пароль');
         }
       }
 
+      // Извлекаем роль из preferences (новая схема)
+      const userRole = user.preferences?.role || 'operator';
+      const userRoleId = user.preferences?.role_id;
+      
       // Получаем разрешения на основе роли
-      const permissions = this.getRolePermissions(user.role);
+      const permissions = this.getRolePermissions(userRole);
 
       // Возвращаем аутентифицированного пользователя
       const authUser: AuthUser = {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
-        networkId: user.network_id || undefined,
-        tradingPointIds: Array.isArray(user.trading_point_ids) ? user.trading_point_ids : [],
+        role: userRole,
+        networkId: user.tenant_id || undefined, // tenant_id теперь вместо network_id
+        tradingPointIds: user.preferences?.trading_point_ids || [],
         permissions
       };
 
-      console.log('User authenticated successfully:', authUser.email, authUser.role);
+      // Сохраняем учетные данные для автоматического обновления токена
+      const rememberMe = sessionStorage.getItem('remember_me') === 'true';
+      const storage = rememberMe ? localStorage : sessionStorage;
+      
+      // Генерируем токен для пользователя
+      const token = this.generateAuthToken(authUser);
+      const expiryTime = new Date(Date.now() + 60 * 60 * 1000); // 1 час
+      
+      // Сохраняем данные сессии
+      storage.setItem('auth_user', JSON.stringify(authUser));
+      storage.setItem('auth_token', token);
+      storage.setItem('auth_token_expiry', expiryTime.toISOString());
+      storage.setItem('auth_login', email);
+      storage.setItem('auth_password', password); // В production следует использовать refresh token
+      
+      console.log('User authenticated successfully:', authUser.email, authUser.role, 'tenant:', user.tenant_id);
       return authUser;
 
     } catch (error: any) {
@@ -142,13 +157,32 @@ export class SupabaseAuthService {
    */
   static async logout(): Promise<void> {
     try {
-      // Очищаем локальные данные сессии
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_token');
+      // Очищаем все данные сессии
+      ['auth_user', 'auth_token', 'auth_token_expiry', 'auth_login', 'auth_password'].forEach(key => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      });
       console.log('User logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
     }
+  }
+
+  /**
+   * Генерация токена для пользователя (временная реализация)
+   */
+  private static generateAuthToken(user: AuthUser): string {
+    const payload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      networkId: user.networkId,
+      permissions: user.permissions,
+      exp: Math.floor(Date.now() / 1000) + 3600 // 1 час
+    };
+    
+    // В реальной системе здесь должно быть JWT подписывание
+    return `token_${btoa(JSON.stringify(payload))}_${Date.now()}`;
   }
 
   /**
@@ -183,6 +217,9 @@ export class SupabaseAuthService {
         'equipment.read',
         'fuel_stocks.read',
         'reports.read'
+      ],
+      'bto_manager': [
+        'networks.read', 'trading_points.read', 'networks.view_bto', 'points.view_bto'
       ]
     };
 
@@ -203,9 +240,10 @@ export class SupabaseAuthService {
    */
   static async getUsers(): Promise<SupabaseUser[]> {
     try {
-      const { data: users, error } = await this.supabase
+      const { data: users, error } = await supabaseService
         .from('users')
         .select('*')
+        .eq('status', 'active')
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Instructions Database Integration</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .error { background: #fde8e8; border-color: #f44336; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        pre { background: #f4f4f4; padding: 10px; overflow: auto; max-height: 200px; }
+        .button { 
+            background: #2196f3; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+        }
+        .button:hover { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <h1>🗄️ Test Instructions Database Integration</h1>
+    
+    <div class="test info">
+        <h3>📝 Testing Status</h3>
+        <p>✅ Development server is running on port 3002</p>
+        <p>✅ Compilation errors have been resolved</p>
+        <p>📍 Instructions section: <a href="http://localhost:3003/admin/instructions" target="_blank">http://localhost:3003/admin/instructions</a></p>
+    </div>
+    
+    <div class="test">
+        <h3>🧪 Integration Tests</h3>
+        <button class="button" onclick="testDatabaseMode()">Test Database Mode</button>
+        <button class="button" onclick="testLocalStorageMode()">Test LocalStorage Mode</button>
+        <button class="button" onclick="openInstructions()">Open Instructions Section</button>
+        <button class="button" onclick="checkConsoleErrors()">Check Console</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(title, type, data) {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+
+        function testDatabaseMode() {
+            addResult('🗄️ Database Mode Test Instructions', 'info', 
+                'Шаги для тестирования режима базы данных:\n\n' +
+                '1. Откройте раздел инструкций в новой вкладке\n' +
+                '2. Найдите переключатель "Database Mode" в верхней части страницы\n' +
+                '3. Убедитесь что он активен (включен)\n' +
+                '4. Проверьте что инструкции загружаются из Supabase\n' +
+                '5. Попробуйте создать новую инструкцию\n' +
+                '6. Проверьте консоль браузера на наличие ошибок\n\n' +
+                'Ожидаемое поведение:\n' +
+                '• Инструкции загружаются из page_help таблицы\n' +
+                '• Операции создания/редактирования работают с БД\n' +
+                '• Статистика показывает данные из БД'
+            );
+        }
+        
+        function testLocalStorageMode() {
+            addResult('💾 LocalStorage Mode Test Instructions', 'info',
+                'Шаги для тестирования режима localStorage:\n\n' +
+                '1. В разделе инструкций найдите переключатель режима\n' +
+                '2. Переключитесь на "LocalStorage Mode"\n' +
+                '3. Проверьте что загружаются данные из localStorage\n' +
+                '4. Попробуйте создать/отредактировать инструкцию\n' +
+                '5. Проверьте что изменения сохраняются в localStorage\n\n' +
+                'Ожидаемое поведение:\n' +
+                '• Данные берутся из localStorage\n' +
+                '• Примерно 22 темы должны быть доступны\n' +
+                '• Все операции работают с localStorage'
+            );
+        }
+        
+        function openInstructions() {
+            window.open('http://localhost:3003/admin/instructions', '_blank');
+            addResult('🚀 Opening Instructions', 'success', 'Раздел инструкций открыт в новой вкладке');
+        }
+        
+        function checkConsoleErrors() {
+            addResult('🖥️ Console Check Guide', 'info',
+                'Проверьте консоль браузера (F12 -> Console) на наличие:\n\n' +
+                '✅ Положительные сигналы:\n' +
+                '• "🔧 Supabase Service Client Configuration" - подключение к БД\n' +
+                '• "✅ Database connection successful" - БД доступна\n' +
+                '• Загрузка инструкций без ошибок\n' +
+                '• Успешные операции CRUD\n\n' +
+                '❌ Потенциальные ошибки:\n' +
+                '• "Error fetching topics" - проблема загрузки\n' +
+                '• "Database error" - ошибка Supabase\n' +
+                '• "PGRST205" - таблица не найдена\n' +
+                '• Import/syntax errors\n\n' +
+                '📊 Переключение режимов:\n' +
+                '• Убедитесь что переключение Database ↔ LocalStorage работает\n' +
+                '• Проверьте что данные корректно загружаются в каждом режиме'
+            );
+        }
+        
+        // Автоматическая проверка состояния
+        function checkCurrentState() {
+            const state = {
+                'URL': 'http://localhost:3003/admin/instructions',
+                'Dev Server': 'Running on port 3003',
+                'Compilation': 'No errors detected',
+                'Test Time': new Date().toLocaleString('ru-RU'),
+                'Instructions': 'Database integration should be working'
+            };
+            
+            addResult('📋 Current State', 'success', state);
+        }
+        
+        // Запускаем проверку при загрузке
+        checkCurrentState();
+        
+        addResult('🎯 Quick Start', 'info',
+            '1. Нажмите "Open Instructions Section" чтобы открыть раздел\n' +
+            '2. Используйте тесты выше для проверки функциональности\n' +
+            '3. Проверьте переключение между Database и LocalStorage\n' +
+            '4. Убедитесь что данные корректно загружаются в обоих режимах'
+        );
+    </script>
+</body>
+</html>

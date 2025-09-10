@@ -171,7 +171,7 @@ const initialNomenclature: FuelNomenclature[] = [
   {
     id: '7',
     networkId: '2',
-    networkName: 'Норд Лайн',
+    networkName: 'БТО',
     name: 'АИ-92',
     internalCode: 'AI92',
     externalCodes: [
@@ -180,7 +180,7 @@ const initialNomenclature: FuelNomenclature[] = [
         nomenclatureId: '7',
         systemType: '1C',
         externalCode: 'БНЗ-92-НЛ',
-        description: 'Код в 1С Норд Лайн',
+        description: 'Код в 1С БТО',
         createdAt: new Date('2024-03-01'),
         updatedAt: new Date('2024-03-01')
       }
@@ -195,7 +195,7 @@ const initialNomenclature: FuelNomenclature[] = [
   {
     id: '8',
     networkId: '2',
-    networkName: 'Норд Лайн',
+    networkName: 'БТО',
     name: 'АИ-95',
     internalCode: 'AI95',
     externalCodes: [
@@ -219,7 +219,7 @@ const initialNomenclature: FuelNomenclature[] = [
   {
     id: '9',
     networkId: '2',
-    networkName: 'Норд Лайн',
+    networkName: 'БТО',
     name: 'ДТ',
     internalCode: 'DT',
     externalCodes: [
@@ -228,7 +228,7 @@ const initialNomenclature: FuelNomenclature[] = [
         nomenclatureId: '9',
         systemType: '1C',
         externalCode: 'ДТ-НЛ',
-        description: 'Дизельное топливо Норд Лайн',
+        description: 'Дизельное топливо БТО',
         createdAt: new Date('2024-03-01'),
         updatedAt: new Date('2024-03-01')
       }
@@ -295,7 +295,7 @@ export const nomenclatureService = {
     const newItem: FuelNomenclature = {
       id: `nom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       ...data,
-      networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'Норд Лайн',
+      networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'БТО',
       // Обрабатываем настройки API торговой сети
       networkApiSettings: data.networkApiEnabled ? {
         enabled: true,
@@ -335,7 +335,7 @@ export const nomenclatureService = {
       ...existing,
       ...data,
       id: existing.id,
-      networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'Норд Лайн',
+      networkName: data.networkId === '1' ? 'Демо сеть АЗС' : 'БТО',
       // Обновляем настройки API торговой сети
       networkApiSettings: data.networkApiEnabled ? {
         enabled: true,

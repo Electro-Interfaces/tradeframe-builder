@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Equipment Page Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }
+        .error { background: #5a2d2d; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .info { background: #2d2d5a; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        button { background: #4a9a4a; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        pre { background: #2a2a2a; padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Диагностика ошибки страницы оборудования</h1>
+    
+    <div class="info">
+        <h3>Проверка консоли браузера</h3>
+        <p>Откройте DevTools (F12) и перейдите на вкладку Console для просмотра ошибок JavaScript</p>
+    </div>
+    
+    <button onclick="testEquipmentPage()">🔍 Попробовать загрузить страницу</button>
+    <button onclick="checkConsole()">📋 Показать ошибки из консоли</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        let errorMessages = [];
+        
+        // Перехватываем ошибки
+        window.onerror = function(msg, url, line, col, error) {
+            errorMessages.push({
+                message: msg,
+                source: url,
+                line: line,
+                column: col,
+                error: error
+            });
+            console.error('JavaScript Error:', msg, 'at', url + ':' + line + ':' + col);
+        };
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            errorMessages.push({
+                message: 'Unhandled Promise Rejection: ' + event.reason,
+                source: 'Promise',
+                line: 'N/A',
+                column: 'N/A',
+                error: event.reason
+            });
+            console.error('Unhandled promise rejection:', event.reason);
+        });
+        
+        function testEquipmentPage() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="info">Переходим на страницу оборудования...</div>';
+            
+            // Открываем страницу в новой вкладке
+            const equipmentWindow = window.open('http://localhost:3001/point/equipment', '_blank');
+            
+            // Проверяем через некоторое время
+            setTimeout(() => {
+                if (equipmentWindow && !equipmentWindow.closed) {
+                    resultsDiv.innerHTML += '<div class="info">✅ Страница открылась. Проверьте консоль в новой вкладке на предмет ошибок.</div>';
+                } else {
+                    resultsDiv.innerHTML += '<div class="error">❌ Страница не смогла открыться или была закрыта.</div>';
+                }
+            }, 2000);
+        }
+        
+        function checkConsole() {
+            const resultsDiv = document.getElementById('results');
+            
+            if (errorMessages.length === 0) {
+                resultsDiv.innerHTML = '<div class="info">✅ Ошибок JavaScript не обнаружено на данной странице.</div>';
+                resultsDiv.innerHTML += '<div class="info">💡 Попробуйте открыть страницу оборудования и проверить консоль браузера там.</div>';
+            } else {
+                let errorHtml = '<div class="error"><h3>❌ Обнаруженные ошибки:</h3>';
+                errorMessages.forEach((err, index) => {
+                    errorHtml += `<div><strong>Ошибка ${index + 1}:</strong></div>`;
+                    errorHtml += `<div>Сообщение: ${err.message}</div>`;
+                    errorHtml += `<div>Источник: ${err.source}:${err.line}:${err.column}</div>`;
+                    errorHtml += '<br>';
+                });
+                errorHtml += '</div>';
+                resultsDiv.innerHTML = errorHtml;
+            }
+        }
+        
+        // Инструкции
+        window.onload = function() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="info">
+                    <h3>🔍 Инструкции по диагностике:</h3>
+                    <ol>
+                        <li>Нажмите "Попробовать загрузить страницу" для открытия страницы оборудования</li>
+                        <li>Откройте DevTools (F12) в новой вкладке</li>
+                        <li>Перейдите на вкладку Console</li>
+                        <li>Обратите внимание на красные ошибки</li>
+                        <li>Если страница "белая" или пустая, ищите ошибки React/JavaScript</li>
+                    </ol>
+                </div>
+            `;
+        };
+    </script>
+</body>
+</html>

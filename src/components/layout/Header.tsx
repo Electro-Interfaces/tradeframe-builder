@@ -12,6 +12,7 @@ import { Settings, LogOut, User, Menu, Bell, MessageCircle } from "lucide-react"
 import { NetworkSelect } from "@/components/selects/NetworkSelect";
 import { PointSelect } from "@/components/selects/PointSelect";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMobile, mobileUtils } from "@/hooks/useMobile";
 
 interface HeaderProps {
   selectedNetwork: string;
@@ -32,30 +33,52 @@ export function Header({
 }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const mobileInfo = useMobile();
   
   const handleLogout = async () => {
     try {
+      // Виброотклик на мобильных устройствах
+      if (mobileInfo.isTouchDevice) {
+        mobileUtils.vibrate(50);
+      }
       await logout();
       navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
+
+  const handleMobileMenuClick = () => {
+    if (mobileInfo.isTouchDevice) {
+      mobileUtils.vibrate(30); // Легкая вибрация для обратной связи
+    }
+    onMobileMenuToggle?.();
+  };
   
   // Получаем инициалы и имя пользователя
   const getUserInitials = () => {
-    if (!user?.name) return 'У';
-    const names = user.name.split(' ');
-    if (names.length >= 2) {
-      return names[0][0] + names[1][0];
+    if (user?.firstName && user?.lastName) {
+      return user.firstName[0] + user.lastName[0];
     }
-    return user.name[0];
+    if (user?.name) {
+      const names = user.name.split(' ');
+      if (names.length >= 2) {
+        return names[0][0] + names[1][0];
+      }
+      return user.name[0];
+    }
+    return 'У';
   };
   
   const getUserDisplayName = () => {
-    if (!user?.name) return 'Пользователь';
-    const names = user.name.split(' ');
-    return names[0] || user.name; // Первое имя
+    return user?.email || 'Пользователь';
+  };
+  
+  const getUserRole = () => {
+    if (user?.roles && user.roles.length > 0) {
+      return user.roles[0].roleName;
+    }
+    return 'Пользователь';
   };
 
   return (
@@ -66,8 +89,8 @@ export function Header({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onMobileMenuToggle}
-            className="shrink-0 h-8 w-8"
+            onClick={handleMobileMenuClick}
+            className={`shrink-0 h-8 w-8 ${mobileInfo.isTouchDevice ? 'mobile-touch-target mobile-button mobile-no-highlight' : ''}`}
           >
             <Menu className="h-4 w-4" />
           </Button>
@@ -91,14 +114,14 @@ export function Header({
         </div>
 
         {/* Desktop Center: Context Selectors */}
-        <div className="hidden md:flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <NetworkSelect value={selectedNetwork} onValueChange={onNetworkChange} />
           <PointSelect 
             value={selectedTradingPoint} 
             onValueChange={onTradingPointChange}
             disabled={!selectedNetwork}
             networkId={selectedNetwork}
-            className="hidden md:inline-flex"
+            className="inline-flex"
           />
         </div>
 
@@ -138,7 +161,7 @@ export function Header({
                 </Avatar>
                 <div className="hidden lg:flex flex-col items-start">
                   <span className="font-medium text-sm text-foreground leading-none">{getUserDisplayName()}</span>
-                  <span className="text-xs text-muted-foreground mt-1">Администратор</span>
+                  <span className="text-xs text-muted-foreground mt-1">{getUserRole()}</span>
                 </div>
               </Button>
             </DropdownMenuTrigger>

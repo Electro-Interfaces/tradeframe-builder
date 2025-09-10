@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +46,7 @@ interface NomenclatureFormProps {
 
 const networkOptions = [
   { value: '1', label: 'Демо сеть АЗС' },
-  { value: '2', label: 'Норд Лайн' }
+  { value: '2', label: 'БТО' }
 ];
 
 const systemTypeLabels = {
@@ -61,6 +62,7 @@ export const NomenclatureForm: React.FC<NomenclatureFormProps> = ({
   item,
   onSave
 }) => {
+  const isMobile = useIsMobile();
   const { selectedNetwork } = useSelection();
   const [saving, setSaving] = useState(false);
   const isEdit = !!item;
@@ -168,7 +170,7 @@ export const NomenclatureForm: React.FC<NomenclatureFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle>
             {isEdit ? 'Редактирование номенклатуры' : 'Добавление номенклатуры'}

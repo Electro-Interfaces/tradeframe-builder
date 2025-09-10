@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug External Database Connection</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            color: white;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .success { background: #4CAF50; }
+        .error { background: #f44336; }
+        .warning { background: #ff9800; }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a8b;
+        }
+        textarea, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        .log {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Отладка подключения к внешней базе данных</h1>
+
+        <div class="section">
+            <h3>1. Проверка настроек в localStorage</h3>
+            <button onclick="checkLocalStorage()">Проверить настройки</button>
+            <div id="localStorage-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>2. Тестирование подключения к Supabase</h3>
+            <div>
+                <input type="text" id="supabase-url" placeholder="https://your-project.supabase.co" style="width: 48%; margin-right: 2%;">
+                <input type="text" id="supabase-key" placeholder="API Key" style="width: 48%;">
+            </div>
+            <button onclick="testConnection()">Тестировать подключение</button>
+            <div id="connection-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>3. Запрос к таблице users</h3>
+            <button onclick="testUsersQuery()">Запросить пользователей</button>
+            <div id="users-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>4. Детальный лог</h3>
+            <button onclick="clearLog()">Очистить лог</button>
+            <div id="log" class="log">Готов к отладке...\n</div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.textContent += `[${timestamp}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = 'Лог очищен...\n';
+        }
+
+        function checkLocalStorage() {
+            log('Проверяем localStorage...');
+            const resultEl = document.getElementById('localStorage-result');
+            
+            try {
+                const savedSettings = localStorage.getItem('externalDatabase');
+                if (!savedSettings) {
+                    resultEl.innerHTML = '<span class="status error">Настройки не найдены</span>';
+                    log('ERROR: Настройки externalDatabase не найдены в localStorage');
+                    return;
+                }
+
+                const parsed = JSON.parse(savedSettings);
+                log(`Найдены настройки: ${JSON.stringify(parsed, null, 2)}`);
+                
+                if (!parsed.url || !parsed.apiKey) {
+                    resultEl.innerHTML = '<span class="status warning">Неполные настройки</span>';
+                    log('WARNING: URL или apiKey отсутствуют');
+                } else {
+                    resultEl.innerHTML = '<span class="status success">Настройки найдены</span>';
+                    document.getElementById('supabase-url').value = parsed.url;
+                    document.getElementById('supabase-key').value = parsed.apiKey;
+                    log('SUCCESS: Настройки корректны и загружены в форму');
+                }
+            } catch (error) {
+                resultEl.innerHTML = '<span class="status error">Ошибка парсинга</span>';
+                log(`ERROR: Ошибка парсинга настроек: ${error.message}`);
+            }
+        }
+
+        async function testConnection() {
+            const resultEl = document.getElementById('connection-result');
+            const url = document.getElementById('supabase-url').value;
+            const apiKey = document.getElementById('supabase-key').value;
+
+            if (!url || !apiKey) {
+                resultEl.innerHTML = '<span class="status error">Заполните URL и API ключ</span>';
+                log('ERROR: URL или API ключ не заполнены');
+                return;
+            }
+
+            log(`Тестируем подключение к: ${url}`);
+            resultEl.innerHTML = '<span class="status warning">Подключение...</span>';
+
+            try {
+                const response = await fetch(`${url}/rest/v1/users?limit=1`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`Получен ответ: ${response.status} ${response.statusText}`);
+                log(`Headers: ${JSON.stringify(Object.fromEntries(response.headers), null, 2)}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultEl.innerHTML = '<span class="status success">Подключение успешно</span>';
+                    log(`SUCCESS: Подключение успешно. Получены данные: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    const errorText = await response.text();
+                    resultEl.innerHTML = '<span class="status error">Ошибка подключения</span>';
+                    log(`ERROR: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                resultEl.innerHTML = '<span class="status error">Ошибка сети</span>';
+                log(`ERROR: Network error: ${error.message}`);
+            }
+        }
+
+        async function testUsersQuery() {
+            const resultEl = document.getElementById('users-result');
+            const url = document.getElementById('supabase-url').value;
+            const apiKey = document.getElementById('supabase-key').value;
+
+            if (!url || !apiKey) {
+                resultEl.innerHTML = '<span class="status error">Настройте подключение сначала</span>';
+                return;
+            }
+
+            log('Запрашиваем список пользователей...');
+            resultEl.innerHTML = '<span class="status warning">Загрузка...</span>';
+
+            try {
+                const response = await fetch(`${url}/rest/v1/users?deleted_at=is.null&order=created_at.desc`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': apiKey,
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    resultEl.innerHTML = `<span class="status success">Найдено пользователей: ${users.length}</span>`;
+                    log(`SUCCESS: Получено ${users.length} пользователей:`);
+                    users.forEach(user => {
+                        log(`- ${user.name} (${user.email}) - ${user.status}`);
+                    });
+                } else {
+                    const errorText = await response.text();
+                    resultEl.innerHTML = '<span class="status error">Ошибка запроса</span>';
+                    log(`ERROR: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                resultEl.innerHTML = '<span class="status error">Ошибка сети</span>';
+                log(`ERROR: Network error: ${error.message}`);
+            }
+        }
+
+        // Автоматически проверяем localStorage при загрузке
+        window.onload = function() {
+            log('Страница загружена, проверяем настройки...');
+            checkLocalStorage();
+        };
+    </script>
+</body>
+</html>

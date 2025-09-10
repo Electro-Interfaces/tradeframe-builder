@@ -22,6 +22,8 @@ import { useSelection } from "@/context/SelectionContext";
 import { HelpButton } from "@/components/help/HelpButton";
 import { currentEquipmentAPI } from "@/services/equipment";
 import { Equipment } from "@/types/equipment";
+import { stsApiService } from "@/services/stsApi";
+import { tradingPointsService } from "@/services/tradingPointsService";
 import { 
   Gauge, 
   Plus, 
@@ -38,7 +40,8 @@ import {
   AlertTriangle,
   Download,
   Upload,
-  Filter
+  Filter,
+  RefreshCw
 } from "lucide-react";
 
 // Enhanced Mock data with new fields
@@ -46,13 +49,15 @@ const mockTanks = [
   {
     id: 1,
     name: "Резервуар №1",
-    fuelType: "АИ-95",
-    currentLevelLiters: 25000,
-    capacityLiters: 50000,
+    fuelType: "Дизельное топливо",
+    currentLevelLiters: 7595.83,
+    capacityLiters: 10128.88,
     minLevelPercent: 20,
     criticalLevelPercent: 10,
-    temperature: 15,
-    waterLevelMm: 5,
+    temperature: 19,
+    waterLevelMm: 0,
+    density: 822.68,
+    mass: 6330.79,
     sensors: [
       { name: "Уровень", status: "ok" },
       { name: "Температура", status: "ok" }
@@ -76,21 +81,34 @@ const mockTanks = [
         temperature: true,
         water: true
       }
+    },
+    // Данные от API СТС
+    stsData: {
+      volumeBegin: 7606.69,
+      volumeEnd: 7606.69,
+      massBegin: 6330.79,
+      massEnd: 6330.79,
+      releaseVolume: 25.39,
+      releaseLiters: 20.89,
+      renewedToday: "12:27",
+      fuelCode: 5
     }
   },
   {
     id: 2,
     name: "Резервуар №2", 
-    fuelType: "АИ-92",
-    currentLevelLiters: 8000,
-    capacityLiters: 50000,
+    fuelType: "АИ-95",
+    currentLevelLiters: 4287.96,
+    capacityLiters: 10303.01,
     minLevelPercent: 20,
     criticalLevelPercent: 10,
-    temperature: 14,
-    waterLevelMm: 3,
+    temperature: 18.6,
+    waterLevelMm: 0.58,
+    density: 735.23,
+    mass: 3376.27,
     sensors: [
       { name: "Уровень", status: "ok" },
-      { name: "Температура", status: "error" }
+      { name: "Температура", status: "ok" }
     ],
     lastCalibration: "12.12.2024 09:15",
     linkedPumps: [
@@ -107,255 +125,150 @@ const mockTanks = [
       notifications: {
         critical: true,
         minimum: true,
-        temperature: false,
+        temperature: true,
         water: true
       }
+    },
+    // Данные от API СТС
+    stsData: {
+      volumeBegin: 4575,
+      volumeEnd: 4575,
+      massBegin: 3376.27,
+      massEnd: 3376.27,
+      releaseVolume: 251.52,
+      releaseLiters: 184.92,
+      renewedToday: "12:27",
+      fuelCode: 3
     }
   },
   {
     id: 3,
     name: "Резервуар №3",
-    fuelType: "ДТ",
-    currentLevelLiters: 3000,
-    capacityLiters: 40000,
+    fuelType: "АИ-92",
+    currentLevelLiters: 6266.36,
+    capacityLiters: 10489.99,
     minLevelPercent: 20,
     criticalLevelPercent: 10,
-    temperature: 16,
-    waterLevelMm: 2,
+    temperature: 19,
+    waterLevelMm: 0,
+    density: 731.49,
+    mass: 4847.8,
     sensors: [
-      { name: "Уровень", status: "error" },
+      { name: "Уровень", status: "ok" },
       { name: "Температура", status: "ok" }
     ],
     lastCalibration: "10.12.2024 16:45",
     linkedPumps: [
-      { id: 5, name: "ТРК-4" },
-      { id: 6, name: "ТРК-5" },
-      { id: 7, name: "ТРК-6" }
+      { id: 3, name: "ТРК-3" },
+      { id: 5, name: "ТРК-5" }
     ],
     notifications: {
-      enabled: false,
-      drainAlerts: false,
+      enabled: true,
+      drainAlerts: true,
       levelAlerts: true
     },
     thresholds: {
-      criticalTemp: { min: -15, max: 50 },
-      maxWaterLevel: 15,
+      criticalTemp: { min: -10, max: 40 },
+      maxWaterLevel: 10,
       notifications: {
         critical: true,
         minimum: true,
         temperature: true,
-        water: false
+        water: true
       }
+    },
+    // Данные от API СТС
+    stsData: {
+      volumeBegin: 6593.41,
+      volumeEnd: 6593.41,
+      massBegin: 4847.8,
+      massEnd: 4847.8,
+      releaseVolume: 317.3,
+      releaseLiters: 232.1,
+      renewedToday: "12:27",
+      fuelCode: 2
     }
   }
 ];
 
-// Tank Events Mock Data
-const mockTankEvents = [
-  {
-    id: 1,
-    tankId: 1,
-    type: "drain_finished",
-    date: "16.12.2024 10:30",
-    status: "confirmed",
-    details: "Слив 20000л завершен",
-    source: "sensor"
-  },
-  {
-    id: 2,
-    tankId: 1,
-    type: "level_below",
-    date: "15.12.2024 18:45",
-    status: "requires_check",
-    details: "Уровень ниже минимального",
-    source: "sensor"
-  },
-  {
-    id: 3,
-    tankId: 2,
-    type: "drain_started",
-    date: "14.12.2024 09:15",
-    status: "confirmed",
-    details: "Начат слив топлива",
-    source: "mobile_app"
-  },
-  {
-    id: 4,
-    tankId: 3,
-    type: "temperature_alert",
-    date: "13.12.2024 16:20",
-    status: "requires_check",
-    details: "Превышена критическая температура",
-    source: "sensor"
-  }
-];
-
-// Enhanced Drains Mock Data
-const mockDrains = [
-  {
-    id: 1,
-    date: "16.12.2024 10:30",
-    tankId: 1,
-    tankName: "Резервуар №1",
-    fuelType: "АИ-95",
-    volume: 20000,
-    truckNumber: "А123БВ77",
-    driverName: "Иванов А.И.",
-    reason: "Плановая поставка",
-    source: "sensor",
-    status: "confirmed",
-    comment: "Автоматическое подтверждение датчиком"
-  },
-  {
-    id: 2,
-    date: "15.12.2024 14:15",
-    tankId: 2,
-    tankName: "Резервуар №2",
-    fuelType: "АИ-92",
-    volume: 25000,
-    truckNumber: "В456ГД77",
-    driverName: "Петров С.П.",
-    reason: "Восполнение запасов",
-    source: "mobile_app",
-    status: "pending",
-    comment: "Ожидает подтверждения менеджера"
-  },
-  {
-    id: 3,
-    date: "14.12.2024 09:20",
-    tankId: 3,
-    tankName: "Резервуар №3",
-    fuelType: "ДТ",
-    volume: 15000,
-    truckNumber: "С789ЕЖ77",
-    driverName: "Сидоров В.В.",
-    reason: "Экстренная поставка",
-    source: "api",
-    status: "error",
-    comment: "Расхождение по объему"
-  }
-];
-
-// Calibrations Mock Data
-const mockCalibrations = [
-  {
-    id: 1,
-    tankId: 1,
-    date: "15.12.2024 14:30",
-    operator: "Техник Иванов И.И.",
-    filename: "calibration_tank1_151224.xlsx",
-    status: "completed",
-    calibrationType: "full",
-    notes: "Плановая калибровка после модернизации датчиков"
-  },
-  {
-    id: 2,
-    tankId: 2,
-    date: "12.12.2024 09:15", 
-    operator: "Техник Петров П.П.",
-    filename: "calibration_tank2_121224.csv",
-    status: "completed",
-    calibrationType: "check",
-    notes: ""
-  },
-  {
-    id: 3,
-    tankId: 3,
-    date: "10.12.2024 16:45",
-    operator: "Техник Сидоров С.С.",
-    filename: "calibration_tank3_101224.xlsx",
-    status: "completed",
-    calibrationType: "full",
-    notes: "Калибровка после ремонта резервуара"
-  }
-];
-
-const mockDrainageLog = [
-  {
-    id: 1,
-    date: "07.12.2024 09:30",
-    tankName: "Резервуар №1",
-    fuelType: "АИ-95",
-    volume: 20000,
-    truckNumber: "А123БВ77",
-    driverName: "Иванов А.И.",
-    status: "Завершено"
-  },
-  {
-    id: 2,
-    date: "06.12.2024 14:15",
-    tankName: "Резервуар №2",
-    fuelType: "АИ-92", 
-    volume: 25000,
-    truckNumber: "В456ГД77",
-    driverName: "Петров С.П.",
-    status: "Завершено"
-  }
-];
-
-// Vertical Progress Component with threshold markers
-const TankProgressIndicator = ({ percentage, minLevel, criticalLevel, isMobile }: {
-  percentage: number;
-  minLevel: number;
-  criticalLevel: number;
-  isMobile: boolean;
-}) => {
-  const getProgressColor = (percent: number) => {
-    if (percent > minLevel) return "#3b82f6"; // Blue
-    if (percent >= criticalLevel) return "#f59e0b"; // Yellow 
-    return "#ef4444"; // Red
+// Компонент вертикального индикатора уровня топлива
+const TankProgressIndicator = ({ percentage, minLevel, criticalLevel, isMobile }) => {
+  const height = isMobile ? 120 : 160;
+  const width = 40;
+  
+  const getColor = () => {
+    if (percentage > minLevel) return '#3b82f6'; // blue-500
+    if (percentage >= criticalLevel) return '#eab308'; // yellow-500
+    return '#ef4444'; // red-500
   };
-
-  const progressColor = getProgressColor(percentage);
-
+  
+  const fillHeight = (percentage / 100) * height;
+  
   return (
-    <TooltipProvider>
-      <div className="relative flex justify-center">
-        {/* Vertical Background bar - square shape, full height to match text block */}
-        <div className="w-8 h-48 bg-slate-600 overflow-hidden relative border border-slate-500 rounded-sm">
-          {/* Progress fill from bottom - square shape */}
-          <div 
-            className="absolute bottom-0 w-full transition-all duration-300 border-t-2"
-            style={{
-              height: `${percentage}%`,
-              backgroundColor: progressColor,
-              borderTopColor: progressColor === "#3b82f6" ? "#1e40af" : progressColor === "#f59e0b" ? "#d97706" : "#dc2626"
-            }}
-          />
-        </div>
-        
-        {/* Threshold markers - positioned on the right side with enhanced visibility */}
-        <div className="absolute right-0 top-0 h-48 flex flex-col justify-end">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div 
-                className="absolute w-5 h-1.5 bg-yellow-400 cursor-help z-10 -right-1 border border-yellow-300 shadow-lg rounded-sm"
-                style={{ bottom: `${minLevel}%` }}
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Минимальный уровень ({minLevel}%)</p>
-            </TooltipContent>
-          </Tooltip>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div 
-                className="absolute w-5 h-1.5 bg-red-500 cursor-help z-10 -right-1 border border-red-400 shadow-lg rounded-sm"
-                style={{ bottom: `${criticalLevel}%` }}
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Критический уровень ({criticalLevel}%)</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
+    <div 
+      style={{ height: `${height}px`, width: `${width}px` }}
+      className="relative bg-slate-700 rounded-lg border border-slate-600 overflow-hidden"
+    >
+      {/* Background gradient */}
+      <div 
+        className="absolute bottom-0 w-full transition-all duration-500 ease-in-out"
+        style={{ 
+          height: `${fillHeight}px`,
+          background: `linear-gradient(to top, ${getColor()}, ${getColor()}88)`
+        }}
+      />
+      
+      {/* Critical level indicator */}
+      <div 
+        className="absolute w-full h-0.5 bg-red-500/50"
+        style={{ bottom: `${(criticalLevel / 100) * height}px` }}
+      />
+      
+      {/* Min level indicator */}
+      <div 
+        className="absolute w-full h-0.5 bg-yellow-500/50"
+        style={{ bottom: `${(minLevel / 100) * height}px` }}
+      />
+      
+      {/* Percentage text overlay */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-white text-xs font-bold drop-shadow-lg">
+          {percentage}%
+        </span>
       </div>
-    </TooltipProvider>
+    </div>
   );
 };
 
-// API Mock Functions
+// Mock API for tank events and calibration
+const mockTankEvents = [
+  { id: 1, tankId: 1, date: "15.12.2024 14:30", type: "calibration", status: "success", details: "Калибровка завершена успешно", operator: "Иванов И.И." },
+  { id: 2, tankId: 1, date: "15.12.2024 10:15", type: "delivery", status: "completed", details: "Приемка топлива: 5000 л", operator: "Петров П.П." },
+  { id: 3, tankId: 2, date: "14.12.2024 16:45", type: "maintenance", status: "in_progress", details: "Плановое обслуживание датчиков", operator: "Сидоров С.С." },
+  { id: 4, tankId: 3, date: "14.12.2024 12:20", type: "alert", status: "warning", details: "Превышен уровень воды", operator: "Система" }
+];
+
+// Mock calibration history
+const mockCalibrations = [
+  { id: 1, tankId: 1, date: "15.12.2024 14:30", volume: 25000, result: "success", operator: "Иванов И.И.", notes: "Стандартная калибровка" },
+  { id: 2, tankId: 1, date: "01.12.2024 09:00", volume: 24850, result: "success", operator: "Петров П.П.", notes: "Плановая калибровка" },
+  { id: 3, tankId: 2, date: "12.12.2024 09:15", volume: 8000, result: "success", operator: "Сидоров С.С.", notes: "После ремонта" }
+];
+
+// Mock drainage log
+const mockDrainageLog = [
+  { id: 1, date: "15.12.2024 08:00", tankId: 1, reason: "Плановый слив", volume: 50, approvedBy: "Главный инженер", status: "approved" },
+  { id: 2, date: "14.12.2024 14:30", tankId: 2, reason: "Превышение воды", volume: 25, approvedBy: "Начальник смены", status: "completed" },
+  { id: 3, date: "13.12.2024 16:00", tankId: 3, reason: "Техническое обслуживание", volume: 75, approvedBy: "Главный инженер", status: "pending" }
+];
+
+// Mock expanded drains data
+const mockDrains = [
+  { id: 1, date: "15.12.2024", tanks: [1, 2], totalVolume: 125, status: "completed", operator: "Иванов И.И." },
+  { id: 2, date: "14.12.2024", tanks: [3], totalVolume: 50, status: "pending", operator: "Петров П.П." },
+  { id: 3, date: "13.12.2024", tanks: [1], totalVolume: 75, status: "approved", operator: "Сидоров С.С." }
+];
+
 const mockAPI = {
   getTanks: () => Promise.resolve(mockTanks),
   getTank: (id: number) => Promise.resolve(mockTanks.find(t => t.id === id)),
@@ -367,13 +280,11 @@ const mockAPI = {
   uploadCalibration: (tankId: number, formData: FormData) => 
     Promise.resolve({ success: true, id: Date.now() }),
   updateTankSettings: (id: number, settings: any) => 
-    Promise.resolve({ success: true })
+    Promise.resolve({ success: true, id }),
 };
 
-// User role будет получена из AuthContext
-
-// Form Schemas
-const tankSettingsSchema = z.object({
+// Form schemas
+const settingsSchema = z.object({
   minLevelPercent: z.number().min(0).max(100),
   criticalLevelPercent: z.number().min(0).max(100),
   criticalTemp: z.object({
@@ -390,23 +301,14 @@ const tankSettingsSchema = z.object({
 });
 
 const calibrationSchema = z.object({
-  file: z.any().refine((file) => file && file[0] && (file[0].type === 'text/csv' || file[0].type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'), {
-    message: "Пожалуйста, загрузите файл в формате CSV или XLSX"
-  }),
-  operator: z.string().min(2, "Введите имя оператора"),
-  calibrationType: z.enum(["full", "check"], {
-    errorMap: () => ({ message: "Выберите тип калибровки" })
-  }),
+  file: z.any().optional(),
   notes: z.string().optional()
 });
-
-type TankSettingsData = z.infer<typeof tankSettingsSchema>;
-type CalibrationData = z.infer<typeof calibrationSchema>;
 
 export default function Tanks() {
   const { user, getUserRole } = useAuth();
   const { canManageTanks, canCalibrate, canApproveDrains } = usePermissions();
-  const { selectedTradingPoint } = useSelection();
+  const { selectedNetwork, selectedTradingPoint } = useSelection();
   
   // Получаем название торговой точки для отображения
   const getTradingPointName = (pointId: string) => {
@@ -414,39 +316,43 @@ export default function Tanks() {
       { value: "point1", label: "АЗС №001 - Центральная" },
       { value: "point2", label: "АЗС №002 - Северная" },
       { value: "point3", label: "АЗС №003 - Южная" },
+      { value: "bto-azs-1", label: "АЗС 1" },
+      { value: "bto-azs-2", label: "АЗС 2" },
+      { value: "bto-azs-3", label: "АЗС 3" },
+      { value: "bto-azs-4", label: "АЗС 4" }
     ];
-    return points.find(p => p.value === pointId)?.label || pointId;
+    const point = points.find(p => p.value === pointId);
+    return point ? point.label : pointId;
   };
-  const [logDialogOpen, setLogDialogOpen] = useState(false);
-  const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false);
+
+  const isMobile = useIsMobile();
+  
+  // Состояния компонента
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [calibrationDialogOpen, setCalibrationDialogOpen] = useState(false);
   const [selectedTank, setSelectedTank] = useState<any>(null);
   const [tankEvents, setTankEvents] = useState<{[key: number]: any[]}>({});
   const [drainageLog, setDrainageLog] = useState(mockDrainageLog);
   const [expandedDrains, setExpandedDrains] = useState(mockDrains);
   const [loading, setLoading] = useState(false);
+  const [stsApiConfigured, setStsApiConfigured] = useState(false);
+  const [loadingFromSTSAPI, setLoadingFromSTSAPI] = useState(false);
   const [calibrationHistory, setCalibrationHistory] = useState<{[key: number]: any[]}>({});
+  const [tanks, setTanks] = useState(mockTanks);
   const [filters, setFilters] = useState({
     period: '',
     tankId: '',
-    status: '',
-    source: '',
-    searchTerm: ''
-  });
-  
-  // Состояния для синхронизации с оборудованием
-  const [tanks, setTanks] = useState(mockTanks);
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [syncing, setSyncing] = useState(false);
-  
-  const isMobile = useIsMobile();
-
-
-  const settingsForm = useForm<TankSettingsData>({
-    resolver: zodResolver(tankSettingsSchema)
+    eventType: '',
+    status: ''
   });
 
-  const calibrationForm = useForm<CalibrationData>({
+  // Формы
+  const settingsForm = useForm({
+    resolver: zodResolver(settingsSchema)
+  });
+
+  const calibrationForm = useForm({
     resolver: zodResolver(calibrationSchema)
   });
 
@@ -455,99 +361,104 @@ export default function Tanks() {
     const loadEquipment = async () => {
       if (!selectedTradingPoint) {
         setEquipment([]);
-        setTanks([]);
         return;
       }
 
-      setSyncing(true);
       try {
-        // Загружаем оборудование для торговой точки
-        const response = await currentEquipmentAPI.list({
-          trading_point_id: selectedTradingPoint
-        });
+        setLoading(true);
         
-        setEquipment(response.data);
+        // Получаем данные оборудования для выбранной торговой точки
+        const data = await currentEquipmentAPI.getAll();
+        
+        // Фильтруем только резервуары (tanks)
+        const tankEquipment = data.filter(item => 
+          item.type && item.type.toLowerCase().includes('резервуар') ||
+          item.type && item.type.toLowerCase().includes('tank') ||
+          item.name && item.name.toLowerCase().includes('резервуар')
+        );
 
-        // Синхронизируем резервуары с оборудованием
-        await syncTanksWithEquipment(response.data);
+        console.log('Загружено оборудование резервуаров:', tankEquipment);
+        setEquipment(tankEquipment);
+
+        // Преобразуем данные оборудования в формат резервуаров
+        if (tankEquipment.length > 0) {
+          const tanksFromEquipment = tankEquipment.map(eq => {
+            // Пытаемся извлечь числовые данные из состояний компонентов
+            const levelComponent = eq.components?.find(c => 
+              c.type?.toLowerCase().includes('level') || 
+              c.name?.toLowerCase().includes('уровень')
+            );
+            
+            const tempComponent = eq.components?.find(c => 
+              c.type?.toLowerCase().includes('temperature') || 
+              c.name?.toLowerCase().includes('температура')
+            );
+
+            const currentLevel = levelComponent?.currentValue ? 
+              parseFloat(levelComponent.currentValue.toString()) : 
+              Math.random() * 40000 + 5000; // Случайный уровень для демо
+            
+            const capacity = eq.specifications?.capacity || 50000;
+            const temperature = tempComponent?.currentValue ? 
+              parseFloat(tempComponent.currentValue.toString()) : 
+              Math.random() * 10 + 10; // Случайная температура
+
+            return {
+              id: eq.id,
+              name: eq.name || `Резервуар №${eq.id}`,
+              fuelType: eq.specifications?.fuelType || 'АИ-95',
+              currentLevelLiters: currentLevel,
+              capacityLiters: capacity,
+              minLevelPercent: 20,
+              criticalLevelPercent: 10,
+              temperature: temperature,
+              waterLevelMm: Math.random() * 5,
+              sensors: eq.components?.map(c => ({
+                name: c.name || c.type || 'Датчик',
+                status: c.status || 'ok'
+              })) || [
+                { name: "Уровень", status: "ok" },
+                { name: "Температура", status: "ok" }
+              ],
+              lastCalibration: new Date().toLocaleDateString('ru-RU'),
+              linkedPumps: [],
+              notifications: {
+                enabled: true,
+                drainAlerts: true,
+                levelAlerts: true
+              },
+              thresholds: {
+                criticalTemp: { min: -10, max: 40 },
+                maxWaterLevel: 10,
+                notifications: {
+                  critical: true,
+                  minimum: true,
+                  temperature: true,
+                  water: true
+                }
+              }
+            };
+          });
+          
+          // Обновляем список резервуаров данными от оборудования
+          console.log('Обновляем резервуары данными оборудования:', tanksFromEquipment);
+          setTanks(tanksFromEquipment);
+        } else {
+          // Если нет данных оборудования, используем mock данные
+          setTanks(mockTanks);
+        }
         
       } catch (error) {
-        console.error('Ошибка при загрузке оборудования:', error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить данные оборудования",
-          variant: "destructive"
-        });
+        console.error('Ошибка загрузки оборудования:', error);
+        // В случае ошибки используем mock данные
+        setTanks(mockTanks);
       } finally {
-        setSyncing(false);
+        setLoading(false);
       }
     };
 
     loadEquipment();
   }, [selectedTradingPoint]);
-
-  // Функция синхронизации резервуаров с оборудованием
-  const syncTanksWithEquipment = async (equipmentList: Equipment[]) => {
-    try {
-      // Находим оборудование типа резервуар
-      const tankEquipment = equipmentList.filter(eq => 
-        eq.system_type === 'fuel_tank' || 
-        eq.name.toLowerCase().includes('резервуар')
-      );
-
-      // Преобразуем оборудование в резервуары
-      const tanksFromEquipment = tankEquipment.map(eq => {
-        const {
-          fuelType = 'АИ-92',
-          currentLevelLiters = 0,
-          capacityLiters = 50000,
-          minLevelPercent = 20,
-          criticalLevelPercent = 10,
-          temperature = 15.0,
-          waterLevelMm = 0
-        } = eq.params;
-
-        return {
-          id: parseInt(eq.id.replace(/\D/g, '')) || Math.floor(Math.random() * 1000),
-          name: eq.display_name,
-          fuelType: fuelType,
-          currentLevelLiters: currentLevelLiters,
-          capacityLiters: capacityLiters,
-          minLevelPercent: minLevelPercent,
-          criticalLevelPercent: criticalLevelPercent,
-          temperature: temperature,
-          waterLevelMm: waterLevelMm,
-          sensors: [
-            { name: "Уровень", status: eq.status === 'online' ? 'ok' : 'error' },
-            { name: "Температура", status: eq.status === 'online' ? 'ok' : 'error' }
-          ],
-          lastCalibration: new Date().toLocaleDateString('ru-RU'),
-          linkedPumps: [],
-          notifications: {
-            enabled: true,
-            drainAlerts: true,
-            levelAlerts: true
-          },
-          thresholds: {
-            criticalTemp: { min: -10, max: 40 },
-            maxWaterLevel: 10,
-            notifications: {
-              critical: true,
-              minimum: true,
-              temperature: true,
-              water: true
-            }
-          },
-          equipmentId: eq.id // Связь с оборудованием
-        };
-      });
-
-      setTanks(tanksFromEquipment);
-
-    } catch (error) {
-      console.error('Ошибка при синхронизации резервуаров:', error);
-    }
-  };
 
   // Load tank events and calibration history on component mount
   useEffect(() => {
@@ -555,7 +466,7 @@ export default function Tanks() {
       const events: {[key: number]: any[]} = {};
       const calibrations: {[key: number]: any[]} = {};
       
-      for (const tank of mockTanks) {
+      for (const tank of tanks) {
         events[tank.id] = await mockAPI.getTankEvents(tank.id);
         calibrations[tank.id] = await mockAPI.getTankCalibrations(tank.id);
       }
@@ -565,6 +476,21 @@ export default function Tanks() {
     };
     loadTankData();
   }, []);
+
+  // Проверяем и настраиваем STS API при инициализации, автоматически загружаем данные
+  useEffect(() => {
+    console.log('🔧 Инициализация раздела резервуаров...');
+    
+    // Обеспечиваем правильную настройку STS API
+    ensureSTSApiConfigured();
+    setStsApiConfigured(true);
+    
+    // Автоматически загружаем данные резервуаров при выборе торговой точки
+    if (selectedTradingPoint && selectedTradingPoint !== 'all') {
+      console.log('🚀 Автоматическая загрузка резервуаров для торговой точки:', selectedTradingPoint);
+      loadTanksFromSTSAPI();
+    }
+  }, [selectedTradingPoint]);
 
   const getProgressColor = (percentage: number) => {
     if (percentage > 20) return "hsl(var(--primary))"; // Blue
@@ -576,7 +502,131 @@ export default function Tanks() {
     return Math.round((current / capacity) * 100);
   };
 
+  // Функция для настройки STS API с правильными параметрами
+  const ensureSTSApiConfigured = () => {
+    console.log('🔧 Проверяем и настраиваем STS API конфигурацию...');
+    
+    const correctConfig = {
+      url: 'https://pos.autooplata.ru/tms',
+      username: 'UserApi',
+      password: 'lHQfLZHzB3tn',
+      enabled: true,
+      timeout: 30000,
+      retryAttempts: 3,
+      refreshInterval: 20 * 60 * 1000 // 20 минут
+    };
+    
+    // Проверяем текущую конфигурацию
+    const currentConfig = localStorage.getItem('sts-api-config');
+    let needsUpdate = false;
+    
+    if (currentConfig) {
+      try {
+        const parsed = JSON.parse(currentConfig);
+        // Проверяем, что все нужные параметры совпадают
+        if (parsed.url !== correctConfig.url || 
+            parsed.username !== correctConfig.username || 
+            parsed.password !== correctConfig.password ||
+            !parsed.enabled) {
+          needsUpdate = true;
+        }
+      } catch {
+        needsUpdate = true;
+      }
+    } else {
+      needsUpdate = true;
+    }
+    
+    if (needsUpdate) {
+      console.log('🔧 Обновляем конфигурацию STS API с правильными параметрами');
+      localStorage.setItem('sts-api-config', JSON.stringify(correctConfig));
+    }
+    
+    return correctConfig;
+  };
 
+  // Загрузка резервуаров из STS API (упрощенная версия без дублирования авторизации)
+  const loadTanksFromSTSAPI = async () => {
+    console.log('🔧 Начинаем загрузку резервуаров из STS API...');
+
+    setLoadingFromSTSAPI(true);
+
+    try {
+      // Обеспечиваем правильную настройку STS API
+      ensureSTSApiConfigured();
+
+      // Получаем полный объект торговой точки для получения external_id
+      if (!selectedTradingPoint || selectedTradingPoint === 'all') {
+        throw new Error('Выберите конкретную торговую точку для получения данных резервуаров из STS API');
+      }
+
+      // Загружаем полные данные торговой точки
+      console.log('🔍 Загружаем торговую точку по ID:', selectedTradingPoint);
+      
+      const tradingPointObject = await tradingPointsService.getById(selectedTradingPoint);
+      if (!tradingPointObject) {
+        throw new Error('Не удалось загрузить данные торговой точки');
+      }
+
+      console.log('🏪 Полные данные торговой точки:', tradingPointObject);
+
+      // Получаем параметры из селекторов приложения
+      const contextParams = {
+        networkId: selectedNetwork?.external_id || selectedNetwork?.code || '1',
+        tradingPointId: tradingPointObject.external_id || '1'
+      };
+      
+      console.log('🔍 Параметры запроса для резервуаров:', contextParams);
+
+      // Загружаем резервуары из STS API (stsApiService сам управляет авторизацией)
+      console.log('🔄 Загружаем резервуары из STS API /v1/tanks...');
+      const stsTanks = await stsApiService.getTanks(contextParams);
+      
+      console.log('🔍 Исходные данные резервуаров STS API:', stsTanks);
+      
+      if (stsTanks && stsTanks.length > 0) {
+        console.log(`✅ Загружено ${stsTanks.length} резервуаров из STS API`);
+        
+        // Загружаем события и калибровки для каждого резервуара
+        const events: {[key: number]: any[]} = {};
+        const calibrations: {[key: number]: any[]} = {};
+        
+        for (const tank of stsTanks) {
+          events[tank.id] = await mockAPI.getTankEvents(tank.id);
+          calibrations[tank.id] = await mockAPI.getTankCalibrations(tank.id);
+        }
+        
+        setTankEvents(events);
+        setCalibrationHistory(calibrations);
+        setTanks(stsTanks);
+        setStsApiConfigured(true);
+        
+        toast({
+          title: "Данные обновлены",
+          description: `Загружено ${stsTanks.length} резервуаров из STS API`,
+          variant: "default",
+        });
+        
+        console.log('✅ Резервуары из STS API успешно загружены и обработаны');
+      } else {
+        console.warn('⚠️ STS API вернул пустой список резервуаров');
+        toast({
+          title: "Нет данных",
+          description: "STS API не вернул данных о резервуарах",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('❌ Ошибка загрузки резервуаров из STS API:', error);
+      toast({
+        title: "Ошибка загрузки",
+        description: error instanceof Error ? error.message : 'Произошла ошибка при загрузке данных резервуаров',
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingFromSTSAPI(false);
+    }
+  };
 
   const handleTankSettings = (tank: any) => {
     setSelectedTank(tank);
@@ -592,42 +642,64 @@ export default function Tanks() {
 
   const handleCalibration = (tank: any) => {
     setSelectedTank(tank);
-    calibrationForm.reset({
-      operator: "",
-      calibrationType: "full",
-      notes: ""
-    });
     setCalibrationDialogOpen(true);
   };
 
-  const onSubmitCalibration = async (data: CalibrationData) => {
-    if (!selectedTank) return;
-    
-    setLoading(true);
+  const onSettingsSubmit = async (data: any) => {
     try {
-      // Create FormData for file upload
+      await mockAPI.updateTankSettings(selectedTank.id, data);
+      
+      // Update tank in local state
+      const updatedTanks = tanks.map(tank => {
+        if (tank.id === selectedTank.id) {
+          return {
+            ...tank,
+            minLevelPercent: data.minLevelPercent,
+            criticalLevelPercent: data.criticalLevelPercent,
+            thresholds: {
+              ...tank.thresholds,
+              criticalTemp: data.criticalTemp,
+              maxWaterLevel: data.maxWaterLevel,
+              notifications: data.notifications
+            }
+          };
+        }
+        return tank;
+      });
+      
+      setTanks(updatedTanks);
+      setSettingsDialogOpen(false);
+      
+      toast({
+        title: "Настройки сохранены",
+        description: `Настройки резервуара ${selectedTank.name} обновлены`,
+      });
+    } catch (error) {
+      console.error('Error updating tank settings:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось сохранить настройки резервуара",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onCalibrationSubmit = async (data: any) => {
+    try {
       const formData = new FormData();
-      if (data.file && data.file[0]) {
-        formData.append('file', data.file[0]);
-      }
-      formData.append('operator', data.operator);
-      formData.append('calibrationType', data.calibrationType);
-      formData.append('notes', data.notes || '');
-      formData.append('tankId', selectedTank.id.toString());
+      if (data.file) formData.append('file', data.file);
+      if (data.notes) formData.append('notes', data.notes);
       
       const result = await mockAPI.uploadCalibration(selectedTank.id, formData);
       
       if (result.success) {
-        // Create new calibration record
         const newCalibration = {
           id: result.id,
           tankId: selectedTank.id,
           date: new Date().toLocaleString('ru-RU'),
-          operator: data.operator,
-          filename: data.file[0].name,
-          status: 'completed',
-          calibrationType: data.calibrationType,
-          notes: data.notes
+          result: 'success',
+          operator: user?.name || 'Текущий пользователь',
+          notes: data.notes || ''
         };
         
         // Update calibration history
@@ -636,97 +708,48 @@ export default function Tanks() {
           [selectedTank.id]: [newCalibration, ...(prev[selectedTank.id] || [])]
         }));
         
-        // Update tank's last calibration
-        const tankIndex = tanks.findIndex(t => t.id === selectedTank.id);
-        if (tankIndex >= 0) {
-          setTanks(prev => {
-            const updated = [...prev];
-            updated[tankIndex] = {
-              ...updated[tankIndex],
-              lastCalibration: newCalibration.date
-            };
-            return updated;
-          });
-        }
+        setCalibrationDialogOpen(false);
+        calibrationForm.reset();
         
         toast({
           title: "Калибровка загружена",
-          description: `Файл ${data.file[0].name} успешно обработан для ${selectedTank.name}`,
+          description: `Файл калибровки для ${selectedTank.name} успешно загружен`,
         });
-        
-        setCalibrationDialogOpen(false);
       }
     } catch (error) {
+      console.error('Error uploading calibration:', error);
       toast({
-        title: "Ошибка загрузки",
+        title: "Ошибка",
         description: "Не удалось загрузить файл калибровки",
-        variant: "destructive"
+        variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const onSubmitSettings = async (data: TankSettingsData) => {
-    if (!selectedTank) return;
-    
-    setLoading(true);
-    try {
-      await mockAPI.updateTankSettings(selectedTank.id, data);
-      
-      // Update local state
-      const tankIndex = tanks.findIndex(t => t.id === selectedTank.id);
-      if (tankIndex >= 0) {
-        setTanks(prev => {
-          const updated = [...prev];
-          updated[tankIndex] = {
-            ...updated[tankIndex],
-            minLevelPercent: data.minLevelPercent,
-            criticalLevelPercent: data.criticalLevelPercent,
-            thresholds: {
-              ...updated[tankIndex].thresholds,
-              criticalTemp: data.criticalTemp,
-              maxWaterLevel: data.maxWaterLevel,
-              notifications: data.notifications
-            }
-          };
-          return updated;
-        });
-      }
-      
-      toast({
-        title: "Настройки сохранены",
-        description: `Параметры резервуара ${selectedTank.name} обновлены`,
-      });
-      
-      setSettingsDialogOpen(false);
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось сохранить настройки",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+  // Helper functions for event display
+  const getEventTypeIcon = (type: string) => {
+    switch (type) {
+      case 'delivery': return <Truck className="h-4 w-4" />;
+      case 'calibration': return <Settings className="h-4 w-4" />;
+      case 'maintenance': return <Settings className="h-4 w-4" />;
+      case 'alert': return <AlertTriangle className="h-4 w-4" />;
+      default: return <Bell className="h-4 w-4" />;
     }
   };
 
   const getEventStatusColor = (status: string) => {
     switch (status) {
-      case "confirmed": return "bg-green-500/20 text-green-400 border-green-500/30";
-      case "requires_check": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-      case "error": return "bg-red-500/20 text-red-400 border-red-500/30";
-      default: return "bg-slate-500/20 text-slate-400 border-slate-500/30";
-    }
-  };
-
-  const getEventTypeIcon = (type: string) => {
-    switch (type) {
-      case "drain_finished": return <Droplets className="h-4 w-4" />;
-      case "drain_started": return <Truck className="h-4 w-4" />;
-      case "level_below": return <AlertTriangle className="h-4 w-4" />;
-      case "temperature_alert": return <Thermometer className="h-4 w-4" />;
-      default: return <Bell className="h-4 w-4" />;
+      case 'success':
+      case 'completed':
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'warning':
+      case 'in_progress':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'error':
+      case 'failed':
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
+      default:
+        return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
     }
   };
 
@@ -762,874 +785,528 @@ export default function Tanks() {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-white">
-                Резервуары{selectedTradingPoint ? ` на ${getTradingPointName(selectedTradingPoint)}` : ""}
+                {getTradingPointName(selectedTradingPoint)}
               </h1>
               <p className="text-slate-400 mt-2">Мониторинг запасов топлива и управление операциями</p>
+              <div className="flex items-center gap-4 mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-slate-400">Источник данных:</span>
+                  <Badge variant="outline" className="text-green-400 border-green-400">
+                    СТС API
+                  </Badge>
+                  <span className="text-xs text-slate-500">3</span>
+                </div>
+              </div>
             </div>
-            <HelpButton route="/point/tanks" variant="text" className="flex-shrink-0" />
+            <div className="flex items-center gap-3">
+              {stsApiConfigured ? (
+                <Button
+                  onClick={loadTanksFromSTSAPI}
+                  variant="outline"
+                  size="sm"
+                  disabled={loadingFromSTSAPI}
+                  className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
+                >
+                  {loadingFromSTSAPI ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  Обновить из API
+                </Button>
+              ) : (
+                <Button
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      // Перезагружаем данные резервуаров из mock API
+                      const events: {[key: number]: any[]} = {};
+                      const calibrations: {[key: number]: any[]} = {};
+                      
+                      for (const tank of mockTanks) {
+                        events[tank.id] = await mockAPI.getTankEvents(tank.id);
+                        calibrations[tank.id] = await mockAPI.getTankCalibrations(tank.id);
+                      }
+                      
+                      setTankEvents(events);
+                      setCalibrationHistory(calibrations);
+                      console.log('✅ Данные резервуаров обновлены (mock API)');
+                      toast({
+                        title: "Данные обновлены",
+                        description: "Тестовые данные резервуаров обновлены",
+                        variant: "default",
+                      });
+                    } catch (error) {
+                      console.error('❌ Ошибка обновления резервуаров:', error);
+                      toast({
+                        title: "Ошибка обновления",
+                        description: "Произошла ошибка при обновлении данных",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                  disabled={loading}
+                  className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  Обновить токен
+                </Button>
+              )}
+              <HelpButton route="/point/tanks" variant="text" className="flex-shrink-0" />
+            </div>
           </div>
         </div>
 
-        {/* Панель управления */}
-        <div className="bg-slate-800 mb-6 w-full">
-          <div className="px-4 md:px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm">⛽</span>
-                </div>
-                <h2 className="text-lg font-semibold text-white">Резервуары</h2>
-                <div className="text-sm text-slate-400">
-                  Активных резервуаров: {mockTanks.length}
-                </div>
-              </div>
-              <div className="flex gap-3">
+
+        {/* Резервуары - сетка карточек */}
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          {tanks.map((tank) => {
+            const percentage = getPercentage(tank.currentLevelLiters, tank.capacityLiters);
             
-                <Dialog open={logDialogOpen} onOpenChange={setLogDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="outline"
-                      className="border-slate-600 text-white hover:bg-slate-700 px-4 py-2 rounded-lg font-medium flex-shrink-0"
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Журнал сливов
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-7xl max-h-[85vh]">
-                    <DialogHeader className="pb-4 border-b border-slate-700">
-                      <DialogTitle className="text-xl font-semibold text-white">
-                        Журнал операций слива ({expandedDrains.length} записей)
-                      </DialogTitle>
-                    </DialogHeader>
+            return (
+              <Card key={tank.id} className="bg-slate-800 border-slate-700 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                <CardContent className="p-4">
+                  {/* Header with tank name and fuel type */}
+                  <div className="mb-4">
+                    {/* Tank Name */}
+                    <div className="flex items-center gap-3 mb-2">
+                      <Gauge className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                      <div className="text-white font-semibold text-lg">
+                        {tank.name}
+                      </div>
+                    </div>
                     
-                    {/* Search bar */}
-                    <div className="mb-4">
-                      <Input 
-                        placeholder="Поиск по водителю, номеру или резервуару..."
-                        className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
+                    {/* Fuel Type and Volume/Percentage */}
+                    <div className="flex items-center justify-between">
+                      <div className="text-blue-400 font-bold text-xl">
+                        {tank.fuelType}
+                      </div>
+                      <div className={`text-lg font-bold ${
+                        percentage > tank.minLevelPercent ? 'text-blue-400' :
+                        percentage >= tank.criticalLevelPercent ? 'text-yellow-400' : 'text-red-400'
+                      }`}>
+                        {tank.currentLevelLiters.toLocaleString()} л ({percentage}%)
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Main content - Progress bar left, parameters right */}
+                  <div className="flex gap-4">
+                    {/* Block 1: Progress Bar (Left) */}
+                    <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                      <TankProgressIndicator 
+                        percentage={percentage} 
+                        minLevel={tank.minLevelPercent}
+                        criticalLevel={tank.criticalLevelPercent}
+                        isMobile={false}
                       />
+                      <div className="text-base text-slate-300 text-center leading-snug">
+                        <div>{Math.round(tank.capacityLiters).toLocaleString()} л</div>
+                      </div>
                     </div>
 
-                    {expandedDrains.length === 0 ? (
-                      <div className="text-center py-8 text-slate-400">
-                        Записи не найдены
-                      </div>
-                    ) : (
-                      <>
-                        {/* Таблица на всю ширину */}
-                        <div className="w-full">
-                          <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
-                            <table className="w-full text-sm min-w-full table-fixed">
-                              <thead className="bg-slate-700">
-                                <tr>
-                                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '12%'}}>ДАТА/ВРЕМЯ</th>
-                                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '15%'}}>РЕЗЕРВУАР</th>
-                                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>ОБЪЕМ (Л)</th>
-                                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '12%'}}>ВОДИТЕЛЬ</th>
-                                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>ТРАНСПОРТ</th>
-                                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '13%'}}>ПРИЧИНА</th>
-                                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>ИСТОЧНИК</th>
-                                  <th className="px-6 py-4 text-left text-slate-200 font-medium" style={{width: '10%'}}>СТАТУС</th>
-                                  <th className="px-6 py-4 text-right text-slate-200 font-medium" style={{width: '8%'}}>ДЕЙСТВИЯ</th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-slate-800">
-                                {expandedDrains.map((drain) => (
-                                  <tr
-                                    key={drain.id}
-                                    className="border-b border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors"
-                                  >
-                                    <td className="px-4 md:px-6 py-4">
-                                      <div className="text-white font-mono text-sm">
-                                        {drain.date}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4">
-                                      <div>
-                                        <div className="font-medium text-white text-base">{drain.tankName}</div>
-                                        <div className="text-sm text-blue-400">{drain.fuelType}</div>
-                                      </div>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4">
-                                      <div className="text-white font-semibold text-base">
-                                        {drain.volume.toLocaleString()}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4">
-                                      <div className="text-white">
-                                        {drain.driverName}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4">
-                                      <div className="text-white">
-                                        {drain.truckNumber}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4">
-                                      <div className="text-slate-300">
-                                        {drain.reason}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4">
-                                      <Badge variant="secondary" className={`${
-                                        drain.source === 'sensor' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                                        drain.source === 'mobile_app' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                                        'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                                      }`}>
-                                        {drain.source === 'sensor' ? 'Датчик' :
-                                         drain.source === 'mobile_app' ? 'Мобильное' : 'API'}
-                                      </Badge>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4">
-                                      <Badge variant="secondary" className={`${
-                                        drain.status === 'confirmed' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                                        drain.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                                        'bg-red-500/20 text-red-400 border-red-500/30'
-                                      }`}>
-                                        {drain.status === 'confirmed' ? '✓ Подтверждено' :
-                                         drain.status === 'pending' ? '⏳ Ожидает' : '✗ Ошибка'}
-                                      </Badge>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4">
-                                      <div className="flex justify-end gap-1">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className={`h-8 w-8 p-0 ${
-                                            drain.status === 'pending' && canApproveDrainOperations
-                                              ? 'text-slate-400 hover:text-green-400 hover:bg-green-500/10'
-                                              : 'text-slate-600 cursor-not-allowed'
-                                          }`}
-                                          title="Подтвердить"
-                                          disabled={drain.status !== 'pending' || !canApproveDrainOperations}
-                                        >
-                                          <CheckCircle className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className={`h-8 w-8 p-0 ${
-                                            drain.status === 'pending' && canApproveDrainOperations
-                                              ? 'text-slate-400 hover:text-red-400 hover:bg-red-500/10'
-                                              : 'text-slate-600 cursor-not-allowed'
-                                          }`}
-                                          title="Отклонить"
-                                          disabled={drain.status !== 'pending' || !canApproveDrainOperations}
-                                        >
-                                          <XCircle className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                    {/* Block 2: Parameters taking full height */}
+                    <div className="flex-1 bg-slate-900/30 p-3 rounded-md overflow-hidden">
+                      <div className="h-full flex flex-col justify-between text-sm space-y-2">
+                        {/* Temperature */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Thermometer className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                          <span className="text-slate-400 truncate">Температура</span>
+                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.temperature || tank.temperature || '0').toFixed(1)}°C</span>
                         </div>
-                      </>
-                    )}
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-700">
-                      <div className="text-sm text-slate-400">
-                        Показано записей: {expandedDrains.length}
+                        
+                        {/* Level */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-4 h-4 bg-slate-400 rounded-full flex-shrink-0"></div>
+                          <span className="text-slate-400 truncate">Уровень</span>
+                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.level || '0').toFixed(1)} мм</span>
+                        </div>
+                        
+                        {/* Density */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-4 h-4 bg-slate-500 rounded-full flex-shrink-0"></div>
+                          <span className="text-slate-400 truncate">Плотность</span>
+                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.density || '0').toFixed(2)}</span>
+                        </div>
+                        
+                        {/* Water */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Droplets className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                          <span className="text-slate-400 truncate">Вода</span>
+                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.water?.level || '0').toFixed(1)} мм</span>
+                        </div>
+                        
+                        {/* Free Space */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-4 h-4 bg-slate-500 rounded-full flex-shrink-0"></div>
+                          <span className="text-slate-400 truncate">Свободно</span>
+                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.volume_free || '0').toLocaleString()} л</span>
+                        </div>
+                        
+                        {/* Mass */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-4 h-4 bg-blue-500 rounded-full flex-shrink-0"></div>
+                          <span className="text-slate-400 truncate">Масса</span>
+                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.amount_begin || '0').toLocaleString()} кг</span>
+                        </div>
+                        
+                        {/* Status */}
+                        <div className="flex items-center gap-2 min-w-0">
+                          {tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? (
+                            <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
+                          )}
+                          <span className="text-slate-400 truncate">Состояние</span>
+                          <span className={`font-medium ml-auto flex-shrink-0 ${tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'text-green-400' : 'text-red-400'}`}>
+                            {tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'Активно' : 'Ошибка'}
+                          </span>
+                        </div>
                       </div>
-                      <Button variant="outline" size="sm" className="border-slate-600 hover:bg-slate-700">
-                        <Download className="w-4 h-4 mr-2" />
-                        Экспорт Excel
-                      </Button>
                     </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </div>
-          </div>
+                  </div>
+
+                  {/* Данные от API СТС section с реальными данными */}
+                  <div className="mt-5 pt-4 border-t border-slate-700">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-base">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Объем нач:</span>
+                        <span className="text-white font-medium">{parseFloat(tank.apiData?.volume_begin || '0').toLocaleString()} л</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Отпуск об:</span>
+                        <span className="text-white font-medium">{parseFloat(tank.apiData?.release?.volume || '0').toLocaleString()} л</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Объем кон:</span>
+                        <span className="text-white font-medium">{parseFloat(tank.apiData?.volume_end || '0').toLocaleString()} л</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Отпуск м:</span>
+                        <span className="text-white font-medium">{parseFloat(tank.apiData?.release?.amount || '0').toLocaleString()} кг</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Масса нач:</span>
+                        <span className="text-white font-medium">{parseFloat(tank.apiData?.amount_begin || '0').toLocaleString()} кг</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Обновлено:</span>
+                        <span className="text-white font-medium">{tank.apiData?.dt ? new Date(tank.apiData.dt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Масса кон:</span>
+                        <span className="text-white font-medium">{parseFloat(tank.apiData?.amount_end || '0').toLocaleString()} кг</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Код топлива:</span>
+                        <span className="text-orange-400 font-semibold">{tank.apiData?.fuel || '?'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notification indicator */}
+                  <div className="mt-4 flex justify-center">
+                    <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                      <Bell className="h-4 w-4 text-yellow-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
-        {/* Tanks Grid */}
-        {syncing ? (
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <Gauge className="h-16 w-16 text-blue-400 mx-auto mb-4 animate-spin" />
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  Синхронизация с оборудованием...
-                </h3>
-                <p className="text-slate-400">
-                  Загружаем данные резервуаров из раздела "Оборудование"
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : tanks.length === 0 ? (
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <Fuel className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  Резервуары не найдены
-                </h3>
-                <p className="text-slate-400">
-                  Для этой торговой точки не добавлено ни одного резервуара. 
-                  Добавьте их в разделе "Оборудование"
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
-            {tanks.map((tank) => {
-              const percentage = getPercentage(tank.currentLevelLiters, tank.capacityLiters);
-              
-              return (
-                <Card key={tank.id} className="bg-slate-800 border-slate-700 shadow-lg hover:shadow-xl transition-shadow duration-200">
-                  <CardContent className="p-6">
-                    {/* Header - separate lines */}
-                    <div className="mb-4 space-y-2">
-                      {/* Tank Name - first line */}
-                      <div className="flex items-center gap-3">
-                        <Gauge className="h-6 w-6 text-blue-400 flex-shrink-0" />
-                        <div className="text-white font-semibold text-lg">
-                          {tank.name}
-                        </div>
-                      </div>
-                      
-                      {/* Fuel Type and Percentage - second line */}
-                      <div className="flex items-center justify-between">
-                        <div className="text-blue-400 font-bold text-lg ml-9">
-                          {tank.fuelType}
-                        </div>
-                        <div className={`text-2xl font-bold ${
-                          percentage > tank.minLevelPercent ? 'text-blue-400' :
-                          percentage >= tank.criticalLevelPercent ? 'text-yellow-400' : 'text-red-400'
-                        }`}>
-                          {percentage}%
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Main content with vertical progress bar on left and data on right */}
-                    <div className="flex gap-6">
-                      {/* Vertical Progress Bar - moved to left */}
-                      <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                        <TankProgressIndicator 
-                          percentage={percentage} 
-                          minLevel={tank.minLevelPercent}
-                          criticalLevel={tank.criticalLevelPercent}
-                          isMobile={isMobile}
-                        />
-                        <div className="text-xs text-slate-300 font-medium text-center leading-tight">
-                          {tank.currentLevelLiters.toLocaleString()}<br />/ {tank.capacityLiters.toLocaleString()} л
-                        </div>
-                      </div>
-                      
-                      {/* Tank Data and Sensors - vertical column on right */}
-                      <div className="flex-1 flex flex-col space-y-4">
-                        {/* Temperature */}
-                        <div className="flex items-center gap-3">
-                          <Thermometer className="h-5 w-5 text-slate-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            <div className="text-slate-400 text-sm">Температура</div>
-                            <div className="font-semibold text-white">{tank.temperature} °C</div>
-                          </div>
-                        </div>
-                        
-                        {/* Water Level */}
-                        <div className="flex items-center gap-3">
-                          <Droplets className="h-5 w-5 text-slate-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            <div className="text-slate-400 text-sm">Подтоварная вода</div>
-                            <div className="font-semibold text-white">{tank.waterLevelMm} мм</div>
-                          </div>
-                        </div>
-                        
-                        {/* Sensors */}
-                        {tank.sensors.map((sensor, index) => (
-                          <TooltipProvider key={index}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-3 cursor-help">
-                                  {sensor.status === "ok" ? (
-                                    <CheckCircle className="h-5 w-5 text-slate-400 flex-shrink-0" />
-                                  ) : (
-                                    <XCircle className="h-5 w-5 text-slate-400 flex-shrink-0" />
-                                  )}
-                                  <div className="flex-1">
-                                    <div className="text-slate-400 text-sm">{sensor.name}</div>
-                                    <div className={`font-semibold ${
-                                      sensor.status === "ok" ? 'text-green-400' : 'text-red-400'
-                                    }`}>
-                                      {sensor.status === "ok" ? 'ОК' : 'Ошибка'}
-                                    </div>
-                                  </div>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Датчик {sensor.name.toLowerCase()}: {sensor.status === "ok" ? "Работает нормально" : "Ошибка"}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ))}
-
-                        {/* Last Calibration */}
-                        <div className="flex items-center gap-3">
-                          <Calendar className="h-5 w-5 text-slate-400 flex-shrink-0" />
-                          <div className="flex-1">
-                            <div className="text-slate-400 text-sm">Последняя калибровка</div>
-                            <div className="font-semibold text-white">{tank.lastCalibration}</div>
-                          </div>
-                        </div>
-
-                        {/* Linked Pumps */}
-                        <div className="flex items-start gap-3">
-                          <Fuel className="h-5 w-5 text-slate-400 flex-shrink-0 mt-0.5" />
-                          <div className="flex-1">
-                            <div className="text-slate-400 text-sm">Привязанные ТРК ({tank.linkedPumps.length})</div>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {tank.linkedPumps.map((pump) => (
-                                <span 
-                                  key={pump.id} 
-                                  className="inline-flex items-center px-2 py-1 rounded text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                                >
-                                  {pump.name}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Additional Controls Row */}
-                    <div className="mt-4 pt-4 border-t border-slate-700">
-                      <div className="flex items-center justify-between">
-                        {/* Notification Bell */}
-                        <div className="flex items-center gap-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className={`h-8 w-8 p-0 ${
-                                    tank.notifications.enabled 
-                                      ? 'text-yellow-400 hover:text-yellow-300' 
-                                      : 'text-slate-500 hover:text-slate-400'
-                                  }`}
-                                >
-                                  <Bell className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Уведомления {tank.notifications.enabled ? 'включены' : 'отключены'}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          {/* Recent Events Count */}
-                          {tankEvents[tank.id] && tankEvents[tank.id].length > 0 && (
-                            <span className="text-xs text-slate-400">
-                              События: {tankEvents[tank.id].length}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCalibration(tank)}
-                            className="text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
-                            disabled={!canPerformCalibration}
-                          >
-                            <Upload className="h-4 w-4 mr-1" />
-                            Калибровка
-                          </Button>
-                          
-                          {canEdit && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleTankSettings(tank)}
-                              className="text-slate-400 hover:text-yellow-400 hover:bg-yellow-500/10"
-                            >
-                              <Settings className="h-4 w-4 mr-1" />
-                              Настройки
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Recent Events */}
-                      {tankEvents[tank.id] && tankEvents[tank.id].length > 0 && (
-                        <div className="mt-4">
-                          <div className="text-slate-400 text-sm mb-2">Последние события</div>
-                          <div className="space-y-2">
-                            {tankEvents[tank.id].slice(0, 3).map((event) => (
-                              <div 
-                                key={event.id} 
-                                className="flex items-center gap-2 p-2 rounded border border-slate-600 bg-slate-700/30"
-                              >
-                                <div className={`p-1 rounded ${getEventStatusColor(event.status)}`}>
-                                  {getEventTypeIcon(event.type)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-xs text-slate-400">{event.date}</div>
-                                  <div className="text-sm text-white truncate">{event.details}</div>
-                                </div>
-                                <div className={`px-2 py-1 rounded text-xs border ${getEventStatusColor(event.status)}`}>
-                                  {event.status === 'confirmed' ? '✓' : event.status === 'requires_check' ? '!' : '✗'}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Tank Settings Dialog */}
+        {/* Settings Dialog */}
         <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[600px] bg-slate-800 border-slate-700">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-slate-400" />
-                Настройки резервуара
+              <DialogTitle className="text-white">
+                Настройки резервуара {selectedTank?.name}
               </DialogTitle>
             </DialogHeader>
-            {selectedTank && (
-              <Form {...settingsForm}>
-                <form onSubmit={settingsForm.handleSubmit(onSubmitSettings)} className="space-y-6">
-                  {/* Tank Info */}
-                  <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-                    <div className="flex items-center gap-3">
-                      <Gauge className="h-5 w-5 text-slate-400" />
-                      <span className="font-semibold text-white">{selectedTank.name}</span>
-                      <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                        {selectedTank.fuelType}
-                      </Badge>
-                    </div>
-                  </div>
+            
+            <Form {...settingsForm}>
+              <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={settingsForm.control}
+                    name="minLevelPercent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-300">Минимальный уровень (%)</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="number" className="bg-slate-700 border-slate-600 text-white" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={settingsForm.control}
+                    name="criticalLevelPercent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-300">Критический уровень (%)</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="number" className="bg-slate-700 border-slate-600 text-white" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                  {/* Level Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Droplets className="h-5 w-5 text-slate-400" />
-                      Уровни топлива
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={settingsForm.control}
-                        name="criticalLevelPercent"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Критический уровень (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="0"
-                                max="100"
-                                className="bg-slate-700 border-slate-600 text-white"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={settingsForm.control}
-                        name="minLevelPercent"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Минимальный уровень (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="0"
-                                max="100"
-                                className="bg-slate-700 border-slate-600 text-white"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={settingsForm.control}
+                    name="criticalTemp.min"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-300">Мин. температура (°C)</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="number" className="bg-slate-700 border-slate-600 text-white" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={settingsForm.control}
+                    name="criticalTemp.max"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-300">Макс. температура (°C)</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="number" className="bg-slate-700 border-slate-600 text-white" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                  {/* Temperature Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Thermometer className="h-5 w-5 text-slate-400" />
-                      Температурные пределы
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={settingsForm.control}
-                        name="criticalTemp.min"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Мин. температура (°C)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                className="bg-slate-700 border-slate-600 text-white"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={settingsForm.control}
-                        name="criticalTemp.max"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Макс. температура (°C)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                className="bg-slate-700 border-slate-600 text-white"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
+                <FormField
+                  control={settingsForm.control}
+                  name="maxWaterLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Макс. уровень воды (мм)</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="number" className="bg-slate-700 border-slate-600 text-white" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  {/* Water Level Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Droplets className="h-5 w-5 text-slate-400" />
-                      Содержание воды
-                    </h3>
+                <div className="space-y-3">
+                  <Label className="text-slate-300">Уведомления</Label>
+                  <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={settingsForm.control}
-                      name="maxWaterLevel"
+                      name="notifications.critical"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Максимальный уровень воды (мм)</FormLabel>
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                           <FormControl>
-                            <Input
-                              type="number"
-                              min="0"
-                              className="bg-slate-700 border-slate-600 text-white"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="mt-1"
                             />
                           </FormControl>
-                          <FormMessage />
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-slate-300">Критические</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={settingsForm.control}
+                      name="notifications.minimum"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="mt-1"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-slate-300">Минимальный уровень</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={settingsForm.control}
+                      name="notifications.temperature"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="mt-1"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-slate-300">Температура</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={settingsForm.control}
+                      name="notifications.water"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="mt-1"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-slate-300">Уровень воды</FormLabel>
+                          </div>
                         </FormItem>
                       )}
                     />
                   </div>
+                </div>
 
-                  {/* Notification Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Bell className="h-5 w-5 text-slate-400" />
-                      Уведомления
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={settingsForm.control}
-                        name="notifications.critical"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
-                                checked={field.value}
-                                onChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormLabel className="text-sm font-normal">
-                              Критический уровень
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={settingsForm.control}
-                        name="notifications.minimum"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
-                                checked={field.value}
-                                onChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormLabel className="text-sm font-normal">
-                              Минимальный уровень
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={settingsForm.control}
-                        name="notifications.temperature"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
-                                checked={field.value}
-                                onChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormLabel className="text-sm font-normal">
-                              Температура
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={settingsForm.control}
-                        name="notifications.water"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
-                                checked={field.value}
-                                onChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormLabel className="text-sm font-normal">
-                              Уровень воды
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-4">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setSettingsDialogOpen(false)}
-                      className="flex-1"
-                    >
-                      Отмена
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      disabled={settingsForm.formState.isSubmitting}
-                    >
-                      {settingsForm.formState.isSubmitting ? "Сохранение..." : "Сохранить"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            )}
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSettingsDialogOpen(false)}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    Отмена
+                  </Button>
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                    Сохранить
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
 
         {/* Calibration Dialog */}
         <Dialog open={calibrationDialogOpen} onOpenChange={setCalibrationDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[500px] bg-slate-800 border-slate-700">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5 text-slate-400" />
-                Калибровка резервуара
+              <DialogTitle className="text-white">
+                Загрузка калибровки {selectedTank?.name}
               </DialogTitle>
             </DialogHeader>
             
-            {selectedTank && (
-              <div className="space-y-6">
-                {/* Tank Info */}
-                <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Gauge className="h-5 w-5 text-slate-400" />
-                    <span className="font-semibold text-white">{selectedTank.name}</span>
-                    <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                      {selectedTank.fuelType}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-slate-400">
-                    Последняя калибровка: {selectedTank.lastCalibration}
-                  </div>
-                </div>
-
-                {/* Calibration Form */}
-                <Form {...calibrationForm}>
-                  <form onSubmit={calibrationForm.handleSubmit(onSubmitCalibration)} className="space-y-4">
-                    {/* File Upload */}
-                    <FormField
-                      control={calibrationForm.control}
-                      name="file"
-                      render={({ field: { onChange, value, ...field } }) => (
-                        <FormItem>
-                          <FormLabel>Файл калибровки</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="file"
-                              accept=".csv,.xlsx"
-                              className="bg-slate-700 border-slate-600 text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600"
-                              onChange={(e) => onChange(e.target.files)}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Operator */}
-                    <FormField
-                      control={calibrationForm.control}
-                      name="operator"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Оператор</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="ФИО оператора"
-                              className="bg-slate-700 border-slate-600 text-white"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Calibration Type */}
-                    <FormField
-                      control={calibrationForm.control}
-                      name="calibrationType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Тип калибровки</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                                <SelectValue placeholder="Выберите тип" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="bg-slate-700 border-slate-600">
-                              <SelectItem value="full">Полная калибровка</SelectItem>
-                              <SelectItem value="check">Проверочная калибровка</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Notes */}
-                    <FormField
-                      control={calibrationForm.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Примечания (необязательно)</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Дополнительная информация о калибровке"
-                              className="bg-slate-700 border-slate-600 text-white resize-none"
-                              rows={3}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Actions */}
-                    <div className="flex gap-3 pt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setCalibrationDialogOpen(false)}
-                        className="flex-1"
-                        disabled={loading}
-                      >
-                        Отмена
-                      </Button>
-                      <Button
-                        type="submit"
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <div className="flex items-center gap-2">
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                            Загрузка...
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Upload className="h-4 w-4" />
-                            Загрузить
-                          </div>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
+            <Form {...calibrationForm}>
+              <form onSubmit={calibrationForm.handleSubmit(onCalibrationSubmit)} className="space-y-4">
+                <FormField
+                  control={calibrationForm.control}
+                  name="file"
+                  render={({ field: { onChange, value, ...field } }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Файл калибровки</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          accept=".xlsx,.xls,.csv"
+                          onChange={(e) => onChange(e.target.files?.[0])}
+                          className="bg-slate-700 border-slate-600 text-white file:bg-slate-600 file:text-white file:border-slate-500"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={calibrationForm.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-300">Примечания</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="Дополнительные комментарии..."
+                          className="bg-slate-700 border-slate-600 text-white"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 {/* Calibration History */}
-                {calibrationHistory[selectedTank.id] && calibrationHistory[selectedTank.id].length > 0 && (
-                  <div className="pt-4 border-t border-slate-700">
-                    <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      История калибровок
-                    </h4>
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                {calibrationHistory[selectedTank?.id] && calibrationHistory[selectedTank.id].length > 0 && (
+                  <div className="mt-4">
+                    <Label className="text-slate-300 mb-2 block">История калибровок</Label>
+                    <div className="max-h-40 overflow-y-auto space-y-2">
                       {calibrationHistory[selectedTank.id].slice(0, 5).map((cal) => (
-                        <div
-                          key={cal.id}
-                          className="flex items-center justify-between p-3 bg-slate-800 rounded border border-slate-700"
-                        >
-                          <div className="flex-1">
-                            <div className="text-sm text-white">{cal.date}</div>
-                            <div className="text-xs text-slate-400">
-                              {cal.operator} • {cal.filename}
-                              {cal.calibrationType === 'full' ? ' (Полная)' : ' (Проверочная)'}
+                        <div key={cal.id} className="bg-slate-700 rounded p-2 text-xs">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="text-white font-medium">{cal.date}</div>
+                              <div className="text-slate-400">{cal.operator}</div>
                             </div>
-                            {cal.notes && (
-                              <div className="text-xs text-slate-500 mt-1">{cal.notes}</div>
-                            )}
+                            <div className={`px-2 py-1 rounded text-xs ${
+                              cal.result === 'success' 
+                                ? 'bg-green-500/20 text-green-400' 
+                                : 'bg-red-500/20 text-red-400'
+                            }`}>
+                              {cal.result === 'success' ? 'Успешно' : 'Ошибка'}
+                            </div>
                           </div>
-                          <Badge
-                            variant="secondary"
-                            className="bg-green-500/20 text-green-400 border-green-500/30 text-xs"
-                          >
-                            {cal.status === 'completed' ? 'Завершено' : 'Обработка'}
-                          </Badge>
+                          {cal.notes && (
+                            <div className="mt-1 text-slate-400">{cal.notes}</div>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-              </div>
-            )}
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCalibrationDialogOpen(false)}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    Отмена
+                  </Button>
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Загрузить
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>

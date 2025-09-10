@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🎨 Создание базовых PNG иконок</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #0f172a; 
+            color: white; 
+        }
+        .download-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        .download-btn:hover { background: #059669; }
+        .status { color: #10b981; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🎨 Создание базовых PNG иконок для PWA</h1>
+    
+    <button onclick="createPNGIcons()" class="download-btn">
+        🚀 Создать и скачать PNG иконки
+    </button>
+    
+    <div id="status"></div>
+
+    <script>
+        function createIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            // TradeControl дизайн
+            const colors = {
+                background: '#1e293b',
+                primary: '#3b82f6',
+                accent: '#ffffff'
+            };
+
+            // Фон
+            ctx.fillStyle = colors.background;
+            ctx.fillRect(0, 0, size, size);
+
+            // Основной прямоугольник
+            const padding = size * 0.125;
+            const innerSize = size - (padding * 2);
+            
+            ctx.fillStyle = colors.primary;
+            ctx.fillRect(padding, padding, innerSize, innerSize);
+
+            // Текст "TC"
+            const fontSize = size * 0.25;
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.fillStyle = colors.accent;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TC', size / 2, size / 2);
+
+            // Подчеркивание
+            const lineWidth = size * 0.4;
+            const lineHeight = Math.max(2, size * 0.01);
+            const lineY = size / 2 + fontSize * 0.3;
+            
+            ctx.fillStyle = colors.accent;
+            ctx.fillRect((size - lineWidth) / 2, lineY, lineWidth, lineHeight);
+
+            return canvas;
+        }
+
+        function downloadCanvas(canvas, filename) {
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+
+        function createPNGIcons() {
+            const status = document.getElementById('status');
+            status.innerHTML = '<div class="status">🚀 Создание PNG иконок...</div>';
+            
+            const sizes = [72, 96, 128, 144, 152, 167, 180, 192, 384, 512];
+            let created = 0;
+            
+            sizes.forEach((size, index) => {
+                setTimeout(() => {
+                    const canvas = createIcon(size);
+                    const filename = `icon-${size}x${size}.png`;
+                    downloadCanvas(canvas, filename);
+                    
+                    created++;
+                    status.innerHTML += `<div>✅ Создан: ${filename}</div>`;
+                    
+                    if (created === sizes.length) {
+                        status.innerHTML += '<div class="status">🎉 Все PNG иконки созданы и скачаны!</div>';
+                        status.innerHTML += '<div>📁 Поместите скачанные файлы в папку public/</div>';
+                        status.innerHTML += '<div>🧪 Затем проверьте PWA через test-pwa-complete.html</div>';
+                    }
+                }, index * 500);
+            });
+        }
+
+        console.log('🎨 PNG Generator загружен');
+        console.log('📱 Нажмите кнопку для создания всех иконок');
+    </script>
+</body>
+</html>

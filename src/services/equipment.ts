@@ -14,84 +14,10 @@ import { PersistentStorage } from '@/utils/persistentStorage';
 // Импорт сервиса для синхронизации с типами оборудования
 import { equipmentTemplatesFromTypesAPI } from './equipmentTypes';
 
-// Базовый URL для API (должен браться из конфигурации)
-// В Vite используется import.meta.env вместо process.env
+// Импорт обновленного HTTP клиента с автоматическим обновлением токена
+import { httpClient } from '@/services/httpClients';
 import { getApiBaseUrl, isApiMockMode } from '@/services/apiConfigService';
-const API_BASE_URL = getApiBaseUrl();
 
-// Утилита для HTTP запросов с трейсингом
-class ApiClient {
-  private async request<T>(
-    endpoint: string, 
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/problem+json',
-      'X-Trace-Id': this.generateTraceId(),
-      ...options.headers,
-    };
-
-    // Добавляем Idempotency-Key для мутирующих операций
-    if (['POST', 'PUT', 'PATCH'].includes(options.method || 'GET')) {
-      headers['Idempotency-Key'] = this.generateIdempotencyKey();
-    }
-
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
-    if (!response.ok) {
-      throw new ApiError(response.status, await response.text());
-    }
-
-    return response.json();
-  }
-
-  private generateTraceId(): string {
-    return `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  private generateIdempotencyKey(): string {
-    return `idem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  async get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET' });
-  }
-
-  async post<T>(endpoint: string, data: any): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async patch<T>(endpoint: string, data: any): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
-  }
-}
-
-class ApiError extends Error {
-  constructor(
-    public status: number,
-    public body: string
-  ) {
-    super(`API Error ${status}: ${body}`);
-    this.name = 'ApiError';
-  }
-}
-
-const apiClient = new ApiClient();
 
 // Equipment API сервис
 export const equipmentAPI = {
@@ -108,37 +34,37 @@ export const equipmentAPI = {
     if (params.page) searchParams.append('page', params.page.toString());
     if (params.limit) searchParams.append('limit', params.limit.toString());
 
-    return apiClient.get<ListEquipmentResponse>(`/equipment?${searchParams}`);
+    return httpClient.get<ListEquipmentResponse>(`/equipment?${searchParams}`);
   },
 
   // POST /equipment
   async create(data: CreateEquipmentRequest): Promise<Equipment> {
-    return apiClient.post<Equipment>('/equipment', data);
+    return httpClient.post<Equipment>('/equipment', data);
   },
 
   // GET /equipment/{id}
   async get(id: string): Promise<Equipment> {
-    return apiClient.get<Equipment>(`/equipment/${id}`);
+    return httpClient.get<Equipment>(`/equipment/${id}`);
   },
 
   // PATCH /equipment/{id}
   async update(id: string, data: UpdateEquipmentRequest): Promise<Equipment> {
-    return apiClient.patch<Equipment>(`/equipment/${id}`, data);
+    return httpClient.patch<Equipment>(`/equipment/${id}`, data);
   },
 
   // POST /equipment/{id}:enable|disable|archive
   async setStatus(id: string, action: EquipmentStatusAction): Promise<void> {
-    return apiClient.post<void>(`/equipment/${id}:${action}`, {});
+    return httpClient.post<void>(`/equipment/${id}:${action}`, {});
   },
 
   // DELETE /equipment/{id} - удаление оборудования
   async delete(id: string): Promise<void> {
-    return apiClient.delete<void>(`/equipment/${id}`);
+    return httpClient.delete<void>(`/equipment/${id}`);
   },
 
   // GET /equipment/{id}/events - журнал событий
   async getEvents(id: string): Promise<EquipmentEvent[]> {
-    return apiClient.get<EquipmentEvent[]>(`/equipment/${id}/events`);
+    return httpClient.get<EquipmentEvent[]>(`/equipment/${id}/events`);
   }
 };
 
@@ -146,12 +72,12 @@ export const equipmentAPI = {
 export const equipmentTemplatesAPI = {
   // GET /equipment-templates
   async list(): Promise<EquipmentTemplate[]> {
-    return apiClient.get<EquipmentTemplate[]>('/equipment-templates');
+    return httpClient.get<EquipmentTemplate[]>('/equipment-templates');
   },
 
   // GET /equipment-templates/{id}
   async get(id: string): Promise<EquipmentTemplate> {
-    return apiClient.get<EquipmentTemplate>(`/equipment-templates/${id}`);
+    return httpClient.get<EquipmentTemplate>(`/equipment-templates/${id}`);
   }
 };
 

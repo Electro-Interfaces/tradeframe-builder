@@ -36,10 +36,10 @@ SET external_id = '1'
 WHERE name LIKE '%Демо сеть%' 
   AND (external_id IS NULL OR external_id = '');
 
--- Для сети Норд Лайн устанавливаем external_id = '15'
+-- Для сети БТО устанавливаем external_id = '15'
 UPDATE public.networks 
 SET external_id = '15' 
-WHERE name LIKE '%Норд%' 
+WHERE name LIKE '%БТО%' 
   AND (external_id IS NULL OR external_id = '');
 
 -- 4. Проверяем результат исправления сетей

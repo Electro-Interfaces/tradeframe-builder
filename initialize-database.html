@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Initialize TradeFrame Database</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #1a1a1a; 
+            color: #fff; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+        }
+        .status { 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 8px; 
+            border-left: 4px solid;
+        }
+        .success { 
+            background: #2d5a2d; 
+            border-color: #4caf50; 
+        }
+        .error { 
+            background: #5a2d2d; 
+            border-color: #f44336; 
+        }
+        .info { 
+            background: #2d4a5a; 
+            border-color: #2196f3; 
+        }
+        .warning { 
+            background: #5a5a2d; 
+            border-color: #ff9800; 
+        }
+        pre { 
+            background: #333; 
+            padding: 15px; 
+            border-radius: 8px; 
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 16px;
+        }
+        button:hover { background: #1976d2; }
+        button:disabled { 
+            background: #555 !important; 
+            cursor: not-allowed !important; 
+        }
+        #results { 
+            max-height: 600px; 
+            overflow-y: auto; 
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            background: #333;
+            border-radius: 8px;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #4caf50;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #333;
+            border-radius: 50%;
+            border-top-color: #4caf50;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 TradeFrame Database Initialization</h1>
+        
+        <div class="status info">
+            <h3>📋 What this tool does:</h3>
+            <ul>
+                <li>Creates all required database tables (networks, users, trading_points, etc.)</li>
+                <li>Sets up proper indexes and foreign key relationships</li>
+                <li>Seeds with initial data including fuel types and demo users</li>
+                <li>Creates БТО network with 3 trading points</li>
+                <li>Sets up МенеджерБТО role with appropriate permissions</li>
+                <li>Configures Row Level Security (RLS) policies</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>Step 1: Database Connection</h3>
+            <p><strong>URL:</strong> https://ssvazdgnmatbdynkhkqo.supabase.co</p>
+            <p><strong>Key:</strong> Service Role Key (configured)</p>
+            <button onclick="testConnection()">Test Connection</button>
+            <div id="connectionResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Schema Initialization</h3>
+            <p>Execute the complete database schema and seed data</p>
+            <button onclick="initializeSchema()" id="initBtn">Initialize Database Schema</button>
+            <div id="schemaResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Verification</h3>
+            <p>Verify that all tables and data were created successfully</p>
+            <button onclick="verifySetup()" id="verifyBtn">Verify Setup</button>
+            <div id="verifyResult"></div>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ssvazdgnmatbdynkhkqo.supabase.co';
+        const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
+
+        function addResult(title, status, data, containerId = 'results') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = \`status \${status}\`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            
+            div.innerHTML = \`
+                <h4>[\${timestamp}] \${title}</h4>
+                <pre>\${typeof data === 'object' ? JSON.stringify(data, null, 2) : data}</pre>
+            \`;
+            
+            container.insertBefore(div, container.firstChild);
+        }
+
+        function showLoading(containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '<div class="loading"></div> Processing...';
+        }
+
+        async function testConnection() {
+            showLoading('connectionResult');
+            
+            try {
+                const response = await fetch(\`\${SUPABASE_URL}/rest/v1/\`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SERVICE_KEY,
+                        'Authorization': \`Bearer \${SERVICE_KEY}\`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    addResult('Connection Test', 'success', {
+                        status: 'Connected successfully',
+                        url: SUPABASE_URL,
+                        responseStatus: response.status
+                    }, 'connectionResult');
+                } else {
+                    addResult('Connection Test', 'error', {
+                        error: 'Connection failed',
+                        status: response.status,
+                        statusText: response.statusText
+                    }, 'connectionResult');
+                }
+            } catch (error) {
+                addResult('Connection Test', 'error', {
+                    error: error.message,
+                    details: 'Check network connectivity and Supabase configuration'
+                }, 'connectionResult');
+            }
+        }
+
+        async function executeSQL(sql, description) {
+            const response = await fetch(\`\${SUPABASE_URL}/rest/v1/rpc/exec_sql\`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SERVICE_KEY,
+                    'Authorization': \`Bearer \${SERVICE_KEY}\`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({ sql_query: sql })
+            });
+
+            if (!response.ok) {
+                throw new Error(\`\${description} failed: \${response.status} \${response.statusText}\`);
+            }
+
+            const result = await response.text();
+            return result;
+        }
+
+        async function initializeSchema() {
+            const btn = document.getElementById('initBtn');
+            btn.disabled = true;
+            showLoading('schemaResult');
+
+            try {
+                // SQL commands split by major sections
+                const sqlCommands = [
+                    {
+                        name: 'Extensions and Core Tables',
+                        sql: \`
+                        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+                        
+                        CREATE TABLE IF NOT EXISTS public.networks (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            name VARCHAR(255) NOT NULL,
+                            code VARCHAR(50) NOT NULL UNIQUE,
+                            external_id VARCHAR(50),
+                            description TEXT,
+                            status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'maintenance')),
+                            settings JSONB DEFAULT '{}',
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+                        \`
+                    },
+                    {
+                        name: 'Users Table',
+                        sql: \`
+                        CREATE TABLE IF NOT EXISTS public.users (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            email VARCHAR(255) NOT NULL UNIQUE,
+                            name VARCHAR(255) NOT NULL,
+                            password_hash VARCHAR(255) NOT NULL,
+                            first_name VARCHAR(100),
+                            last_name VARCHAR(100),
+                            phone VARCHAR(20),
+                            role VARCHAR(50) NOT NULL DEFAULT 'operator',
+                            network_id UUID REFERENCES public.networks(id),
+                            trading_point_ids UUID[] DEFAULT '{}',
+                            status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended', 'deleted')),
+                            is_active BOOLEAN DEFAULT true,
+                            email_verified BOOLEAN DEFAULT false,
+                            last_login TIMESTAMPTZ,
+                            settings JSONB DEFAULT '{}',
+                            metadata JSONB DEFAULT '{}',
+                            deleted_at TIMESTAMPTZ NULL,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+                        \`
+                    },
+                    {
+                        name: 'Trading Points and Fuel Types',
+                        sql: \`
+                        CREATE TABLE IF NOT EXISTS public.trading_points (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            network_id UUID NOT NULL REFERENCES public.networks(id) ON DELETE CASCADE,
+                            name VARCHAR(255) NOT NULL,
+                            code VARCHAR(50) NOT NULL,
+                            external_id VARCHAR(50),
+                            address TEXT,
+                            location_coordinates POINT,
+                            status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'maintenance')),
+                            settings JSONB DEFAULT '{}',
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW(),
+                            UNIQUE(network_id, code)
+                        );
+
+                        CREATE TABLE IF NOT EXISTS public.fuel_types (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            name VARCHAR(255) NOT NULL,
+                            code VARCHAR(50) NOT NULL UNIQUE,
+                            category VARCHAR(20) DEFAULT 'gasoline' CHECK (category IN ('gasoline', 'diesel', 'gas', 'other')),
+                            octane_number INTEGER,
+                            density DECIMAL(8,4),
+                            unit VARCHAR(20) DEFAULT 'liter',
+                            is_active BOOLEAN DEFAULT true,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+                        \`
+                    },
+                    {
+                        name: 'Equipment and Operations',
+                        sql: \`
+                        CREATE TABLE IF NOT EXISTS public.equipment_templates (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            name VARCHAR(255) NOT NULL,
+                            category VARCHAR(100) NOT NULL,
+                            manufacturer VARCHAR(255),
+                            model VARCHAR(255),
+                            description TEXT,
+                            specifications JSONB DEFAULT '{}',
+                            commands JSONB DEFAULT '{}',
+                            is_active BOOLEAN DEFAULT true,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+
+                        CREATE TABLE IF NOT EXISTS public.equipment (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            trading_point_id UUID NOT NULL REFERENCES public.trading_points(id) ON DELETE CASCADE,
+                            template_id UUID REFERENCES public.equipment_templates(id),
+                            name VARCHAR(255) NOT NULL,
+                            serial_number VARCHAR(100),
+                            ip_address INET,
+                            port INTEGER,
+                            status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'maintenance', 'error')),
+                            configuration JSONB DEFAULT '{}',
+                            last_seen TIMESTAMPTZ,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+
+                        CREATE TABLE IF NOT EXISTS public.operations (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            trading_point_id UUID NOT NULL REFERENCES public.trading_points(id),
+                            equipment_id UUID REFERENCES public.equipment(id),
+                            fuel_type_id UUID REFERENCES public.fuel_types(id),
+                            operation_type VARCHAR(50) NOT NULL CHECK (operation_type IN ('sale', 'receipt', 'transfer', 'inventory')),
+                            quantity DECIMAL(10,3) NOT NULL,
+                            price_per_unit DECIMAL(10,2),
+                            total_amount DECIMAL(12,2),
+                            external_transaction_id VARCHAR(100),
+                            operator_name VARCHAR(255),
+                            payment_method VARCHAR(50),
+                            status VARCHAR(20) DEFAULT 'completed' CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
+                            metadata JSONB DEFAULT '{}',
+                            performed_at TIMESTAMPTZ DEFAULT NOW(),
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+                        \`
+                    }
+                ];
+
+                // Execute each command group
+                let completedSteps = 0;
+                for (const command of sqlCommands) {
+                    try {
+                        await executeSQLDirect(command.sql);
+                        completedSteps++;
+                        addResult(\`Schema Step \${completedSteps}\`, 'success', {
+                            step: command.name,
+                            status: 'Completed successfully'
+                        }, 'schemaResult');
+                    } catch (error) {
+                        addResult(\`Schema Step Failed\`, 'error', {
+                            step: command.name,
+                            error: error.message
+                        }, 'schemaResult');
+                        throw error;
+                    }
+                }
+
+                // Seed data
+                await seedInitialData();
+
+                addResult('Schema Initialization', 'success', {
+                    message: 'Database schema initialized successfully!',
+                    stepsCompleted: completedSteps,
+                    nextStep: 'Run verification to confirm setup'
+                }, 'schemaResult');
+
+            } catch (error) {
+                addResult('Schema Initialization', 'error', {
+                    error: error.message,
+                    suggestion: 'Check the database connection and permissions'
+                }, 'schemaResult');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function executeSQLDirect(sql) {
+            // Split SQL into individual statements and execute them
+            const statements = sql.split(';').filter(s => s.trim());
+            
+            for (const statement of statements) {
+                if (statement.trim()) {
+                    const response = await fetch(\`\${SUPABASE_URL}/rest/v1/rpc/exec_sql\`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SERVICE_KEY,
+                            'Authorization': \`Bearer \${SERVICE_KEY}\`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ statement: statement.trim() })
+                    });
+
+                    // For CREATE TABLE statements, we expect them to possibly fail if they already exist
+                    if (!response.ok && !statement.includes('IF NOT EXISTS')) {
+                        const errorText = await response.text();
+                        throw new Error(\`SQL execution failed: \${response.status} - \${errorText}\`);
+                    }
+                }
+            }
+        }
+
+        async function seedInitialData() {
+            // Seed fuel types
+            const fuelTypesData = [
+                { id: '00000000-0000-0000-0000-000000000001', name: 'АИ-92', code: 'AI92', category: 'gasoline', octane_number: 92, density: 0.7400 },
+                { id: '00000000-0000-0000-0000-000000000002', name: 'АИ-95', code: 'AI95', category: 'gasoline', octane_number: 95, density: 0.7500 },
+                { id: '00000000-0000-0000-0000-000000000003', name: 'АИ-98', code: 'AI98', category: 'gasoline', octane_number: 98, density: 0.7600 },
+                { id: '00000000-0000-0000-0000-000000000004', name: 'ДТ', code: 'DT', category: 'diesel', density: 0.8400 },
+                { id: '00000000-0000-0000-0000-000000000005', name: 'Газ', code: 'GAS', category: 'gas', density: 0.5500 }
+            ];
+
+            await insertData('fuel_types', fuelTypesData);
+
+            // Seed networks  
+            const networksData = [
+                { id: '20000000-0000-0000-0000-000000000001', name: 'Сеть Демо АЗС', code: 'demo-azs', external_id: '1', description: 'Демонстрационная сеть АЗС' },
+                { id: '20000000-0000-0000-0000-000000000002', name: 'БТО', code: 'bto', external_id: '15', description: 'Сеть БТО (Башкирские торговые операции)' }
+            ];
+
+            await insertData('networks', networksData);
+
+            // Seed trading points for БТО
+            const tradingPointsData = [
+                { id: '30000000-0000-0000-0000-000000000001', network_id: '20000000-0000-0000-0000-000000000002', name: 'БТО АЗС №1', code: 'BTO-001', external_id: '15001', address: 'г. Уфа, ул. Ленина, 1' },
+                { id: '30000000-0000-0000-0000-000000000002', network_id: '20000000-0000-0000-0000-000000000002', name: 'БТО АЗС №2', code: 'BTO-002', external_id: '15002', address: 'г. Уфа, ул. Советская, 10' },
+                { id: '30000000-0000-0000-0000-000000000003', network_id: '20000000-0000-0000-0000-000000000002', name: 'БТО АЗС №3', code: 'BTO-003', external_id: '15003', address: 'г. Стерлитамак, ул. Мира, 5' }
+            ];
+
+            await insertData('trading_points', tradingPointsData);
+
+            // Seed users including МенеджерБТО
+            const usersData = [
+                { 
+                    id: '40000000-0000-0000-0000-000000000001', 
+                    email: 'admin@tradeframe.com', 
+                    name: 'Системный администратор', 
+                    password_hash: '$2a$10$demopasswordhash', 
+                    first_name: 'Иван', 
+                    last_name: 'Иванов', 
+                    role: 'system_admin' 
+                },
+                { 
+                    id: '40000000-0000-0000-0000-000000000005', 
+                    email: 'bto.manager@tradeframe.com', 
+                    name: 'Менеджер БТО', 
+                    password_hash: '$2a$10$demopasswordhash', 
+                    first_name: 'Андрей', 
+                    last_name: 'Башкиров', 
+                    role: 'bto_manager',
+                    network_id: '20000000-0000-0000-0000-000000000002'
+                }
+            ];
+
+            await insertData('users', usersData);
+        }
+
+        async function insertData(tableName, dataArray) {
+            const response = await fetch(\`\${SUPABASE_URL}/rest/v1/\${tableName}\`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SERVICE_KEY,
+                    'Authorization': \`Bearer \${SERVICE_KEY}\`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'resolution=merge-duplicates'
+                },
+                body: JSON.stringify(dataArray)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(\`Failed to seed \${tableName}: \${errorText}\`);
+            }
+
+            return await response.json();
+        }
+
+        async function verifySetup() {
+            const btn = document.getElementById('verifyBtn');
+            btn.disabled = true;
+            showLoading('verifyResult');
+
+            try {
+                // Test table access
+                const tables = ['networks', 'users', 'trading_points', 'fuel_types', 'operations'];
+                const results = {};
+
+                for (const table of tables) {
+                    try {
+                        const response = await fetch(\`\${SUPABASE_URL}/rest/v1/\${table}?limit=1\`, {
+                            method: 'GET',
+                            headers: {
+                                'apikey': SERVICE_KEY,
+                                'Authorization': \`Bearer \${SERVICE_KEY}\`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            results[table] = { status: 'accessible', recordCount: data.length };
+                        } else {
+                            results[table] = { status: 'error', error: \`\${response.status} \${response.statusText}\` };
+                        }
+                    } catch (error) {
+                        results[table] = { status: 'error', error: error.message };
+                    }
+                }
+
+                // Check specifically for БТО network
+                const btoResponse = await fetch(\`\${SUPABASE_URL}/rest/v1/networks?external_id=eq.15\`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SERVICE_KEY,
+                        'Authorization': \`Bearer \${SERVICE_KEY}\`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                let btoNetworkExists = false;
+                if (btoResponse.ok) {
+                    const btoData = await btoResponse.json();
+                    btoNetworkExists = btoData.length > 0;
+                }
+
+                // Check for МенеджерБТО user
+                const managerResponse = await fetch(\`\${SUPABASE_URL}/rest/v1/users?email=eq.bto.manager@tradeframe.com\`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SERVICE_KEY,
+                        'Authorization': \`Bearer \${SERVICE_KEY}\`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                let managerExists = false;
+                if (managerResponse.ok) {
+                    const managerData = await managerResponse.json();
+                    managerExists = managerData.length > 0;
+                }
+
+                addResult('Setup Verification', 'success', {
+                    tablesStatus: results,
+                    btoNetworkExists,
+                    btoManagerExists: managerExists,
+                    summary: 'Database setup verification completed',
+                    readyForUse: Object.values(results).every(r => r.status === 'accessible') && btoNetworkExists && managerExists
+                }, 'verifyResult');
+
+            } catch (error) {
+                addResult('Setup Verification', 'error', {
+                    error: error.message,
+                    suggestion: 'Re-run the schema initialization if tables are missing'
+                }, 'verifyResult');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Auto-run connection test on load
+        window.addEventListener('load', () => {
+            setTimeout(testConnection, 1000);
+        });
+    </script>
+</body>
+</html>

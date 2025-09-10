@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Прямая проверка SQL</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            color: white;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .success { background: #4CAF50; }
+        .error { background: #f44336; }
+        .warning { background: #ff9800; }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a8b;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .log {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .quick-queries {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .quick-queries button {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗄️ Прямая проверка базы данных Supabase</h1>
+
+        <div class="section">
+            <h3>Настройки подключения</h3>
+            <button onclick="loadSettings()">Загрузить из localStorage</button>
+            <div id="settings-status"></div>
+        </div>
+
+        <div class="section">
+            <h3>Быстрые запросы</h3>
+            <div class="quick-queries">
+                <button onclick="runQuery('SELECT COUNT(*) as table_count FROM information_schema.tables WHERE table_schema = \\'public\\'')">Количество таблиц</button>
+                <button onclick="runQuery('SELECT table_name FROM information_schema.tables WHERE table_schema = \\'public\\' ORDER BY table_name')">Список таблиц</button>
+                <button onclick="runQuery('SELECT COUNT(*) as roles_count FROM roles;')">Количество ролей</button>
+                <button onclick="runQuery('SELECT id, code, name, scope, is_active FROM roles ORDER BY created_at;')">Все роли</button>
+                <button onclick="runQuery('SELECT COUNT(*) as users_count FROM users;')">Количество пользователей</button>
+                <button onclick="runQuery('SELECT id, email, name, status FROM users LIMIT 10;')">Первые 10 пользователей</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Выполнить SQL запрос</h3>
+            <textarea id="sql-query" placeholder="Введите SQL запрос...">SELECT * FROM roles ORDER BY created_at DESC LIMIT 10;</textarea>
+            <br>
+            <button onclick="runCustomQuery()">Выполнить запрос</button>
+            <button onclick="clearLog()">Очистить лог</button>
+        </div>
+
+        <div class="section">
+            <h3>Результаты</h3>
+            <div id="log" class="log">Готов к выполнению запросов...\n</div>
+        </div>
+    </div>
+
+    <script>
+        let supabaseUrl = '';
+        let supabaseKey = '';
+
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.textContent += `[${timestamp}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = 'Лог очищен...\n';
+        }
+
+        function loadSettings() {
+            const statusEl = document.getElementById('settings-status');
+            
+            try {
+                const savedSettings = localStorage.getItem('externalDatabase');
+                if (!savedSettings) {
+                    statusEl.innerHTML = '<span class="status error">Настройки не найдены</span>';
+                    log('ERROR: Настройки externalDatabase не найдены в localStorage');
+                    return;
+                }
+
+                const parsed = JSON.parse(savedSettings);
+                if (!parsed.url || !parsed.apiKey) {
+                    statusEl.innerHTML = '<span class="status warning">Неполные настройки</span>';
+                    log('WARNING: URL или apiKey отсутствуют');
+                    return;
+                }
+
+                supabaseUrl = parsed.url;
+                supabaseKey = parsed.apiKey;
+                statusEl.innerHTML = '<span class="status success">Настройки загружены</span>';
+                log(`SUCCESS: Настройки загружены. URL: ${supabaseUrl}`);
+            } catch (error) {
+                statusEl.innerHTML = '<span class="status error">Ошибка парсинга</span>';
+                log(`ERROR: ${error.message}`);
+            }
+        }
+
+        async function runQuery(query) {
+            if (!supabaseUrl || !supabaseKey) {
+                log('ERROR: Сначала загрузите настройки подключения');
+                return;
+            }
+
+            log(`Выполняю запрос: ${query}`);
+            
+            try {
+                // Для простых SELECT запросов используем REST API
+                if (query.toLowerCase().trim().startsWith('select')) {
+                    await runSelectQuery(query);
+                } else {
+                    log('WARN: Поддерживаются только SELECT запросы через REST API');
+                }
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+            }
+        }
+
+        async function runSelectQuery(query) {
+            try {
+                // Преобразуем SQL в REST API запрос для простых случаев
+                if (query.includes('COUNT(*) as table_count FROM information_schema.tables')) {
+                    // Этот запрос нельзя выполнить через REST API
+                    log('INFO: Запрос информационной схемы не поддерживается через REST API');
+                    return;
+                }
+                
+                if (query.includes('SELECT table_name FROM information_schema.tables')) {
+                    log('INFO: Запрос информационной схемы не поддерживается через REST API');
+                    return;
+                }
+
+                if (query.includes('FROM roles')) {
+                    let endpoint = 'roles';
+                    
+                    if (query.includes('COUNT(*)')) {
+                        endpoint += '?select=count';
+                    } else {
+                        endpoint += '?order=created_at.desc';
+                        if (query.includes('LIMIT')) {
+                            const limitMatch = query.match(/LIMIT (\\d+)/i);
+                            if (limitMatch) {
+                                endpoint += `&limit=${limitMatch[1]}`;
+                            }
+                        }
+                    }
+
+                    const response = await fetch(`${supabaseUrl}/rest/v1/${endpoint}`, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        log(`SUCCESS: Получено результатов: ${Array.isArray(data) ? data.length : 1}`);
+                        log(`ДАННЫЕ: ${JSON.stringify(data, null, 2)}`);
+                    } else {
+                        const errorText = await response.text();
+                        log(`ERROR: ${response.status} - ${errorText}`);
+                    }
+                } else if (query.includes('FROM users')) {
+                    let endpoint = 'users';
+                    
+                    if (query.includes('COUNT(*)')) {
+                        endpoint += '?select=count';
+                    } else {
+                        endpoint += '?order=created_at.desc';
+                        if (query.includes('LIMIT')) {
+                            const limitMatch = query.match(/LIMIT (\\d+)/i);
+                            if (limitMatch) {
+                                endpoint += `&limit=${limitMatch[1]}`;
+                            }
+                        }
+                    }
+
+                    const response = await fetch(`${supabaseUrl}/rest/v1/${endpoint}`, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        log(`SUCCESS: Получено результатов: ${Array.isArray(data) ? data.length : 1}`);
+                        log(`ДАННЫЕ: ${JSON.stringify(data, null, 2)}`);
+                    } else {
+                        const errorText = await response.text();
+                        log(`ERROR: ${response.status} - ${errorText}`);
+                    }
+                } else {
+                    log('WARN: Сложные SQL запросы не поддерживаются. Используйте простые SELECT для таблиц roles, users и т.д.');
+                }
+            } catch (error) {
+                log(`ERROR: Network error: ${error.message}`);
+            }
+        }
+
+        function runCustomQuery() {
+            const query = document.getElementById('sql-query').value.trim();
+            if (!query) {
+                log('ERROR: Введите SQL запрос');
+                return;
+            }
+            runQuery(query);
+        }
+
+        // Автоматически загружаем настройки при открытии страницы
+        window.onload = function() {
+            log('Страница загружена');
+            loadSettings();
+        };
+    </script>
+</body>
+</html>

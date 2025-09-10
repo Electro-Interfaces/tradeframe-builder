@@ -48,9 +48,9 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const getInitialOpenGroups = (): string[] => {
     try {
       const saved = localStorage.getItem('appSidebar_openGroups');
-      return saved ? JSON.parse(saved) : ["main", "networks", "trading-point", "admin", "settings", "service", "misc"];
+      return saved ? JSON.parse(saved) : ["main", "networks", "trading-point", "admin", "settings", "service", "database", "misc"];
     } catch {
-      return ["main", "networks", "trading-point", "admin", "settings", "service", "misc"];
+      return ["main", "networks", "trading-point", "admin", "settings", "service", "database", "misc"];
     }
   };
   
@@ -120,18 +120,12 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const networkMenuItems = [
     { title: "Обзор", url: "/network/overview", icon: Network },
     { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
-    { title: "История цен", url: "/network/price-history", icon: TrendingUp },
-    { title: "Остатки топлива", url: "/network/fuel-stocks", icon: Fuel },
-    { title: "Журнал оборудования", url: "/network/equipment-log", icon: Database },
-    { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
-    { title: "Сообщения", url: "/network/messages", icon: MessageSquare },
   ];
 
   const tradingPointMenuItems = [
     { title: "Цены", url: "/point/prices", icon: DollarSign },
     { title: "Резервуары", url: "/point/tanks", icon: Gauge },
     { title: "Оборудование", url: "/point/equipment", icon: Settings },
-    { title: "Сменные отчеты", url: "/point/shift-reports", icon: Clock },
   ];
 
   const adminMenuItems = [
@@ -144,21 +138,35 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   ];
 
   const settingsMenuItems = [
-    { title: "Настройки подключения", url: "/settings/connections", icon: Wifi },
-    { title: "Номенклатура", url: "/settings/nomenclature", icon: FuelIcon },
-    { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types", icon: HardDrive },
-    { title: "Типы компонентов", url: "/settings/dictionaries/component-types", icon: Component },
-    { title: "Шаблоны API команд", url: "/settings/templates/command-templates", icon: Book },
-    { title: "Регламенты", url: "/settings/workflows", icon: Clock },
+    { title: "API CTC настройки", url: "/settings/api-cts", icon: Cog },
+    { title: "Внешняя БД", url: "/settings/external-database", icon: Database },
   ];
 
-  const serviceMenuItems = [
-    { title: "Частичная миграция", url: "/settings/partial-migration", icon: Cog },
-    { title: "Настройки БД", url: "/settings/database", icon: Database },
-    { title: "Инспектор данных", url: "/admin/data-inspector", icon: HardDrive },
+
+  const databaseMenuItems = [
   ];
 
-  const miscMenuItems: any[] = [];
+  // 🚫 НЕИСПОЛЬЗУЕМЫЕ РАЗДЕЛЫ - НЕ РЕАЛИЗОВАНЫ В ТЕКУЩЕЙ ВЕРСИИ
+  // Эти разделы отображаются в меню, но не имеют функциональной реализации
+  // Запланированы для будущих версий приложения
+  const miscMenuItems = [
+    { title: "История цен", url: "/network/price-history", icon: TrendingUp }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Остатки топлива", url: "/network/fuel-stocks", icon: Fuel }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Журнал оборудования", url: "/network/equipment-log", icon: Database }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Оповещения сети", url: "/network/notifications", icon: Bell }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Сообщения", url: "/network/messages", icon: MessageSquare }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Сменные отчеты", url: "/point/shift-reports", icon: Clock }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Настройки подключения", url: "/settings/connections", icon: Wifi }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Номенклатура", url: "/settings/nomenclature", icon: FuelIcon }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types", icon: HardDrive }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Типы компонентов", url: "/settings/dictionaries/component-types", icon: Component }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Шаблоны API команд", url: "/settings/templates/command-templates", icon: Book }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Регламенты", url: "/settings/workflows", icon: Clock }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Частичная миграция", url: "/settings/partial-migration", icon: Cog }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Инициализация БД", url: "/settings/database-initialization", icon: Settings }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Инспектор данных", url: "/admin/data-inspector", icon: HardDrive }, // 🚫 НЕ РЕАЛИЗОВАНО
+    { title: "Настройки БД", url: "/settings/database", icon: Database }, // 🚫 НЕ РЕАЛИЗОВАНО
+  ];
 
   function renderMenuContent() {
     return (
@@ -320,42 +328,47 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
                 ))}
               </div>
 
-              {/* Сервис */}
-              <div>
-                <div 
-                  className="text-slate-300 text-xs font-medium tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-2 px-1"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleGroup("service");
-                  }}
-                >
-                  <Tool className="w-3 h-3 flex-shrink-0" />
-                  СЕРВИС
-                  <ChevronRight 
-                    className={`w-3 h-3 ml-auto transition-transform duration-200 ${
-                      openGroups.includes("service") ? "rotate-90" : ""
-                    }`} 
-                  />
-                </div>
-                {openGroups.includes("service") && (
-                  <div className="space-y-1 ml-2">
-                    {serviceMenuItems.map((item) => (
-                      <div key={item.title}>
-                        <NavLink 
-                          to={item.url} 
-                          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
-                          onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                        >
-                          <item.icon className="w-4 h-4 flex-shrink-0" />
-                          <span className="truncate">{item.title}</span>
-                        </NavLink>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
 
+            </div>
+          )}
+        </div>
+        )}
+
+
+        {/* РАЗНОЕ - 🚫 НЕИСПОЛЬЗУЕМЫЕ РАЗДЕЛЫ */}
+        {menuVisibility.misc && miscMenuItems.length > 0 && (
+        <div className="border-t border-slate-600 px-4 py-3">
+          <div 
+            className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleGroup("misc");
+            }}
+            title="Эти разделы не реализованы в текущей версии"
+          >
+            <Box className="w-4 h-4 flex-shrink-0" />
+            РАЗНОЕ (НЕ ИСПОЛЬЗУЕТСЯ)
+            <ChevronRight 
+              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+                openGroups.includes("misc") ? "rotate-90" : ""
+              }`} 
+            />
+          </div>
+          {openGroups.includes("misc") && (
+            <div className="space-y-1">
+              {miscMenuItems.map((item) => (
+                <div key={item.title}>
+                  <NavLink 
+                    to={item.url} 
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
+                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                  >
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{item.title}</span>
+                  </NavLink>
+                </div>
+              ))}
             </div>
           )}
         </div>

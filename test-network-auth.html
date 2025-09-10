@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Network API Authentication</title>
+    <style>
+        body { font-family: Arial; margin: 20px; background: #f5f5f5; }
+        .section { background: #fff; padding: 15px; border-radius: 8px; margin: 10px 0; border: 1px solid #ddd; }
+        .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .info { background: #d1ecf1; color: #0c5460; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        .warning { background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin: 5px 0; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; background: #007bff; color: white; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        input, select { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; width: 200px; }
+        label { display: inline-block; width: 150px; margin: 5px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
+        .form-row { margin: 10px 0; }
+        .token-info { font-family: monospace; background: #f8f9fa; padding: 5px; border-radius: 4px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Test Network API Authentication</h1>
+    
+    <div class="section">
+        <h3>1. Настройки аутентификации</h3>
+        <div class="form-row">
+            <label>Base URL:</label>
+            <input type="url" id="baseUrl" value="https://pos.autooplata.ru/tms/v1" />
+        </div>
+        <div class="form-row">
+            <label>System ID:</label>
+            <input type="text" id="systemId" value="15" />
+        </div>
+        <div class="form-row">
+            <label>Username:</label>
+            <input type="text" id="username" placeholder="Ваш логин" />
+        </div>
+        <div class="form-row">
+            <label>Password:</label>
+            <input type="password" id="password" placeholder="Ваш пароль" />
+        </div>
+        <div class="form-row">
+            <button onclick="saveAuthConfig()">Сохранить настройки</button>
+            <button onclick="clearAuthConfig()">Очистить настройки</button>
+        </div>
+        <div id="config-status"></div>
+    </div>
+
+    <div class="section">
+        <h3>2. Тестирование аутентификации</h3>
+        <button onclick="testAuthentication()" id="authBtn">Тест аутентификации</button>
+        <button onclick="testTokenRefresh()" id="refreshBtn">Тест обновления токена</button>
+        <div id="auth-status"></div>
+    </div>
+
+    <div class="section">
+        <h3>3. Информация о токене</h3>
+        <button onclick="showTokenInfo()">Показать токен</button>
+        <div id="token-info"></div>
+    </div>
+
+    <div class="section">
+        <h3>4. Тест API с аутентификацией</h3>
+        <button onclick="testApiWithAuth()" id="apiBtn">Загрузить цены с токеном</button>
+        <div id="api-status"></div>
+    </div>
+
+    <div class="section">
+        <h3>5. Открыть страницу цен</h3>
+        <button onclick="openPricesPageWithAuth()">Открыть /point/prices</button>
+        <p><em>Страница откроется с настроенной аутентификацией</em></p>
+    </div>
+
+    <div class="section">
+        <h3>6. Журнал аутентификации</h3>
+        <div id="auth-log" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 4px;"></div>
+        <button onclick="clearAuthLog()">Очистить журнал</button>
+    </div>
+
+    <script>
+        let authLog = [];
+        
+        function addAuthLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            authLog.push(`[${timestamp}] ${message}`);
+            updateAuthLogDisplay();
+            console.log(`[AUTH TEST] ${message}`);
+        }
+        
+        function updateAuthLogDisplay() {
+            const logDiv = document.getElementById('auth-log');
+            logDiv.innerHTML = authLog.map(entry => `<div>${entry}</div>`).join('');
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearAuthLog() {
+            authLog = [];
+            updateAuthLogDisplay();
+        }
+
+        function saveAuthConfig() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const systemId = document.getElementById('systemId').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!baseUrl || !systemId) {
+                document.getElementById('config-status').innerHTML = 
+                    '<div class="error">❌ Заполните обязательные поля (Base URL, System ID)</div>';
+                return;
+            }
+
+            const config = {
+                baseUrl: baseUrl,
+                systemId: systemId,
+                login: username || undefined,
+                password: password || undefined
+            };
+
+            localStorage.setItem('networkPricesApi', JSON.stringify(config));
+            window.dispatchEvent(new CustomEvent('localStorageChanged'));
+
+            document.getElementById('config-status').innerHTML = 
+                '<div class="success">✅ Настройки сохранены</div>';
+            
+            addAuthLog(`💾 Настройки сохранены: ${username ? 'с аутентификацией' : 'без аутентификации'}`);
+        }
+
+        function clearAuthConfig() {
+            localStorage.removeItem('networkPricesApi');
+            window.dispatchEvent(new CustomEvent('localStorageChanged'));
+            
+            document.getElementById('config-status').innerHTML = 
+                '<div class="info">ℹ️ Настройки очищены</div>';
+            
+            addAuthLog('🗑️ Настройки очищены');
+        }
+
+        async function testAuthentication() {
+            const statusDiv = document.getElementById('auth-status');
+            const authBtn = document.getElementById('authBtn');
+            
+            authBtn.disabled = true;
+            statusDiv.innerHTML = '<div class="info">🔄 Тестирование аутентификации...</div>';
+            addAuthLog('🔄 Начинаем тест аутентификации');
+            
+            try {
+                const config = JSON.parse(localStorage.getItem('networkPricesApi') || '{}');
+                
+                if (!config.login || !config.password) {
+                    statusDiv.innerHTML = '<div class="warning">⚠️ Логин и пароль не указаны</div>';
+                    addAuthLog('⚠️ Отсутствуют данные для аутентификации');
+                    return;
+                }
+
+                // Симуляция запроса на аутентификацию
+                addAuthLog(`🔑 Попытка аутентификации для пользователя: ${config.login}`);
+                
+                const authResponse = await fetch(`${config.baseUrl}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: config.login,
+                        password: config.password,
+                    }),
+                });
+
+                if (authResponse.ok) {
+                    const authData = await authResponse.json();
+                    
+                    // Сохраняем токен в конфигурации
+                    const now = Date.now();
+                    const expiresIn = authData.expires_in * 1000;
+                    const updatedConfig = {
+                        ...config,
+                        accessToken: authData.access_token,
+                        refreshToken: authData.refresh_token,
+                        tokenExpireAt: now + expiresIn,
+                        tokenType: 'Bearer'
+                    };
+                    
+                    localStorage.setItem('networkPricesApi', JSON.stringify(updatedConfig));
+                    
+                    statusDiv.innerHTML = `
+                        <div class="success">✅ Аутентификация успешна!</div>
+                        <div><strong>Access Token:</strong> ${authData.access_token.substring(0, 20)}...</div>
+                        <div><strong>Expires in:</strong> ${authData.expires_in} секунд</div>
+                        <div><strong>Token Type:</strong> ${authData.token_type}</div>
+                    `;
+                    
+                    addAuthLog(`✅ Аутентификация успешна, токен получен (истекает через ${authData.expires_in}с)`);
+                } else {
+                    const errorText = await authResponse.text();
+                    statusDiv.innerHTML = `
+                        <div class="error">❌ Ошибка аутентификации: ${authResponse.status} ${authResponse.statusText}</div>
+                        <pre>${errorText}</pre>
+                    `;
+                    addAuthLog(`❌ Ошибка аутентификации: ${authResponse.status} ${authResponse.statusText}`);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Ошибка подключения: ${error.message}</div>`;
+                addAuthLog(`❌ Ошибка подключения: ${error.message}`);
+            } finally {
+                authBtn.disabled = false;
+            }
+        }
+
+        async function testTokenRefresh() {
+            const statusDiv = document.getElementById('auth-status');
+            const refreshBtn = document.getElementById('refreshBtn');
+            
+            refreshBtn.disabled = true;
+            addAuthLog('🔄 Тестируем обновление токена');
+            
+            try {
+                const config = JSON.parse(localStorage.getItem('networkPricesApi') || '{}');
+                
+                if (!config.refreshToken) {
+                    statusDiv.innerHTML = '<div class="warning">⚠️ Refresh token не найден</div>';
+                    addAuthLog('⚠️ Refresh token отсутствует');
+                    return;
+                }
+
+                const refreshResponse = await fetch(`${config.baseUrl}/auth/refresh`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        refresh_token: config.refreshToken,
+                    }),
+                });
+
+                if (refreshResponse.ok) {
+                    const refreshData = await refreshResponse.json();
+                    
+                    const now = Date.now();
+                    const expiresIn = refreshData.expires_in * 1000;
+                    const updatedConfig = {
+                        ...config,
+                        accessToken: refreshData.access_token,
+                        refreshToken: refreshData.refresh_token || config.refreshToken,
+                        tokenExpireAt: now + expiresIn,
+                    };
+                    
+                    localStorage.setItem('networkPricesApi', JSON.stringify(updatedConfig));
+                    
+                    statusDiv.innerHTML = `
+                        <div class="success">✅ Токен успешно обновлен!</div>
+                        <div><strong>New Access Token:</strong> ${refreshData.access_token.substring(0, 20)}...</div>
+                    `;
+                    
+                    addAuthLog('✅ Токен успешно обновлен');
+                } else {
+                    statusDiv.innerHTML = `<div class="error">❌ Ошибка обновления токена: ${refreshResponse.status}</div>`;
+                    addAuthLog(`❌ Ошибка обновления токена: ${refreshResponse.status}`);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+                addAuthLog(`❌ Ошибка обновления токена: ${error.message}`);
+            } finally {
+                refreshBtn.disabled = false;
+            }
+        }
+
+        function showTokenInfo() {
+            const tokenDiv = document.getElementById('token-info');
+            
+            try {
+                const config = JSON.parse(localStorage.getItem('networkPricesApi') || '{}');
+                
+                if (!config.accessToken) {
+                    tokenDiv.innerHTML = '<div class="info">ℹ️ Токен отсутствует</div>';
+                    return;
+                }
+
+                const now = Date.now();
+                const expiresAt = new Date(config.tokenExpireAt);
+                const isExpired = now > config.tokenExpireAt;
+                const timeLeft = Math.max(0, Math.floor((config.tokenExpireAt - now) / 1000));
+
+                tokenDiv.innerHTML = `
+                    <div class="token-info">
+                        <div><strong>Access Token:</strong> ${config.accessToken.substring(0, 50)}...</div>
+                        <div><strong>Token Type:</strong> ${config.tokenType || 'Bearer'}</div>
+                        <div><strong>Expires At:</strong> ${expiresAt.toLocaleString()}</div>
+                        <div><strong>Status:</strong> ${isExpired ? '❌ Истек' : `✅ Действителен (${timeLeft}с)`}</div>
+                        ${config.refreshToken ? `<div><strong>Refresh Token:</strong> ${config.refreshToken.substring(0, 30)}...</div>` : ''}
+                    </div>
+                `;
+                
+                addAuthLog(`📋 Информация о токене: ${isExpired ? 'истек' : `действителен ${timeLeft}с`}`);
+            } catch (error) {
+                tokenDiv.innerHTML = '<div class="error">❌ Ошибка чтения конфигурации</div>';
+                addAuthLog('❌ Ошибка чтения конфигурации токена');
+            }
+        }
+
+        async function testApiWithAuth() {
+            const statusDiv = document.getElementById('api-status');
+            const apiBtn = document.getElementById('apiBtn');
+            
+            apiBtn.disabled = true;
+            statusDiv.innerHTML = '<div class="info">🔄 Тестирование API с аутентификацией...</div>';
+            addAuthLog('🔄 Тестируем API с токеном аутентификации');
+            
+            try {
+                const config = JSON.parse(localStorage.getItem('networkPricesApi') || '{}');
+                
+                if (!config.accessToken) {
+                    statusDiv.innerHTML = '<div class="warning">⚠️ Сначала выполните аутентификацию</div>';
+                    addAuthLog('⚠️ Токен отсутствует, требуется аутентификация');
+                    return;
+                }
+
+                const response = await fetch(`${config.baseUrl}/prices?system=${config.systemId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `${config.tokenType || 'Bearer'} ${config.accessToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.innerHTML = `
+                        <div class="success">✅ API запрос с токеном успешен!</div>
+                        <div>Получено данных: ${data.length} станций</div>
+                        <pre>${JSON.stringify(data[0] || {}, null, 2)}</pre>
+                    `;
+                    addAuthLog(`✅ API запрос успешен: получено ${data.length} станций`);
+                } else {
+                    statusDiv.innerHTML = `<div class="error">❌ API ошибка: ${response.status} ${response.statusText}</div>`;
+                    addAuthLog(`❌ API ошибка: ${response.status} - возможно токен истек`);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+                addAuthLog(`❌ Ошибка API запроса: ${error.message}`);
+            } finally {
+                apiBtn.disabled = false;
+            }
+        }
+
+        function openPricesPageWithAuth() {
+            addAuthLog('🌐 Открываем страницу цен с аутентификацией');
+            window.open('http://localhost:3004/point/prices', '_blank');
+        }
+
+        // Автозагрузка конфигурации при загрузке страницы
+        window.onload = function() {
+            addAuthLog('🚀 Страница тестирования аутентификации загружена');
+            
+            try {
+                const config = JSON.parse(localStorage.getItem('networkPricesApi') || '{}');
+                if (config.baseUrl) {
+                    document.getElementById('baseUrl').value = config.baseUrl;
+                    document.getElementById('systemId').value = config.systemId || '';
+                    document.getElementById('username').value = config.login || '';
+                    
+                    addAuthLog('📋 Загружена существующая конфигурация');
+                }
+            } catch (error) {
+                addAuthLog('⚠️ Ошибка загрузки конфигурации');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тестирование мобильной адаптации</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: white; }
+        .section { margin: 20px 0; padding: 15px; background: #2a2a2a; border-radius: 8px; }
+        .issue { color: #ff6b6b; }
+        .good { color: #51cf66; }
+        .warning { color: #ffd43b; }
+        .test-link { 
+            display: block; 
+            color: #74c0fc; 
+            text-decoration: none; 
+            margin: 10px 0; 
+            padding: 10px; 
+            background: #1e3a8a; 
+            border-radius: 5px; 
+            text-align: center;
+        }
+        .test-link:hover { background: #1e40af; }
+        h2 { color: #74c0fc; }
+        h3 { color: #ffd43b; }
+    </style>
+</head>
+<body>
+    <h1>📱 Тестирование мобильной адаптации</h1>
+    
+    <div class="section">
+        <h2>🔍 Анализ адаптации основных разделов:</h2>
+        
+        <h3>✅ 1. Операции (OperationsTransactionsPageSimple.tsx)</h3>
+        <div class="good">
+            • Фильтры: grid-cols-1 md:grid-cols-7 (адаптивно)<br>
+            • Статистика топлива: grid-cols-2 md:grid-cols-3 lg:grid-cols-5<br>
+            • Способы оплаты: grid-cols-2 md:grid-cols-3 lg:grid-cols-4<br>
+            • Таблица данных адаптивна
+        </div>
+        
+        <h3>✅ 2. Цены (Prices.tsx)</h3>
+        <div class="good">
+            • Использует isMobile хук<br>
+            • Плитки цен: isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'<br>
+            • Формы: isMobile ? 'grid-cols-1' : 'grid-cols-2'<br>
+            • Таблица: overflow-x-auto для горизонтальной прокрутки
+        </div>
+        
+        <h3>✅ 3. Резервуары (Tanks.tsx)</h3>
+        <div class="good">
+            • Использует isMobile хук<br>
+            • Сетка резервуаров: grid-cols-1 md:grid-cols-2 xl:grid-cols-3<br>
+            • TankProgressIndicator адаптирует высоту: isMobile ? 120 : 160<br>
+            • Настройки: grid-cols-2 (может потребовать улучшения)
+        </div>
+        
+        <h3>⚠️ 4. Оборудование (Equipment.tsx)</h3>
+        <div class="warning">
+            • НЕ использует isMobile хук<br>
+            • Сетка оборудования: grid-cols-2 md:grid-cols-3 lg:grid-cols-5<br>
+            • Купюроприемник: фиксированная сетка<br>
+            • Таблица: overflow-x-auto (хорошо)
+        </div>
+        
+        <h3>✅ 5. Профиль (Profile.tsx)</h3>
+        <div class="good">
+            • Использует isMobile хук<br>
+            • Заголовок: адаптивный размер шрифта<br>
+            • Карточки: isMobile ? 'grid-cols-1' : 'md:grid-cols-4'<br>
+            • Табы: isMobile ? 'grid-cols-2' : 'grid-cols-4'<br>
+            • Формы: isMobile ? 'grid-cols-1' : 'md:grid-cols-2'
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🚨 Найденные проблемы:</h2>
+        
+        <h3>1. Страница Equipment.tsx</h3>
+        <div class="issue">
+            • Отсутствует импорт useIsMobile<br>
+            • Купюроприемник использует фиксированную сетку вместо адаптивной<br>
+            • Грид оборудования может быть слишком плотным на мобильных
+        </div>
+        
+        <h3>2. Общие проблемы</h3>
+        <div class="warning">
+            • Некоторые формы в настройках могут быть тесными на мобильных<br>
+            • Таблицы могут требовать дополнительной оптимизации для сенсорного ввода<br>
+            • Кнопки и тачтаргеты могут быть малы для пальцев
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🧪 Тестовые ссылки (откройте в мобильной версии браузера):</h2>
+        
+        <a href="http://localhost:3002/network/operations-transactions" class="test-link">
+            📊 Операции - Проверить адаптацию фильтров и таблиц
+        </a>
+        
+        <a href="http://localhost:3002/point/prices" class="test-link">
+            💰 Цены - Проверить плитки и формы
+        </a>
+        
+        <a href="http://localhost:3002/network/tanks" class="test-link">
+            ⛽ Резервуары - Проверить карточки и индикаторы
+        </a>
+        
+        <a href="http://localhost:3002/network/equipment" class="test-link">
+            🔧 Оборудование - Найти проблемы адаптации
+        </a>
+        
+        <a href="http://localhost:3002/profile" class="test-link">
+            👤 Профиль - Проверить формы и вкладки
+        </a>
+    </div>
+
+    <div class="section">
+        <h2>💡 Рекомендации по улучшению:</h2>
+        
+        <div class="good">
+            <h3>Приоритет 1 (критичные):</h3>
+            • Добавить useIsMobile в Equipment.tsx<br>
+            • Адаптировать купюроприемник под мобильные устройства<br>
+            • Оптимизировать сетку оборудования для смартфонов
+        </div>
+        
+        <div class="warning">
+            <h3>Приоритет 2 (улучшения):</h3>
+            • Увеличить размер кнопок для сенсорного ввода<br>
+            • Добавить свайпы для навигации по таблицам<br>
+            • Оптимизировать модальные окна для мобильных<br>
+            • Улучшить читаемость мелкого текста
+        </div>
+    </div>
+
+    <script>
+        // Определяем, запущено ли на мобильном устройстве
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            document.body.style.fontSize = '16px';
+            document.querySelectorAll('.test-link').forEach(link => {
+                link.style.padding = '15px';
+                link.style.fontSize = '16px';
+            });
+        }
+        
+        console.log('Мобильное устройство:', isMobile);
+        console.log('Ширина экрана:', window.innerWidth);
+        console.log('Высота экрана:', window.innerHeight);
+    </script>
+</body>
+</html>

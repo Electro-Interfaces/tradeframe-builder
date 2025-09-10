@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Connection Status</title>
+    <style>
+        body { 
+            font-family: Arial; 
+            background: #1a1a1a; 
+            color: #fff; 
+            padding: 20px; 
+        }
+        .status { 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border-left: 4px solid; 
+        }
+        .success { 
+            background: #2d5a2d; 
+            border-color: #4a9a4a; 
+        }
+        .error { 
+            background: #5a2d2d; 
+            border-color: #9a4a4a; 
+        }
+        .warning { 
+            background: #5a5a2d; 
+            border-color: #9a9a4a; 
+        }
+        .info { 
+            background: #2d2d5a; 
+            border-color: #4a4a9a; 
+        }
+        button {
+            background: #4a9a4a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #5aaa5a; }
+        pre { 
+            background: #2a2a2a; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            white-space: pre-wrap; 
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Диагностика подключения к базе данных ролей</h1>
+        
+        <div class="status info">
+            <h3>📊 Текущий статус</h3>
+            <div id="status-info">Загружается...</div>
+        </div>
+        
+        <div>
+            <button onclick="checkAll()">🔄 Полная диагностика</button>
+            <button onclick="testConnection()">🌐 Тест подключения</button>
+            <button onclick="loadRoles()">👥 Загрузить роли</button>
+            <button onclick="openSettings()">⚙️ Настройки БД</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            document.getElementById('results').appendChild(div);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function checkStorageSettings() {
+            const settings = localStorage.getItem('externalDatabase');
+            if (!settings) {
+                log('❌ Настройки внешней БД не найдены в localStorage', 'error');
+                return null;
+            }
+            
+            try {
+                const parsed = JSON.parse(settings);
+                if (!parsed.url || !parsed.apiKey) {
+                    log('❌ Неполные настройки БД: отсутствует URL или API ключ', 'error');
+                    return null;
+                }
+                
+                log(`✅ Настройки найдены: URL ${parsed.url}`, 'success');
+                return parsed;
+            } catch (error) {
+                log(`❌ Ошибка разбора настроек: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function testConnection() {
+            document.getElementById('results').innerHTML = '';
+            
+            const config = checkStorageSettings();
+            if (!config) return;
+            
+            log('🌐 Тестируем подключение к Supabase...', 'warning');
+            
+            try {
+                const response = await fetch(`${config.url}/rest/v1/`, {
+                    headers: {
+                        'apikey': config.apiKey,
+                        'Authorization': `Bearer ${config.apiKey}`
+                    }
+                });
+                
+                if (response.ok) {
+                    log(`✅ Подключение успешно! Статус: ${response.status}`, 'success');
+                    
+                    // Проверяем доступ к таблице roles
+                    const rolesResponse = await fetch(`${config.url}/rest/v1/roles?limit=1`, {
+                        headers: {
+                            'apikey': config.apiKey,
+                            'Authorization': `Bearer ${config.apiKey}`
+                        }
+                    });
+                    
+                    if (rolesResponse.ok) {
+                        log('✅ Доступ к таблице roles подтвержден', 'success');
+                    } else {
+                        log(`❌ Нет доступа к таблице roles: ${rolesResponse.status}`, 'error');
+                    }
+                } else {
+                    log(`❌ Ошибка подключения: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadRoles() {
+            const config = checkStorageSettings();
+            if (!config) return;
+            
+            log('👥 Загружаем роли из БД...', 'warning');
+            
+            try {
+                const response = await fetch(`${config.url}/rest/v1/roles?deleted_at=is.null&order=created_at.desc`, {
+                    headers: {
+                        'apikey': config.apiKey,
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const roles = await response.json();
+                    log(`✅ Роли загружены: ${roles.length} шт.`, 'success');
+                    
+                    if (roles.length > 0) {
+                        const pre = document.createElement('pre');
+                        pre.textContent = JSON.stringify(roles, null, 2);
+                        document.getElementById('results').appendChild(pre);
+                        
+                        // Проверяем структуру данных
+                        const firstRole = roles[0];
+                        const hasRequiredFields = firstRole.id && firstRole.code && firstRole.name;
+                        if (hasRequiredFields) {
+                            log('✅ Структура данных корректна', 'success');
+                        } else {
+                            log('⚠️ Некорректная структура данных роли', 'warning');
+                        }
+                    } else {
+                        log('⚠️ Таблица ролей пуста', 'warning');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Ошибка загрузки ролей: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkAll() {
+            document.getElementById('results').innerHTML = '';
+            log('🔄 Начинаем полную диагностику...', 'info');
+            
+            // 1. Проверяем настройки
+            const config = checkStorageSettings();
+            if (!config) return;
+            
+            // 2. Тестируем подключение  
+            await testConnection();
+            
+            // 3. Загружаем роли
+            await loadRoles();
+            
+            log('✅ Диагностика завершена', 'success');
+        }
+
+        function openSettings() {
+            window.open('http://localhost:3001/settings/external-database', '_blank');
+        }
+
+        // Автоматическая проверка при загрузке
+        window.onload = function() {
+            const config = checkStorageSettings();
+            const statusDiv = document.getElementById('status-info');
+            
+            if (config) {
+                statusDiv.innerHTML = `
+                    <div>✅ Настройки найдены</div>
+                    <div>URL: ${config.url}</div>
+                    <div>API ключ: ${config.apiKey.substring(0, 20)}...</div>
+                `;
+            } else {
+                statusDiv.innerHTML = '❌ Настройки не найдены или некорректны';
+            }
+        };
+    </script>
+</body>
+</html>

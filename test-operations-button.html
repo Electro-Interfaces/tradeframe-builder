@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Тест кнопки операций</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        button { background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .info { background: #2196F3; color: white; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .error { background: #f44336; color: white; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Тест кнопки STS API на странице операций</h1>
+        
+        <div class="info">
+            <strong>План:</strong><br>
+            1. Открыть страницу операций<br>
+            2. Проверить консоль браузера на ошибки<br>
+            3. Найти блок с заголовком "Операции"<br>
+            4. Справа от заголовка должна быть кнопка (зеленая или красная)
+        </div>
+        
+        <button onclick="openOperationsPage()">📊 Открыть страницу операций</button>
+        <button onclick="showInstructions()">📋 Показать инструкции поиска</button>
+        
+        <div id="instructions" style="display:none; margin-top: 20px;">
+            <div class="info">
+                <h3>🔍 Где искать кнопку:</h3>
+                <ol>
+                    <li>Откройте страницу операций</li>
+                    <li>Найдите заголовок "Операции" в левом верхнем углу</li>
+                    <li>Справа от заголовка должна быть кнопка</li>
+                    <li>Если не видите - откройте консоль браузера (F12)</li>
+                    <li>Посмотрите вкладку Console на ошибки JavaScript</li>
+                    <li>В консоли должно быть сообщение: "🔍 Проверка конфигурации STS API"</li>
+                </ol>
+                
+                <h3>🛠️ Если кнопки нет:</h3>
+                <ul>
+                    <li>Проверьте есть ли ошибки в консоли</li>
+                    <li>Убедитесь что файл OperationsTransactionsPage.tsx загружается</li>
+                    <li>Проверьте что импорт stsApiService работает</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openOperationsPage() {
+            console.log('🔍 Открываем страницу операций для тестирования...');
+            const testWindow = window.open('http://localhost:3004/network/operations-transactions', 'operationsTest', 'width=1600,height=1000');
+            
+            setTimeout(() => {
+                if (testWindow && !testWindow.closed) {
+                    console.log('🔍 Проверьте консоль браузера в открывшемся окне на сообщения STS API');
+                }
+            }, 2000);
+        }
+        
+        function showInstructions() {
+            const instructions = document.getElementById('instructions');
+            instructions.style.display = instructions.style.display === 'none' ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

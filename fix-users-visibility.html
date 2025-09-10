@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Users and Roles Visibility</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test { margin: 15px 0; padding: 20px; border-radius: 10px; }
+        .success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4caf50; }
+        .error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+        .info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196f3; }
+        .warning { background: rgba(255, 152, 0, 0.2); border: 1px solid #ff9800; }
+        pre { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
+        .button { 
+            background: #4caf50; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            margin: 10px 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .button:hover { background: #45a049; transform: translateY(-2px); }
+        .button.secondary { background: #2196f3; }
+        .button.secondary:hover { background: #1976d2; }
+        .button.danger { background: #f44336; }
+        .button.danger:hover { background: #da190b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👥 Исправление отображения пользователей и ролей</h1>
+        
+        <div class="test info">
+            <h3>🔍 Диагностика проблемы с отображением</h3>
+            <p>Проверяем почему не видны пользователи и роли в приложении</p>
+            <button class="button" onclick="checkLocalStorage()">1️⃣ ПРОВЕРИТЬ LOCALSTORAGE</button>
+            <button class="button" onclick="testDatabaseConnection()">2️⃣ ТЕСТ ПОДКЛЮЧЕНИЯ БД</button>
+            <button class="button" onclick="fixLocalStorageSettings()">3️⃣ ИСПРАВИТЬ НАСТРОЙКИ</button>
+            <button class="button secondary" onclick="testUsersPage()">4️⃣ ТЕСТ СТРАНИЦЫ ПОЛЬЗОВАТЕЛЕЙ</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const config = {
+            url: 'https://ssvazdgnmatbdynkhkqo.supabase.co',
+            apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0'
+        };
+
+        function addResult(title, type, data) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = \`test \${type}\`;
+            div.innerHTML = \`
+                <h3>\${title}</h3>
+                <pre>\${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+            \`;
+            results.appendChild(div);
+        }
+
+        window.checkLocalStorage = async function() {
+            addResult('🔍 Проверка настроек localStorage...', 'info', 'Проверяем что настройки правильно сохранены');
+            
+            // Проверяем все ключи localStorage
+            const relevantKeys = [
+                'externalDatabase',
+                'supabaseSettings', 
+                'dataSourceConfig',
+                'authConfig',
+                'userSettings'
+            ];
+            
+            const localStorageStatus = {};
+            
+            relevantKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                localStorageStatus[key] = {
+                    exists: !!value,
+                    value: value ? (value.length > 200 ? value.substring(0, 200) + '...' : value) : null
+                };
+                
+                if (value) {
+                    try {
+                        const parsed = JSON.parse(value);
+                        localStorageStatus[key].parsed = parsed;
+                        localStorageStatus[key].valid_json = true;
+                        
+                        // Специфическая проверка для externalDatabase
+                        if (key === 'externalDatabase') {
+                            localStorageStatus[key].has_url = !!parsed.url;
+                            localStorageStatus[key].has_api_key = !!parsed.apiKey;
+                            localStorageStatus[key].url_correct = parsed.url === config.url;
+                        }
+                    } catch (e) {
+                        localStorageStatus[key].valid_json = false;
+                        localStorageStatus[key].parse_error = e.message;
+                    }
+                }
+            });
+            
+            // Определяем статус
+            const externalDbOk = localStorageStatus.externalDatabase?.has_url && 
+                               localStorageStatus.externalDatabase?.has_api_key && 
+                               localStorageStatus.externalDatabase?.url_correct;
+            
+            addResult(externalDbOk ? '✅ LocalStorage настройки корректные' : '❌ Проблема с настройками localStorage', 
+                     externalDbOk ? 'success' : 'error', 
+                     localStorageStatus);
+            
+            return externalDbOk;
+        };
+
+        window.testDatabaseConnection = async function() {
+            addResult('🌐 Тестирование подключения к базе данных...', 'info', 'Проверяем доступность пользователей и ролей');
+            
+            try {
+                // Тест пользователей
+                const usersResponse = await fetch(\`\${config.url}/rest/v1/users?limit=3\`, {
+                    headers: {
+                        'apikey': config.apiKey,
+                        'Authorization': \`Bearer \${config.apiKey}\`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (usersResponse.ok) {
+                    const users = await usersResponse.json();
+                    addResult('✅ Пользователи доступны в БД', 'success', {
+                        status: 'CONNECTED',
+                        users_count: users.length,
+                        sample_users: users.map(u => ({ id: u.id, email: u.email, name: u.name, status: u.status })),
+                        database_table: 'users'
+                    });
+                } else {
+                    addResult('❌ Ошибка доступа к пользователям', 'error', {
+                        status: usersResponse.status,
+                        error: await usersResponse.text()
+                    });
+                }
+
+                // Тест ролей  
+                const rolesResponse = await fetch(\`\${config.url}/rest/v1/roles?limit=3\`, {
+                    headers: {
+                        'apikey': config.apiKey,
+                        'Authorization': \`Bearer \${config.apiKey}\`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (rolesResponse.ok) {
+                    const roles = await rolesResponse.json();
+                    addResult('✅ Роли доступны в БД', 'success', {
+                        status: 'CONNECTED',
+                        roles_count: roles.length,
+                        sample_roles: roles.map(r => ({ id: r.id, code: r.code, name: r.name, scope: r.scope })),
+                        database_table: 'roles'
+                    });
+                } else {
+                    addResult('❌ Ошибка доступа к ролям', 'error', {
+                        status: rolesResponse.status,
+                        error: await rolesResponse.text()
+                    });
+                }
+
+                // Тест связей пользователь-роли
+                const userRolesResponse = await fetch(\`\${config.url}/rest/v1/user_roles?limit=3\`, {
+                    headers: {
+                        'apikey': config.apiKey,
+                        'Authorization': \`Bearer \${config.apiKey}\`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (userRolesResponse.ok) {
+                    const userRoles = await userRolesResponse.json();
+                    addResult('✅ Связи пользователь-роли доступны', 'success', {
+                        status: 'CONNECTED',
+                        user_roles_count: userRoles.length,
+                        sample_assignments: userRoles.map(ur => ({ user_id: ur.user_id, role_id: ur.role_id })),
+                        database_table: 'user_roles'
+                    });
+                } else {
+                    addResult('❌ Ошибка доступа к связям пользователь-роли', 'error', {
+                        status: userRolesResponse.status,
+                        error: await userRolesResponse.text()
+                    });
+                }
+                
+            } catch (error) {
+                addResult('❌ Критическая ошибка подключения к БД', 'error', {
+                    error: error.message,
+                    note: 'Возможно проблема с сетью или конфигурацией'
+                });
+            }
+        };
+
+        window.fixLocalStorageSettings = async function() {
+            addResult('🔧 Исправление настроек localStorage...', 'info', 'Устанавливаем правильные настройки для доступа к пользователям и ролям');
+            
+            // 1. Настройка externalDatabase (главная настройка для внешних сервисов)
+            const externalDbConfig = {
+                url: config.url,
+                apiKey: config.apiKey,
+                status: 'connected',
+                lastUpdated: new Date().toISOString(),
+                description: 'Подключение к внешней базе данных пользователей и ролей'
+            };
+            localStorage.setItem('externalDatabase', JSON.stringify(externalDbConfig));
+            
+            // 2. Настройка supabaseSettings (для совместимости)
+            const supabaseConfig = {
+                url: config.url,
+                apiKey: config.apiKey,
+                status: 'connected',
+                lastUpdated: new Date().toISOString()
+            };
+            localStorage.setItem('supabaseSettings', JSON.stringify(supabaseConfig));
+            
+            // 3. Настройка dataSourceConfig (для индикаторов)
+            const dataSourceConfig = {
+                useDatabase: true,
+                databaseConnected: true,
+                supabaseUrl: config.url,
+                apiKey: config.apiKey,
+                lastCheck: new Date().toISOString(),
+                status: 'connected'
+            };
+            localStorage.setItem('dataSourceConfig', JSON.stringify(dataSourceConfig));
+
+            // 4. Уведомляем приложение об изменениях
+            window.dispatchEvent(new Event('storage'));
+            window.dispatchEvent(new CustomEvent('localStorageChanged'));
+
+            addResult('✅ Настройки localStorage исправлены', 'success', {
+                message: 'Все настройки для работы с пользователями и ролями установлены',
+                configs_applied: {
+                    externalDatabase: 'CONFIGURED',
+                    supabaseSettings: 'CONFIGURED', 
+                    dataSourceConfig: 'CONFIGURED'
+                },
+                database_url: config.url,
+                next_step: 'Перейдите на страницу пользователей и обновите её'
+            });
+        };
+
+        window.testUsersPage = async function() {
+            addResult('🧪 Тестирование страницы пользователей...', 'info', 'Проверяем доступность и работу страницы');
+            
+            try {
+                // Проверяем доступность страницы пользователей
+                const usersPageResponse = await fetch('http://localhost:3005/admin/users', {
+                    method: 'GET',
+                    headers: { 'Accept': 'text/html' }
+                });
+
+                if (usersPageResponse.ok) {
+                    addResult('✅ Страница пользователей доступна', 'success', {
+                        url: 'http://localhost:3005/admin/users',
+                        status: usersPageResponse.status,
+                        accessible: true
+                    });
+                    
+                    // Открываем страницу в новой вкладке
+                    window.open('http://localhost:3005/admin/users', '_blank');
+                    
+                } else {
+                    // Пробуем альтернативный URL
+                    const usersPageResponse2 = await fetch('http://localhost:3005/admin/users-and-roles', {
+                        method: 'GET',
+                        headers: { 'Accept': 'text/html' }
+                    });
+
+                    if (usersPageResponse2.ok) {
+                        addResult('✅ Страница пользователей найдена (альтернативный URL)', 'success', {
+                            url: 'http://localhost:3005/admin/users-and-roles',
+                            status: usersPageResponse2.status
+                        });
+                        window.open('http://localhost:3005/admin/users-and-roles', '_blank');
+                    } else {
+                        addResult('❌ Страница пользователей недоступна', 'error', {
+                            tried_urls: [
+                                'http://localhost:3005/admin/users',
+                                'http://localhost:3005/admin/users-and-roles'
+                            ],
+                            note: 'Убедитесь что dev server запущен'
+                        });
+                    }
+                }
+
+                // Проверяем финальное состояние localStorage
+                const finalCheck = {
+                    externalDatabase: localStorage.getItem('externalDatabase') ? 'SET' : 'MISSING',
+                    supabaseSettings: localStorage.getItem('supabaseSettings') ? 'SET' : 'MISSING',
+                    dataSourceConfig: localStorage.getItem('dataSourceConfig') ? 'SET' : 'MISSING'
+                };
+
+                const allConfigured = Object.values(finalCheck).every(v => v === 'SET');
+
+                addResult('📋 Финальная проверка конфигурации', allConfigured ? 'success' : 'warning', {
+                    configuration_status: finalCheck,
+                    all_configured: allConfigured,
+                    users_should_be_visible: allConfigured ? 'YES' : 'NO',
+                    roles_should_be_visible: allConfigured ? 'YES' : 'NO',
+                    message: allConfigured ? 'Пользователи и роли должны отображаться' : 'Некоторые настройки отсутствуют'
+                });
+                
+            } catch (error) {
+                addResult('❌ Ошибка тестирования страницы', 'error', {
+                    error: error.message,
+                    note: 'Проверьте что приложение запущено'
+                });
+            }
+        };
+
+        // Автоматически запускаем проверку при загрузке
+        setTimeout(checkLocalStorage, 1000);
+        setTimeout(testDatabaseConnection, 2000);
+    </script>
+</body>
+</html>

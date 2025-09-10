@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка настроек внешней БД</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .success { border-color: #28a745; background-color: #d4edda; }
+        .error { border-color: #dc3545; background-color: #f8d7da; }
+        .warning { border-color: #ffc107; background-color: #fff3cd; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Проверка настроек внешней базы данных</h1>
+        
+        <div class="section">
+            <h3>Действия</h3>
+            <button onclick="checkLocalStorage()">Проверить localStorage</button>
+            <button onclick="testExternalUsersService()">Тест ExternalUsersService</button>
+            <button onclick="testExternalRolesService()">Тест ExternalRolesService</button>
+            <button onclick="clearCache()">Очистить кэш сервисов</button>
+        </div>
+
+        <div id="localStorage-status" class="section">
+            <h3>Статус localStorage</h3>
+            <div id="localStorage-content">Нажмите "Проверить localStorage" для проверки</div>
+        </div>
+
+        <div id="users-service-status" class="section">
+            <h3>Статус ExternalUsersService</h3>
+            <div id="users-service-content">Нажмите "Тест ExternalUsersService" для проверки</div>
+        </div>
+
+        <div id="roles-service-status" class="section">
+            <h3>Статус ExternalRolesService</h3>
+            <div id="roles-service-content">Нажмите "Тест ExternalRolesService" для проверки</div>
+        </div>
+
+        <div id="logs" class="section">
+            <h3>Логи</h3>
+            <pre id="logs-content">Логи появятся здесь...</pre>
+        </div>
+    </div>
+
+    <script>
+        const logs = document.getElementById('logs-content');
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.textContent += `[${timestamp}] ${message}\n`;
+        }
+
+        function checkLocalStorage() {
+            addLog('Проверяем localStorage...');
+            
+            const externalDatabaseSettings = localStorage.getItem('externalDatabase');
+            const statusDiv = document.getElementById('localStorage-status');
+            const contentDiv = document.getElementById('localStorage-content');
+
+            if (!externalDatabaseSettings) {
+                statusDiv.className = 'section error';
+                contentDiv.innerHTML = '<strong>❌ Настройки не найдены</strong><br>В localStorage нет ключа "externalDatabase"';
+                addLog('❌ localStorage: настройки не найдены');
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(externalDatabaseSettings);
+                statusDiv.className = 'section success';
+                contentDiv.innerHTML = `
+                    <strong>✅ Настройки найдены</strong><br>
+                    <strong>URL:</strong> ${parsed.url || 'НЕ УКАЗАН'}<br>
+                    <strong>API Key:</strong> ${parsed.apiKey ? '***скрыт***' : 'НЕ УКАЗАН'}<br>
+                    <strong>Полные данные:</strong>
+                    <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                `;
+                addLog('✅ localStorage: настройки найдены');
+                addLog(`URL: ${parsed.url}`);
+                addLog(`API Key: ${parsed.apiKey ? 'есть' : 'нет'}`);
+            } catch (error) {
+                statusDiv.className = 'section error';
+                contentDiv.innerHTML = `<strong>❌ Ошибка парсинга</strong><br>${error.message}`;
+                addLog(`❌ localStorage: ошибка парсинга - ${error.message}`);
+            }
+        }
+
+        async function testExternalUsersService() {
+            addLog('Тестируем ExternalUsersService...');
+            
+            try {
+                const statusDiv = document.getElementById('users-service-status');
+                const contentDiv = document.getElementById('users-service-content');
+                
+                statusDiv.className = 'section warning';
+                contentDiv.innerHTML = 'Выполняется тест...';
+
+                // Динамически импортируем сервис
+                const module = await import('/src/services/externalUsersService.js');
+                const service = module.externalUsersService;
+                
+                addLog('✅ Сервис импортирован успешно');
+                
+                // Тестируем подключение
+                const testResult = await service.testConnection();
+                
+                if (testResult.success) {
+                    statusDiv.className = 'section success';
+                    contentDiv.innerHTML = '<strong>✅ Подключение успешно</strong>';
+                    addLog('✅ ExternalUsersService: подключение успешно');
+                    
+                    // Пробуем получить статистику
+                    try {
+                        const stats = await service.getUserStats();
+                        contentDiv.innerHTML += `<br><strong>Статистика:</strong><pre>${JSON.stringify(stats, null, 2)}</pre>`;
+                        addLog(`✅ Статистика пользователей: ${JSON.stringify(stats)}`);
+                    } catch (statsError) {
+                        addLog(`⚠️ Ошибка получения статистики: ${statsError.message}`);
+                    }
+                } else {
+                    statusDiv.className = 'section error';
+                    contentDiv.innerHTML = `<strong>❌ Ошибка подключения</strong><br>${testResult.error}`;
+                    addLog(`❌ ExternalUsersService: ${testResult.error}`);
+                }
+            } catch (error) {
+                document.getElementById('users-service-status').className = 'section error';
+                document.getElementById('users-service-content').innerHTML = `<strong>❌ Критическая ошибка</strong><br>${error.message}`;
+                addLog(`💥 Критическая ошибка ExternalUsersService: ${error.message}`);
+            }
+        }
+
+        async function testExternalRolesService() {
+            addLog('Тестируем ExternalRolesService...');
+            
+            try {
+                const statusDiv = document.getElementById('roles-service-status');
+                const contentDiv = document.getElementById('roles-service-content');
+                
+                statusDiv.className = 'section warning';
+                contentDiv.innerHTML = 'Выполняется тест...';
+
+                // Динамически импортируем сервис
+                const module = await import('/src/services/externalRolesService.js');
+                const service = module.externalRolesService;
+                
+                addLog('✅ Сервис импортирован успешно');
+                
+                // Тестируем подключение
+                const testResult = await service.testConnection();
+                
+                if (testResult.success) {
+                    statusDiv.className = 'section success';
+                    contentDiv.innerHTML = '<strong>✅ Подключение успешно</strong>';
+                    addLog('✅ ExternalRolesService: подключение успешно');
+                    
+                    // Пробуем получить статистику
+                    try {
+                        const stats = await service.getRoleStats();
+                        contentDiv.innerHTML += `<br><strong>Статистика:</strong><pre>${JSON.stringify(stats, null, 2)}</pre>`;
+                        addLog(`✅ Статистика ролей: ${JSON.stringify(stats)}`);
+                    } catch (statsError) {
+                        addLog(`⚠️ Ошибка получения статистики: ${statsError.message}`);
+                    }
+                } else {
+                    statusDiv.className = 'section error';
+                    contentDiv.innerHTML = `<strong>❌ Ошибка подключения</strong><br>${testResult.error}`;
+                    addLog(`❌ ExternalRolesService: ${testResult.error}`);
+                }
+            } catch (error) {
+                document.getElementById('roles-service-status').className = 'section error';
+                document.getElementById('roles-service-content').innerHTML = `<strong>❌ Критическая ошибка</strong><br>${error.message}`;
+                addLog(`💥 Критическая ошибка ExternalRolesService: ${error.message}`);
+            }
+        }
+
+        async function clearCache() {
+            addLog('Очищаем кэш сервисов...');
+            
+            try {
+                const usersModule = await import('/src/services/externalUsersService.js');
+                const rolesModule = await import('/src/services/externalRolesService.js');
+                
+                usersModule.externalUsersService.clearConfigCache();
+                rolesModule.externalRolesService.clearConfigCache();
+                
+                addLog('✅ Кэш очищен для обоих сервисов');
+            } catch (error) {
+                addLog(`❌ Ошибка очистки кэша: ${error.message}`);
+            }
+        }
+
+        // Автоматически проверяем localStorage при загрузке
+        window.addEventListener('load', () => {
+            addLog('Страница загружена');
+            checkLocalStorage();
+        });
+    </script>
+</body>
+</html>

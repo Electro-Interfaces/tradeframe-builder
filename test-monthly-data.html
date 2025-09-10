@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест данных за месяц</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+        }
+        .info { color: #3498db; }
+        .success { color: #27ae60; }
+        .error { color: #e74c3c; }
+        .warning { color: #f39c12; }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .button {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗓️ Тест данных за месяц - NetworkOverview</h1>
+        
+        <div class="section">
+            <h2>📊 Проблема</h2>
+            <p><strong>Проблема:</strong> Показывает данные только за один день (09.09) несмотря на то, что мы установили:</p>
+            <ul>
+                <li>Дата начала: месяц назад (08.09.2025)</li>
+                <li>Дата окончания: сегодня (09.09.2025)</li>
+                <li>Группировка: "По дням" по умолчанию</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Что нужно проверить:</h2>
+            <p>Откройте страницу ниже, обновите данные кнопкой "Обновить" и проверьте в консоли:</p>
+            <ol>
+                <li><strong>Параметры запроса STS API:</strong> правильные ли даты отправляются?</li>
+                <li><strong>Ответ STS API:</strong> приходят ли транзакции за весь месяц?</li>
+                <li><strong>Обработка данных:</strong> правильно ли группируются по дням?</li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Действия</h2>
+            <button class="button" onclick="refreshPage()">🔄 Обновить iframe</button>
+            <button class="button" onclick="openInNewTab()">🔗 Открыть в новой вкладке</button>
+            
+            <p><strong>Шаги тестирования:</strong></p>
+            <ol>
+                <li>Откройте DevTools (F12)</li>
+                <li>Перейдите в Console</li>
+                <li>Нажмите кнопку "Обновить" на странице</li>
+                <li>Найдите логи начинающиеся с:</li>
+                <ul>
+                    <li><code>🔍 Параметры: network=... tradingPointId=...</code></li>
+                    <li><code>✅ Загружено ... транзакций из STS API</code></li>
+                    <li><code>📊 DailyStats результат:</code></li>
+                </ul>
+            </ol>
+            
+            <iframe src="http://localhost:3001/network" title="Network Overview Page"></iframe>
+        </div>
+
+        <div class="section">
+            <h2>💡 Возможные причины:</h2>
+            <div class="log">
+<span class="info">1. STS API возвращает данные только за один день</span>
+   - Возможно, в базе данных STS нет транзакций за весь месяц
+   - Возможно, запрос ограничивается одним днем
+
+<span class="warning">2. Неправильные параметры даты в запросе</span>
+   - dateFrom и dateTo не передаются правильно в STS API
+   - Формат дат неправильный
+
+<span class="success">3. Все правильно, просто данных за месяц нет</span>
+   - В STS действительно есть данные только за 09.09.2025
+   - Нужно загрузить больше тестовых данных
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🚨 Что искать в консоли:</h2>
+            <div class="log">
+🔍 Параметры: network=NETWORK_ID, tradingPointId=POINT_ID
+📅 Даты запроса: от 2025-08-09 до 2025-09-09
+
+✅ Загружено 487 транзакций из STS API
+📊 DailyStats результат: {
+  "2025-09-09": {revenue: 580202, count: 488},
+  "2025-09-08": {revenue: 123456, count: 87},    ← ЭТО ДОЛЖНО БЫТЬ!
+  "2025-09-07": {revenue: 98765, count: 45},     ← ЭТО ДОЛЖНО БЫТЬ!
+  ...
+}
+            </div>
+            <p><strong>Если в DailyStats только один день</strong> - проблема в STS API или данных</p>
+            <p><strong>Если в DailyStats много дней</strong> - проблема в отображении графика</p>
+        </div>
+    </div>
+
+    <script>
+        console.log('🚀 Страница тестирования данных за месяц загружена');
+        console.log('⏰ Время:', new Date().toLocaleString('ru-RU'));
+        
+        function refreshPage() {
+            const iframe = document.querySelector('iframe');
+            iframe.src = iframe.src;
+            console.log('🔄 iframe обновлен');
+        }
+        
+        function openInNewTab() {
+            window.open('http://localhost:3001/network', '_blank');
+            console.log('🔗 Открыт в новой вкладке');
+        }
+        
+        // Проверим даты
+        const now = new Date();
+        const monthAgo = new Date();
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        
+        console.log('📅 Текущие настройки дат:');
+        console.log('Сегодня:', now.toISOString().split('T')[0]);
+        console.log('Месяц назад:', monthAgo.toISOString().split('T')[0]);
+    </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { HelpButton } from "@/components/help/HelpButton";
 import { useSelection } from "@/context/SelectionContext";
+import { tradingPointsService } from "@/services/tradingPointsService";
 import { 
   tradingNetworkAPI, 
   TradingNetworkPrice, 
@@ -49,6 +51,9 @@ import {
 import { nomenclatureService } from "@/services/nomenclatureService";
 import { FuelNomenclature } from "@/types/nomenclature";
 import { pricesCacheService, CachedFuelPrice } from "@/services/pricesCache";
+import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from "@/components/data-source/DataSourceIndicator";
+import { externalPricesService, ExternalPrice } from "@/services/externalPricesService";
+import { stsApiService, Price as STSPrice } from "@/services/stsApi";
 
 // Types - теперь используем CachedFuelPrice как основной тип
 type FuelPrice = CachedFuelPrice;
@@ -201,7 +206,7 @@ const mockJournalEntries: PriceJournalEntry[] = [
 const priceFormSchema = z.object({
   fuelId: z.string().min(1, "Выберите вид топлива"),
   priceNet: z.number().min(0, "Цена должна быть положительной"),
-  vatRate: z.number().min(0).max(100, "НДС должен быть от 0 до 100%"),
+  vatRate: z.number().optional(),
   unit: z.string().min(1, "Выберите единицу измерения"),
   applyAt: z.date({ required_error: "Укажите дату применения" }),
   comment: z.string().optional(),
@@ -212,7 +217,9 @@ const priceFormSchema = z.object({
 type PriceFormData = z.infer<typeof priceFormSchema>;
 
 export default function Prices() {
-  const { selectedTradingPoint } = useSelection();
+  const isMobile = useIsMobile();
+  const { selectedTradingPoint, selectedNetwork } = useSelection();
+  const { hasExternalDatabase } = useDataSourceInfo();
   
   console.log('🏪 Prices page: выбранная торговая точка:', selectedTradingPoint);
   console.log('🏪 Prices page: тип selectedTradingPoint:', typeof selectedTradingPoint);
@@ -233,12 +240,21 @@ export default function Prices() {
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
   const [hasChanges, setHasChanges] = useState(false);
+  
+  // Состояния для работы с внешним API
+  const [dataSourceType, setDataSourceType] = useState<'external-api' | 'cache' | 'sts-api'>('cache');
+  const [externalPricesConfigured, setExternalPricesConfigured] = useState(false);
+  const [loadingFromExternalAPI, setLoadingFromExternalAPI] = useState(false);
+  const [stsApiConfigured, setStsApiConfigured] = useState(false);
+  const [loadingFromSTSAPI, setLoadingFromSTSAPI] = useState(false);
+  const [initialLoadTriggered, setInitialLoadTriggered] = useState(false);
+  const [pageReady, setPageReady] = useState(false);
 
   const form = useForm<PriceFormData>({
     resolver: zodResolver(priceFormSchema),
     defaultValues: {
       priceNet: 0,
-      vatRate: 20,
+      vatRate: 0,
       unit: "Л",
       applyAt: new Date(),
       overrideNetwork: false
@@ -246,23 +262,103 @@ export default function Prices() {
   });
 
   // Автоматическая загрузка цен при выборе торговой точки
+  // Упрощенная автоматическая загрузка цен при инициализации
   useEffect(() => {
-    let tradingPointId;
-    if (typeof selectedTradingPoint === 'string') {
-      tradingPointId = selectedTradingPoint;
-    } else if (selectedTradingPoint && typeof selectedTradingPoint === 'object') {
-      tradingPointId = selectedTradingPoint.id;
-    }
+    console.log('🔧 Инициализация раздела цен...');
     
-    if (tradingPointId) {
-      console.log('🔄 Загружаем цены для точки:', tradingPointId);
-      loadPricesFromCache(tradingPointId);
+    // Обеспечиваем правильную настройку STS API
+    ensureSTSApiConfigured();
+    setStsApiConfigured(true);
+    
+    // Автоматически загружаем данные цен при выборе торговой точки
+    if (selectedTradingPoint && selectedTradingPoint !== 'all') {
+      console.log('🚀 Автоматическая загрузка цен для торговой точки:', selectedTradingPoint);
+      loadPricesFromSTSAPI();
     } else {
-      // Если торговая точка не выбрана, отключаем состояние загрузки
+      // Если торговая точка не выбрана, сбрасываем состояние
       setCurrentPrices([]);
       setIsInitialLoading(false);
     }
   }, [selectedTradingPoint]);
+
+  // Отдельный эффект для запуска STS API когда он становится доступным (упрощенный)
+  useEffect(() => {
+    // Этот эффект теперь менее важен, так как основная логика в предыдущем useEffect
+    console.log('🔄 Проверка доступности STS API:', {
+      stsApiConfigured,
+      selectedTradingPoint: !!selectedTradingPoint,
+      initialLoadTriggered
+    });
+  }, [stsApiConfigured, selectedTradingPoint, initialLoadTriggered]);
+
+  // Принудительный запуск STS API через небольшую задержку (резервный механизм)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      console.log('🔥 Резервная проверка STS API через 1.5 секунды');
+      
+      const stsConfig = localStorage.getItem('sts-api-config');
+      const isConfigured = !!(stsConfig && JSON.parse(stsConfig).enabled);
+      const currentSource = currentPrices.length > 0 ? currentPrices[0]?.source : null;
+      
+      console.log('🔥 Резервное состояние:', {
+        isConfigured,
+        hasSelectedTradingPoint: !!selectedTradingPoint,
+        currentSource,
+        pricesCount: currentPrices.length,
+        initialLoadTriggered
+      });
+
+      // Резервный запуск только если STS настроен, селекторы готовы, и цены не из STS API
+      const selectorsReady = selectedNetwork && selectedNetwork.external_id;
+      console.log('🔍 РЕЗЕРВНАЯ проверка готовности селекторов:', {
+        isConfigured,
+        selectedTradingPoint: !!selectedTradingPoint,
+        selectorsReady,
+        selectedNetwork: selectedNetwork ? {
+          id: selectedNetwork.id,
+          external_id: selectedNetwork.external_id,
+          name: selectedNetwork.name
+        } : 'НЕ ГОТОВО',
+        currentSource
+      });
+      
+      if (isConfigured && selectedTradingPoint && selectedTradingPoint !== 'all' && 
+          selectorsReady && currentSource !== 'sts-api') {
+        console.log('🚀 РЕЗЕРВНЫЙ запуск STS API!');
+        setStsApiConfigured(true);
+        loadPricesFromSTSAPI();
+      } else {
+        // Принудительно сбрасываем loading если ничего не запускаем
+        console.log('⚠️ Принудительно сбрасываем loading состояние', {
+          reasonsNotToStart: {
+            configNotReady: !isConfigured,
+            tradingPointNotSelected: !selectedTradingPoint || selectedTradingPoint === 'all',
+            selectorsNotReady: !selectorsReady,
+            alreadyFromSTS: currentSource === 'sts-api'
+          }
+        });
+        setIsInitialLoading(false);
+      }
+      
+      setPageReady(true);
+    }, 1500); // Увеличиваем время до 1.5 сек
+
+    return () => clearTimeout(timer);
+  }, []); // Запускаем только один раз при монтировании
+
+  // Проверяем настройку внешнего API при инициализации
+  useEffect(() => {
+    setExternalPricesConfigured(externalPricesService.isConfigured());
+    
+    // Проверяем настройки STS API
+    const stsConfig = localStorage.getItem('sts-api-config');
+    const isConfigured = !!(stsConfig && JSON.parse(stsConfig).enabled);
+    console.log('🔧 Проверка настроек STS API:', {
+      stsConfig: stsConfig ? JSON.parse(stsConfig) : null,
+      isConfigured
+    });
+    setStsApiConfigured(isConfigured);
+  }, [hasExternalDatabase]);
 
   // Загрузка номенклатуры топлива
   useEffect(() => {
@@ -295,8 +391,12 @@ export default function Prices() {
   const filteredPrices = currentPrices;
 
   // Utility functions
-  const formatPrice = (kopecks: number) => {
-    return (kopecks / 100).toFixed(2) + " ₽";
+  const formatPrice = (value: number, isInKopecks: boolean = true) => {
+    if (isInKopecks) {
+      return (value / 100).toFixed(2) + " ₽";
+    } else {
+      return value.toFixed(2) + " ₽";
+    }
   };
 
   const calculateGrossPrice = (net: number, vatRate: number) => {
@@ -369,6 +469,251 @@ export default function Prices() {
     }
   };
 
+  // Загрузка цен из внешнего API (по аналогии с резервуарами)
+  const loadPricesFromExternalAPI = async () => {
+    if (!externalPricesService.isConfigured()) {
+      console.log('External Prices API не настроен');
+      return;
+    }
+
+    setLoadingFromExternalAPI(true);
+    try {
+      console.log('🔄 Загружаем цены из внешнего API...');
+      
+      // Получаем параметры из селекторов приложения
+      const contextParams = {
+        networkId: selectedNetwork?.external_id || selectedNetwork?.code,
+        tradingPointId: selectedTradingPoint && selectedTradingPoint !== 'all' ? 
+          (typeof selectedTradingPoint === 'string' ? selectedTradingPoint : selectedTradingPoint.id) : 
+          undefined,
+        status: ['active', 'scheduled'] // загружаем активные и запланированные цены
+      };
+      
+      console.log('🔍 Параметры запроса цен из селекторов:', {
+        selectedNetwork: selectedNetwork ? {
+          id: selectedNetwork.id,
+          name: selectedNetwork.name,
+          external_id: selectedNetwork.external_id,
+          code: selectedNetwork.code
+        } : null,
+        selectedTradingPoint,
+        resultParams: contextParams
+      });
+      
+      const externalPrices = await externalPricesService.getPrices(contextParams);
+      
+      if (externalPrices && externalPrices.length > 0) {
+        // Преобразуем внешние цены в формат страницы
+        const transformedPrices: FuelPrice[] = externalPrices.map(price => ({
+          id: price.id,
+          fuelType: price.fuel_type,
+          fuelCode: price.fuel_code,
+          priceNet: price.price_net,
+          vatRate: price.vat_rate,
+          priceGross: price.price_gross,
+          unit: price.unit,
+          appliedFrom: price.valid_from,
+          validTo: price.valid_to,
+          status: price.status as any,
+          tradingPoint: price.trading_point_name || 'Неизвестно',
+          networkId: price.network_id || '',
+          source: 'external-api' // помечаем источник
+        }));
+
+        setCurrentPrices(transformedPrices);
+        setDataSourceType('external-api');
+        
+        toast({
+          title: "Цены загружены из внешнего API",
+          description: `Получено ${transformedPrices.length} цен из внешней базы данных`,
+        });
+      } else {
+        console.log('Цены не найдены во внешнем API, используем кэш');
+        setDataSourceType('cache');
+        // Fallback к кэшу
+        if (selectedTradingPoint) {
+          const tradingPointId = typeof selectedTradingPoint === 'string' ? 
+            selectedTradingPoint : selectedTradingPoint.id;
+          await loadPricesFromCache(tradingPointId);
+        }
+      }
+    } catch (error: any) {
+      console.error('Ошибка при загрузке цен из внешнего API:', error);
+      toast({
+        title: "Ошибка внешнего API",
+        description: `Не удалось загрузить цены из внешнего API: ${error.message}. Используются кешированные данные.`,
+        variant: "destructive"
+      });
+      
+      setDataSourceType('cache');
+      // Fallback к кэшу при ошибке
+      if (selectedTradingPoint) {
+        const tradingPointId = typeof selectedTradingPoint === 'string' ? 
+          selectedTradingPoint : selectedTradingPoint.id;
+        await loadPricesFromCache(tradingPointId);
+      }
+    } finally {
+      setLoadingFromExternalAPI(false);
+    }
+  };
+
+  // Функция для настройки STS API с правильными параметрами
+  const ensureSTSApiConfigured = () => {
+    console.log('🔧 Проверяем и настраиваем STS API конфигурацию...');
+    
+    const correctConfig = {
+      url: 'https://pos.autooplata.ru/tms',
+      username: 'UserApi',
+      password: 'lHQfLZHzB3tn',
+      enabled: true,
+      timeout: 30000,
+      retryAttempts: 3,
+      refreshInterval: 20 * 60 * 1000 // 20 минут
+    };
+    
+    // Проверяем текущую конфигурацию
+    const currentConfig = localStorage.getItem('sts-api-config');
+    let needsUpdate = false;
+    
+    if (currentConfig) {
+      try {
+        const parsed = JSON.parse(currentConfig);
+        // Проверяем, что все нужные параметры совпадают
+        if (parsed.url !== correctConfig.url || 
+            parsed.username !== correctConfig.username || 
+            parsed.password !== correctConfig.password ||
+            !parsed.enabled) {
+          needsUpdate = true;
+        }
+      } catch {
+        needsUpdate = true;
+      }
+    } else {
+      needsUpdate = true;
+    }
+    
+    if (needsUpdate) {
+      console.log('🔧 Обновляем конфигурацию STS API с правильными параметрами');
+      localStorage.setItem('sts-api-config', JSON.stringify(correctConfig));
+    }
+    
+    return correctConfig;
+  };
+
+  // Загрузка цен из STS API (упрощенная версия без дублирования авторизации)
+  const loadPricesFromSTSAPI = async () => {
+    console.log('🔧 Начинаем загрузку цен из STS API...');
+
+    setLoadingFromSTSAPI(true);
+    setDataSourceType('sts-api');
+    setIsInitialLoading(true);
+
+    try {
+      // Обеспечиваем правильную настройку STS API
+      ensureSTSApiConfigured();
+      
+      // Получаем полный объект торговой точки для получения external_id
+      if (!selectedTradingPoint || selectedTradingPoint === 'all') {
+        throw new Error('Выберите конкретную торговую точку для получения цен из STS API');
+      }
+
+      // Загружаем полные данные торговой точки
+      console.log('🔍 Загружаем торговую точку по ID:', selectedTradingPoint);
+      
+      const tradingPointObject = await tradingPointsService.getById(selectedTradingPoint);
+      if (!tradingPointObject) {
+        throw new Error('Не удалось загрузить данные торговой точки');
+      }
+
+      console.log('🏪 Полные данные торговой точки:', tradingPointObject);
+
+      // Получаем параметры из селекторов приложения
+      const contextParams = {
+        networkId: selectedNetwork?.external_id || selectedNetwork?.code || '1',
+        tradingPointId: tradingPointObject.external_id || '1'
+      };
+      
+      console.log('🔍 Параметры запроса для цен:', contextParams);
+
+      // Загружаем цены из STS API (stsApiService сам управляет авторизацией)
+      console.log('🔄 Загружаем цены из STS API...');
+      const stsPrices = await stsApiService.getPrices(contextParams);
+      
+      console.log('🔍 Исходные данные STS API:', stsPrices);
+      console.log('🔍 Первый элемент STS:', stsPrices[0]);
+      
+      if (stsPrices && stsPrices.length > 0) {
+        // Преобразуем данные STS API в формат страницы
+        const transformedPrices: FuelPrice[] = stsPrices
+          .filter(stsPrice => stsPrice && stsPrice.id && stsPrice.fuelType)
+          .map((stsPrice: STSPrice, index) => {
+          console.log(`🔍 Маппинг элемента ${index}:`, stsPrice);
+          
+          const mapped = {
+            id: String(stsPrice.id || `temp_${index}`),
+            fuelType: stsPrice.fuelType || 'Неизвестно',
+            fuelCode: stsPrice.fuelType || 'UNKNOWN',
+            priceNet: 0, // Не используется
+            vatRate: 0, // Не используется
+            priceGross: Number(stsPrice.price) || 0,
+            unit: "Л",
+            appliedFrom: stsPrice.effectiveDate,
+            status: stsPrice.status as any,
+            tradingPoint: selectedTradingPoint && typeof selectedTradingPoint === 'object' ? selectedTradingPoint.name : 'Неизвестно',
+            networkId: selectedTradingPoint && typeof selectedTradingPoint === 'object' ? selectedTradingPoint.network_id : selectedNetwork?.id || '',
+            source: 'sts-api'
+          };
+          
+          return mapped;
+        });
+
+        if (transformedPrices && transformedPrices.length > 0) {
+          setCurrentPrices(transformedPrices);
+          console.log(`✅ Загружено ${transformedPrices.length} цен из STS API`);
+        } else {
+          console.log('⚠️ Нет валидных цен для отображения');
+          setCurrentPrices([]);
+        }
+        setIsInitialLoading(false); // ВАЖНО: Сбрасываем состояние загрузки
+        
+        toast({
+          title: "Цены загружены",
+          description: `Загружено ${transformedPrices.length} цен из STS API`
+        });
+      } else {
+        console.log('ℹ️ Цены не найдены в STS API');
+        setCurrentPrices([]);
+        setIsInitialLoading(false); // ВАЖНО: Сбрасываем состояние загрузки
+        
+        // Fallback to cache if no STS data
+        if (selectedTradingPoint) {
+          const tradingPointId = typeof selectedTradingPoint === 'string' ? 
+            selectedTradingPoint : selectedTradingPoint.id;
+          await loadPricesFromCache(tradingPointId);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Ошибка загрузки цен из STS API:', error);
+      setIsInitialLoading(false);
+      setStsApiConfigured(true); // Синхронизируем состояние
+      
+      toast({
+        title: "Ошибка загрузки цен",
+        description: error instanceof Error ? error.message : 'Произошла ошибка при загрузке данных цен',
+        variant: "destructive"
+      });
+      
+      // Fallback to cache on error
+      if (selectedTradingPoint) {
+        const tradingPointId = typeof selectedTradingPoint === 'string' ? 
+          selectedTradingPoint : selectedTradingPoint.id;
+        await loadPricesFromCache(tradingPointId);
+      }
+    } finally {
+      setLoadingFromSTSAPI(false);
+    }
+  };
+
   const refreshPricesFromNetwork = async () => {
     const tradingPointId = typeof selectedTradingPoint === 'string' 
       ? selectedTradingPoint 
@@ -418,7 +763,7 @@ export default function Prices() {
     form.reset({
       fuelId: fuelType?.id || "",
       priceNet: price.priceNet / 100, // convert to rubles
-      vatRate: price.vatRate,
+      vatRate: 0,
       unit: price.unit,
       applyAt: new Date(),
       overrideNetwork: false
@@ -427,7 +772,7 @@ export default function Prices() {
   };
 
   const onSubmit = (data: PriceFormData) => {
-    const grossPrice = calculateGrossPrice(data.priceNet * 100, data.vatRate);
+    const grossPrice = data.priceNet * 100; // Цена в копейках
     const fuelType = fuelNomenclature.find(f => f.id === data.fuelId);
     
     if (selectedPrice) {
@@ -437,7 +782,7 @@ export default function Prices() {
           ? {
               ...p,
               priceNet: data.priceNet * 100,
-              vatRate: data.vatRate,
+              vatRate: 0,
               priceGross: grossPrice,
               unit: data.unit,
               appliedFrom: format(data.applyAt, "dd.MM.yyyy HH:mm"),
@@ -456,7 +801,7 @@ export default function Prices() {
         fuelType: fuelType?.name || "",
         fuelCode: fuelType?.internalCode || "",
         priceNet: data.priceNet * 100,
-        vatRate: data.vatRate,
+        vatRate: 0,
         priceGross: grossPrice,
         unit: data.unit,
         appliedFrom: format(data.applyAt, "dd.MM.yyyy HH:mm"),
@@ -479,7 +824,7 @@ export default function Prices() {
       fuelCode: fuelType?.internalCode || "",
       priceNet: data.priceNet * 100,
       priceGross: grossPrice,
-      vatRate: data.vatRate,
+      vatRate: 0,
       source: "manual",
       packageId: `pkg_${Date.now()}`,
       status: data.applyAt > new Date() ? "scheduled" : "applied",
@@ -525,7 +870,7 @@ export default function Prices() {
 
     try {
       const newGrossPrice = Math.round(parseFloat(editingValue) * 100); // Convert to kopeks
-      const newNetPrice = Math.round(newGrossPrice / (1 + price.vatRate / 100)); // Calculate net price from gross
+      const newNetPrice = newGrossPrice; // Без НДС
 
       // Save to API through tradingNetworkAPI
       const tradingPointId = typeof selectedTradingPoint === 'string' 
@@ -566,7 +911,7 @@ export default function Prices() {
         fuelCode: price.fuelCode,
         priceNet: newNetPrice,
         priceGross: newGrossPrice,
-        vatRate: price.vatRate,
+        vatRate: 0,
         source: "manual",
         packageId: `pkg_${Date.now()}`,
         status: "applied",
@@ -626,6 +971,22 @@ export default function Prices() {
             <div>
               <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
               <p className="text-slate-400 mt-2">Управление ценами на топливо с отложенным применением и журналом изменений</p>
+              <div className="mt-3">
+                <DataSourceIndicator 
+                  sources={[
+                    { 
+                      type: dataSourceType === 'external-api' ? 'external-database' : 
+                           dataSourceType === 'sts-api' ? 'local-api' : 'cache', 
+                      label: dataSourceType === 'external-api' ? 'Внешняя БД' : 
+                            dataSourceType === 'sts-api' ? 'STS API' : 'Кэш цен', 
+                      description: dataSourceType === 'external-api' ? 'Цены из внешней базы данных' : 
+                                  dataSourceType === 'sts-api' ? 'Данные из API СТС pos.autooplata.ru' : 'Локально кешированные цены',
+                      connected: dataSourceType === 'external-api' ? hasExternalDatabase : dataSourceType === 'sts-api' ? stsApiConfigured : true,
+                      count: currentPrices.length
+                    }
+                  ] as DataSourceInfo[]} 
+                />
+              </div>
             </div>
             <HelpButton route="/point/prices" variant="text" className="ml-4 flex-shrink-0" />
           </div>
@@ -644,28 +1005,23 @@ export default function Prices() {
                   Точка: АЗС-1 на Московской
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => setIsJournalDialogOpen(true)}
-                  variant="outline"
-                  className="border-slate-600 text-white hover:bg-slate-700"
-                >
-                  <History className="w-4 h-4 mr-2" />
-                  Журнал
-                </Button>
-                <Button 
-                  onClick={refreshPricesFromNetwork}
-                  variant="outline"
-                  disabled={isUpdatingPrices}
-                  className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
-                >
-                  {isUpdatingPrices ? (
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  )}
-                  Обновить из сети
-                </Button>
+              <div className={`flex gap-2 ${isMobile ? 'flex-col' : 'flex-row'}`}>
+                {/* Кнопки для разных источников данных */}
+                {stsApiConfigured && (
+                  <Button 
+                    onClick={loadPricesFromSTSAPI}
+                    variant="outline"
+                    disabled={loadingFromSTSAPI}
+                    className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    {loadingFromSTSAPI ? (
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    STS API
+                  </Button>
+                )}
                 <Button 
                   onClick={handleCreatePrice}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -681,7 +1037,7 @@ export default function Prices() {
         {/* Плитки цен */}
         {isInitialLoading ? (
           <div className="px-4 md:px-6 pb-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
               {/* Skeleton плитки для состояния загрузки */}
               {[1, 2, 3, 4].map((n) => (
                 <div key={n} className="bg-slate-800 border border-slate-700 rounded-lg p-6">
@@ -722,7 +1078,7 @@ export default function Prices() {
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 pt-3 border-t border-slate-700">
+                  <div className={`flex gap-2 pt-3 border-t border-slate-700 ${isMobile ? 'flex-col' : 'flex-row'}`}>
                     <div className="h-8 flex-1 bg-slate-700 rounded animate-pulse"></div>
                     <div className="h-8 w-8 bg-slate-700 rounded animate-pulse"></div>
                   </div>
@@ -753,18 +1109,18 @@ export default function Prices() {
           </div>
         ) : (
           <div className="px-4 md:px-6 pb-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
               {filteredPrices.map((price) => (
                 <div key={price.id} className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:shadow-xl transition-all duration-200">
                   {/* Header с видом топлива и статусом */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                        <Fuel className="w-5 h-5 text-blue-400" />
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg flex items-center justify-center border border-blue-500/20">
+                        <Fuel className="w-6 h-6 text-blue-400" />
                       </div>
                       <div>
-                        <div className="font-medium text-white text-base">{price.fuelType}</div>
-                        <div className="text-slate-400 text-sm">{price.fuelCode}</div>
+                        <div className="font-semibold text-white text-lg">{price.fuelType || 'Неизвестно'}</div>
+                        <div className="text-slate-300 text-sm font-mono bg-slate-700/50 px-2 py-1 rounded">{price.fuelCode || 'N/A'}</div>
                       </div>
                     </div>
                     <Badge variant="secondary" className={`text-xs ${getStatusColor(price.status)}`}>
@@ -777,16 +1133,8 @@ export default function Prices() {
 
                   {/* Цены */}
                   <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-sm">Цена без НДС:</span>
-                      <span className="text-white font-semibold">{formatPrice(price.priceNet)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-sm">НДС ({price.vatRate}%):</span>
-                      <span className="text-slate-300">{formatPrice(price.priceGross - price.priceNet)}</span>
-                    </div>
                     <div className="flex items-center justify-between border-t border-slate-600 pt-2">
-                      <span className="text-slate-400 text-sm">С НДС:</span>
+                      <span className="text-slate-400 text-sm">Цена:</span>
                       {editingPriceId === price.id ? (
                         <div className="flex items-center gap-2">
                           <Input
@@ -813,7 +1161,7 @@ export default function Prices() {
                           className="text-white font-bold text-lg hover:text-blue-400 hover:underline transition-colors cursor-pointer"
                           title="Нажмите для редактирования цены"
                         >
-                          {formatPrice(price.priceGross)}
+                          {formatPrice(price.priceGross, price.source !== 'sts-api')}
                         </button>
                       )}
                     </div>
@@ -821,6 +1169,10 @@ export default function Prices() {
 
                   {/* Дополнительная информация */}
                   <div className="space-y-2 mb-4 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Вид топлива:</span>
+                      <span className="text-blue-400 font-medium">{price.fuelType || 'Не указан'}</span>
+                    </div>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">Единица:</span>
                       <span className="text-white">{price.unit}</span>
@@ -832,7 +1184,7 @@ export default function Prices() {
                   </div>
 
                   {/* Действия */}
-                  <div className="flex gap-2 pt-3 border-t border-slate-700">
+                  <div className={`flex gap-2 pt-3 border-t border-slate-700 ${isMobile ? 'flex-col' : 'flex-row'}`}>
                     {editingPriceId === price.id ? (
                       <>
                         <Button
@@ -884,7 +1236,7 @@ export default function Prices() {
 
         {/* Диалог создания/редактирования цены */}
         <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-2xl'}`}>
             <DialogHeader>
               <DialogTitle>
                 {selectedPrice ? 'Редактировать цену' : 'Новая цена на топливо'}
@@ -892,7 +1244,7 @@ export default function Prices() {
             </DialogHeader>
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {/* Вид топлива */}
                 <div className="space-y-2">
                   <Label>Вид топлива *</Label>
@@ -934,10 +1286,10 @@ export default function Prices() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                {/* Цена без НДС */}
+              <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                {/* Цена */}
                 <div className="space-y-2">
-                  <Label>Цена без НДС (₽) *</Label>
+                  <Label>Цена (₽) *</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -947,27 +1299,6 @@ export default function Prices() {
                   {form.formState.errors.priceNet && (
                     <p className="text-red-500 text-sm">{form.formState.errors.priceNet.message}</p>
                   )}
-                </div>
-
-                {/* Ставка НДС */}
-                <div className="space-y-2">
-                  <Label>НДС (%) *</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    {...form.register("vatRate", { valueAsNumber: true })}
-                  />
-                </div>
-
-                {/* Цена с НДС (расчёт) */}
-                <div className="space-y-2">
-                  <Label>Цена с НДС (₽)</Label>
-                  <Input
-                    value={calculateGrossPrice(form.watch("priceNet") * 100 || 0, form.watch("vatRate") || 0) / 100}
-                    readOnly
-                    className="bg-slate-600 text-slate-300"
-                  />
                 </div>
               </div>
 
@@ -1030,7 +1361,7 @@ export default function Prices() {
 
         {/* Диалог журнала изменений */}
         <Dialog open={isJournalDialogOpen} onOpenChange={setIsJournalDialogOpen}>
-          <DialogContent className="max-w-6xl max-h-[85vh]">
+          <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh] overflow-y-auto' : 'max-w-6xl max-h-[85vh]'}`}>
             <DialogHeader className="pb-4 border-b border-slate-700">
               <DialogTitle className="text-xl font-semibold text-white">
                 Журнал изменения цен ({journalEntries.length} записей)
@@ -1051,8 +1382,7 @@ export default function Prices() {
                         <tr>
                           <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '12%'}}>ВРЕМЯ</th>
                           <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '15%'}}>ТОПЛИВО</th>
-                          <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '12%'}}>ЦЕНА БЕЗ НДС</th>
-                          <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '12%'}}>ЦЕНА С НДС</th>
+                          <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '24%'}}>ЦЕНА</th>
                           <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '10%'}}>ИСТОЧНИК</th>
                           <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '12%'}}>СТАТУС</th>
                           <th className="px-4 py-3 text-left text-slate-200 font-medium" style={{width: '15%'}}>АВТОР</th>
@@ -1076,14 +1406,9 @@ export default function Prices() {
                                 <div className="text-xs text-slate-400">{entry.fuelCode}</div>
                               </div>
                             </td>
-                            <td className="px-4 py-3">
-                              <div className="text-white font-medium">
-                                {formatPrice(entry.priceNet)}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="text-white font-medium">
-                                {formatPrice(entry.priceGross)}
+                            <td className="px-4 py-3" colSpan={2}>
+                              <div className="text-white font-medium text-center">
+                                {formatPrice(entry.priceGross, entry.source !== 'sts-api')}
                               </div>
                             </td>
                             <td className="px-4 py-3">

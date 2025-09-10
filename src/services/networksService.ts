@@ -5,98 +5,47 @@
 
 import { Network, NetworkId, NetworkInput } from '@/types/network';
 import { supabaseService as supabase } from './supabaseServiceClient';
+import { networksStore } from '@/mock/networksStore';
 
 // API сервис только с Supabase - никакого localStorage!
 export const networksService = {
-  // Получить все сети с подсчетом торговых точек (только из Supabase)
-  async getAll(): Promise<Network[]> {
+  // Получить все сети с подсчетом торговых точек (используем mock данные)
+  async getAll(userRole?: string): Promise<Network[]> {
     try {
-      console.log('🔄 Loading networks from Supabase with trading points count...');
+      console.log('🔄 Loading networks from mock store...', userRole ? `(role: ${userRole})` : '');
       
-      // Сначала загружаем все сети
-      const { data: networksData, error: networksError } = await supabase
-        .from('networks')
-        .select('id, name, description, code, status, external_id, settings, created_at, updated_at')
-        .order('name');
+      // Используем mock данные для демо
+      let networks = networksStore.getAll();
       
-      if (networksError) {
-        console.error('❌ Supabase networks error:', networksError);
-        throw new Error(`Ошибка загрузки сетей: ${networksError.message}`);
+      // Фильтрация для МенеджерБТО - только сеть БТО
+      if (userRole === 'bto_manager') {
+        networks = networks.filter(network => network.id === '15'); // Только БТО сеть
+        console.log('🔒 Filtered networks for BTO manager:', networks.map(n => n.name));
       }
-
-      if (!networksData) {
-        console.warn('⚠️ No networks data returned from Supabase');
-        return [];
-      }
-
-      console.log('✅ Loaded networks from Supabase:', networksData.length, 'networks');
       
-      // Теперь для каждой сети подсчитываем количество торговых точек
-      const networksWithCount = await Promise.all(
-        networksData.map(async (network) => {
-          const { count, error: countError } = await supabase
-            .from('trading_points')
-            .select('*', { count: 'exact', head: true })
-            .eq('network_id', network.id);
-          
-          if (countError) {
-            console.error(`❌ Error counting points for network ${network.name}:`, countError);
-          }
-          
-          return {
-            id: network.id,
-            external_id: network.external_id,
-            name: network.name,
-            description: network.description || '',
-            type: 'АЗС', // По умолчанию, можно добавить это поле в БД
-            pointsCount: count || 0, // Используем точный подсчет из Supabase
-            code: network.code,
-            status: network.status,
-            settings: network.settings,
-            created_at: network.created_at,
-            updated_at: network.updated_at
-          };
-        })
-      );
-      
-      console.log('🔍 Sample network with points count:', networksWithCount[0]);
-      return networksWithCount;
+      console.log('✅ Loaded networks from mock store:', networks.length, 'networks');
+      return networks;
       
     } catch (error) {
       console.error('💥 Critical error loading networks:', error);
-      throw error; // Пробрасываем ошибку выше, чтобы UI мог её обработать
+      throw error;
     }
   },
 
-  // Получить сеть по ID (только из Supabase)
+  // Получить сеть по ID (используем mock данные)
   async getById(id: NetworkId): Promise<Network | null> {
     try {
-      const { data, error } = await supabase
-        .from('networks')
-        .select('id, name, description, code, status, external_id, settings, created_at, updated_at')
-        .eq('id', id)
-        .single();
+      console.log('🔄 Loading network by ID from mock store:', id);
       
-      if (error) {
-        console.error('❌ Error loading network by ID:', error);
+      const network = networksStore.getById(id);
+      
+      if (!network) {
+        console.warn('⚠️ Network not found:', id);
         return null;
       }
-
-      if (!data) return null;
-
-      return {
-        id: data.id,
-        external_id: data.external_id,
-        name: data.name,
-        description: data.description || '',
-        type: 'АЗС',
-        pointsCount: 0,
-        code: data.code,
-        status: data.status,
-        settings: data.settings,
-        created_at: data.created_at,
-        updated_at: data.updated_at
-      };
+      
+      console.log('✅ Found network:', network.name);
+      return network;
     } catch (error) {
       console.error('💥 Critical error loading network by ID:', error);
       return null;

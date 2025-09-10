@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Prices Cards Fix</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e293b; color: white; }
+        pre { background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #334155; margin: 10px 0; overflow: auto; }
+        .section { margin: 20px 0; border: 1px solid #475569; padding: 15px; border-radius: 8px; }
+        .error { color: #f87171; }
+        .success { color: #10b981; }
+        .warning { color: #f59e0b; }
+        button { padding: 10px 20px; margin: 10px 5px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Prices Cards Fix</h1>
+    
+    <div class="section">
+        <h2>Проблема была исправлена:</h2>
+        <ul>
+            <li>✅ Исправлена синтаксическая ошибка с отступами в объекте mapped</li>
+            <li>✅ Исправлена переменная nordLineNetwork в SelectionContext</li>
+            <li>✅ Добавлена дополнительная отладка состояния</li>
+        </ul>
+    </div>
+    
+    <div class="section">
+        <h2>Следующие шаги:</h2>
+        <ol>
+            <li>Откройте http://localhost:3004/point/prices</li>
+            <li>Откройте консоль браузера (F12)</li>
+            <li>Проверьте логи загрузки:</li>
+        </ol>
+        <pre class="success">
+🔄 Загружаем цены для точки: [trading_point_id]
+🔄 Состояние страницы цен: {selectedTradingPoint: "...", selectedNetwork: "...", ...}
+🔧 Прямая проверка STS конфига: {isSTSConfigured: true, ...}
+✅ STS API настроен - запускаем автоматически
+        </pre>
+    </div>
+    
+    <div class="section">
+        <h2>Возможные причины если карточки все еще не заполняются:</h2>
+        <ul>
+            <li><strong>Торговая точка не выбрана</strong> - проверьте селектор вверху</li>
+            <li><strong>STS API не настроен</strong> - проверьте /settings/sts-api</li>
+            <li><strong>Ошибка загрузки данных</strong> - проверьте сетевые запросы в консоли</li>
+            <li><strong>External ID не заполнен</strong> - проверьте настройки торговой точки/сети</li>
+        </ul>
+    </div>
+    
+    <button onclick="window.open('http://localhost:3004/point/prices', '_blank')">
+        🚀 Открыть страницу цен
+    </button>
+    
+    <button onclick="window.open('http://localhost:3004/settings/sts-api', '_blank')">
+        ⚙️ Настройки STS API
+    </button>
+    
+    <script>
+        console.log('🔧 Страница тестирования исправления карточек цен готова');
+        console.log('📋 Проверьте:');
+        console.log('1. Страница цен загружается без ошибок');
+        console.log('2. Карточки цен заполняются данными');
+        console.log('3. STS API запускается автоматически');
+    </script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { networksService } from "@/services/networksService";
+import { tradingPointsService } from "@/services/tradingPointsService";
 import { Network } from "@/types/network";
+import { useAuth } from "@/contexts/AuthContext";
 
 type SelectionContextValue = {
   selectedNetwork: Network | null;
@@ -15,6 +17,7 @@ const SelectionContext = createContext<SelectionContextValue | undefined>(undefi
 export function SelectionProvider({ children }: { children: React.ReactNode }) {
   const [selectedNetworkId, setSelectedNetworkId] = useState<string>("");
   const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>("");
+  const { user } = useAuth();
 
   // Получаем объект сети по ID
   const [selectedNetwork, setSelectedNetworkState] = useState<Network | null>(null);
@@ -24,17 +27,29 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     if (!selectedNetworkId) {
       networksService.getAll().then(networks => {
         if (networks.length > 0) {
-          // Пытаемся найти сеть с external_id = "1", иначе берем первую
-          const demoNetwork = networks.find(n => n.external_id === "1");
-          const networkToSelect = demoNetwork || networks[0];
-          console.log('🎯 Выбираем сеть при старте:', networkToSelect);
-          setSelectedNetworkId(networkToSelect.id);
+          // Для МенеджерБТО ограничиваем доступ только к сети БТО
+          if (user && user.role === 'bto_manager') {
+            const btoNetwork = networks.find(n => n.external_id === "15" || n.name?.toLowerCase().includes('бто'));
+            if (btoNetwork) {
+              console.log('🎯 МенеджерБТО: выбираем сеть БТО:', btoNetwork);
+              setSelectedNetworkId(btoNetwork.id);
+            } else {
+              console.error('❌ МенеджерБТО: сеть БТО не найдена!');
+            }
+          } else {
+            // Для остальных ролей - обычная логика выбора
+            const btoNetwork = networks.find(n => n.name && n.name.toLowerCase().includes('бто'));
+            const demoNetwork = networks.find(n => n.external_id === "1");
+            const networkToSelect = btoNetwork || demoNetwork || networks[0];
+            console.log('🎯 Выбираем сеть при старте:', networkToSelect);
+            setSelectedNetworkId(networkToSelect.id);
+          }
         }
       }).catch(error => {
         console.error('❌ Ошибка загрузки сетей при старте:', error);
       });
     }
-  }, []);
+  }, [user]);
   
   useEffect(() => {
     if (selectedNetworkId) {
@@ -42,6 +57,36 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
         .then(network => {
           setSelectedNetworkState(network);
           console.log('✅ Загружена сеть:', network);
+          
+          // Автоматически выбираем торговую точку "АЗС 4" если её нет и если localStorage пуст
+          if (!selectedTradingPoint && typeof window !== 'undefined') {
+            const savedTradingPoint = localStorage.getItem("tc:selectedTradingPoint");
+            if (!savedTradingPoint || savedTradingPoint.trim() === '') {
+              tradingPointsService.getByNetworkId(selectedNetworkId)
+                .then(tradingPoints => {
+                  // Ищем торговую точку "АЗС 4" или с похожим названием
+                  const azs4Point = tradingPoints.find(p => 
+                    p.name && (
+                      p.name.toLowerCase().includes('азс 4') || 
+                      p.name.toLowerCase().includes('азс4') ||
+                      p.name.toLowerCase() === 'азс 4'
+                    )
+                  );
+                  
+                  if (azs4Point) {
+                    console.log('🎯 Автоматически выбираем торговую точку:', azs4Point);
+                    setSelectedTradingPoint(azs4Point.id);
+                  } else if (tradingPoints.length > 0) {
+                    // Если АЗС 4 не найдена, выбираем первую доступную
+                    console.log('🎯 АЗС 4 не найдена, выбираем первую торговую точку:', tradingPoints[0]);
+                    setSelectedTradingPoint(tradingPoints[0].id);
+                  }
+                })
+                .catch(error => {
+                  console.error('❌ Ошибка загрузки торговых точек:', error);
+                });
+            }
+          }
         })
         .catch(error => {
           console.error('❌ Ошибка при загрузке сети:', error);
@@ -61,10 +106,29 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
   // Обертка для setSelectedNetwork, которая сбрасывает торговую точку при смене сети
   const handleSetSelectedNetwork = (networkId: string) => {
-    setSelectedNetworkId(networkId);
-    // Сбрасываем торговую точку при смене сети
-    if (selectedTradingPoint) {
-      setSelectedTradingPoint("");
+    // Для МенеджерБТО разрешаем менять сеть только на БТО
+    if (user && user.role === 'bto_manager') {
+      // Проверяем, что новая сеть - это БТО
+      networksService.getById(networkId).then(network => {
+        if (network && (network.external_id === "15" || network.name?.toLowerCase().includes('бто'))) {
+          setSelectedNetworkId(networkId);
+          if (selectedTradingPoint) {
+            setSelectedTradingPoint("");
+          }
+        } else {
+          console.warn('🚫 МенеджерБТО: попытка доступа к запрещенной сети:', network);
+          // Не меняем сеть, остаемся на БТО
+        }
+      }).catch(error => {
+        console.error('❌ Ошибка при проверке сети:', error);
+      });
+    } else {
+      // Для остальных ролей - обычная логика
+      setSelectedNetworkId(networkId);
+      // Сбрасываем торговую точку при смене сети
+      if (selectedTradingPoint) {
+        setSelectedTradingPoint("");
+      }
     }
   };
 

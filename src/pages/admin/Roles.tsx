@@ -19,13 +19,16 @@ import {
   TableRow 
 } from '@/components/ui/table'
 import { MainLayout } from '@/components/layout/MainLayout'
-import { RoleService } from '@/services/roleService'
+import { externalRolesService } from '@/services/externalRolesService'
 import { HelpButton } from "@/components/help/HelpButton"
+import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from '@/components/data-source/DataSourceIndicator'
 import type { Role } from '@/types/auth'
 import { RoleFormDialog } from '@/components/admin/roles/RoleFormDialog'
 import { PermissionBuilder } from '@/components/admin/roles/PermissionBuilder'
+import { PredefinedRolesCreator } from '@/components/admin/roles/PredefinedRolesCreator'
 
 export default function RolesPage() {
+  const { hasExternalDatabase } = useDataSourceInfo()
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
@@ -42,8 +45,11 @@ export default function RolesPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const rolesData = await RoleService.getAllRoles()
+      console.log('Roles.tsx: Начинаем загрузку ролей...')
+      const rolesData = await externalRolesService.getAllRoles()
+      console.log('Roles.tsx: Получены роли:', rolesData)
       setRoles(rolesData)
+      console.log('Roles.tsx: Роли установлены в состояние, количество:', rolesData.length)
     } catch (error) {
       console.error('Ошибка загрузки данных:', error)
     } finally {
@@ -65,7 +71,7 @@ export default function RolesPage() {
   const handleDeleteRole = async (roleId: string) => {
     if (window.confirm('Вы уверены, что хотите удалить эту роль?')) {
       try {
-        await RoleService.deleteRole(roleId)
+        await externalRolesService.deleteRole(roleId)
         await loadData()
       } catch (error) {
         console.error('Ошибка удаления роли:', error)
@@ -108,6 +114,19 @@ export default function RolesPage() {
               <p className="text-slate-400 mt-2">
                 Управление ролями и конфигурация разрешений для контроля доступа в системе
               </p>
+              <div className="mt-3">
+                <DataSourceIndicator 
+                  sources={[
+                    { 
+                      type: 'external-database', 
+                      label: 'Внешняя БД', 
+                      description: 'Внешняя база данных ролей',
+                      connected: hasExternalDatabase,
+                      count: roles?.length || 0
+                    }
+                  ] as DataSourceInfo[]} 
+                />
+              </div>
             </div>
             <HelpButton route="/admin/roles" variant="text" className="flex-shrink-0" />
           </div>
@@ -127,14 +146,82 @@ export default function RolesPage() {
                   Всего: {roles.length}
                 </div>
               </div>
-              <Button
-                onClick={handleCreateRole}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
-                disabled={loading}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Создать роль
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCreateRole}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                  disabled={loading}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Создать роль
+                </Button>
+                <Button
+                  onClick={async () => {
+                    try {
+                      // Создаём роли через PredefinedRolesCreator сервис
+                      const rolesToCreate = [
+                        {
+                          code: 'super_admin',
+                          name: 'Суперадминистратор',
+                          description: 'Полный доступ ко всем функциям системы',
+                          scope: 'global' as const,
+                          permissions: [{ section: '*', resource: '*', actions: ['read', 'write', 'delete', 'manage', 'view_menu'] }],
+                          is_system: true,
+                          is_active: true
+                        },
+                        {
+                          code: 'network_admin',
+                          name: 'Администратор сети',
+                          description: 'Управление торговой сетью и её точками',
+                          scope: 'network' as const,
+                          permissions: [
+                            { section: 'network', resource: '*', actions: ['read', 'write', 'delete', 'manage', 'view_menu'] },
+                            { section: 'point', resource: '*', actions: ['read', 'write', 'manage', 'view_menu'] }
+                          ],
+                          is_system: true,
+                          is_active: true
+                        },
+                        {
+                          code: 'manager',
+                          name: 'Менеджер',
+                          description: 'Управление операционной деятельностью',
+                          scope: 'trading_point' as const,
+                          permissions: [
+                            { section: 'network', resource: 'overview', actions: ['read', 'view_menu'] },
+                            { section: 'point', resource: 'prices', actions: ['read', 'write', 'view_menu'] }
+                          ],
+                          is_system: true,
+                          is_active: true
+                        }
+                      ];
+
+                      let created = 0;
+                      for (const role of rolesToCreate) {
+                        try {
+                          await externalRolesService.createRole(role);
+                          created++;
+                        } catch (error) {
+                          console.error(`Ошибка создания роли ${role.code}:`, error);
+                        }
+                      }
+                      
+                      if (created > 0) {
+                        alert(`Создано ${created} ролей из ${rolesToCreate.length}`);
+                        await loadData();
+                      } else {
+                        alert('Роли не созданы. Возможно они уже существуют.');
+                      }
+                    } catch (error) {
+                      alert('Ошибка создания ролей: ' + error);
+                    }
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                  disabled={loading}
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  Создать базовые роли
+                </Button>
+              </div>
             </div>
             
             {/* Фильтры */}
@@ -165,8 +252,9 @@ export default function RolesPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="roles">Роли</TabsTrigger>
+            <TabsTrigger value="setup">Быстрая настройка</TabsTrigger>
             <TabsTrigger value="permissions">Конструктор разрешений</TabsTrigger>
           </TabsList>
 
@@ -293,6 +381,11 @@ export default function RolesPage() {
                 </div>
               </div>
             )}
+          </TabsContent>
+
+          {/* Быстрая настройка ролей */}
+          <TabsContent value="setup" className="mt-6">
+            <PredefinedRolesCreator onRolesCreated={loadData} />
           </TabsContent>
 
           {/* Конструктор разрешений */}

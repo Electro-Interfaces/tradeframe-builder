@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head><title>Clear Session</title></head>
+<body>
+<script>
+localStorage.clear();
+sessionStorage.clear();
+document.write('Session cleared! You can now test login fresh.');
+setTimeout(() => {
+    window.location.href = 'http://localhost:3000';
+}, 2000);
+</script>
+</body>
+</html>

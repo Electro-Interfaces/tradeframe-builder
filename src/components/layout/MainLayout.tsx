@@ -9,6 +9,7 @@ import { Menu, MapPin } from "lucide-react";
 import { Header } from "./Header";
 import { AppSidebar } from "./AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobile, mobileUtils } from "@/hooks/useMobile";
 import { useSelection } from "@/context/SelectionContext";
 
 interface MainLayoutProps {
@@ -21,6 +22,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [tradingPoints, setTradingPoints] = useState<TradingPoint[]>([]);
   const isMobile = useIsMobile();
+  const mobileInfo = useMobile();
   
   useEffect(() => {
     if (selectedNetwork?.id) {
@@ -31,6 +33,27 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
       setTradingPoints([]);
     }
   }, [selectedNetwork?.id]);
+
+  // Мобильная инициализация
+  useEffect(() => {
+    if (mobileInfo.isMobile) {
+      // Устанавливаем правильную высоту viewport для мобильных браузеров
+      mobileUtils.setViewportHeight();
+      
+      // Обновляем при изменении ориентации
+      const handleResize = () => {
+        mobileUtils.setViewportHeight();
+      };
+      
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('orientationchange', handleResize);
+      
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
+      };
+    }
+  }, [mobileInfo.isMobile]);
 
   const handleNetworkChange = (value: string) => {
     setSelectedNetwork(value);
@@ -43,7 +66,10 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-background text-foreground w-full max-w-none">
+      <div className={`min-h-screen bg-background text-foreground w-full max-w-none ${
+        mobileInfo.isMobile ? 'mobile-no-select mobile-scroll mobile-safe-top mobile-safe-bottom' : ''
+      } ${mobileInfo.isPWA ? 'mobile-safe-top mobile-safe-bottom' : ''}`}
+      style={mobileInfo.isMobile ? { height: 'var(--vh, 100vh)' } : {}}>
         <Header
           selectedNetwork={selectedNetwork?.id || ""}
           selectedTradingPoint={selectedTradingPoint}

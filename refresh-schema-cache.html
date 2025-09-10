@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обновление кэша схемы Supabase</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a8b;
+        }
+        .refresh-btn {
+            background: #28a745;
+            font-size: 18px;
+            padding: 15px 30px;
+        }
+        .log {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            margin-top: 20px;
+        }
+        .instructions {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Обновление кэша схемы Supabase</h1>
+        
+        <div class="instructions">
+            <h3>Проблема:</h3>
+            <p>Таблица <code>roles</code> создана в базе данных, но Supabase REST API не видит её из-за устаревшего кэша схемы.</p>
+            
+            <h3>Решения:</h3>
+            <p><strong>1. Через Dashboard:</strong> Откройте <a href="https://supabase.com/dashboard/project/ssvazdgnmatbdynkhkqo/settings/api" target="_blank">Supabase Dashboard</a> → Settings → API → Restart API</p>
+            <p><strong>2. Программно:</strong> Используйте кнопку ниже для принудительного обновления</p>
+        </div>
+
+        <button onclick="loadSettings()">1. Загрузить настройки</button>
+        <button onclick="testConnection()">2. Проверить подключение</button>
+        <button class="refresh-btn" onclick="refreshSchema()">🔄 Обновить кэш схемы</button>
+        <button onclick="testRoles()">3. Проверить таблицу roles</button>
+        <button onclick="clearLog()">Очистить лог</button>
+
+        <div id="log" class="log">Готов к обновлению кэша...\n</div>
+    </div>
+
+    <script>
+        let supabaseUrl = 'https://ssvazdgnmatbdynkhkqo.supabase.co';
+        let supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
+
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.textContent += `[${timestamp}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = 'Лог очищен...\n';
+        }
+
+        function loadSettings() {
+            try {
+                const savedSettings = localStorage.getItem('externalDatabase');
+                if (savedSettings) {
+                    const parsed = JSON.parse(savedSettings);
+                    supabaseUrl = parsed.url;
+                    supabaseKey = parsed.apiKey;
+                    log('SUCCESS: Настройки загружены из localStorage');
+                } else {
+                    log('INFO: Используются настройки по умолчанию');
+                }
+                log(`URL: ${supabaseUrl}`);
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+            }
+        }
+
+        async function testConnection() {
+            log('Тестируем подключение к API...');
+            try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`
+                    }
+                });
+
+                log(`API ответ: ${response.status} ${response.statusText}`);
+                if (response.ok) {
+                    log('SUCCESS: API доступен');
+                }
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+            }
+        }
+
+        async function refreshSchema() {
+            log('🔄 Попытка принудительного обновления кэша схемы...');
+            
+            try {
+                // Способ 1: Попробуем получить метаданные схемы
+                log('Способ 1: Запрос метаданных...');
+                const metaResponse = await fetch(`${supabaseUrl}/rest/v1/`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Accept': 'application/openapi+json'
+                    }
+                });
+                
+                if (metaResponse.ok) {
+                    log('✓ Метаданные получены');
+                } else {
+                    log(`⚠ Метаданные: ${metaResponse.status}`);
+                }
+
+                // Способ 2: Принудительный запрос к несуществующей таблице для сброса кэша
+                log('Способ 2: Сброс кэша через dummy запрос...');
+                try {
+                    await fetch(`${supabaseUrl}/rest/v1/non_existing_table_to_refresh_cache`, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`
+                        }
+                    });
+                } catch (e) {
+                    // Ожидаемая ошибка - это нормально
+                }
+
+                // Способ 3: Перезапрос схемы через OPTIONS
+                log('Способ 3: OPTIONS запрос...');
+                const optionsResponse = await fetch(`${supabaseUrl}/rest/v1/roles`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`
+                    }
+                });
+                
+                log(`OPTIONS ответ: ${optionsResponse.status}`);
+
+                log('✅ Попытки обновления кэша завершены');
+                log('🕐 Подождите 10-30 секунд и проверьте таблицу roles');
+
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+            }
+        }
+
+        async function testRoles() {
+            log('Проверяем доступность таблицы roles...');
+            try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/roles`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`Таблица roles: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ SUCCESS: Таблица roles доступна! Найдено записей: ${data.length}`);
+                    if (data.length > 0) {
+                        data.forEach((role, i) => {
+                            log(`${i+1}. ${role.name} (${role.code})`);
+                        });
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ ERROR: ${errorText}`);
+                    
+                    if (response.status === 404) {
+                        log('🔧 Рекомендация: Перезапустите API в Supabase Dashboard');
+                    }
+                }
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+            }
+        }
+
+        // Автозагрузка настроек
+        window.onload = function() {
+            log('Страница загружена');
+            loadSettings();
+        };
+    </script>
+</body>
+</html>

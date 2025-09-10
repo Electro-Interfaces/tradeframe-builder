@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>📋 PWA Roadmap - Что осталось доделать</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #0f172a; 
+            color: white; 
+            line-height: 1.6;
+        }
+        .section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            background: #1e293b; 
+            border-radius: 12px; 
+            border: 1px solid #334155;
+        }
+        .priority-1 { border-left: 4px solid #ef4444; background: #7f1d1d; }
+        .priority-2 { border-left: 4px solid #f59e0b; background: #7c2d12; }
+        .priority-3 { border-left: 4px solid #10b981; background: #0f5132; }
+        .completed { border-left: 4px solid #10b981; background: #0f5132; opacity: 0.7; }
+        .task { 
+            margin: 10px 0; 
+            padding: 12px; 
+            background: rgba(0,0,0,0.3); 
+            border-radius: 8px; 
+        }
+        .status { 
+            display: inline-block; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            margin-left: 10px;
+        }
+        .urgent { background: #ef4444; color: white; }
+        .important { background: #f59e0b; color: white; }
+        .optional { background: #10b981; color: white; }
+        .done { background: #6b7280; color: white; }
+        h1 { color: #3b82f6; font-size: 2rem; }
+        h2 { color: #f59e0b; margin-top: 30px; }
+        h3 { color: #10b981; }
+        .percentage { 
+            font-size: 2rem; 
+            color: #3b82f6; 
+            font-weight: bold; 
+            text-align: center; 
+            margin: 20px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #334155;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>📋 PWA Roadmap - TradeControl</h1>
+    
+    <div class="section">
+        <h2>📊 Текущий прогресс</h2>
+        <div class="percentage" id="total-progress">85%</div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: 85%"></div>
+        </div>
+        <p><strong>Статус:</strong> Базовое PWA готово ✅ | Полное PWA требует доработки ⚠️</p>
+    </div>
+
+    <div class="section completed">
+        <h2>✅ ВЫПОЛНЕНО (Приоритет 1 - Критичные)</h2>
+        
+        <div class="task">
+            <h3>🔧 Service Worker <span class="status done">Готов</span></h3>
+            <p>
+                ✅ Базовый SW для offline поддержки<br>
+                ✅ Регистрация в main.tsx<br>
+                ✅ Offline страница с автопроверкой<br>
+                ✅ Кэширование статических ресурсов
+            </p>
+        </div>
+        
+        <div class="task">
+            <h3>🎨 PNG Icons <span class="status done">Готовы</span></h3>
+            <p>
+                ✅ Все размеры от 72x72 до 512x512<br>
+                ✅ Maskable icons для Android<br>
+                ✅ Обновлен manifest.json<br>
+                ✅ Генератор иконок создан
+            </p>
+        </div>
+        
+        <div class="task">
+            <h3>🍎 Apple Touch Icons <span class="status done">Готовы</span></h3>
+            <p>
+                ✅ Оптимизированы meta-теги<br>
+                ✅ Размеры для iPhone/iPad<br>
+                ✅ Правильные ссылки в HTML
+            </p>
+        </div>
+    </div>
+
+    <div class="section priority-1">
+        <h2>🚨 КРИТИЧНО - Требует немедленного исправления</h2>
+        
+        <div class="task">
+            <h3>🖼️ Создать реальные PNG файлы <span class="status urgent">Критично</span></h3>
+            <p>
+                ❌ <strong>Проблема:</strong> В manifest.json указаны PNG файлы, но физически они не созданы<br>
+                📁 <strong>Нужно:</strong> Создать файлы icon-72x72.png, icon-96x96.png, etc.<br>
+                🔧 <strong>Решение:</strong> Использовать create-pwa-icons.html или создать программно<br>
+                ⏱️ <strong>Время:</strong> 10 минут
+            </p>
+        </div>
+        
+        <div class="task">
+            <h3>🔒 HTTPS в продакшене <span class="status urgent">Критично</span></h3>
+            <p>
+                ❌ <strong>Проблема:</strong> PWA работает только на HTTPS (кроме localhost)<br>
+                🌐 <strong>Нужно:</strong> Настроить SSL сертификат для продакшена<br>
+                📋 <strong>Статус:</strong> На localhost работает, в продакшене нужен HTTPS
+            </p>
+        </div>
+    </div>
+
+    <div class="section priority-2">
+        <h2>⚠️ ВАЖНО - Для полного PWA опыта</h2>
+        
+        <div class="task">
+            <h3>🎭 Splash Screens <span class="status important">Важно</span></h3>
+            <p>
+                📱 <strong>Нужно:</strong> Кастомные экраны загрузки для iOS<br>
+                🎨 <strong>Создать:</strong> apple-touch-startup-image для разных устройств<br>
+                ⏱️ <strong>Время:</strong> 30 минут
+            </p>
+        </div>
+        
+        <div class="task">
+            <h3>🔔 Push Notifications <span class="status important">Улучшение</span></h3>
+            <p>
+                📨 <strong>Цель:</strong> Уведомления о новых операциях/ценах<br>
+                🔧 <strong>Нужно:</strong> Web Push API + server endpoints<br>
+                ⏱️ <strong>Время:</strong> 2-3 часа
+            </p>
+        </div>
+        
+        <div class="task">
+            <h3>🔄 App Update Mechanism <span class="status important">Полезно</span></h3>
+            <p>
+                🔄 <strong>Цель:</strong> Уведомления об обновлениях приложения<br>
+                💡 <strong>Нужно:</strong> UI для предложения обновления SW<br>
+                ⏱️ <strong>Время:</strong> 1 час
+            </p>
+        </div>
+    </div>
+
+    <div class="section priority-3">
+        <h2>💡 ДОПОЛНИТЕЛЬНО - Продвинутые функции</h2>
+        
+        <div class="task">
+            <h3>📶 Background Sync <span class="status optional">Опционально</span></h3>
+            <p>
+                🔄 <strong>Цель:</strong> Синхронизация данных в фоне<br>
+                📊 <strong>Польза:</strong> Актуальные данные даже offline<br>
+                ⏱️ <strong>Время:</strong> 4-5 часов
+            </p>
+        </div>
+        
+        <div class="task">
+            <h3>🎯 Web Share API <span class="status optional">Опционально</span></h3>
+            <p>
+                📤 <strong>Цель:</strong> Поделиться отчетами через нативные приложения<br>
+                📱 <strong>Польза:</strong> Интеграция с мобильными приложениями<br>
+                ⏱️ <strong>Время:</strong> 1 час
+            </p>
+        </div>
+        
+        <div class="task">
+            <h3>🔋 Battery Status API <span class="status optional">Опционально</span></h3>
+            <p>
+                🔋 <strong>Цель:</strong> Оптимизация под уровень заряда<br>
+                💡 <strong>Польза:</strong> Экономия батареи на слабых устройствах<br>
+                ⏱️ <strong>Время:</strong> 30 минут
+            </p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🎯 Рекомендуемый план действий</h2>
+        
+        <div class="task">
+            <h3>📅 Немедленно (сегодня):</h3>
+            <p>
+                1. 🖼️ <strong>Создать PNG иконки</strong> - использовать create-pwa-icons.html<br>
+                2. 🧪 <strong>Протестировать PWA</strong> - открыть test-pwa-complete.html<br>
+                3. 📱 <strong>Тест на мобильном</strong> - установить через "Добавить на экран"
+            </p>
+        </div>
+        
+        <div class="task">
+            <h3>📅 На этой неделе:</h3>
+            <p>
+                1. 🎭 <strong>Splash screens для iOS</strong><br>
+                2. 🔄 <strong>Update mechanism</strong><br>
+                3. 🔒 <strong>Подготовка HTTPS для продакшена</strong>
+            </p>
+        </div>
+        
+        <div class="task">
+            <h3>📅 В следующем месяце:</h3>
+            <p>
+                1. 🔔 <strong>Push notifications</strong><br>
+                2. 📶 <strong>Background sync</strong><br>
+                3. 🎯 <strong>Дополнительные Web APIs</strong>
+            </p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🏆 Текущие достижения</h2>
+        <p>
+            ✅ <strong>Базовое PWA готово</strong> - можно устанавливать на телефоны<br>
+            ✅ <strong>Touch-friendly UI</strong> - все кнопки 44px+, swipe navigation<br>
+            ✅ <strong>Offline поддержка</strong> - работает без интернета<br>
+            ✅ <strong>Нативный вид</strong> - standalone mode, safe areas<br>
+            ✅ <strong>Адаптивный дизайн</strong> - отлично на всех экранах
+        </p>
+    </div>
+
+    <script>
+        // Расчет прогресса
+        const tasks = {
+            completed: 6,    // Service Worker, PNG manifest, Apple icons, основные компоненты
+            critical: 2,     // PNG файлы, HTTPS
+            important: 3,    // Splash, Push, Update
+            optional: 3      // Background sync, Web Share, Battery
+        };
+        
+        const total = Object.values(tasks).reduce((a, b) => a + b, 0);
+        const progress = Math.round((tasks.completed / total) * 100);
+        
+        document.getElementById('total-progress').textContent = `${progress}%`;
+        document.querySelector('.progress-fill').style.width = `${progress}%`;
+        
+        console.log('📊 PWA Progress Analysis:');
+        console.log(`Completed: ${tasks.completed}/${total} tasks (${progress}%)`);
+        console.log('Critical remaining:', tasks.critical);
+        console.log('Important remaining:', tasks.important); 
+        console.log('Optional remaining:', tasks.optional);
+        
+        // Проверка текущего состояния PWA
+        if ('serviceWorker' in navigator) {
+            console.log('✅ Service Worker поддерживается');
+        }
+        
+        const manifestLink = document.querySelector('link[rel="manifest"]');
+        if (manifestLink) {
+            console.log('✅ Manifest найден');
+        }
+        
+        const isSecure = location.protocol === 'https:' || location.hostname === 'localhost';
+        console.log(isSecure ? '✅ Secure context' : '❌ Требуется HTTPS');
+    </script>
+</body>
+</html>

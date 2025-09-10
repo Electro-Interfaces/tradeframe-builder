@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Execute Instructions Migration</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 10px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .error { background: #fde8e8; border-color: #f44336; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        .warning { background: #fff3e0; border-color: #ff9800; }
+        pre { background: #f4f4f4; padding: 10px; overflow: auto; font-size: 12px; max-height: 400px; }
+        .button { 
+            background: #4caf50; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            margin: 10px 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Выполнить миграцию инструкций</h1>
+    
+    <div class="test info">
+        <h3>📋 План миграции</h3>
+        <ol>
+            <li>Найти данные инструкций в localStorage</li>
+            <li>Загрузить их через сервис instructionsService</li>
+            <li>Перенести в базу данных Supabase через InstructionsService</li>
+            <li>Проверить результат</li>
+        </ol>
+    </div>
+    
+    <div class="test">
+        <h3>🔧 Действия</h3>
+        <button class="button" onclick="executeMigration()">🚀 ВЫПОЛНИТЬ МИГРАЦИЮ</button>
+        <button class="button" onclick="checkData()" style="background: #2196f3;">📊 ПРОВЕРИТЬ ДАННЫЕ</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        function addResult(title, type, data) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+
+        window.checkData = function() {
+            // Check localStorage for instruction data
+            const keys = Object.keys(localStorage);
+            const instructionKeys = keys.filter(k => 
+                k.includes('instruction') || 
+                k.includes('topic') || 
+                k.includes('version')
+            );
+            
+            let summary = {};
+            instructionKeys.forEach(key => {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    if (Array.isArray(data)) {
+                        summary[key] = `${data.length} items`;
+                    } else {
+                        summary[key] = typeof data;
+                    }
+                } catch (e) {
+                    summary[key] = 'invalid JSON';
+                }
+            });
+
+            addResult('📊 LocalStorage Data Check', 'info', {
+                found_keys: instructionKeys,
+                summary: summary,
+                total_keys: keys.length
+            });
+        };
+
+        window.executeMigration = async function() {
+            try {
+                addResult('🚀 Starting Migration Process', 'info', 'Loading services...');
+                
+                // Import both services
+                const [dbServiceModule, localServiceModule] = await Promise.all([
+                    import('/src/services/instructionsServiceDatabase.ts'),
+                    import('/src/services/instructionsService.ts')
+                ]);
+                
+                const dbService = dbServiceModule.InstructionsService;
+                const localService = localServiceModule.instructionsService;
+                
+                addResult('✅ Services Loaded', 'success', 'Both services imported successfully');
+                
+                // Get data from localStorage service
+                console.log('📦 Getting topics from localStorage...');
+                const topics = await localService.getTopics();
+                console.log('Found topics:', topics.length);
+                
+                addResult('📦 Topics Found', 'success', {
+                    count: topics.length,
+                    sample: topics.slice(0, 2)
+                });
+                
+                // Get versions for each topic
+                console.log('📝 Getting versions...');
+                const allVersions = [];
+                for (const topic of topics) {
+                    try {
+                        const versions = await localService.getVersions(topic.id);
+                        allVersions.push(...versions);
+                        console.log(`Topic ${topic.id}: ${versions.length} versions`);
+                    } catch (e) {
+                        console.log(`No versions for topic ${topic.id}:`, e.message);
+                    }
+                }
+                
+                addResult('📝 Versions Collected', 'success', {
+                    total_versions: allVersions.length,
+                    sample: allVersions.slice(0, 2)
+                });
+                
+                // Execute the migration
+                console.log('🔄 Executing migration to database...');
+                await dbService.migrateMockData(topics, allVersions);
+                
+                addResult('🔄 Migration Executed', 'success', 'Data sent to database');
+                
+                // Verify the migration
+                console.log('✅ Verifying migration...');
+                const migratedTopics = await dbService.getTopics();
+                
+                addResult('✅ Migration Complete!', 'success', {
+                    original_topics: topics.length,
+                    original_versions: allVersions.length,
+                    migrated_topics: migratedTopics.length,
+                    success: migratedTopics.length > 0,
+                    message: `Successfully migrated ${topics.length} topics and ${allVersions.length} versions to Supabase!`
+                });
+                
+            } catch (error) {
+                addResult('❌ Migration Failed', 'error', {
+                    error: error.message,
+                    stack: error.stack
+                });
+                console.error('Migration error:', error);
+            }
+        };
+
+        // Auto-check data on load
+        setTimeout(checkData, 1000);
+    </script>
+</body>
+</html>

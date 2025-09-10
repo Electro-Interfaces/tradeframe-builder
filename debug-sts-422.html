@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug STS API 422 Error</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .error { background: #f44336; color: white; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .info { background: #2196F3; color: white; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .success { background: #4CAF50; color: white; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        button { background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .danger { background: #f44336; }
+        pre {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        input, select {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        .form-group {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-group label {
+            width: 150px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug STS API 422 Error</h1>
+        
+        <div class="info">
+            Этот инструмент поможет выяснить причину ошибки 422 с API СТС
+        </div>
+        
+        <div class="form-group">
+            <label>API URL:</label>
+            <input type="text" id="apiUrl" value="https://pos.autooplata.ru/tms" placeholder="https://pos.autooplata.ru/tms">
+        </div>
+        
+        <div class="form-group">
+            <label>Имя пользователя:</label>
+            <input type="text" id="username" placeholder="Имя пользователя">
+        </div>
+        
+        <div class="form-group">
+            <label>Пароль:</label>
+            <input type="password" id="password" placeholder="Пароль">
+        </div>
+        
+        <div class="form-group">
+            <label>Номер сети:</label>
+            <input type="text" id="systemId" placeholder="1" value="1">
+        </div>
+        
+        <div class="form-group">
+            <label>Номер станции:</label>
+            <input type="text" id="stationId" placeholder="1" value="1">
+        </div>
+
+        <div style="margin: 20px 0;">
+            <button onclick="loadFromLocalStorage()">📋 Загрузить из настроек</button>
+            <button onclick="testLogin()">🔑 Тест авторизации</button>
+            <button onclick="testTanksNoParams()">⛽ Тест /v1/tanks без параметров</button>
+            <button onclick="testTanksWithParams()">⛽ Тест /v1/tanks с параметрами</button>
+            <button onclick="testAllMethods()">🧪 Тест всех методов</button>
+            <button onclick="clearLogs()" class="danger">🗑️ Очистить логи</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let token = null;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push({
+                time: timestamp,
+                message: message,
+                type: type
+            });
+            updateDisplay();
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function updateDisplay() {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = '';
+            
+            if (logs.length > 0) {
+                html += '<h2>📝 Логи запросов:</h2>';
+                logs.slice(-20).forEach(logEntry => {
+                    const className = logEntry.type === 'error' ? 'error' : logEntry.type === 'success' ? 'success' : 'info';
+                    html += `<div class="${className}">
+                        <strong>[${logEntry.time}]</strong> ${logEntry.message}
+                    </div>`;
+                });
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const config = localStorage.getItem('sts-api-config');
+                if (config) {
+                    const parsed = JSON.parse(config);
+                    document.getElementById('apiUrl').value = parsed.url || 'https://pos.autooplata.ru/tms';
+                    document.getElementById('username').value = parsed.username || '';
+                    document.getElementById('password').value = parsed.password || '';
+                    
+                    if (parsed.token) {
+                        token = parsed.token;
+                        log('✅ Токен загружен из localStorage', 'success');
+                        log(`Токен: ${token.substring(0, 20)}...`, 'info');
+                    }
+                    
+                    log('✅ Настройки загружены из localStorage', 'success');
+                } else {
+                    log('❌ Настройки не найдены в localStorage', 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка загрузки настроек: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLogin() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                log('❌ Заполните имя пользователя и пароль', 'error');
+                return;
+            }
+            
+            try {
+                log('🔄 Отправляем запрос авторизации...', 'info');
+                log(`URL: ${apiUrl}/v1/login`, 'info');
+                log(`Данные: ${JSON.stringify({username, password: '***'})}`, 'info');
+                
+                const response = await fetch(`${apiUrl}/v1/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                log(`Ответ: ${response.status} ${response.statusText}`, 'info');
+                
+                if (response.ok) {
+                    const tokenData = await response.text();
+                    token = tokenData.replace(/"/g, '');
+                    log(`✅ Получен токен: ${token.substring(0, 30)}...`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Ошибка авторизации: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Исключение при авторизации: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTanksNoParams() {
+            if (!token) {
+                log('❌ Сначала получите токен', 'error');
+                return;
+            }
+
+            const apiUrl = document.getElementById('apiUrl').value;
+            
+            try {
+                log('🔄 Тестируем /v1/tanks БЕЗ параметров...', 'info');
+                const url = `${apiUrl}/v1/tanks`;
+                log(`URL: ${url}`, 'info');
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`Ответ: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                const responseText = await response.text();
+                log(`Тело ответа: ${responseText.substring(0, 500)}${responseText.length > 500 ? '...' : ''}`, response.ok ? 'success' : 'error');
+                
+                if (response.status === 422) {
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        log(`Детали ошибки 422:`, 'error');
+                        log(`<pre>${JSON.stringify(errorData, null, 2)}</pre>`, 'error');
+                    } catch (e) {
+                        log(`Не удалось разобрать ошибку 422 как JSON`, 'error');
+                    }
+                }
+            } catch (error) {
+                log(`❌ Исключение при запросе: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTanksWithParams() {
+            if (!token) {
+                log('❌ Сначала получите токен', 'error');
+                return;
+            }
+
+            const apiUrl = document.getElementById('apiUrl').value;
+            const systemId = document.getElementById('systemId').value;
+            const stationId = document.getElementById('stationId').value;
+            
+            try {
+                log('🔄 Тестируем /v1/tanks С параметрами...', 'info');
+                const url = new URL(`${apiUrl}/v1/tanks`);
+                
+                if (systemId) {
+                    url.searchParams.set('system', systemId);
+                    log(`Добавлен параметр system=${systemId}`, 'info');
+                }
+                
+                if (stationId) {
+                    url.searchParams.set('station', stationId);
+                    log(`Добавлен параметр station=${stationId}`, 'info');
+                }
+                
+                log(`Финальный URL: ${url.toString()}`, 'info');
+                
+                const response = await fetch(url.toString(), {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`Ответ: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                const responseText = await response.text();
+                log(`Тело ответа: ${responseText.substring(0, 500)}${responseText.length > 500 ? '...' : ''}`, response.ok ? 'success' : 'error');
+                
+                if (response.status === 422) {
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        log(`Детали ошибки 422:`, 'error');
+                        log(`<pre>${JSON.stringify(errorData, null, 2)}</pre>`, 'error');
+                        
+                        if (errorData.detail && Array.isArray(errorData.detail)) {
+                            errorData.detail.forEach(detail => {
+                                log(`- Поле: ${detail.loc?.join('.')} | Тип: ${detail.type} | Сообщение: ${detail.msg}`, 'error');
+                            });
+                        }
+                    } catch (e) {
+                        log(`Не удалось разобрать ошибку 422 как JSON`, 'error');
+                    }
+                }
+                
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(responseText);
+                        log(`✅ Успешно получено ${Array.isArray(data) ? data.length : 'неизвестно'} резервуаров`, 'success');
+                        if (Array.isArray(data) && data.length > 0) {
+                            log(`Пример первого резервуара:`, 'info');
+                            log(`<pre>${JSON.stringify(data[0], null, 2)}</pre>`, 'info');
+                        }
+                    } catch (e) {
+                        log(`Ответ не в формате JSON, но запрос успешен`, 'success');
+                    }
+                }
+            } catch (error) {
+                log(`❌ Исключение при запросе: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAllMethods() {
+            if (!token) {
+                log('❌ Сначала получите токен', 'error');
+                return;
+            }
+
+            const apiUrl = document.getElementById('apiUrl').value;
+            const systemId = document.getElementById('systemId').value;
+            const stationId = document.getElementById('stationId').value;
+            
+            const methods = [
+                '/v1/tanks',
+                '/v1/pumps', 
+                '/v1/sales',
+                '/v1/prices'
+            ];
+            
+            for (const method of methods) {
+                try {
+                    log(`🔄 Тестируем ${method}...`, 'info');
+                    const url = new URL(`${apiUrl}${method}`);
+                    
+                    if (systemId) url.searchParams.set('system', systemId);
+                    if (stationId) url.searchParams.set('station', stationId);
+                    
+                    log(`URL: ${url.toString()}`, 'info');
+                    
+                    const response = await fetch(url.toString(), {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    log(`${method}: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        if (response.status === 422) {
+                            try {
+                                const errorData = JSON.parse(errorText);
+                                log(`Ошибка 422 для ${method}:`, 'error');
+                                log(`<pre>${JSON.stringify(errorData, null, 2)}</pre>`, 'error');
+                            } catch (e) {
+                                log(`Не удалось разобрать ошибку 422 для ${method}`, 'error');
+                            }
+                        } else {
+                            log(`Ошибка ${method}: ${errorText.substring(0, 200)}`, 'error');
+                        }
+                    } else {
+                        const responseText = await response.text();
+                        log(`${method}: успешно, размер ответа ${responseText.length} символов`, 'success');
+                    }
+                    
+                    // Небольшая задержка между запросами
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (error) {
+                    log(`❌ Исключение для ${method}: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        function clearLogs() {
+            logs.length = 0;
+            updateDisplay();
+        }
+
+        // Автозагрузка настроек при старте
+        window.onload = function() {
+            loadFromLocalStorage();
+        };
+    </script>
+</body>
+</html>

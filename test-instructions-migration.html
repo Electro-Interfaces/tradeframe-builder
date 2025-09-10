@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Instructions Migration</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 10px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .error { background: #fde8e8; border-color: #f44336; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        .warning { background: #fff3e0; border-color: #ff9800; }
+        pre { background: #f4f4f4; padding: 10px; overflow: auto; font-size: 12px; max-height: 400px; }
+        .button { 
+            background: #4caf50; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            margin: 10px 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .button:hover { background: #45a049; }
+        .button.secondary { background: #2196f3; }
+        .button.secondary:hover { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <h1>✅ Финальный тест инструкций</h1>
+    
+    <div class="test success">
+        <h3>🎉 Исправления применены!</h3>
+        <p>✅ URL Supabase исправлен на правильный проект</p>
+        <p>✅ Все сервисы синхронизированы</p>
+        <p>✅ Сервер запущен на http://localhost:3005</p>
+    </div>
+    
+    <div class="test">
+        <h3>🧪 Тестирование</h3>
+        <button class="button" onclick="openInstructions()">📄 ОТКРЫТЬ ИНСТРУКЦИИ</button>
+        <button class="button secondary" onclick="runMigrationTest()">🔄 ТЕСТ МИГРАЦИИ</button>
+    </div>
+
+    <div class="test info">
+        <h3>📋 Шаги для проверки:</h3>
+        <ol>
+            <li>Откройте страницу инструкций</li>
+            <li>Убедитесь что индикаторы подключения зеленые</li>
+            <li>Переключитесь в LocalStorage режим - должны быть инструкции</li>
+            <li>Нажмите "Мигрировать в Supabase" - должна пройти миграция</li>
+            <li>Переключитесь в Database режим - инструкции должны появиться!</li>
+        </ol>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        function addResult(title, type, data) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+
+        window.openInstructions = function() {
+            window.open('http://localhost:3005/admin/instructions', '_blank');
+            addResult('📄 Instructions Page Opened', 'success', 'Страница инструкций открыта. Проверьте подключение и выполните миграцию.');
+        };
+
+        window.runMigrationTest = function() {
+            const migrationCode = `
+// ВЫПОЛНИТЕ В КОНСОЛИ БРАУЗЕРА (F12):
+
+console.log('🚀 Starting migration test...');
+
+try {
+  // 1. Check localStorage data
+  const instructionKeys = Object.keys(localStorage).filter(k => k.includes('instruction'));
+  console.log('Found localStorage keys:', instructionKeys);
+
+  // 2. Import services
+  const dbService = await import('/src/services/instructionsServiceDatabase.ts');
+  const localService = await import('/src/services/instructionsService.ts');
+
+  // 3. Get localStorage data
+  const topics = await localService.instructionsService.getTopics();
+  console.log('LocalStorage topics:', topics.length);
+
+  // 4. Get versions
+  const allVersions = [];
+  for (const topic of topics) {
+    const versions = await localService.instructionsService.getVersions(topic.id);
+    allVersions.push(...versions);
+  }
+  console.log('LocalStorage versions:', allVersions.length);
+
+  // 5. Execute migration
+  console.log('Starting migration to database...');
+  await dbService.InstructionsService.migrateMockData(topics, allVersions);
+  console.log('✅ Migration completed!');
+
+  // 6. Verify database
+  const dbTopics = await dbService.InstructionsService.getTopics();
+  console.log('Database topics after migration:', dbTopics.length);
+
+  if (dbTopics.length > 0) {
+    console.log('✅ SUCCESS: Migration completed successfully!');
+  } else {
+    console.log('❌ WARNING: No topics found in database after migration');
+  }
+
+} catch (error) {
+  console.error('❌ Migration failed:', error);
+}
+`;
+
+            addResult('🔧 Migration Test Code', 'info', migrationCode);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Network Overview Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: white; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { background: #2a2a2a; border: 1px solid #444; border-radius: 8px; padding: 15px; margin: 10px 0; }
+        .status { padding: 8px; border-radius: 4px; margin: 10px 0; }
+        .success { background: #16a34a; }
+        .error { background: #dc2626; }
+        .warning { background: #f59e0b; }
+        button { background: #3b82f6; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #2563eb; }
+        pre { background: #111; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .loading { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug: Network Overview Page</h1>
+        
+        <div class="test-section">
+            <h2>Базовая загрузка страницы</h2>
+            <button onclick="testPageLoad()">Тест загрузки страницы</button>
+            <div id="page-load-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Проверка ошибок консоли</h2>
+            <button onclick="checkConsoleErrors()">Проверить ошибки консоли</button>
+            <div id="console-errors"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Состояние React компонентов</h2>
+            <button onclick="checkReactComponents()">Проверить React компоненты</button>
+            <div id="react-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Прямой переход на страницу</h2>
+            <button onclick="goToNetworkOverview()">Перейти на страницу</button>
+            <div id="navigation-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Детали последней ошибки</h2>
+            <div id="error-details"></div>
+        </div>
+    </div>
+
+    <script>
+        let errorLog = [];
+        
+        // Перехват ошибок JavaScript
+        window.onerror = function(msg, url, line, col, error) {
+            const errorInfo = {
+                message: msg,
+                source: url,
+                line: line,
+                column: col,
+                error: error ? error.stack : null,
+                timestamp: new Date().toISOString()
+            };
+            errorLog.push(errorInfo);
+            console.error('💥 JavaScript Error captured:', errorInfo);
+        };
+
+        // Перехват ошибок Promise
+        window.addEventListener('unhandledrejection', function(event) {
+            const errorInfo = {
+                message: 'Unhandled Promise Rejection',
+                reason: event.reason,
+                timestamp: new Date().toISOString()
+            };
+            errorLog.push(errorInfo);
+            console.error('💥 Promise Rejection captured:', errorInfo);
+        });
+
+        function testPageLoad() {
+            const statusDiv = document.getElementById('page-load-status');
+            statusDiv.innerHTML = '<div class="loading">⏳ Тестирование загрузки страницы...</div>';
+            
+            // Проверяем доступность сервера разработки
+            fetch('http://localhost:3006')
+                .then(response => {
+                    if (response.ok) {
+                        statusDiv.innerHTML = '<div class="status success">✅ Сервер разработки доступен на порту 3006</div>';
+                        return testSpecificPage();
+                    } else {
+                        throw new Error(`Server responded with ${response.status}`);
+                    }
+                })
+                .catch(error => {
+                    statusDiv.innerHTML = `<div class="status error">❌ Ошибка доступа к серверу: ${error.message}</div>`;
+                });
+        }
+
+        function testSpecificPage() {
+            const statusDiv = document.getElementById('page-load-status');
+            
+            // Тестируем конкретную страницу
+            fetch('http://localhost:3006/network/overview')
+                .then(response => {
+                    if (response.ok) {
+                        statusDiv.innerHTML += '<div class="status success">✅ Маршрут /network/overview доступен</div>';
+                    } else {
+                        throw new Error(`Page responded with ${response.status}`);
+                    }
+                })
+                .catch(error => {
+                    statusDiv.innerHTML += `<div class="status error">❌ Ошибка загрузки страницы: ${error.message}</div>`;
+                });
+        }
+
+        function checkConsoleErrors() {
+            const errorsDiv = document.getElementById('console-errors');
+            
+            if (errorLog.length === 0) {
+                errorsDiv.innerHTML = '<div class="status success">✅ Ошибок JavaScript не обнаружено</div>';
+            } else {
+                let errorHtml = `<div class="status error">❌ Найдено ${errorLog.length} ошибок:</div>`;
+                errorLog.forEach((error, index) => {
+                    errorHtml += `
+                        <div class="test-section">
+                            <h4>Ошибка ${index + 1}:</h4>
+                            <pre>${JSON.stringify(error, null, 2)}</pre>
+                        </div>
+                    `;
+                });
+                errorsDiv.innerHTML = errorHtml;
+            }
+        }
+
+        function checkReactComponents() {
+            const statusDiv = document.getElementById('react-status');
+            statusDiv.innerHTML = '<div class="loading">⏳ Проверка состояния React...</div>';
+            
+            // Попытаемся найти признаки React в DOM
+            setTimeout(() => {
+                const reactRoot = document.querySelector('[data-reactroot]') || 
+                                document.querySelector('#root') ||
+                                document.querySelector('#app');
+                
+                if (reactRoot) {
+                    const hasReactContent = reactRoot.innerHTML.length > 100;
+                    if (hasReactContent) {
+                        statusDiv.innerHTML = '<div class="status success">✅ React приложение успешно отрендерилось</div>';
+                    } else {
+                        statusDiv.innerHTML = '<div class="status warning">⚠️ React корневой элемент найден, но содержимое пустое</div>';
+                    }
+                } else {
+                    statusDiv.innerHTML = '<div class="status error">❌ React корневой элемент не найден</div>';
+                }
+            }, 1000);
+        }
+
+        function goToNetworkOverview() {
+            const statusDiv = document.getElementById('navigation-status');
+            statusDiv.innerHTML = '<div class="loading">⏳ Перенаправление...</div>';
+            
+            // Открываем страницу в новом окне для отладки
+            const newWindow = window.open('http://localhost:3006/network/overview', '_blank');
+            
+            setTimeout(() => {
+                if (newWindow && !newWindow.closed) {
+                    statusDiv.innerHTML = '<div class="status success">✅ Страница открыта в новом окне</div>';
+                } else {
+                    statusDiv.innerHTML = '<div class="status error">❌ Не удалось открыть страницу</div>';
+                }
+            }, 2000);
+        }
+
+        // Автоматически показываем детали ошибок при загрузке
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const errorDetails = document.getElementById('error-details');
+                if (errorLog.length > 0) {
+                    errorDetails.innerHTML = `
+                        <div class="status error">
+                            ❌ Обнаружены ошибки при загрузке страницы:
+                            <pre>${JSON.stringify(errorLog, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    errorDetails.innerHTML = '<div class="status success">✅ Ошибок при загрузке не обнаружено</div>';
+                }
+            }, 3000);
+        });
+
+        // Проверяем состояние сервера каждые 5 секунд
+        setInterval(() => {
+            fetch('http://localhost:3006/api/health')
+                .catch(() => {
+                    console.warn('⚠️ API сервер недоступен');
+                });
+        }, 5000);
+    </script>
+</body>
+</html>

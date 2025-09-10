@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест ошибок на странице резервуаров</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        .error {
+            background: #f44336;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .info {
+            background: #2196F3;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        pre {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Диагностика ошибок на странице резервуаров</h1>
+
+    <div class="info">
+        Этот тест поможет выявить проблемы на странице резервуаров
+    </div>
+
+    <button onclick="testTanksPage()">🧪 Тест страницы резервуаров</button>
+    <button onclick="testConsoleErrors()">❌ Проверить ошибки в консоли</button>
+    <button onclick="openTanksPage()">🔗 Открыть страницу резервуаров</button>
+    <button onclick="clearLogs()">🗑️ Очистить логи</button>
+
+    <div id="results"></div>
+
+    <script>
+        const errors = [];
+        const logs = [];
+
+        // Перехватываем ошибки
+        window.addEventListener('error', function(e) {
+            errors.push({
+                type: 'error',
+                message: e.message,
+                source: e.filename,
+                line: e.lineno,
+                column: e.colno,
+                stack: e.error ? e.error.stack : null,
+                time: new Date().toISOString()
+            });
+            updateDisplay();
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            errors.push({
+                type: 'unhandledrejection',
+                message: e.reason ? e.reason.toString() : 'Unknown promise rejection',
+                time: new Date().toISOString()
+            });
+            updateDisplay();
+        });
+
+        // Перехватываем console
+        const originalError = console.error;
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+
+        console.error = function(...args) {
+            logs.push({
+                type: 'error',
+                message: args.join(' '),
+                time: new Date().toISOString()
+            });
+            updateDisplay();
+            originalError.apply(console, args);
+        };
+
+        console.log = function(...args) {
+            logs.push({
+                type: 'log',
+                message: args.join(' '),
+                time: new Date().toISOString()
+            });
+            updateDisplay();
+            originalLog.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            logs.push({
+                type: 'warn',
+                message: args.join(' '),
+                time: new Date().toISOString()
+            });
+            updateDisplay();
+            originalWarn.apply(console, args);
+        };
+
+        function updateDisplay() {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = '';
+            
+            if (errors.length > 0) {
+                html += '<h2>❌ JavaScript Ошибки:</h2>';
+                errors.forEach(error => {
+                    html += `<div class="error">
+                        <strong>[${error.time}] ${error.type}</strong><br>
+                        ${error.message}<br>
+                        ${error.source ? `Файл: ${error.source}:${error.line}:${error.column}` : ''}
+                        ${error.stack ? `<pre>${error.stack}</pre>` : ''}
+                    </div>`;
+                });
+            }
+
+            if (logs.length > 0) {
+                html += '<h2>📝 Консольные логи (последние 10):</h2>';
+                const recentLogs = logs.slice(-10);
+                recentLogs.forEach(log => {
+                    const className = log.type === 'error' ? 'error' : 'info';
+                    html += `<div class="${className}">
+                        <strong>[${log.time}] ${log.type.toUpperCase()}</strong><br>
+                        ${log.message}
+                    </div>`;
+                });
+            }
+
+            if (html === '') {
+                html = '<div class="info">✅ Пока ошибок не обнаружено</div>';
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function testTanksPage() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="info">🔄 Тестируем загрузку страницы резервуаров...</div>';
+
+            // Создаем скрытый iframe для тестирования
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = 'http://localhost:3004/point/tanks';
+            
+            iframe.onload = function() {
+                try {
+                    console.log('✅ Страница резервуаров загружена успешно в iframe');
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                    }, 5000);
+                } catch (error) {
+                    console.error('❌ Ошибка при загрузке страницы резервуаров:', error);
+                }
+            };
+
+            iframe.onerror = function() {
+                console.error('❌ Не удалось загрузить страницу резервуаров в iframe');
+            };
+
+            document.body.appendChild(iframe);
+        }
+
+        function testConsoleErrors() {
+            console.log('🧪 Тестируем перехват ошибок...');
+            console.error('🔴 Тестовая ошибка');
+            console.warn('🟡 Тестовое предупреждение');
+            
+            // Тестируем JavaScript ошибку
+            setTimeout(() => {
+                try {
+                    throw new Error('Тестовая JavaScript ошибка');
+                } catch (e) {
+                    console.error('Поймана ошибка:', e);
+                }
+            }, 100);
+        }
+
+        function openTanksPage() {
+            window.open('http://localhost:3004/point/tanks', '_blank');
+        }
+
+        function clearLogs() {
+            errors.length = 0;
+            logs.length = 0;
+            updateDisplay();
+        }
+
+        // Проверяем, доступен ли сервер
+        fetch('http://localhost:3004/')
+            .then(response => {
+                if (response.ok) {
+                    console.log('✅ Сервер на localhost:3004 доступен');
+                } else {
+                    console.log('⚠️ Сервер на localhost:3004 вернул статус:', response.status);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Сервер на localhost:3004 недоступен:', error.message);
+                console.log('💡 Попробуйте открыть http://localhost:3004/ вручную');
+            });
+
+        updateDisplay();
+    </script>
+</body>
+</html>

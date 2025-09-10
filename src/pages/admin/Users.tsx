@@ -11,29 +11,35 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Users as UsersIcon, Search, Edit, Trash2, User } from 'lucide-react'
 import { User as UserType, UserStatus } from '@/types/auth'
-import { UserService } from '@/services/usersSupabaseService'
-import { RoleService } from '@/services/roleService'
+import { externalUsersService } from '@/services/externalUsersService'
+import { externalRolesService } from '@/services/externalRolesService'
 import { UserFormDialog } from '@/components/admin/users/UserFormDialog'
 import { useDeleteConfirmDialog } from '@/hooks/useDeleteConfirmDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { HelpButton } from "@/components/help/HelpButton"
+import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from '@/components/data-source/DataSourceIndicator'
 
 export default function Users() {
+  const { hasExternalDatabase } = useDataSourceInfo()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all')
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   const { data: users = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => UserService.getAllUsers()
+    queryKey: ['external-users'],
+    queryFn: () => externalUsersService.getUsersWithRoles(),
+    retry: 1,
+    retryDelay: 1000
   })
 
   const { data: roles = [] } = useQuery({
-    queryKey: ['roles'],
-    queryFn: () => RoleService.getAllRoles()
+    queryKey: ['external-roles'],
+    queryFn: () => externalRolesService.getAllRoles(),
+    retry: 1,
+    retryDelay: 1000
   })
 
   const filteredUsers = useMemo(() => {
@@ -57,7 +63,7 @@ export default function Users() {
 
   const handleDelete = async (userId: string) => {
     try {
-      await UserService.deleteUser(userId)
+      await externalUsersService.deleteUser(userId)
       await refetch()
     } catch (error) {
       console.error('Failed to delete user:', error)
@@ -89,6 +95,19 @@ export default function Users() {
               <p className="text-slate-400 mt-2">
                 Управление учетными записями пользователей системы
               </p>
+              <div className="mt-3">
+                <DataSourceIndicator 
+                  sources={[
+                    { 
+                      type: 'external-database', 
+                      label: 'Внешняя БД', 
+                      description: 'Внешняя база данных пользователей',
+                      connected: hasExternalDatabase,
+                      count: users?.length || 0
+                    }
+                  ] as DataSourceInfo[]} 
+                />
+              </div>
             </div>
             <HelpButton route="/admin/users-and-roles" variant="text" className="flex-shrink-0" />
           </div>

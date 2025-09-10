@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка ролей</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .log {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            margin-top: 20px;
+        }
+        .manual-settings {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Простая проверка ролей</h1>
+        
+        <div class="manual-settings">
+            <h3>Настройки подключения (если не найдены в localStorage)</h3>
+            <input type="text" id="manual-url" placeholder="https://ssvazdgnmatbdynkhkqo.supabase.co" value="https://ssvazdgnmatbdynkhkqo.supabase.co">
+            <input type="password" id="manual-key" placeholder="API Key" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0">
+            <button onclick="useManualSettings()">Использовать эти настройки</button>
+        </div>
+
+        <button onclick="checkSettings()">1. Проверить настройки localStorage</button>
+        <button onclick="testConnection()">2. Тест подключения к API</button>
+        <button onclick="checkRoles()">3. Проверить роли в БД</button>
+        <button onclick="clearLog()">Очистить лог</button>
+
+        <div id="log" class="log">Готов к проверке...\n</div>
+    </div>
+
+    <script>
+        let supabaseUrl = '';
+        let supabaseKey = '';
+
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.textContent += `[${timestamp}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = 'Лог очищен...\n';
+        }
+
+        function useManualSettings() {
+            supabaseUrl = document.getElementById('manual-url').value;
+            supabaseKey = document.getElementById('manual-key').value;
+            log(`Используем ручные настройки: URL=${supabaseUrl}`);
+        }
+
+        function checkSettings() {
+            try {
+                const savedSettings = localStorage.getItem('externalDatabase');
+                if (!savedSettings) {
+                    log('ERROR: Настройки externalDatabase не найдены в localStorage');
+                    log('INFO: Используйте ручной ввод настроек выше');
+                    return false;
+                }
+
+                const parsed = JSON.parse(savedSettings);
+                if (!parsed.url || !parsed.apiKey) {
+                    log('WARNING: Неполные настройки в localStorage');
+                    return false;
+                }
+
+                supabaseUrl = parsed.url;
+                supabaseKey = parsed.apiKey;
+                log(`SUCCESS: Настройки загружены из localStorage`);
+                log(`URL: ${supabaseUrl}`);
+                return true;
+            } catch (error) {
+                log(`ERROR: Ошибка парсинга настроек: ${error.message}`);
+                return false;
+            }
+        }
+
+        async function testConnection() {
+            if (!supabaseUrl || !supabaseKey) {
+                if (!checkSettings()) {
+                    log('ERROR: Настройки не загружены. Используйте ручной ввод.');
+                    return;
+                }
+            }
+
+            log('Тестируем подключение к Supabase API...');
+
+            try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`
+                    }
+                });
+
+                log(`Ответ API: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    log('SUCCESS: Подключение к API работает');
+                    return true;
+                } else {
+                    log('ERROR: Проблема с подключением к API');
+                    return false;
+                }
+            } catch (error) {
+                log(`ERROR: Сетевая ошибка: ${error.message}`);
+                return false;
+            }
+        }
+
+        async function checkRoles() {
+            if (!supabaseUrl || !supabaseKey) {
+                if (!checkSettings()) {
+                    log('ERROR: Настройки не загружены. Используйте ручной ввод.');
+                    return;
+                }
+            }
+
+            log('Проверяем таблицу ролей...');
+
+            try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/roles`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`Ответ от таблицы roles: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    const roles = await response.json();
+                    log(`SUCCESS: Таблица roles существует`);
+                    log(`Найдено ролей: ${roles.length}`);
+                    
+                    if (roles.length > 0) {
+                        log('Список ролей:');
+                        roles.forEach((role, index) => {
+                            log(`${index + 1}. ${role.name} (${role.code}) - ${role.scope} - ${role.is_active ? 'активна' : 'неактивна'}`);
+                        });
+                    } else {
+                        log('INFO: Таблица roles пустая - роли не созданы');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`ERROR: Ошибка доступа к таблице roles: ${response.status}`);
+                    log(`Детали ошибки: ${errorText}`);
+                    
+                    if (response.status === 404 || errorText.includes('relation "roles" does not exist')) {
+                        log('INFO: Таблица roles не существует - требуется инициализация БД');
+                    }
+                }
+            } catch (error) {
+                log(`ERROR: Сетевая ошибка при проверке ролей: ${error.message}`);
+            }
+        }
+
+        // Автоматически проверяем настройки при загрузке
+        window.onload = function() {
+            log('Страница загружена');
+            checkSettings();
+        };
+    </script>
+</body>
+</html>

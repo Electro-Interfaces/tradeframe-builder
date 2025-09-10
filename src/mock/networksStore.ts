@@ -7,14 +7,20 @@ const networksData: Network[] = [
     name: "Демо сеть АЗС",
     description: "Демонстрационная сеть заправочных станций",
     type: "АЗС",
-    pointsCount: 5
+    pointsCount: 5,
+    external_id: "1",
+    code: "demo",
+    status: "active"
   },
   {
     id: "15", 
-    name: "Норд Лайн",
-    description: "Сеть заправочных станций Норд Лайн",
+    name: "БТО",
+    description: "БТО - сеть АЗС",
     type: "АЗС",
-    pointsCount: 1
+    pointsCount: 1,
+    external_id: "15",
+    code: "bto",
+    status: "active"
   }
 ];
 

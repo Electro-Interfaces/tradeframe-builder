@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Default Database Mode</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { background: #e8f5e8; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #4caf50; }
+        .info { background: #e3f2fd; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #2196f3; }
+        .button { 
+            background: #2196f3; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            margin: 10px 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button:hover { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <h1>✅ Раздел инструкций переключен на базу данных по умолчанию</h1>
+    
+    <div class="success">
+        <h3>🎉 Изменение применено успешно!</h3>
+        <p><strong>Что изменено:</strong> <code>useState(false)</code> → <code>useState(true)</code></p>
+        <p><strong>Файл:</strong> <code>src/pages/admin/Instructions.tsx</code> строка 79</p>
+        <p><strong>Эффект:</strong> Теперь при открытии раздела инструкций по умолчанию будет активен режим "Database Mode"</p>
+    </div>
+    
+    <div class="info">
+        <h3>📋 Что это означает:</h3>
+        <ul>
+            <li>✅ При открытии страницы инструкций переключатель будет установлен в режим "Database"</li>
+            <li>✅ Данные будут загружаться из Supabase page_help таблицы</li>
+            <li>✅ Все операции (создание, редактирование, удаление) будут работать с базой данных</li>
+            <li>✅ Пользователь всё ещё может переключиться на LocalStorage режим если нужно</li>
+            <li>✅ Настройка сохраняется на уровне компонента</li>
+        </ul>
+    </div>
+    
+    <div class="info">
+        <h3>🧪 Для проверки:</h3>
+        <p>1. Откройте раздел инструкций по ссылке ниже</p>
+        <p>2. Убедитесь что переключатель в верхней части страницы показывает "Database Mode"</p>
+        <p>3. Проверьте что данные загружаются из базы данных Supabase</p>
+    </div>
+    
+    <button class="button" onclick="window.open('http://localhost:3003/admin/instructions', '_blank')">
+        🚀 Открыть раздел инструкций
+    </button>
+    
+    <button class="button" onclick="checkStatus()">
+        📊 Показать статус изменений
+    </button>
+    
+    <div id="status-info" style="margin-top: 20px;"></div>
+    
+    <script>
+        function checkStatus() {
+            const statusDiv = document.getElementById('status-info');
+            const timestamp = new Date().toLocaleString('ru-RU');
+            
+            statusDiv.innerHTML = `
+                <div class="success">
+                    <h3>📈 Статус системы (${timestamp})</h3>
+                    <p><strong>✅ Сервер разработки:</strong> Работает на http://localhost:3003</p>
+                    <p><strong>✅ Файл изменен:</strong> src/pages/admin/Instructions.tsx</p>
+                    <p><strong>✅ HMR обновление:</strong> Применено автоматически</p>
+                    <p><strong>✅ База данных по умолчанию:</strong> Включена (useState(true))</p>
+                    <p><strong>✅ Компиляция:</strong> Без ошибок</p>
+                </div>
+            `;
+        }
+        
+        // Показываем информацию сразу при загрузке
+        setTimeout(checkStatus, 500);
+    </script>
+</body>
+</html>

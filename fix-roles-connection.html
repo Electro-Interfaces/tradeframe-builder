@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Исправление подключения ролей</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #1a1a1a; 
+            color: #fff; 
+            padding: 20px; 
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .status { 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border-left: 4px solid; 
+        }
+        .success { background: #2d5a2d; border-color: #4a9a4a; }
+        .error { background: #5a2d2d; border-color: #9a4a4a; }
+        .warning { background: #5a5a2d; border-color: #9a9a4a; }
+        .info { background: #2d2d5a; border-color: #4a4a9a; }
+        button {
+            background: #4a9a4a;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #5aaa5a; }
+        button:disabled { 
+            background: #666; 
+            cursor: not-allowed; 
+        }
+        .btn-primary { background: #4a9a4a; }
+        .btn-secondary { background: #666; }
+        .btn-danger { background: #9a4a4a; }
+        pre { 
+            background: #2a2a2a; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            white-space: pre-wrap; 
+            font-size: 12px;
+        }
+        .section { 
+            background: #2a2a2a; 
+            padding: 20px; 
+            margin: 20px 0; 
+            border-radius: 8px; 
+            border: 1px solid #444; 
+        }
+        .progress {
+            background: #333;
+            height: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #4a9a4a;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Исправление подключения к ролям</h1>
+        <p>Автоматическое восстановление подключения к внешней базе данных ролей</p>
+        
+        <div class="section">
+            <h2>🚀 Быстрое исправление</h2>
+            <button onclick="quickFix()" class="btn-primary">🔧 Быстрое исправление</button>
+            <button onclick="manualDiagnostic()" class="btn-secondary">🔍 Полная диагностика</button>
+            <button onclick="resetSettings()" class="btn-danger">🗑️ Сбросить настройки</button>
+        </div>
+        
+        <div class="progress" id="progress-container" style="display: none;">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        
+        <div id="results"></div>
+        
+        <div class="section" style="display: none;" id="manual-actions">
+            <h3>📋 Ручные действия</h3>
+            <button onclick="forceInitSettings()">🔄 Принудительная инициализация</button>
+            <button onclick="testDirectConnection()">🌐 Прямой тест подключения</button>
+            <button onclick="checkDatabase()">🗄️ Проверить базу данных</button>
+            <button onclick="reloadRolesPage()">📄 Перезагрузить страницу ролей</button>
+        </div>
+    </div>
+
+    <script>
+        let progressInterval;
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            document.getElementById('results').appendChild(div);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            
+            // Скролл вниз
+            div.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showProgress(show = true) {
+            const container = document.getElementById('progress-container');
+            container.style.display = show ? 'block' : 'none';
+            if (show) {
+                let progress = 0;
+                const bar = document.getElementById('progress-bar');
+                progressInterval = setInterval(() => {
+                    progress += Math.random() * 30;
+                    if (progress > 90) progress = 90;
+                    bar.style.width = progress + '%';
+                }, 200);
+            } else {
+                clearInterval(progressInterval);
+                document.getElementById('progress-bar').style.width = '100%';
+                setTimeout(() => {
+                    document.getElementById('progress-bar').style.width = '0%';
+                }, 500);
+            }
+        }
+
+        function completeProgress() {
+            clearInterval(progressInterval);
+            document.getElementById('progress-bar').style.width = '100%';
+        }
+
+        async function quickFix() {
+            document.getElementById('results').innerHTML = '';
+            showProgress();
+            
+            log('🚀 Начинаем быстрое исправление подключения...', 'info');
+            
+            try {
+                // Шаг 1: Принудительная инициализация настроек
+                log('1️⃣ Инициализация настроек по умолчанию...', 'warning');
+                await forceInitSettings();
+                
+                // Шаг 2: Тест подключения
+                log('2️⃣ Тестирование подключения...', 'warning');
+                const connectionResult = await testDirectConnection();
+                
+                if (!connectionResult) {
+                    throw new Error('Подключение не установлено');
+                }
+                
+                // Шаг 3: Проверка доступа к ролям
+                log('3️⃣ Проверка доступа к таблице ролей...', 'warning');
+                await checkDatabase();
+                
+                // Шаг 4: Обновление страницы
+                log('4️⃣ Применяение изменений...', 'warning');
+                
+                completeProgress();
+                log('✅ Быстрое исправление завершено успешно!', 'success');
+                log('🔄 Рекомендуется обновить страницу ролей для применения изменений', 'info');
+                
+                // Показать кнопку для перехода к ролям
+                const reloadBtn = document.createElement('button');
+                reloadBtn.textContent = '🔄 Открыть страницу ролей';
+                reloadBtn.onclick = reloadRolesPage;
+                reloadBtn.className = 'btn-primary';
+                document.getElementById('results').appendChild(reloadBtn);
+                
+            } catch (error) {
+                completeProgress();
+                log(`❌ Ошибка при исправлении: ${error.message}`, 'error');
+                document.getElementById('manual-actions').style.display = 'block';
+            }
+            
+            showProgress(false);
+        }
+
+        async function forceInitSettings() {
+            try {
+                // Устанавливаем настройки по умолчанию
+                const defaultSettings = {
+                    url: "https://ssvazdgnmatbdynkhkqo.supabase.co",
+                    apiKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0"
+                };
+                
+                localStorage.setItem('externalDatabase', JSON.stringify(defaultSettings));
+                
+                // Уведомляем об изменениях
+                window.dispatchEvent(new CustomEvent('localStorageChanged'));
+                
+                log('✅ Настройки принудительно инициализированы', 'success');
+                log(`📍 URL: ${defaultSettings.url}`, 'info');
+                log(`🔑 API ключ установлен (${defaultSettings.apiKey.substring(0, 20)}...)`, 'info');
+                
+                return true;
+            } catch (error) {
+                log(`❌ Ошибка инициализации настроек: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testDirectConnection() {
+            try {
+                const settings = JSON.parse(localStorage.getItem('externalDatabase') || '{}');
+                
+                if (!settings.url || !settings.apiKey) {
+                    log('❌ Настройки не найдены после инициализации', 'error');
+                    return false;
+                }
+                
+                log('🌐 Тестируем прямое подключение к Supabase...', 'warning');
+                
+                const response = await fetch(`${settings.url}/rest/v1/`, {
+                    headers: {
+                        'apikey': settings.apiKey,
+                        'Authorization': `Bearer ${settings.apiKey}`
+                    }
+                });
+                
+                if (response.ok) {
+                    log(`✅ Прямое подключение успешно (статус: ${response.status})`, 'success');
+                    return true;
+                } else {
+                    log(`❌ Ошибка подключения: HTTP ${response.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ Ошибка сети: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function checkDatabase() {
+            try {
+                const settings = JSON.parse(localStorage.getItem('externalDatabase') || '{}');
+                
+                log('🗄️ Проверяем доступ к таблице ролей...', 'warning');
+                
+                const response = await fetch(`${settings.url}/rest/v1/roles?deleted_at=is.null&limit=5`, {
+                    headers: {
+                        'apikey': settings.apiKey,
+                        'Authorization': `Bearer ${settings.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const roles = await response.json();
+                    log(`✅ Доступ к таблице ролей подтвержден (найдено ${roles.length} ролей)`, 'success');
+                    
+                    if (roles.length > 0) {
+                        log('📋 Примеры ролей:', 'info');
+                        roles.forEach((role, index) => {
+                            log(`   ${index + 1}. ${role.name} (${role.code})`, 'info');
+                        });
+                    } else {
+                        log('⚠️ Таблица ролей пуста - возможно требуется создать базовые роли', 'warning');
+                    }
+                    
+                    return true;
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Ошибка доступа к ролям: ${response.status} - ${errorText}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ Ошибка проверки БД: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        function resetSettings() {
+            if (confirm('Удалить все настройки подключения к внешней БД?')) {
+                localStorage.removeItem('externalDatabase');
+                log('🗑️ Настройки удалены из localStorage', 'warning');
+                log('🔄 Рекомендуется обновить страницу и настроить подключение заново', 'info');
+            }
+        }
+
+        function reloadRolesPage() {
+            log('🔄 Открываем страницу ролей...', 'info');
+            window.open('http://localhost:3001/admin/roles', '_blank');
+        }
+
+        async function manualDiagnostic() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('manual-actions').style.display = 'block';
+            
+            log('🔍 Запуск полной диагностики...', 'info');
+            
+            // Проверяем текущие настройки
+            const currentSettings = localStorage.getItem('externalDatabase');
+            if (currentSettings) {
+                try {
+                    const parsed = JSON.parse(currentSettings);
+                    log('✅ Текущие настройки найдены:', 'success');
+                    log(`   URL: ${parsed.url}`, 'info');
+                    log(`   API Key: ${parsed.apiKey ? 'установлен' : 'отсутствует'}`, 'info');
+                } catch (error) {
+                    log('❌ Настройки повреждены', 'error');
+                }
+            } else {
+                log('⚠️ Настройки отсутствуют', 'warning');
+            }
+            
+            // Проверяем доступность страниц
+            log('📄 Доступные страницы:', 'info');
+            log('   - Роли: http://localhost:3001/admin/roles', 'info');
+            log('   - Настройки БД: http://localhost:3001/settings/external-database', 'info');
+        }
+
+        // Автозапуск при загрузке страницы
+        window.onload = function() {
+            log('🔧 Система диагностики и исправления готова к работе', 'info');
+            log('💡 Нажмите "Быстрое исправление" для автоматического устранения проблем', 'info');
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест индикаторов источников данных</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #1a1b23;
+            color: white;
+        }
+        .section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #333; 
+            border-radius: 8px;
+            background: #2a2b35;
+        }
+        h2 { color: #60a5fa; margin-top: 0; }
+        .indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .external-db { background: #3b4063; color: #e2e8f0; border: 1px solid #64748b; }
+        .external-db.connected { background: #059669; color: white; }
+        .external-db.disconnected { background: #dc2626; color: white; }
+        .supabase { background: #1e40af; color: white; }
+        .mock { background: #6b7280; color: white; }
+        .local-api { background: #475569; color: white; border: 1px solid #64748b; }
+        .cache { background: #6b7280; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Тест индикаторов источников данных</h1>
+    <p>Эта страница показывает, как выглядят индикаторы источников данных на разных страницах приложения.</p>
+
+    <div class="section">
+        <h2>📊 Страница "Оборудование"</h2>
+        <p>Источник данных: <span class="indicator local-api">📡 Локальное API (5 записей)</span></p>
+        <p><strong>Описание:</strong> Использует локальные API сервисы для получения данных об оборудовании</p>
+    </div>
+
+    <div class="section">
+        <h2>💰 Страница "Цены"</h2>
+        <p>Источник данных (с подключением): <span class="indicator supabase">☁️ Supabase (12 записей)</span></p>
+        <p>Источник данных (без подключения): <span class="indicator cache">📶 Кэш цен (8 записей)</span></p>
+        <p><strong>Описание:</strong> Использует Supabase если настроен, иначе локальный кэш</p>
+    </div>
+
+    <div class="section">
+        <h2>⛽ Страница "Резервуары"</h2>
+        <p>Источник данных (API СТС): <span class="indicator local-api">📡 СТС API (3 резервуара)</span></p>
+        <p>Источник данных (fallback): <span class="indicator mock">📄 Mock данные (3 резервуара)</span></p>
+        <p><strong>Описание:</strong> Использует API СТС если настроен, иначе демонстрационные данные</p>
+    </div>
+
+    <div class="section">
+        <h2>👥 Страница "Пользователи"</h2>
+        <p>Источник данных (подключено): <span class="indicator external-db connected">🗄️ Внешняя БД (7 пользователей)</span></p>
+        <p>Источник данных (не подключено): <span class="indicator external-db disconnected">🗄️ Внешняя БД (не подключено)</span></p>
+        <p><strong>Описание:</strong> Требует настройки внешней базы данных через страницу настроек</p>
+    </div>
+
+    <div class="section">
+        <h2>🔐 Страница "Роли"</h2>
+        <p>Источник данных (подключено): <span class="indicator external-db connected">🗄️ Внешняя БД (5 ролей)</span></p>
+        <p>Источник данных (не подключено): <span class="indicator external-db disconnected">🗄️ Внешняя БД (не подключено)</span></p>
+        <p><strong>Описание:</strong> Требует настройки внешней базы данных через страницу настроек</p>
+    </div>
+
+    <div class="section">
+        <h2>👤 Страница "Профиль"</h2>
+        <p>Источник данных: <span class="indicator external-db">🗄️ Внешняя БД</span> + <span class="indicator mock">📄 AuthContext</span></p>
+        <p><strong>Описание:</strong> Загружает данные из внешней БД, с fallback на данные из контекста авторизации</p>
+    </div>
+
+    <div style="margin-top: 30px; padding: 15px; background: #1e293b; border-radius: 8px;">
+        <h3>✅ Реализованные возможности:</h3>
+        <ul>
+            <li>Универсальный компонент <code>DataSourceIndicator</code></li>
+            <li>Автоматическое определение источника данных</li>
+            <li>Отображение количества записей</li>
+            <li>Индикация статуса подключения</li>
+            <li>Цветовая кодировка по типам источников</li>
+            <li>Интеграция с хуком <code>useDataSourceInfo</code></li>
+        </ul>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <button onclick="window.close()" style="background: #3b82f6; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+            Закрыть
+        </button>
+    </div>
+
+    <script>
+        console.log('🔍 Тест индикаторов источников данных загружен');
+    </script>
+</body>
+</html>

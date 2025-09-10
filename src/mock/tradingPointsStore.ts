@@ -5,6 +5,7 @@ import { TradingPoint, TradingPointId, TradingPointInput } from '@/types/trading
 let tradingPointsData: TradingPoint[] = [
   {
     id: "point1",
+    external_id: "001",
     networkId: "1",
     name: "АЗС №001 - Центральная",
     description: "Центральная АЗС на Невском проспекте. Круглосуточно, полный сервис.",
@@ -45,6 +46,7 @@ let tradingPointsData: TradingPoint[] = [
   },
   {
     id: "point2",
+    external_id: "002",
     networkId: "1",
     name: "АЗС №002 - Северная",
     description: "Северная АЗС для коммерческого транспорта.",
@@ -85,6 +87,7 @@ let tradingPointsData: TradingPoint[] = [
   },
   {
     id: "point3",
+    external_id: "003",
     networkId: "1",
     name: "АЗС №003 - Южная",
     description: "Семейная АЗС с кафе и автомойкой.",
@@ -125,6 +128,7 @@ let tradingPointsData: TradingPoint[] = [
   },
   {
     id: "point4",
+    external_id: "004",
     networkId: "1",
     name: "АЗС №004 - Московское шоссе",
     description: "Трассовая АЗС с зарядкой электромобилей. 24/7.",
@@ -165,6 +169,7 @@ let tradingPointsData: TradingPoint[] = [
   },
   {
     id: "point5",
+    external_id: "005",
     networkId: "1",
     name: "АЗС №005 - Промзона",
     description: "Промышленная АЗС для коммерческих клиентов.",
@@ -205,6 +210,7 @@ let tradingPointsData: TradingPoint[] = [
   },
   {
     id: "point6",
+    external_id: "006",
     networkId: "2",
     name: "АЗС №006 - Окружная",
     description: "АЗС на Окружной дороге",
@@ -216,6 +222,47 @@ let tradingPointsData: TradingPoint[] = [
     },
     isBlocked: false,
     externalCodes: [],
+    createdAt: new Date()
+  },
+  {
+    id: "bto-azs-4",
+    external_id: "4",
+    networkId: "15",
+    name: "АЗС 4",
+    description: "АЗС 4 - БТО",
+    geolocation: {
+      latitude: 54.7500,
+      longitude: 55.9800,
+      region: "Республика Башкортостан",
+      city: "Уфа",
+      address: "г. Уфа, ул. Победы, 100"
+    },
+    phone: "+7 (347) 264-75-00",
+    email: "azs4@bto.ru",
+    isBlocked: false,
+    schedule: {
+      monday: "00:00-23:59",
+      tuesday: "00:00-23:59",
+      wednesday: "00:00-23:59",
+      thursday: "00:00-23:59",
+      friday: "00:00-23:59",
+      saturday: "00:00-23:59",
+      sunday: "00:00-23:59",
+      isAlwaysOpen: true
+    },
+    services: {
+      selfServiceTerminal: true,
+      airPump: true,
+      carWash: true,
+      shop: true,
+      cafe: false,
+      lubricants: true,
+      waterService: false,
+      gasBottleExchange: false,
+      electricCharging: false,
+      truckParking: true
+    },
+    externalCodes: ["4", "BTO-004"],
     createdAt: new Date()
   }
 ];

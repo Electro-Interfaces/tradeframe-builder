@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -28,8 +29,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Users as UsersIcon } from 'lucide-react'
-import { UserService } from '@/services/usersSupabaseService'
-import { RoleService } from '@/services/roleService'
+import { externalUsersService } from '@/services/externalUsersService'
+import { externalRolesService } from '@/services/externalRolesService'
 import type { User, Role, UserStatus } from '@/types/auth'
 
 interface UserFormDialogProps {
@@ -47,6 +48,7 @@ const STATUS_OPTIONS: Array<{ value: UserStatus; label: string; description: str
 ]
 
 export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: UserFormDialogProps) {
+  const isMobile = useIsMobile()
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -107,7 +109,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
       if (user) {
         // Редактирование пользователя
-        await UserService.updateUser(user.id, {
+        await externalUsersService.updateUser(user.id, {
           email: formData.email,
           name: formData.name,
           phone: formData.phone || undefined,
@@ -120,27 +122,22 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         if (currentRoleId !== selectedRole) {
           // Убираем старую роль если есть
           if (currentRoleId) {
-            await RoleService.unassignRoleFromUser(user.id, currentRoleId)
+            await externalRolesService.removeRoleFromUser(user.id, currentRoleId)
           }
           
           // Назначаем новую роль если выбрана
           if (selectedRole) {
-            await RoleService.assignRoleToUser({
-              user_id: user.id,
-              role_id: selectedRole
-            })
+            await externalRolesService.assignRoleToUser(user.id, selectedRole)
           }
         }
 
         // Сброс пароля если нужно
         if (showResetPassword && formData.password) {
-          // TODO: Реализовать сброс пароля через UserService
-          console.log('Password reset would be implemented here')
+          await externalUsersService.changePassword(user.id, formData.password)
         }
       } else {
         // Создание нового пользователя
-        await UserService.createUser({
-          tenantId: 'default_tenant', // TODO: получать из контекста
+        await externalUsersService.createUser({
           email: formData.email,
           name: formData.name,
           phone: formData.phone || undefined,
@@ -169,7 +166,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-slate-900 border-slate-700 text-white">
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-2xl max-h-[90vh]'} overflow-hidden flex flex-col bg-slate-900 border-slate-700 text-white`}>
         <DialogHeader>
           <DialogTitle>
             {user ? 'Редактирование пользователя' : 'Создание нового пользователя'}

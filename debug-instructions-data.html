@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Instructions Data</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 10px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .error { background: #fde8e8; border-color: #f44336; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        .warning { background: #fff3e0; border-color: #ff9800; }
+        pre { background: #f4f4f4; padding: 10px; overflow: auto; font-size: 12px; max-height: 400px; }
+        .button { 
+            background: #2196f3; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+        }
+        .button:hover { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Instructions Data Loading</h1>
+    
+    <div class="test info">
+        <h3>📋 Проблема</h3>
+        <p>Данные не отображаются в списке инструкций при работе с базой данных.</p>
+        <p><strong>Проверим:</strong> Данные в БД, запросы Supabase, ошибки в консоли</p>
+    </div>
+    
+    <div class="test">
+        <h3>🧪 Диагностика</h3>
+        <button class="button" onclick="checkPageHelpTable()">1. Check page_help Table</button>
+        <button class="button" onclick="testDirectSupabaseQuery()">2. Test Direct Supabase Query</button>
+        <button class="button" onclick="testInstructionsService()">3. Test Instructions Service</button>
+        <button class="button" onclick="checkConsoleErrors()">4. Check Console</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        const results = document.getElementById('results');
+        
+        function addResult(title, type, data) {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+
+        window.checkPageHelpTable = async function() {
+            try {
+                const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+                
+                const supabaseUrl = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+                const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+
+                const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+                // Check if page_help table exists and has data
+                const { data, error, count } = await supabase
+                    .from('page_help')
+                    .select('*', { count: 'exact' })
+                    .limit(10);
+
+                if (error) {
+                    addResult('❌ page_help Table Check Failed', 'error', {
+                        error: error.message,
+                        code: error.code,
+                        details: error.details,
+                        hint: error.hint
+                    });
+                } else {
+                    addResult('✅ page_help Table Check Success', 'success', {
+                        total_count: count,
+                        sample_records: data,
+                        table_status: data.length > 0 ? 'Has Data' : 'Empty Table'
+                    });
+                }
+            } catch (error) {
+                addResult('❌ Connection Error', 'error', error.message);
+            }
+        };
+
+        window.testDirectSupabaseQuery = async function() {
+            try {
+                const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+                
+                const supabaseUrl = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+                const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+
+                const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+                // Simulate the query from InstructionsService.getTopics()
+                const { data, error } = await supabase
+                    .from('page_help')
+                    .select('*')
+                    .is('deleted_at', null)
+                    .eq('is_active', true)
+                    .order('route');
+
+                if (error) {
+                    addResult('❌ Direct Query Failed', 'error', error);
+                } else {
+                    // Group by route and get latest version (similar to InstructionsService logic)
+                    const topicsMap = new Map();
+                    data.forEach(record => {
+                        const existing = topicsMap.get(record.route);
+                        if (!existing || record.version > existing.version) {
+                            topicsMap.set(record.route, record);
+                        }
+                    });
+                    
+                    const topics = Array.from(topicsMap.values()).map(record => ({
+                        id: record.id,
+                        key: record.route.replace(/^\//, '').replace(/\//g, '-'),
+                        route: record.route,
+                        title: record.title,
+                        description: record.content.substring(0, 100) + '...',
+                        is_active: record.is_active,
+                        views_total: 0,
+                        created_at: record.created_at,
+                        updated_at: record.updated_at
+                    }));
+
+                    addResult('✅ Direct Query Success', 'success', {
+                        raw_records: data.length,
+                        grouped_topics: topics.length,
+                        topics: topics
+                    });
+                }
+            } catch (error) {
+                addResult('❌ Direct Query Error', 'error', error.message);
+            }
+        };
+
+        window.testInstructionsService = function() {
+            // Try to call the service from the application context
+            const msg = `
+Чтобы протестировать InstructionsService:
+
+1. Откройте DevTools (F12)
+2. Перейдите в Console  
+3. Выполните команды:
+
+// Import service
+const service = await import('/src/services/instructionsServiceDatabase.ts');
+
+// Test connection
+console.log('Testing InstructionsService...');
+try {
+  const topics = await service.InstructionsService.getTopics();
+  console.log('✅ Topics loaded:', topics);
+} catch (error) {
+  console.error('❌ Service error:', error);
+}
+
+Результат покажет, работает ли сервис или есть ошибки.
+            `;
+            
+            addResult('🛠️ Manual Service Test', 'info', msg);
+        };
+
+        window.checkConsoleErrors = function() {
+            const msg = `
+🖥️ Проверьте консоль браузера на предмет ошибок:
+
+ХОРОШИЕ сигналы:
+• "🔧 Supabase Service Client Configuration" - подключение настроено
+• "✅ Topics loaded: ..." - данные загружены  
+• Успешные HTTP запросы к Supabase
+
+ПЛОХИЕ сигналы:
+• "❌ Error fetching topics" - ошибка загрузки данных
+• "PGRST116" или "PGRST301" - проблемы с таблицей/правами
+• "relation does not exist" - таблица не найдена
+• Network errors - проблемы с сетью
+
+КАК ПРОВЕРИТЬ:
+1. F12 -> Console
+2. Обновите страницу инструкций
+3. Посмотрите на сообщения загрузки данных
+            `;
+            
+            addResult('🖥️ Console Check Guide', 'info', msg);
+        };
+
+        // Auto-check table on load
+        setTimeout(() => {
+            addResult('🚀 Auto-running checks...', 'info', 'Starting automatic diagnostics');
+            checkPageHelpTable();
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -15,13 +15,46 @@ export interface MenuVisibilityConfig {
   equipment: boolean
   reports: boolean
   analytics: boolean
+  misc: boolean
 }
 
 export function useMenuVisibility(): MenuVisibilityConfig {
   const { user } = useAuth()
 
   return useMemo(() => {
-    // Временно показываем все меню для всех пользователей
+    // Специальная логика для МенеджерБТО
+    if (user && user.role === 'bto_manager') {
+      return {
+        networks: true,        // Показываем - может просматривать торговые сети
+        tradingPoint: true,    // Показываем - может просматривать торговые точки  
+        admin: false,          // Скрываем - нет административных прав
+        settings: false,       // Скрываем - нет доступа к настройкам
+        prices: false,         // Скрываем - не может управлять ценами
+        tanks: false,          // Скрываем - нет доступа к резервуарам
+        equipment: false,      // Скрываем - нет доступа к оборудованию
+        reports: false,        // Скрываем - нет доступа к отчетам
+        analytics: false,      // Скрываем - нет доступа к аналитике
+        misc: false            // Скрываем - нет доступа к разделу "Разное"
+      }
+    }
+
+    // Системный администратор имеет доступ ко всем разделам
+    if (user && user.role === 'system_admin') {
+      return {
+        networks: true,
+        tradingPoint: true,
+        admin: true,
+        settings: true,
+        prices: true,
+        tanks: true,
+        equipment: true,
+        reports: true,
+        analytics: true,
+        misc: true
+      }
+    }
+
+    // Для всех остальных ролей показываем все меню (по умолчанию)
     return {
       networks: true,
       tradingPoint: true,
@@ -31,7 +64,8 @@ export function useMenuVisibility(): MenuVisibilityConfig {
       tanks: true,
       equipment: true,
       reports: true,
-      analytics: true
+      analytics: true,
+      misc: true
     }
 
     // Оригинальная логика (закомментирована)

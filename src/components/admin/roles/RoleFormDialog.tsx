@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -28,7 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { RoleService } from '@/services/roleService'
+import { externalRolesService } from '@/services/externalRolesService'
 import { PERMISSION_SECTIONS, PermissionHelpers } from '@/config/permissions'
 import type { Role, Permission, RoleScope, PermissionAction } from '@/types/auth'
 
@@ -55,6 +56,7 @@ const ACTION_LABELS: Record<PermissionAction, string> = {
 }
 
 export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDialogProps) {
+  const isMobile = useIsMobile()
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -99,7 +101,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
       if (role) {
         // Редактирование роли
-        await RoleService.updateRole(role.id, {
+        await externalRolesService.updateRole(role.id, {
           name: formData.name,
           description: formData.description,
           permissions,
@@ -108,13 +110,13 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
         })
       } else {
         // Создание новой роли
-        await RoleService.createRole({
+        await externalRolesService.createRole({
           code: formData.code,
           name: formData.name,
           description: formData.description,
           permissions,
           scope: formData.scope
-        }, 'default_tenant') // TODO: получать из контекста
+        })
       }
 
       onSaved()
@@ -231,7 +233,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} overflow-y-auto bg-slate-900 border-slate-700 text-white`}>
         <DialogHeader>
           <DialogTitle>
             {role ? 'Редактирование роли' : 'Создание новой роли'}
@@ -243,7 +245,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 bg-slate-800 border-slate-700">
+            <TabsList className={`grid w-full ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-2'} bg-slate-800 border-slate-700`}>
               <TabsTrigger value="basic">
                 Основные настройки
               </TabsTrigger>
@@ -259,7 +261,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
             {/* Основные настройки */}
             <TabsContent value="basic" className="space-y-4 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 <div className="space-y-2">
                   <Label htmlFor="code" className="text-slate-200">Код роли *</Label>
                   <Input
@@ -372,7 +374,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                 <p className="text-sm text-slate-400 mb-3">
                   Выберите разделы и действия, которые будут доступны пользователям с этой ролью:
                 </p>
-                <div className="grid grid-cols-5 gap-4 text-xs">
+                <div className={`grid gap-4 text-xs ${isMobile ? 'grid-cols-2' : 'grid-cols-5'}`}>
                   <div className="flex items-center space-x-1">
                     <div className="w-3 h-3 bg-green-800 border border-green-600 rounded"></div>
                     <span className="text-green-300 font-medium">Чтение</span> - просмотр данных
@@ -399,7 +401,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
               {/* Быстрые шаблоны */}
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
                 <h4 className="font-medium text-slate-200 mb-3">🚀 Быстрые шаблоны ролей</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'}`}>
                   <Button
                     type="button"
                     variant="outline"
@@ -466,7 +468,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                                 <p className="text-sm text-slate-400 mt-1">{resource.description}</p>
                               </div>
                             </div>
-                            <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : 'grid-cols-4'}`}>
+                            <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
                               {(section.code === 'menu_visibility' ? 
                                 ['view_menu'] : 
                                 ['read', 'write', 'delete', 'manage']

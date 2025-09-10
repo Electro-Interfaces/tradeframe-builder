@@ -6,96 +6,35 @@
 import { NetworkId } from '@/types/network';
 import { TradingPoint, TradingPointId, TradingPointInput } from '@/types/tradingpoint';
 import { supabaseService as supabase } from './supabaseServiceClient';
+import { tradingPointsStore } from '@/mock/tradingPointsStore';
 
 // API сервис только с Supabase - никакого localStorage!
 export const tradingPointsService = {
-  // Получить все торговые точки (только из Supabase)
+  // Получить все торговые точки (используем mock данные)
   async getAll(): Promise<TradingPoint[]> {
     try {
-      console.log('🔄 Loading trading points from Supabase...');
+      console.log('🔄 Loading trading points from mock store...');
       
-      const { data, error } = await supabase
-        .from('trading_points')
-        .select('*')
-        .order('name');
+      const points = tradingPointsStore.getAll();
       
-      if (error) {
-        console.error('❌ Supabase error:', error);
-        throw new Error(`Ошибка загрузки торговых точек: ${error.message}`);
-      }
-
-      if (!data) {
-        console.warn('⚠️ No trading points data returned from Supabase');
-        return [];
-      }
-
-      console.log('✅ Loaded trading points from Supabase:', data.length, 'points');
-      console.log('🔍 Sample trading point data:', data[0]); // Показываем первую точку для отладки
-      
-      // Преобразуем данные из Supabase в формат TradingPoint
-      return data.map(row => ({
-        id: row.id,
-        external_id: row.external_id, // ID для синхронизации с торговым API
-        networkId: row.network_id,
-        name: row.name,
-        description: row.description || '',
-        geolocation: row.geolocation || {},
-        phone: row.phone || '',
-        email: row.email || '',
-        website: row.website || '',
-        isBlocked: row.is_blocked || false,
-        blockReason: row.block_reason || '',
-        schedule: row.schedule || {},
-        services: row.services || {},
-        externalCodes: row.external_codes || [],
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at)
-      }));
+      console.log('✅ Loaded mock trading points:', points.length);
+      return points;
       
     } catch (error) {
       console.error('💥 Critical error loading trading points:', error);
-      throw error; // Пробрасываем ошибку выше, чтобы UI мог её обработать
+      throw error;
     }
   },
 
-  // Получить торговые точки по ID сети (только из Supabase)
+  // Получить торговые точки по ID сети (используем mock данные)
   async getByNetworkId(networkId: NetworkId): Promise<TradingPoint[]> {
     try {
       console.log('🔄 Loading trading points for network:', networkId);
       
-      const { data, error } = await supabase
-        .from('trading_points')
-        .select('*')
-        .eq('network_id', networkId)
-        .order('name');
+      const points = tradingPointsStore.getByNetworkId(networkId);
       
-      if (error) {
-        console.error('❌ Error loading trading points by network ID:', error);
-        throw new Error(`Ошибка загрузки торговых точек сети: ${error.message}`);
-      }
-
-      if (!data) return [];
-
-      console.log(`✅ Loaded ${data.length} trading points for network ${networkId}`);
-      
-      return data.map(row => ({
-        id: row.id,
-        external_id: row.external_id, // ID для синхронизации с торговым API
-        networkId: row.network_id,
-        name: row.name,
-        description: row.description || '',
-        geolocation: row.geolocation || {},
-        phone: row.phone || '',
-        email: row.email || '',
-        website: row.website || '',
-        isBlocked: row.is_blocked || false,
-        blockReason: row.block_reason || '',
-        schedule: row.schedule || {},
-        services: row.services || {},
-        externalCodes: row.external_codes || [],
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at)
-      }));
+      console.log(`✅ Loaded ${points.length} trading points for network ${networkId}`);
+      return points;
       
     } catch (error) {
       console.error('💥 Critical error loading trading points by network:', error);
@@ -103,43 +42,20 @@ export const tradingPointsService = {
     }
   },
 
-  // Получить торговую точку по ID (только из Supabase)
+  // Получить торговую точку по ID (используем mock данные)
   async getById(id: TradingPointId): Promise<TradingPoint | null> {
     try {
-      const { data, error } = await supabase
-        .from('trading_points')
-        .select('*')
-        .eq('id', id)
-        .single();
+      console.log('🔄 Loading trading point by ID from mock store:', id);
       
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Запись не найдена
-          return null;
-        }
-        console.error('❌ Error loading trading point by ID:', error);
+      const point = tradingPointsStore.getById(id);
+      
+      if (!point) {
+        console.warn('⚠️ Trading point not found:', id);
         return null;
       }
-
-      if (!data) return null;
-
-      return {
-        id: data.id,
-        networkId: data.network_id,
-        name: data.name,
-        description: data.description || '',
-        geolocation: data.geolocation || {},
-        phone: data.phone || '',
-        email: data.email || '',
-        website: data.website || '',
-        isBlocked: data.is_blocked || false,
-        blockReason: data.block_reason || '',
-        schedule: data.schedule || {},
-        services: data.services || {},
-        externalCodes: data.external_codes || [],
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at)
-      };
+      
+      console.log('✅ Found trading point:', point.name);
+      return point;
     } catch (error) {
       console.error('💥 Critical error loading trading point by ID:', error);
       return null;

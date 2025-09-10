@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🚀 PWA Полный Тест - TradeControl</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #0f172a; 
+            color: white; 
+            line-height: 1.6;
+        }
+        .section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            background: #1e293b; 
+            border-radius: 12px; 
+            border: 1px solid #334155;
+        }
+        .feature { 
+            margin: 15px 0; 
+            padding: 15px; 
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .ready { background: #0f5132; border-left-color: #10b981; }
+        .partial { background: #7c2d12; border-left-color: #f59e0b; }
+        .missing { background: #7f1d1d; border-left-color: #ef4444; }
+        .test-btn { 
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+            min-height: 44px;
+        }
+        .test-btn:hover { background: #2563eb; }
+        .test-btn.success { background: #10b981; }
+        .test-btn.warning { background: #f59e0b; }
+        .test-btn.error { background: #ef4444; }
+        .status { 
+            display: inline-block; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            margin-left: 10px;
+        }
+        .status-ready { background: #10b981; color: white; }
+        .status-partial { background: #f59e0b; color: white; }
+        .status-missing { background: #ef4444; color: white; }
+        h1 { color: #3b82f6; font-size: 2rem; margin-bottom: 10px; }
+        h2 { color: #10b981; margin-top: 30px; }
+        h3 { color: #f59e0b; margin-top: 20px; }
+        .console { 
+            background: #0f172a; 
+            border: 1px solid #334155; 
+            border-radius: 8px; 
+            padding: 15px; 
+            font-family: 'Courier New', monospace; 
+            font-size: 14px; 
+            max-height: 200px; 
+            overflow-y: auto; 
+            margin: 10px 0;
+        }
+        .install-prompt {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #10b981;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            cursor: pointer;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            body { font-size: 16px; margin: 10px; }
+            h1 { font-size: 1.5rem; }
+            .section { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 PWA Полный Тест TradeControl</h1>
+    <p>Комплексная проверка готовности прогрессивного веб-приложения</p>
+    
+    <div id="install-prompt" class="install-prompt">
+        📱 Приложение готово к установке! Нажмите здесь
+    </div>
+
+    <div class="section">
+        <h2>🔧 Базовые тесты PWA:</h2>
+        
+        <div class="feature">
+            <h3>Service Worker <span id="sw-status" class="status status-missing">Тестируется</span></h3>
+            <button onclick="testServiceWorker()" class="test-btn">🧪 Тест Service Worker</button>
+            <button onclick="testOfflineMode()" class="test-btn">📡 Тест Offline режима</button>
+            <div id="sw-console" class="console"></div>
+        </div>
+        
+        <div class="feature">
+            <h3>Manifest & Icons <span id="manifest-status" class="status status-missing">Тестируется</span></h3>
+            <button onclick="testManifest()" class="test-btn">📋 Тест Manifest</button>
+            <button onclick="testIcons()" class="test-btn">🎨 Тест Icons</button>
+            <div id="manifest-console" class="console"></div>
+        </div>
+        
+        <div class="feature">
+            <h3>Install Prompt <span id="install-status" class="status status-missing">Ожидается</span></h3>
+            <button onclick="testInstallability()" class="test-btn">📱 Тест Установки</button>
+            <button onclick="triggerInstall()" class="test-btn">🔧 Принудительная установка</button>
+            <div id="install-console" class="console"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📊 Результаты тестирования:</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <div class="section">
+        <h2>🛠️ Быстрые тесты:</h2>
+        
+        <button onclick="runFullTest()" class="test-btn">🚀 Полный Тест PWA</button>
+        <button onclick="testMobileFeatures()" class="test-btn">📱 Тест мобильных функций</button>
+        <button onclick="showDeviceInfo()" class="test-btn">📟 Информация об устройстве</button>
+        <button onclick="clearCache()" class="test-btn warning">🗑️ Очистить кэш</button>
+    </div>
+
+    <div class="section">
+        <h2>🔗 Тестовые ссылки:</h2>
+        <a href="http://localhost:3000" class="test-btn" style="display: inline-block; text-decoration: none;">
+            🏠 Главная приложения
+        </a>
+        <a href="http://localhost:3000/network/equipment" class="test-btn" style="display: inline-block; text-decoration: none;">
+            🔧 Оборудование (мобильные компоненты)
+        </a>
+        <a href="/offline.html" class="test-btn" style="display: inline-block; text-decoration: none;">
+            🌐 Offline страница
+        </a>
+    </div>
+
+    <script>
+        let deferredPrompt;
+        let testResults = {
+            serviceWorker: false,
+            manifest: false,
+            icons: false,
+            installable: false,
+            offline: false
+        };
+
+        // Обработка install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('✅ PWA Install Prompt Ready');
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            const installPrompt = document.getElementById('install-prompt');
+            installPrompt.style.display = 'block';
+            installPrompt.onclick = triggerInstall;
+            
+            updateStatus('install-status', 'Готов к установке', 'ready');
+            testResults.installable = true;
+            updateTestResults();
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ PWA Installed Successfully');
+            document.getElementById('install-prompt').style.display = 'none';
+            deferredPrompt = null;
+            log('install-console', '✅ Приложение успешно установлено!');
+        });
+
+        function log(containerId, message) {
+            const container = document.getElementById(containerId);
+            container.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateStatus(statusId, text, type) {
+            const status = document.getElementById(statusId);
+            status.textContent = text;
+            status.className = `status status-${type}`;
+        }
+
+        function testServiceWorker() {
+            log('sw-console', '🔍 Проверка Service Worker...');
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    if (registrations.length > 0) {
+                        log('sw-console', `✅ Service Worker зарегистрирован: ${registrations[0].scope}`);
+                        updateStatus('sw-status', 'Работает', 'ready');
+                        testResults.serviceWorker = true;
+                        
+                        // Проверка состояния
+                        registrations[0].addEventListener('updatefound', () => {
+                            log('sw-console', '🔄 Найдено обновление Service Worker');
+                        });
+                    } else {
+                        log('sw-console', '❌ Service Worker не найден');
+                        updateStatus('sw-status', 'Не найден', 'missing');
+                    }
+                    updateTestResults();
+                });
+            } else {
+                log('sw-console', '❌ Service Worker не поддерживается браузером');
+                updateStatus('sw-status', 'Не поддерживается', 'missing');
+                updateTestResults();
+            }
+        }
+
+        function testOfflineMode() {
+            log('sw-console', '📡 Тестирование offline режима...');
+            
+            // Проверяем кэш
+            if ('caches' in window) {
+                caches.keys().then(cacheNames => {
+                    log('sw-console', `📦 Найдено кэшей: ${cacheNames.length}`);
+                    cacheNames.forEach(name => {
+                        log('sw-console', `   - ${name}`);
+                    });
+                    
+                    if (cacheNames.length > 0) {
+                        testResults.offline = true;
+                        log('sw-console', '✅ Offline поддержка активна');
+                    } else {
+                        log('sw-console', '⚠️ Кэш пуст, offline может не работать');
+                    }
+                    updateTestResults();
+                });
+            }
+        }
+
+        function testManifest() {
+            log('manifest-console', '📋 Проверка Web App Manifest...');
+            
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink) {
+                fetch(manifestLink.href)
+                    .then(response => response.json())
+                    .then(manifest => {
+                        log('manifest-console', '✅ Manifest загружен успешно');
+                        log('manifest-console', `   - Имя: ${manifest.name}`);
+                        log('manifest-console', `   - Режим: ${manifest.display}`);
+                        log('manifest-console', `   - Иконок: ${manifest.icons?.length || 0}`);
+                        log('manifest-console', `   - Shortcuts: ${manifest.shortcuts?.length || 0}`);
+                        
+                        updateStatus('manifest-status', 'Загружен', 'ready');
+                        testResults.manifest = true;
+                        updateTestResults();
+                    })
+                    .catch(e => {
+                        log('manifest-console', `❌ Ошибка загрузки manifest: ${e.message}`);
+                        updateStatus('manifest-status', 'Ошибка', 'missing');
+                        updateTestResults();
+                    });
+            } else {
+                log('manifest-console', '❌ Manifest link не найден');
+                updateStatus('manifest-status', 'Не найден', 'missing');
+                updateTestResults();
+            }
+        }
+
+        function testIcons() {
+            log('manifest-console', '🎨 Проверка иконок...');
+            
+            const icons = document.querySelectorAll('link[rel*="icon"]');
+            log('manifest-console', `📱 Найдено иконок: ${icons.length}`);
+            
+            let iconTests = 0;
+            let successfulIcons = 0;
+            
+            icons.forEach(icon => {
+                iconTests++;
+                const img = new Image();
+                img.onload = () => {
+                    successfulIcons++;
+                    log('manifest-console', `✅ ${icon.href} (${icon.sizes || 'no size'})`);
+                    
+                    if (iconTests === successfulIcons) {
+                        testResults.icons = true;
+                        updateTestResults();
+                    }
+                };
+                img.onerror = () => {
+                    log('manifest-console', `❌ ${icon.href} - не загружается`);
+                    iconTests--;
+                };
+                img.src = icon.href;
+            });
+        }
+
+        function testInstallability() {
+            log('install-console', '📱 Проверка возможности установки...');
+            
+            // Проверка критериев PWA
+            const criteria = {
+                'Service Worker': 'serviceWorker' in navigator,
+                'Manifest': !!document.querySelector('link[rel="manifest"]'),
+                'HTTPS/localhost': location.protocol === 'https:' || location.hostname === 'localhost',
+                'Display standalone': true // проверим в manifest
+            };
+            
+            Object.entries(criteria).forEach(([key, value]) => {
+                const status = value ? '✅' : '❌';
+                log('install-console', `${status} ${key}: ${value}`);
+            });
+            
+            if (deferredPrompt) {
+                log('install-console', '✅ Install prompt готов');
+                updateStatus('install-status', 'Готов', 'ready');
+            } else {
+                log('install-console', '⚠️ Install prompt не активен');
+                updateStatus('install-status', 'Недоступен', 'partial');
+            }
+        }
+
+        function triggerInstall() {
+            if (deferredPrompt) {
+                log('install-console', '🚀 Запуск установки...');
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        log('install-console', '✅ Пользователь согласился на установку');
+                    } else {
+                        log('install-console', '❌ Пользователь отклонил установку');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('install-prompt').style.display = 'none';
+                });
+            } else {
+                log('install-console', '❌ Install prompt недоступен');
+            }
+        }
+
+        function runFullTest() {
+            console.log('🚀 Запуск полного PWA теста...');
+            
+            // Сброс результатов
+            Object.keys(testResults).forEach(key => testResults[key] = false);
+            
+            // Запуск всех тестов
+            setTimeout(testServiceWorker, 100);
+            setTimeout(testManifest, 500);
+            setTimeout(testIcons, 1000);
+            setTimeout(testInstallability, 1500);
+            setTimeout(testOfflineMode, 2000);
+        }
+
+        function testMobileFeatures() {
+            const results = document.getElementById('test-results');
+            
+            const mobileTests = {
+                'Touch Events': 'ontouchstart' in window,
+                'Device Orientation': 'DeviceOrientationEvent' in window,
+                'Vibration API': 'vibrate' in navigator,
+                'Battery API': 'getBattery' in navigator,
+                'Network Information': 'connection' in navigator,
+                'Geolocation': 'geolocation' in navigator
+            };
+            
+            let html = '<h3>📱 Мобильные функции:</h3><ul>';
+            Object.entries(mobileTests).forEach(([feature, supported]) => {
+                const status = supported ? '✅' : '❌';
+                html += `<li>${status} ${feature}</li>`;
+            });
+            html += '</ul>';
+            
+            results.innerHTML = html;
+        }
+
+        function showDeviceInfo() {
+            const results = document.getElementById('test-results');
+            
+            const info = {
+                'User Agent': navigator.userAgent,
+                'Platform': navigator.platform,
+                'Language': navigator.language,
+                'Online': navigator.onLine,
+                'Cookies Enabled': navigator.cookieEnabled,
+                'Screen Size': `${screen.width}x${screen.height}`,
+                'Viewport Size': `${window.innerWidth}x${window.innerHeight}`,
+                'Device Pixel Ratio': window.devicePixelRatio,
+                'Color Depth': screen.colorDepth,
+                'Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
+            
+            let html = '<h3>📟 Информация об устройстве:</h3><ul>';
+            Object.entries(info).forEach(([key, value]) => {
+                html += `<li><strong>${key}:</strong> ${value}</li>`;
+            });
+            html += '</ul>';
+            
+            results.innerHTML = html;
+        }
+
+        function clearCache() {
+            if ('caches' in window) {
+                caches.keys().then(cacheNames => {
+                    return Promise.all(
+                        cacheNames.map(cacheName => caches.delete(cacheName))
+                    );
+                }).then(() => {
+                    console.log('✅ Кэш очищен');
+                    alert('Кэш очищен. Перезагрузите страницу.');
+                });
+            }
+        }
+
+        function updateTestResults() {
+            const results = document.getElementById('test-results');
+            const total = Object.keys(testResults).length;
+            const passed = Object.values(testResults).filter(Boolean).length;
+            const percentage = Math.round((passed / total) * 100);
+            
+            let status = '❌ Не готов';
+            if (percentage >= 80) status = '✅ Готов';
+            else if (percentage >= 60) status = '⚠️ Частично готов';
+            
+            results.innerHTML = `
+                <h3>📊 Общий результат: ${status} (${passed}/${total} - ${percentage}%)</h3>
+                <ul>
+                    <li>${testResults.serviceWorker ? '✅' : '❌'} Service Worker</li>
+                    <li>${testResults.manifest ? '✅' : '❌'} Web App Manifest</li>
+                    <li>${testResults.icons ? '✅' : '❌'} Icons</li>
+                    <li>${testResults.installable ? '✅' : '❌'} Installable</li>
+                    <li>${testResults.offline ? '✅' : '❌'} Offline Support</li>
+                </ul>
+            `;
+        }
+
+        // Автоматический запуск тестов
+        window.addEventListener('load', () => {
+            setTimeout(runFullTest, 1000);
+        });
+
+        // Обработка изменений сети
+        window.addEventListener('online', () => {
+            console.log('🌐 Подключение к сети восстановлено');
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('📡 Подключение к сети потеряно');
+        });
+
+        console.log('🚀 PWA Test Page загружена');
+    </script>
+</body>
+</html>

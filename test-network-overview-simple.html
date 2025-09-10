@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Network Overview</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .error { color: red; margin: 10px 0; }
+        .success { color: green; margin: 10px 0; }
+        .info { color: blue; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Тест страницы обзора сети</h1>
+    
+    <div id="status">Проверяем...</div>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        
+        // Проверяем доступность сервера
+        fetch('http://localhost:3006/network/overview')
+            .then(response => {
+                if (response.ok) {
+                    statusDiv.innerHTML = '<div class="success">✅ Сервер доступен</div>';
+                    
+                    // Перенаправляем через 2 секунды
+                    setTimeout(() => {
+                        window.location.href = 'http://localhost:3006/network/overview';
+                    }, 2000);
+                } else {
+                    statusDiv.innerHTML = '<div class="error">❌ Ошибка загрузки: ' + response.status + '</div>';
+                }
+            })
+            .catch(error => {
+                statusDiv.innerHTML = '<div class="error">❌ Сервер недоступен: ' + error.message + '</div>';
+                
+                // Попробуем порт 3001
+                setTimeout(() => {
+                    statusDiv.innerHTML += '<div class="info">🔄 Пробуем порт 3001...</div>';
+                    
+                    fetch('http://localhost:3001/network/overview')
+                        .then(response => {
+                            if (response.ok) {
+                                statusDiv.innerHTML += '<div class="success">✅ Найден на порту 3001</div>';
+                                setTimeout(() => {
+                                    window.location.href = 'http://localhost:3001/network/overview';
+                                }, 2000);
+                            } else {
+                                statusDiv.innerHTML += '<div class="error">❌ Порт 3001 тоже недоступен</div>';
+                            }
+                        })
+                        .catch(err => {
+                            statusDiv.innerHTML += '<div class="error">❌ Порт 3001 недоступен</div>';
+                        });
+                }, 1000);
+            });
+            
+        // Также покажем консольные ошибки
+        window.onerror = function(msg, url, line) {
+            statusDiv.innerHTML += '<div class="error">JavaScript Error: ' + msg + '</div>';
+        };
+    </script>
+</body>
+</html>

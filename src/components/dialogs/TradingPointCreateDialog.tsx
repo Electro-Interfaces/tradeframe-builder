@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,7 @@ export function TradingPointCreateDialog({
   networkId, 
   onSubmit 
 }: TradingPointCreateDialogProps) {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<TradingPointInput>({
     networkId: networkId,
@@ -188,7 +190,7 @@ export function TradingPointCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} bg-slate-800 border-slate-700 overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="text-white">Создать торговую точку</DialogTitle>
         </DialogHeader>
@@ -231,7 +233,7 @@ export function TradingPointCreateDialog({
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">Геолокация</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
               <div className="space-y-2">
                 <Label htmlFor="latitude" className="text-slate-200 block">
                   Широта <span className="text-red-400">*</span>
@@ -273,7 +275,7 @@ export function TradingPointCreateDialog({
               <p className="text-red-400 text-sm mt-1">{errors.geolocation}</p>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
               <div className="space-y-2">
                 <Label htmlFor="region" className="text-slate-200 block">Регион</Label>
                 <Input
@@ -322,7 +324,7 @@ export function TradingPointCreateDialog({
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-white">Контактная информация</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'}`}>
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-slate-200 block">Телефон</Label>
                 <Input

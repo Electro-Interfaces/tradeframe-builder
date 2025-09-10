@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест входа МенеджерБТО</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #1a1a1a; 
+            color: #fff; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        .status { 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 8px; 
+            border-left: 4px solid;
+        }
+        .success { 
+            background: #2d5a2d; 
+            border-color: #4caf50; 
+        }
+        .error { 
+            background: #5a2d2d; 
+            border-color: #f44336; 
+        }
+        .info { 
+            background: #2d4a5a; 
+            border-color: #2196f3; 
+        }
+        pre { 
+            background: #333; 
+            padding: 15px; 
+            border-radius: 8px; 
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 16px;
+        }
+        button:hover { background: #1976d2; }
+        .form-group {
+            margin: 15px 0;
+        }
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #555;
+            background: #333;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тест входа МенеджерБТО</h1>
+        
+        <div class="status info">
+            <h3>🔐 Данные для тестирования:</h3>
+            <p><strong>Email:</strong> bto.manager@tradeframe.com</p>
+            <p><strong>Password:</strong> admin123</p>
+            <p><strong>Роль:</strong> МенеджерБТО (доступ только к сети БТО)</p>
+            <p><strong>Tenant:</strong> БТО (Башкирские торговые операции)</p>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" value="bto.manager@tradeframe.com">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" value="admin123">
+        </div>
+
+        <button onclick="testLogin()">Тестировать вход</button>
+        <button onclick="testDirectAPI()">Проверить API напрямую</button>
+        <button onclick="clearResults()">Очистить результаты</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ssvazdgnmatbdynkhkqo.supabase.co';
+        const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
+
+        function addResult(title, status, data) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = \`status \${status}\`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            
+            div.innerHTML = \`
+                <h4>[\${timestamp}] \${title}</h4>
+                <pre>\${typeof data === 'object' ? JSON.stringify(data, null, 2) : data}</pre>
+            \`;
+            
+            results.insertBefore(div, results.firstChild);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testDirectAPI() {
+            const email = document.getElementById('email').value;
+            
+            try {
+                addResult('Прямая проверка API', 'info', { message: 'Проверяем пользователя в базе...' });
+                
+                const response = await fetch(\`\${SUPABASE_URL}/rest/v1/users?email=eq.\${email}\`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SERVICE_KEY,
+                        'Authorization': \`Bearer \${SERVICE_KEY}\`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.length > 0) {
+                        const user = data[0];
+                        addResult('Прямая проверка API', 'success', {
+                            found: true,
+                            user: {
+                                id: user.id,
+                                email: user.email,
+                                name: user.name,
+                                status: user.status,
+                                tenant_id: user.tenant_id,
+                                preferences: user.preferences
+                            }
+                        });
+
+                        // Также получим tenant данные
+                        await checkTenant(user.tenant_id);
+                        
+                    } else {
+                        addResult('Прямая проверка API', 'error', {
+                            found: false,
+                            message: 'Пользователь не найден в базе данных'
+                        });
+                    }
+                } else {
+                    const errorText = await response.text();
+                    addResult('Прямая проверка API', 'error', {
+                        status: response.status,
+                        error: errorText
+                    });
+                }
+            } catch (error) {
+                addResult('Прямая проверка API', 'error', {
+                    error: error.message
+                });
+            }
+        }
+
+        async function checkTenant(tenantId) {
+            try {
+                const response = await fetch(\`\${SUPABASE_URL}/rest/v1/tenants?id=eq.\${tenantId}\`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SERVICE_KEY,
+                        'Authorization': \`Bearer \${SERVICE_KEY}\`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.length > 0) {
+                        const tenant = data[0];
+                        addResult('Проверка Tenant', 'success', {
+                            tenant: {
+                                id: tenant.id,
+                                name: tenant.name,
+                                code: tenant.code,
+                                settings: tenant.settings,
+                                is_active: tenant.is_active
+                            }
+                        });
+                    } else {
+                        addResult('Проверка Tenant', 'error', {
+                            message: 'Tenant не найден'
+                        });
+                    }
+                } else {
+                    const errorText = await response.text();
+                    addResult('Проверка Tenant', 'error', {
+                        status: response.status,
+                        error: errorText
+                    });
+                }
+            } catch (error) {
+                addResult('Проверка Tenant', 'error', {
+                    error: error.message
+                });
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                addResult('Тест входа', 'info', { 
+                    message: 'Попытка входа через приложение...',
+                    email: email
+                });
+
+                // Эмулируем логику из SupabaseAuthService
+                const response = await fetch(\`\${SUPABASE_URL}/rest/v1/users?email=eq.\${email}&status=eq.active\`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SERVICE_KEY,
+                        'Authorization': \`Bearer \${SERVICE_KEY}\`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    
+                    if (users.length === 0) {
+                        addResult('Тест входа', 'error', {
+                            success: false,
+                            message: 'Пользователь не найден или не активен'
+                        });
+                        return;
+                    }
+
+                    const user = users[0];
+                    
+                    // Проверяем пароль (для демо пользователей принимаем admin123)
+                    if (password !== 'admin123') {
+                        addResult('Тест входа', 'error', {
+                            success: false,
+                            message: 'Неверный пароль. Используйте пароль: admin123'
+                        });
+                        return;
+                    }
+
+                    // Извлекаем данные пользователя как в SupabaseAuthService
+                    const userRole = user.preferences?.role || 'operator';
+                    const networkId = user.tenant_id;
+                    
+                    const authUser = {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name,
+                        role: userRole,
+                        networkId: networkId,
+                        tradingPointIds: user.preferences?.trading_point_ids || [],
+                        permissions: getRolePermissions(userRole)
+                    };
+
+                    addResult('Тест входа', 'success', {
+                        success: true,
+                        message: 'Вход успешен!',
+                        authUser: authUser,
+                        rawUserData: {
+                            tenant_id: user.tenant_id,
+                            preferences: user.preferences,
+                            status: user.status
+                        }
+                    });
+
+                    // Проверим меню которое должен видеть пользователь
+                    checkMenuAccess(authUser);
+
+                } else {
+                    const errorText = await response.text();
+                    addResult('Тест входа', 'error', {
+                        success: false,
+                        status: response.status,
+                        error: errorText
+                    });
+                }
+
+            } catch (error) {
+                addResult('Тест входа', 'error', {
+                    success: false,
+                    error: error.message
+                });
+            }
+        }
+
+        function getRolePermissions(role) {
+            const rolePermissions = {
+                'system_admin': ['users.read', 'users.create', 'networks.read', 'networks.create', 'trading_points.read'],
+                'bto_manager': ['networks.read', 'trading_points.read', 'networks.view_bto', 'points.view_bto'],
+                'operator': ['basic.read']
+            };
+
+            return rolePermissions[role] || ['basic.read'];
+        }
+
+        function checkMenuAccess(authUser) {
+            // Проверяем какие разделы меню должны быть доступны МенеджерБТО
+            const allowedSections = [];
+            
+            if (authUser.permissions.includes('networks.read') || authUser.permissions.includes('networks.view_bto')) {
+                allowedSections.push('Торговые сети');
+            }
+            
+            if (authUser.permissions.includes('trading_points.read') || authUser.permissions.includes('points.view_bto')) {
+                allowedSections.push('Торговые точки');
+            }
+
+            addResult('Проверка доступа к меню', 'info', {
+                role: authUser.role,
+                permissions: authUser.permissions,
+                allowedMenuSections: allowedSections,
+                networkRestriction: authUser.role === 'bto_manager' ? 'Только БТО сеть' : 'Нет ограничений'
+            });
+        }
+
+        // Автоматически проверим API при загрузке
+        window.addEventListener('load', () => {
+            setTimeout(testDirectAPI, 1000);
+        });
+    </script>
+</body>
+</html>

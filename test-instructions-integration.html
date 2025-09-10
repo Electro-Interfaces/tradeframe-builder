@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Instructions Integration</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .error { background: #fde8e8; border-color: #f44336; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        pre { background: #f4f4f4; padding: 10px; overflow: auto; max-height: 200px; }
+        .button { 
+            background: #2196f3; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+        }
+        .button:hover { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Instructions Integration</h1>
+    <div class="test info">
+        <h3>📝 Instructions</h3>
+        <p>1. Откройте <a href="http://localhost:3001/admin/instructions" target="_blank">раздел инструкций</a></p>
+        <p>2. Проверьте переключатель источника данных: localStorage ↔ Supabase Database</p>
+        <p>3. Попробуйте миграцию данных из localStorage в Supabase</p>
+        <p>4. Используйте кнопки ниже для тестирования разных сценариев</p>
+    </div>
+
+    <div class="test">
+        <h3>🧪 Test Scenarios</h3>
+        <button class="button" onclick="testLocalStorage()">Test localStorage Mode</button>
+        <button class="button" onclick="testSupabaseMode()">Test Supabase Mode</button>
+        <button class="button" onclick="testMigration()">Test Migration</button>
+        <button class="button" onclick="checkConsole()">Check Console</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(title, type, data) {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+
+        function testLocalStorage() {
+            addResult('📦 localStorage Mode Test', 'info', 
+                'Инструкции:\n' +
+                '1. В разделе инструкций убедитесь что активен режим "localStorage"\n' +
+                '2. Проверьте что загружаются темы из localStorage\n' +
+                '3. Статистика должна показывать ~22 темы\n' +
+                '4. Все операции CRUD должны работать с localStorage'
+            );
+        }
+
+        function testSupabaseMode() {
+            addResult('🗄️ Supabase Mode Test', 'info',
+                'Инструкции:\n' +
+                '1. В разделе инструкций переключитесь на "Supabase Database"\n' +
+                '2. Если таблица пустая - увидите 0 тем\n' +
+                '3. Если данные мигрированы - увидите темы из БД\n' +
+                '4. Все операции CRUD должны работать с Supabase\n' +
+                '5. Проверьте что создание/редактирование работает'
+            );
+        }
+
+        function testMigration() {
+            addResult('📊 Migration Test', 'info',
+                'Инструкции:\n' +
+                '1. Убедитесь что в localStorage режиме есть данные\n' +
+                '2. Нажмите кнопку "Мигрировать в Supabase"\n' +
+                '3. Дождитесь завершения миграции\n' +
+                '4. Переключитесь на Supabase режим\n' +
+                '5. Проверьте что данные появились в БД режиме'
+            );
+        }
+
+        function checkConsole() {
+            const logs = [
+                '🔍 Что проверить в консоли браузера:',
+                '',
+                '✅ Положительные сигналы:',
+                '• "🔧 Supabase Service Client Configuration" - подключение настроено',
+                '• "✅ Database connection successful" - БД доступна', 
+                '• "🚀 Начинаем миграцию данных в page_help..." - миграция началась',
+                '• "✅ Создано: /route" - записи созданы',
+                '• "🎉 Миграция завершена!" - миграция успешна',
+                '',
+                '❌ Ошибки которые могут быть:',
+                '• "Error fetching topics" - проблема загрузки из БД',
+                '• "Database error" - проблема с Supabase',
+                '• "PGRST205" - таблица не найдена',
+                '• Import errors - проблемы с модулями',
+                '',
+                '🔧 Отладочная информация:',
+                '• "🔍 Ищем инструкцию для: ..." - поиск инструкций',
+                '• "✅ Найдена инструкция: ..." - инструкция найдена',
+                '• "❌ Инструкция не найдена для: ..." - инструкция не найдена'
+            ];
+            
+            addResult('🖥️ Console Check Guide', 'info', logs.join('\n'));
+        }
+
+        // Автоматическая проверка состояния
+        function checkAppState() {
+            const checks = {
+                'App URL': window.location.href,
+                'User Agent': navigator.userAgent.substring(0, 50) + '...',
+                'Local Storage Keys': Object.keys(localStorage).filter(k => k.includes('instruction')),
+                'Current Time': new Date().toISOString()
+            };
+            
+            addResult('📋 Current App State', 'info', checks);
+        }
+
+        // Запускаем проверку при загрузке
+        checkAppState();
+        
+        // Инструкции по использованию
+        addResult('🎯 Quick Start', 'success',
+            'Готово к тестированию!\n\n' +
+            '1. Откройте раздел инструкций в новой вкладке\n' +
+            '2. Используйте кнопки выше для получения инструкций\n' +
+            '3. Проверьте консоль браузера на наличие ошибок\n' +
+            '4. Протестируйте переключение между localStorage ↔ Supabase'
+        );
+    </script>
+</body>
+</html>

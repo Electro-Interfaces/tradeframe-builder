@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Operations Tables</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test { margin: 15px 0; padding: 20px; border-radius: 10px; }
+        .success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4caf50; }
+        .error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+        .info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196f3; }
+        .warning { background: rgba(255, 152, 0, 0.2); border: 1px solid #ff9800; }
+        pre { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
+        .button { 
+            background: #4caf50; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            margin: 10px 5px; 
+            border-radius: 5px; 
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .button:hover { background: #45a049; transform: translateY(-2px); }
+        .button.secondary { background: #2196f3; }
+        .button.secondary:hover { background: #1976d2; }
+        .button.danger { background: #f44336; }
+        .button.danger:hover { background: #da190b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Создание недостающих таблиц для операций</h1>
+        
+        <div class="test info">
+            <h3>🎯 Создание таблиц operations и trading_points</h3>
+            <p>Создаем недостающие таблицы в базе данных Supabase для правильной работы системы операций</p>
+            <button class="button" onclick="checkTablesExist()">1️⃣ ПРОВЕРИТЬ СУЩЕСТВУЮЩИЕ ТАБЛИЦЫ</button>
+            <button class="button" onclick="createOperationsTable()">2️⃣ СОЗДАТЬ ТАБЛИЦУ OPERATIONS</button>
+            <button class="button" onclick="createTradingPointsTable()">3️⃣ СОЗДАТЬ ТАБЛИЦУ TRADING_POINTS</button>
+            <button class="button secondary" onclick="testNewTables()">4️⃣ ТЕСТ НОВЫХ ТАБЛИЦ</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const config = {
+            url: 'https://ssvazdgnmatbdynkhkqo.supabase.co',
+            apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0'
+        };
+
+        function addResult(title, type, data) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = \`test \${type}\`;
+            div.innerHTML = \`
+                <h3>\${title}</h3>
+                <pre>\${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+            \`;
+            results.appendChild(div);
+        }
+
+        async function supabaseRequest(method, endpoint, body = null) {
+            const headers = {
+                'apikey': config.apiKey,
+                'Authorization': \`Bearer \${config.apiKey}\`,
+                'Content-Type': 'application/json'
+            };
+
+            const options = {
+                method,
+                headers,
+                ...(body && { body: JSON.stringify(body) })
+            };
+
+            const response = await fetch(\`\${config.url}/rest/v1\${endpoint}\`, options);
+            
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(\`\${response.status}: \${error}\`);
+            }
+
+            const text = await response.text();
+            return text ? JSON.parse(text) : null;
+        }
+
+        window.checkTablesExist = async function() {
+            addResult('🔍 Проверка существующих таблиц...', 'info', 'Проверяем какие таблицы уже существуют в базе данных');
+            
+            try {
+                // Проверяем operations
+                try {
+                    await supabaseRequest('GET', '/operations?limit=1');
+                    addResult('✅ Таблица operations существует', 'success', 'Таблица operations уже создана');
+                } catch (error) {
+                    addResult('❌ Таблица operations НЕ существует', 'error', {
+                        error: error.message,
+                        note: 'Нужно создать таблицу operations'
+                    });
+                }
+
+                // Проверяем trading_points
+                try {
+                    await supabaseRequest('GET', '/trading_points?limit=1');
+                    addResult('✅ Таблица trading_points существует', 'success', 'Таблица trading_points уже создана');
+                } catch (error) {
+                    addResult('❌ Таблица trading_points НЕ существует', 'error', {
+                        error: error.message,
+                        note: 'Нужно создать таблицу trading_points'
+                    });
+                }
+                
+            } catch (error) {
+                addResult('❌ Ошибка при проверке таблиц', 'error', error.message);
+            }
+        };
+
+        window.createOperationsTable = async function() {
+            addResult('🔧 Создание таблицы operations...', 'info', 'Создаем таблицу для операций заправки и техобслуживания');
+            
+            const createOperationsSQL = \`
+CREATE TABLE IF NOT EXISTS operations (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  operation_type VARCHAR(50) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  start_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  end_time TIMESTAMP WITH TIME ZONE,
+  duration INTEGER,
+  trading_point_id uuid,
+  trading_point_name VARCHAR(200),
+  device_id VARCHAR(100),
+  transaction_id VARCHAR(100),
+  fuel_type VARCHAR(50),
+  quantity DECIMAL(10,3),
+  price DECIMAL(10,2),
+  total_cost DECIMAL(12,2),
+  payment_method VARCHAR(30),
+  details TEXT NOT NULL DEFAULT '',
+  progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+  operator_name VARCHAR(200),
+  customer_id VARCHAR(100),
+  vehicle_number VARCHAR(20),
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_operations_operation_type ON operations(operation_type);
+CREATE INDEX IF NOT EXISTS idx_operations_status ON operations(status);
+CREATE INDEX IF NOT EXISTS idx_operations_start_time ON operations(start_time DESC);
+CREATE INDEX IF NOT EXISTS idx_operations_trading_point_id ON operations(trading_point_id);
+CREATE INDEX IF NOT EXISTS idx_operations_fuel_type ON operations(fuel_type);
+CREATE INDEX IF NOT EXISTS idx_operations_payment_method ON operations(payment_method);
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_operations_updated_at 
+    BEFORE UPDATE ON operations 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+            \`.trim();
+
+            try {
+                // Выполняем SQL через RPC
+                const response = await fetch(\`\${config.url}/rest/v1/rpc/exec_sql\`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': config.apiKey,
+                        'Authorization': \`Bearer \${config.apiKey}\`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ sql_query: createOperationsSQL })
+                });
+
+                if (!response.ok) {
+                    // Если RPC не работает, попробуем через прямое создание через INSERT
+                    throw new Error('RPC не доступен, нужно создать через SQL Editor в Supabase');
+                }
+
+                addResult('✅ SQL скрипт подготовлен для выполнения', 'success', {
+                    message: 'Скопируйте и выполните этот SQL в Supabase SQL Editor',
+                    sql_script: createOperationsSQL,
+                    instructions: [
+                        '1. Откройте Supabase Dashboard',
+                        '2. Перейдите в SQL Editor',
+                        '3. Скопируйте SQL скрипт выше',
+                        '4. Выполните скрипт'
+                    ]
+                });
+
+            } catch (error) {
+                addResult('⚠️ Выполните SQL вручную', 'warning', {
+                    error: error.message,
+                    sql_to_execute: createOperationsSQL,
+                    instructions: 'Скопируйте SQL выше и выполните в Supabase SQL Editor'
+                });
+            }
+        };
+
+        window.createTradingPointsTable = async function() {
+            addResult('🔧 Создание таблицы trading_points...', 'info', 'Создаем таблицу для торговых точек (АЗС)');
+            
+            const createTradingPointsSQL = \`
+CREATE TABLE IF NOT EXISTS trading_points (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name VARCHAR(200) NOT NULL,
+  code VARCHAR(50) UNIQUE,
+  address TEXT,
+  region VARCHAR(100),
+  city VARCHAR(100),
+  coordinates JSONB,
+  phone VARCHAR(30),
+  email VARCHAR(100),
+  manager_name VARCHAR(200),
+  network_id uuid,
+  network_name VARCHAR(200),
+  station_type VARCHAR(50) DEFAULT 'fuel_station',
+  fuel_types TEXT[] DEFAULT ARRAY['АИ-92', 'АИ-95', 'АИ-98', 'ДТ'],
+  services TEXT[] DEFAULT ARRAY['fuel', 'shop'],
+  working_hours JSONB DEFAULT '{"open": "06:00", "close": "23:00", "24h": false}',
+  payment_methods TEXT[] DEFAULT ARRAY['cash', 'card', 'fuel_card'],
+  equipment_count INTEGER DEFAULT 0,
+  tanks_count INTEGER DEFAULT 0,
+  daily_volume DECIMAL(12,3),
+  monthly_volume DECIMAL(12,3),
+  status VARCHAR(20) DEFAULT 'active',
+  is_active BOOLEAN DEFAULT true,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_trading_points_name ON trading_points(name);
+CREATE INDEX IF NOT EXISTS idx_trading_points_code ON trading_points(code);
+CREATE INDEX IF NOT EXISTS idx_trading_points_network_id ON trading_points(network_id);
+CREATE INDEX IF NOT EXISTS idx_trading_points_city ON trading_points(city);
+CREATE INDEX IF NOT EXISTS idx_trading_points_status ON trading_points(status);
+CREATE INDEX IF NOT EXISTS idx_trading_points_is_active ON trading_points(is_active);
+
+CREATE TRIGGER update_trading_points_updated_at 
+    BEFORE UPDATE ON trading_points 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+            \`.trim();
+
+            addResult('✅ SQL скрипт подготовлен для выполнения', 'success', {
+                message: 'Скопируйте и выполните этот SQL в Supabase SQL Editor',
+                sql_script: createTradingPointsSQL,
+                instructions: [
+                    '1. Откройте Supabase Dashboard',
+                    '2. Перейдите в SQL Editor', 
+                    '3. Скопируйте SQL скрипт выше',
+                    '4. Выполните скрипт'
+                ]
+            });
+        };
+
+        window.testNewTables = async function() {
+            addResult('🧪 Тестирование новых таблиц...', 'info', 'Проверяем что таблицы созданы и доступны');
+            
+            try {
+                // Тест operations
+                const operations = await supabaseRequest('GET', '/operations?limit=3');
+                addResult('✅ Таблица operations работает', 'success', {
+                    message: 'Таблица operations доступна для чтения',
+                    records_found: operations?.length || 0,
+                    sample_data: operations || []
+                });
+                
+                // Тест trading_points
+                const tradingPoints = await supabaseRequest('GET', '/trading_points?limit=3');
+                addResult('✅ Таблица trading_points работает', 'success', {
+                    message: 'Таблица trading_points доступна для чтения',
+                    records_found: tradingPoints?.length || 0,
+                    sample_data: tradingPoints || []
+                });
+
+                // Проверяем страницу операций
+                addResult('🚀 Готово к тестированию страницы', 'success', {
+                    message: 'Таблицы созданы, можно тестировать страницу операций',
+                    next_steps: [
+                        'Перейти на страницу /network/operations-transactions',
+                        'Проверить что операции загружаются без ошибок',
+                        'Протестировать создание новых операций'
+                    ]
+                });
+
+            } catch (error) {
+                addResult('❌ Ошибка тестирования таблиц', 'error', {
+                    error: error.message,
+                    note: 'Возможно таблицы еще не созданы, выполните SQL скрипты в Supabase'
+                });
+            }
+        };
+
+        // Автоматически проверяем таблицы при загрузке
+        setTimeout(checkTablesExist, 1000);
+    </script>
+</body>
+</html>

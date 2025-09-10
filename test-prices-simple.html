@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Prices Test</title>
+    <style>
+        body { font-family: Arial; margin: 20px; background: #f5f5f5; }
+        .test { background: #fff; padding: 15px; border-radius: 8px; margin: 10px 0; border: 1px solid #ddd; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; background: #007bff; color: white; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Simple Prices Test</h1>
+    
+    <div class="test">
+        <h3>1. Установка конфигурации по умолчанию</h3>
+        <button onclick="setDefaultConfig()">Установить конфигурацию</button>
+        <div id="config-status"></div>
+    </div>
+
+    <div class="test">
+        <h3>2. Тест получения цен</h3>
+        <button onclick="testGetPrices()">Получить цены</button>
+        <div id="prices-status"></div>
+    </div>
+
+    <div class="test">
+        <h3>3. Открыть страницу цен</h3>
+        <button onclick="window.open('http://localhost:3004/point/prices', '_blank')">Открыть страницу</button>
+    </div>
+
+    <script>
+        function setDefaultConfig() {
+            const defaultSettings = {
+                url: "https://ssvazdgnmatbdynkhkqo.supabase.co",
+                apiKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0"
+            };
+            
+            localStorage.setItem('externalDatabase', JSON.stringify(defaultSettings));
+            window.dispatchEvent(new CustomEvent('localStorageChanged'));
+            
+            document.getElementById('config-status').innerHTML = '<div class="success">✅ Конфигурация установлена</div>';
+            console.log('Config set:', defaultSettings);
+        }
+        
+        async function testGetPrices() {
+            const statusDiv = document.getElementById('prices-status');
+            statusDiv.innerHTML = '<div class="info">🔄 Тестируем получение цен...</div>';
+            
+            try {
+                const settings = localStorage.getItem('externalDatabase');
+                if (!settings) {
+                    statusDiv.innerHTML = '<div class="error">❌ Конфигурация не найдена</div>';
+                    return;
+                }
+                
+                const config = JSON.parse(settings);
+                
+                const response = await fetch(`${config.url}/rest/v1/fuel_prices?limit=10`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': config.apiKey,
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.innerHTML = `
+                        <div class="success">✅ Получено цен: ${data.length}</div>
+                        <pre>${JSON.stringify(data[0] || {}, null, 2)}</pre>
+                    `;
+                    console.log('Prices data:', data);
+                } else {
+                    const errorText = await response.text();
+                    statusDiv.innerHTML = `
+                        <div class="error">❌ Ошибка: ${response.status} ${response.statusText}</div>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+                console.error('Test error:', error);
+            }
+        }
+        
+        // Автоматически устанавливаем конфигурацию при загрузке
+        window.onload = () => {
+            setDefaultConfig();
+        };
+    </script>
+</body>
+</html>

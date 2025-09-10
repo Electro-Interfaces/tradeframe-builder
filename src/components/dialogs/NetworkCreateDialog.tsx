@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ interface NetworkCreateDialogProps {
 }
 
 export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCreateDialogProps) {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<NetworkInput>({
     name: "",
@@ -67,7 +69,7 @@ export function NetworkCreateDialog({ open, onOpenChange, onSubmit }: NetworkCre
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700">
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-2xl'} bg-slate-800 border-slate-700 overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="text-white">Создать сеть</DialogTitle>
         </DialogHeader>

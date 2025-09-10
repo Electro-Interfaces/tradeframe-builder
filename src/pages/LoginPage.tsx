@@ -22,7 +22,8 @@ const LoginPage = () => {
     { email: 'admin@tradeframe.com', password: 'admin123', role: 'System Admin' },
     { email: 'network.admin@demo-azs.ru', password: 'admin123', role: 'Network Admin' },
     { email: 'manager@demo-azs.ru', password: 'admin123', role: 'Manager' },
-    { email: 'operator@demo-azs.ru', password: 'admin123', role: 'Operator' }
+    { email: 'operator@demo-azs.ru', password: 'admin123', role: 'Operator' },
+    { email: 'bto.manager@tradeframe.com', password: 'admin123', role: 'Менеджер БТО' }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {

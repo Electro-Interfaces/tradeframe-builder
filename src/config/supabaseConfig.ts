@@ -6,7 +6,7 @@
 import { supabaseService } from '@/services/supabaseServiceClient';
 
 // Получение конфигурации из переменных окружения
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://tohtryzyffcebtyvkxwh.supabase.co';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://ssvazdgnmatbdynkhkqo.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Проверяем что ключи настроены

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fixed 422 Error</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .error { background: #f44336; color: white; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .info { background: #2196F3; color: white; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .success { background: #4CAF50; color: white; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        button { background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .danger { background: #f44336; }
+        pre {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Fixed 422 Error</h1>
+        
+        <div class="info">
+            <strong>Что исправили:</strong><br>
+            1. ✅ Улучшена валидация параметров в stsApi.ts<br>
+            2. ✅ Добавлена проверка что networkId и tradingPointId - числа<br>
+            3. ✅ Подробные сообщения об ошибках 422<br>
+            4. ✅ Валидация external_id сети в Tanks.tsx<br>
+            5. ✅ Более детальное логирование параметров запроса
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <button onclick="testTanksPageWithMonitoring()">⛽ Открыть страницу резервуаров с мониторингом</button>
+            <button onclick="openDebugTools()">🔧 Открыть инструменты отладки</button>
+            <button onclick="testDirectAPI()">🧪 Тест прямого API</button>
+            <button onclick="clearLogs()" class="danger">🗑️ Очистить логи</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let logs = [];
+        let testWindow = null;
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push({
+                time: timestamp,
+                message: message,
+                type: type
+            });
+            updateDisplay();
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function updateDisplay() {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = '';
+            
+            if (logs.length > 0) {
+                html += '<h2>📝 Результаты тестирования:</h2>';
+                logs.slice(-15).forEach(logEntry => {
+                    const className = logEntry.type === 'error' ? 'error' : logEntry.type === 'success' ? 'success' : 'info';
+                    html += `<div class="${className}">
+                        <strong>[${logEntry.time}]</strong> ${logEntry.message}
+                    </div>`;
+                });
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        function testTanksPageWithMonitoring() {
+            log('🔄 Открываем страницу резервуаров для тестирования исправлений...', 'info');
+            
+            if (testWindow && !testWindow.closed) {
+                testWindow.close();
+            }
+            
+            testWindow = window.open('http://localhost:3004/point/tanks', 'tanksTest', 'width=1400,height=900');
+            
+            log('✅ Страница резервуаров открыта. Следите за консолью браузера для просмотра улучшенного логирования!', 'success');
+            log('📋 Что проверить:', 'info');
+            log('1. В консоли должны появиться логи вида "🔍 Параметры запроса из селекторов" с подробной информацией', 'info');
+            log('2. Если есть ошибка 422 - теперь должно быть понятное сообщение о том, что именно неправильно', 'info');
+            log('3. Если external_id сети не является числом - должна быть ясная ошибка', 'info');
+            log('4. Попробуйте нажать кнопку "Обновить из API" на странице резервуаров', 'info');
+            
+            // Мониторим окно
+            const checkInterval = setInterval(() => {
+                if (testWindow.closed) {
+                    clearInterval(checkInterval);
+                    log('🔄 Окно тестирования закрыто', 'info');
+                }
+            }, 1000);
+            
+            // Автозакрытие через 2 минуты
+            setTimeout(() => {
+                if (testWindow && !testWindow.closed) {
+                    testWindow.close();
+                    log('🔄 Окно тестирования закрыто автоматически через 2 минуты', 'info');
+                }
+                clearInterval(checkInterval);
+            }, 120000);
+        }
+
+        function openDebugTools() {
+            log('🔧 Открываем инструменты отладки...', 'info');
+            
+            window.open('debug-sts-422.html', '_blank', 'width=1200,height=800');
+            window.open('debug-selection-context.html', '_blank', 'width=800,height=600');
+            
+            log('✅ Инструменты отладки открыты в новых вкладках', 'success');
+        }
+
+        async function testDirectAPI() {
+            log('🧪 Тестируем прямой вызов API...', 'info');
+            
+            try {
+                // Пытаемся загрузить конфигурацию из localStorage
+                const configStr = localStorage.getItem('sts-api-config');
+                if (!configStr) {
+                    log('❌ Конфигурация STS API не найдена в localStorage', 'error');
+                    log('💡 Сначала настройте API в разделе "Настройки -> API CTC"', 'info');
+                    return;
+                }
+                
+                const config = JSON.parse(configStr);
+                
+                if (!config.enabled) {
+                    log('⚠️ STS API отключен в настройках', 'error');
+                    return;
+                }
+                
+                if (!config.token) {
+                    log('⚠️ Отсутствует токен для API', 'error');
+                    log('💡 Попробуйте обновить токен в настройках API', 'info');
+                    return;
+                }
+                
+                log(`🔄 Тестируем запрос к ${config.url}/v1/tanks...`, 'info');
+                
+                // Тестовый запрос с фиксированными параметрами
+                const testUrl = new URL(`${config.url}/v1/tanks`);
+                testUrl.searchParams.set('system', '1'); // Используем тестовое значение
+                testUrl.searchParams.set('station', '1'); // Используем тестовое значение
+                
+                log(`📡 URL запроса: ${testUrl.toString()}`, 'info');
+                
+                const response = await fetch(testUrl.toString(), {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${config.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`📥 Ответ сервера: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(responseText);
+                        log(`✅ Данные успешно получены! Резервуаров: ${Array.isArray(data) ? data.length : 'неизвестно'}`, 'success');
+                        log(`<pre>${JSON.stringify(data, null, 2).substring(0, 1000)}${responseText.length > 1000 ? '\n...(обрезано)' : ''}</pre>`, 'info');
+                    } catch (e) {
+                        log(`✅ Запрос успешен, но ответ не в формате JSON:`, 'success');
+                        log(`<pre>${responseText.substring(0, 500)}</pre>`, 'info');
+                    }
+                } else {
+                    log(`❌ Ошибка API:`, 'error');
+                    log(`<pre>${responseText}</pre>`, 'error');
+                    
+                    if (response.status === 422) {
+                        try {
+                            const errorData = JSON.parse(responseText);
+                            log(`🔍 Детализированная ошибка 422:`, 'error');
+                            if (errorData.detail) {
+                                errorData.detail.forEach((detail, index) => {
+                                    log(`${index + 1}. Поле: ${detail.loc?.join('.')} | Тип: ${detail.type} | Сообщение: ${detail.msg}`, 'error');
+                                });
+                            }
+                        } catch (e) {
+                            log(`Не удалось разобрать детали ошибки 422`, 'error');
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                log(`❌ Исключение при тестировании: ${error.message}`, 'error');
+            }
+        }
+
+        function clearLogs() {
+            logs.length = 0;
+            updateDisplay();
+        }
+
+        // Инициализация
+        window.onload = function() {
+            log('🚀 Инструмент тестирования исправлений готов к работе', 'success');
+            log('🎯 Основные исправления: улучшена валидация параметров и сообщения об ошибках', 'info');
+        };
+    </script>
+</body>
+</html>
