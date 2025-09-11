@@ -16,42 +16,106 @@ export default defineConfig(({ mode }) => ({
     // Temporarily disabled: mode === 'development' && componentTagger(),
   ].filter(Boolean),
   build: {
-    chunkSizeWarningLimit: 1500,
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ["react", "react-dom", "react-router-dom"],
-          radix: [
-            "@radix-ui/react-accordion",
-            "@radix-ui/react-alert-dialog",
-            "@radix-ui/react-aspect-ratio",
-            "@radix-ui/react-avatar",
-            "@radix-ui/react-checkbox",
-            "@radix-ui/react-collapsible",
-            "@radix-ui/react-context-menu",
-            "@radix-ui/react-dialog",
-            "@radix-ui/react-dropdown-menu",
-            "@radix-ui/react-hover-card",
-            "@radix-ui/react-label",
-            "@radix-ui/react-menubar",
-            "@radix-ui/react-navigation-menu",
-            "@radix-ui/react-popover",
-            "@radix-ui/react-progress",
-            "@radix-ui/react-radio-group",
-            "@radix-ui/react-scroll-area",
-            "@radix-ui/react-select",
-            "@radix-ui/react-separator",
-            "@radix-ui/react-slider",
-            "@radix-ui/react-slot",
-            "@radix-ui/react-switch",
-            "@radix-ui/react-tabs",
-            "@radix-ui/react-toast",
-            "@radix-ui/react-toggle",
-            "@radix-ui/react-toggle-group",
-            "@radix-ui/react-tooltip",
-          ],
-          charts: ["recharts"],
-          query: ["@tanstack/react-query"],
+        manualChunks: (id) => {
+          // Core React libraries
+          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+            return 'react-core';
+          }
+          
+          // UI component libraries
+          if (id.includes('@radix-ui')) {
+            return 'radix-ui';
+          }
+          
+          // Data fetching and state management
+          if (id.includes('@tanstack/react-query')) {
+            return 'react-query';
+          }
+          
+          // Chart libraries (heavy - separate chunk)
+          if (id.includes('recharts') || id.includes('chart.js') || id.includes('chartjs-adapter-date-fns')) {
+            return 'charts';
+          }
+          
+          // Export utilities (loaded on demand)
+          if (id.includes('html2canvas') || id.includes('jspdf')) {
+            return 'export-utils';
+          }
+          
+          // Form handling
+          if (id.includes('react-hook-form') || id.includes('@hookform/resolvers') || id.includes('zod')) {
+            return 'forms';
+          }
+          
+          // Date utilities
+          if (id.includes('date-fns')) {
+            return 'date-utils';
+          }
+          
+          // File handling
+          if (id.includes('xlsx')) {
+            return 'file-utils';
+          }
+          
+          // DnD functionality
+          if (id.includes('@dnd-kit')) {
+            return 'dnd';
+          }
+          
+          // Database clients
+          if (id.includes('@supabase/supabase-js') || id.includes('pg')) {
+            return 'database';
+          }
+          
+          // API utilities
+          if (id.includes('cors') || id.includes('express') || id.includes('helmet') || 
+              id.includes('jsonwebtoken') || id.includes('bcryptjs')) {
+            return 'api-utils';
+          }
+          
+          // Admin pages chunk
+          if (id.includes('/pages/admin/') || id.includes('/pages/Admin')) {
+            return 'pages-admin';
+          }
+          
+          // Network pages chunk
+          if (id.includes('/pages/Network')) {
+            return 'pages-network';
+          }
+          
+          // Settings pages chunk
+          if (id.includes('Settings') || id.includes('Database')) {
+            return 'pages-settings';
+          }
+          
+          // Heavy pages chunk (критические страницы)
+          if (id.includes('/pages/Prices') || id.includes('/pages/STSApiSettings') || 
+              id.includes('/pages/Tanks') || id.includes('/pages/OperationsTransactionsPageSimple')) {
+            return 'pages-heavy';
+          }
+          
+          // Services chunk
+          if (id.includes('/services/')) {
+            return 'services';
+          }
+          
+          // Components chunk
+          if (id.includes('/components/') && !id.includes('/components/ui/')) {
+            return 'components';
+          }
+          
+          // UI components (shadcn)
+          if (id.includes('/components/ui/')) {
+            return 'ui-components';
+          }
+          
+          // Utils and hooks
+          if (id.includes('/utils/') || id.includes('/hooks/') || id.includes('/lib/')) {
+            return 'utils';
+          }
         },
       },
     },

@@ -34,18 +34,18 @@ interface TerminalEquipmentItem {
   billAmount?: number;
 }
 
-const getStatusIcon = (status: string) => {
+const getStatusIcon = (status: string, className: string = "w-4 h-4") => {
   switch (status) {
     case 'online':
     case 'normal':
-      return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      return <CheckCircle2 className={`${className} text-green-500`} />;
     case 'warning':
-      return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+      return <AlertCircle className={`${className} text-yellow-500`} />;
     case 'offline':
     case 'error':
-      return <AlertCircle className="w-4 h-4 text-red-500" />;
+      return <AlertCircle className={`${className} text-red-500`} />;
     default:
-      return <Settings className="w-4 h-4 text-gray-500" />;
+      return <Settings className={`${className} text-gray-500`} />;
   }
 };
 
@@ -381,18 +381,18 @@ export default function Equipment() {
                   {/* Купюроприемник - отдельная большая карточка */}
                   {billAcceptor && (
                     <div className="bg-slate-700 rounded-lg p-6 border border-slate-600 hover:border-slate-500 transition-colors">
-                      <div className={`flex items-center ${isMobile ? 'flex-col gap-4' : 'justify-between gap-6'}`}>
+                      <div className="flex items-center justify-between">
                         {/* Название и ID */}
-                        <div className={`flex items-center gap-3 ${isMobile ? 'w-full justify-center' : ''}`}>
+                        <div className="flex items-center gap-3">
                           <Banknote className="w-6 h-6 text-green-400" />
-                          <div className={isMobile ? 'text-center' : ''}>
+                          <div>
                             <h3 className="text-lg font-semibold text-white">{billAcceptor.name}</h3>
                             <p className="text-sm text-slate-400">{billAcceptor.location}</p>
                           </div>
                         </div>
                         
                         {/* Данные и статус */}
-                        <div className={`${isMobile ? 'w-full grid grid-cols-3 gap-4' : 'flex gap-6'}`}>
+                        <div className="flex items-center gap-8">
                           {/* Количество купюр */}
                           <div className="text-center">
                             <div className="text-3xl font-bold text-green-400">
