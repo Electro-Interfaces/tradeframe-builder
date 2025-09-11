@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabaseClient } from '@/lib/supabase/client';
 import { CacheUtils } from '@/lib/supabase/queryClient';
 import { toast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SupabaseStatus {
   isInitialized: boolean;
@@ -18,6 +19,7 @@ interface SupabaseStatus {
 
 export function useSupabase() {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [status, setStatus] = useState<SupabaseStatus>({
     isInitialized: false,
     isConnected: false,
@@ -50,16 +52,20 @@ export function useSupabase() {
           // Предзагружаем критические данные
           await CacheUtils.prefetchCriticalData();
           
-          toast({
-            title: "✅ Supabase подключен",
-            description: `Соединение установлено (${latency}ms)`,
-          });
+          if (!isMobile) {
+            toast({
+              title: "✅ Supabase подключен",
+              description: `Соединение установлено (${latency}ms)`,
+            });
+          }
         } else {
-          toast({
-            title: "❌ Ошибка подключения Supabase",
-            description: connectionTest.error || "Неизвестная ошибка",
-            variant: "destructive",
-          });
+          if (!isMobile) {
+            toast({
+              title: "❌ Ошибка подключения Supabase",
+              description: connectionTest.error || "Неизвестная ошибка",
+              variant: "destructive",
+            });
+          }
         }
       } else {
         setStatus({

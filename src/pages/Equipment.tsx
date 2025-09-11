@@ -240,8 +240,8 @@ export default function Equipment() {
       equipment.push({
         id: 'bill-acceptor',
         name: 'Купюроприемник',
-        code: isOnline ? 'Готов' : 'Ошибка',
-        location: `ID: ${info.devices.billAcceptor.name}`,
+        code: `ID: ${info.devices.billAcceptor.name}`,
+        location: `Устройство ${info.devices.billAcceptor.name}`,
         status: deviceStatus, // Используем уже правильно обработанный статус
         statusText: isOnline ? 'Готов' : 'Ошибка',
         billCount: info.devices.billAcceptor.billCount,
@@ -281,7 +281,7 @@ export default function Equipment() {
     { id: 'azs-1', name: 'АЗС', code: 'АЗК 4', location: 'ТК Т-4', status: 'offline', statusText: 'Офлайн' },
     { id: 'pos-1', name: 'POS', code: 'POS 1', location: '', status: 'online', statusText: 'Онлайн' },
     { id: 'qr-1', name: 'QR', code: 'Готов', location: 'Смена №13', status: 'online', statusText: 'Готов' },
-    { id: 'inspector-1', name: 'Купюроприемник', code: 'Готов', location: 'ID: 10', status: 'online', statusText: 'Готов', billCount: 341, billAmount: 153450 },
+    { id: 'inspector-1', name: 'Купюроприемник', code: 'ID: 10', location: 'Устройство 10', status: 'online', statusText: 'Готов', billCount: 341, billAmount: 153450 },
     { id: 'card-reader-1', name: 'Картридер', code: 'Готов', location: 'ID: 11', status: 'online', statusText: 'Готов' },
     { id: 'mps-river-1', name: 'МПС-ривер', code: 'Готов', location: 'ID: 15', status: 'online', statusText: 'Готов' }
   ];
@@ -331,9 +331,9 @@ export default function Equipment() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
-              <p className="text-slate-400 mt-1">{selectedNetwork?.name || 'БТО АЗС №4'}</p>
+              <p className="text-slate-400 mt-1 hidden md:block">{selectedNetwork?.name || 'БТО АЗС №4'}</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <MobileButton
                 variant="outline"
                 onClick={handleRefresh}
@@ -341,17 +341,12 @@ export default function Equipment() {
                 className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
               >
                 {loading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <RefreshCw className="w-4 h-4" />
                 )}
-                Обновить STS данные
-              </MobileButton>
-              <MobileButton
-                variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
-              >
-                Получить данные от ТТ
+                <span className="hidden md:inline ml-2">Обновить STS данные</span>
+                <span className="md:hidden ml-2">STS</span>
               </MobileButton>
             </div>
           </div>
@@ -483,7 +478,7 @@ export default function Equipment() {
                 </div>
                 <div>
                   <CardTitle className="text-white">Резервуары</CardTitle>
-                  <p className="text-sm text-slate-400 mt-1">Всего резервуаров: 3</p>
+                  <p className="text-sm text-slate-400 mt-1 hidden md:block">Всего резервуаров: 3</p>
                 </div>
               </div>
               <Button size="sm" variant="outline" className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white">
@@ -492,93 +487,191 @@ export default function Equipment() {
             </div>
           </CardHeader>
           <CardContent>
-            <MobileTable showScrollHint={true}>
-              <table className="w-full text-sm min-w-[600px]">
-                <thead className="text-left border-b border-slate-600">
-                  <tr>
-                    <th className="pb-3 text-slate-300 font-medium">Резервуар</th>
-                    <th className="pb-3 text-slate-300 font-medium">Топливо</th>
-                    <th className="pb-3 text-slate-300 font-medium">Объем емкости</th>
-                    <th className="pb-3 text-slate-300 font-medium">Уровень</th>
-                    <th className="pb-3 text-slate-300 font-medium">Заполнение</th>
-                    <th className="pb-3 text-slate-300 font-medium">Температура</th>
-                    <th className="pb-3 text-slate-300 font-medium">Вода</th>
-                    <th className="pb-3 text-slate-300 font-medium">Датчики</th>
-                    <th className="pb-3 text-slate-300 font-medium">Статус</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tanks.map((tank) => {
-                    const fillLevel = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
-                    const tankStatus = fillLevel < tank.criticalLevelPercent ? 'critical' : fillLevel < tank.minLevelPercent ? 'warning' : 'normal';
-                    
-                    return (
-                      <tr key={tank.id} className="border-b border-slate-700 hover:bg-slate-700/30">
-                        <td className="py-4">
-                          <div className="flex items-center gap-2">
-                            <Database className="w-4 h-4 text-green-500" />
-                            <span className="text-white font-medium">{tank.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 text-slate-300">{tank.fuelType}</td>
-                        <td className="py-4 text-slate-300">{tank.capacityLiters.toLocaleString()} л</td>
-                        <td className="py-4 text-slate-300">{tank.currentLevelLiters.toLocaleString()} л</td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 bg-slate-600 rounded-full h-2 min-w-[60px]">
-                              <div
-                                className={`h-2 rounded-full ${getFillLevelColor(fillLevel)}`}
-                                style={{ width: `${Math.max(fillLevel, 2)}%` }}
-                              />
+            {/* Desktop Table */}
+            <div className="hidden md:block">
+              <MobileTable showScrollHint={true}>
+                <table className="w-full text-sm min-w-[600px]">
+                  <thead className="text-left border-b border-slate-600">
+                    <tr>
+                      <th className="pb-3 text-slate-300 font-medium">Резервуар</th>
+                      <th className="pb-3 text-slate-300 font-medium">Топливо</th>
+                      <th className="pb-3 text-slate-300 font-medium">Объем емкости</th>
+                      <th className="pb-3 text-slate-300 font-medium">Уровень</th>
+                      <th className="pb-3 text-slate-300 font-medium">Заполнение</th>
+                      <th className="pb-3 text-slate-300 font-medium">Температура</th>
+                      <th className="pb-3 text-slate-300 font-medium">Вода</th>
+                      <th className="pb-3 text-slate-300 font-medium">Датчики</th>
+                      <th className="pb-3 text-slate-300 font-medium">Статус</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tanks.map((tank) => {
+                      const fillLevel = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
+                      const tankStatus = fillLevel < tank.criticalLevelPercent ? 'critical' : fillLevel < tank.minLevelPercent ? 'warning' : 'normal';
+                      
+                      return (
+                        <tr key={tank.id} className="border-b border-slate-700 hover:bg-slate-700/30">
+                          <td className="py-4">
+                            <div className="flex items-center gap-2">
+                              <Database className="w-4 h-4 text-green-500" />
+                              <span className="text-white font-medium">{tank.name}</span>
                             </div>
-                            <span className="text-sm text-slate-300 min-w-[35px]">{Math.round(fillLevel)}%</span>
-                          </div>
-                        </td>
-                        <td className="py-4 text-slate-300">
-                          <div className="flex items-center gap-1">
-                            <Thermometer className="w-4 h-4 text-blue-400" />
-                            {tank.temperature}°C
-                          </div>
-                        </td>
-                        <td className="py-4 text-slate-300">{tank.waterLevelMm} мм</td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                              <span className="text-xs text-slate-400">Уровень</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 bg-red-400 rounded-full" />
-                              <span className="text-xs text-slate-400">Температура</span>
-                            </div>
-                            {tank.waterLevelMm > 0 && (
-                              <div className="flex items-center gap-1">
-                                <div className="w-2 h-2 bg-green-400 rounded-full" />
-                                <span className="text-xs text-slate-400">Подтоварная вода</span>
+                          </td>
+                          <td className="py-4 text-slate-300">{tank.fuelType}</td>
+                          <td className="py-4 text-slate-300">{tank.capacityLiters.toLocaleString()} л</td>
+                          <td className="py-4 text-slate-300">{tank.currentLevelLiters.toLocaleString()} л</td>
+                          <td className="py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 bg-slate-600 rounded-full h-2 min-w-[60px]">
+                                <div
+                                  className={`h-2 rounded-full ${getFillLevelColor(fillLevel)}`}
+                                  style={{ width: `${Math.max(fillLevel, 2)}%` }}
+                                />
                               </div>
-                            )}
+                              <span className="text-sm text-slate-300 min-w-[35px]">{Math.round(fillLevel)}%</span>
+                            </div>
+                          </td>
+                          <td className="py-4 text-slate-300">
+                            <div className="flex items-center gap-1">
+                              <Thermometer className="w-4 h-4 text-blue-400" />
+                              {tank.temperature}°C
+                            </div>
+                          </td>
+                          <td className="py-4 text-slate-300">{tank.waterLevelMm} мм</td>
+                          <td className="py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                                <span className="text-xs text-slate-400">Уровень</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-red-400 rounded-full" />
+                                <span className="text-xs text-slate-400">Температура</span>
+                              </div>
+                              {tank.waterLevelMm > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 bg-green-400 rounded-full" />
+                                  <span className="text-xs text-slate-400">Подтоварная вода</span>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <Badge 
+                              variant={tankStatus === 'normal' ? 'default' : 'secondary'}
+                              className={`${
+                                tankStatus === 'normal' 
+                                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                  : tankStatus === 'warning'
+                                  ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                                  : 'bg-red-600 text-white hover:bg-red-700'
+                              }`}
+                            >
+                              {tankStatus === 'normal' ? 'Норма' : tankStatus === 'warning' ? 'Мало' : 'Критично'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </MobileTable>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-4">
+              {tanks.map((tank) => {
+                const fillLevel = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
+                const tankStatus = fillLevel < tank.criticalLevelPercent ? 'critical' : fillLevel < tank.minLevelPercent ? 'warning' : 'normal';
+                
+                return (
+                  <div key={tank.id} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                    {/* Tank Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Database className="w-5 h-5 text-green-500" />
+                        <span className="text-white font-medium text-lg">{tank.name}</span>
+                      </div>
+                      <Badge 
+                        variant={tankStatus === 'normal' ? 'default' : 'secondary'}
+                        className={`${
+                          tankStatus === 'normal' 
+                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                            : tankStatus === 'warning'
+                            ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                            : 'bg-red-600 text-white hover:bg-red-700'
+                        }`}
+                      >
+                        {tankStatus === 'normal' ? 'Норма' : tankStatus === 'warning' ? 'Мало' : 'Критично'}
+                      </Badge>
+                    </div>
+
+                    {/* Fuel Type */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <Fuel className="w-4 h-4 text-blue-400" />
+                      <span className="text-slate-300 font-medium">{tank.fuelType}</span>
+                    </div>
+
+                    {/* Fill Level Progress */}
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-slate-400">Заполнение</span>
+                        <span className="text-sm text-white font-medium">{Math.round(fillLevel)}%</span>
+                      </div>
+                      <div className="w-full bg-slate-600 rounded-full h-3">
+                        <div 
+                          className={`h-3 rounded-full transition-all ${getFillLevelColor(fillLevel)}`}
+                          style={{ width: `${Math.max(fillLevel, 2)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs text-slate-400 mt-1">
+                        <span>{tank.currentLevelLiters.toLocaleString()} л</span>
+                        <span>{tank.capacityLiters.toLocaleString()} л</span>
+                      </div>
+                    </div>
+
+                    {/* Temperature and Water */}
+                    <div className="grid grid-cols-2 gap-4 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Thermometer className="w-4 h-4 text-blue-400" />
+                        <div>
+                          <div className="text-xs text-slate-400">Температура</div>
+                          <div className="text-sm text-white font-medium">{tank.temperature}°C</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-blue-400 rounded-full" />
+                        <div>
+                          <div className="text-xs text-slate-400">Вода</div>
+                          <div className="text-sm text-white font-medium">{tank.waterLevelMm} мм</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sensors */}
+                    <div>
+                      <div className="text-xs text-slate-400 mb-2">Датчики</div>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="flex items-center gap-1 bg-slate-600/50 rounded px-2 py-1">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                          <span className="text-xs text-slate-300">Уровень</span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-slate-600/50 rounded px-2 py-1">
+                          <div className="w-2 h-2 bg-red-400 rounded-full" />
+                          <span className="text-xs text-slate-300">Температура</span>
+                        </div>
+                        {tank.waterLevelMm > 0 && (
+                          <div className="flex items-center gap-1 bg-slate-600/50 rounded px-2 py-1">
+                            <div className="w-2 h-2 bg-green-400 rounded-full" />
+                            <span className="text-xs text-slate-300">Подтоварная вода</span>
                           </div>
-                        </td>
-                        <td className="py-4">
-                          <Badge 
-                            variant={tankStatus === 'normal' ? 'default' : 'secondary'}
-                            className={`${
-                              tankStatus === 'normal' 
-                                ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                                : tankStatus === 'warning'
-                                ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                                : 'bg-red-600 text-white hover:bg-red-700'
-                            }`}
-                          >
-                            {tankStatus === 'normal' ? 'Норма' : tankStatus === 'warning' ? 'Мало' : 'Критично'}
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </MobileTable>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       </div>

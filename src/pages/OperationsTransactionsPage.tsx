@@ -179,6 +179,20 @@ export default function OperationsTransactionsPage() {
         const recordDate = new Date(record.startTime);
         const recordDateStr = recordDate.toISOString().split('T')[0]; // YYYY-MM-DD format
         
+        // Отладочная информация для первых 3 записей
+        if (filteredOperations.length < 3) {
+          console.log('🗓️ Date filter debug:', {
+            recordId: record.id,
+            startTime: record.startTime,
+            recordDateStr,
+            dateFrom,
+            dateTo,
+            fromCheck: dateFrom ? `${recordDateStr} < ${dateFrom} = ${recordDateStr < dateFrom}` : 'skip',
+            toCheck: dateTo ? `${recordDateStr} > ${dateTo} = ${recordDateStr > dateTo}` : 'skip'
+          });
+        }
+        
+        // Проверяем, что дата записи находится в заданном диапазоне
         if (dateFrom && recordDateStr < dateFrom) {
           return false;
         }
@@ -349,48 +363,52 @@ export default function OperationsTransactionsPage() {
       <div className="w-full space-y-6 report-full-width">
         {/* Заголовок страницы */}
         <div className="mb-6 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-          <div className="flex items-start justify-between">
+          <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-start justify-between'}`}>
             <div>
-              <h1 className="text-2xl font-semibold text-white">Операции</h1>
-              <p className="text-slate-400 mt-2">
+              <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-semibold text-white`}>Операции</h1>
+              <p className={`text-slate-400 ${isMobile ? 'mt-1 text-sm' : 'mt-2'}`}>
                 {isNetworkOnly && selectedNetwork && `Real-time состояние операций сети "${selectedNetwork.name}"`}
                 {isTradingPointSelected && `Real-time состояние операций торговой точки`}
                 {!selectedNetwork && "Real-time состояние операций демо сети АЗС"}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center ${isMobile ? 'gap-1 self-start' : 'gap-2'}`}>
               <Button
                 onClick={reloadOperations}
                 disabled={loading}
                 variant="outline"
-                size="sm"
-                className="text-xs"
+                size={isMobile ? "sm" : "sm"}
+                className={isMobile ? "text-xs px-2" : "text-xs"}
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                    Обновление...
+                    {isMobile ? "Обновление..." : "Обновление..."}
                   </>
                 ) : (
                   <>
                     <RefreshCw className="w-3 h-3 mr-1" />
-                    Обновить данные
+                    {isMobile ? "Обновить" : "Обновить данные"}
                   </>
                 )}
               </Button>
-              <HelpButton route="/network/operations-transactions" variant="text" className="flex-shrink-0" />
+              {!isMobile && <HelpButton route="/network/operations-transactions" variant="text" className="flex-shrink-0" />}
             </div>
           </div>
-          <div className="flex items-center gap-4 mt-4">
+          <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center gap-4'} mt-4`}>
             <Button
               variant={autoRefresh ? "default" : "outline"}
               onClick={() => setAutoRefresh(!autoRefresh)}
+              size={isMobile ? "sm" : "default"}
+              className={isMobile ? "text-xs" : ""}
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
-              {autoRefresh ? 'Автообновление' : 'Включить автообновление'}
+              <RefreshCw className={`${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'} ${autoRefresh ? 'animate-spin' : ''}`} />
+              {isMobile ? (autoRefresh ? 'Автообновление' : 'Автообновление') : (autoRefresh ? 'Автообновление' : 'Включить автообновление')}
             </Button>
             <Button
               variant="outline"
+              size={isMobile ? "sm" : "default"}
+              className={isMobile ? "text-xs" : ""}
               onClick={async () => {
                 localStorage.removeItem('tradeframe_operations');
                 setOperations([]);
@@ -398,8 +416,8 @@ export default function OperationsTransactionsPage() {
                 console.log('Данные операций принудительно перезагружены из Supabase');
               }}
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Перезагрузить данные
+              <RefreshCw className={`${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'}`} />
+              {isMobile ? "Перезагрузить" : "Перезагрузить данные"}
             </Button>
           </div>
         </div>
@@ -409,17 +427,22 @@ export default function OperationsTransactionsPage() {
             <div className="mx-4 md:mx-6 lg:mx-8">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Filter className="w-5 h-5" />
-                  Фильтры
-                  <div className="ml-auto flex gap-2">
-                    <Button variant="outline" className="flex-shrink-0">
-                      <Download className="w-4 h-4 mr-2" />
-                      Экспорт
-                    </Button>
+                <CardTitle className={`text-white flex ${isMobile ? 'flex-col gap-3' : 'items-center gap-2'}`}>
+                  <div className="flex items-center gap-2">
+                    <Filter className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                    <span className={isMobile ? 'text-lg' : ''}>Фильтры</span>
+                  </div>
+                  <div className={`${isMobile ? 'flex gap-1 self-start' : 'ml-auto flex gap-2'}`}>
+                    {!isMobile && (
+                      <Button variant="outline" className="flex-shrink-0">
+                        <Download className="w-4 h-4 mr-2" />
+                        Экспорт
+                      </Button>
+                    )}
                     <Button 
                       variant="destructive" 
-                      className="flex-shrink-0"
+                      size={isMobile ? "sm" : "default"}
+                      className={`flex-shrink-0 ${isMobile ? 'text-xs' : ''}`}
                       onClick={async () => {
                         if (confirm('Очистить все сохраненные операции и вернуться к демо-данным?')) {
                           localStorage.removeItem('tradeframe_operations');
@@ -444,7 +467,7 @@ export default function OperationsTransactionsPage() {
                         }
                       }}
                     >
-                      Очистить данные
+                      {isMobile ? "Очистить" : "Очистить данные"}
                     </Button>
                   </div>
                 </CardTitle>
@@ -535,9 +558,9 @@ export default function OperationsTransactionsPage() {
 
             {/* KPI - Суммы по видам операций */}
             <div className="mx-4 md:mx-6 lg:mx-8">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                Суммы по видам операций
+              <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white mb-4 flex items-center gap-2`}>
+                <Activity className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                {isMobile ? 'Суммы операций' : 'Суммы по видам операций'}
               </h3>
               <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'}`}>
                 {Object.entries(operationKpis).map(([operationType, stats]) => (
@@ -557,9 +580,9 @@ export default function OperationsTransactionsPage() {
 
             {/* KPI - Суммы по видам оплаты */}
             <div className="mx-4 md:mx-6 lg:mx-8">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                Суммы по видам оплаты
+              <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white mb-4 flex items-center gap-2`}>
+                <Activity className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                {isMobile ? 'Суммы оплат' : 'Суммы по видам оплаты'}
               </h3>
               <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-4 gap-4'}`}>
                 {Object.entries(paymentKpis).map(([paymentMethod, stats]) => (
@@ -579,9 +602,9 @@ export default function OperationsTransactionsPage() {
 
             {/* KPI - Объемы топлива */}
             <div className="mx-4 md:mx-6 lg:mx-8">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                Суммы по видам топлива
+              <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white mb-4 flex items-center gap-2`}>
+                <Activity className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                {isMobile ? 'Объемы топлива' : 'Суммы по видам топлива'}
               </h3>
               <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'}`}>
                 {Object.entries(fuelKpis).map(([fuelType, stats]) => (
@@ -623,77 +646,77 @@ export default function OperationsTransactionsPage() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               {getStatusIcon(record.status)}
-                              <span className="font-medium text-white">{operationTypeMap[record.operationType] || record.operationType}</span>
+                              <span className="font-medium text-white text-sm">{operationTypeMap[record.operationType] || record.operationType}</span>
                             </div>
                             {getStatusBadge(record.status)}
                           </div>
                           {record.transactionId && (
-                            <div className="text-xs text-slate-400 mt-1">{record.transactionId}</div>
+                            <div className="text-xs text-slate-400 mt-1 truncate">{record.transactionId}</div>
                           )}
                         </CardHeader>
                         <CardContent className="pt-0 space-y-3">
                           <div className="flex items-center justify-between">
-                            <Badge variant="outline" className="text-blue-400 border-blue-400">
+                            <Badge variant="outline" className="text-blue-400 border-blue-400 text-xs">
                               {record.deviceId || 'N/A'}
                             </Badge>
                             <span className="text-xs text-slate-400 font-mono">{record.lastUpdated}</span>
                           </div>
                           
-                          <div className="grid grid-cols-3 gap-2 text-sm">
-                            <div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
                               <span className="text-slate-400">Дата:</span>
-                              <span className="text-white font-mono ml-1">{new Date(record.startTime).toLocaleDateString('ru-RU')}</span>
+                              <span className="text-white font-mono">{new Date(record.startTime).toLocaleDateString('ru-RU')}</span>
                             </div>
-                            <div>
+                            <div className="flex justify-between">
                               <span className="text-slate-400">Начало:</span>
-                              <span className="text-white font-mono ml-1">{new Date(record.startTime).toLocaleTimeString('ru-RU')}</span>
+                              <span className="text-white font-mono">{new Date(record.startTime).toLocaleTimeString('ru-RU')}</span>
                             </div>
-                            <div>
+                            <div className="flex justify-between">
                               <span className="text-slate-400">Завершение:</span>
-                              <span className="text-white font-mono ml-1">{record.endTime ? new Date(record.endTime).toLocaleTimeString('ru-RU') : '—'}</span>
+                              <span className="text-white font-mono">{record.endTime ? new Date(record.endTime).toLocaleTimeString('ru-RU') : '—'}</span>
                             </div>
                           </div>
                           
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between items-center">
                               <span className="text-slate-400">Тип записи:</span>
-                              <Badge className="ml-1 bg-slate-600 text-slate-200">
+                              <Badge className="bg-slate-600 text-slate-200 text-xs">
                                 {record.status === 'completed' ? 'Транзакция' : 'Операция'}
                               </Badge>
                             </div>
-                            <div>
+                            <div className="flex justify-between">
                               <span className="text-slate-400">Топливо:</span>
-                              <span className="text-white ml-1">{record.fuelType || '—'}</span>
+                              <span className="text-white">{record.fuelType || '—'}</span>
                             </div>
                           </div>
                           
                           {(record.quantity || record.price || record.totalCost) && (
-                            <div className="grid grid-cols-3 gap-2 text-sm">
-                              <div>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
                                 <span className="text-slate-400">Кол-во:</span>
-                                <div className="text-white font-mono">
+                                <span className="text-white font-mono">
                                   {record.quantity ? `${record.quantity.toFixed(2)} л` : '—'}
-                                </div>
+                                </span>
                               </div>
-                              <div>
+                              <div className="flex justify-between">
                                 <span className="text-slate-400">Цена:</span>
-                                <div className="text-white font-mono">
+                                <span className="text-white font-mono">
                                   {record.price ? `${record.price.toFixed(2)} ₽/л` : '—'}
-                                </div>
+                                </span>
                               </div>
-                              <div>
+                              <div className="flex justify-between">
                                 <span className="text-slate-400">Сумма:</span>
-                                <div className="text-white font-mono">
+                                <span className="text-white font-mono font-bold">
                                   {record.totalCost ? `${record.totalCost.toFixed(2)} ₽` : '—'}
-                                </div>
+                                </span>
                               </div>
                             </div>
                           )}
 
                           {record.paymentMethod && (
-                            <div className="text-sm">
+                            <div className="flex justify-between text-sm">
                               <span className="text-slate-400">Вид оплаты:</span>
-                              <span className="text-white ml-1">
+                              <span className="text-white">
                                 {paymentMethodMap[record.paymentMethod] || record.paymentMethod}
                               </span>
                             </div>
@@ -715,26 +738,28 @@ export default function OperationsTransactionsPage() {
                           )}
 
                           {record.duration && record.status !== 'in_progress' && (
-                            <div className="text-sm">
+                            <div className="flex justify-between text-sm">
                               <span className="text-slate-400">Длительность:</span>
-                              <span className="text-white font-mono ml-1">{formatDuration(record.duration)}</span>
+                              <span className="text-white font-mono">{formatDuration(record.duration)}</span>
                             </div>
                           )}
                           
                           <div className="text-sm border-t border-slate-600 pt-2">
-                            <div className="flex items-start gap-1">
-                              <span className="text-slate-400">Детали:</span>
-                              <span className="text-slate-300 flex-1">
+                            <div className="space-y-1">
+                              <span className="text-slate-400 text-xs">Детали:</span>
+                              <div className="text-slate-300 text-sm leading-relaxed">
                                 {record.details}
                                 {record.status === 'failed' && <AlertTriangle className="w-4 h-4 text-red-400 inline ml-1" />}
-                              </span>
+                              </div>
                             </div>
                           </div>
                           
                           {isNetworkOnly && record.tradingPointName && (
                             <div className="text-sm border-t border-slate-600 pt-2">
-                              <span className="text-slate-400">Торговая точка:</span>
-                              <div className="text-slate-300 font-medium">{record.tradingPointName}</div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">Торговая точка:</span>
+                                <span className="text-slate-300 font-medium text-right">{record.tradingPointName}</span>
+                              </div>
                             </div>
                           )}
                         </CardContent>

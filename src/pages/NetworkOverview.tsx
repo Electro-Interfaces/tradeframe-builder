@@ -36,6 +36,7 @@ export default function NetworkOverview() {
   const [prices, setPrices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
   const isNetworkOnly = selectedNetwork && !selectedTradingPoint;
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
@@ -187,25 +188,38 @@ export default function NetworkOverview() {
     }
   };
 
-  // Автозагрузка при изменении селекторов
+  // Инициализация компонента
   useEffect(() => {
     console.log('🔄 NetworkOverview useEffect запущен');
     
-    // Проверяем конфигурацию STS API
-    const isConfigured = stsApiService.isConfigured();
-    setStsApiConfigured(isConfigured);
+    // Принудительная проверка конфигурации STS API (обходим кэш)
+    const checkConfig = async () => {
+      try {
+        // Пытаемся получить свежую конфигурацию
+        const isConfigured = stsApiService.isConfigured();
+        console.log('🔍 STS API конфигурация проверена:', isConfigured);
+        setStsApiConfigured(isConfigured);
+        
+        setInitializing(false);
+        
+        // Загружаем данные только если выбрана сеть И настроен STS API
+        if (selectedNetwork && isConfigured) {
+          console.log('✅ Все готово, загружаем данные');
+          loadTransactions();
+        } else if (selectedNetwork && !isConfigured) {
+          console.log('⚠️ STS API не настроен, показываем сообщение');
+          // Не показываем toast сразу, даем пользователю время
+        }
+      } catch (error) {
+        console.error('❌ Ошибка при проверке конфигурации:', error);
+        setInitializing(false);
+      }
+    };
     
-    // Загружаем данные только если выбрана сеть И настроен STS API
-    if (selectedNetwork && isConfigured) {
-      loadTransactions();
-    } else if (selectedNetwork && !isConfigured) {
-      console.log('⚠️ STS API не настроен, автозагрузка отключена');
-      toast({
-        title: "Требуется настройка",
-        description: "Для загрузки данных настройте STS API в разделе настроек",
-        variant: "default",
-      });
-    }
+    // Даем время контексту для инициализации, затем проверяем конфигурацию
+    const initTimer = setTimeout(checkConfig, 1500); // Увеличиваем время до 1.5 сек
+
+    return () => clearTimeout(initTimer);
   }, [selectedNetwork, selectedTradingPoint, dateFrom, dateTo]);
 
   // Вычисляемые статистики
@@ -426,7 +440,7 @@ export default function NetworkOverview() {
       willGenerate: !(!selectedNetwork || transactions.length === 0)
     });
     
-    if (!selectedNetwork || transactions.length === 0) return null;
+    if (!selectedNetwork || transactions.length === 0) return [];
     
     // Берем последние 7 дней от сегодняшней даты назад
     const today = new Date();
@@ -509,56 +523,29 @@ export default function NetworkOverview() {
         <div className="space-y-6">
 
         {/* Кнопка обновления данных */}
-        {selectedNetwork && (
+        {!initializing && selectedNetwork && (
           <div className="flex justify-end items-center">
             <div className="flex gap-2">
               <Button
                 onClick={loadTransactions}
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center"
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Загрузка...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Обновить данные
-                  </>
-                )}
+                <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                </div>
+                {loading ? 'Загрузка...' : 'Обновить данные'}
               </Button>
-              {stsApiConfigured && (
-                <Button
-                  onClick={async () => {
-                    try {
-                      console.log('🔐 Принудительное обновление токена...');
-                      await stsApiService.forceRefreshToken();
-                      toast({
-                        title: "Успешно",
-                        description: "Токен STS API обновлен",
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "Ошибка",
-                        description: "Не удалось обновить токен: " + error.message,
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                  variant="outline"
-                  className="border-green-600 text-green-400 hover:bg-green-700/20"
-                >
-                  🔐 Обновить токен
-                </Button>
-              )}
             </div>
           </div>
         )}
 
         {/* Фильтры - только если выбрана сеть */}
-        {selectedNetwork && (
+        {!initializing && selectedNetwork && (
           <div className={`bg-slate-800 border border-slate-600 rounded-lg ${isMobile ? 'p-4' : 'p-6'}`}>
             <div className={`flex items-center gap-3 ${isMobile ? 'mb-3' : 'mb-4'}`}>
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -608,7 +595,7 @@ export default function NetworkOverview() {
 
 
         {/* Статистика по видам топлива */}
-        {selectedNetwork && fuelTypeStats.length > 0 && (
+        {!initializing && selectedNetwork && fuelTypeStats.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {fuelTypeStats.map((fuel) => (
               <Card key={fuel.type} className="bg-slate-800 border-slate-600">
@@ -656,7 +643,7 @@ export default function NetworkOverview() {
         )}
 
         {/* Статистика по способам оплаты */}
-        {selectedNetwork && paymentTypeStats.length > 0 && (
+        {!initializing && selectedNetwork && paymentTypeStats.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {paymentTypeStats.map((payment) => (
               <Card key={payment.type} className="bg-slate-800 border-slate-600">
@@ -704,7 +691,7 @@ export default function NetworkOverview() {
         )}
 
         {/* График реализации по дням с разбивкой по топливу */}
-        {selectedNetwork && transactions.length > 0 && (
+        {!initializing && selectedNetwork && transactions.length > 0 && (
           <Card className="bg-slate-800 border-slate-600">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
@@ -739,36 +726,38 @@ export default function NetworkOverview() {
                       />
                       <ChartTooltip 
                         content={({ active, payload, label }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            return (
-                              <div className="bg-slate-900/95 border border-slate-600 rounded-lg p-3 shadow-xl backdrop-blur-sm">
-                                <p className="text-white font-medium mb-2">{label}</p>
-                                <div className="space-y-1">
-                                  <p className="text-slate-300 flex justify-between">
-                                    <span>Общая выручка:</span>
-                                    <span className="font-medium">{Math.round(data.revenue).toLocaleString('ru-RU')} ₽</span>
-                                  </p>
-                                  {dailySalesData.fuelTypes.map((fuelType, index) => {
-                                    const fuelRevenue = data[fuelType] || 0;
-                                    if (fuelRevenue === 0) return null;
+                          if (!active || !payload || !payload.length) {
+                            return <div style={{ display: 'none' }} />;
+                          }
+                          
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-slate-900/95 border border-slate-600 rounded-lg p-3 shadow-xl backdrop-blur-sm">
+                              <p className="text-white font-medium mb-2">{label}</p>
+                              <div className="space-y-1">
+                                <p className="text-slate-300 flex justify-between">
+                                  <span>Общая выручка:</span>
+                                  <span className="font-medium">{Math.round(data.revenue).toLocaleString('ru-RU')} ₽</span>
+                                </p>
+                                {dailySalesData.fuelTypes
+                                  .map((fuelType, index) => ({ fuelType, index, revenue: data[fuelType] || 0 }))
+                                  .filter(item => item.revenue > 0)
+                                  .map(({ fuelType, index, revenue }) => {
                                     const colors = ['#3b82f6', '#1d4ed8', '#1e40af', '#1e3a8a', '#312e81'];
                                     return (
                                       <p key={fuelType} className="flex justify-between" style={{ color: colors[index % colors.length] }}>
                                         <span>{fuelType}:</span>
-                                        <span className="font-medium">{Math.round(fuelRevenue).toLocaleString('ru-RU')} ₽</span>
+                                        <span className="font-medium">{Math.round(revenue).toLocaleString('ru-RU')} ₽</span>
                                       </p>
                                     );
                                   })}
-                                  <p className="text-blue-400 flex justify-between">
-                                    <span>Операции:</span>
-                                    <span className="font-medium">{data.operations}</span>
-                                  </p>
-                                </div>
+                                <p className="text-blue-400 flex justify-between">
+                                  <span>Операции:</span>
+                                  <span className="font-medium">{data.operations}</span>
+                                </p>
                               </div>
-                            );
-                          }
-                          return null;
+                            </div>
+                          );
                         }}
                       />
                       {/* Стековые бары для каждого вида топлива с приглушенными цветами */}
@@ -797,7 +786,7 @@ export default function NetworkOverview() {
         )}
 
         {/* Активность операций и суточная активность */}
-        {selectedNetwork && transactions.length > 0 && (
+        {!initializing && selectedNetwork && transactions.length > 0 && (
           <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-2'}`}>
             {/* Тепловая карта активности */}
             <Card className="bg-slate-800 border-slate-600">
@@ -813,7 +802,7 @@ export default function NetworkOverview() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0 pb-2 px-2">
-                {heatmapData ? (
+                {heatmapData && heatmapData.length > 0 ? (
                   <div className="space-y-3">
                     {/* Заголовок с часами */}
                     <div className="flex items-center">
@@ -922,29 +911,30 @@ export default function NetworkOverview() {
                       />
                       <ChartTooltip 
                         content={({ active, payload, label }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            const hourStart = parseInt(label.split(':')[0]);
-                            const hourEnd = hourStart + 1;
-                            return (
-                              <div className="bg-slate-900/95 border border-slate-600 rounded-lg p-3 shadow-xl backdrop-blur-sm">
-                                <p className="text-white font-medium mb-2">
-                                  {`${hourStart.toString().padStart(2, '0')}:00 - ${hourEnd.toString().padStart(2, '0')}:00`}
-                                </p>
-                                <div className="space-y-1">
-                                  <p className="text-blue-400 flex justify-between">
-                                    <span>Операции:</span>
-                                    <span className="font-medium">{data.operations}</span>
-                                  </p>
-                                  <p className="text-green-400 flex justify-between">
-                                    <span>Выручка:</span>
-                                    <span className="font-medium">{Math.round(data.revenue).toLocaleString('ru-RU')} ₽</span>
-                                  </p>
-                                </div>
-                              </div>
-                            );
+                          if (!active || !payload || !payload.length) {
+                            return <div style={{ display: 'none' }} />;
                           }
-                          return null;
+                          
+                          const data = payload[0].payload;
+                          const hourStart = parseInt(label.split(':')[0]);
+                          const hourEnd = hourStart + 1;
+                          return (
+                            <div className="bg-slate-900/95 border border-slate-600 rounded-lg p-3 shadow-xl backdrop-blur-sm">
+                              <p className="text-white font-medium mb-2">
+                                {`${hourStart.toString().padStart(2, '0')}:00 - ${hourEnd.toString().padStart(2, '0')}:00`}
+                              </p>
+                              <div className="space-y-1">
+                                <p className="text-blue-400 flex justify-between">
+                                  <span>Операции:</span>
+                                  <span className="font-medium">{data.operations}</span>
+                                </p>
+                                <p className="text-green-400 flex justify-between">
+                                  <span>Выручка:</span>
+                                  <span className="font-medium">{Math.round(data.revenue).toLocaleString('ru-RU')} ₽</span>
+                                </p>
+                              </div>
+                            </div>
+                          );
                         }}
                       />
                       <Bar 
@@ -963,15 +953,26 @@ export default function NetworkOverview() {
         )}
 
         {/* Прогнозирование продаж */}
-        {selectedNetwork && stsApiConfigured && transactions.length > 0 && (
+        {!initializing && selectedNetwork && stsApiConfigured && transactions.length > 0 && (
           <SalesForecast 
             transactions={completedTransactions}
             className="w-full"
           />
         )}
 
+        {/* Экран инициализации */}
+        {initializing && (
+          <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center">
+            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Инициализация</h3>
+            <p className="text-slate-400">Загружаем конфигурацию и данные...</p>
+          </div>
+        )}
+
         {/* Сообщение о выборе сети */}
-        {!selectedNetwork && (
+        {!initializing && !selectedNetwork && (
           <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center">
             <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-slate-400 text-2xl">📊</span>
@@ -981,20 +982,83 @@ export default function NetworkOverview() {
           </div>
         )}
 
+        {/* Состояние загрузки */}
+        {!initializing && selectedNetwork && stsApiConfigured && loading && (
+          <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center">
+            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Загрузка данных</h3>
+            <p className="text-slate-400">Получаем информацию из STS API...</p>
+          </div>
+        )}
+
+        {/* Сообщение об отсутствии транзакций */}
+        {!initializing && selectedNetwork && stsApiConfigured && !loading && transactions.length === 0 && (
+          <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center">
+            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Activity className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Нет данных за выбранный период</h3>
+            <p className="text-slate-400 mb-4">Измените диапазон дат или нажмите кнопку "Обновить данные" для загрузки актуальной информации.</p>
+            <Button 
+              onClick={loadTransactions}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Обновить данные
+            </Button>
+          </div>
+        )}
+
         {/* Сообщение о необходимости настройки STS API */}
-        {selectedNetwork && !stsApiConfigured && (
+        {!initializing && selectedNetwork && !stsApiConfigured && (
           <div className="bg-slate-800 border border-orange-600 rounded-lg p-8 text-center">
             <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-white text-2xl">⚙️</span>
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">Требуется настройка STS API</h3>
             <p className="text-slate-400 mb-4">Эта страница работает только с данными из STS API. Для отображения аналитики необходимо настроить подключение к API.</p>
-            <Button 
-              onClick={() => window.location.href = '/settings/sts-api'}
-              className="bg-orange-600 hover:bg-orange-700 text-white"
-            >
-              Перейти к настройкам API
-            </Button>
+            <div className="flex gap-3 justify-center">
+              <Button 
+                onClick={() => window.location.href = '/settings/sts-api'}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                Перейти к настройкам API
+              </Button>
+              <Button 
+                onClick={async () => {
+                  console.log('🔄 Принудительная проверка настроек STS API...');
+                  setInitializing(true);
+                  
+                  // Даем время на обновление настроек
+                  setTimeout(() => {
+                    const isConfigured = stsApiService.isConfigured();
+                    console.log('🔍 Результат проверки:', isConfigured);
+                    setStsApiConfigured(isConfigured);
+                    setInitializing(false);
+                    
+                    if (isConfigured) {
+                      toast({
+                        title: "Успешно",
+                        description: "STS API настроен и готов к работе",
+                      });
+                      loadTransactions();
+                    } else {
+                      toast({
+                        title: "Настройки не найдены",
+                        description: "STS API все еще не настроен",
+                        variant: "destructive",
+                      });
+                    }
+                  }, 1000);
+                }}
+                variant="outline"
+                className="border-blue-600 text-blue-400 hover:bg-blue-700/20"
+              >
+                🔄 Перепроверить настройки
+              </Button>
+            </div>
           </div>
         )}
         </div>

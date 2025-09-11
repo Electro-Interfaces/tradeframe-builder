@@ -88,25 +88,26 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
               </SheetContent>
             </Sheet>
             
-            {/* Mobile Trading Point Selector */}
-            <div className="pt-header px-4 py-3 bg-gray-800 border-b border-gray-700">
-              <Select 
-                value={selectedTradingPoint} 
-                onValueChange={handleTradingPointChange}
-                disabled={!selectedNetwork}
-              >
-                <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white hover:bg-gray-600 focus:ring-blue-500">
-                  <MapPin className="h-4 w-4 mr-2 text-blue-400" />
-                  <SelectValue 
-                    placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"} 
-                    className="text-white"
-                  />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
-                  <SelectItem 
-                    value="all"
-                    className="text-white hover:bg-gray-600 focus:bg-blue-600 font-medium border-b border-gray-600"
-                  >
+            {/* Mobile Trading Point Selector - показываем только если есть сеть */}
+            {selectedNetwork && (
+              <div className="pt-header px-4 py-3 bg-gray-800 border-b border-gray-700">
+                <Select 
+                  value={selectedTradingPoint} 
+                  onValueChange={handleTradingPointChange}
+                  disabled={!selectedNetwork}
+                >
+                  <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white hover:bg-gray-600 focus:ring-blue-500">
+                    <MapPin className="h-4 w-4 mr-2 text-blue-400" />
+                    <SelectValue 
+                      placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"} 
+                      className="text-white"
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectItem 
+                      value="all"
+                      className="text-white hover:bg-gray-600 focus:bg-blue-600 font-medium border-b border-gray-600"
+                    >
                     Все торговые точки
                   </SelectItem>
                   {tradingPoints.map((point) => (
@@ -121,6 +122,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
                 </SelectContent>
               </Select>
             </div>
+            )}
             
             <main className="flex-1 min-w-0 w-full max-w-none">
               <div className={fullWidth ? "w-full max-w-none" : "px-4 md:px-6 lg:px-8 w-full max-w-none"}>

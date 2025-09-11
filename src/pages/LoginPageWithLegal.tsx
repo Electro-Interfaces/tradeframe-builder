@@ -46,13 +46,6 @@ const LoginPageWithLegal = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Предустановленные учетные записи для демонстрации
-  const demoAccounts = [
-    { email: 'admin@tradeframe.com', password: 'admin123', role: 'System Admin', icon: '👨‍💼' },
-    { email: 'network.admin@demo-azs.ru', password: 'admin123', role: 'Network Admin', icon: '🏢' },
-    { email: 'manager@demo-azs.ru', password: 'admin123', role: 'Manager', icon: '📊' },
-    { email: 'operator@demo-azs.ru', password: 'admin123', role: 'Operator', icon: '⛽' }
-  ];
 
   // Загрузка правовых документов
   useEffect(() => {
@@ -158,17 +151,6 @@ const LoginPageWithLegal = () => {
     }
   };
 
-  const handleDemoLogin = (demoEmail: string, demoPassword: string) => {
-    // Виброотклик на мобильных устройствах
-    if (mobileInfo.isTouchDevice) {
-      mobileUtils.vibrate(30);
-    }
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setAcceptedTerms(true);
-    setAcceptedPrivacy(true);
-    setAcceptedPdn(true);
-  };
 
   // Загружаем сохраненный email при загрузке страницы
   useEffect(() => {
@@ -195,10 +177,12 @@ const LoginPageWithLegal = () => {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 ${
-      mobileInfo.isMobile ? 'mobile-no-select mobile-scroll mobile-safe-top mobile-safe-bottom' : ''
+    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 ${
+      mobileInfo.isMobile ? 'mobile-no-select mobile-scroll mobile-safe-top mobile-safe-bottom flex flex-col' : 'flex items-center justify-center'
     }`} style={mobileInfo.isMobile ? { height: 'var(--vh, 100vh)' } : {}}>
-      <div className={`w-full space-y-6 ${isMobile ? 'max-w-full px-2' : 'max-w-md'}`}>
+      <div className={`w-full space-y-6 ${
+        isMobile ? 'max-w-full px-2 flex-1 flex flex-col justify-center min-h-0' : 'max-w-md'
+      }`}>
         {/* Логотип и заголовок */}
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
@@ -365,33 +349,6 @@ const LoginPageWithLegal = () => {
           </CardContent>
         </Card>
 
-        {/* Демо учетные записи */}
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-slate-300">Быстрый вход (Демо)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-2">
-              {demoAccounts.map((account) => (
-                <Button
-                  key={account.email}
-                  variant="outline"
-                  size="sm"
-                  className="justify-start text-xs h-auto py-2 px-3 bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
-                  onClick={() => handleDemoLogin(account.email, account.password)}
-                  disabled={isLoading}
-                >
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">{account.icon}</span>
-                    <div className="text-left">
-                      <div className="font-medium">{account.role}</div>
-                    </div>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Информация о безопасности */}
         <div className="text-center space-y-2">

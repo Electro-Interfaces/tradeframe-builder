@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/context/SelectionContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, 
 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
+  const isMobile = useIsMobile();
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(false);
   
@@ -142,7 +144,7 @@ export default function OperationsTransactionsPageSimple() {
       console.log(`✅ Экспорт в Excel завершен: ${fileName}`);
     } catch (error) {
       console.error('❌ Ошибка экспорта в Excel:', error);
-      alert('Ошибка при экспорте в Excel');
+      if (!isMobile) alert('Ошибка при экспорте в Excel');
     }
   };
 
@@ -446,7 +448,7 @@ export default function OperationsTransactionsPageSimple() {
       console.log(`✅ Экспорт дашборда в PDF завершен: ${fileName}`);
     } catch (error) {
       console.error('❌ Ошибка экспорта дашборда в PDF:', error);
-      alert('Ошибка при экспорте дашборда в PDF');
+      if (!isMobile) alert('Ошибка при экспорте дашборда в PDF');
     }
   };
 
@@ -454,19 +456,19 @@ export default function OperationsTransactionsPageSimple() {
   const loadFromStsApi = async () => {
     if (!stsApiService.isConfigured()) {
       console.log('❌ STS API не настроен');
-      alert('STS API не настроен. Перейдите в Настройки → API СТС');
+      if (!isMobile) alert('STS API не настроен. Перейдите в Настройки → API СТС');
       return;
     }
 
     if (!selectedNetwork?.external_id) {
       console.log('❌ Не выбрана сеть или отсутствует external_id');
-      alert('Выберите сеть с настроенным external_id для загрузки из STS API');
+      if (!isMobile) alert('Выберите сеть с настроенным external_id для загрузки из STS API');
       return;
     }
 
     if (!selectedTradingPoint || selectedTradingPoint === 'all') {
       console.log('❌ Не выбрана конкретная торговая точка');
-      alert('Для загрузки транзакций из STS API выберите конкретную торговую точку (не "Все точки")');
+      if (!isMobile) alert('Для загрузки транзакций из STS API выберите конкретную торговую точку (не "Все точки")');
       return;
     }
 
@@ -592,7 +594,7 @@ export default function OperationsTransactionsPageSimple() {
       console.log(`✅ Загружено ${transactions.length} новых транзакций из STS API (заменили предыдущие данные)`);
     } catch (error) {
       console.error('❌ Ошибка загрузки из STS API:', error);
-      alert(`Ошибка STS API: ${error.message}`);
+      if (!isMobile) alert(`Ошибка STS API: ${error.message}`);
     } finally {
       setLoadingFromSTS(false);
     }
@@ -684,11 +686,22 @@ export default function OperationsTransactionsPageSimple() {
     setStsApiConfigured(true);
     
     // Автоматически загружаем данные операций при выборе торговой точки
-    if (selectedTradingPoint && selectedTradingPoint !== 'all') {
+    console.log('🔍 Проверяем условия автозагрузки:', {
+      selectedNetwork: selectedNetwork?.name,
+      selectedNetworkId: selectedNetwork?.id,
+      externalId: selectedNetwork?.external_id,
+      selectedTradingPoint,
+      hasNetwork: !!selectedNetwork,
+      hasTradingPoint: !!(selectedTradingPoint && selectedTradingPoint !== 'all')
+    });
+    
+    if (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedNetwork?.external_id) {
       console.log('🚀 Автоматическая загрузка операций...');
       loadFromStsApi();
+    } else {
+      console.log('⏳ Ожидаем полную загрузку селекторов для автозагрузки');
     }
-  }, [selectedTradingPoint]);
+  }, [selectedTradingPoint, selectedNetwork]);
 
 
   // Фильтрация операций
@@ -712,7 +725,28 @@ export default function OperationsTransactionsPageSimple() {
       // Фильтр по датам
       if (dateFrom || dateTo) {
         const recordDate = new Date(record.startTime);
-        const recordDateStr = recordDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        // Используем локальную дату вместо UTC для корректной фильтрации
+        const recordDateStr = recordDate.getFullYear() + '-' + 
+          String(recordDate.getMonth() + 1).padStart(2, '0') + '-' + 
+          String(recordDate.getDate()).padStart(2, '0');
+        
+        // Отладочная информация для первых 5 записей + специально для проблемной транзакции 2630762
+        if ((operations.length > 0 && operations.slice(0, 5).some(op => op.id === record.id)) || 
+            record.id === '2630762' || record.transactionId === '2630762') {
+          console.log('🗓️ Date filter debug (Simple):', {
+            recordId: record.id,
+            startTime: record.startTime,
+            recordDate: recordDate.toLocaleString('ru-RU'),
+            recordDateStr,
+            dateFrom,
+            dateTo,
+            hasDateTo: !!dateTo,
+            fromCheck: dateFrom ? `${recordDateStr} >= ${dateFrom} = ${recordDateStr >= dateFrom}` : 'skip',
+            toCheck: dateTo ? `${recordDateStr} <= ${dateTo} = ${recordDateStr <= dateTo}` : 'no dateTo filter',
+            willPass: (!dateFrom || recordDateStr >= dateFrom) && (!dateTo || recordDateStr <= dateTo),
+            shouldBeFiltered: dateTo && recordDateStr > dateTo
+          });
+        }
         
         if (dateFrom && recordDateStr < dateFrom) {
           return false;
@@ -784,34 +818,31 @@ export default function OperationsTransactionsPageSimple() {
         {/* Фильтры */}
         <Card className="bg-slate-900 border-slate-700">
           <CardHeader>
-            <CardTitle className="text-slate-200 flex items-center justify-between">
-              <span>Операции и транзакции</span>
-              <div className="flex gap-2">
-                <HelpButton route="/network/operations-transactions" variant="text" className="flex-shrink-0" />
+            <CardTitle className={`text-slate-200 flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
+              <span className={isMobile ? 'text-lg' : ''}>Операции и транзакции</span>
+              <div className={`flex ${isMobile ? 'gap-1 self-start' : 'gap-2'}`}>
+                {!isMobile && <HelpButton route="/network/operations-transactions" variant="text" className="flex-shrink-0" />}
                 {/* STS API кнопка */}
                 {stsApiConfigured ? (
                   <Button
                     onClick={loadFromStsApi}
                     disabled={loadingFromSTS}
-                    size="sm"
-                    className="text-xs bg-blue-600 text-white hover:bg-blue-700"
+                    size={isMobile ? "sm" : "sm"}
+                    className={`${isMobile ? 'text-xs' : 'text-xs'} bg-blue-600 text-white hover:bg-blue-700 flex items-center`}
                   >
-                    {loadingFromSTS ? (
-                      <>
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                        Обновление...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-3 h-3 mr-1" />
-                        Обновить
-                      </>
-                    )}
+                    <div className="w-3 h-3 mr-1 flex items-center justify-center">
+                      {loadingFromSTS ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Download className="w-3 h-3" />
+                      )}
+                    </div>
+                    {loadingFromSTS ? 'Обновление...' : (isMobile ? 'Обновить' : 'Обновить')}
                   </Button>
                 ) : (
                   <Button
                     onClick={() => {
-                      alert('STS API не настроен. Перейдите в Настройки → API СТС');
+                      if (!isMobile) alert('STS API не настроен. Перейдите в Настройки → API СТС');
                     }}
                     variant="outline"
                     size="sm"
@@ -822,6 +853,7 @@ export default function OperationsTransactionsPageSimple() {
                   </Button>
                 )}
                 
+                {!isMobile && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="flex-shrink-0">
@@ -840,11 +872,12 @@ export default function OperationsTransactionsPageSimple() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                )}
               </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-4">
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-7'} gap-4 mb-4`}>
               <div>
                 <Label htmlFor="status" className="text-slate-300">Статус</Label>
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -927,7 +960,10 @@ export default function OperationsTransactionsPageSimple() {
                     id="date-to"
                     type="date"
                     value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
+                    onChange={(e) => {
+                      console.log('📅 Changing dateTo from', dateTo, 'to', e.target.value);
+                      setDateTo(e.target.value);
+                    }}
                     className="bg-slate-800 border-slate-700 text-slate-200 h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
                   <Calendar 
@@ -936,12 +972,12 @@ export default function OperationsTransactionsPageSimple() {
                 </div>
               </div>
               
-              <div className="md:col-span-2">
+              <div className={isMobile ? '' : "md:col-span-2"}>
                 <Label htmlFor="search" className="text-slate-300">Поиск</Label>
                 <Input
                   id="search"
                   type="text"
-                  placeholder="Поиск по операции, устройству, ID..."
+                  placeholder={isMobile ? "Поиск..." : "Поиск по операции, устройству, ID..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-slate-800 border-slate-700 text-slate-200 placeholder-slate-400"
@@ -949,16 +985,11 @@ export default function OperationsTransactionsPageSimple() {
               </div>
             </div>
             
-            <div className="text-slate-300">
-              <p>Операций загружено: {operations.length} | Отфильтровано: {filteredOperations.length}</p>
-              {console.log('🔍 Render debug:', {
-                operationsLength: operations.length,
-                filteredLength: filteredOperations.length,
-                loading,
-                operationsType: typeof operations,
-                isOperationsArray: Array.isArray(operations)
-              })}
-            </div>
+            {!isMobile && (
+              <div className="text-slate-300">
+                <p>Операций загружено: {operations.length} | Отфильтровано: {filteredOperations.length}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -969,7 +1000,7 @@ export default function OperationsTransactionsPageSimple() {
               <CardTitle className="text-slate-200">Суммы по видам топлива</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'}`}>
                 {[...new Set(filteredOperations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
                   const fuelOps = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
                   const volume = fuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
@@ -1022,21 +1053,23 @@ export default function OperationsTransactionsPageSimple() {
               <CardTitle className="text-slate-200">Суммы по видам оплаты</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {['cash', 'bank_card', 'fuel_card', 'online_order'].map(paymentMethod => {
-                  const paymentOps = filteredOperations.filter(op => op.paymentMethod === paymentMethod && op.status === 'completed');
-                  const revenue = paymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
-                  
-                  if (paymentOps.length === 0) return null;
-                  
-                  const displayName = {
-                    'cash': 'Наличные',
-                    'bank_card': 'Банковские карты',
-                    'fuel_card': 'Топливные карты',
-                    'online_order': 'Онлайн заказы'
-                  }[paymentMethod];
-                  
-                  return (
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'}`}>
+                {['cash', 'bank_card', 'fuel_card', 'online_order']
+                  .map(paymentMethod => {
+                    const paymentOps = filteredOperations.filter(op => op.paymentMethod === paymentMethod && op.status === 'completed');
+                    const revenue = paymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+                    return { paymentMethod, paymentOps, revenue };
+                  })
+                  .filter(item => item.paymentOps.length > 0)
+                  .map(({ paymentMethod, paymentOps, revenue }) => {
+                    const displayName = {
+                      'cash': 'Наличные',
+                      'bank_card': 'Банковские карты',
+                      'fuel_card': 'Топливные карты',
+                      'online_order': 'Онлайн заказы'
+                    }[paymentMethod];
+                    
+                    return (
                     <Card key={paymentMethod} className="bg-slate-800 border-slate-700">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-slate-200">{displayName}</CardTitle>
@@ -1061,6 +1094,116 @@ export default function OperationsTransactionsPageSimple() {
             <p className="text-slate-400">{filteredOperations.length} операций</p>
           </CardHeader>
           <CardContent>
+            {isMobile ? (
+              // Mobile card layout
+              <div className="space-y-4">
+                {filteredOperations.slice(0, 20).map((record) => (
+                  <Card key={record.id} className={`bg-slate-800 border-slate-700 ${record.isFromStsApi ? 'border-blue-800/50 bg-blue-950/20' : ''}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {record.isFromStsApi && (
+                            <Badge variant="outline" className="bg-blue-900 text-blue-300 border-blue-600 text-xs">
+                              STS
+                            </Badge>
+                          )}
+                          <span className="font-medium text-white text-sm">{record.status === 'completed' ? 'Завершено' : record.status}</span>
+                        </div>
+                        {getStatusBadge(record.status)}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-1 font-mono">{record.id}</div>
+                    </CardHeader>
+                    <CardContent className="pt-0 space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Номер ТО:</span>
+                        <span className="text-white">{record.toNumber || '-'}</span>
+                      </div>
+                      
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Время начала:</span>
+                        <span className="text-white font-mono">
+                          {new Date(record.startTime).toLocaleString('ru-RU', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Вид топлива:</span>
+                        <span className="text-white">{record.fuelType || '-'}</span>
+                      </div>
+                      
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Количество:</span>
+                        <span className="text-white font-mono">
+                          {record.actualQuantity ? `${record.actualQuantity.toFixed(2)} л` : 
+                           record.quantity ? `${record.quantity.toFixed(2)} л` : '-'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Цена:</span>
+                        <span className="text-white font-mono">
+                          {record.price ? `${record.price.toFixed(2)} ₽/л` : '-'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Сумма:</span>
+                        <span className="text-white font-mono font-bold">
+                          {record.actualAmount ? `${record.actualAmount.toFixed(2)} ₽` : 
+                           record.totalCost ? `${record.totalCost.toFixed(2)} ₽` : '-'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">Вид оплаты:</span>
+                        <span className="text-white">
+                          {{
+                            'cash': 'Наличные',
+                            'bank_card': 'Банк. карты',
+                            'fuel_card': 'Топл. карты', 
+                            'online_order': 'Онлайн заказы'
+                          }[record.paymentMethod] || record.paymentMethod || '-'}
+                        </span>
+                      </div>
+                      
+                      {(record.posNumber || record.shiftNumber) && (
+                        <div className="border-t border-slate-600 pt-2 space-y-2 text-sm">
+                          {record.posNumber && record.posNumber !== '-' && (
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">POS:</span>
+                              <span className="text-white">{record.posNumber}</span>
+                            </div>
+                          )}
+                          {record.shiftNumber && record.shiftNumber !== '-' && (
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Смена:</span>
+                              <span className="text-white">{record.shiftNumber}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+                
+                {filteredOperations.length === 0 && (
+                  <div className="text-center py-8 text-slate-400">
+                    Нет операций по выбранным фильтрам
+                  </div>
+                )}
+                
+                {filteredOperations.length > 20 && (
+                  <div className="text-center py-4 text-slate-400">
+                    Показаны первые 20 из {filteredOperations.length} операций
+                  </div>
+                )}
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -1172,6 +1315,7 @@ export default function OperationsTransactionsPageSimple() {
                 </div>
               )}
             </div>
+            )}
           </CardContent>
         </Card>
       </div>

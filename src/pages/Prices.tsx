@@ -734,17 +734,21 @@ export default function Prices() {
       const prices = await pricesCacheService.refreshPricesFromNetwork(tradingPointId);
       setCurrentPrices(prices);
 
-      toast({
-        title: "Цены обновлены",
-        description: `Получено ${prices.length} цен с торговой точки`,
-      });
+      if (!isMobile) {
+        toast({
+          title: "Цены обновлены",
+          description: `Получено ${prices.length} цен с торговой точки`,
+        });
+      }
     } catch (error) {
       console.error('Ошибка при обновлении цен:', error);
-      toast({
-        title: "Ошибка обновления",
-        description: error instanceof Error ? error.message : "Не удалось обновить цены",
-        variant: "destructive"
-      });
+      if (!isMobile) {
+        toast({
+          title: "Ошибка обновления",
+          description: error instanceof Error ? error.message : "Не удалось обновить цены",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsUpdatingPrices(false);
     }
@@ -790,10 +794,12 @@ export default function Prices() {
             }
           : p
       ));
-      toast({
-        title: "Цена обновлена",
-        description: `Цена на ${fuelType?.name} успешно обновлена.`,
-      });
+      if (!isMobile) {
+        toast({
+          title: "Цена обновлена",
+          description: `Цена на ${fuelType?.name} успешно обновлена.`,
+        });
+      }
     } else {
       // Create new
       const newPrice: FuelPrice = {
@@ -810,10 +816,12 @@ export default function Prices() {
         networkId: "net1"
       };
       setCurrentPrices(prev => [...prev, newPrice]);
-      toast({
-        title: "Цена создана",
-        description: `Цена на ${fuelType?.name} успешно создана.`,
-      });
+      if (!isMobile) {
+        toast({
+          title: "Цена создана",
+          description: `Цена на ${fuelType?.name} успешно создана.`,
+        });
+      }
     }
 
     // Add journal entry
@@ -920,19 +928,23 @@ export default function Prices() {
       };
       setJournalEntries(prev => [journalEntry, ...prev]);
 
-      toast({
-        title: "Цена обновлена",
-        description: `Цена на ${price.fuelType} успешно обновлена до ${editingValue} ₽/л`,
-      });
+      if (!isMobile) {
+        toast({
+          title: "Цена обновлена",
+          description: `Цена на ${price.fuelType} успешно обновлена до ${editingValue} ₽/л`,
+        });
+      }
 
       handleCancelInlineEdit();
     } catch (error) {
       console.error('Ошибка сохранения цены:', error);
-      toast({
-        title: "Ошибка сохранения",
-        description: "Не удалось сохранить новую цену",
-        variant: "destructive"
-      });
+      if (!isMobile) {
+        toast({
+          title: "Ошибка сохранения",
+          description: "Не удалось сохранить новую цену",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -970,8 +982,8 @@ export default function Prices() {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
-              <p className="text-slate-400 mt-2">Управление ценами на топливо с отложенным применением и журналом изменений</p>
-              <div className="mt-3">
+              <p className="text-slate-400 mt-2 hidden md:block">Управление ценами на топливо с отложенным применением и журналом изменений</p>
+              <div className="mt-3 hidden md:block">
                 <DataSourceIndicator 
                   sources={[
                     { 
@@ -995,13 +1007,15 @@ export default function Prices() {
         {/* Панель управления */}
         <div className="bg-slate-800 mb-6 w-full rounded-lg">
           <div className="px-4 md:px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm">💰</span>
+            <div className={`flex items-center justify-between ${isMobile ? 'flex-col gap-4' : 'flex-row'}`}>
+              <div className={`flex items-center gap-3 ${isMobile ? 'flex-col text-center' : 'flex-row'}`}>
+                <div className={`flex items-center gap-3 ${isMobile ? 'flex-col text-center' : 'flex-row'}`}>
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm">💰</span>
+                  </div>
+                  <h2 className={`font-semibold text-white ${isMobile ? 'text-base' : 'text-lg'}`}>Текущие цены</h2>
                 </div>
-                <h2 className="text-lg font-semibold text-white">Текущие цены</h2>
-                <div className="text-sm text-slate-400">
+                <div className={`text-slate-400 ${isMobile ? 'text-xs hidden' : 'text-sm'}`}>
                   Точка: АЗС-1 на Московской
                 </div>
               </div>
@@ -1013,21 +1027,23 @@ export default function Prices() {
                     variant="outline"
                     disabled={loadingFromSTSAPI}
                     className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
+                    size={isMobile ? "default" : "sm"}
                   >
                     {loadingFromSTSAPI ? (
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      <RefreshCw className="w-4 h-4 animate-spin" />
                     ) : (
-                      <RefreshCw className="w-4 h-4 mr-2" />
+                      <RefreshCw className="w-4 h-4" />
                     )}
-                    STS API
+                    <span className={isMobile ? "ml-2" : "ml-1"}>STS API</span>
                   </Button>
                 )}
                 <Button 
                   onClick={handleCreatePrice}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
+                  size={isMobile ? "default" : "sm"}
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Новая цена
+                  <Plus className="w-4 h-4" />
+                  <span className={isMobile ? "ml-2" : "ml-1"}>Новая цена</span>
                 </Button>
               </div>
             </div>
@@ -1037,7 +1053,7 @@ export default function Prices() {
         {/* Плитки цен */}
         {isInitialLoading ? (
           <div className="px-4 md:px-6 pb-6">
-            <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
               {/* Skeleton плитки для состояния загрузки */}
               {[1, 2, 3, 4].map((n) => (
                 <div key={n} className="bg-slate-800 border border-slate-700 rounded-lg p-6">
@@ -1087,43 +1103,44 @@ export default function Prices() {
             </div>
           </div>
         ) : filteredPrices.length === 0 ? (
-          <div className="px-6">
-            <div className="text-center py-16">
-              <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-white text-2xl">💰</span>
+          <div className="px-4 md:px-6">
+            <div className={`text-center ${isMobile ? 'py-8' : 'py-16'}`}>
+              <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4`}>
+                <span className={`text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>💰</span>
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
+              <h3 className={`font-semibold text-white mb-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
                 Нет цен
               </h3>
-              <p className="text-slate-400 mb-4">
+              <p className={`text-slate-400 mb-4 ${isMobile ? 'text-sm' : 'text-base'}`}>
                 Создайте первую цену на топливо
               </p>
               <Button 
                 onClick={handleCreatePrice}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
+                size={isMobile ? "default" : "sm"}
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Создать цену
+                <Plus className="w-4 h-4" />
+                <span className={isMobile ? "ml-2" : "ml-1"}>Создать цену</span>
               </Button>
             </div>
           </div>
         ) : (
           <div className="px-4 md:px-6 pb-6">
-            <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
               {filteredPrices.map((price) => (
-                <div key={price.id} className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:shadow-xl transition-all duration-200">
+                <div key={price.id} className={`bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200 ${isMobile ? 'p-4' : 'p-6'}`}>
                   {/* Header с видом топлива и статусом */}
-                  <div className="flex items-start justify-between mb-4">
+                  <div className={`${isMobile ? 'space-y-3' : 'flex items-start justify-between'} mb-4`}>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg flex items-center justify-center border border-blue-500/20">
-                        <Fuel className="w-6 h-6 text-blue-400" />
+                      <div className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg flex items-center justify-center border border-blue-500/20 flex-shrink-0`}>
+                        <Fuel className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-blue-400`} />
                       </div>
-                      <div>
-                        <div className="font-semibold text-white text-lg">{price.fuelType || 'Неизвестно'}</div>
-                        <div className="text-slate-300 text-sm font-mono bg-slate-700/50 px-2 py-1 rounded">{price.fuelCode || 'N/A'}</div>
+                      <div className="flex-1">
+                        <div className={`font-semibold text-white ${isMobile ? 'text-base truncate' : 'text-lg'}`}>{price.fuelType || 'Неизвестно'}</div>
+                        <div className={`text-slate-300 font-mono bg-slate-700/50 px-2 py-1 rounded ${isMobile ? 'text-xs' : 'text-sm'}`}>{price.fuelCode || 'N/A'}</div>
                       </div>
                     </div>
-                    <Badge variant="secondary" className={`text-xs ${getStatusColor(price.status)}`}>
+                    <Badge variant="secondary" className={`text-xs ${getStatusColor(price.status)} ${isMobile ? 'self-start flex-shrink-0' : ''}`}>
                       <div className="flex items-center gap-1">
                         {getStatusIcon(price.status)}
                         {getStatusText(price.status)}
@@ -1133,17 +1150,17 @@ export default function Prices() {
 
                   {/* Цены */}
                   <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between border-t border-slate-600 pt-2">
-                      <span className="text-slate-400 text-sm">Цена:</span>
+                    <div className={`flex items-center justify-between border-t border-slate-600 pt-2 ${isMobile ? 'gap-2' : ''}`}>
+                      <span className={`text-slate-400 ${isMobile ? 'text-xs flex-shrink-0' : 'text-sm'}`}>Цена:</span>
                       {editingPriceId === price.id ? (
-                        <div className="flex items-center gap-2">
+                        <div className={`flex items-center gap-2 ${isMobile ? 'min-w-0' : ''}`}>
                           <Input
                             type="number"
                             step="0.01"
                             min="0"
                             value={editingValue}
                             onChange={(e) => handleEditingValueChange(e.target.value)}
-                            className="w-24 h-8 text-right bg-slate-700 border-slate-600 text-white font-bold text-sm"
+                            className={`${isMobile ? 'w-20 h-7' : 'w-24 h-8'} text-right bg-slate-700 border-slate-600 text-white font-bold text-sm`}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 handleSaveInlinePrice();
@@ -1153,12 +1170,12 @@ export default function Prices() {
                             }}
                             autoFocus
                           />
-                          <span className="text-slate-400 text-sm">₽</span>
+                          <span className={`text-slate-400 ${isMobile ? 'text-xs flex-shrink-0' : 'text-sm'}`}>₽</span>
                         </div>
                       ) : (
                         <button
                           onClick={() => handleInlineEdit(price.id, price.priceGross)}
-                          className="text-white font-bold text-lg hover:text-blue-400 hover:underline transition-colors cursor-pointer"
+                          className={`text-white font-bold hover:text-blue-400 hover:underline transition-colors cursor-pointer ${isMobile ? 'text-base min-w-0 truncate' : 'text-lg'}`}
                           title="Нажмите для редактирования цены"
                         >
                           {formatPrice(price.priceGross, price.source !== 'sts-api')}
@@ -1168,18 +1185,18 @@ export default function Prices() {
                   </div>
 
                   {/* Дополнительная информация */}
-                  <div className="space-y-2 mb-4 text-sm">
-                    <div className="flex items-center justify-between">
+                  <div className={`space-y-2 mb-4 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    <div className={`flex items-center justify-between ${isMobile ? 'gap-2' : ''}`}>
                       <span className="text-slate-400">Вид топлива:</span>
-                      <span className="text-blue-400 font-medium">{price.fuelType || 'Не указан'}</span>
+                      <span className={`text-blue-400 font-medium text-right ${isMobile ? 'min-w-0 truncate' : ''}`}>{price.fuelType || 'Не указан'}</span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className={`flex items-center justify-between ${isMobile ? 'gap-2' : ''}`}>
                       <span className="text-slate-400">Единица:</span>
-                      <span className="text-white">{price.unit}</span>
+                      <span className={`text-white text-right ${isMobile ? 'min-w-0 truncate' : ''}`}>{price.unit}</span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className={`flex items-center justify-between ${isMobile ? 'gap-2' : ''}`}>
                       <span className="text-slate-400">Применяется с:</span>
-                      <span className="text-white font-mono text-xs">{price.appliedFrom}</span>
+                      <span className={`text-white font-mono text-right text-xs ${isMobile ? 'min-w-0 truncate' : ''}`}>{price.appliedFrom}</span>
                     </div>
                   </div>
 
@@ -1189,13 +1206,13 @@ export default function Prices() {
                       <>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size={isMobile ? "default" : "sm"}
                           onClick={handleSaveInlinePrice}
                           disabled={!hasChanges}
                           className="flex-1 text-green-400 hover:text-green-300 hover:bg-green-500/10 disabled:text-slate-500 disabled:hover:text-slate-500"
                         >
-                          <Save className="w-4 h-4 mr-2" />
-                          Сохранить
+                          <Save className="w-4 h-4" />
+                          <span className={isMobile ? "ml-2" : "ml-1"}>Сохранить</span>
                         </Button>
                         <Button
                           variant="ghost"

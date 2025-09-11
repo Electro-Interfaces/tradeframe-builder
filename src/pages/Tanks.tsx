@@ -601,28 +601,34 @@ export default function Tanks() {
         setTanks(stsTanks);
         setStsApiConfigured(true);
         
-        toast({
-          title: "Данные обновлены",
-          description: `Загружено ${stsTanks.length} резервуаров из STS API`,
-          variant: "default",
-        });
+        if (!isMobile) {
+          toast({
+            title: "Данные обновлены",
+            description: `Загружено ${stsTanks.length} резервуаров из STS API`,
+            variant: "default",
+          });
+        }
         
         console.log('✅ Резервуары из STS API успешно загружены и обработаны');
       } else {
         console.warn('⚠️ STS API вернул пустой список резервуаров');
-        toast({
-          title: "Нет данных",
-          description: "STS API не вернул данных о резервуарах",
-          variant: "destructive",
-        });
+        if (!isMobile) {
+          toast({
+            title: "Нет данных",
+            description: "STS API не вернул данных о резервуарах",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error('❌ Ошибка загрузки резервуаров из STS API:', error);
-      toast({
-        title: "Ошибка загрузки",
-        description: error instanceof Error ? error.message : 'Произошла ошибка при загрузке данных резервуаров',
-        variant: "destructive",
-      });
+      if (!isMobile) {
+        toast({
+          title: "Ошибка загрузки",
+          description: error instanceof Error ? error.message : 'Произошла ошибка при загрузке данных резервуаров',
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoadingFromSTSAPI(false);
     }
@@ -787,8 +793,8 @@ export default function Tanks() {
               <h1 className="text-2xl font-semibold text-white">
                 {getTradingPointName(selectedTradingPoint)}
               </h1>
-              <p className="text-slate-400 mt-2">Мониторинг запасов топлива и управление операциями</p>
-              <div className="flex items-center gap-4 mt-2">
+              <p className="text-slate-400 mt-2 hidden md:block">Мониторинг запасов топлива и управление операциями</p>
+              <div className="flex items-center gap-4 mt-2 hidden md:flex">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm text-slate-400">Источник данных:</span>
@@ -832,18 +838,22 @@ export default function Tanks() {
                       setTankEvents(events);
                       setCalibrationHistory(calibrations);
                       console.log('✅ Данные резервуаров обновлены (mock API)');
-                      toast({
-                        title: "Данные обновлены",
-                        description: "Тестовые данные резервуаров обновлены",
-                        variant: "default",
-                      });
+                      if (!isMobile) {
+                        toast({
+                          title: "Данные обновлены",
+                          description: "Тестовые данные резервуаров обновлены",
+                          variant: "default",
+                        });
+                      }
                     } catch (error) {
                       console.error('❌ Ошибка обновления резервуаров:', error);
-                      toast({
-                        title: "Ошибка обновления",
-                        description: "Произошла ошибка при обновлении данных",
-                        variant: "destructive",
-                      });
+                      if (!isMobile) {
+                        toast({
+                          title: "Ошибка обновления",
+                          description: "Произошла ошибка при обновлении данных",
+                          variant: "destructive",
+                        });
+                      }
                     } finally {
                       setLoading(false);
                     }

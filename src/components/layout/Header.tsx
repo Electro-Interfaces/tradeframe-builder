@@ -90,9 +90,9 @@ export function Header({
             variant="ghost"
             size="icon"
             onClick={handleMobileMenuClick}
-            className={`shrink-0 h-8 w-8 ${mobileInfo.isTouchDevice ? 'mobile-touch-target mobile-button mobile-no-highlight' : ''}`}
+            className={`shrink-0 h-10 w-10 bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 ${mobileInfo.isTouchDevice ? 'mobile-touch-target mobile-button mobile-no-highlight' : ''}`}
           >
-            <Menu className="h-4 w-4" />
+            <Menu className="h-5 w-5" />
           </Button>
           
           <NetworkSelect 
@@ -114,7 +114,7 @@ export function Header({
         </div>
 
         {/* Desktop Center: Context Selectors */}
-        <div className="flex items-center justify-center gap-2">
+        <div className="hidden md:flex items-center justify-center gap-2">
           <NetworkSelect value={selectedNetwork} onValueChange={onNetworkChange} />
           <PointSelect 
             value={selectedTradingPoint} 
