@@ -63,3 +63,11 @@ build/
 .cache/
 redis-dump.rdb
 
+# Binaries
+ngrok.exe
+ngrok.zip
+
+# Binaries
+ngrok.exe
+ngrok.zip
+
