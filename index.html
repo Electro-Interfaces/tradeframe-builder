@@ -45,7 +45,7 @@
     <meta name="msapplication-tap-highlight" content="no" />
     <meta name="theme-color" content="#1e293b" />
     <style>
-      /* КРИТИЧЕСКАЯ ЗАЩИТА ОТ PULL-TO-REFRESH НА МОБИЛЬНЫХ УСТРОЙСТВАХ */
+      /* ЗАЩИТА ОТ PULL-TO-REFRESH НА МОБИЛЬНЫХ УСТРОЙСТВАХ */
       @media (hover: none) and (pointer: coarse) {
         html, body { 
           overscroll-behavior: none !important;
@@ -53,11 +53,6 @@
           -webkit-overscroll-behavior: none !important;
           -webkit-overscroll-behavior-y: none !important;
           touch-action: pan-x pan-y !important;
-          -webkit-overflow-scrolling: auto !important;
-          position: fixed !important;
-          overflow: hidden !important;
-          width: 100% !important;
-          height: 100% !important;
         }
 
         #root {
@@ -66,13 +61,8 @@
           -webkit-overscroll-behavior: none !important;
           -webkit-overscroll-behavior-y: none !important;
           touch-action: pan-x pan-y !important;
-          position: fixed !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
-          overflow: auto !important;
-          -webkit-overflow-scrolling: touch !important;
+          min-height: 100vh !important;
+          min-height: 100dvh !important;
         }
       }
       
@@ -96,6 +86,22 @@
         overscroll-behavior-y: none;
         -webkit-overscroll-behavior: none;
         -webkit-overscroll-behavior-y: none;
+      }
+
+      /* Предотвращение FOUC (Flash of Unstyled Content) */
+      #root {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      /* Временный loading состояние */
+      .app-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: hsl(215 28% 12%);
+        color: hsl(0 0% 95%);
       }
     </style>
     
@@ -124,7 +130,24 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback loading для медленных соединений -->
+      <div class="app-loading">
+        <div style="text-align: center;">
+          <div style="width: 40px; height: 40px; border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid hsl(217 91% 60%); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+          <div style="font-size: 16px; font-weight: 500;">Загрузка TradeFrame...</div>
+          <div style="font-size: 14px; color: hsl(215 15% 65%); margin-top: 8px;">Инициализация системы</div>
+        </div>
+      </div>
+    </div>
+    
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+    
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

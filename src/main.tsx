@@ -176,4 +176,10 @@ if (typeof window !== 'undefined') {
   });
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Убираем fallback loading индикатор когда React загрузился
+const rootElement = document.getElementById("root")!;
+if (rootElement.innerHTML.includes('app-loading')) {
+  console.log('🎯 Clearing fallback loading indicator');
+}
+
+createRoot(rootElement).render(<App />);
