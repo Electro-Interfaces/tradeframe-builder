@@ -1,7 +1,19 @@
+// Диагностика загрузки для мобильных
+console.log('📱 main.tsx starting...');
+window.updateLoadingStatus?.('main.tsx загружается');
+
 import { createRoot } from 'react-dom/client'
+console.log('📱 React imported');
+window.updateLoadingStatus?.('React импортирован');
+
 import App from './App.tsx'
+console.log('📱 App imported');
+window.updateLoadingStatus?.('App компонент импортирован');
+
 import './index.css'
 import './styles/mobile.css'
+console.log('📱 CSS imported');
+window.updateLoadingStatus?.('CSS стили загружены');
 
 // Импортируем тестировщик auth системы для автоматического запуска
 // import './utils/authTestRunner' // Временно отключен
@@ -10,32 +22,40 @@ import './utils/localStorageReport'
 
 // Регистрация Service Worker для PWA с улучшенной обработкой ошибок
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    const swPath = import.meta.env.PROD ? '/tradeframe-builder/sw.js' : '/sw.js';
-    
-    navigator.serviceWorker.register(swPath)
-      .then((registration) => {
-        console.log('✅ SW registered:', registration.scope);
-        
-        // Обработка обновлений
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('🔄 New version available');
-                // Можно показать уведомление об обновлении
-              }
-            });
-          }
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isGitHubPages = window.location.hostname === 'electro-interfaces.github.io';
+  
+  // Отключаем Service Worker для мобильных устройств на GitHub Pages
+  if (isMobile && isGitHubPages) {
+    console.log('🚫 Service Worker disabled for mobile GitHub Pages');
+  } else {
+    window.addEventListener('load', () => {
+      const swPath = import.meta.env.PROD ? '/tradeframe-builder/sw.js' : '/sw.js';
+      
+      navigator.serviceWorker.register(swPath)
+        .then((registration) => {
+          console.log('✅ SW registered:', registration.scope);
+          
+          // Обработка обновлений
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('🔄 New version available');
+                  // Можно показать уведомление об обновлении
+                }
+              });
+            }
+          });
+        })
+        .catch((error) => {
+          console.log('❌ SW registration failed:', error);
+          // Не блокируем приложение если SW не загружается
+          console.log('📱 App will continue without PWA features');
         });
-      })
-      .catch((error) => {
-        console.log('❌ SW registration failed:', error);
-        // Не блокируем приложение если SW не загружается
-        console.log('📱 App will continue without PWA features');
-      });
-  });
+    });
+  }
 } else if (!('serviceWorker' in navigator)) {
   console.log('🚫 Service Worker not supported in this browser');
 } else {
@@ -216,9 +236,45 @@ if (typeof window !== 'undefined') {
 }
 
 // Убираем fallback loading индикатор когда React загрузился
-const rootElement = document.getElementById("root")!;
-if (rootElement.innerHTML.includes('app-loading')) {
-  console.log('🎯 Clearing fallback loading indicator');
-}
+console.log('📱 Creating React root...');
+window.updateLoadingStatus?.('Создание React root');
 
-createRoot(rootElement).render(<App />);
+try {
+  const rootElement = document.getElementById("root")!;
+  console.log('📱 Root element found:', !!rootElement);
+  window.updateLoadingStatus?.('Root элемент найден');
+  
+  if (rootElement.innerHTML.includes('app-loading')) {
+    console.log('🎯 Clearing fallback loading indicator');
+    window.updateLoadingStatus?.('Очистка loading индикатора');
+  }
+
+  console.log('📱 Creating React root instance...');
+  window.updateLoadingStatus?.('Инициализация React');
+  
+  const root = createRoot(rootElement);
+  console.log('📱 React root created, rendering App...');
+  window.updateLoadingStatus?.('Рендеринг приложения');
+  
+  root.render(<App />);
+  console.log('📱 App rendered successfully!');
+  window.updateLoadingStatus?.('✅ Приложение загружено');
+  
+  // Убираем loading через небольшую задержку
+  setTimeout(() => {
+    const loadingEl = document.getElementById('app-loading');
+    if (loadingEl) {
+      loadingEl.remove();
+    }
+  }, 500);
+  
+} catch (error) {
+  console.error('❌ React rendering failed:', error);
+  window.updateLoadingStatus?.(`❌ Ошибка: ${error.message}`);
+  
+  // Показываем ошибку пользователю
+  const debugEl = document.getElementById('debug-info');
+  if (debugEl) {
+    debugEl.innerHTML += `<br><strong style="color: #ef4444;">ОШИБКА: ${error.message}</strong>`;
+  }
+}

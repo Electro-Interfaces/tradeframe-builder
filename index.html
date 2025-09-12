@@ -19,22 +19,76 @@
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
     
-    <!-- Принудительная перезагрузка для исправления forwardRef -->
+    <!-- Специальные фиксы для мобильных браузеров на GitHub Pages -->
     <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-          }
-        });
-      }
-      // Очистка кеша
-      if ('caches' in window) {
-        caches.keys().then(cacheNames => {
-          cacheNames.forEach(cacheName => {
-            caches.delete(cacheName);
+      // Детекция мобильного устройства
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isGitHubPages = window.location.hostname === 'electro-interfaces.github.io';
+      
+      // Специальная обработка для мобильных на GitHub Pages
+      if (isMobile && isGitHubPages) {
+        console.log('🔧 Mobile GitHub Pages detected - applying fixes');
+        
+        // Отключаем Service Worker на мобильных для GitHub Pages
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            registrations.forEach(function(registration) {
+              console.log('🚫 Unregistering SW for mobile GitHub Pages:', registration.scope);
+              registration.unregister();
+            });
           });
-        });
+        }
+        
+        // Агрессивная очистка кеша на мобильных
+        if ('caches' in window) {
+          caches.keys().then(cacheNames => {
+            cacheNames.forEach(cacheName => {
+              console.log('🗑️ Clearing mobile cache:', cacheName);
+              caches.delete(cacheName);
+            });
+          });
+        }
+        
+        // Принудительный no-cache для мобильных
+        if ('fetch' in window) {
+          const originalFetch = window.fetch;
+          window.fetch = function(input, init) {
+            init = init || {};
+            init.cache = 'no-store';
+            init.headers = init.headers || {};
+            if (typeof init.headers.set === 'function') {
+              init.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+              init.headers.set('Pragma', 'no-cache');
+            }
+            return originalFetch(input, init);
+          };
+        }
+        
+        // Принудительная перезагрузка через 3 секунды если страница не загрузилась
+        setTimeout(function() {
+          if (!window.React) {
+            console.log('🔄 React not loaded, forcing reload for mobile');
+            window.location.reload(true);
+          }
+        }, 3000);
+        
+      } else {
+        // Стандартная очистка для desktop и локальной разработки
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
+          });
+        }
+        // Очистка кеша
+        if ('caches' in window) {
+          caches.keys().then(cacheNames => {
+            cacheNames.forEach(cacheName => {
+              caches.delete(cacheName);
+            });
+          });
+        }
       }
     </script>
 
@@ -139,11 +193,12 @@
   <body>
     <div id="root">
       <!-- Fallback loading для медленных соединений -->
-      <div class="app-loading">
+      <div class="app-loading" id="app-loading">
         <div style="text-align: center;">
           <div style="width: 40px; height: 40px; border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid hsl(217 91% 60%); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
-          <div style="font-size: 16px; font-weight: 500;">Загрузка TradeFrame...</div>
-          <div style="font-size: 14px; color: hsl(215 15% 65%); margin-top: 8px;">Инициализация системы</div>
+          <div id="loading-text" style="font-size: 16px; font-weight: 500;">Загрузка TradeFrame...</div>
+          <div id="loading-status" style="font-size: 14px; color: hsl(215 15% 65%); margin-top: 8px;">Инициализация системы</div>
+          <div id="debug-info" style="font-size: 12px; color: hsl(215 15% 65%); margin-top: 16px; text-align: left; max-width: 300px;"></div>
         </div>
       </div>
     </div>
@@ -154,6 +209,68 @@
         100% { transform: rotate(360deg); }
       }
     </style>
+    
+    <!-- Диагностика загрузки для мобильных -->
+    <script>
+      let loadingSteps = [];
+      let startTime = Date.now();
+      
+      function updateLoadingStatus(step) {
+        loadingSteps.push(step);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        
+        const statusEl = document.getElementById('loading-status');
+        const debugEl = document.getElementById('debug-info');
+        
+        if (statusEl) {
+          statusEl.textContent = step;
+        }
+        
+        if (debugEl) {
+          debugEl.innerHTML = [
+            `Время: ${elapsed}с`,
+            `UA: ${navigator.userAgent.substring(0, 30)}...`,
+            `Viewport: ${window.innerWidth}x${window.innerHeight}`,
+            `Шаги: ${loadingSteps.length}`,
+            loadingSteps.slice(-3).map((s, i) => `${i + 1}. ${s}`).join('<br>')
+          ].join('<br>');
+        }
+        
+        console.log(`🔄 [${elapsed}s] ${step}`);
+      }
+      
+      // Начальная диагностика
+      updateLoadingStatus('HTML загружен');
+      
+      // Отслеживаем ошибки JavaScript
+      window.addEventListener('error', function(e) {
+        updateLoadingStatus(`❌ JS Error: ${e.message}`);
+        console.error('JavaScript Error:', e);
+      });
+      
+      // Отслеживаем ошибки модулей
+      window.addEventListener('unhandledrejection', function(e) {
+        updateLoadingStatus(`❌ Promise rejected: ${e.reason}`);
+        console.error('Unhandled Promise Rejection:', e);
+      });
+      
+      // Проверяем загрузку через таймауты
+      setTimeout(() => updateLoadingStatus('1с - ожидание JS'), 1000);
+      setTimeout(() => updateLoadingStatus('3с - проверка React'), 3000);
+      setTimeout(() => updateLoadingStatus('5с - диагностика'), 5000);
+      
+      // Детекция завершения загрузки
+      setTimeout(() => {
+        if (document.getElementById('app-loading')) {
+          updateLoadingStatus('⚠️ React не загрузился');
+        }
+      }, 8000);
+      
+      updateLoadingStatus('Скрипт диагностики готов');
+      
+      // Делаем функцию глобальной
+      window.updateLoadingStatus = updateLoadingStatus;
+    </script>
     
     <script type="module" src="/src/main.tsx"></script>
   </body>
