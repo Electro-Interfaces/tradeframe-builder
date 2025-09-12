@@ -50,6 +50,28 @@ window.resetDemoData = () => {
 
 console.log('💡 Для сброса демо-данных выполните в консоли: resetDemoData()');
 
+// GitHub Pages SPA routing support
+if (typeof window !== 'undefined') {
+  const redirectPath = sessionStorage.getItem('redirectPath');
+  if (redirectPath) {
+    sessionStorage.removeItem('redirectPath');
+    // Wait for the app to initialize, then navigate to the stored path
+    setTimeout(() => {
+      // Extract the path without the base
+      let targetPath = redirectPath;
+      if (targetPath.startsWith('/tradeframe-builder')) {
+        targetPath = targetPath.substring('/tradeframe-builder'.length);
+      }
+      if (targetPath === '' || targetPath === '/') {
+        targetPath = '/';
+      }
+      console.log('🔄 Redirecting from 404 to:', targetPath);
+      window.history.replaceState(null, '', targetPath);
+      window.dispatchEvent(new Event('popstate'));
+    }, 100);
+  }
+}
+
 // Отладка pull-to-refresh проблемы
 if (typeof window !== 'undefined') {
   // Мониторинг жизненного цикла страницы

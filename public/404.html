@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>TradeFrame - Управление торговыми сетями</title>
+    <meta name="description" content="Система управления торговыми сетями и АЗС. Активные разделы: обзор сетей, операции, цены, резервуары, управление пользователями. Некоторые разделы находятся в разработке." />
+    <meta name="author" content="TradeFrame" />
+    
+    <!-- Отключение кэширования для разработки -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
+    <!-- GitHub Pages SPA redirect script -->
+    <script>
+      // Store the current path for the React router
+      sessionStorage.setItem('redirectPath', location.pathname + location.search + location.hash);
+      // Redirect to the main page
+      location.replace(window.location.origin + '/tradeframe-builder/');
+    </script>
+    
+    <!-- Принудительная перезагрузка для исправления forwardRef -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+      // Очистка кеша
+      if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+          cacheNames.forEach(cacheName => {
+            caches.delete(cacheName);
+          });
+        });
+      }
+    </script>
+
+    <!-- PWA настройки -->
+    <meta name="theme-color" content="#1e293b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TradeFrame" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- Предотвращение выделения текста на мобильных -->
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Оптимизация для мобильных браузеров -->
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="theme-color" content="#1e293b" />
+    <style>
+      /* Глобальная защита от pull-to-refresh на мобильных устройствах */
+      @media (hover: none) and (pointer: coarse) {
+        html, body { 
+          overscroll-behavior: none !important;
+          overscroll-behavior-y: none !important;
+          -webkit-overscroll-behavior: none !important;
+          -webkit-overscroll-behavior-y: none !important;
+          touch-action: pan-x pan-y !important;
+          -webkit-overflow-scrolling: auto !important;
+        }
+      }
+      
+      /* Для всех остальных устройств используем стандартное поведение */
+      @media not all and (hover: none) and (pointer: coarse) {
+        html, body { 
+          -webkit-overflow-scrolling: touch; 
+        }
+      }
+    </style>
+    
+    <!-- Иконки для мобильных устройств -->
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icon-167x167.png" />
+    <link rel="apple-touch-icon" href="/icon-152x152.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/tradeframe-builder/icon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png" />
+    <link rel="icon" type="image/svg+xml" href="/tradeframe-builder/icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/tradeframe-builder/favicon.ico" />
+    <link rel="manifest" href="/tradeframe-builder/manifest.json" />
+
+    <!-- Social Media Meta Tags -->
+    <meta property="og:title" content="TradeFrame - Управление торговыми сетями" />
+    <meta property="og:description" content="Система управления торговыми сетями и АЗС. Мониторинг операций, управление ценами, контроль оборудования." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ВАШ_ДОМЕН.com" />
+    <meta property="og:site_name" content="TradeFrame" />
+    <meta property="og:image" content="https://ВАШ_ДОМЕН.com/og-image.jpg" />
+    
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TradeFrame - Управление торговыми сетями" />
+    <meta name="twitter:description" content="Система управления торговыми сетями и АЗС" />
+  </head>
+
+  <body>
+    <div id="root">
+      <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
+        Перенаправление...
+      </div>
+    </div>
+  </body>
+</html>
