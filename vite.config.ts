@@ -21,108 +21,28 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Core React libraries
-          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-            return 'react-core';
+          // ТОЛЬКО критичные external библиотеки, ВСЕ остальное в main bundle
+          
+          // Large external libraries that are worth splitting
+          if (id.includes('react') && id.includes('node_modules')) {
+            return 'react-vendor';
           }
           
-          // UI component libraries
-          if (id.includes('@radix-ui')) {
-            return 'radix-ui';
+          if (id.includes('chart.js') && id.includes('node_modules')) {
+            return 'charts-vendor';
           }
           
-          // Data fetching and state management
-          if (id.includes('@tanstack/react-query')) {
-            return 'react-query';
+          // Large utility libraries
+          if (id.includes('date-fns') && id.includes('node_modules')) {
+            return 'date-vendor';
           }
           
-          // Chart libraries - don't split to avoid initialization issues
-          // if (id.includes('recharts')) {
-          //   return 'recharts';
-          // }
-          if (id.includes('chart.js') || id.includes('chartjs-adapter-date-fns')) {
-            return 'chartjs';
+          if (id.includes('xlsx') && id.includes('node_modules')) {
+            return 'xlsx-vendor';
           }
           
-          // Export utilities (loaded on demand)
-          if (id.includes('html2canvas') || id.includes('jspdf')) {
-            return 'export-utils';
-          }
-          
-          // Form handling
-          if (id.includes('react-hook-form') || id.includes('@hookform/resolvers') || id.includes('zod')) {
-            return 'forms';
-          }
-          
-          // Date utilities
-          if (id.includes('date-fns')) {
-            return 'date-utils';
-          }
-          
-          // File handling
-          if (id.includes('xlsx')) {
-            return 'file-utils';
-          }
-          
-          // DnD functionality
-          if (id.includes('@dnd-kit')) {
-            return 'dnd';
-          }
-          
-          // Database clients - don't split to avoid initialization issues
-          // if (id.includes('@supabase/supabase-js') || id.includes('pg')) {
-          //   return 'database';
-          // }
-          
-          // API utilities
-          if (id.includes('cors') || id.includes('express') || id.includes('helmet') || 
-              id.includes('jsonwebtoken') || id.includes('bcryptjs')) {
-            return 'api-utils';
-          }
-          
-          // Don't split pages to avoid React context issues
-          // if (id.includes('/pages/admin/') || id.includes('/pages/Admin')) {
-          //   return 'pages-admin';
-          // }
-          // 
-          // if (id.includes('/pages/Network')) {
-          //   return 'pages-network';
-          // }
-          // 
-          // if (id.includes('Settings') || id.includes('Database')) {
-          //   return 'pages-settings';
-          // }
-          
-          // Critical pages - no splitting for Prices to avoid chart issues
-          if (id.includes('/pages/Prices')) {
-            return undefined; // Don't split Prices page
-          }
-          
-          // Heavy pages - don't split to avoid React context issues
-          // if (id.includes('/pages/STSApiSettings') || 
-          //     id.includes('/pages/Tanks') || id.includes('/pages/OperationsTransactionsPageSimple')) {
-          //   return 'pages-heavy';
-          // }
-          
-          // Services chunk
-          if (id.includes('/services/')) {
-            return 'services';
-          }
-          
-          // Components - don't split any components to avoid React context issues
-          // if (id.includes('/components/') && !id.includes('/components/ui/')) {
-          //   return 'components';
-          // }
-          
-          // UI components (shadcn) - don't split to avoid React forwardRef issues
-          // if (id.includes('/components/ui/')) {
-          //   return 'ui-components';
-          // }
-          
-          // Utils and hooks
-          if (id.includes('/utils/') || id.includes('/hooks/') || id.includes('/lib/')) {
-            return 'utils';
-          }
+          // Всё остальное (включая наш код) остаётся в main bundle
+          // Это исключает все проблемы с React contexts и forwardRef
         },
       },
     },
