@@ -116,10 +116,10 @@ export default defineConfig(({ mode }) => ({
             return 'components';
           }
           
-          // UI components (shadcn)
-          if (id.includes('/components/ui/')) {
-            return 'ui-components';
-          }
+          // UI components (shadcn) - don't split to avoid React forwardRef issues
+          // if (id.includes('/components/ui/')) {
+          //   return 'ui-components';
+          // }
           
           // Utils and hooks
           if (id.includes('/utils/') || id.includes('/hooks/') || id.includes('/lib/')) {
