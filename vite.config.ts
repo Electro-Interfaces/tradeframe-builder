@@ -111,10 +111,10 @@ export default defineConfig(({ mode }) => ({
             return 'services';
           }
           
-          // Components chunk
-          if (id.includes('/components/') && !id.includes('/components/ui/')) {
-            return 'components';
-          }
+          // Components - don't split any components to avoid React context issues
+          // if (id.includes('/components/') && !id.includes('/components/ui/')) {
+          //   return 'components';
+          // }
           
           // UI components (shadcn) - don't split to avoid React forwardRef issues
           // if (id.includes('/components/ui/')) {
