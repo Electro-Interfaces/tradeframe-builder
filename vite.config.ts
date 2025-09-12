@@ -80,31 +80,29 @@ export default defineConfig(({ mode }) => ({
             return 'api-utils';
           }
           
-          // Admin pages chunk
-          if (id.includes('/pages/admin/') || id.includes('/pages/Admin')) {
-            return 'pages-admin';
-          }
-          
-          // Network pages chunk
-          if (id.includes('/pages/Network')) {
-            return 'pages-network';
-          }
-          
-          // Settings pages chunk
-          if (id.includes('Settings') || id.includes('Database')) {
-            return 'pages-settings';
-          }
+          // Don't split pages to avoid React context issues
+          // if (id.includes('/pages/admin/') || id.includes('/pages/Admin')) {
+          //   return 'pages-admin';
+          // }
+          // 
+          // if (id.includes('/pages/Network')) {
+          //   return 'pages-network';
+          // }
+          // 
+          // if (id.includes('Settings') || id.includes('Database')) {
+          //   return 'pages-settings';
+          // }
           
           // Critical pages - no splitting for Prices to avoid chart issues
           if (id.includes('/pages/Prices')) {
             return undefined; // Don't split Prices page
           }
           
-          // Heavy pages chunk (other critical pages)
-          if (id.includes('/pages/STSApiSettings') || 
-              id.includes('/pages/Tanks') || id.includes('/pages/OperationsTransactionsPageSimple')) {
-            return 'pages-heavy';
-          }
+          // Heavy pages - don't split to avoid React context issues
+          // if (id.includes('/pages/STSApiSettings') || 
+          //     id.includes('/pages/Tanks') || id.includes('/pages/OperationsTransactionsPageSimple')) {
+          //   return 'pages-heavy';
+          // }
           
           // Services chunk
           if (id.includes('/services/')) {
