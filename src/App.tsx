@@ -83,7 +83,7 @@ const App = () => {
         <Sonner />
         <AuthProvider>
           <SelectionProvider>
-            <BrowserRouter>
+            <BrowserRouter basename={import.meta.env.VITE_BASE_URL || "/"}>
             <Routes>
             {/* Критически важные страницы - без lazy loading */}
             <Route path="/login" element={<LoginPageWithLegal />} />
