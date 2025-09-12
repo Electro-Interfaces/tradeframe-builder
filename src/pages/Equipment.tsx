@@ -67,9 +67,9 @@ const getStatusColor = (status: string) => {
 };
 
 const getFillLevelColor = (level: number) => {
-  if (level >= 70) return 'bg-green-500';
-  if (level >= 40) return 'bg-yellow-500';
-  return 'bg-red-500';
+  if (level <= 10) return 'bg-red-500';
+  if (level <= 30) return 'bg-yellow-500';
+  return 'bg-green-500';
 };
 
 export default function Equipment() {

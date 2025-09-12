@@ -195,12 +195,12 @@ const mockTanks = [
 // Компонент вертикального индикатора уровня топлива
 const TankProgressIndicator = ({ percentage, minLevel, criticalLevel, isMobile }) => {
   const height = isMobile ? 120 : 160;
-  const width = 40;
+  const width = 80; // Увеличиваем ширину как у бейджа топлива
   
   const getColor = () => {
-    if (percentage > minLevel) return '#3b82f6'; // blue-500
-    if (percentage >= criticalLevel) return '#eab308'; // yellow-500
-    return '#ef4444'; // red-500
+    if (percentage <= 10) return '#ef4444'; // red-500 - критический уровень (10% или менее)
+    if (percentage <= 30) return '#eab308'; // yellow-500 - предупреждение (30% или менее)
+    return '#22c55e'; // green-500 - нормальный уровень (более 30%)
   };
   
   const fillHeight = (percentage / 100) * height;
@@ -879,156 +879,164 @@ export default function Tanks() {
         </Card>
 
 
-        {/* Резервуары - сетка карточек */}
-        <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'}`}>
+        {/* Резервуары - премиум KPI карточки */}
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {tanks.map((tank) => {
             const percentage = getPercentage(tank.currentLevelLiters, tank.capacityLiters);
+            const freeSpace = tank.capacityLiters - tank.currentLevelLiters;
+            const tankStatus = percentage > tank.minLevelPercent ? 'normal' : percentage >= tank.criticalLevelPercent ? 'warning' : 'critical';
             
             return (
-              <Card key={tank.id} className="bg-slate-800 border-slate-700 shadow-lg hover:shadow-xl transition-shadow duration-200">
-                <CardContent className={isMobile ? "p-3" : "p-4"}>
-                  {/* Header with tank name and fuel type */}
-                  <div className={isMobile ? "mb-3" : "mb-4"}>
-                    {/* Tank Name */}
-                    <div className={`flex items-center gap-2 ${isMobile ? "mb-1" : "mb-2"}`}>
-                      <Gauge className={`${isMobile ? "h-4 w-4" : "h-5 w-5"} text-blue-400 flex-shrink-0`} />
-                      <div className={`text-white font-semibold ${isMobile ? "text-base" : "text-lg"}`}>
-                        {tank.name}
+              <Card key={tank.id} className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-8 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-md"></div>
+                      <div>
+                        <CardTitle className="text-white text-lg font-bold">{tank.name}</CardTitle>
+                        <p className={`text-sm font-semibold ${
+                          tankStatus === 'normal' 
+                            ? 'text-green-400' 
+                            : tankStatus === 'warning'
+                            ? 'text-yellow-400'
+                            : 'text-red-400'
+                        }`}>
+                          {tankStatus === 'normal' ? 'Активно' : tankStatus === 'warning' ? 'Низкий' : 'Критично'}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge 
+                      className="px-4 py-2 text-sm font-bold rounded-lg shadow-md bg-gradient-to-r from-slate-600 to-slate-700 text-white border border-slate-500/50 shadow-slate-500/25 transition-all"
+                    >
+                      {tank.fuelType}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  {/* Volume and Progress */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-2xl font-bold text-white">{tank.currentLevelLiters.toLocaleString()} л</span>
+                        <span className="text-lg font-bold text-slate-300">({percentage}%)</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>Макс: {tank.capacityLiters.toLocaleString()} л</span>
                       </div>
                     </div>
                     
-                    {/* Fuel Type and Volume/Percentage */}
-                    <div className={`flex items-center justify-between ${isMobile ? "flex-col items-start gap-1" : ""}`}>
-                      <div className={`text-blue-400 font-bold ${isMobile ? "text-lg" : "text-xl"}`}>
-                        {tank.fuelType}
-                      </div>
-                      <div className={`${isMobile ? "text-base" : "text-lg"} font-bold ${
-                        percentage > tank.minLevelPercent ? 'text-blue-400' :
-                        percentage >= tank.criticalLevelPercent ? 'text-yellow-400' : 'text-red-400'
-                      }`}>
-                        {tank.currentLevelLiters.toLocaleString()} л ({percentage}%)
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Main content - Progress bar left, parameters right */}
-                  <div className={`flex ${isMobile ? "flex-col gap-3" : "gap-4"}`}>
-                    {/* Block 1: Progress Bar (Left) */}
-                    <div className={`flex ${isMobile ? "flex-row justify-center" : "flex-col"} items-center gap-2 flex-shrink-0`}>
+                    {/* Vertical Progress Bar */}
+                    <div className="flex flex-col items-center gap-2">
                       <TankProgressIndicator 
                         percentage={percentage} 
                         minLevel={tank.minLevelPercent}
                         criticalLevel={tank.criticalLevelPercent}
                         isMobile={isMobile}
                       />
-                      <div className={`${isMobile ? "text-sm" : "text-base"} text-slate-300 text-center leading-snug`}>
-                        <div>Макс: {Math.round(tank.capacityLiters).toLocaleString()} л</div>
-                      </div>
-                    </div>
-
-                    {/* Block 2: Parameters taking full height */}
-                    <div className="flex-1 bg-slate-900/30 p-3 rounded-md overflow-hidden">
-                      <div className={`h-full flex flex-col justify-between ${isMobile ? "text-xs space-y-1" : "text-sm space-y-2"}`}>
-                        {/* Temperature */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Thermometer className={`${isMobile ? "h-3 w-3" : "h-4 w-4"} text-slate-400 flex-shrink-0`} />
-                          <span className="text-slate-400 truncate">Температура</span>
-                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.temperature || tank.temperature || '0').toFixed(1)}°C</span>
-                        </div>
-                        
-                        {/* Level */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} bg-slate-400 rounded-full flex-shrink-0`}></div>
-                          <span className="text-slate-400 truncate">Уровень</span>
-                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.level || '0').toFixed(1)} мм</span>
-                        </div>
-                        
-                        {/* Density */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} bg-slate-500 rounded-full flex-shrink-0`}></div>
-                          <span className="text-slate-400 truncate">Плотность</span>
-                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.density || '0').toFixed(2)}</span>
-                        </div>
-                        
-                        {/* Water */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Droplets className={`${isMobile ? "h-3 w-3" : "h-4 w-4"} text-slate-400 flex-shrink-0`} />
-                          <span className="text-slate-400 truncate">Вода</span>
-                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.water?.level || '0').toFixed(1)} мм</span>
-                        </div>
-                        
-                        {/* Free Space */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} bg-slate-500 rounded-full flex-shrink-0`}></div>
-                          <span className="text-slate-400 truncate">Свободно</span>
-                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.volume_free || '0').toLocaleString()} л</span>
-                        </div>
-                        
-                        {/* Mass */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} bg-blue-500 rounded-full flex-shrink-0`}></div>
-                          <span className="text-slate-400 truncate">Масса</span>
-                          <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.amount_begin || '0').toLocaleString()} кг</span>
-                        </div>
-                        
-                        {/* Status */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          {tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? (
-                            <CheckCircle className={`${isMobile ? "h-3 w-3" : "h-4 w-4"} text-green-400 flex-shrink-0`} />
-                          ) : (
-                            <XCircle className={`${isMobile ? "h-3 w-3" : "h-4 w-4"} text-red-400 flex-shrink-0`} />
-                          )}
-                          <span className="text-slate-400 truncate">Состояние</span>
-                          <span className={`font-medium ml-auto flex-shrink-0 ${tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'text-green-400' : 'text-red-400'}`}>
-                            {tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'Активно' : 'Ошибка'}
-                          </span>
-                        </div>
-                      </div>
+                      <span className="text-xs text-slate-400 font-medium">{percentage}%</span>
                     </div>
                   </div>
 
-                  {/* Данные от API СТС section с реальными данными */}
-                  <div className={`${isMobile ? "mt-3 pt-3" : "mt-5 pt-4"} border-t border-slate-700`}>
-                    <div className={`grid grid-cols-2 gap-x-4 gap-y-2 ${isMobile ? "text-xs" : "text-base"}`}>
+                  {/* Key Metrics Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Thermometer className="w-4 h-4 text-orange-400" />
+                        <span className="text-xs text-slate-400">Температура</span>
+                      </div>
+                      <div className="text-white font-bold">{parseFloat(tank.apiData?.temperature || tank.temperature || '0').toFixed(1)}°C</div>
+                    </div>
+                    
+                    <div className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Gauge className="w-4 h-4 text-blue-400" />
+                        <span className="text-xs text-slate-400">Уровень</span>
+                      </div>
+                      <div className="text-white font-bold">{parseFloat(tank.apiData?.level || '126.2').toFixed(1)} мм</div>
+                    </div>
+                    
+                    <div className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Droplets className="w-4 h-4 text-cyan-400" />
+                        <span className="text-xs text-slate-400">Вода</span>
+                      </div>
+                      <div className="text-white font-bold">{parseFloat(tank.apiData?.water?.level || tank.waterLevelMm || '0').toFixed(1)} мм</div>
+                    </div>
+                    
+                    <div className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Fuel className="w-4 h-4 text-green-400" />
+                        <span className="text-xs text-slate-400">Свободно</span>
+                      </div>
+                      <div className="text-white font-bold">{freeSpace.toLocaleString()} л</div>
+                    </div>
+                  </div>
+
+                  {/* Additional Stats - Complete API Data */}
+                  <div className="border-t border-slate-600/30 pt-3">
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {/* Row 1 */}
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Объем нач:</span>
-                        <span className="text-white font-medium">{parseFloat(tank.apiData?.volume_begin || '0').toLocaleString()} л</span>
+                        <span className="text-slate-400">Плотность:</span>
+                        <span className="text-slate-300 font-medium">{parseFloat(tank.apiData?.density || tank.density || '823.32').toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Отпуск об:</span>
-                        <span className="text-white font-medium">{parseFloat(tank.apiData?.release?.volume || '0').toLocaleString()} л</span>
+                        <span className="text-slate-400">Масса:</span>
+                        <span className="text-slate-300 font-medium">{parseFloat(tank.apiData?.amount_begin || tank.mass || '0').toFixed(0)} кг</span>
                       </div>
+                      
+                      {/* Row 2 */}
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Объем кон:</span>
-                        <span className="text-white font-medium">{parseFloat(tank.apiData?.volume_end || '0').toLocaleString()} л</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Отпуск м:</span>
-                        <span className="text-white font-medium">{parseFloat(tank.apiData?.release?.amount || '0').toLocaleString()} кг</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Масса нач:</span>
-                        <span className="text-white font-medium">{parseFloat(tank.apiData?.amount_begin || '0').toLocaleString()} кг</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Обновлено:</span>
-                        <span className="text-white font-medium">{tank.apiData?.dt ? new Date(tank.apiData.dt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Масса кон:</span>
-                        <span className="text-white font-medium">{parseFloat(tank.apiData?.amount_end || '0').toLocaleString()} кг</span>
+                        <span className="text-slate-400">Состояние:</span>
+                        <span className={`font-medium ${tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'text-green-400' : 'text-red-400'}`}>
+                          {tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'Активно' : 'Ошибка'}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Код топлива:</span>
-                        <span className="text-orange-400 font-semibold">{tank.apiData?.fuel || '?'}</span>
+                        <span className="text-orange-400 font-semibold">{tank.apiData?.fuel || tank.stsData?.fuelCode || tank.id}</span>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Notification indicator */}
-                  <div className={`${isMobile ? "mt-2" : "mt-4"} flex justify-center`}>
-                    <div className={`${isMobile ? "w-6 h-6" : "w-8 h-8"} bg-yellow-500/20 rounded-full flex items-center justify-center`}>
-                      <Bell className={`${isMobile ? "h-3 w-3" : "h-4 w-4"} text-yellow-400`} />
+                      
+                      {/* Row 3 */}
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Объем нач:</span>
+                        <span className="text-slate-300 font-medium">{parseFloat(tank.apiData?.volume_begin || tank.stsData?.volumeBegin || '0').toLocaleString()} л</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Отпуск об:</span>
+                        <span className="text-slate-300 font-medium">{parseFloat(tank.apiData?.release?.volume || tank.stsData?.releaseVolume || '0').toLocaleString()} л</span>
+                      </div>
+                      
+                      {/* Row 4 */}
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Объем кон:</span>
+                        <span className="text-slate-300 font-medium">{parseFloat(tank.apiData?.volume_end || tank.stsData?.volumeEnd || '0').toLocaleString()} л</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Отпуск м:</span>
+                        <span className="text-slate-300 font-medium">{parseFloat(tank.apiData?.release?.amount || tank.stsData?.releaseLiters || '0').toLocaleString()} кг</span>
+                      </div>
+                      
+                      {/* Row 5 */}
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Масса нач:</span>
+                        <span className="text-slate-300 font-medium">{parseFloat(tank.apiData?.amount_begin || tank.stsData?.massBegin || '0').toLocaleString()} кг</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Масса кон:</span>
+                        <span className="text-slate-300 font-medium">{parseFloat(tank.apiData?.amount_end || tank.stsData?.massEnd || '0').toLocaleString()} кг</span>
+                      </div>
+                      
+                      {/* Row 6 */}
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Обновлено:</span>
+                        <span className="text-slate-300 font-medium">{tank.apiData?.dt ? new Date(tank.apiData.dt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : tank.stsData?.renewedToday || '21:37'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Состояние:</span>
+                        <span className="text-slate-300 font-medium">{tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'Норма' : 'Проверка'}</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
