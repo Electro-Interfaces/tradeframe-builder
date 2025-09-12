@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📱 USB Debugging Setup - TradeFrame</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #1e293b;
+      color: white;
+      padding: 20px;
+      line-height: 1.6;
+      margin: 0;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .step {
+      background: rgba(255, 255, 255, 0.1);
+      margin: 20px 0;
+      padding: 20px;
+      border-radius: 10px;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .android-steps {
+      border-left-color: #22c55e;
+    }
+    
+    .ios-steps {
+      border-left-color: #f59e0b;
+    }
+    
+    .code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 5px;
+      font-family: monospace;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+    
+    .highlight {
+      background: rgba(59, 130, 246, 0.2);
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    
+    .warning {
+      background: rgba(251, 191, 36, 0.2);
+      border-left-color: #fbbf24;
+      color: #fbbf24;
+    }
+    
+    h1, h2 { color: #60a5fa; }
+    h3 { color: #34d399; }
+  </style>
+</head>
+<body>
+  <h1>📱 USB Debugging Setup для TradeFrame</h1>
+  <p>Руководство по настройке USB отладки для анализа проблем загрузки на мобильных устройствах.</p>
+
+  <div class="step android-steps">
+    <h2>🤖 Android - USB Debugging</h2>
+    
+    <h3>Шаг 1: Включить режим разработчика</h3>
+    <ol>
+      <li>Откройте <span class="highlight">Настройки → О телефоне</span></li>
+      <li>Нажмите на <span class="highlight">"Номер сборки"</span> 7 раз подряд</li>
+      <li>Появится сообщение "Вы стали разработчиком!"</li>
+    </ol>
+
+    <h3>Шаг 2: Включить USB отладку</h3>
+    <ol>
+      <li>Откройте <span class="highlight">Настройки → Система → Дополнительно → Для разработчиков</span></li>
+      <li>Включите <span class="highlight">"Отладка по USB"</span></li>
+      <li>Включите <span class="highlight">"Остаться активным"</span> (экран не будет выключаться при зарядке)</li>
+    </ol>
+
+    <h3>Шаг 3: Подключить к компьютеру</h3>
+    <ol>
+      <li>Подключите телефон USB-кабелем к компьютеру</li>
+      <li>На телефоне выберите <span class="highlight">"Передача файлов"</span> или <span class="highlight">"USB для отладки"</span></li>
+      <li>Разрешите отладку по USB при появлении запроса</li>
+    </ol>
+  </div>
+
+  <div class="step ios-steps">
+    <h2>🍎 iOS - Web Inspector</h2>
+    
+    <h3>Шаг 1: Включить Web Inspector</h3>
+    <ol>
+      <li>Откройте <span class="highlight">Настройки → Safari → Дополнения</span></li>
+      <li>Включите <span class="highlight">"Web Inspector"</span></li>
+    </ol>
+
+    <h3>Шаг 2: Настроить Mac (если используете)</h3>
+    <ol>
+      <li>На Mac откройте Safari</li>
+      <li>В меню <span class="highlight">Safari → Настройки → Дополнения</span></li>
+      <li>Включите <span class="highlight">"Показать меню «Разработка»"</span></li>
+    </ol>
+
+    <h3>Шаг 3: Подключиться</h3>
+    <ol>
+      <li>Подключите iPhone к Mac через USB</li>
+      <li>Доверьтесь компьютеру на iPhone</li>
+      <li>В Safari на Mac: <span class="highlight">Разработка → [Ваш iPhone] → TradeFrame</span></li>
+    </ol>
+  </div>
+
+  <div class="step">
+    <h2>🔍 Chrome DevTools для Android</h2>
+    
+    <h3>Подключение через Chrome</h3>
+    <ol>
+      <li>Откройте Chrome на компьютере</li>
+      <li>Перейдите на <span class="highlight">chrome://inspect</span></li>
+      <li>Убедитесь, что включен <span class="highlight">"Discover USB devices"</span></li>
+      <li>Ваш телефон должен появиться в списке</li>
+      <li>Нажмите <span class="highlight">"Inspect"</span> рядом с TradeFrame</li>
+    </ol>
+
+    <div class="code">chrome://inspect/#devices</div>
+
+    <h3>Что искать в Console</h3>
+    <ul>
+      <li><span class="highlight">🔄 [Xs] HTML загружен</span> - HTML страница загрузилась</li>
+      <li><span class="highlight">📱 main.tsx starting...</span> - Начало загрузки React</li>
+      <li><span class="highlight">📱 React imported</span> - React успешно импортирован</li>
+      <li><span class="highlight">📱 App imported</span> - Компонент App импортирован</li>
+      <li><span class="highlight">📱 CSS imported</span> - Стили загружены</li>
+      <li><span class="highlight">📱 Creating React root...</span> - Создание React root</li>
+      <li><span class="highlight">📱 App rendered successfully!</span> - Приложение отрендерилось</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <h2>🛠️ Альтернативный способ - Длинная диагностика</h2>
+    <p>Если USB отладка недоступна, мы можем создать версию с долгой диагностикой:</p>
+    
+    <div class="code">
+// Увеличить время показа каждого этапа до 3 секунд
+// Добавить паузы между этапами загрузки  
+// Сохранять диагностику в localStorage
+// Показать полный лог в интерфейсе
+    </div>
+
+    <p>Этот режим замедлит загрузку, но позволит увидеть каждый шаг.</p>
+  </div>
+
+  <div class="step">
+    <h2>📊 Собираемая диагностическая информация</h2>
+    
+    <h3>Технические данные</h3>
+    <ul>
+      <li><strong>User Agent:</strong> Тип и версия браузера</li>
+      <li><strong>Viewport:</strong> Размер экрана устройства</li>
+      <li><strong>Memory:</strong> Доступная память</li>
+      <li><strong>Connection:</strong> Тип сетевого соединения</li>
+      <li><strong>Performance:</strong> Время загрузки каждого этапа</li>
+    </ul>
+
+    <h3>Ошибки загрузки</h3>
+    <ul>
+      <li><strong>JavaScript Errors:</strong> Синтаксические и логические ошибки</li>
+      <li><strong>Network Errors:</strong> Проблемы загрузки ресурсов</li>
+      <li><strong>React Errors:</strong> Проблемы рендеринга компонентов</li>
+      <li><strong>Service Worker:</strong> Проблемы PWA</li>
+    </ul>
+  </div>
+
+  <div class="step warning">
+    <h2>⚠️ Возможные проблемы</h2>
+    
+    <h3>Частые причины темного экрана на мобильных:</h3>
+    <ul>
+      <li><strong>Memory Limits:</strong> Недостаточно памяти для загрузки больших JS файлов</li>
+      <li><strong>CSP Issues:</strong> Content Security Policy блокирует скрипты</li>
+      <li><strong>Service Worker:</strong> Конфликты кеширования</li>
+      <li><strong>Touch Events:</strong> Проблемы с touch-action и overscroll-behavior</li>
+      <li><strong>Viewport:</strong> Неправильная настройка viewport метатега</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <h2>🚀 Quick Start</h2>
+    <ol>
+      <li>Подключите Android-устройство по USB</li>
+      <li>Откройте <span class="highlight">chrome://inspect</span> в Chrome</li>
+      <li>Найдите ваше устройство и нажмите "Inspect"</li>
+      <li>Откройте <span class="highlight">https://electro-interfaces.github.io/tradeframe-builder/</span> на телефоне</li>
+      <li>В DevTools перейдите на вкладку <span class="highlight">Console</span></li>
+      <li>Обновите страницу и следите за логами загрузки</li>
+    </ol>
+  </div>
+
+  <div class="step">
+    <h2>📞 Если нужна помощь</h2>
+    <p>Если возникнут сложности с настройкой USB отладки, я могу:</p>
+    <ul>
+      <li>Создать версию с замедленной диагностикой</li>
+      <li>Добавить сохранение логов в localStorage</li>
+      <li>Создать простую страницу-отчет с диагностикой</li>
+      <li>Настроить удаленное логирование</li>
+    </ul>
+  </div>
+
+  <script>
+    // Показать подходящие инструкции в зависимости от устройства
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad/i.test(navigator.userAgent);
+    
+    if (isAndroid) {
+      document.querySelector('.android-steps').style.borderLeftColor = '#22c55e';
+      document.querySelector('.android-steps').style.background = 'rgba(34, 197, 94, 0.1)';
+    }
+    
+    if (isIOS) {
+      document.querySelector('.ios-steps').style.borderLeftColor = '#f59e0b';
+      document.querySelector('.ios-steps').style.background = 'rgba(245, 158, 11, 0.1)';
+    }
+  </script>
+</body>
+</html>

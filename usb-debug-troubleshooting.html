@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔧 USB Debug Troubleshooting</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      padding: 20px;
+      line-height: 1.6;
+      margin: 0;
+    }
+    
+    .container { max-width: 800px; margin: 0 auto; }
+    
+    .issue {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      border-left: 4px solid #ef4444;
+    }
+    
+    .solution {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      border-left: 4px solid #22c55e;
+    }
+    
+    .step {
+      background: rgba(59, 130, 246, 0.1);
+      border-radius: 6px;
+      padding: 15px;
+      margin: 10px 0;
+      border: 1px solid #3b82f6;
+    }
+    
+    .command {
+      background: #000;
+      color: #0f0;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      margin: 8px 0;
+      border: 1px solid #333;
+    }
+    
+    .warning {
+      background: rgba(245, 158, 11, 0.2);
+      border-left-color: #f59e0b;
+      border: 1px solid #f59e0b;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    
+    .success {
+      background: rgba(34, 197, 94, 0.2);
+      border-left-color: #22c55e;
+      border: 1px solid #22c55e;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    
+    h1, h2 { color: #60a5fa; }
+    h3 { color: #34d399; }
+    
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .checklist li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .checklist li:before {
+      content: "☐ ";
+      color: #60a5fa;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    
+    .alternative {
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid #a855f7;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Решение проблемы "Устройство не обнаруживается через USB"</h1>
+
+    <div class="issue">
+      <h2>❌ Проблема: Chrome не видит Android устройство</h2>
+      <p>Chrome DevTools не показывает подключенное Android устройство в <code>chrome://inspect</code></p>
+    </div>
+
+    <div class="solution">
+      <h2>✅ Решение 1: Проверка основных настроек</h2>
+      
+      <div class="step">
+        <h3>🔍 Шаг 1: Проверьте ADB подключение</h3>
+        <p>Откройте командную строку Windows (Win+R, cmd) и выполните:</p>
+        <div class="command">adb devices</div>
+        
+        <p><strong>Ожидаемый результат:</strong></p>
+        <div class="command">List of devices attached
+12345678        device</div>
+        
+        <p><strong>Если показывает "unauthorized":</strong></p>
+        <ul>
+          <li>На телефоне появится запрос "Разрешить отладку по USB?"</li>
+          <li>Поставьте галочку "Всегда разрешать с этого компьютера"</li>
+          <li>Нажмите "Разрешить"</li>
+        </ul>
+        
+        <p><strong>Если команда не найдена:</strong></p>
+        <div class="command">где скачать ADB: https://developer.android.com/studio/releases/platform-tools</div>
+      </div>
+
+      <div class="step">
+        <h3>🔄 Шаг 2: Перезапуск ADB сервера</h3>
+        <div class="command">adb kill-server</div>
+        <div class="command">adb start-server</div>
+        <div class="command">adb devices</div>
+      </div>
+
+      <div class="step">
+        <h3>📱 Шаг 3: Настройки телефона</h3>
+        <ul class="checklist">
+          <li>USB Debugging включен</li>
+          <li>Режим подключения: "Передача файлов" (не "Только зарядка")</li>
+          <li>Разрешение отладки подтверждено</li>
+          <li>Экран телефона разблокирован</li>
+          <li>Включен "Stay awake" (экран активен при зарядке)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="solution">
+      <h2>✅ Решение 2: Установка драйверов</h2>
+      
+      <div class="step">
+        <h3>🖥️ Windows: Установка драйверов устройства</h3>
+        <p>1. Откройте Диспетчер устройств (Win+R, devmgmt.msc)</p>
+        <p>2. Найдите ваше Android устройство (может быть в разделе "Неизвестные устройства")</p>
+        <p>3. Правый клик → "Обновить драйвер" → "Найти на компьютере"</p>
+        <p>4. Укажите папку с ADB драйверами</p>
+        
+        <div class="warning">
+          <strong>Альтернатива:</strong> Установите Android Studio - она автоматически установит все нужные драйверы.
+        </div>
+      </div>
+    </div>
+
+    <div class="solution">
+      <h2>✅ Решение 3: Проблемы с Chrome</h2>
+      
+      <div class="step">
+        <h3>🌐 Chrome настройки</h3>
+        <p>1. Откройте <code>chrome://inspect/#devices</code></p>
+        <p>2. Убедитесь что включен чекбокс <strong>"Discover USB devices"</strong></p>
+        <p>3. Нажмите "Port forwarding..." и убедитесь что настройки корректны</p>
+        <p>4. Перезапустите Chrome полностью (закройте все окна)</p>
+      </div>
+
+      <div class="step">
+        <h3>🔄 Сброс Chrome DevTools</h3>
+        <div class="command">chrome://settings/resetProfileSettings</div>
+        <p>Сбросит все настройки Chrome к состоянию по умолчанию</p>
+      </div>
+    </div>
+
+    <div class="alternative">
+      <h2>🚀 Альтернативное решение: Wireless Debugging</h2>
+      
+      <div class="step">
+        <h3>📡 Android 11+ Беспроводная отладка</h3>
+        <p>Если USB не работает, можно использовать Wi-Fi:</p>
+        
+        <p><strong>На телефоне:</strong></p>
+        <ul>
+          <li>Настройки → Для разработчиков → Беспроводная отладка</li>
+          <li>Включить "Беспроводная отладка"</li>
+          <li>Нажать "Выполнить сопряжение устройства с QR-кодом"</li>
+        </ul>
+        
+        <p><strong>На компьютере:</strong></p>
+        <div class="command">adb pair [IP:PORT]</div>
+        <div class="command">adb connect [IP:PORT]</div>
+      </div>
+    </div>
+
+    <div class="alternative">
+      <h2>🌐 Еще проще: Удаленная диагностика</h2>
+      
+      <div class="step">
+        <h3>📊 Используем встроенную диагностику</h3>
+        <p>Если USB отладка не работает, давайте используем наши диагностические страницы:</p>
+        
+        <p><strong>1. Quick Test (быстро):</strong></p>
+        <div class="command">https://electro-interfaces.github.io/tradeframe-builder/quick-mobile-test.html</div>
+        
+        <p><strong>2. Slow Debug (подробно):</strong></p>
+        <div class="command">https://electro-interfaces.github.io/tradeframe-builder/slow-debug.html</div>
+        
+        <p><strong>3. PWA Diagnostics:</strong></p>
+        <div class="command">https://electro-interfaces.github.io/tradeframe-builder/test-pwa-diagnostics.html</div>
+      </div>
+
+      <div class="step">
+        <h3>📸 Получение диагностики</h3>
+        <ol>
+          <li>Откройте любую из диагностических страниц на мобильном</li>
+          <li>Дождитесь завершения тестов</li>
+          <li>Сделайте скриншот результатов</li>
+          <li>Или нажмите "Копировать лог" и отправьте текст</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="success">
+      <h2>💡 Быстрое решение проблемы</h2>
+      <p>Пока настраиваем USB, давайте попробуем простой способ:</p>
+      
+      <ol>
+        <li><strong>На мобильном откройте:</strong><br>
+            <code>https://electro-interfaces.github.io/tradeframe-builder/quick-mobile-test.html</code></li>
+        <li><strong>Нажмите кнопку тестирования</strong></li>
+        <li><strong>Сделайте скриншот результатов</strong></li>
+        <li><strong>Отправьте мне скриншот</strong></li>
+      </ol>
+      
+      <p>Это даст нам 80% информации о проблеме без USB отладки!</p>
+    </div>
+
+    <div class="warning">
+      <h3>🎯 Следующие шаги</h3>
+      <p>После получения диагностики, я смогу:</p>
+      <ul>
+        <li>Определить точную причину темного экрана</li>
+        <li>Создать целевое исправление</li>
+        <li>Развернуть фикс на GitHub Pages</li>
+        <li>Протестировать решение</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Автоматически выделяем команды при клике
+    document.querySelectorAll('.command').forEach(cmd => {
+      cmd.addEventListener('click', () => {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(cmd);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      });
+      
+      cmd.style.cursor = 'pointer';
+      cmd.title = 'Клик для выделения команды';
+    });
+  </script>
+</body>
+</html>

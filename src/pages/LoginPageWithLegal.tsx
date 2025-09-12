@@ -13,7 +13,6 @@ import { Loader2, AlertCircle, FileText, Shield, Lock, Eye, EyeOff } from 'lucid
 import { legalDocumentsService } from '@/services/legalDocumentsService';
 import { DocumentType } from '@/types/legal';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useMobile, mobileUtils } from '@/hooks/useMobile';
 
 interface LegalDocument {
   type: DocumentType;
@@ -23,6 +22,8 @@ interface LegalDocument {
 }
 
 const LoginPageWithLegal = () => {
+  console.log('🔐 LoginPageWithLegal: component initializing...');
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -41,7 +42,7 @@ const LoginPageWithLegal = () => {
   
   // Mobile state
   const isMobile = useIsMobile();
-  const mobileInfo = useMobile();
+  console.log('📱 LoginPageWithLegal: isMobile =', isMobile);
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -51,6 +52,12 @@ const LoginPageWithLegal = () => {
   useEffect(() => {
     const loadLegalDocuments = async () => {
       try {
+        // На мобильных устройствах пропускаем загрузку legal documents для избежания ошибок
+        if (isMobile) {
+          console.log('📱 Mobile device detected - skipping legal documents loading');
+          return;
+        }
+        
         const tosVersion = await legalDocumentsService.getLatestVersion('tos');
         const privacyVersion = await legalDocumentsService.getLatestVersion('privacy');
         const pdnVersion = await legalDocumentsService.getLatestVersion('pdn');
@@ -101,10 +108,13 @@ const LoginPageWithLegal = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Проверка согласия с правовыми документами
-    if (!acceptedTerms || !acceptedPrivacy || !acceptedPdn) {
-      setError('Необходимо принять все правовые документы для продолжения');
-      return;
+    // На мобильных устройствах пропускаем проверку legal documents
+    if (!isMobile) {
+      // Проверка согласия с правовыми документами только на desktop
+      if (!acceptedTerms || !acceptedPrivacy || !acceptedPdn) {
+        setError('Необходимо принять все правовые документы для продолжения');
+        return;
+      }
     }
     
     setIsLoading(true);
@@ -114,8 +124,9 @@ const LoginPageWithLegal = () => {
       // Login first to get authentication
       const loginResult = await login(email, password);
       
-      // Пропускаем юридические документы для МенеджерБТО и системных ролей
-      const skipLegalDocs = email.includes('bto.manager') || 
+      // Пропускаем юридические документы для мобильных, МенеджерБТО и системных ролей
+      const skipLegalDocs = isMobile ||
+                           email.includes('bto.manager') || 
                            email.includes('admin@') ||
                            (loginResult && loginResult.role === 'bto_manager');
       

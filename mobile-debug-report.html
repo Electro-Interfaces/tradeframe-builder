@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📱 Mobile Debug Report - TradeFrame</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #1e293b;
+      color: white;
+      padding: 20px;
+      line-height: 1.6;
+      margin: 0;
+    }
+    
+    .section {
+      background: rgba(255, 255, 255, 0.1);
+      margin: 20px 0;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .test-button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px;
+      font-size: 16px;
+      width: 100%;
+      max-width: 300px;
+    }
+    
+    .test-button:hover {
+      background: #2563eb;
+    }
+    
+    .result {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 5px;
+      margin: 10px 0;
+      font-family: monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    
+    .status-ok { color: #22c55e; }
+    .status-warn { color: #fbbf24; }
+    .status-error { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <h1>📱 Mobile Debug Report</h1>
+  <p>Этот инструмент поможет диагностировать проблемы загрузки TradeFrame на мобильных устройствах.</p>
+
+  <div class="section">
+    <h2>🔍 Quick Tests</h2>
+    <button class="test-button" onclick="testMainApp()">🚀 Test Main App Load</button>
+    <button class="test-button" onclick="testServiceWorker()">⚙️ Test Service Worker</button>
+    <button class="test-button" onclick="testConsoleErrors()">🐛 Check Console Errors</button>
+    <button class="test-button" onclick="testPWADiagnostics()">📋 Open PWA Diagnostics</button>
+    <div id="quick-results" class="result"></div>
+  </div>
+
+  <div class="section">
+    <h2>📊 Browser Information</h2>
+    <div id="browser-info" class="result"></div>
+  </div>
+
+  <div class="section">
+    <h2>🌐 Network & Loading Test</h2>
+    <div id="network-results" class="result"></div>
+  </div>
+
+  <script>
+    let errorLog = [];
+    let loadLog = [];
+
+    // Capture all errors
+    window.addEventListener('error', (e) => {
+      errorLog.push({
+        type: 'JavaScript Error',
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    window.addEventListener('unhandledrejection', (e) => {
+      errorLog.push({
+        type: 'Promise Rejection',
+        reason: e.reason?.toString() || 'Unknown',
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    function updateResult(id, content, className = '') {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = content;
+        element.className = 'result ' + className;
+      }
+    }
+
+    function appendResult(id, content) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent += content + '\n';
+      }
+    }
+
+    function testMainApp() {
+      updateResult('quick-results', '🔄 Testing main app load...');
+      
+      // Test if we can load the main app
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = '/tradeframe-builder/';
+      
+      let timeout = setTimeout(() => {
+        updateResult('quick-results', '❌ Main app load timeout (10s)', 'status-error');
+        document.body.removeChild(iframe);
+      }, 10000);
+      
+      iframe.onload = () => {
+        clearTimeout(timeout);
+        try {
+          // Try to access iframe content
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const hasReact = iframe.contentWindow.React !== undefined;
+          const hasRoot = iframeDoc.getElementById('root') !== null;
+          const hasLoading = iframeDoc.getElementById('app-loading') !== null;
+          
+          updateResult('quick-results', 
+            `✅ Main app iframe loaded\n` +
+            `React available: ${hasReact ? '✅' : '❌'}\n` +
+            `Root element: ${hasRoot ? '✅' : '❌'}\n` +
+            `Loading indicator: ${hasLoading ? '✅' : '❌'}`, 
+            'status-ok'
+          );
+        } catch (e) {
+          updateResult('quick-results', 
+            `⚠️ Main app loaded but cross-origin restricted\n` +
+            `Error: ${e.message}`, 
+            'status-warn'
+          );
+        }
+        document.body.removeChild(iframe);
+      };
+      
+      iframe.onerror = () => {
+        clearTimeout(timeout);
+        updateResult('quick-results', '❌ Main app failed to load', 'status-error');
+        document.body.removeChild(iframe);
+      };
+      
+      document.body.appendChild(iframe);
+    }
+
+    function testServiceWorker() {
+      updateResult('quick-results', '🔄 Testing Service Worker...');
+      
+      if (!('serviceWorker' in navigator)) {
+        updateResult('quick-results', '❌ Service Worker not supported', 'status-error');
+        return;
+      }
+
+      navigator.serviceWorker.getRegistrations()
+        .then(registrations => {
+          let result = `✅ Service Worker API available\n`;
+          result += `Active registrations: ${registrations.length}\n`;
+          
+          if (registrations.length > 0) {
+            registrations.forEach((reg, i) => {
+              result += `SW ${i+1}: ${reg.scope}\n`;
+              result += `  State: ${reg.active?.state || 'none'}\n`;
+            });
+          } else {
+            result += '⚠️ No active service workers\n';
+          }
+          
+          updateResult('quick-results', result, 'status-ok');
+        })
+        .catch(error => {
+          updateResult('quick-results', `❌ Service Worker test failed: ${error.message}`, 'status-error');
+        });
+    }
+
+    function testConsoleErrors() {
+      updateResult('quick-results', '🔄 Checking captured errors...');
+      
+      if (errorLog.length === 0) {
+        updateResult('quick-results', '✅ No JavaScript errors captured so far', 'status-ok');
+      } else {
+        let result = `❌ ${errorLog.length} errors captured:\n\n`;
+        errorLog.forEach((error, i) => {
+          result += `${i+1}. [${error.timestamp}] ${error.type}\n`;
+          result += `   ${error.message || error.reason}\n`;
+          if (error.filename) result += `   File: ${error.filename}:${error.lineno}:${error.colno}\n`;
+          result += '\n';
+        });
+        updateResult('quick-results', result, 'status-error');
+      }
+    }
+
+    function testPWADiagnostics() {
+      window.open('/tradeframe-builder/test-pwa-diagnostics.html', '_blank');
+      updateResult('quick-results', '🔄 Opening PWA Diagnostics in new tab...', 'status-ok');
+    }
+
+    // Initialize browser info
+    function initBrowserInfo() {
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        cookiesEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        devicePixelRatio: window.devicePixelRatio,
+        location: window.location.href,
+        protocol: window.location.protocol,
+        isSecure: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
+        standalone: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone,
+        serviceWorkerSupported: 'serviceWorker' in navigator,
+        pushManagerSupported: 'PushManager' in window,
+        notificationSupported: 'Notification' in window
+      };
+      
+      updateResult('browser-info', JSON.stringify(info, null, 2));
+    }
+
+    // Test network connectivity
+    function testNetwork() {
+      updateResult('network-results', '🔄 Testing network connectivity...');
+      
+      const testUrls = [
+        '/tradeframe-builder/',
+        '/tradeframe-builder/manifest.json',
+        '/tradeframe-builder/assets/index.js' // This might not exist but we can try
+      ];
+      
+      Promise.allSettled(testUrls.map(url => 
+        fetch(url, { method: 'HEAD' })
+          .then(response => ({ url, status: response.status, ok: response.ok }))
+          .catch(error => ({ url, error: error.message }))
+      )).then(results => {
+        let networkInfo = 'Network connectivity test:\n\n';
+        results.forEach((result, i) => {
+          if (result.status === 'fulfilled') {
+            const res = result.value;
+            if (res.ok !== undefined) {
+              networkInfo += `${res.url}: HTTP ${res.status} ${res.ok ? '✅' : '❌'}\n`;
+            } else {
+              networkInfo += `${res.url}: ERROR - ${res.error} ❌\n`;
+            }
+          } else {
+            networkInfo += `${testUrls[i]}: FAILED - ${result.reason} ❌\n`;
+          }
+        });
+        updateResult('network-results', networkInfo);
+      });
+    }
+
+    // Initialize on load
+    window.addEventListener('load', () => {
+      initBrowserInfo();
+      testNetwork();
+    });
+
+    // Auto-refresh error log every 5 seconds
+    setInterval(() => {
+      if (errorLog.length > 0) {
+        const errorCount = document.createElement('div');
+        errorCount.style.position = 'fixed';
+        errorCount.style.top = '10px';
+        errorCount.style.right = '10px';
+        errorCount.style.background = '#ef4444';
+        errorCount.style.color = 'white';
+        errorCount.style.padding = '8px 12px';
+        errorCount.style.borderRadius = '20px';
+        errorCount.style.fontSize = '14px';
+        errorCount.style.zIndex = '9999';
+        errorCount.textContent = `${errorLog.length} errors`;
+        
+        // Remove previous error indicator
+        const prev = document.querySelector('.error-indicator');
+        if (prev) prev.remove();
+        
+        errorCount.className = 'error-indicator';
+        document.body.appendChild(errorCount);
+      }
+    }, 5000);
+  </script>
+</body>
+</html>
