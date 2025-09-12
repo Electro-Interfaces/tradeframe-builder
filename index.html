@@ -45,7 +45,7 @@
     <meta name="msapplication-tap-highlight" content="no" />
     <meta name="theme-color" content="#1e293b" />
     <style>
-      /* Глобальная защита от pull-to-refresh на мобильных устройствах */
+      /* КРИТИЧЕСКАЯ ЗАЩИТА ОТ PULL-TO-REFRESH НА МОБИЛЬНЫХ УСТРОЙСТВАХ */
       @media (hover: none) and (pointer: coarse) {
         html, body { 
           overscroll-behavior: none !important;
@@ -54,6 +54,25 @@
           -webkit-overscroll-behavior-y: none !important;
           touch-action: pan-x pan-y !important;
           -webkit-overflow-scrolling: auto !important;
+          position: fixed !important;
+          overflow: hidden !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+
+        #root {
+          overscroll-behavior: none !important;
+          overscroll-behavior-y: none !important;
+          -webkit-overscroll-behavior: none !important;
+          -webkit-overscroll-behavior-y: none !important;
+          touch-action: pan-x pan-y !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          overflow: auto !important;
+          -webkit-overflow-scrolling: touch !important;
         }
       }
       
@@ -62,6 +81,21 @@
         html, body { 
           -webkit-overflow-scrolling: touch; 
         }
+      }
+
+      /* Дополнительная защита для всех браузеров */
+      html {
+        overscroll-behavior: none;
+        overscroll-behavior-y: none;
+        -webkit-overscroll-behavior: none;
+        -webkit-overscroll-behavior-y: none;
+      }
+      
+      body {
+        overscroll-behavior: none;
+        overscroll-behavior-y: none;
+        -webkit-overscroll-behavior: none;
+        -webkit-overscroll-behavior-y: none;
       }
     </style>
     

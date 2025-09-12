@@ -72,6 +72,46 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// КРИТИЧЕСКАЯ ЗАЩИТА ОТ PULL-TO-REFRESH
+if (typeof window !== 'undefined') {
+  // Предотвращаем pull-to-refresh жестами
+  let startY = 0;
+  
+  document.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+  }, { passive: false });
+  
+  document.addEventListener('touchmove', (e) => {
+    const currentY = e.touches[0].clientY;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Если пользователь пытается скроллить вверх когда уже наверху
+    if (scrollTop === 0 && currentY > startY) {
+      console.log('🚫 Preventing pull-to-refresh');
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, { passive: false });
+  
+  // Дополнительная защита через события скролла
+  document.addEventListener('scroll', (e) => {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    if (scrollTop < 0) {
+      window.scrollTo(0, 0);
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, { passive: false });
+  
+  // Предотвращаем refresh через Meta-R, F5 и другие комбинации на мобильных
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
+      console.log('🚫 Preventing keyboard refresh');
+      e.preventDefault();
+    }
+  });
+}
+
 // Отладка pull-to-refresh проблемы
 if (typeof window !== 'undefined') {
   // Мониторинг жизненного цикла страницы
