@@ -713,7 +713,7 @@ export default function AuditLog() {
               <h1 className="text-2xl font-semibold text-white">Журнал аудита</h1>
               <p className="text-slate-400 mt-2">Полный лог всех действий пользователей в системе</p>
             </div>
-            <HelpButton route="/admin/audit" variant="text" className="flex-shrink-0" />
+            <HelpButton route="/admin/audit" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 

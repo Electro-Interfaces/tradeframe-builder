@@ -171,10 +171,7 @@ export default function NetworkOverview() {
       }
       
       const additionalText = additionalDataLoaded.length > 0 ? `, ${additionalDataLoaded.join(', ')}` : '';
-      toast({
-        title: "Успешно",
-        description: `Загружено ${stsTransactions.length} транзакций${additionalText}`,
-      });
+      console.log(`✅ Загружено ${stsTransactions.length} транзакций${additionalText}`);
       
     } catch (error) {
       console.error('❌ Ошибка загрузки транзакций:', error);
@@ -522,8 +519,8 @@ export default function NetworkOverview() {
 
         <div className="space-y-6">
 
-        {/* Кнопка обновления данных */}
-        {!initializing && selectedNetwork && (
+        {/* Кнопка обновления данных - скрыта на мобильных устройствах */}
+        {!initializing && selectedNetwork && !isMobile && (
           <div className="flex justify-end items-center">
             <div className="flex gap-2">
               <Button
@@ -596,21 +593,21 @@ export default function NetworkOverview() {
 
         {/* Статистика по видам топлива */}
         {!initializing && selectedNetwork && fuelTypeStats.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
             {fuelTypeStats.map((fuel) => (
               <Card key={fuel.type} className="bg-slate-800 border-slate-600">
-                <CardContent className="p-6">
+                <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
                   <div className="flex items-center">
-                    <div className="p-2 bg-purple-600 rounded-lg">
+                    <div className="p-2 bg-purple-600 rounded-lg mr-4">
                       <Fuel className="h-6 w-6 text-white" />
                     </div>
-                    <div className="ml-4">
-                      <p className="text-white text-base font-semibold mb-1">{fuel.type}</p>
-                      <p className="text-2xl font-bold text-white mb-0.5">
+                    <div className="flex-1">
+                      <p className={`text-white font-semibold mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>{fuel.type}</p>
+                      <p className={`font-bold text-white mb-0.5 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                         {Math.round(fuel.revenue).toLocaleString('ru-RU')} ₽
                       </p>
                       <div className="space-y-0.5">
-                        <p className="text-2xl font-bold text-white">{Math.round(fuel.volume).toLocaleString('ru-RU')} л</p>
+                        <p className={`font-bold text-white ${isMobile ? 'text-base' : 'text-xl'}`}>{Math.round(fuel.volume).toLocaleString('ru-RU')} л</p>
                         <p className="text-sm text-slate-400">{fuel.operations} операций</p>
                       </div>
                     </div>
@@ -621,18 +618,18 @@ export default function NetworkOverview() {
             
             {/* Итоговая карточка */}
             <Card className="bg-slate-700 border-slate-500 border-2">
-              <CardContent className="p-6">
+              <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
                 <div className="flex items-center">
-                  <div className="p-2 bg-blue-600 rounded-lg">
+                  <div className="p-2 bg-blue-600 rounded-lg mr-4">
                     <Activity className="h-6 w-6 text-white" />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-white text-base font-semibold mb-1">Итого</p>
-                    <p className="text-2xl font-bold text-white mb-0.5">
+                  <div className="flex-1">
+                    <p className={`text-white font-semibold mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>Итого</p>
+                    <p className={`font-bold text-white mb-0.5 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                       {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
                     </p>
                     <div className="space-y-0.5">
-                      <p className="text-2xl font-bold text-white">{Math.round(totalVolume).toLocaleString('ru-RU')} л</p>
+                      <p className={`font-bold text-white ${isMobile ? 'text-base' : 'text-xl'}`}>{Math.round(totalVolume).toLocaleString('ru-RU')} л</p>
                       <p className="text-sm text-slate-400">{filteredTransactions.length} операций</p>
                     </div>
                   </div>
@@ -644,21 +641,21 @@ export default function NetworkOverview() {
 
         {/* Статистика по способам оплаты */}
         {!initializing && selectedNetwork && paymentTypeStats.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
             {paymentTypeStats.map((payment) => (
               <Card key={payment.type} className="bg-slate-800 border-slate-600">
-                <CardContent className="p-6">
+                <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
                   <div className="flex items-center">
-                    <div className="p-2 bg-green-600 rounded-lg">
+                    <div className="p-2 bg-green-600 rounded-lg mr-4">
                       <CreditCard className="h-6 w-6 text-white" />
                     </div>
-                    <div className="ml-4">
-                      <p className="text-white text-base font-semibold mb-1">{payment.type}</p>
-                      <p className="text-2xl font-bold text-white mb-0.5">
+                    <div className="flex-1">
+                      <p className={`text-white font-semibold mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>{payment.type}</p>
+                      <p className={`font-bold text-white mb-0.5 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                         {Math.round(payment.revenue).toLocaleString('ru-RU')} ₽
                       </p>
                       <div className="space-y-0.5">
-                        <p className="text-2xl font-bold text-white">{Math.round(payment.volume).toLocaleString('ru-RU')} л</p>
+                        <p className={`font-bold text-white ${isMobile ? 'text-base' : 'text-xl'}`}>{Math.round(payment.volume).toLocaleString('ru-RU')} л</p>
                         <p className="text-sm text-slate-400">{payment.operations} операций</p>
                       </div>
                     </div>
@@ -669,18 +666,18 @@ export default function NetworkOverview() {
             
             {/* Карточка среднего чека */}
             <Card className="bg-slate-800 border-slate-600">
-              <CardContent className="p-6">
+              <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
                 <div className="flex items-center">
-                  <div className="p-2 bg-purple-600 rounded-lg">
+                  <div className="p-2 bg-purple-600 rounded-lg mr-4">
                     <Monitor className="h-6 w-6 text-white" />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-white text-base font-semibold mb-1">Средний чек</p>
-                    <p className="text-2xl font-bold text-white mb-0.5">
+                  <div className="flex-1">
+                    <p className={`text-white font-semibold mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>Средний чек</p>
+                    <p className={`font-bold text-white mb-0.5 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                       {Math.round(averageCheck).toLocaleString('ru-RU')} ₽
                     </p>
                     <div className="space-y-0.5">
-                      <p className="text-2xl font-bold text-white">&nbsp;</p>
+                      <p className={`font-bold text-white ${isMobile ? 'text-base' : 'text-xl'}`}>&nbsp;</p>
                       <p className="text-sm text-slate-400">&nbsp;</p>
                     </div>
                   </div>
@@ -701,28 +698,30 @@ export default function NetworkOverview() {
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 pb-2 px-2">
+            <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
               {dailySalesData.data.length > 0 ? (
-                <div className="w-full h-80">
+                <div className={`w-full ${isMobile ? 'h-64' : 'h-80'}`}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart 
                       data={dailySalesData.data} 
-                      margin={{ top: 10, right: 30, left: 60, bottom: 20 }}
+                      margin={isMobile ? { top: 10, right: 10, left: 30, bottom: 40 } : { top: 10, right: 30, left: 60, bottom: 20 }}
                     >
                       <XAxis 
                         dataKey="displayDate" 
                         stroke="#94a3b8"
-                        fontSize={11}
+                        fontSize={isMobile ? 10 : 11}
                         tick={{ fill: '#94a3b8' }}
-                        angle={-45}
+                        angle={isMobile ? -90 : -45}
                         textAnchor="end"
-                        height={60}
+                        height={isMobile ? 40 : 60}
+                        interval={isMobile ? "preserveStartEnd" : 0}
                       />
                       <YAxis 
                         stroke="#94a3b8" 
-                        fontSize={11}
+                        fontSize={isMobile ? 10 : 11}
                         tick={{ fill: '#94a3b8' }}
-                        tickFormatter={(value) => `${Math.round(value / 1000)}к ₽`}
+                        tickFormatter={(value) => isMobile ? `${Math.round(value / 1000)}к` : `${Math.round(value / 1000)}к ₽`}
+                        width={isMobile ? 25 : 60}
                       />
                       <ChartTooltip 
                         content={({ active, payload, label }) => {
@@ -790,27 +789,27 @@ export default function NetworkOverview() {
           <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-2'}`}>
             {/* Тепловая карта активности */}
             <Card className="bg-slate-800 border-slate-600">
-              <CardHeader className="pb-4">
+              <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-white text-lg flex items-center gap-2">
+                  <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
                     <Activity className="h-5 w-5 text-blue-400" />
-                    Активность операций
+                    {isMobile ? 'Активность операций' : 'Активность операций'}
                   </CardTitle>
-                  <div className="text-sm text-slate-400">
-                    Последние 7 дней
+                  <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400`}>
+                    {isMobile ? '7 дней' : 'Последние 7 дней'}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0 pb-2 px-2">
+              <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
                 {heatmapData && heatmapData.length > 0 ? (
                   <div className="space-y-3">
                     {/* Заголовок с часами */}
                     <div className="flex items-center">
-                      <div className="w-12 shrink-0"></div>
-                      <div className="flex-1 flex gap-0.5 text-xs text-slate-400">
+                      <div className={`${isMobile ? 'w-8' : 'w-12'} shrink-0`}></div>
+                      <div className={`flex-1 flex gap-0.5 text-xs text-slate-400`}>
                         {Array.from({ length: 24 }, (_, hour) => (
-                          <div key={hour} className="flex-1 text-center text-[10px]">
-                            {hour % 6 === 0 ? hour : ''}
+                          <div key={hour} className={`flex-1 text-center ${isMobile ? 'text-[8px]' : 'text-[10px]'}`}>
+                            {hour % (isMobile ? 4 : 6) === 0 ? hour : ''}
                           </div>
                         ))}
                       </div>
@@ -820,7 +819,7 @@ export default function NetworkOverview() {
                     {heatmapData.map((day) => (
                       <div key={day.date} className="flex items-center">
                         {/* День недели */}
-                        <div className="w-12 shrink-0 text-xs text-slate-300 font-medium">
+                        <div className={`${isMobile ? 'w-8' : 'w-12'} shrink-0 ${isMobile ? 'text-[10px]' : 'text-xs'} text-slate-300 font-medium`}>
                           {day.dayName}
                         </div>
                         
@@ -841,7 +840,7 @@ export default function NetworkOverview() {
                             return (
                               <div
                                 key={hourData.hour}
-                                className={`flex-1 aspect-square ${bgColor} rounded-sm cursor-pointer hover:ring-1 hover:ring-green-400 hover:scale-110 transition-all duration-200`}
+                                className={`flex-1 aspect-square ${bgColor} ${isMobile ? 'rounded-[1px]' : 'rounded-sm'} cursor-pointer hover:ring-1 hover:ring-green-400 ${isMobile ? '' : 'hover:scale-110'} transition-all duration-200`}
                                 title={`${day.dayName}, ${hourData.displayTime}
 Операций: ${hourData.transactions}
 Выручка: ${hourData.revenue.toLocaleString('ru-RU')} ₽`}
@@ -880,34 +879,34 @@ export default function NetworkOverview() {
 
             {/* График суточной активности */}
             <Card className="bg-slate-800 border-slate-600">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-white text-lg flex items-center gap-2">
+              <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
+                <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
                   <Activity className="h-5 w-5 text-blue-400" />
-                  Суточная активность по часам
+                  {isMobile ? 'Активность по часам' : 'Суточная активность по часам'}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0 pb-2 px-2">
-                <div className="w-full h-80">
+              <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
+                <div className={`w-full ${isMobile ? 'h-64' : 'h-80'}`}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart 
                       data={dailyActivityData} 
-                      margin={{ top: 10, right: 15, left: 40, bottom: 50 }}
+                      margin={isMobile ? { top: 10, right: 5, left: 25, bottom: 40 } : { top: 10, right: 15, left: 40, bottom: 50 }}
                     >
                       <XAxis 
                         dataKey="hour" 
                         stroke="#94a3b8"
-                        fontSize={11}
-                        interval={0}
-                        angle={-45}
+                        fontSize={isMobile ? 9 : 11}
+                        interval={isMobile ? 1 : 0}
+                        angle={isMobile ? -90 : -45}
                         textAnchor="end"
-                        height={50}
+                        height={isMobile ? 40 : 50}
                         tick={{ fill: '#94a3b8' }}
                       />
                       <YAxis 
                         stroke="#94a3b8" 
-                        fontSize={11}
+                        fontSize={isMobile ? 9 : 11}
                         tick={{ fill: '#94a3b8' }}
-                        width={35}
+                        width={isMobile ? 25 : 35}
                       />
                       <ChartTooltip 
                         content={({ active, payload, label }) => {

@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Edit, Trash2, Copy, History, Play, Pause, Mail, MessageSquare, Webhook, Filter, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/context/SelectionContext";
 import { HelpButton } from "@/components/help/HelpButton";
 import { NotificationRuleForm } from "@/components/notifications/NotificationRuleForm";
@@ -144,6 +145,7 @@ const mockNotificationRules: NotificationRule[] = [
 
 export default function NotificationRules() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
+  const isMobile = useIsMobile();
   const [rules, setRules] = useState<NotificationRule[]>(mockNotificationRules);
   const [selectedRule, setSelectedRule] = useState<NotificationRule | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -396,7 +398,7 @@ export default function NotificationRules() {
                 {selectedTradingPoint && ` - Точка: ${selectedTradingPoint.name}`}
               </p>
             </div>
-            <HelpButton route="/network/notifications" variant="text" className="flex-shrink-0" />
+            <HelpButton route="/network/notifications" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 

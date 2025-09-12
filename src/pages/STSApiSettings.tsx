@@ -199,10 +199,6 @@ export default function STSApiSettings() {
         const methods = parseOpenApiMethods(openApiSpec);
         setApiMethods(methods);
         
-        toast({
-          title: "Методы API обновлены",
-          description: `Загружено ${methods.length} методов из OpenAPI спецификации`,
-        });
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }

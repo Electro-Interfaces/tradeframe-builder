@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { TrendingUp, TrendingDown, Target, AlertTriangle, Lightbulb } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Transaction {
   id: number;
@@ -40,6 +41,8 @@ interface ForecastSummary {
 }
 
 export function SalesForecast({ transactions, className }: SalesForecastProps) {
+  const isMobile = useIsMobile();
+  
   // Функции для анализа данных
   const analyzeTransactions = (transactions: Transaction[]) => {
     if (!transactions || transactions.length === 0) {
@@ -105,15 +108,16 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
 
     const { dailyData, hourlyPattern, fuelTypeStats } = analyzeTransactions(transactions);
     
-    // Создаем массив исторических данных
-    const historicalData: ForecastData[] = Object.entries(dailyData)
+    // Создаем массив исторических данных только для дней с фактическими данными
+    const sortedDailyData = Object.entries(dailyData)
       .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-      .slice(-14) // Последние 14 дней
-      .map(([date, data]) => ({
-        date: new Date(date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
-        actual: data.revenue,
-        isHistorical: true
-      }));
+      .slice(-14); // Последние 14 дней с данными
+    
+    const historicalData: ForecastData[] = sortedDailyData.map(([date, data]) => ({
+      date: new Date(date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+      actual: data.revenue,
+      isHistorical: true
+    }));
 
     // Простой алгоритм прогноза на основе скользящей средней
     const recentRevenues = Object.values(dailyData).slice(-7).map(d => d.revenue);
@@ -137,13 +141,18 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       const adjustedRevenue = avgDailyRevenue * trendMultiplier;
       const adjustedVolume = avgDailyVolume * trendMultiplier;
 
-      // Создаем прогнозные данные
+      // Создаем прогнозные данные, начиная с последней даты с фактическими данными
       const forecastDays = 7;
       const forecastData: ForecastData[] = [...historicalData];
       
+      // Определяем последнюю дату с данными или сегодняшнюю дату
+      const lastDataDate = sortedDailyData.length > 0 
+        ? new Date(sortedDailyData[sortedDailyData.length - 1][0])
+        : new Date();
+      
       for (let i = 1; i <= forecastDays; i++) {
-        const futureDate = new Date();
-        futureDate.setDate(futureDate.getDate() + i);
+        const futureDate = new Date(lastDataDate);
+        futureDate.setDate(lastDataDate.getDate() + i);
         
         // Добавляем случайную вариацию ±15%
         const variation = 0.85 + Math.random() * 0.3;
@@ -202,8 +211,29 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       };
     }
 
+    // Если недостаточно данных для расчета тренда, создаем простой прогноз
+    const simpleforecastData: ForecastData[] = [...historicalData];
+    const lastDataDate = sortedDailyData.length > 0 
+      ? new Date(sortedDailyData[sortedDailyData.length - 1][0])
+      : new Date();
+    
+    // Создаем простой прогноз на основе средних значений
+    for (let i = 1; i <= 7; i++) {
+      const futureDate = new Date(lastDataDate);
+      futureDate.setDate(lastDataDate.getDate() + i);
+      
+      const predicted = avgDailyRevenue;
+      simpleforecastData.push({
+        date: futureDate.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' }),
+        predicted: predicted,
+        confidenceUpper: predicted * 1.15,
+        confidenceLower: predicted * 0.85,
+        isHistorical: false
+      });
+    }
+
     return {
-      forecastData: historicalData,
+      forecastData: simpleforecastData,
       summary: {
         tomorrowRevenue: avgDailyRevenue,
         tomorrowVolume: avgDailyVolume,
@@ -241,22 +271,22 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Основные прогнозы */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-4'}`}>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+          <CardContent className={`${isMobile ? 'p-3' : 'p-4'}`}>
+            <div className={`flex ${isMobile ? 'flex-col text-center space-y-2' : 'items-center justify-between'}`}>
               <div>
-                <p className="text-sm text-slate-400">Завтра ожидается</p>
-                <p className="text-2xl font-bold text-white">
+                <p className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>Завтра ожидается</p>
+                <p className={`font-bold text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>
                   {summary.tomorrowRevenue.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
                 </p>
-                <p className="text-sm text-slate-300">
+                <p className={`text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                   {summary.tomorrowVolume.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} л
                 </p>
               </div>
               <div className="flex items-center space-x-1">
                 {getTrendIcon(summary.trend)}
-                <span className={`text-sm ${getTrendColor(summary.trend)}`}>
+                <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${getTrendColor(summary.trend)}`}>
                   {summary.trendPercentage > 0 ? '+' : ''}{summary.trendPercentage}%
                 </span>
               </div>
@@ -265,49 +295,49 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+          <CardContent className={`${isMobile ? 'p-3' : 'p-4'}`}>
+            <div className={`flex ${isMobile ? 'flex-col text-center space-y-2' : 'items-center justify-between'}`}>
               <div>
-                <p className="text-sm text-slate-400">Недельный прогноз</p>
-                <p className="text-2xl font-bold text-white">
+                <p className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>Недельный прогноз</p>
+                <p className={`font-bold text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>
                   {summary.weeklyRevenue.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
                 </p>
-                <p className="text-sm text-slate-300">7 дней</p>
+                <p className={`text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>7 дней</p>
               </div>
-              <Target className="w-8 h-8 text-blue-400" />
+              <Target className={`text-blue-400 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+          <CardContent className={`${isMobile ? 'p-3' : 'p-4'}`}>
+            <div className={`flex ${isMobile ? 'flex-col text-center space-y-2' : 'items-center justify-between'}`}>
               <div>
-                <p className="text-sm text-slate-400">Точность прогноза</p>
-                <p className="text-2xl font-bold text-white">{summary.confidence}%</p>
-                <Badge variant={summary.confidence > 80 ? "default" : "secondary"} className="text-xs">
+                <p className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>Точность прогноза</p>
+                <p className={`font-bold text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>{summary.confidence}%</p>
+                <Badge variant={summary.confidence > 80 ? "default" : "secondary"} className={`${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                   {summary.confidence > 80 ? "Высокая" : summary.confidence > 60 ? "Средняя" : "Низкая"}
                 </Badge>
               </div>
-              <AlertTriangle className={`w-8 h-8 ${summary.confidence > 80 ? 'text-green-400' : 'text-yellow-400'}`} />
+              <AlertTriangle className={`${summary.confidence > 80 ? 'text-green-400' : 'text-yellow-400'} ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+          <CardContent className={`${isMobile ? 'p-3' : 'p-4'}`}>
+            <div className={`flex ${isMobile ? 'flex-col text-center space-y-2' : 'items-center justify-between'}`}>
               <div>
-                <p className="text-sm text-slate-400">Топ топливо</p>
-                <p className="text-lg font-bold text-white">{summary.bestFuelType}</p>
+                <p className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>Топ топливо</p>
+                <p className={`font-bold text-white ${isMobile ? 'text-base' : 'text-lg'}`}>{summary.bestFuelType}</p>
                 {summary.peakHours.length > 0 && (
-                  <p className="text-sm text-slate-300">
+                  <p className={`text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                     Пик: {summary.peakHours.join(', ')}:00
                   </p>
                 )}
               </div>
               <div className="text-right">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                <div className={`bg-orange-500 rounded-full flex items-center justify-center ${isMobile ? 'w-6 h-6 text-xs' : 'w-8 h-8'}`}>
                   ⛽
                 </div>
               </div>
@@ -318,40 +348,45 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
 
       {/* График прогноза */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+        <CardHeader className={`${isMobile ? 'pb-2' : ''}`}>
+          <CardTitle className={`flex items-center space-x-2 ${isMobile ? 'text-base' : ''}`}>
             <TrendingUp className="w-5 h-5" />
-            <span>Прогноз продаж на 7 дней</span>
+            <span>{isMobile ? 'Прогноз на 7 дней' : 'Прогноз продаж на 7 дней'}</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={forecastData}>
+        <CardContent className={`${isMobile ? 'px-2' : ''}`}>
+          <ResponsiveContainer width="100%" height={isMobile ? 250 : 300}>
+            <AreaChart data={forecastData} margin={isMobile ? { top: 5, right: 5, left: 5, bottom: 5 } : undefined}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis 
                 dataKey="date" 
                 stroke="#9CA3AF"
-                fontSize={12}
+                fontSize={isMobile ? 10 : 12}
+                angle={isMobile ? -45 : 0}
+                textAnchor={isMobile ? 'end' : 'middle'}
+                height={isMobile ? 50 : 30}
               />
               <YAxis 
                 stroke="#9CA3AF"
-                fontSize={12}
+                fontSize={isMobile ? 10 : 12}
                 tickFormatter={(value) => `${(value / 1000).toFixed(0)}к`}
+                width={isMobile ? 30 : 60}
               />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: '#1F2937', 
                   border: '1px solid #374151',
-                  color: '#F9FAFB'
+                  color: '#F9FAFB',
+                  fontSize: isMobile ? '12px' : '14px'
                 }}
                 formatter={(value: number, name) => [
                   `${value?.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽`, 
-                  name === 'actual' ? 'Фактические' : 
+                  name === 'actual' ? (isMobile ? 'Факт' : 'Фактические') : 
                   name === 'predicted' ? 'Прогноз' : 
-                  name === 'confidenceUpper' ? 'Верх. граница' : 'Ниж. граница'
+                  name === 'confidenceUpper' ? (isMobile ? 'Верх' : 'Верх. граница') : (isMobile ? 'Низ' : 'Ниж. граница')
                 ]}
               />
-              <Legend />
+              {!isMobile && <Legend />}
               
               {/* Доверительный интервал */}
               <Area
@@ -373,8 +408,8 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
               <Line
                 dataKey="actual"
                 stroke="#10B981"
-                strokeWidth={2}
-                dot={{ fill: '#10B981', strokeWidth: 2, r: 3 }}
+                strokeWidth={isMobile ? 1.5 : 2}
+                dot={{ fill: '#10B981', strokeWidth: isMobile ? 1.5 : 2, r: isMobile ? 2 : 3 }}
                 connectNulls={false}
                 name="Фактические продажи"
               />
@@ -383,9 +418,9 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
               <Line
                 dataKey="predicted"
                 stroke="#3B82F6"
-                strokeWidth={2}
+                strokeWidth={isMobile ? 1.5 : 2}
                 strokeDasharray="5 5"
-                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 3 }}
+                dot={{ fill: '#3B82F6', strokeWidth: isMobile ? 1.5 : 2, r: isMobile ? 2 : 3 }}
                 connectNulls={false}
                 name="Прогноз"
               />
@@ -396,25 +431,25 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
 
       {/* Рекомендации */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+        <CardHeader className={`${isMobile ? 'pb-2' : ''}`}>
+          <CardTitle className={`flex items-center space-x-2 ${isMobile ? 'text-base' : ''}`}>
             <Lightbulb className="w-5 h-5" />
-            <span>Рекомендации по продажам</span>
+            <span>{isMobile ? 'Рекомендации' : 'Рекомендации по продажам'}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className={`space-y-${isMobile ? '2' : '3'}`}>
             {summary.recommendations.map((recommendation, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 bg-slate-700/50 rounded-lg">
-                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+              <div key={index} className={`flex items-start space-x-${isMobile ? '2' : '3'} ${isMobile ? 'p-2' : 'p-3'} bg-slate-700/50 rounded-lg`}>
+                <div className={`bg-blue-600 rounded-full flex items-center justify-center text-white font-bold ${isMobile ? 'w-5 h-5 text-xs' : 'w-6 h-6 text-sm'}`}>
                   {index + 1}
                 </div>
-                <p className="text-slate-200 text-sm leading-relaxed">{recommendation}</p>
+                <p className={`text-slate-200 leading-relaxed ${isMobile ? 'text-xs' : 'text-sm'}`}>{recommendation}</p>
               </div>
             ))}
             
             {summary.recommendations.length === 0 && (
-              <p className="text-slate-400 text-center py-4">
+              <p className={`text-slate-400 text-center ${isMobile ? 'py-2 text-sm' : 'py-4'}`}>
                 Собираем данные для формирования рекомендаций...
               </p>
             )}

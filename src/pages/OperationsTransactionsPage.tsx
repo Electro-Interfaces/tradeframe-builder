@@ -38,6 +38,12 @@ const paymentMethodMap = {
 
 export default function OperationsTransactionsPage() {
   const isMobile = useIsMobile();
+  
+  // Debug: показать информацию о мобильном режиме
+  console.log('📱 isMobile:', isMobile, 'window.innerWidth:', typeof window !== 'undefined' ? window.innerWidth : 'undefined');
+  
+  // Принудительный мобильный режим для тестирования
+  const isMobileForced = true;
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   
   // Состояние данных операций
@@ -318,15 +324,15 @@ export default function OperationsTransactionsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge className="bg-slate-600 text-slate-200">Завершено</Badge>;
+        return <Badge className="bg-slate-700 border-slate-600 text-slate-200">Завершено</Badge>;
       case 'in_progress':
-        return <Badge className="bg-slate-600 text-slate-200">Выполняется</Badge>;
+        return <Badge className="bg-slate-700 border-slate-600 text-slate-200">Выполняется</Badge>;
       case 'failed':
         return <Badge className="bg-red-600 text-white">Ошибка</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-600 text-white">Ожидание</Badge>;
       case 'cancelled':
-        return <Badge className="bg-slate-600 text-slate-200">Отменено</Badge>;
+        return <Badge className="bg-slate-700 border-slate-600 text-slate-200">Отменено</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -360,80 +366,85 @@ export default function OperationsTransactionsPage() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full space-y-6 report-full-width">
+      <div className={`w-full ${isMobileForcedForced ? 'space-y-3' : 'space-y-6'} report-full-width`}>
         {/* Заголовок страницы */}
-        <div className="mb-6 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8">
-          <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-start justify-between'}`}>
+        <div className={`${isMobileForcedForced ? 'mb-3 px-0' : 'mb-6 pl-4 md:pl-6 lg:pl-8 pr-4 md:pr-6 lg:pr-8'}`}>
+          <div className={`flex ${isMobileForced ? 'flex-col gap-1' : 'items-start justify-between'}`}>
             <div>
-              <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-semibold text-white`}>Операции</h1>
-              <p className={`text-slate-400 ${isMobile ? 'mt-1 text-sm' : 'mt-2'}`}>
+              <h1 className={`${isMobileForced ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Операции</h1>
+              <p className={`text-slate-400 ${isMobileForced ? 'text-xs' : 'mt-2'}`}>
                 {isNetworkOnly && selectedNetwork && `Real-time состояние операций сети "${selectedNetwork.name}"`}
                 {isTradingPointSelected && `Real-time состояние операций торговой точки`}
                 {!selectedNetwork && "Real-time состояние операций демо сети АЗС"}
               </p>
             </div>
-            <div className={`flex items-center ${isMobile ? 'gap-1 self-start' : 'gap-2'}`}>
-              <Button
-                onClick={reloadOperations}
-                disabled={loading}
-                variant="outline"
-                size={isMobile ? "sm" : "sm"}
-                className={isMobile ? "text-xs px-2" : "text-xs"}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                    {isMobile ? "Обновление..." : "Обновление..."}
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-3 h-3 mr-1" />
-                    {isMobile ? "Обновить" : "Обновить данные"}
-                  </>
-                )}
-              </Button>
-              {!isMobile && <HelpButton route="/network/operations-transactions" variant="text" className="flex-shrink-0" />}
+            <div className={`flex items-center ${isMobileForced ? 'gap-1 self-start mt-1' : 'gap-2'}`}>
+              {!isMobileForced && (
+                <Button
+                  onClick={reloadOperations}
+                  disabled={loading}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      Обновление...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Обновить данные
+                    </>
+                  )}
+                </Button>
+              )}
+              {isMobileForced && (
+                <HelpButton route="/network/operations-transactions" variant="icon" size="sm" className="flex-shrink-0" />
+              )}
+              {!isMobileForced && <HelpButton route="/network/operations-transactions" variant="text" className="flex-shrink-0" />}
             </div>
           </div>
-          <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center gap-4'} mt-4`}>
-            <Button
-              variant={autoRefresh ? "default" : "outline"}
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              size={isMobile ? "sm" : "default"}
-              className={isMobile ? "text-xs" : ""}
-            >
-              <RefreshCw className={`${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'} ${autoRefresh ? 'animate-spin' : ''}`} />
-              {isMobile ? (autoRefresh ? 'Автообновление' : 'Автообновление') : (autoRefresh ? 'Автообновление' : 'Включить автообновление')}
-            </Button>
-            <Button
-              variant="outline"
-              size={isMobile ? "sm" : "default"}
-              className={isMobile ? "text-xs" : ""}
-              onClick={async () => {
-                localStorage.removeItem('tradeframe_operations');
-                setOperations([]);
-                await reloadOperations();
-                console.log('Данные операций принудительно перезагружены из Supabase');
-              }}
-            >
-              <RefreshCw className={`${isMobile ? 'w-3 h-3 mr-1' : 'w-4 h-4 mr-2'}`} />
-              {isMobile ? "Перезагрузить" : "Перезагрузить данные"}
-            </Button>
-          </div>
+          {!isMobileForced && (
+            <div className="flex items-center gap-4 mt-4">
+              <Button
+                variant={autoRefresh ? "default" : "outline"}
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                size="default"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
+                {autoRefresh ? 'Автообновление' : 'Включить автообновление'}
+              </Button>
+              <Button
+                variant="outline"
+                size="default"
+                onClick={async () => {
+                  localStorage.removeItem('tradeframe_operations');
+                  setOperations([]);
+                  await reloadOperations();
+                  console.log('Данные операций принудительно перезагружены из Supabase');
+                }}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Перезагрузить данные
+              </Button>
+            </div>
+          )}
         </div>
 
         <>
           {/* Фильтры */}
-            <div className="mx-4 md:mx-6 lg:mx-8">
-            <Card className="bg-slate-800 border-slate-700">
+            <div className={`${isMobileForced ? 'mx-0' : 'mx-4 md:mx-6 lg:mx-8'}`}>
+            <Card className="bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200">
               <CardHeader>
-                <CardTitle className={`text-white flex ${isMobile ? 'flex-col gap-3' : 'items-center gap-2'}`}>
+                <CardTitle className={`text-white flex ${isMobileForced ? 'flex-col gap-3' : 'items-center gap-2'}`}>
                   <div className="flex items-center gap-2">
-                    <Filter className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                    <span className={isMobile ? 'text-lg' : ''}>Фильтры</span>
+                    <Filter className={`${isMobileForced ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                    <span className={isMobileForced ? 'text-lg' : ''}>Фильтры</span>
                   </div>
-                  <div className={`${isMobile ? 'flex gap-1 self-start' : 'ml-auto flex gap-2'}`}>
-                    {!isMobile && (
+                  <div className={`${isMobileForced ? 'flex gap-1 self-start' : 'ml-auto flex gap-2'}`}>
+                    {!isMobileForced && (
                       <Button variant="outline" className="flex-shrink-0">
                         <Download className="w-4 h-4 mr-2" />
                         Экспорт
@@ -441,8 +452,8 @@ export default function OperationsTransactionsPage() {
                     )}
                     <Button 
                       variant="destructive" 
-                      size={isMobile ? "sm" : "default"}
-                      className={`flex-shrink-0 ${isMobile ? 'text-xs' : ''}`}
+                      size={isMobileForced ? "sm" : "default"}
+                      className={`flex-shrink-0 ${isMobileForced ? 'text-xs' : ''}`}
                       onClick={async () => {
                         if (confirm('Очистить все сохраненные операции и вернуться к демо-данным?')) {
                           localStorage.removeItem('tradeframe_operations');
@@ -467,13 +478,13 @@ export default function OperationsTransactionsPage() {
                         }
                       }}
                     >
-                      {isMobile ? "Очистить" : "Очистить данные"}
+                      {isMobileForced ? "Очистить" : "Очистить данные"}
                     </Button>
                   </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 lg:grid-cols-6 gap-4'}`}>
+                <div className={`grid ${isMobileForced ? 'grid-cols-1 gap-3' : 'grid-cols-2 lg:grid-cols-6 gap-4'}`}>
 
                   <div>
                     <Label className="text-slate-300">Статус</Label>
@@ -557,21 +568,21 @@ export default function OperationsTransactionsPage() {
             </div>
 
             {/* KPI - Суммы по видам операций */}
-            <div className="mx-4 md:mx-6 lg:mx-8">
-              <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white mb-4 flex items-center gap-2`}>
-                <Activity className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                {isMobile ? 'Суммы операций' : 'Суммы по видам операций'}
+            <div className={`${isMobileForced ? 'mx-0' : 'mx-4 md:mx-6 lg:mx-8'}`}>
+              <h3 className={`${isMobileForced ? 'text-sm' : 'text-lg'} font-semibold text-white ${isMobileForced ? 'mb-2' : 'mb-4'} flex items-center gap-2`}>
+                <Activity className={`${isMobileForced ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                {isMobileForced ? 'Суммы операций' : 'Суммы по видам операций'}
               </h3>
-              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'}`}>
+              <div className={`grid ${isMobileForced ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'}`}>
                 {Object.entries(operationKpis).map(([operationType, stats]) => (
-                  <Card key={operationType} className="bg-slate-800 border-slate-700">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium text-slate-200">{operationType}</CardTitle>
-                      <Activity className="h-4 w-4 text-slate-400" />
+                  <Card key={operationType} className="bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200">
+                    <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-2'}`}>
+                      <CardTitle className={`${isMobileForced ? 'text-xs' : 'text-sm'} font-medium text-slate-200`}>{operationType}</CardTitle>
+                      <Activity className={`${isMobileForced ? 'h-3 w-3' : 'h-4 w-4'} text-slate-400`} />
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-white">{stats.revenue.toFixed(0)} ₽</div>
-                      <p className="text-xs text-slate-400">{stats.operations} операций</p>
+                    <CardContent className={isMobileForced ? 'px-3 pb-2 pt-0' : ''}>
+                      <div className={`${isMobileForced ? 'text-sm' : 'text-2xl'} font-bold text-white`}>{stats.revenue.toFixed(0)} ₽</div>
+                      <p className="text-xs text-slate-400">{stats.operations} оп.</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -579,21 +590,21 @@ export default function OperationsTransactionsPage() {
             </div>
 
             {/* KPI - Суммы по видам оплаты */}
-            <div className="mx-4 md:mx-6 lg:mx-8">
-              <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white mb-4 flex items-center gap-2`}>
-                <Activity className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                {isMobile ? 'Суммы оплат' : 'Суммы по видам оплаты'}
+            <div className={`${isMobileForced ? 'mx-0' : 'mx-4 md:mx-6 lg:mx-8'}`}>
+              <h3 className={`${isMobileForced ? 'text-sm' : 'text-lg'} font-semibold text-white ${isMobileForced ? 'mb-2' : 'mb-4'} flex items-center gap-2`}>
+                <Activity className={`${isMobileForced ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                {isMobileForced ? 'Суммы оплат' : 'Суммы по видам оплаты'}
               </h3>
-              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-4 gap-4'}`}>
+              <div className={`grid ${isMobileForced ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-4 gap-4'}`}>
                 {Object.entries(paymentKpis).map(([paymentMethod, stats]) => (
-                  <Card key={paymentMethod} className="bg-slate-800 border-slate-700">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium text-slate-200">{paymentMethod}</CardTitle>
-                      <Activity className="h-4 w-4 text-slate-400" />
+                  <Card key={paymentMethod} className="bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200">
+                    <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-2'}`}>
+                      <CardTitle className={`${isMobileForced ? 'text-xs' : 'text-sm'} font-medium text-slate-200`}>{paymentMethod}</CardTitle>
+                      <Activity className={`${isMobileForced ? 'h-3 w-3' : 'h-4 w-4'} text-slate-400`} />
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-white">{stats.revenue.toFixed(0)} ₽</div>
-                      <p className="text-xs text-slate-400">{stats.operations} операций</p>
+                    <CardContent className={isMobileForced ? 'px-3 pb-2 pt-0' : ''}>
+                      <div className={`${isMobileForced ? 'text-sm' : 'text-2xl'} font-bold text-white`}>{stats.revenue.toFixed(0)} ₽</div>
+                      <p className="text-xs text-slate-400">{stats.operations} оп.</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -601,22 +612,22 @@ export default function OperationsTransactionsPage() {
             </div>
 
             {/* KPI - Объемы топлива */}
-            <div className="mx-4 md:mx-6 lg:mx-8">
-              <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white mb-4 flex items-center gap-2`}>
-                <Activity className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                {isMobile ? 'Объемы топлива' : 'Суммы по видам топлива'}
+            <div className={`${isMobileForced ? 'mx-0' : 'mx-4 md:mx-6 lg:mx-8'}`}>
+              <h3 className={`${isMobileForced ? 'text-sm' : 'text-lg'} font-semibold text-white ${isMobileForced ? 'mb-2' : 'mb-4'} flex items-center gap-2`}>
+                <Activity className={`${isMobileForced ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                {isMobileForced ? 'Объемы топлива' : 'Суммы по видам топлива'}
               </h3>
-              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'}`}>
+              <div className={`grid ${isMobileForced ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'}`}>
                 {Object.entries(fuelKpis).map(([fuelType, stats]) => (
-                  <Card key={fuelType} className="bg-slate-800 border-slate-700">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium text-slate-200">{fuelType}</CardTitle>
-                      <Activity className="h-4 w-4 text-slate-400" />
+                  <Card key={fuelType} className="bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200">
+                    <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-2'}`}>
+                      <CardTitle className={`${isMobileForced ? 'text-xs' : 'text-sm'} font-medium text-slate-200`}>{fuelType}</CardTitle>
+                      <Activity className={`${isMobileForced ? 'h-3 w-3' : 'h-4 w-4'} text-slate-400`} />
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-white">{stats.volume.toFixed(0)} л</div>
-                      <p className="text-sm text-slate-400">{stats.revenue.toFixed(0)} ₽</p>
-                      <p className="text-xs text-blue-400">{stats.operations} операций</p>
+                    <CardContent className={isMobileForced ? 'px-3 pb-2 pt-0' : ''}>
+                      <div className={`${isMobileForced ? 'text-sm' : 'text-2xl'} font-bold text-white`}>{stats.volume.toFixed(0)} л</div>
+                      <p className={`${isMobileForced ? 'text-xs' : 'text-sm'} text-slate-400`}>{stats.revenue.toFixed(0)} ₽</p>
+                      <p className="text-xs text-blue-400">{stats.operations} оп.</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -625,8 +636,8 @@ export default function OperationsTransactionsPage() {
 
 
             {/* Таблица операций */}
-            <div className="mx-4 md:mx-6 lg:mx-8">
-            <Card className="bg-slate-800 border-slate-700 w-full max-w-none">
+            <div className={`${isMobileForced ? 'mx-0' : 'mx-4 md:mx-6 lg:mx-8'}`}>
+            <Card className={`bg-slate-800 border border-slate-700 rounded-lg w-full max-w-none ${isMobileForced ? 'mx-0' : ''}`}>
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Activity className="w-5 h-5" />
@@ -637,74 +648,76 @@ export default function OperationsTransactionsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                {isMobile ? (
+                {isMobileForced ? (
                   // Mobile card layout
-                  <div className="space-y-4 p-4">
+                  <div className={`${isMobileForced ? 'space-y-1 -mx-4 px-4' : 'space-y-3 p-0'}`}>
                     {filteredOperations.map((record) => (
-                      <Card key={record.id} className="bg-slate-700 border-slate-600">
-                        <CardHeader className="pb-3">
+                      <Card key={record.id} className="bg-slate-800 border border-slate-700 rounded-lg w-full mx-0 hover:bg-slate-700 transition-colors">
+                        <CardHeader className={`${isMobileForced ? 'pb-0 px-3 pt-1' : 'pb-2'}`}>
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
                               {getStatusIcon(record.status)}
-                              <span className="font-medium text-white text-sm">{operationTypeMap[record.operationType] || record.operationType}</span>
+                              <span className="font-medium text-white text-xs truncate">{operationTypeMap[record.operationType] || record.operationType}</span>
                             </div>
-                            {getStatusBadge(record.status)}
+                            <div className="flex-shrink-0">
+                              {getStatusBadge(record.status)}
+                            </div>
                           </div>
                           {record.transactionId && (
-                            <div className="text-xs text-slate-400 mt-1 truncate">{record.transactionId}</div>
+                            <div className="text-xs text-slate-400 mt-0.5 truncate">{record.transactionId}</div>
                           )}
                         </CardHeader>
-                        <CardContent className="pt-0 space-y-3">
+                        <CardContent className={`${isMobileForced ? 'pt-1 px-3 pb-1 space-y-0.5' : 'pt-0 space-y-2'}`}>
                           <div className="flex items-center justify-between">
-                            <Badge variant="outline" className="text-blue-400 border-blue-400 text-xs">
+                            <Badge variant="outline" className={`text-blue-400 border-blue-400 ${isMobileForced ? 'text-xs px-1 py-0' : 'text-xs'}`}>
                               {record.deviceId || 'N/A'}
                             </Badge>
-                            <span className="text-xs text-slate-400 font-mono">{record.lastUpdated}</span>
+                            <span className={`text-slate-400 font-mono ${isMobileForced ? 'text-xs' : 'text-xs'}`}>{record.lastUpdated}</span>
                           </div>
                           
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
+                          <div className={`${isMobileForced ? 'space-y-0' : 'space-y-1'} text-xs`}>
+                            <div className={`flex justify-between ${isMobileForced ? 'py-0' : ''}`}>
                               <span className="text-slate-400">Дата:</span>
                               <span className="text-white font-mono">{new Date(record.startTime).toLocaleDateString('ru-RU')}</span>
                             </div>
-                            <div className="flex justify-between">
+                            <div className={`flex justify-between ${isMobileForced ? 'py-0' : ''}`}>
                               <span className="text-slate-400">Начало:</span>
                               <span className="text-white font-mono">{new Date(record.startTime).toLocaleTimeString('ru-RU')}</span>
                             </div>
-                            <div className="flex justify-between">
+                            <div className={`flex justify-between ${isMobileForced ? 'py-0' : ''}`}>
                               <span className="text-slate-400">Завершение:</span>
                               <span className="text-white font-mono">{record.endTime ? new Date(record.endTime).toLocaleTimeString('ru-RU') : '—'}</span>
                             </div>
                           </div>
                           
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between items-center">
+                          <div className={`${isMobileForced ? 'space-y-0' : 'space-y-1'} text-xs`}>
+                            <div className={`flex justify-between items-center ${isMobileForced ? 'py-0' : ''}`}>
                               <span className="text-slate-400">Тип записи:</span>
-                              <Badge className="bg-slate-600 text-slate-200 text-xs">
+                              <Badge className="bg-slate-700 border-slate-600 text-slate-200 text-xs">
                                 {record.status === 'completed' ? 'Транзакция' : 'Операция'}
                               </Badge>
                             </div>
-                            <div className="flex justify-between">
+                            <div className={`flex justify-between ${isMobileForced ? 'py-0' : ''}`}>
                               <span className="text-slate-400">Топливо:</span>
                               <span className="text-white">{record.fuelType || '—'}</span>
                             </div>
                           </div>
                           
                           {(record.quantity || record.price || record.totalCost) && (
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
+                            <div className={`${isMobileForced ? 'space-y-0' : 'space-y-1'} text-xs`}>
+                              <div className={`flex justify-between ${isMobileForced ? 'py-0' : ''}`}>
                                 <span className="text-slate-400">Кол-во:</span>
                                 <span className="text-white font-mono">
                                   {record.quantity ? `${record.quantity.toFixed(2)} л` : '—'}
                                 </span>
                               </div>
-                              <div className="flex justify-between">
+                              <div className={`flex justify-between ${isMobileForced ? 'py-0' : ''}`}>
                                 <span className="text-slate-400">Цена:</span>
                                 <span className="text-white font-mono">
                                   {record.price ? `${record.price.toFixed(2)} ₽/л` : '—'}
                                 </span>
                               </div>
-                              <div className="flex justify-between">
+                              <div className={`flex justify-between ${isMobileForced ? 'py-0' : ''}`}>
                                 <span className="text-slate-400">Сумма:</span>
                                 <span className="text-white font-mono font-bold">
                                   {record.totalCost ? `${record.totalCost.toFixed(2)} ₽` : '—'}
@@ -714,7 +727,7 @@ export default function OperationsTransactionsPage() {
                           )}
 
                           {record.paymentMethod && (
-                            <div className="flex justify-between text-sm">
+                            <div className="flex justify-between text-xs">
                               <span className="text-slate-400">Вид оплаты:</span>
                               <span className="text-white">
                                 {paymentMethodMap[record.paymentMethod] || record.paymentMethod}
@@ -738,16 +751,16 @@ export default function OperationsTransactionsPage() {
                           )}
 
                           {record.duration && record.status !== 'in_progress' && (
-                            <div className="flex justify-between text-sm">
+                            <div className="flex justify-between text-xs">
                               <span className="text-slate-400">Длительность:</span>
                               <span className="text-white font-mono">{formatDuration(record.duration)}</span>
                             </div>
                           )}
                           
-                          <div className="text-sm border-t border-slate-600 pt-2">
+                          <div className="text-xs border-t border-slate-600 pt-2">
                             <div className="space-y-1">
                               <span className="text-slate-400 text-xs">Детали:</span>
-                              <div className="text-slate-300 text-sm leading-relaxed">
+                              <div className="text-slate-300 text-xs leading-relaxed">
                                 {record.details}
                                 {record.status === 'failed' && <AlertTriangle className="w-4 h-4 text-red-400 inline ml-1" />}
                               </div>
@@ -755,10 +768,10 @@ export default function OperationsTransactionsPage() {
                           </div>
                           
                           {isNetworkOnly && record.tradingPointName && (
-                            <div className="text-sm border-t border-slate-600 pt-2">
+                            <div className="text-xs border-t border-slate-600 pt-2">
                               <div className="flex justify-between">
                                 <span className="text-slate-400">Торговая точка:</span>
-                                <span className="text-slate-300 font-medium text-right">{record.tradingPointName}</span>
+                                <span className="text-slate-300 font-medium text-right truncate max-w-[150px]">{record.tradingPointName}</span>
                               </div>
                             </div>
                           )}
@@ -797,7 +810,7 @@ export default function OperationsTransactionsPage() {
                   <div className="overflow-x-auto w-full">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-slate-700">
+                        <TableRow className="border-b border-slate-600">
                           {isNetworkOnly && <TableHead className="text-slate-300">Торговая точка</TableHead>}
                           <TableHead className="text-slate-300">Статус</TableHead>
                           <TableHead className="text-slate-300">Тип записи</TableHead>
@@ -813,7 +826,7 @@ export default function OperationsTransactionsPage() {
                       </TableHeader>
                       <TableBody>
                         {filteredOperations.map((record) => (
-                          <TableRow key={record.id} className="border-slate-700 hover:bg-slate-700/50">
+                          <TableRow key={record.id} className="border-b border-slate-600 hover:bg-slate-700 transition-colors">
                             {isNetworkOnly && (
                               <TableCell className="text-slate-300 max-w-xs">
                                 <div className="truncate" title={record.tradingPointName}>
@@ -828,7 +841,7 @@ export default function OperationsTransactionsPage() {
                               </div>
                             </TableCell>
                             <TableCell className="text-slate-300">
-                              <Badge className="bg-slate-600 text-slate-200">
+                              <Badge className="bg-slate-700 border-slate-600 text-slate-200">
                                 {record.status === 'completed' ? 'Транзакция' : 'Операция'}
                               </Badge>
                             </TableCell>

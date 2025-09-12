@@ -36,6 +36,88 @@ type SidebarContext = {
 
 const SidebarContext = React.createContext<SidebarContext | null>(null)
 
+// Компонент для мобильного сайдбара с поддержкой свайпа
+const MobileSidebarContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & {
+    onClose: () => void
+    side?: "left" | "right"
+  }
+>(({ children, onClose, side = "left", className, ...props }, ref) => {
+  const [touchStartX, setTouchStartX] = React.useState<number | null>(null)
+  const [touchStartY, setTouchStartY] = React.useState<number | null>(null)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX)
+    setTouchStartY(e.touches[0].clientY)
+    console.log(`Touch start: x=${e.touches[0].clientX}, y=${e.touches[0].clientY}`)
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || touchStartY === null) return
+
+    const touchEndX = e.changedTouches[0].clientX
+    const touchEndY = e.changedTouches[0].clientY
+    
+    const deltaX = touchEndX - touchStartX
+    const deltaY = touchEndY - touchStartY
+    
+    // Минимальное расстояние для регистрации свайпа
+    const minSwipeDistance = 30
+    
+    // Определяем направление свайпа в зависимости от позиции сайдбара
+    const shouldClose = side === "left" 
+      ? deltaX < -minSwipeDistance // Для левого сайдбара - свайп влево
+      : deltaX > minSwipeDistance  // Для правого сайдбара - свайп вправо
+    
+    console.log(`Touch end: deltaX=${deltaX}, deltaY=${deltaY}, shouldClose=${shouldClose}, side=${side}`)
+    
+    // Проверяем, что это горизонтальный свайп в нужном направлении
+    if (
+      Math.abs(deltaX) > Math.abs(deltaY) && // Больше горизонтальное движение
+      shouldClose && // Свайп в правильном направлении
+      Math.abs(deltaY) < 100 // Не слишком много вертикального движения
+    ) {
+      console.log(`✅ Closing sidebar with swipe ${side === "left" ? "left" : "right"}`)
+      onClose()
+    }
+
+    setTouchStartX(null)
+    setTouchStartY(null)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Предотвращаем случайное закрытие при скролле
+    if (touchStartX === null || touchStartY === null) return
+    
+    const currentX = e.touches[0].clientX
+    const currentY = e.touches[0].clientY
+    
+    const deltaX = currentX - touchStartX
+    const deltaY = currentY - touchStartY
+    
+    // Если пользователь скроллит вертикально, отменяем горизонтальное отслеживание
+    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 20) {
+      setTouchStartX(null)
+      setTouchStartY(null)
+    }
+  }
+
+  return (
+    <div
+      ref={ref}
+      className={cn("flex h-full w-full flex-col touch-pan-y", className)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+})
+MobileSidebarContent.displayName = "MobileSidebarContent"
+
 function useSidebar() {
   const context = React.useContext(SidebarContext)
   if (!context) {
@@ -204,7 +286,9 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <div className="flex h-full w-full flex-col">{children}</div>
+            <MobileSidebarContent side={side} onClose={() => setOpenMobile(false)}>
+              {children}
+            </MobileSidebarContent>
           </SheetContent>
         </Sheet>
       )

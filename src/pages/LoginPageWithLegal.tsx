@@ -30,10 +30,10 @@ const LoginPageWithLegal = () => {
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   
-  // Legal documents states
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
-  const [acceptedPdn, setAcceptedPdn] = useState(false);
+  // Legal documents states - согласия по умолчанию
+  const [acceptedTerms, setAcceptedTerms] = useState(true);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(true);
+  const [acceptedPdn, setAcceptedPdn] = useState(true);
   const [showTermsDialog, setShowTermsDialog] = useState(false);
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
   const [showPdnDialog, setShowPdnDialog] = useState(false);
@@ -93,6 +93,11 @@ const LoginPageWithLegal = () => {
     loadLegalDocuments();
   }, []);
 
+  const handleRefresh = async () => {
+    // Простое обновление страницы для логин страницы
+    window.location.reload();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -142,6 +147,9 @@ const LoginPageWithLegal = () => {
       } else {
         localStorage.removeItem('rememberedEmail');
       }
+
+      // Очищаем временное состояние формы при успешной авторизации
+      sessionStorage.removeItem('loginFormState');
       
       navigate('/');
     } catch (error: any) {
@@ -152,14 +160,43 @@ const LoginPageWithLegal = () => {
   };
 
 
-  // Загружаем сохраненный email при загрузке страницы
+  // Автосохранение состояния формы
   useEffect(() => {
+    const savedState = sessionStorage.getItem('loginFormState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        setEmail(state.email || '');
+        setPassword(state.password || '');
+        setRememberMe(state.rememberMe || false);
+        setAcceptedTerms(state.acceptedTerms !== undefined ? state.acceptedTerms : true);
+        setAcceptedPrivacy(state.acceptedPrivacy !== undefined ? state.acceptedPrivacy : true);
+        setAcceptedPdn(state.acceptedPdn !== undefined ? state.acceptedPdn : true);
+      } catch (error) {
+        console.warn('Ошибка восстановления состояния формы:', error);
+      }
+    }
+
+    // Загружаем сохраненный email при загрузке страницы
     const rememberedEmail = localStorage.getItem('rememberedEmail');
-    if (rememberedEmail) {
+    if (rememberedEmail && !email) {
       setEmail(rememberedEmail);
       setRememberMe(true);
     }
   }, []);
+
+  // Сохраняем состояние формы при каждом изменении
+  useEffect(() => {
+    const formState = {
+      email,
+      password,
+      rememberMe,
+      acceptedTerms,
+      acceptedPrivacy,
+      acceptedPdn
+    };
+    sessionStorage.setItem('loginFormState', JSON.stringify(formState));
+  }, [email, password, rememberMe, acceptedTerms, acceptedPrivacy, acceptedPdn]);
 
   const getTermsContent = () => {
     const doc = legalDocuments.find(d => d.type === 'tos');
@@ -177,70 +214,71 @@ const LoginPageWithLegal = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 ${
+    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-2 ${
       mobileInfo.isMobile ? 'mobile-no-select mobile-scroll mobile-safe-top mobile-safe-bottom flex flex-col' : 'flex items-center justify-center'
     }`} style={mobileInfo.isMobile ? { height: 'var(--vh, 100vh)' } : {}}>
-      <div className={`w-full space-y-6 ${
-        isMobile ? 'max-w-full px-2 flex-1 flex flex-col justify-center min-h-0' : 'max-w-md'
+      <div className={`w-full space-y-2 ${
+        isMobile ? 'max-w-full px-1 flex-1 flex flex-col justify-center min-h-0' : 'max-w-md'
       }`}>
-        {/* Логотип и заголовок */}
+        {/* Логотип и заголовок - супер компактная версия */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-            <Shield className="w-10 h-10 text-white" />
+          <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-600 rounded-full mb-1">
+            <Shield className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">TradeFrame</h1>
-          <p className="text-slate-400">Система управления торговой сетью АЗС</p>
+          <h1 className="text-xl font-bold text-white mb-0.5">TradeFrame</h1>
+          <p className="text-xs text-slate-400">Система управления АЗС</p>
         </div>
 
         {/* Форма входа */}
         <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">Вход в систему</CardTitle>
-            <CardDescription className="text-slate-400">
-              Введите свои учетные данные для доступа
-            </CardDescription>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-white">Вход в систему</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-200">Email</Label>
+          <CardContent className="pt-0">
+            <form onSubmit={handleSubmit} className="space-y-2">
+              <div>
+                <Label htmlFor="email" className="text-xs text-slate-200">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="user@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  className="h-8 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 text-sm mt-1"
                   required
+                  autoComplete="email"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-200">Пароль</Label>
-                <div className="relative">
+              <div>
+                <Label htmlFor="password" className="text-xs text-slate-200">Пароль</Label>
+                <div className="relative mt-1">
                   <Input
                     id="password"
+                    name="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 pr-10"
+                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 pr-10 h-8 text-sm"
                     required
+                    autoComplete="current-password"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-slate-400"
+                    className="absolute right-0 top-0 h-full px-1.5 hover:bg-transparent text-slate-400"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                   </Button>
                 </div>
               </div>
 
               {/* Правовые документы */}
-              <div className="space-y-3 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+              <div className="space-y-1 p-2 bg-slate-700/50 rounded-lg border border-slate-600">
                 <div className="flex items-start space-x-2">
                   <Checkbox 
                     id="terms"
@@ -249,12 +287,12 @@ const LoginPageWithLegal = () => {
                     className="mt-1 border-slate-500 data-[state=checked]:bg-blue-600"
                   />
                   <div className="space-y-1">
-                    <Label htmlFor="terms" className="text-sm text-slate-300 cursor-pointer">
+                    <Label htmlFor="terms" className="text-xs text-slate-300 cursor-pointer">
                       Я принимаю{' '}
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-xs text-blue-400 hover:text-blue-300"
                         onClick={() => setShowTermsDialog(true)}
                       >
                         Пользовательское соглашение
@@ -271,12 +309,12 @@ const LoginPageWithLegal = () => {
                     className="mt-1 border-slate-500 data-[state=checked]:bg-blue-600"
                   />
                   <div className="space-y-1">
-                    <Label htmlFor="privacy" className="text-sm text-slate-300 cursor-pointer">
+                    <Label htmlFor="privacy" className="text-xs text-slate-300 cursor-pointer">
                       Я согласен с{' '}
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-xs text-blue-400 hover:text-blue-300"
                         onClick={() => setShowPrivacyDialog(true)}
                       >
                         Политикой конфиденциальности
@@ -293,12 +331,12 @@ const LoginPageWithLegal = () => {
                     className="mt-1 border-slate-500 data-[state=checked]:bg-blue-600"
                   />
                   <div className="space-y-1">
-                    <Label htmlFor="pdn" className="text-sm text-slate-300 cursor-pointer">
+                    <Label htmlFor="pdn" className="text-xs text-slate-300 cursor-pointer">
                       Я ознакомлен с положением о{' '}
                       <Button
                         type="button"
                         variant="link"
-                        className="p-0 h-auto text-blue-400 hover:text-blue-300"
+                        className="p-0 h-auto text-xs text-blue-400 hover:text-blue-300"
                         onClick={() => setShowPdnDialog(true)}
                       >
                         Защите персональных данных
@@ -309,14 +347,14 @@ const LoginPageWithLegal = () => {
               </div>
 
               {/* Запомнить меня */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mt-1">
                 <Checkbox 
                   id="remember"
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  className="border-slate-500 data-[state=checked]:bg-blue-600"
+                  className="border-slate-500 data-[state=checked]:bg-blue-600 h-3 w-3"
                 />
-                <Label htmlFor="remember" className="text-sm text-slate-300 cursor-pointer">
+                <Label htmlFor="remember" className="text-xs text-slate-300 cursor-pointer">
                   Запомнить меня
                 </Label>
               </div>
@@ -330,7 +368,7 @@ const LoginPageWithLegal = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700 h-8 text-sm mt-2"
                 disabled={isLoading || !acceptedTerms || !acceptedPrivacy || !acceptedPdn}
               >
                 {isLoading ? (
@@ -350,24 +388,10 @@ const LoginPageWithLegal = () => {
         </Card>
 
 
-        {/* Информация о безопасности */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center space-x-4 text-xs text-slate-500">
-            <div className="flex items-center space-x-1">
-              <Lock className="h-3 w-3" />
-              <span>SSL защищено</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Shield className="h-3 w-3" />
-              <span>GDPR совместимо</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <FileText className="h-3 w-3" />
-              <span>ISO 27001</span>
-            </div>
-          </div>
+        {/* Информация о безопасности - супер компактная */}
+        <div className="text-center">
           <p className="text-xs text-slate-600">
-            © 2024 TradeFrame. Версия 1.0.0
+            © 2024 TradeFrame v1.5.1
           </p>
         </div>
       </div>

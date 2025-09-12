@@ -108,8 +108,8 @@ export function Header({
             <span className="text-primary-foreground font-bold text-sm">TC</span>
           </div>
           <div>
-            <h1 className="font-semibold text-foreground text-lg">TradeControl</h1>
-            <p className="text-xs text-muted-foreground">v2.0</p>
+            <h1 className="font-semibold text-foreground text-lg">TradeFrame</h1>
+            <p className="text-xs text-muted-foreground">v1.5.1</p>
           </div>
         </div>
 

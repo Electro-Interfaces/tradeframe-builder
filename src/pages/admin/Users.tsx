@@ -18,11 +18,13 @@ import { useDeleteConfirmDialog } from '@/hooks/useDeleteConfirmDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { MainLayout } from '@/components/layout/MainLayout'
+import { useIsMobile } from "@/hooks/use-mobile";
 import { HelpButton } from "@/components/help/HelpButton"
 import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from '@/components/data-source/DataSourceIndicator'
 
 export default function Users() {
   const { hasExternalDatabase } = useDataSourceInfo()
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all')
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null)
@@ -109,7 +111,7 @@ export default function Users() {
                 />
               </div>
             </div>
-            <HelpButton route="/admin/users-and-roles" variant="text" className="flex-shrink-0" />
+            <HelpButton route="/admin/users-and-roles" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 

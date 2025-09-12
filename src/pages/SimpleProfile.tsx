@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { Shield, Mail, Lock, User, Calendar, LogOut } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
@@ -23,6 +24,7 @@ export default function SimpleProfile() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, logout } = useAuth();
+  const isMobile = useIsMobile();
   
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -118,7 +120,7 @@ export default function SimpleProfile() {
                 Личная информация и настройки аккаунта
               </p>
             </div>
-            <HelpButton route="/profile" variant="text" className="flex-shrink-0" />
+            <HelpButton route="/profile" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 

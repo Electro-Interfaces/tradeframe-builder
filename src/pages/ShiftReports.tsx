@@ -214,7 +214,7 @@ export default function ShiftReports() {
                 <p className="text-slate-500 text-sm">Загрузка сменных отчетов...</p>
               )}
             </div>
-            <HelpButton route="/point/shift-reports" variant="text" className="flex-shrink-0" />
+            <HelpButton route="/point/shift-reports" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 

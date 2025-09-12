@@ -601,13 +601,6 @@ export default function Tanks() {
         setTanks(stsTanks);
         setStsApiConfigured(true);
         
-        if (!isMobile) {
-          toast({
-            title: "Данные обновлены",
-            description: `Загружено ${stsTanks.length} резервуаров из STS API`,
-            variant: "default",
-          });
-        }
         
         console.log('✅ Резервуары из STS API успешно загружены и обработаны');
       } else {
@@ -788,11 +781,16 @@ export default function Tanks() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-white">
-                {getTradingPointName(selectedTradingPoint)}
-              </h1>
+          <div className={`flex ${isMobile ? "flex-col gap-2" : "items-start justify-between"}`}>
+            <div className={`${isMobile ? "flex-1 min-w-0" : ""}`}>
+              <div className={`flex ${isMobile ? "justify-between items-start" : "flex-col"}`}>
+                <h1 className={`${isMobile ? "text-xl flex-1 pr-2" : "text-2xl"} font-semibold text-white`}>
+                  {isMobile ? "Резервуары" : getTradingPointName(selectedTradingPoint)}
+                </h1>
+                {isMobile && (
+                  <HelpButton route="/point/tanks" variant="text" size="sm" className="flex-shrink-0" />
+                )}
+              </div>
               <p className="text-slate-400 mt-2 hidden md:block">Мониторинг запасов топлива и управление операциями</p>
               <div className="flex items-center gap-4 mt-2 hidden md:flex">
                 <div className="flex items-center gap-2">
@@ -805,102 +803,104 @@ export default function Tanks() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {stsApiConfigured ? (
-                <Button
-                  onClick={loadTanksFromSTSAPI}
-                  variant="outline"
-                  size="sm"
-                  disabled={loadingFromSTSAPI}
-                  className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
-                >
-                  {loadingFromSTSAPI ? (
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4 mr-2" />
-                  )}
-                  Обновить из API
-                </Button>
-              ) : (
-                <Button
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                      // Перезагружаем данные резервуаров из mock API
-                      const events: {[key: number]: any[]} = {};
-                      const calibrations: {[key: number]: any[]} = {};
-                      
-                      for (const tank of mockTanks) {
-                        events[tank.id] = await mockAPI.getTankEvents(tank.id);
-                        calibrations[tank.id] = await mockAPI.getTankCalibrations(tank.id);
+            {!isMobile && (
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {stsApiConfigured ? (
+                  <Button
+                    onClick={loadTanksFromSTSAPI}
+                    variant="outline"
+                    size="sm"
+                    disabled={loadingFromSTSAPI}
+                    className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    {loadingFromSTSAPI ? (
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    Обновить из API
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        // Перезагружаем данные резервуаров из mock API
+                        const events: {[key: number]: any[]} = {};
+                        const calibrations: {[key: number]: any[]} = {};
+                        
+                        for (const tank of mockTanks) {
+                          events[tank.id] = await mockAPI.getTankEvents(tank.id);
+                          calibrations[tank.id] = await mockAPI.getTankCalibrations(tank.id);
+                        }
+                        
+                        setTankEvents(events);
+                        setCalibrationHistory(calibrations);
+                        console.log('✅ Данные резервуаров обновлены (mock API)');
+                        if (!isMobile) {
+                          toast({
+                            title: "Данные обновлены",
+                            description: "Тестовые данные резервуаров обновлены",
+                            variant: "default",
+                          });
+                        }
+                      } catch (error) {
+                        console.error('❌ Ошибка обновления резервуаров:', error);
+                        if (!isMobile) {
+                          toast({
+                            title: "Ошибка обновления",
+                            description: "Произошла ошибка при обновлении данных",
+                            variant: "destructive",
+                          });
+                        }
+                      } finally {
+                        setLoading(false);
                       }
-                      
-                      setTankEvents(events);
-                      setCalibrationHistory(calibrations);
-                      console.log('✅ Данные резервуаров обновлены (mock API)');
-                      if (!isMobile) {
-                        toast({
-                          title: "Данные обновлены",
-                          description: "Тестовые данные резервуаров обновлены",
-                          variant: "default",
-                        });
-                      }
-                    } catch (error) {
-                      console.error('❌ Ошибка обновления резервуаров:', error);
-                      if (!isMobile) {
-                        toast({
-                          title: "Ошибка обновления",
-                          description: "Произошла ошибка при обновлении данных",
-                          variant: "destructive",
-                        });
-                      }
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  variant="outline"
-                  size="sm"
-                  disabled={loading}
-                  className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  )}
-                  Обновить токен
-                </Button>
-              )}
-              <HelpButton route="/point/tanks" variant="text" className="flex-shrink-0" />
-            </div>
+                    }}
+                    variant="outline"
+                    size="sm"
+                    disabled={loading}
+                    className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    Обновить токен
+                  </Button>
+                )}
+                <HelpButton route="/point/tanks" variant="text" className="flex-shrink-0" />
+              </div>
+            )}
           </div>
         </div>
 
 
         {/* Резервуары - сетка карточек */}
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+        <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'}`}>
           {tanks.map((tank) => {
             const percentage = getPercentage(tank.currentLevelLiters, tank.capacityLiters);
             
             return (
               <Card key={tank.id} className="bg-slate-800 border-slate-700 shadow-lg hover:shadow-xl transition-shadow duration-200">
-                <CardContent className="p-4">
+                <CardContent className={isMobile ? "p-3" : "p-4"}>
                   {/* Header with tank name and fuel type */}
-                  <div className="mb-4">
+                  <div className={isMobile ? "mb-3" : "mb-4"}>
                     {/* Tank Name */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <Gauge className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                      <div className="text-white font-semibold text-lg">
+                    <div className={`flex items-center gap-2 ${isMobile ? "mb-1" : "mb-2"}`}>
+                      <Gauge className={`${isMobile ? "h-4 w-4" : "h-5 w-5"} text-blue-400 flex-shrink-0`} />
+                      <div className={`text-white font-semibold ${isMobile ? "text-base" : "text-lg"}`}>
                         {tank.name}
                       </div>
                     </div>
                     
                     {/* Fuel Type and Volume/Percentage */}
-                    <div className="flex items-center justify-between">
-                      <div className="text-blue-400 font-bold text-xl">
+                    <div className={`flex items-center justify-between ${isMobile ? "flex-col items-start gap-1" : ""}`}>
+                      <div className={`text-blue-400 font-bold ${isMobile ? "text-lg" : "text-xl"}`}>
                         {tank.fuelType}
                       </div>
-                      <div className={`text-lg font-bold ${
+                      <div className={`${isMobile ? "text-base" : "text-lg"} font-bold ${
                         percentage > tank.minLevelPercent ? 'text-blue-400' :
                         percentage >= tank.criticalLevelPercent ? 'text-yellow-400' : 'text-red-400'
                       }`}>
@@ -910,61 +910,61 @@ export default function Tanks() {
                   </div>
                   
                   {/* Main content - Progress bar left, parameters right */}
-                  <div className="flex gap-4">
+                  <div className={`flex ${isMobile ? "flex-col gap-3" : "gap-4"}`}>
                     {/* Block 1: Progress Bar (Left) */}
-                    <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                    <div className={`flex ${isMobile ? "flex-row justify-center" : "flex-col"} items-center gap-2 flex-shrink-0`}>
                       <TankProgressIndicator 
                         percentage={percentage} 
                         minLevel={tank.minLevelPercent}
                         criticalLevel={tank.criticalLevelPercent}
-                        isMobile={false}
+                        isMobile={isMobile}
                       />
-                      <div className="text-base text-slate-300 text-center leading-snug">
-                        <div>{Math.round(tank.capacityLiters).toLocaleString()} л</div>
+                      <div className={`${isMobile ? "text-sm" : "text-base"} text-slate-300 text-center leading-snug`}>
+                        <div>Макс: {Math.round(tank.capacityLiters).toLocaleString()} л</div>
                       </div>
                     </div>
 
                     {/* Block 2: Parameters taking full height */}
                     <div className="flex-1 bg-slate-900/30 p-3 rounded-md overflow-hidden">
-                      <div className="h-full flex flex-col justify-between text-sm space-y-2">
+                      <div className={`h-full flex flex-col justify-between ${isMobile ? "text-xs space-y-1" : "text-sm space-y-2"}`}>
                         {/* Temperature */}
                         <div className="flex items-center gap-2 min-w-0">
-                          <Thermometer className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                          <Thermometer className={`${isMobile ? "h-3 w-3" : "h-4 w-4"} text-slate-400 flex-shrink-0`} />
                           <span className="text-slate-400 truncate">Температура</span>
                           <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.temperature || tank.temperature || '0').toFixed(1)}°C</span>
                         </div>
                         
                         {/* Level */}
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-4 h-4 bg-slate-400 rounded-full flex-shrink-0"></div>
+                          <div className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} bg-slate-400 rounded-full flex-shrink-0`}></div>
                           <span className="text-slate-400 truncate">Уровень</span>
                           <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.level || '0').toFixed(1)} мм</span>
                         </div>
                         
                         {/* Density */}
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-4 h-4 bg-slate-500 rounded-full flex-shrink-0"></div>
+                          <div className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} bg-slate-500 rounded-full flex-shrink-0`}></div>
                           <span className="text-slate-400 truncate">Плотность</span>
                           <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.density || '0').toFixed(2)}</span>
                         </div>
                         
                         {/* Water */}
                         <div className="flex items-center gap-2 min-w-0">
-                          <Droplets className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                          <Droplets className={`${isMobile ? "h-3 w-3" : "h-4 w-4"} text-slate-400 flex-shrink-0`} />
                           <span className="text-slate-400 truncate">Вода</span>
                           <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.water?.level || '0').toFixed(1)} мм</span>
                         </div>
                         
                         {/* Free Space */}
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-4 h-4 bg-slate-500 rounded-full flex-shrink-0"></div>
+                          <div className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} bg-slate-500 rounded-full flex-shrink-0`}></div>
                           <span className="text-slate-400 truncate">Свободно</span>
                           <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.volume_free || '0').toLocaleString()} л</span>
                         </div>
                         
                         {/* Mass */}
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-4 h-4 bg-blue-500 rounded-full flex-shrink-0"></div>
+                          <div className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} bg-blue-500 rounded-full flex-shrink-0`}></div>
                           <span className="text-slate-400 truncate">Масса</span>
                           <span className="text-white font-medium ml-auto flex-shrink-0">{parseFloat(tank.apiData?.amount_begin || '0').toLocaleString()} кг</span>
                         </div>
@@ -972,9 +972,9 @@ export default function Tanks() {
                         {/* Status */}
                         <div className="flex items-center gap-2 min-w-0">
                           {tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? (
-                            <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
+                            <CheckCircle className={`${isMobile ? "h-3 w-3" : "h-4 w-4"} text-green-400 flex-shrink-0`} />
                           ) : (
-                            <XCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
+                            <XCircle className={`${isMobile ? "h-3 w-3" : "h-4 w-4"} text-red-400 flex-shrink-0`} />
                           )}
                           <span className="text-slate-400 truncate">Состояние</span>
                           <span className={`font-medium ml-auto flex-shrink-0 ${tank.apiData?.state === 'OK' || tank.apiData?.state === 1 ? 'text-green-400' : 'text-red-400'}`}>
@@ -986,8 +986,8 @@ export default function Tanks() {
                   </div>
 
                   {/* Данные от API СТС section с реальными данными */}
-                  <div className="mt-5 pt-4 border-t border-slate-700">
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-base">
+                  <div className={`${isMobile ? "mt-3 pt-3" : "mt-5 pt-4"} border-t border-slate-700`}>
+                    <div className={`grid grid-cols-2 gap-x-4 gap-y-2 ${isMobile ? "text-xs" : "text-base"}`}>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Объем нач:</span>
                         <span className="text-white font-medium">{parseFloat(tank.apiData?.volume_begin || '0').toLocaleString()} л</span>
@@ -1024,9 +1024,9 @@ export default function Tanks() {
                   </div>
 
                   {/* Notification indicator */}
-                  <div className="mt-4 flex justify-center">
-                    <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                      <Bell className="h-4 w-4 text-yellow-400" />
+                  <div className={`${isMobile ? "mt-2" : "mt-4"} flex justify-center`}>
+                    <div className={`${isMobile ? "w-6 h-6" : "w-8 h-8"} bg-yellow-500/20 rounded-full flex items-center justify-center`}>
+                      <Bell className={`${isMobile ? "h-3 w-3" : "h-4 w-4"} text-yellow-400`} />
                     </div>
                   </div>
                 </CardContent>

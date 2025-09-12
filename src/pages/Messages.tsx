@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { HelpButton } from "@/components/help/HelpButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,6 +145,7 @@ const mockTelegramBots: TelegramBotWithId[] = [
 ];
 
 export default function Messages() {
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   
@@ -333,7 +335,7 @@ export default function Messages() {
                 {selectedTradingPoint && ` - Точка: ${selectedTradingPoint.name}`}
               </p>
             </div>
-            <HelpButton route="/network/messages" variant="text" className="flex-shrink-0" />
+            <HelpButton route="/network/messages" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 

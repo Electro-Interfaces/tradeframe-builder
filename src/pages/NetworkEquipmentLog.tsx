@@ -506,7 +506,7 @@ export default function NetworkEquipmentLog() {
                 {networkInfo ? `${networkInfo.name} - Просмотр оборудования, компонентов и команд по всем торговым точкам` : 'Загрузка информации о сети...'}
               </p>
             </div>
-            <HelpButton route="/network/equipment-log" variant="text" className="flex-shrink-0" />
+            <HelpButton route="/network/equipment-log" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 

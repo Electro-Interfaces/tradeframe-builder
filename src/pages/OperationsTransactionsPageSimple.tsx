@@ -24,6 +24,9 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   const isMobile = useIsMobile();
+  
+  // Принудительный мобильный режим для тестирования
+  const isMobileForced = true;
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(false);
   
@@ -813,17 +816,17 @@ export default function OperationsTransactionsPageSimple() {
   };
 
   return (
-    <MainLayout>
-      <div className="p-6 space-y-6">
+    <MainLayout fullWidth={true}>
+      <div className={`${isMobileForced ? 'p-0 space-y-3' : 'p-6 space-y-6'} w-full report-full-width`}>
         {/* Фильтры */}
-        <Card className="bg-slate-900 border-slate-700">
-          <CardHeader>
-            <CardTitle className={`text-slate-200 flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
-              <span className={isMobile ? 'text-lg' : ''}>Операции и транзакции</span>
-              <div className={`flex ${isMobile ? 'gap-1 self-start' : 'gap-2'}`}>
-                {!isMobile && <HelpButton route="/network/operations-transactions" variant="text" className="flex-shrink-0" />}
+        <Card className={`bg-slate-800 border border-slate-700 rounded-lg ${isMobileForced ? 'mx-0' : ''}`}>
+          <CardHeader className={`${isMobileForced ? 'px-3 py-2' : ''}`}>
+            <CardTitle className={`text-slate-200 flex ${isMobileForced ? 'flex-col gap-1' : 'items-center justify-between'}`}>
+              <span className={isMobileForced ? 'text-lg' : ''}>Операции и транзакции</span>
+              <div className={`flex ${isMobileForced ? 'gap-1 self-start' : 'gap-2'}`}>
+                {!isMobileForced && <HelpButton route="/network/operations-transactions" variant="text" className="flex-shrink-0" />}
                 {/* STS API кнопка */}
-                {stsApiConfigured ? (
+                {!isMobileForced && stsApiConfigured ? (
                   <Button
                     onClick={loadFromStsApi}
                     disabled={loadingFromSTS}
@@ -839,7 +842,7 @@ export default function OperationsTransactionsPageSimple() {
                     </div>
                     {loadingFromSTS ? 'Обновление...' : (isMobile ? 'Обновить' : 'Обновить')}
                   </Button>
-                ) : (
+                ) : !isMobileForced && (
                   <Button
                     onClick={() => {
                       if (!isMobile) alert('STS API не настроен. Перейдите в Настройки → API СТС');
@@ -995,27 +998,27 @@ export default function OperationsTransactionsPageSimple() {
 
         {/* KPI по видам топлива */}
         {operations.length > 0 && (
-          <Card className="bg-slate-900 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-slate-200">Суммы по видам топлива</CardTitle>
+          <Card className={`bg-slate-800 border border-slate-700 rounded-lg ${isMobileForced ? 'mx-0' : ''}`}>
+            <CardHeader className={`${isMobileForced ? 'px-3 py-2' : ''}`}>
+              <CardTitle className={`text-slate-200 ${isMobileForced ? 'text-sm' : ''}`}>{isMobileForced ? 'Суммы топлива' : 'Суммы по видам топлива'}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'}`}>
+            <CardContent className={`${isMobileForced ? 'px-3 pb-3' : ''}`}>
+              <div className={`grid ${isMobileForced ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'}`}>
                 {[...new Set(filteredOperations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
                   const fuelOps = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
                   const volume = fuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
                   const revenue = fuelOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
                   
                   return (
-                    <Card key={fuel} className="bg-slate-800 border-slate-700">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-lg font-bold text-white">{fuel}</CardTitle>
-                        <Activity className="h-4 w-4 text-slate-400" />
+                    <Card key={fuel} className="bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200">
+                      <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-2'}`}>
+                        <CardTitle className={`${isMobileForced ? 'text-xs' : 'text-lg'} font-bold text-white`}>{fuel}</CardTitle>
+                        <Activity className={`${isMobileForced ? 'h-3 w-3' : 'h-4 w-4'} text-slate-400`} />
                       </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-white mb-2">{revenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽</div>
-                        <p className="text-lg font-semibold text-slate-300 mb-1">{fuelOps.length.toLocaleString('ru-RU')} операций</p>
-                        <p className="text-lg font-medium text-slate-300">{volume.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л</p>
+                      <CardContent className={isMobileForced ? 'px-3 pb-2 pt-0' : ''}>
+                        <div className={`${isMobileForced ? 'text-sm' : 'text-3xl'} font-bold text-white ${isMobileForced ? '' : 'mb-2'}`}>{revenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽</div>
+                        <p className={`${isMobileForced ? 'text-xs' : 'text-lg'} font-semibold text-slate-300 ${isMobileForced ? '' : 'mb-1'}`}>{fuelOps.length.toLocaleString('ru-RU')} оп.</p>
+                        <p className={`${isMobileForced ? 'text-xs' : 'text-lg'} font-medium text-slate-300`}>{volume.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л</p>
                       </CardContent>
                     </Card>
                   );
@@ -1028,15 +1031,15 @@ export default function OperationsTransactionsPageSimple() {
                   const totalRevenue = totalOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
                   
                   return (
-                    <Card className="bg-gradient-to-br from-blue-900 to-blue-800 border-blue-600 ring-2 ring-blue-500/30">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xl font-bold text-white">ИТОГО</CardTitle>
-                        <Activity className="h-5 w-5 text-blue-300" />
+                    <Card className="bg-gradient-to-br from-blue-900 to-blue-800 border-blue-600 ring-2 ring-blue-500/30 hover:shadow-xl transition-all duration-200">
+                      <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-2'}`}>
+                        <CardTitle className={`${isMobileForced ? 'text-sm' : 'text-xl'} font-bold text-white`}>ИТОГО</CardTitle>
+                        <Activity className={`${isMobileForced ? 'h-3 w-3' : 'h-5 w-5'} text-blue-300`} />
                       </CardHeader>
-                      <CardContent>
-                        <div className="text-4xl font-bold text-white mb-2">{totalRevenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽</div>
-                        <p className="text-xl font-semibold text-blue-200 mb-1">{totalOps.length.toLocaleString('ru-RU')} операций</p>
-                        <p className="text-xl font-bold text-blue-200">{totalVolume.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л</p>
+                      <CardContent className={isMobileForced ? 'px-3 pb-2 pt-0' : ''}>
+                        <div className={`${isMobileForced ? 'text-lg' : 'text-4xl'} font-bold text-white ${isMobileForced ? '' : 'mb-2'}`}>{totalRevenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽</div>
+                        <p className={`${isMobileForced ? 'text-xs' : 'text-xl'} font-semibold text-blue-200 ${isMobileForced ? '' : 'mb-1'}`}>{totalOps.length.toLocaleString('ru-RU')} оп.</p>
+                        <p className={`${isMobileForced ? 'text-xs' : 'text-xl'} font-bold text-blue-200`}>{totalVolume.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л</p>
                       </CardContent>
                     </Card>
                   );
@@ -1048,12 +1051,12 @@ export default function OperationsTransactionsPageSimple() {
 
         {/* KPI по видам оплаты */}
         {operations.length > 0 && (
-          <Card className="bg-slate-900 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-slate-200">Суммы по видам оплаты</CardTitle>
+          <Card className={`bg-slate-800 border border-slate-700 rounded-lg ${isMobileForced ? 'mx-0' : ''}`}>
+            <CardHeader className={`${isMobileForced ? 'px-3 py-2' : ''}`}>
+              <CardTitle className={`text-slate-200 ${isMobileForced ? 'text-sm' : ''}`}>{isMobileForced ? 'Суммы оплат' : 'Суммы по видам оплаты'}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'}`}>
+            <CardContent className={`${isMobileForced ? 'px-3 pb-3' : ''}`}>
+              <div className={`grid ${isMobileForced ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'}`}>
                 {['cash', 'bank_card', 'fuel_card', 'online_order']
                   .map(paymentMethod => {
                     const paymentOps = filteredOperations.filter(op => op.paymentMethod === paymentMethod && op.status === 'completed');
@@ -1070,14 +1073,14 @@ export default function OperationsTransactionsPageSimple() {
                     }[paymentMethod];
                     
                     return (
-                    <Card key={paymentMethod} className="bg-slate-800 border-slate-700">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-200">{displayName}</CardTitle>
-                        <Activity className="h-4 w-4 text-slate-400" />
+                    <Card key={paymentMethod} className="bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200">
+                      <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-2'}`}>
+                        <CardTitle className={`${isMobileForced ? 'text-xs' : 'text-sm'} font-medium text-slate-200`}>{displayName}</CardTitle>
+                        <Activity className={`${isMobileForced ? 'h-3 w-3' : 'h-4 w-4'} text-slate-400`} />
                       </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold text-white">{revenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽</div>
-                        <p className="text-xs text-blue-400">{paymentOps.length.toLocaleString('ru-RU')} операций</p>
+                      <CardContent className={isMobileForced ? 'px-3 pb-2 pt-0' : ''}>
+                        <div className={`${isMobileForced ? 'text-sm' : 'text-2xl'} font-bold text-white`}>{revenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽</div>
+                        <p className="text-xs text-blue-400">{paymentOps.length.toLocaleString('ru-RU')} оп.</p>
                       </CardContent>
                     </Card>
                   );
@@ -1088,18 +1091,18 @@ export default function OperationsTransactionsPageSimple() {
         )}
 
         {/* Таблица операций */}
-        <Card className="bg-slate-900 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-slate-200">Текущие операции</CardTitle>
-            <p className="text-slate-400">{filteredOperations.length} операций</p>
+        <Card className={`bg-slate-800 border border-slate-700 rounded-lg ${isMobileForced ? 'mx-0' : ''}`}>
+          <CardHeader className={`${isMobileForced ? 'px-3 py-2' : ''}`}>
+            <CardTitle className={`text-slate-200 ${isMobileForced ? 'text-sm' : ''}`}>Текущие операции</CardTitle>
+            <p className={`text-slate-400 ${isMobileForced ? 'text-xs' : ''}`}>{filteredOperations.length} операций</p>
           </CardHeader>
-          <CardContent>
-            {isMobile ? (
+          <CardContent className={`${isMobileForced ? 'px-0 pb-3' : ''}`}>
+            {isMobileForced ? (
               // Mobile card layout
-              <div className="space-y-4">
+              <div className="space-y-2 px-3">
                 {filteredOperations.slice(0, 20).map((record) => (
-                  <Card key={record.id} className={`bg-slate-800 border-slate-700 ${record.isFromStsApi ? 'border-blue-800/50 bg-blue-950/20' : ''}`}>
-                    <CardHeader className="pb-3">
+                  <Card key={record.id} className={`bg-slate-700 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors ${record.isFromStsApi ? 'border-blue-800/50 bg-blue-950/20' : ''}`}>
+                    <CardHeader className={`${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-3'}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {record.isFromStsApi && (
@@ -1113,13 +1116,13 @@ export default function OperationsTransactionsPageSimple() {
                       </div>
                       <div className="text-xs text-slate-400 mt-1 font-mono">{record.id}</div>
                     </CardHeader>
-                    <CardContent className="pt-0 space-y-3">
-                      <div className="flex justify-between text-sm">
+                    <CardContent className={`${isMobileForced ? 'pt-0 px-3 pb-2 space-y-1' : 'pt-0 space-y-3'}`}>
+                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
                         <span className="text-slate-400">Номер ТО:</span>
                         <span className="text-white">{record.toNumber || '-'}</span>
                       </div>
                       
-                      <div className="flex justify-between text-sm">
+                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
                         <span className="text-slate-400">Время начала:</span>
                         <span className="text-white font-mono">
                           {new Date(record.startTime).toLocaleString('ru-RU', {
@@ -1131,12 +1134,12 @@ export default function OperationsTransactionsPageSimple() {
                         </span>
                       </div>
                       
-                      <div className="flex justify-between text-sm">
+                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
                         <span className="text-slate-400">Вид топлива:</span>
                         <span className="text-white">{record.fuelType || '-'}</span>
                       </div>
                       
-                      <div className="flex justify-between text-sm">
+                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
                         <span className="text-slate-400">Количество:</span>
                         <span className="text-white font-mono">
                           {record.actualQuantity ? `${record.actualQuantity.toFixed(2)} л` : 
@@ -1144,14 +1147,14 @@ export default function OperationsTransactionsPageSimple() {
                         </span>
                       </div>
                       
-                      <div className="flex justify-between text-sm">
+                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
                         <span className="text-slate-400">Цена:</span>
                         <span className="text-white font-mono">
                           {record.price ? `${record.price.toFixed(2)} ₽/л` : '-'}
                         </span>
                       </div>
                       
-                      <div className="flex justify-between text-sm">
+                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
                         <span className="text-slate-400">Сумма:</span>
                         <span className="text-white font-mono font-bold">
                           {record.actualAmount ? `${record.actualAmount.toFixed(2)} ₽` : 
@@ -1159,7 +1162,7 @@ export default function OperationsTransactionsPageSimple() {
                         </span>
                       </div>
                       
-                      <div className="flex justify-between text-sm">
+                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
                         <span className="text-slate-400">Вид оплаты:</span>
                         <span className="text-white">
                           {{

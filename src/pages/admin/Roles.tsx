@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { externalRolesService } from '@/services/externalRolesService'
+import { useIsMobile } from "@/hooks/use-mobile";
 import { HelpButton } from "@/components/help/HelpButton"
 import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from '@/components/data-source/DataSourceIndicator'
 import type { Role } from '@/types/auth'
@@ -29,6 +30,7 @@ import { PredefinedRolesCreator } from '@/components/admin/roles/PredefinedRoles
 
 export default function RolesPage() {
   const { hasExternalDatabase } = useDataSourceInfo()
+  const isMobile = useIsMobile();
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
@@ -128,7 +130,7 @@ export default function RolesPage() {
                 />
               </div>
             </div>
-            <HelpButton route="/admin/roles" variant="text" className="flex-shrink-0" />
+            <HelpButton route="/admin/roles" variant="text" size="sm" className="flex-shrink-0" />
           </div>
         </div>
 

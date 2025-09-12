@@ -46,8 +46,7 @@ export function HelpButton({
           onClick={handleClick}
           className={`bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white ${className}`}
         >
-          <HelpCircle className="w-4 h-4 mr-2" />
-          Инструкции
+          <HelpCircle className="w-4 h-4" />
         </Button>
         
         <InstructionModal 

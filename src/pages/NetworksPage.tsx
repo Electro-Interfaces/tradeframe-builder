@@ -396,7 +396,7 @@ export default function NetworksPage() {
       <div className="mb-6 pt-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-white">Настройки сетей и торговых точек</h1>
-          <HelpButton route="/admin/networks" variant="text" className="flex-shrink-0" />
+          <HelpButton route="/admin/networks" variant="text" size="sm" className="flex-shrink-0" />
         </div>
       </div>
 

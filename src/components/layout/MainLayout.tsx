@@ -125,7 +125,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
             )}
             
             <main className="flex-1 min-w-0 w-full max-w-none">
-              <div className={fullWidth ? "w-full max-w-none" : "px-4 md:px-6 lg:px-8 w-full max-w-none"}>
+              <div className={fullWidth ? "w-full max-w-none" : "px-0 md:px-6 lg:px-8 w-full max-w-none"}>
                 {children}
               </div>
             </main>
@@ -155,7 +155,7 @@ export function SimpleLayout({ children }: { children: React.ReactNode }) {
     <>
       <header className="h-16 bg-slate-900 border-b border-slate-700 flex items-center px-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-white">TradeControl</h1>
+          <h1 className="text-lg font-semibold text-white">TradeFrame</h1>
         </div>
       </header>
       <main className="w-full px-4 md:px-6 lg:px-8">

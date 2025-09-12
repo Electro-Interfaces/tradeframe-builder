@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { stsApiService, TerminalInfo, Tank } from "@/services/stsApi";
 import { MobileButton } from "@/components/ui/mobile-button";
 import { MobileTable } from "@/components/ui/mobile-table";
+import { HelpButton } from "@/components/help/HelpButton";
 import { 
   Settings, 
   AlertCircle, 
@@ -166,10 +167,14 @@ export default function Equipment() {
       const equipmentItems = mapTerminalInfoToEquipment(terminalInfoData);
       setTerminalEquipment(equipmentItems);
 
-      toast({
-        title: "Данные загружены",
-        description: "Информация об оборудовании успешно получена от СТС"
-      });
+      // Показываем уведомление только на десктопе
+      const checkIsMobile = window.innerWidth < 768;
+      if (!checkIsMobile) {
+        toast({
+          title: "Данные загружены",
+          description: "Информация об оборудовании успешно получена от СТС"
+        });
+      }
     } catch (error) {
       console.error('Ошибка загрузки данных оборудования:', error);
       toast({
@@ -328,46 +333,52 @@ export default function Equipment() {
       <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
+          <div className={`flex ${isMobile ? "items-center justify-between" : "items-center justify-between"}`}>
+            <div className={`${isMobile ? "flex-1" : ""}`}>
+              <h1 className={`${isMobile ? "text-xl" : "text-2xl"} font-semibold text-white`}>
+                Оборудование
+              </h1>
               <p className="text-slate-400 mt-1 hidden md:block">{selectedNetwork?.name || 'БТО АЗС №4'}</p>
             </div>
             <div className="flex items-center gap-2">
-              <MobileButton
-                variant="outline"
-                onClick={handleRefresh}
-                disabled={loading}
-                className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                <span className="hidden md:inline ml-2">Обновить STS данные</span>
-                <span className="md:hidden ml-2">STS</span>
-              </MobileButton>
+              {!isMobile && (
+                <MobileButton
+                  variant="outline"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  <span className="ml-2">Обновить STS данные</span>
+                </MobileButton>
+              )}
+              <HelpButton route="/admin/equipment" variant="text" size="sm" className="flex-shrink-0" />
             </div>
           </div>
         </div>
 
         {/* Терминальное оборудование */}
         <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
+          <CardHeader className={`${isMobile ? "pb-3" : "pb-4"}`}>
+            <div className={`flex ${isMobile ? "flex-col gap-2" : "items-center justify-between"}`}>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <Settings className="w-4 h-4 text-white" />
+                <div className={`${isMobile ? "w-6 h-6" : "w-8 h-8"} bg-blue-600 rounded-full flex items-center justify-center`}>
+                  <Settings className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} text-white`} />
                 </div>
                 <div>
-                  <CardTitle className="text-white">Терминальное оборудование</CardTitle>
-                  <p className="text-sm text-slate-400 mt-1">8 ед.</p>
+                  <CardTitle className={`text-white ${isMobile ? "text-base" : ""}`}>Терминальное оборудование</CardTitle>
+                  <p className={`text-slate-400 mt-1 ${isMobile ? "text-xs" : "text-sm"}`}>8 ед.</p>
                 </div>
               </div>
-              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                <Settings className="w-4 h-4" />
-              </Button>
+              {!isMobile && (
+                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                  <Settings className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -380,43 +391,43 @@ export default function Equipment() {
                 <div className="space-y-6">
                   {/* Купюроприемник - отдельная большая карточка */}
                   {billAcceptor && (
-                    <div className="bg-slate-700 rounded-lg p-6 border border-slate-600 hover:border-slate-500 transition-colors">
-                      <div className="flex items-center justify-between">
+                    <div className={`bg-slate-700 rounded-lg ${isMobile ? "p-4" : "p-6"} border border-slate-600 hover:border-slate-500 transition-colors`}>
+                      <div className={`flex ${isMobile ? "flex-col gap-4" : "items-center justify-between"}`}>
                         {/* Название и ID */}
                         <div className="flex items-center gap-3">
-                          <Banknote className="w-6 h-6 text-green-400" />
+                          <Banknote className={`${isMobile ? "w-5 h-5" : "w-6 h-6"} text-green-400`} />
                           <div>
-                            <h3 className="text-lg font-semibold text-white">{billAcceptor.name}</h3>
-                            <p className="text-sm text-slate-400">{billAcceptor.location}</p>
+                            <h3 className={`${isMobile ? "text-base" : "text-lg"} font-semibold text-white`}>{billAcceptor.name}</h3>
+                            <p className={`${isMobile ? "text-xs" : "text-sm"} text-slate-400`}>{billAcceptor.location}</p>
                           </div>
                         </div>
                         
                         {/* Данные и статус */}
-                        <div className="flex items-center gap-8">
+                        <div className={`flex items-center ${isMobile ? "justify-between" : "gap-8"}`}>
                           {/* Количество купюр */}
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-green-400">
+                            <div className={`${isMobile ? "text-xl" : "text-3xl"} font-bold text-green-400`}>
                               {billAcceptor.billCount || 0}
                             </div>
-                            <div className="text-sm text-slate-300">купюр</div>
+                            <div className={`${isMobile ? "text-xs" : "text-sm"} text-slate-300`}>купюр</div>
                           </div>
                           
                           {/* Сумма */}
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-blue-400">
+                            <div className={`${isMobile ? "text-xl" : "text-3xl"} font-bold text-blue-400`}>
                               {(billAcceptor.billAmount || 0).toLocaleString()}
                             </div>
-                            <div className="text-sm text-slate-300">₽</div>
+                            <div className={`${isMobile ? "text-xs" : "text-sm"} text-slate-300`}>₽</div>
                           </div>
                           
                           {/* Статус */}
                           <div className="flex flex-col items-center gap-2">
-                            {getStatusIcon(billAcceptor.status)}
+                            {getStatusIcon(billAcceptor.status, isMobile ? "w-4 h-4" : "w-5 h-5")}
                             <Badge 
                               className={`${
                                 billAcceptor.status === 'online' 
-                                  ? 'bg-green-600 text-white hover:bg-green-700 text-base px-3 py-1 font-semibold' 
-                                  : 'bg-red-600 text-white hover:bg-red-700 text-base px-3 py-1 font-semibold'
+                                  ? `bg-green-600 text-white hover:bg-green-700 ${isMobile ? "text-xs px-2 py-1" : "text-base px-3 py-1"} font-semibold` 
+                                  : `bg-red-600 text-white hover:bg-red-700 ${isMobile ? "text-xs px-2 py-1" : "text-base px-3 py-1"} font-semibold`
                               }`}
                             >
                               {billAcceptor.statusText}
@@ -432,23 +443,23 @@ export default function Equipment() {
                     {otherEquipment.map((equipment) => (
                       <div
                         key={equipment.id}
-                        className="bg-slate-700 rounded-lg p-4 border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
+                        className={`bg-slate-700 rounded-lg ${isMobile ? "p-3" : "p-4"} border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer`}
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-white">{equipment.name}</span>
-                          {getStatusIcon(equipment.status)}
+                          <span className={`${isMobile ? "text-xs" : "text-sm"} font-medium text-white`}>{equipment.name}</span>
+                          {getStatusIcon(equipment.status, isMobile ? "w-3 h-3" : "w-4 h-4")}
                         </div>
                         
                         <div className="space-y-1">
-                          <div className="text-xs text-slate-300">{equipment.code}</div>
+                          <div className={`${isMobile ? "text-xs" : "text-xs"} text-slate-300`}>{equipment.code}</div>
                           {equipment.location && (
-                            <div className="text-xs text-slate-400">{equipment.location}</div>
+                            <div className={`${isMobile ? "text-xs" : "text-xs"} text-slate-400 truncate`}>{equipment.location}</div>
                           )}
                         </div>
                         
-                        <div className="mt-3">
+                        <div className={`${isMobile ? "mt-2" : "mt-3"}`}>
                           <Badge 
-                            className={`text-xs font-semibold ${
+                            className={`${isMobile ? "text-xs px-1.5 py-0.5" : "text-xs px-2 py-1"} font-semibold ${
                               equipment.status === 'online' && equipment.statusText === 'Готов'
                                 ? 'bg-green-600 text-white hover:bg-green-700'
                                 : equipment.status === 'online'
@@ -470,20 +481,22 @@ export default function Equipment() {
 
         {/* Резервуары */}
         <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
+          <CardHeader className={`${isMobile ? "pb-3" : "pb-4"}`}>
+            <div className={`flex ${isMobile ? "flex-col gap-2" : "items-center justify-between"}`}>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                  <Database className="w-4 h-4 text-white" />
+                <div className={`${isMobile ? "w-6 h-6" : "w-8 h-8"} bg-green-600 rounded-full flex items-center justify-center`}>
+                  <Database className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} text-white`} />
                 </div>
                 <div>
-                  <CardTitle className="text-white">Резервуары</CardTitle>
-                  <p className="text-sm text-slate-400 mt-1 hidden md:block">Всего резервуаров: 3</p>
+                  <CardTitle className={`text-white ${isMobile ? "text-base" : ""}`}>Резервуары</CardTitle>
+                  <p className={`text-slate-400 mt-1 ${isMobile ? "text-xs" : "text-sm hidden md:block"}`}>Всего резервуаров: 3</p>
                 </div>
               </div>
-              <Button size="sm" variant="outline" className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white">
-                Обновить
-              </Button>
+              {!isMobile && (
+                <Button size="sm" variant="outline" className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white">
+                  Обновить
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -585,16 +598,16 @@ export default function Equipment() {
                 const tankStatus = fillLevel < tank.criticalLevelPercent ? 'critical' : fillLevel < tank.minLevelPercent ? 'warning' : 'normal';
                 
                 return (
-                  <div key={tank.id} className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+                  <div key={tank.id} className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
                     {/* Tank Header */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <Database className="w-5 h-5 text-green-500" />
-                        <span className="text-white font-medium text-lg">{tank.name}</span>
+                        <Database className="w-4 h-4 text-green-500" />
+                        <span className="text-white font-medium text-base">{tank.name}</span>
                       </div>
                       <Badge 
                         variant={tankStatus === 'normal' ? 'default' : 'secondary'}
-                        className={`${
+                        className={`text-xs px-2 py-1 ${
                           tankStatus === 'normal' 
                             ? 'bg-blue-600 text-white hover:bg-blue-700' 
                             : tankStatus === 'warning'
@@ -607,20 +620,20 @@ export default function Equipment() {
                     </div>
 
                     {/* Fuel Type */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <Fuel className="w-4 h-4 text-blue-400" />
-                      <span className="text-slate-300 font-medium">{tank.fuelType}</span>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Fuel className="w-3 h-3 text-blue-400" />
+                      <span className="text-slate-300 font-medium text-sm">{tank.fuelType}</span>
                     </div>
 
                     {/* Fill Level Progress */}
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-slate-400">Заполнение</span>
-                        <span className="text-sm text-white font-medium">{Math.round(fillLevel)}%</span>
+                    <div className="mb-3">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs text-slate-400">Заполнение</span>
+                        <span className="text-xs text-white font-medium">{Math.round(fillLevel)}%</span>
                       </div>
-                      <div className="w-full bg-slate-600 rounded-full h-3">
+                      <div className="w-full bg-slate-600 rounded-full h-2">
                         <div 
-                          className={`h-3 rounded-full transition-all ${getFillLevelColor(fillLevel)}`}
+                          className={`h-2 rounded-full transition-all ${getFillLevelColor(fillLevel)}`}
                           style={{ width: `${Math.max(fillLevel, 2)}%` }}
                         />
                       </div>
@@ -631,19 +644,19 @@ export default function Equipment() {
                     </div>
 
                     {/* Temperature and Water */}
-                    <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div className="grid grid-cols-2 gap-3 mb-2">
                       <div className="flex items-center gap-2">
-                        <Thermometer className="w-4 h-4 text-blue-400" />
+                        <Thermometer className="w-3 h-3 text-blue-400" />
                         <div>
                           <div className="text-xs text-slate-400">Температура</div>
-                          <div className="text-sm text-white font-medium">{tank.temperature}°C</div>
+                          <div className="text-xs text-white font-medium">{tank.temperature}°C</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-blue-400 rounded-full" />
+                        <div className="w-3 h-3 bg-blue-400 rounded-full" />
                         <div>
                           <div className="text-xs text-slate-400">Вода</div>
-                          <div className="text-sm text-white font-medium">{tank.waterLevelMm} мм</div>
+                          <div className="text-xs text-white font-medium">{tank.waterLevelMm} мм</div>
                         </div>
                       </div>
                     </div>
