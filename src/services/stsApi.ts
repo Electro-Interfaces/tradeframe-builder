@@ -1452,6 +1452,11 @@ class STSApiService {
       case 'online':
       case 'online_order':
       case 'digital':
+      case 'мобил.п':      // Добавляем "Мобил.П" из реальных данных STS API
+      case 'мобильная':
+      case 'мобильная оплата':
+      case 'mobile':
+      case 'mobile_payment':
         return 'online_order';
       default:
         return 'cash'; // по умолчанию наличные
