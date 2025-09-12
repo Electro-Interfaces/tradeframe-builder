@@ -21,7 +21,8 @@ import {
   Fuel,
   Database,
   Banknote,
-  CreditCard
+  CreditCard,
+  HelpCircle
 } from "lucide-react";
 
 interface TerminalEquipmentItem {
@@ -331,35 +332,44 @@ export default function Equipment() {
   return (
     <MainLayout fullWidth={true}>
       <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
-        {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
-          <div className={`flex ${isMobile ? "items-center justify-between" : "items-center justify-between"}`}>
-            <div className={`${isMobile ? "flex-1" : ""}`}>
-              <h1 className={`${isMobile ? "text-xl" : "text-2xl"} font-semibold text-white`}>
-                Оборудование
-              </h1>
-              <p className="text-slate-400 mt-1 hidden md:block">{selectedNetwork?.name || 'БТО АЗС №4'}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {!isMobile && (
-                <MobileButton
-                  variant="outline"
+        {/* Premium Header Card */}
+        <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30">
+            <CardTitle className="text-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
+                <div className="flex flex-col">
+                  <span className="text-3xl font-bold text-white leading-tight">Оборудование</span>
+                  <span className="text-slate-400 text-sm font-medium">Управление оборудованием торговой точки</span>
+                </div>
+              </div>
+              <div className="flex gap-4 items-center">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-gradient-to-r from-slate-700 to-slate-800 border-slate-600 text-slate-300 hover:from-slate-800 hover:to-slate-900 hover:border-slate-500 hover:text-white shadow-lg backdrop-blur-sm"
+                >
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  Инструкция
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={handleRefresh}
                   disabled={loading}
-                  className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                  className="bg-gradient-to-r from-green-600 to-green-700 border-green-600 text-white hover:from-green-700 hover:to-green-800 hover:border-green-700 shadow-lg backdrop-blur-sm"
                 >
                   {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   ) : (
-                    <RefreshCw className="w-4 h-4" />
+                    <RefreshCw className="w-4 h-4 mr-2" />
                   )}
-                  <span className="ml-2">Обновить STS данные</span>
-                </MobileButton>
-              )}
-              <HelpButton route="/admin/equipment" variant="text" size="sm" className="flex-shrink-0" />
-            </div>
-          </div>
-        </div>
+                  Обновить STS данные
+                </Button>
+              </div>
+            </CardTitle>
+          </CardHeader>
+        </Card>
 
         {/* Терминальное оборудование */}
         <Card className="bg-slate-800 border-slate-700">

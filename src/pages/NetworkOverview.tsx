@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/context/SelectionContext";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { DollarSign, Users, Fuel, Monitor, CreditCard, Loader2, RefreshCw, Activity, Calendar, Download } from "lucide-react";
+import { DollarSign, Users, Fuel, Monitor, CreditCard, Loader2, RefreshCw, Activity, Calendar, Download, HelpCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1290,93 +1290,122 @@ export default function NetworkOverview() {
     <MainLayout fullWidth={true}>
       <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
-          <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
-          <p className="text-slate-400 mt-2">Общая информация и аналитика по торговой сети</p>
-        </div>
+        <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm ${isMobile ? 'mx-0' : ''} overflow-hidden`}>
+          <CardHeader className={`${isMobile ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
+            <CardTitle className={`text-slate-100 flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
+                <div className="flex flex-col">
+                  <span className={`${isMobile ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Обзор сети</span>
+                  <span className="text-slate-400 text-sm font-medium">Общая информация и аналитика по торговой сети</span>
+                </div>
+              </div>
+              
+              <div className={`flex ${isMobile ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
+                {!isMobile && (
+                  <Button
+                    onClick={() => window.open('/help/network-overview', '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-5 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Инструкция
+                  </Button>
+                )}
+                
+                {/* Кнопка экспорта */}
+                {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
+                  <Button
+                    onClick={exportToExcel}
+                    disabled={loading}
+                    size="sm"
+                    className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium"
+                    title="Экспортировать данные в Excel"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Экспорт в Excel
+                  </Button>
+                )}
+                
+                {/* Кнопка обновления данных */}
+                {!initializing && selectedNetwork && (
+                  <Button
+                    onClick={loadTransactions}
+                    disabled={loading}
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
+                  >
+                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </div>
+                    {loading ? 'Загрузка...' : 'Обновить данные'}
+                  </Button>
+                )}
+              </div>
+            </CardTitle>
+          </CardHeader>
+        </Card>
 
         <div className="space-y-6">
 
-        {/* Кнопки управления - скрыты на мобильных устройствах */}
-        {!initializing && selectedNetwork && !isMobile && (
-          <div className="flex justify-end items-center">
-            <div className="flex gap-2">
-              <Button
-                onClick={exportToExcel}
-                disabled={loading || filteredTransactions.length === 0}
-                className="bg-green-600 hover:bg-green-700 text-white flex items-center"
-                title="Экспортировать данные в Excel"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Экспорт в Excel
-              </Button>
-              <Button
-                onClick={loadTransactions}
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center"
-              >
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4" />
-                  )}
-                </div>
-                {loading ? 'Загрузка...' : 'Обновить данные'}
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* Фильтры - только если выбрана сеть */}
         {!initializing && selectedNetwork && (
-          <div className={`bg-slate-800 border border-slate-600 rounded-lg ${isMobile ? 'p-4' : 'p-6'}`}>
-            <div className={`flex items-center gap-3 ${isMobile ? 'mb-3' : 'mb-4'}`}>
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-sm">⚙️</span>
-              </div>
-              <h2 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white`}>Фильтры анализа</h2>
-            </div>
-            
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-3 gap-4'}`}>
-              {/* Дата начала */}
-              <div>
-                <Label htmlFor="dateFrom" className="text-slate-300 text-sm font-medium">Дата с</Label>
-                <div className="relative">
-                  <Input
-                    id="dateFrom"
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="bg-slate-800 border-slate-700 text-slate-200 h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                  />
-                  <Calendar 
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-200 hover:text-blue-400 transition-colors pointer-events-none" 
-                  />
+          <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobile ? 'mx-0' : ''}`}>
+            <CardContent className={`${isMobile ? 'px-4 py-4' : 'px-6 py-4'}`}>
+              <div className={`flex items-center gap-3 ${isMobile ? 'mb-4' : 'mb-6'}`}>
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+                  <span className="text-white text-sm">⚙️</span>
                 </div>
+                <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold text-white`}>Фильтры анализа</h2>
               </div>
               
-              {/* Дата окончания */}
-              <div>
-                <Label htmlFor="dateTo" className="text-slate-300 text-sm font-medium">Дата по</Label>
-                <div className="relative">
-                  <Input
-                    id="dateTo"
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="bg-slate-800 border-slate-700 text-slate-200 h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                  />
-                  <Calendar 
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-200 hover:text-blue-400 transition-colors pointer-events-none" 
-                  />
-                </div>
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-2 gap-6'}`}>
+                {/* Дата начала */}
+                <Card className="bg-slate-800 border-slate-600">
+                  <CardContent className="p-4">
+                    <Label htmlFor="dateFrom" className="text-slate-300 text-sm font-medium mb-2 block">Дата с</Label>
+                    <div className="relative">
+                      <Input
+                        id="dateFrom"
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 focus:border-blue-500 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      />
+                      <Calendar 
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none" 
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Дата окончания */}
+                <Card className="bg-slate-800 border-slate-600">
+                  <CardContent className="p-4">
+                    <Label htmlFor="dateTo" className="text-slate-300 text-sm font-medium mb-2 block">Дата по</Label>
+                    <div className="relative">
+                      <Input
+                        id="dateTo"
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 focus:border-blue-500 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      />
+                      <Calendar 
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none" 
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
-
 
         {/* Статистика по видам топлива */}
         {!initializing && selectedNetwork && fuelTypeStats.length > 0 && (
@@ -1474,20 +1503,6 @@ export default function NetworkOverview() {
           </div>
         )}
 
-        {/* Кнопка экспорта для мобильных устройств */}
-        {!initializing && selectedNetwork && isMobile && filteredTransactions.length > 0 && (
-          <div className="flex justify-center">
-            <Button
-              onClick={exportToExcel}
-              disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white flex items-center"
-              title="Экспортировать данные в Excel"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Экспорт в Excel
-            </Button>
-          </div>
-        )}
 
         {/* График реализации по дням с разбивкой по топливу */}
         {!initializing && selectedNetwork && transactions.length > 0 && (

@@ -190,8 +190,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         if (typeof window !== 'undefined') {
           // Проверяем есть ли сохраненная сессия
-          const savedUser = localStorage.getItem('currentUser');
-          const authToken = localStorage.getItem('auth_token');
+          const savedUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
+          const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
           console.log('🔍 AuthProvider: localStorage check - savedUser exists:', !!savedUser, 'authToken exists:', !!authToken);
           
           if (savedUser && authToken) {
@@ -201,6 +201,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 console.warn('🚫 Corrupted localStorage data detected, clearing...');
                 localStorage.removeItem('currentUser');
                 localStorage.removeItem('auth_token');
+                localStorage.removeItem('tradeframe_user');
+                localStorage.removeItem('authToken');
                 setUser(null);
                 return;
               }
@@ -217,6 +219,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
               console.log('🧹 Clearing corrupted localStorage data');
               localStorage.removeItem('currentUser');
               localStorage.removeItem('auth_token');
+              localStorage.removeItem('tradeframe_user');
+              localStorage.removeItem('authToken');
               setUser(null);
             }
           } else {
@@ -235,6 +239,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('currentUser');
           localStorage.removeItem('auth_token');
+          localStorage.removeItem('tradeframe_user');
+          localStorage.removeItem('authToken');
         }
       } finally {
         setLoading(false);
@@ -414,6 +420,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('currentUser');
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('tradeframe_user');
+        localStorage.removeItem('authToken');
         console.log('🧹 Cleared localStorage on logout');
       }
     } catch (error: any) {
@@ -423,6 +431,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('currentUser');
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('tradeframe_user');
+        localStorage.removeItem('authToken');
         console.log('🧹 Force cleared localStorage after error');
       }
     }
@@ -456,14 +466,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(updatedUser);
           
           if (typeof window !== 'undefined') {
-            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+            localStorage.setItem('tradeframe_user', JSON.stringify(updatedUser));
+            localStorage.setItem('authToken', 'database_session');
           }
         } else {
           // Fallback: просто обновляем lastLogin
           const updatedUser = { ...user, lastLogin: new Date().toISOString() };
           setUser(updatedUser);
           if (typeof window !== 'undefined') {
-            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+            localStorage.setItem('tradeframe_user', JSON.stringify(updatedUser));
+            localStorage.setItem('authToken', 'database_session');
           }
         }
       }

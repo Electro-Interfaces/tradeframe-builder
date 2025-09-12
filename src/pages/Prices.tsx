@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,7 +38,8 @@ import {
   Upload,
   AlertTriangle,
   Save,
-  X
+  X,
+  HelpCircle
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HelpButton } from "@/components/help/HelpButton";
@@ -305,7 +307,8 @@ export default function Prices() {
         hasSelectedTradingPoint: !!selectedTradingPoint,
         currentSource,
         pricesCount: currentPrices.length,
-        initialLoadTriggered
+        initialLoadTriggered,
+        loadingFromSTSAPI // Добавляем состояние загрузки в логи
       });
 
       // Резервный запуск только если STS настроен, селекторы готовы, и цены не из STS API
@@ -322,8 +325,9 @@ export default function Prices() {
         currentSource
       });
       
+      // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: добавляем проверку на текущую загрузку чтобы избежать двойной загрузки
       if (isConfigured && selectedTradingPoint && selectedTradingPoint !== 'all' && 
-          selectorsReady && currentSource !== 'sts-api') {
+          selectorsReady && currentSource !== 'sts-api' && !loadingFromSTSAPI) {
         console.log('🚀 РЕЗЕРВНЫЙ запуск STS API!');
         setStsApiConfigured(true);
         loadPricesFromSTSAPI();
@@ -334,17 +338,22 @@ export default function Prices() {
             configNotReady: !isConfigured,
             tradingPointNotSelected: !selectedTradingPoint || selectedTradingPoint === 'all',
             selectorsNotReady: !selectorsReady,
-            alreadyFromSTS: currentSource === 'sts-api'
+            alreadyFromSTS: currentSource === 'sts-api',
+            alreadyLoading: loadingFromSTSAPI // Добавляем причину блокировки
           }
         });
-        setIsInitialLoading(false);
+        
+        // Только сбрасываем loading если не идет активная загрузка
+        if (!loadingFromSTSAPI) {
+          setIsInitialLoading(false);
+        }
       }
       
       setPageReady(true);
     }, 1500); // Увеличиваем время до 1.5 сек
 
     return () => clearTimeout(timer);
-  }, []); // Запускаем только один раз при монтировании
+  }, [loadingFromSTSAPI]); // Добавляем зависимость от состояния загрузки
 
   // Проверяем настройку внешнего API при инициализации
   useEffect(() => {
@@ -972,103 +981,70 @@ export default function Prices() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className={`w-full h-full ${isMobile ? 'px-2' : 'px-4 md:px-6 lg:px-8'}`}>
+      <div className={`w-full space-y-6 ${isMobile ? 'px-2 py-4' : 'px-4 md:px-6 lg:px-8 py-6'}`}>
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
-          <div className={`flex items-start justify-between ${isMobile ? 'items-center' : ''}`}>
-            <div className={isMobile ? 'flex-1' : ''}>
-              <div className={`flex items-center ${isMobile ? 'justify-between' : 'flex-col items-start'}`}>
-                <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-semibold text-white`}>Цены</h1>
-                {isMobile && (
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      onClick={handleCreatePrice}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      size="sm"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Новая цена
-                    </Button>
-                    <HelpButton route="/point/prices" variant="text" size="sm" className="flex-shrink-0" />
-                  </div>
-                )}
-              </div>
-              <p className="text-slate-400 mt-2 hidden md:block">Управление ценами на топливо с отложенным применением и журналом изменений</p>
-              <div className="mt-3 hidden md:block">
-                <DataSourceIndicator 
-                  sources={[
-                    { 
-                      type: dataSourceType === 'external-api' ? 'external-database' : 
-                           dataSourceType === 'sts-api' ? 'local-api' : 'cache', 
-                      label: dataSourceType === 'external-api' ? 'Внешняя БД' : 
-                            dataSourceType === 'sts-api' ? 'STS API' : 'Кэш цен', 
-                      description: dataSourceType === 'external-api' ? 'Цены из внешней базы данных' : 
-                                  dataSourceType === 'sts-api' ? 'Данные из API СТС pos.autooplata.ru' : 'Локально кешированные цены',
-                      connected: dataSourceType === 'external-api' ? hasExternalDatabase : dataSourceType === 'sts-api' ? stsApiConfigured : true,
-                      count: currentPrices.length
-                    }
-                  ] as DataSourceInfo[]} 
-                />
-              </div>
-            </div>
-            {!isMobile && (
-              <HelpButton route="/point/prices" variant="text" className="ml-4 flex-shrink-0" />
-            )}
-          </div>
-        </div>
-
-{!isMobile && (
-          /* Полная панель управления для десктопа */
-          <div className="bg-slate-800 mb-6 w-full rounded-lg">
-            <div className="px-4 md:px-6 py-4">
-              <div className="flex items-center justify-between flex-row">
-                <div className="flex items-center gap-3 flex-row">
-                  <div className="flex items-center gap-3 flex-row">
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-sm">💰</span>
-                    </div>
-                    <h2 className="font-semibold text-white text-lg">Текущие цены</h2>
-                  </div>
-                  <div className="text-slate-400 text-sm">
-                    Точка: АЗС-1 на Московской
-                  </div>
+        <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm ${isMobile ? 'mx-0' : ''} overflow-hidden`}>
+          <CardHeader className={`${isMobile ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
+            <CardTitle className={`text-slate-100 flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
+                <div className="flex flex-col">
+                  <span className={`${isMobile ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Цены</span>
+                  <span className="text-slate-400 text-sm font-medium">Управление ценами на топливо с отложенным применением и журналом изменений</span>
                 </div>
-                <div className="flex gap-2 flex-row">
-                  {/* Кнопки для разных источников данных */}
-                  {stsApiConfigured && (
-                    <Button 
-                      onClick={loadPricesFromSTSAPI}
-                      variant="outline"
-                      disabled={loadingFromSTSAPI}
-                      className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
-                      size="sm"
-                    >
+              </div>
+              
+              <div className={`flex ${isMobile ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
+                {!isMobile && (
+                  <Button
+                    onClick={() => window.open('/help/point/prices', '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-5 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Инструкция
+                  </Button>
+                )}
+                
+                {/* Кнопка обновления из STS API */}
+                {stsApiConfigured && (
+                  <Button 
+                    onClick={loadPricesFromSTSAPI}
+                    disabled={loadingFromSTSAPI}
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
+                  >
+                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
                       {loadingFromSTSAPI ? (
                         <RefreshCw className="w-4 h-4 animate-spin" />
                       ) : (
                         <RefreshCw className="w-4 h-4" />
                       )}
-                      <span className="ml-1">STS API</span>
-                    </Button>
-                  )}
-                  <Button 
-                    onClick={handleCreatePrice}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    size="sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="ml-1">Новая цена</span>
+                    </div>
+                    {loadingFromSTSAPI ? 'Обновление...' : 'STS API'}
                   </Button>
-                </div>
+                )}
+                
+                {/* Кнопка создания новой цены */}
+                <Button 
+                  onClick={handleCreatePrice}
+                  size="sm"
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Новая цена
+                </Button>
               </div>
-            </div>
-          </div>
-        )}
+            </CardTitle>
+            
+          </CardHeader>
+        </Card>
+
 
         {/* Плитки цен */}
         {isInitialLoading ? (
-          <div className={`${isMobile ? 'px-0' : 'px-4 md:px-6'} pb-6`}>
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
               {/* Skeleton плитки для состояния загрузки */}
               {[1, 2, 3, 4].map((n) => (
                 <div key={n} className={`bg-slate-800 border border-slate-700 rounded-lg ${isMobile ? 'p-3' : 'p-6'}`}>
@@ -1116,9 +1092,8 @@ export default function Prices() {
                 </div>
               ))}
             </div>
-          </div>
         ) : filteredPrices.length === 0 ? (
-          <div className="px-4 md:px-6">
+          <div>
             <div className={`text-center ${isMobile ? 'py-8' : 'py-16'}`}>
               <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4`}>
                 <span className={`text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>💰</span>
@@ -1140,8 +1115,7 @@ export default function Prices() {
             </div>
           </div>
         ) : (
-          <div className={`${isMobile ? 'px-0' : 'px-4 md:px-6'} pb-6`}>
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
               {filteredPrices.map((price) => (
                 <div key={price.id} className={`bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200 ${isMobile ? 'p-3' : 'p-6'}`}>
                   {/* Header с видом топлива и статусом */}

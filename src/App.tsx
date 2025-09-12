@@ -67,6 +67,7 @@ const SimpleProfile = lazy(() => import("./pages/SimpleProfile"));
 const TestServices = lazy(() => import("./pages/TestServices"));
 const TestServicesSimple = lazy(() => import("./pages/TestServicesSimple"));
 const TestDebug = lazy(() => import("./pages/TestDebug"));
+const MobileBrowserTest = lazy(() => import("./pages/MobileBrowserTest"));
 const LegalDocuments = lazy(() => import("./pages/LegalDocuments"));
 const LegalDocumentEditor = lazy(() => import("./pages/LegalDocumentEditor"));
 const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances"));
@@ -90,7 +91,6 @@ const App = () => {
               path="/" 
               element={
                 <>
-                  {console.log('🚀 App: Rendering home route with ProtectedRoute + Equipment')}
                   <ProtectedRoute><Equipment /></ProtectedRoute>
                 </>
               } 
@@ -145,6 +145,7 @@ const App = () => {
           <Route path="/admin/test-services" element={<ProtectedRoute><LazyLoader><TestServices /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/test-simple" element={<ProtectedRoute><LazyLoader><TestServicesSimple /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/test-debug" element={<ProtectedRoute><LazyLoader><TestDebug /></LazyLoader></ProtectedRoute>} />
+          <Route path="/admin/mobile-browser-test" element={<ProtectedRoute><LazyLoader><MobileBrowserTest /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/legal-documents" element={<ProtectedRoute><LazyLoader><LegalDocuments /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/legal-documents/users-acceptances" element={<ProtectedRoute><LazyLoader><LegalUsersAcceptances /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/legal-documents/:docType/edit" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Pull-to-Refresh Auth Debug</title>
+    <style>
+        body {
+            font-family: system-ui;
+            margin: 0;
+            padding: 20px;
+            background: #1e293b;
+            color: white;
+            min-height: 200vh;
+        }
+        
+        /* Те же CSS правила что и в приложении */
+        @media (hover: none) and (pointer: coarse) {
+            html, body { 
+                overscroll-behavior: none !important;
+                overscroll-behavior-y: none !important;
+                -webkit-overscroll-behavior: none !important;
+                -webkit-overscroll-behavior-y: none !important;
+                touch-action: pan-x pan-y !important;
+                -webkit-overflow-scrolling: auto !important;
+            }
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: #334155;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .content {
+            margin-top: 300px;
+            background: linear-gradient(to bottom, #334155, #1e293b);
+            padding: 20px;
+            min-height: 150vh;
+        }
+        
+        .debug-info {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        
+        .button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="status">
+        <h2>🔍 Pull-to-Refresh Auth Debug</h2>
+        <p><strong>Время:</strong> <span id="time"></span></p>
+        
+        <div style="margin: 10px 0;">
+            <button class="button" onclick="setAuthData()">Установить Auth Data</button>
+            <button class="button" onclick="clearAuthData()">Очистить Auth Data</button>
+            <button class="button" onclick="checkAuthData()">Проверить Auth Data</button>
+        </div>
+        
+        <div class="debug-info">
+            <strong>localStorage:</strong><br>
+            currentUser: <span id="localStorage-currentUser"></span><br>
+            auth_token: <span id="localStorage-auth_token"></span><br>
+            tradeframe_user: <span id="localStorage-tradeframe_user"></span><br>
+            authToken: <span id="localStorage-authToken"></span>
+        </div>
+        
+        <div class="debug-info">
+            <strong>sessionStorage:</strong><br>
+            currentUser: <span id="sessionStorage-currentUser"></span><br>
+            auth_token: <span id="sessionStorage-auth_token"></span>
+        </div>
+        
+        <div class="debug-info">
+            <strong>События:</strong><br>
+            <div id="events"></div>
+        </div>
+    </div>
+
+    <div class="content">
+        <h2>Auth Debug Test</h2>
+        <p><strong>Инструкция:</strong></p>
+        <ol>
+            <li>Нажмите "Установить Auth Data" чтобы симулировать вход в систему</li>
+            <li>Попробуйте потянуть вниз от самого верха страницы</li>
+            <li>Наблюдайте изменения в localStorage/sessionStorage</li>
+            <li>Проверьте происходит ли очистка данных при pull-to-refresh</li>
+        </ol>
+        
+        <div style="height: 100px; background: #475569; margin: 20px 0; display: flex; align-items: center; justify-content: center;">
+            Тест контент 1 - проверка сохранности auth данных
+        </div>
+        
+        <div style="height: 100px; background: #64748b; margin: 20px 0; display: flex; align-items: center; justify-content: center;">
+            Тест контент 2 - мониторинг localStorage
+        </div>
+        
+        <div style="height: 100px; background: #475569; margin: 20px 0; display: flex; align-items: center; justify-content: center;">
+            Тест контент 3 - проверка sessionStorage
+        </div>
+    </div>
+
+    <script>
+        let eventCount = 0;
+        
+        function updateTime() {
+            document.getElementById('time').textContent = new Date().toLocaleTimeString();
+        }
+        
+        function logEvent(message) {
+            const eventsDiv = document.getElementById('events');
+            const eventEl = document.createElement('div');
+            eventEl.style.fontSize = '11px';
+            eventEl.style.marginBottom = '2px';
+            eventEl.textContent = `${++eventCount}. ${new Date().toLocaleTimeString()}: ${message}`;
+            eventsDiv.appendChild(eventEl);
+            if (eventsDiv.children.length > 15) {
+                eventsDiv.removeChild(eventsDiv.firstChild);
+            }
+            eventsDiv.scrollTop = eventsDiv.scrollHeight;
+        }
+        
+        // Функции для управления auth данными
+        function setAuthData() {
+            const mockUser = {
+                id: "test-user-id",
+                email: "test@example.com",
+                name: "Test User",
+                role: "admin",
+                permissions: ["all"],
+                status: "active",
+                lastLogin: new Date().toISOString()
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(mockUser));
+            localStorage.setItem('auth_token', 'test-token-123');
+            localStorage.setItem('tradeframe_user', JSON.stringify(mockUser));
+            localStorage.setItem('authToken', 'supabase_session');
+            
+            sessionStorage.setItem('currentUser', JSON.stringify(mockUser));
+            sessionStorage.setItem('auth_token', 'test-session-token-123');
+            
+            logEvent('Auth data установлены в localStorage и sessionStorage');
+            checkAuthData();
+        }
+        
+        function clearAuthData() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('tradeframe_user');
+            localStorage.removeItem('authToken');
+            
+            sessionStorage.removeItem('currentUser');
+            sessionStorage.removeItem('auth_token');
+            
+            logEvent('Auth data очищены из localStorage и sessionStorage');
+            checkAuthData();
+        }
+        
+        function checkAuthData() {
+            // localStorage check
+            document.getElementById('localStorage-currentUser').textContent = 
+                localStorage.getItem('currentUser') ? 'есть' : 'нет';
+            document.getElementById('localStorage-auth_token').textContent = 
+                localStorage.getItem('auth_token') ? 'есть' : 'нет';
+            document.getElementById('localStorage-tradeframe_user').textContent = 
+                localStorage.getItem('tradeframe_user') ? 'есть' : 'нет';
+            document.getElementById('localStorage-authToken').textContent = 
+                localStorage.getItem('authToken') ? 'есть' : 'нет';
+                
+            // sessionStorage check
+            document.getElementById('sessionStorage-currentUser').textContent = 
+                sessionStorage.getItem('currentUser') ? 'есть' : 'нет';
+            document.getElementById('sessionStorage-auth_token').textContent = 
+                sessionStorage.getItem('auth_token') ? 'есть' : 'нет';
+        }
+        
+        // События хранилища
+        window.addEventListener('storage', (e) => {
+            logEvent(`Storage change: ${e.key} = ${e.newValue ? 'set' : 'removed'}`);
+            checkAuthData();
+        });
+        
+        // Отслеживаем попытки pull-to-refresh
+        let isAtTop = true;
+        let startY = 0;
+        
+        document.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            isAtTop = window.scrollY === 0;
+            checkAuthData(); // Проверяем данные при начале касания
+        }, { passive: true });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (isAtTop && window.scrollY === 0) {
+                const currentY = e.touches[0].clientY;
+                const deltaY = currentY - startY;
+                if (deltaY > 50) {
+                    logEvent(`⚠️ PULL detected: ${Math.round(deltaY)}px - checking auth data...`);
+                    setTimeout(checkAuthData, 100); // Проверяем через небольшую задержку
+                }
+            }
+        }, { passive: true });
+        
+        document.addEventListener('touchend', (e) => {
+            logEvent('Touch end - final auth check');
+            setTimeout(checkAuthData, 200); // Проверяем через задержку
+        }, { passive: true });
+        
+        // Отслеживаем beforeunload и reload
+        window.addEventListener('beforeunload', (e) => {
+            logEvent('⚠️ beforeunload triggered - page about to reload!');
+        });
+        
+        // Отслеживаем изменения видимости страницы
+        document.addEventListener('visibilitychange', (e) => {
+            logEvent(`Visibility: ${document.visibilityState}`);
+            if (document.visibilityState === 'visible') {
+                setTimeout(checkAuthData, 100);
+            }
+        });
+        
+        // Отслеживаем focus/blur окна
+        window.addEventListener('focus', (e) => {
+            logEvent('Window focus');
+            checkAuthData();
+        });
+        
+        window.addEventListener('blur', (e) => {
+            logEvent('Window blur');
+        });
+        
+        // Инициализация
+        updateTime();
+        checkAuthData();
+        setInterval(updateTime, 1000);
+        setInterval(checkAuthData, 2000); // Проверяем каждые 2 секунды
+        
+        logEvent('Auth debug страница загружена');
+    </script>
+</body>
+</html>

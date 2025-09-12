@@ -50,4 +50,68 @@ window.resetDemoData = () => {
 
 console.log('💡 Для сброса демо-данных выполните в консоли: resetDemoData()');
 
+// Отладка pull-to-refresh проблемы
+if (typeof window !== 'undefined') {
+  // Мониторинг жизненного цикла страницы
+  window.addEventListener('beforeunload', (e) => {
+    console.log('🚨 [PULL-TO-REFRESH DEBUG] beforeunload triggered');
+    const currentUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
+    const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    console.log('🚨 [PULL-TO-REFRESH DEBUG] Auth data before unload:', {
+      hasUser: !!currentUser,
+      hasToken: !!authToken
+    });
+  });
+
+  window.addEventListener('unload', (e) => {
+    console.log('🚨 [PULL-TO-REFRESH DEBUG] unload triggered');
+  });
+
+  window.addEventListener('pagehide', (e) => {
+    console.log('🚨 [PULL-TO-REFRESH DEBUG] pagehide triggered, persisted:', e.persisted);
+  });
+
+  window.addEventListener('pageshow', (e) => {
+    console.log('🚨 [PULL-TO-REFRESH DEBUG] pageshow triggered, persisted:', e.persisted);
+    if (e.persisted) {
+      // Страница восстановлена из bfcache
+      console.log('🚨 [PULL-TO-REFRESH DEBUG] Page restored from bfcache');
+      const currentUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
+      const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+      console.log('🚨 [PULL-TO-REFRESH DEBUG] Auth data after bfcache restore:', {
+        hasUser: !!currentUser,
+        hasToken: !!authToken
+      });
+    }
+  });
+
+  // Мониторинг изменений видимости страницы
+  document.addEventListener('visibilitychange', () => {
+    console.log('🚨 [PULL-TO-REFRESH DEBUG] visibilitychange:', document.visibilityState);
+    if (document.visibilityState === 'visible') {
+      const currentUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
+      const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+      console.log('🚨 [PULL-TO-REFRESH DEBUG] Auth data when visible:', {
+        hasUser: !!currentUser,
+        hasToken: !!authToken
+      });
+    }
+  });
+
+  // Мониторинг focus/blur
+  window.addEventListener('focus', () => {
+    console.log('🚨 [PULL-TO-REFRESH DEBUG] window focus');
+    const currentUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
+    const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+    console.log('🚨 [PULL-TO-REFRESH DEBUG] Auth data on focus:', {
+      hasUser: !!currentUser,
+      hasToken: !!authToken
+    });
+  });
+
+  window.addEventListener('blur', () => {
+    console.log('🚨 [PULL-TO-REFRESH DEBUG] window blur');
+  });
+}
+
 createRoot(document.getElementById("root")!).render(<App />);

@@ -50,10 +50,7 @@ class ExternalUsersService {
     const config = this.getConfig();
     const fullUrl = `${config.url}/rest/v1/${endpoint}`;
     
-    console.log(`🌐 ExternalUsersService: Запрос к ${fullUrl}`, {
-      method: options.method || 'GET',
-      hasBody: !!options.body
-    });
+    // Making request to external database
 
     try {
       const response = await fetch(fullUrl, {

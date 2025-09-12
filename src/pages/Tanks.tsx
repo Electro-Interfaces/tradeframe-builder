@@ -41,7 +41,8 @@ import {
   Download,
   Upload,
   Filter,
-  RefreshCw
+  RefreshCw,
+  HelpCircle
 } from "lucide-react";
 
 // Enhanced Mock data with new fields
@@ -778,47 +779,48 @@ export default function Tanks() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full h-full px-4 md:px-6 lg:px-8">
+      <div className={`w-full space-y-6 ${isMobile ? 'px-2 py-4' : 'px-4 md:px-6 lg:px-8 py-6'}`}>
         {/* Заголовок страницы */}
-        <div className="mb-6 pt-4">
-          <div className={`flex ${isMobile ? "flex-col gap-2" : "items-start justify-between"}`}>
-            <div className={`${isMobile ? "flex-1 min-w-0" : ""}`}>
-              <div className={`flex ${isMobile ? "justify-between items-start" : "flex-col"}`}>
-                <h1 className={`${isMobile ? "text-xl flex-1 pr-2" : "text-2xl"} font-semibold text-white`}>
-                  {isMobile ? "Резервуары" : getTradingPointName(selectedTradingPoint)}
-                </h1>
-                {isMobile && (
-                  <HelpButton route="/point/tanks" variant="text" size="sm" className="flex-shrink-0" />
-                )}
-              </div>
-              <p className="text-slate-400 mt-2 hidden md:block">Мониторинг запасов топлива и управление операциями</p>
-              <div className="flex items-center gap-4 mt-2 hidden md:flex">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-slate-400">Источник данных:</span>
-                  <Badge variant="outline" className="text-green-400 border-green-400">
-                    СТС API
-                  </Badge>
-                  <span className="text-xs text-slate-500">3</span>
+        <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm ${isMobile ? 'mx-0' : ''} overflow-hidden`}>
+          <CardHeader className={`${isMobile ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
+            <CardTitle className={`text-slate-100 flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
+                <div className="flex flex-col">
+                  <span className={`${isMobile ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Резервуары</span>
+                  <span className="text-slate-400 text-sm font-medium">Мониторинг запасов топлива и управление операциями</span>
                 </div>
               </div>
-            </div>
-            {!isMobile && (
-              <div className="flex items-center gap-3 flex-shrink-0">
+              
+              <div className={`flex ${isMobile ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
+                {!isMobile && (
+                  <Button
+                    onClick={() => window.open('/help/point/tanks', '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-5 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Инструкция
+                  </Button>
+                )}
+                
+                {/* Кнопка обновления данных */}
                 {stsApiConfigured ? (
                   <Button
                     onClick={loadTanksFromSTSAPI}
-                    variant="outline"
-                    size="sm"
                     disabled={loadingFromSTSAPI}
-                    className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
                   >
-                    {loadingFromSTSAPI ? (
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4 mr-2" />
-                    )}
-                    Обновить из API
+                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                      {loadingFromSTSAPI ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                    </div>
+                    {loadingFromSTSAPI ? 'Обновление...' : 'Обновить данные'}
                   </Button>
                 ) : (
                   <Button
@@ -857,24 +859,24 @@ export default function Tanks() {
                         setLoading(false);
                       }
                     }}
-                    variant="outline"
-                    size="sm"
                     disabled={loading}
-                    className="border-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
                   >
-                    {loading ? (
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                    )}
-                    Обновить токен
+                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                      {loading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </div>
+                    {loading ? 'Обновление...' : 'Обновить данные'}
                   </Button>
                 )}
-                <HelpButton route="/point/tanks" variant="text" className="flex-shrink-0" />
               </div>
-            )}
-          </div>
-        </div>
+            </CardTitle>
+          </CardHeader>
+        </Card>
 
 
         {/* Резервуары - сетка карточек */}

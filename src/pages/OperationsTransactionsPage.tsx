@@ -40,10 +40,16 @@ export default function OperationsTransactionsPage() {
   const isMobile = useIsMobile();
   
   // Debug: показать информацию о мобильном режиме
-  console.log('📱 isMobile:', isMobile, 'window.innerWidth:', typeof window !== 'undefined' ? window.innerWidth : 'undefined');
+  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+  console.log('📱 Debug OperationsTransactionsPage:', { 
+    isMobile, 
+    windowWidth,
+    shouldShowMobile: isMobile,
+    breakpoint: 768
+  });
   
-  // Принудительный мобильный режим для тестирования
-  const isMobileForced = true;
+  // Принудительно включаем десктопную таблицу для тестирования
+  const isMobileForced = false; // Временно отключаем мобильную версию
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   
   // Состояние данных операций

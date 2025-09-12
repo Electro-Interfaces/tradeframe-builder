@@ -9,7 +9,7 @@ import { Menu, MapPin } from "lucide-react";
 import { Header } from "./Header";
 import { AppSidebar } from "./AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useMobile, mobileUtils } from "@/hooks/useMobile";
+// Мобильные утилиты временно отключены
 import { useSelection } from "@/context/SelectionContext";
 
 interface MainLayoutProps {
@@ -22,7 +22,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [tradingPoints, setTradingPoints] = useState<TradingPoint[]>([]);
   const isMobile = useIsMobile();
-  const mobileInfo = useMobile();
+  // Мобильные хуки временно отключены
   
   useEffect(() => {
     if (selectedNetwork?.id) {
@@ -34,26 +34,12 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
     }
   }, [selectedNetwork?.id]);
 
-  // Мобильная инициализация
+  // Логирование для мобильных устройств
   useEffect(() => {
-    if (mobileInfo.isMobile) {
-      // Устанавливаем правильную высоту viewport для мобильных браузеров
-      mobileUtils.setViewportHeight();
-      
-      // Обновляем при изменении ориентации
-      const handleResize = () => {
-        mobileUtils.setViewportHeight();
-      };
-      
-      window.addEventListener('resize', handleResize);
-      window.addEventListener('orientationchange', handleResize);
-      
-      return () => {
-        window.removeEventListener('resize', handleResize);
-        window.removeEventListener('orientationchange', handleResize);
-      };
+    if (isMobile) {
+      console.log('📱 MainLayout: мобильное устройство обнаружено');
     }
-  }, [mobileInfo.isMobile]);
+  }, [isMobile]);
 
   const handleNetworkChange = (value: string) => {
     setSelectedNetwork(value);
@@ -66,10 +52,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
 
   return (
     <SidebarProvider>
-      <div className={`min-h-screen bg-background text-foreground w-full max-w-none ${
-        mobileInfo.isMobile ? 'mobile-no-select mobile-scroll mobile-safe-top mobile-safe-bottom' : ''
-      } ${mobileInfo.isPWA ? 'mobile-safe-top mobile-safe-bottom' : ''}`}
-      style={mobileInfo.isMobile ? { height: 'var(--vh, 100vh)' } : {}}>
+      <div className="min-h-screen bg-background text-foreground w-full max-w-none">
         <Header
           selectedNetwork={selectedNetwork?.id || ""}
           selectedTradingPoint={selectedTradingPoint}

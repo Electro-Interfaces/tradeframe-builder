@@ -330,6 +330,264 @@
   }
 }
 
+/* Мобильные браузер-специфичные стили */
+@layer utilities {
+  /* Защита от pull-to-refresh */
+  .no-pull-refresh {
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: auto;
+  }
+  
+  body.mobile-no-refresh {
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: auto;
+    touch-action: pan-x pan-y;
+  }
+  
+  html.mobile-no-refresh {
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+  }
+
+  /* ГЛОБАЛЬНАЯ защита от pull-to-refresh на мобильных */
+  @media (hover: none) and (pointer: coarse) {
+    html, body {
+      overscroll-behavior: none !important;
+      overscroll-behavior-y: none !important;
+      -webkit-overscroll-behavior: none !important;
+      -webkit-overscroll-behavior-y: none !important;
+      touch-action: pan-x pan-y !important;
+      -webkit-overflow-scrolling: auto !important;
+    }
+  }
+
+  /* Универсальные мобильные классы */
+  .mobile-optimized {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  .mobile-scroll-fix {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+  }
+
+  .mobile-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .mobile-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .mobile-safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* iOS Safari специфичные фиксы */
+  .ios-safari-fix {
+    /* Предотвращение bounce scroll */
+    position: fixed;
+    overflow: hidden;
+  }
+
+  .ios-input-fix {
+    /* Фикс для zoom на input focus */
+    font-size: 16px !important;
+  }
+
+  /* Android Chrome фиксы */
+  .android-chrome-fix {
+    /* Фикс для клавиатуры */
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .keyboard-open {
+    /* Когда открыта клавиатура на Android */
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  /* Samsung Internet фиксы */
+  .samsung-internet-fix {
+    /* Предотвращение двойного тапа для зума */
+    touch-action: manipulation;
+  }
+
+  .samsung-internet-fix * {
+    touch-action: manipulation;
+  }
+
+  /* UC Browser оптимизации */
+  .uc-browser-optimizations {
+    /* Отключение тяжелых анимаций */
+    * {
+      animation-duration: 0.1s !important;
+      transition-duration: 0.1s !important;
+    }
+  }
+
+  .uc-browser-optimizations .animate-spin {
+    animation: none !important;
+  }
+
+  .uc-browser-optimizations .animate-pulse {
+    animation: none !important;
+  }
+
+  /* WebView оптимизации */
+  .webview-optimized {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .webview-optimized * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+
+  /* Медленное соединение */
+  .slow-connection {
+    /* Упрощенные анимации */
+    .animate-spin {
+      animation-duration: 2s !important;
+    }
+    
+    .animate-pulse {
+      animation-duration: 3s !important;
+    }
+    
+    /* Отключаем фоновые изображения */
+    .bg-gradient-to-r,
+    .bg-gradient-to-l,
+    .bg-gradient-to-t,
+    .bg-gradient-to-b {
+      background: hsl(var(--background)) !important;
+    }
+  }
+
+  /* Multi-touch оптимизации */
+  .multi-touch-optimize {
+    /* Улучшенная обработка касаний */
+    touch-action: pan-x pan-y;
+  }
+
+  .multi-touch-optimize button,
+  .multi-touch-optimize [role="button"] {
+    /* Увеличиваем размер touch target */
+    min-height: 48px;
+    min-width: 48px;
+    padding: 12px;
+  }
+
+  /* Высокий DPI экраны */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .hidpi-optimize {
+      /* Четкие границы */
+      outline: 1px solid transparent;
+    }
+    
+    .hidpi-optimize img {
+      /* Улучшенная четкость изображений */
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+  }
+
+  /* Переменные для динамических значений viewport */
+  :root {
+    --vh: 1vh;
+    --dvh: 1dvh;
+    --sat: 0px; /* safe-area-top */
+    --sab: 0px; /* safe-area-bottom */
+  }
+
+  /* Использование динамических viewport units */
+  .min-h-screen-mobile {
+    min-height: 100vh;
+    min-height: var(--vh, 1vh) * 100;
+    min-height: var(--dvh, 100vh);
+  }
+
+  .h-screen-mobile {
+    height: 100vh;
+    height: var(--vh, 1vh) * 100;
+    height: var(--dvh, 100vh);
+  }
+
+  /* Notch/safe area support */
+  .notch-padding-top {
+    padding-top: max(1rem, var(--sat));
+  }
+
+  .notch-padding-bottom {
+    padding-bottom: max(1rem, var(--sab));
+  }
+
+  /* PWA специфичные стили */
+  .pwa-installed {
+    /* Скрываем install prompt когда уже установлено */
+    .install-prompt {
+      display: none !important;
+    }
+  }
+
+  /* Landscape ориентация на мобильных */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .mobile-landscape-compact {
+      /* Компактный режим для landscape на телефонах */
+      .header {
+        height: 48px !important;
+      }
+      
+      .sidebar {
+        width: 240px !important;
+      }
+    }
+  }
+
+  /* Очень маленькие экраны */
+  @media (max-width: 320px) {
+    .mobile-tiny {
+      /* Дополнительные оптимизации для старых телефонов */
+      font-size: 14px;
+      
+      button {
+        min-height: 40px;
+        padding: 8px 12px;
+      }
+      
+      .sidebar {
+        width: 280px !important;
+      }
+    }
+  }
+
+  /* Большие планшеты в portrait */
+  @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+    .tablet-portrait {
+      /* Адаптация для планшетов в portrait */
+      .sidebar {
+        width: 320px;
+      }
+    }
+  }
+}
+
 /* Component-level utilities to standardize surfaces and layouts */
 @layer components {
   /* Dialog/content surfaces */

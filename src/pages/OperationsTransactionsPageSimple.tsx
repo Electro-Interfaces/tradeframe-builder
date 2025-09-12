@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, Calendar } from "lucide-react";
+import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, Calendar, Fuel, CreditCard, Pin, HelpCircle } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { operationsService } from "@/services/operationsService";
 import { stsApiService, Transaction } from "@/services/stsApi";
@@ -25,10 +25,16 @@ export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   const isMobile = useIsMobile();
   
-  // Принудительный мобильный режим для тестирования
-  const isMobileForced = true;
+  
+  // Определяем режим отображения на основе размера экрана
+  const isMobileForced = isMobile;
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // Пагинация
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = isMobile ? 20 : 50;
+  const [totalPages, setTotalPages] = useState(0);
   
   // STS API состояние
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
@@ -41,6 +47,10 @@ export default function OperationsTransactionsPageSimple() {
   const [dateFrom, setDateFrom] = useState("2025-08-01");
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // KPI карточки фильтры
+  const [selectedKpiFuels, setSelectedKpiFuels] = useState(new Set());
+  const [selectedKpiPayments, setSelectedKpiPayments] = useState(new Set());
 
   // Функции экспорта
   const exportToExcel = () => {
@@ -145,9 +155,30 @@ export default function OperationsTransactionsPageSimple() {
       XLSX.writeFile(wb, fileName);
       
       console.log(`✅ Экспорт в Excel завершен: ${fileName}`);
+      
+      // Показываем уведомление об успешном экспорте для всех устройств
+      const notification = document.createElement('div');
+      notification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+      notification.textContent = `Excel файл создан: ${exportData.length} записей`;
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 3000);
     } catch (error) {
       console.error('❌ Ошибка экспорта в Excel:', error);
-      if (!isMobile) alert('Ошибка при экспорте в Excel');
+      
+      // Показываем ошибку для всех устройств
+      const errorNotification = document.createElement('div');
+      errorNotification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+      errorNotification.textContent = 'Ошибка при создании Excel файла';
+      document.body.appendChild(errorNotification);
+      setTimeout(() => {
+        if (document.body.contains(errorNotification)) {
+          document.body.removeChild(errorNotification);
+        }
+      }, 3000);
     }
   };
 
@@ -449,9 +480,30 @@ export default function OperationsTransactionsPageSimple() {
       pdf.save(fileName);
       
       console.log(`✅ Экспорт дашборда в PDF завершен: ${fileName}`);
+      
+      // Показываем уведомление об успешном экспорте для всех устройств
+      const notification = document.createElement('div');
+      notification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+      notification.textContent = `PDF дашборд создан: ${filteredOperations.length} операций`;
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 3000);
     } catch (error) {
       console.error('❌ Ошибка экспорта дашборда в PDF:', error);
-      if (!isMobile) alert('Ошибка при экспорте дашборда в PDF');
+      
+      // Показываем ошибку для всех устройств
+      const errorNotification = document.createElement('div');
+      errorNotification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+      errorNotification.textContent = 'Ошибка при создании PDF дашборда';
+      document.body.appendChild(errorNotification);
+      setTimeout(() => {
+        if (document.body.contains(errorNotification)) {
+          document.body.removeChild(errorNotification);
+        }
+      }, 3000);
     }
   };
 
@@ -733,24 +785,6 @@ export default function OperationsTransactionsPageSimple() {
           String(recordDate.getMonth() + 1).padStart(2, '0') + '-' + 
           String(recordDate.getDate()).padStart(2, '0');
         
-        // Отладочная информация для первых 5 записей + специально для проблемной транзакции 2630762
-        if ((operations.length > 0 && operations.slice(0, 5).some(op => op.id === record.id)) || 
-            record.id === '2630762' || record.transactionId === '2630762') {
-          console.log('🗓️ Date filter debug (Simple):', {
-            recordId: record.id,
-            startTime: record.startTime,
-            recordDate: recordDate.toLocaleString('ru-RU'),
-            recordDateStr,
-            dateFrom,
-            dateTo,
-            hasDateTo: !!dateTo,
-            fromCheck: dateFrom ? `${recordDateStr} >= ${dateFrom} = ${recordDateStr >= dateFrom}` : 'skip',
-            toCheck: dateTo ? `${recordDateStr} <= ${dateTo} = ${recordDateStr <= dateTo}` : 'no dateTo filter',
-            willPass: (!dateFrom || recordDateStr >= dateFrom) && (!dateTo || recordDateStr <= dateTo),
-            shouldBeFiltered: dateTo && recordDateStr > dateTo
-          });
-        }
-        
         if (dateFrom && recordDateStr < dateFrom) {
           return false;
         }
@@ -760,12 +794,22 @@ export default function OperationsTransactionsPageSimple() {
         }
       }
       
+      // KPI фильтры по топливу
+      if (selectedKpiFuels.size > 0 && !selectedKpiFuels.has(record.fuelType)) {
+        return false;
+      }
+      
+      // KPI фильтры по способу оплаты
+      if (selectedKpiPayments.size > 0 && !selectedKpiPayments.has(record.paymentMethod)) {
+        return false;
+      }
+      
       // Поиск
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         return (
           record.id.toLowerCase().includes(query) ||
-          record.details.toLowerCase().includes(query) ||
+          (record.details && record.details.toLowerCase().includes(query)) ||
           (record.tradingPointName && record.tradingPointName.toLowerCase().includes(query))
         );
       }
@@ -779,7 +823,47 @@ export default function OperationsTransactionsPageSimple() {
       const dateB = new Date(b.startTime).getTime();
       return dateB - dateA; // Убывающий порядок (свежие сверху)
     });
-  }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus, dateFrom, dateTo, searchQuery]);
+  }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus, dateFrom, dateTo, searchQuery, selectedKpiFuels, selectedKpiPayments]);
+  
+  // Пагинация операций
+  const paginatedOperations = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const totalPages = Math.ceil(filteredOperations.length / itemsPerPage);
+    setTotalPages(totalPages);
+    return filteredOperations.slice(startIndex, endIndex);
+  }, [filteredOperations, currentPage, itemsPerPage]);
+  
+  // Функции управления KPI фильтрами
+  const handleKpiFuelClick = (fuel) => {
+    const newSelected = new Set(selectedKpiFuels);
+    if (newSelected.has(fuel)) {
+      newSelected.delete(fuel);
+    } else {
+      newSelected.add(fuel);
+    }
+    setSelectedKpiFuels(newSelected);
+  };
+
+  const handleKpiPaymentClick = (payment) => {
+    const newSelected = new Set(selectedKpiPayments);
+    if (newSelected.has(payment)) {
+      newSelected.delete(payment);
+    } else {
+      newSelected.add(payment);
+    }
+    setSelectedKpiPayments(newSelected);
+  };
+
+  const handleKpiResetAll = () => {
+    setSelectedKpiFuels(new Set());
+    setSelectedKpiPayments(new Set());
+  };
+
+  // Сброс страницы при изменении фильтров
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedFuelType, selectedPaymentMethod, selectedStatus, dateFrom, dateTo, searchQuery, selectedKpiFuels, selectedKpiPayments]);
 
   // Списки для селекторов
   const fuelTypes = useMemo(() => {
@@ -817,208 +901,256 @@ export default function OperationsTransactionsPageSimple() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className={`${isMobileForced ? 'p-0 space-y-3' : 'p-6 space-y-6'} w-full report-full-width`}>
-        {/* Фильтры */}
-        <Card className={`bg-slate-800 border border-slate-700 rounded-lg ${isMobileForced ? 'mx-0' : ''}`}>
-          <CardHeader className={`${isMobileForced ? 'px-3 py-2' : ''}`}>
-            <CardTitle className={`text-slate-200 flex ${isMobileForced ? 'flex-col gap-1' : 'items-center justify-between'}`}>
-              <span className={isMobileForced ? 'text-lg' : ''}>Операции и транзакции</span>
-              <div className={`flex ${isMobileForced ? 'gap-1 self-start' : 'gap-2'}`}>
-                {!isMobileForced && <HelpButton route="/network/operations-transactions" variant="text" className="flex-shrink-0" />}
+      <div 
+        className={`${isMobileForced ? 'p-0 space-y-3' : 'p-6 space-y-6'} w-full report-full-width min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}
+      >
+        {/* Заголовок страницы */}
+        <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm ${isMobileForced ? 'mx-0' : ''} overflow-hidden`}>
+          <CardHeader className={`${isMobileForced ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
+            <CardTitle className={`text-slate-100 flex ${isMobileForced ? 'flex-col gap-3' : 'items-center justify-between'}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
+                <div className="flex flex-col">
+                  <span className={`${isMobileForced ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Операции</span>
+                  <span className="text-slate-400 text-sm font-medium">Управление транзакциями</span>
+                </div>
+              </div>
+              
+              <div className={`flex ${isMobileForced ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
+                {!isMobileForced && (
+                  <Button
+                    onClick={() => window.open('/help/operations-transactions', '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-5 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Инструкция
+                  </Button>
+                )}
+                
+                {/* Кнопка экспорта */}
+                {filteredOperations.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium"
+                        size="sm"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Экспорт
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44 bg-slate-800 border-slate-600 shadow-xl rounded-lg">
+                      <DropdownMenuItem onClick={exportToExcel} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
+                        <FileSpreadsheet className="w-4 h-4 text-green-400" />
+                        <span className="text-sm font-medium">Экспорт в Excel</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={exportToPDF} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
+                        <FileText className="w-4 h-4 text-red-400" />
+                        <span className="text-sm font-medium">Дашборд PDF</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                
                 {/* STS API кнопка */}
-                {!isMobileForced && stsApiConfigured ? (
+                {stsApiConfigured ? (
                   <Button
                     onClick={loadFromStsApi}
                     disabled={loadingFromSTS}
-                    size={isMobile ? "sm" : "sm"}
-                    className={`${isMobile ? 'text-xs' : 'text-xs'} bg-blue-600 text-white hover:bg-blue-700 flex items-center`}
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
                   >
-                    <div className="w-3 h-3 mr-1 flex items-center justify-center">
+                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
                       {loadingFromSTS ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <Download className="w-3 h-3" />
+                        <Download className="w-4 h-4" />
                       )}
                     </div>
-                    {loadingFromSTS ? 'Обновление...' : (isMobile ? 'Обновить' : 'Обновить')}
+                    {loadingFromSTS ? 'Обновление...' : 'Обновить данные'}
                   </Button>
-                ) : !isMobileForced && (
+                ) : (
                   <Button
                     onClick={() => {
                       if (!isMobile) alert('STS API не настроен. Перейдите в Настройки → API СТС');
                     }}
                     variant="outline"
                     size="sm"
-                    className="text-xs border-red-600 text-red-400 hover:bg-red-700/20"
+                    className="border-red-500/60 text-red-400 hover:bg-red-600/20 hover:border-red-400 transition-all duration-300 px-5 py-2.5 rounded-lg bg-red-900/10 backdrop-blur-sm"
                   >
-                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    <AlertTriangle className="w-4 h-4 mr-2" />
                     Настроить STS API
                   </Button>
-                )}
-                
-                {!isMobile && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="flex-shrink-0">
-                      <Download className="w-4 h-4 mr-2" />
-                      Экспорт
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={exportToExcel} className="flex items-center gap-2">
-                      <FileSpreadsheet className="w-4 h-4 text-green-500" />
-                      <span>Экспорт в Excel</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={exportToPDF} className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-red-500" />
-                      <span>Дашборд PDF</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
                 )}
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-7'} gap-4 mb-4`}>
-              <div>
-                <Label htmlFor="status" className="text-slate-300">Статус</Label>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200">
-                    <SelectValue placeholder="Выберите статус" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    {statusTypes.map((status) => (
-                      <SelectItem key={status} value={status} className="text-slate-200 focus:bg-slate-700">
-                        {status === "Все" ? status : ({
-                          'completed': 'Завершено',
-                          'in_progress': 'Выполняется',
-                          'failed': 'Ошибка',
-                          'pending': 'Ожидание',
-                          'cancelled': 'Отменено'
-                        }[status] || status)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="fuel-type" className="text-slate-300">Вид топлива</Label>
-                <Select value={selectedFuelType} onValueChange={setSelectedFuelType}>
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200">
-                    <SelectValue placeholder="Выберите вид топлива" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    {fuelTypes.map((type) => (
-                      <SelectItem key={type} value={type} className="text-slate-200 focus:bg-slate-700">
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="payment-method" className="text-slate-300">Вид оплаты</Label>
-                <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200">
-                    <SelectValue placeholder="Выберите вид оплаты" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    {paymentMethods.map((method) => (
-                      <SelectItem key={method} value={method} className="text-slate-200 focus:bg-slate-700">
-                        {method === "Все" ? method : ({
-                          'cash': 'Наличные',
-                          'bank_card': 'Банковские карты', 
-                          'fuel_card': 'Топливные карты',
-                          'online_order': 'Онлайн заказы'
-                        }[method] || method)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="date-from" className="text-slate-300 text-sm font-medium">Дата с</Label>
-                <div className="relative">
-                  <Input
-                    id="date-from"
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="bg-slate-800 border-slate-700 text-slate-200 h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                  />
-                  <Calendar 
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-200 hover:text-blue-400 transition-colors pointer-events-none" 
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="date-to" className="text-slate-300 text-sm font-medium">Дата по</Label>
-                <div className="relative">
-                  <Input
-                    id="date-to"
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => {
-                      console.log('📅 Changing dateTo from', dateTo, 'to', e.target.value);
-                      setDateTo(e.target.value);
-                    }}
-                    className="bg-slate-800 border-slate-700 text-slate-200 h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                  />
-                  <Calendar 
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-200 hover:text-blue-400 transition-colors pointer-events-none" 
-                  />
-                </div>
-              </div>
-              
-              <div className={isMobile ? '' : "md:col-span-2"}>
-                <Label htmlFor="search" className="text-slate-300">Поиск</Label>
-                <Input
-                  id="search"
-                  type="text"
-                  placeholder={isMobile ? "Поиск..." : "Поиск по операции, устройству, ID..."}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-slate-800 border-slate-700 text-slate-200 placeholder-slate-400"
-                />
-              </div>
-            </div>
-            
-            {!isMobile && (
-              <div className="text-slate-300">
-                <p>Операций загружено: {operations.length} | Отфильтровано: {filteredOperations.length}</p>
-              </div>
-            )}
-          </CardContent>
         </Card>
 
-        {/* KPI по видам топлива */}
+        {/* Быстрые фильтры в стиле карточек */}
+        <div className={`grid ${isMobileForced ? 'grid-cols-2' : 'grid-cols-4'} gap-4 mb-6`}>
+          {/* Статус */}
+          <Card className="bg-slate-800 border-slate-600">
+            <CardContent className="p-4">
+              <Label htmlFor="status" className="text-slate-300 text-sm font-medium mb-2 block">Статус</Label>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm hover:bg-slate-600 transition-colors">
+                  <SelectValue placeholder="Выберите статус" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700">
+                  {statusTypes.map((status) => (
+                    <SelectItem key={status} value={status} className="text-slate-200 focus:bg-slate-700">
+                      {status === "Все" ? status : ({
+                        'completed': 'Завершено',
+                        'in_progress': 'Выполняется',
+                        'failed': 'Ошибка',
+                        'pending': 'Ожидание',
+                        'cancelled': 'Отменено'
+                      }[status] || status)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          {/* Дата с */}
+          <Card className="bg-slate-800 border-slate-600">
+            <CardContent className="p-4">
+              <Label htmlFor="date-from" className="text-slate-300 text-sm font-medium mb-2 block">Дата с</Label>
+              <div className="relative">
+                <Input
+                  id="date-from"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm hover:bg-slate-600 transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-4 [&::-webkit-calendar-picker-indicator]:h-4 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                />
+                <Calendar 
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none" 
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Дата по */}
+          <Card className="bg-slate-800 border-slate-600">
+            <CardContent className="p-4">
+              <Label htmlFor="date-to" className="text-slate-300 text-sm font-medium mb-2 block">Дата по</Label>
+              <div className="relative">
+                <Input
+                  id="date-to"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => {
+                    console.log('📅 Changing dateTo from', dateTo, 'to', e.target.value);
+                    setDateTo(e.target.value);
+                  }}
+                  className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm hover:bg-slate-600 transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-4 [&::-webkit-calendar-picker-indicator]:h-4 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                />
+                <Calendar 
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none" 
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Поиск */}
+          <Card className={`bg-slate-800 border-slate-600 ${isMobileForced ? 'col-span-2' : 'col-span-1'}`}>
+            <CardContent className="p-4">
+              <Label htmlFor="search" className="text-slate-300 text-sm font-medium mb-2 block">Поиск</Label>
+              <Input
+                id="search"
+                type="text"
+                placeholder={isMobileForced ? "Поиск..." : "Поиск по операции, устройству, ID..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-slate-700 border-slate-600 text-slate-200 placeholder-slate-400 h-8 text-sm hover:bg-slate-600 transition-colors w-full"
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Заголовок фильтров */}
         {operations.length > 0 && (
-          <Card className={`bg-slate-800 border border-slate-700 rounded-lg ${isMobileForced ? 'mx-0' : ''}`}>
-            <CardHeader className={`${isMobileForced ? 'px-3 py-2' : ''}`}>
-              <CardTitle className={`text-slate-200 ${isMobileForced ? 'text-sm' : ''}`}>{isMobileForced ? 'Суммы топлива' : 'Суммы по видам топлива'}</CardTitle>
-            </CardHeader>
-            <CardContent className={`${isMobileForced ? 'px-3 pb-3' : ''}`}>
-              <div className={`grid ${isMobileForced ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4'}`}>
-                {[...new Set(filteredOperations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
-                  const fuelOps = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
-                  const volume = fuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                  const revenue = fuelOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+          <div className="mb-4">
+            <div className="flex items-center gap-4">
+              <h3 className="text-xl font-semibold text-white">Фильтры</h3>
+              <p className="text-xl text-slate-400">
+                {(() => {
+                  const selectedFuels = Array.from(selectedKpiFuels);
+                  const selectedPayments = Array.from(selectedKpiPayments).map(method => ({
+                    'cash': 'Наличные',
+                    'bank_card': 'Банковская карта',
+                    'fuel_card': 'Топливная карта',
+                    'online_order': 'Онлайн заказ'
+                  }[method] || method));
+                  
+                  const allSelected = [...selectedFuels, ...selectedPayments];
+                  
+                  if (allSelected.length === 0) {
+                    return "Выберите один или несколько элементов для установки фильтра";
+                  } else {
+                    return `Выбрано: ${allSelected.join(', ')}`;
+                  }
+                })()}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* KPI карточки */}
+        {operations.length > 0 && (
+          <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+                {[...new Set(operations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
+                  // Всегда показываем все карточки - данные берем из полного набора операций
+                  const allFuelOps = operations.filter(op => op.fuelType === fuel && op.status === 'completed');
+                  const allVolume = allFuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
+                  const allRevenue = allFuelOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+                  
+                  // Проверяем есть ли данные в отфильтрованном наборе для этого топлива
+                  const filteredFuelOps = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
+                  const hasFilteredData = filteredFuelOps.length > 0;
+                  
+                  const isSelected = selectedKpiFuels.has(fuel);
+                  
+                  // Определяем стиль карточки
+                  let cardStyle = '';
+                  if (isSelected) {
+                    cardStyle = 'bg-slate-700 border-slate-500 border-2';
+                  } else {
+                    cardStyle = 'bg-slate-800 border-slate-600 hover:bg-slate-700';
+                  }
                   
                   return (
-                    <Card key={fuel} className="bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200">
-                      <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-2'}`}>
-                        <CardTitle className={`${isMobileForced ? 'text-xs' : 'text-lg'} font-bold text-white`}>{fuel}</CardTitle>
-                        <Activity className={`${isMobileForced ? 'h-3 w-3' : 'h-4 w-4'} text-slate-400`} />
-                      </CardHeader>
-                      <CardContent className={isMobileForced ? 'px-3 pb-2 pt-0' : ''}>
-                        <div className={`${isMobileForced ? 'text-sm' : 'text-3xl'} font-bold text-white ${isMobileForced ? '' : 'mb-2'}`}>{revenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽</div>
-                        <p className={`${isMobileForced ? 'text-xs' : 'text-lg'} font-semibold text-slate-300 ${isMobileForced ? '' : 'mb-1'}`}>{fuelOps.length.toLocaleString('ru-RU')} оп.</p>
-                        <p className={`${isMobileForced ? 'text-xs' : 'text-lg'} font-medium text-slate-300`}>{volume.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л</p>
+                    <Card 
+                      key={fuel} 
+                      className={`${cardStyle} cursor-pointer transition-all duration-200`}
+                      onClick={() => handleKpiFuelClick(fuel)}
+                    >
+                      <CardContent className={`${isMobileForced ? 'p-4' : 'p-6'}`}>
+                        <div className="flex items-center">
+                          <div className="p-2 bg-purple-600 rounded-lg mr-4">
+                            <Fuel className="h-6 w-6 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <p className={`text-white font-semibold mb-1 ${isMobileForced ? 'text-sm' : 'text-base'}`}>{fuel}</p>
+                              {isSelected && (
+                                <Pin className="w-6 h-6 text-yellow-400 drop-shadow-lg" />
+                              )}
+                            </div>
+                            <p className={`font-bold text-white mb-0.5 ${isMobileForced ? 'text-lg' : 'text-2xl'}`}>
+                              {Math.round(allRevenue).toLocaleString('ru-RU')} ₽
+                            </p>
+                            <div className="space-y-0.5">
+                              <p className={`font-bold text-white ${isMobileForced ? 'text-base' : 'text-xl'}`}>{Math.round(allVolume).toLocaleString('ru-RU')} л</p>
+                              <p className="text-sm text-slate-400">{allFuelOps.length} операций</p>
+                            </div>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   );
@@ -1030,77 +1162,152 @@ export default function OperationsTransactionsPageSimple() {
                   const totalVolume = totalOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
                   const totalRevenue = totalOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
                   
+                  const hasActiveFilters = selectedKpiFuels.size > 0 || selectedKpiPayments.size > 0;
                   return (
-                    <Card className="bg-gradient-to-br from-blue-900 to-blue-800 border-blue-600 ring-2 ring-blue-500/30 hover:shadow-xl transition-all duration-200">
-                      <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-2'}`}>
-                        <CardTitle className={`${isMobileForced ? 'text-sm' : 'text-xl'} font-bold text-white`}>ИТОГО</CardTitle>
-                        <Activity className={`${isMobileForced ? 'h-3 w-3' : 'h-5 w-5'} text-blue-300`} />
-                      </CardHeader>
-                      <CardContent className={isMobileForced ? 'px-3 pb-2 pt-0' : ''}>
-                        <div className={`${isMobileForced ? 'text-lg' : 'text-4xl'} font-bold text-white ${isMobileForced ? '' : 'mb-2'}`}>{totalRevenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽</div>
-                        <p className={`${isMobileForced ? 'text-xs' : 'text-xl'} font-semibold text-blue-200 ${isMobileForced ? '' : 'mb-1'}`}>{totalOps.length.toLocaleString('ru-RU')} оп.</p>
-                        <p className={`${isMobileForced ? 'text-xs' : 'text-xl'} font-bold text-blue-200`}>{totalVolume.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л</p>
+                    <Card 
+                      className={`${
+                        hasActiveFilters 
+                          ? 'bg-blue-700 border-blue-300 border-2 cursor-pointer hover:bg-blue-600' 
+                          : 'bg-slate-700 border-slate-500 border-2'
+                      } transition-all duration-200`}
+                      onClick={hasActiveFilters ? handleKpiResetAll : undefined}
+                    >
+                      <CardContent className={`${isMobileForced ? 'p-4' : 'p-6'}`}>
+                        <div className="flex items-center">
+                          <div className="p-2 bg-blue-600 rounded-lg mr-4">
+                            <Activity className="h-6 w-6 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className={`text-white font-semibold mb-1 ${isMobileForced ? 'text-sm' : 'text-base'}`}>Итого</p>
+                            <p className={`font-bold text-white mb-0.5 ${isMobileForced ? 'text-lg' : 'text-2xl'}`}>
+                              {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
+                            </p>
+                            <div className="space-y-0.5">
+                              <p className={`font-bold text-white ${isMobileForced ? 'text-base' : 'text-xl'}`}>{Math.round(totalVolume).toLocaleString('ru-RU')} л</p>
+                              <p className="text-sm text-slate-400">{totalOps.length} операций</p>
+                            </div>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   );
                 })()}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* KPI по видам оплаты */}
-        {operations.length > 0 && (
-          <Card className={`bg-slate-800 border border-slate-700 rounded-lg ${isMobileForced ? 'mx-0' : ''}`}>
-            <CardHeader className={`${isMobileForced ? 'px-3 py-2' : ''}`}>
-              <CardTitle className={`text-slate-200 ${isMobileForced ? 'text-sm' : ''}`}>{isMobileForced ? 'Суммы оплат' : 'Суммы по видам оплаты'}</CardTitle>
-            </CardHeader>
-            <CardContent className={`${isMobileForced ? 'px-3 pb-3' : ''}`}>
-              <div className={`grid ${isMobileForced ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'}`}>
+                
+                {/* Карточки по способам оплаты */}
                 {['cash', 'bank_card', 'fuel_card', 'online_order']
                   .map(paymentMethod => {
-                    const paymentOps = filteredOperations.filter(op => op.paymentMethod === paymentMethod && op.status === 'completed');
-                    const revenue = paymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
-                    return { paymentMethod, paymentOps, revenue };
+                    // Всегда показываем все карточки - данные берем из полного набора операций
+                    const allPaymentOps = operations.filter(op => op.paymentMethod === paymentMethod && op.status === 'completed');
+                    const allRevenue = allPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+                    const allVolume = allPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
+                    
+                    // Проверяем есть ли данные в отфильтрованном наборе для этого способа оплаты
+                    const filteredPaymentOps = filteredOperations.filter(op => op.paymentMethod === paymentMethod && op.status === 'completed');
+                    const hasFilteredData = filteredPaymentOps.length > 0;
+                    
+                    return { paymentMethod, allPaymentOps, allRevenue, allVolume, hasFilteredData };
                   })
-                  .filter(item => item.paymentOps.length > 0)
-                  .map(({ paymentMethod, paymentOps, revenue }) => {
+                  .filter(item => item.allPaymentOps.length > 0)
+                  .map(({ paymentMethod, allPaymentOps, allRevenue, allVolume, hasFilteredData }) => {
                     const displayName = {
                       'cash': 'Наличные',
-                      'bank_card': 'Банковские карты',
-                      'fuel_card': 'Топливные карты',
-                      'online_order': 'Онлайн заказы'
+                      'bank_card': 'Банковская карта',
+                      'fuel_card': 'Топливная карта',
+                      'online_order': 'Онлайн заказ'
                     }[paymentMethod];
                     
+                    const isSelected = selectedKpiPayments.has(paymentMethod);
+                    
+                    // Определяем стиль карточки
+                    let cardStyle = '';
+                    if (isSelected) {
+                      cardStyle = 'bg-slate-700 border-slate-500 border-2';
+                    } else {
+                      cardStyle = 'bg-slate-800 border-slate-600 hover:bg-slate-700';
+                    }
+                    
                     return (
-                    <Card key={paymentMethod} className="bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200">
-                      <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-2'}`}>
-                        <CardTitle className={`${isMobileForced ? 'text-xs' : 'text-sm'} font-medium text-slate-200`}>{displayName}</CardTitle>
-                        <Activity className={`${isMobileForced ? 'h-3 w-3' : 'h-4 w-4'} text-slate-400`} />
-                      </CardHeader>
-                      <CardContent className={isMobileForced ? 'px-3 pb-2 pt-0' : ''}>
-                        <div className={`${isMobileForced ? 'text-sm' : 'text-2xl'} font-bold text-white`}>{revenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽</div>
-                        <p className="text-xs text-blue-400">{paymentOps.length.toLocaleString('ru-RU')} оп.</p>
+                    <Card 
+                      key={paymentMethod} 
+                      className={`${cardStyle} cursor-pointer transition-all duration-200`}
+                      onClick={() => handleKpiPaymentClick(paymentMethod)}
+                    >
+                      <CardContent className={`${isMobileForced ? 'p-4' : 'p-6'}`}>
+                        <div className="flex items-center">
+                          <div className="p-2 bg-green-600 rounded-lg mr-4">
+                            <CreditCard className="h-6 w-6 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <p className={`text-white font-semibold mb-1 ${isMobileForced ? 'text-sm' : 'text-base'}`}>{displayName}</p>
+                              {isSelected && (
+                                <Pin className="w-6 h-6 text-yellow-400 drop-shadow-lg" />
+                              )}
+                            </div>
+                            <p className={`font-bold text-white mb-0.5 ${isMobileForced ? 'text-lg' : 'text-2xl'}`}>
+                              {Math.round(allRevenue).toLocaleString('ru-RU')} ₽
+                            </p>
+                            <div className="space-y-0.5">
+                              <p className={`font-bold text-white ${isMobileForced ? 'text-base' : 'text-xl'}`}>{Math.round(allVolume).toLocaleString('ru-RU')} л</p>
+                              <p className="text-sm text-slate-400">{allPaymentOps.length} операций</p>
+                            </div>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   );
                 })}
-              </div>
-            </CardContent>
-          </Card>
+          </div>
         )}
 
         {/* Таблица операций */}
-        <Card className={`bg-slate-800 border border-slate-700 rounded-lg ${isMobileForced ? 'mx-0' : ''}`}>
-          <CardHeader className={`${isMobileForced ? 'px-3 py-2' : ''}`}>
-            <CardTitle className={`text-slate-200 ${isMobileForced ? 'text-sm' : ''}`}>Текущие операции</CardTitle>
-            <p className={`text-slate-400 ${isMobileForced ? 'text-xs' : ''}`}>{filteredOperations.length} операций</p>
+        <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobileForced ? 'mx-0' : ''}`}>
+          <CardHeader className={`${isMobileForced ? 'px-3 py-2' : 'pb-4'}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobileForced ? 'text-sm' : 'text-xl'}`}>
+                  <FileText className="w-5 h-5" />
+                  Операции
+                </CardTitle>
+                <p className={`text-slate-400 ${isMobileForced ? 'text-xs' : 'text-sm'} mt-1`}>
+                  Показано {paginatedOperations.length} из {filteredOperations.length} операций
+                  {totalPages > 1 && ` • Страница ${currentPage} из ${totalPages}`}
+                </p>
+              </div>
+              
+              
+              {!isMobile && totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    ← Предыдущая
+                  </Button>
+                  <span className="text-sm text-slate-400 px-2">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    Следующая →
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent className={`${isMobileForced ? 'px-0 pb-3' : ''}`}>
             {isMobileForced ? (
               // Mobile card layout
               <div className="space-y-2 px-3">
-                {filteredOperations.slice(0, 20).map((record) => (
+                {paginatedOperations.map((record) => (
                   <Card key={record.id} className={`bg-slate-700 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors ${record.isFromStsApi ? 'border-blue-800/50 bg-blue-950/20' : ''}`}>
                     <CardHeader className={`${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-3'}`}>
                       <div className="flex items-center justify-between">
@@ -1194,15 +1401,42 @@ export default function OperationsTransactionsPageSimple() {
                   </Card>
                 ))}
                 
-                {filteredOperations.length === 0 && (
+                {paginatedOperations.length === 0 && (
                   <div className="text-center py-8 text-slate-400">
-                    Нет операций по выбранным фильтрам
+                    {loading ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Загрузка операций...</span>
+                      </div>
+                    ) : (
+                      'Нет операций по выбранным фильтрам'
+                    )}
                   </div>
                 )}
                 
-                {filteredOperations.length > 20 && (
-                  <div className="text-center py-4 text-slate-400">
-                    Показаны первые 20 из {filteredOperations.length} операций
+                {isMobile && totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 py-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      ←
+                    </Button>
+                    <span className="text-sm text-slate-400 px-2">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      →
+                    </Button>
                   </div>
                 )}
               </div>
@@ -1229,7 +1463,7 @@ export default function OperationsTransactionsPageSimple() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOperations.slice(0, 50).map((record) => (
+                  {paginatedOperations.map((record) => (
                     <TableRow 
                       key={record.id} 
                       className={`border-slate-700 hover:bg-slate-800 ${
@@ -1306,15 +1540,68 @@ export default function OperationsTransactionsPageSimple() {
                 </TableBody>
               </Table>
               
-              {filteredOperations.length === 0 && (
+              {paginatedOperations.length === 0 && (
                 <div className="text-center py-8 text-slate-400">
-                  Нет операций по выбранным фильтрам
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Загрузка операций...</span>
+                    </div>
+                  ) : (
+                    'Нет операций по выбранным фильтрам'
+                  )}
                 </div>
               )}
               
-              {filteredOperations.length > 50 && (
-                <div className="text-center py-4 text-slate-400">
-                  Показаны первые 50 из {filteredOperations.length} операций
+              {!isMobile && totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 py-6 border-t border-slate-700 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    ← Предыдущая страница
+                  </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={currentPage === pageNum 
+                            ? "bg-blue-600 text-white hover:bg-blue-700" 
+                            : "border-slate-600 text-slate-300 hover:bg-slate-700"
+                          }
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    Следующая страница →
+                  </Button>
                 </div>
               )}
             </div>
