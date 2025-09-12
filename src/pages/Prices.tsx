@@ -307,8 +307,7 @@ export default function Prices() {
         hasSelectedTradingPoint: !!selectedTradingPoint,
         currentSource,
         pricesCount: currentPrices.length,
-        initialLoadTriggered,
-        loadingFromSTSAPI // Добавляем состояние загрузки в логи
+        initialLoadTriggered
       });
 
       // Резервный запуск только если STS настроен, селекторы готовы, и цены не из STS API
@@ -325,9 +324,8 @@ export default function Prices() {
         currentSource
       });
       
-      // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: добавляем проверку на текущую загрузку чтобы избежать двойной загрузки
       if (isConfigured && selectedTradingPoint && selectedTradingPoint !== 'all' && 
-          selectorsReady && currentSource !== 'sts-api' && !loadingFromSTSAPI) {
+          selectorsReady && currentSource !== 'sts-api') {
         console.log('🚀 РЕЗЕРВНЫЙ запуск STS API!');
         setStsApiConfigured(true);
         loadPricesFromSTSAPI();
@@ -338,22 +336,17 @@ export default function Prices() {
             configNotReady: !isConfigured,
             tradingPointNotSelected: !selectedTradingPoint || selectedTradingPoint === 'all',
             selectorsNotReady: !selectorsReady,
-            alreadyFromSTS: currentSource === 'sts-api',
-            alreadyLoading: loadingFromSTSAPI // Добавляем причину блокировки
+            alreadyFromSTS: currentSource === 'sts-api'
           }
         });
-        
-        // Только сбрасываем loading если не идет активная загрузка
-        if (!loadingFromSTSAPI) {
-          setIsInitialLoading(false);
-        }
+        setIsInitialLoading(false);
       }
       
       setPageReady(true);
     }, 1500); // Увеличиваем время до 1.5 сек
 
     return () => clearTimeout(timer);
-  }, [loadingFromSTSAPI]); // Добавляем зависимость от состояния загрузки
+  }, []); // Запускаем только один раз при монтировании
 
   // Проверяем настройку внешнего API при инициализации
   useEffect(() => {
@@ -685,6 +678,10 @@ export default function Prices() {
         }
         setIsInitialLoading(false); // ВАЖНО: Сбрасываем состояние загрузки
         
+        toast({
+          title: "Цены загружены",
+          description: `Загружено ${transformedPrices.length} цен из STS API`
+        });
       } else {
         console.log('ℹ️ Цены не найдены в STS API');
         setCurrentPrices([]);
@@ -958,10 +955,10 @@ export default function Prices() {
   if (!selectedTradingPoint) {
     return (
       <MainLayout fullWidth={true}>
-        <div className={`w-full h-full ${isMobile ? 'px-2' : 'px-4 md:px-6 lg:px-8'}`}>
+        <div className="w-full h-full px-4 md:px-6 lg:px-8">
           <div className="mb-6 pt-4">
             <div>
-              <h1 className="text-2xl font-semibold text-white">Цены</h1>
+              <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
               <span className="text-xs text-green-400 font-mono">🔧 Версия: {new Date().toLocaleTimeString()}</span>
             </div>
           </div>
@@ -981,10 +978,10 @@ export default function Prices() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className={`w-full space-y-6 ${isMobile ? 'px-2 py-4' : 'px-4 md:px-6 lg:px-8 py-6'}`}>
-        {/* Заголовок страницы */}
-        <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm ${isMobile ? 'mx-0' : ''} overflow-hidden`}>
-          <CardHeader className={`${isMobile ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
+      <div className="w-full h-full px-4 md:px-6 lg:px-8">
+        {/* Premium Header */}
+        <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm mb-6 mt-4">
+          <CardHeader className="pb-6">
             <CardTitle className={`text-slate-100 flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
@@ -995,19 +992,15 @@ export default function Prices() {
               </div>
               
               <div className={`flex ${isMobile ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
-                {!isMobile && (
-                  <Button
-                    onClick={() => window.open('/help/point/prices', '_blank')}
-                    variant="outline"
-                    size="sm"
-                    className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-5 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
-                  >
-                    <HelpCircle className="w-4 h-4 mr-2" />
-                    Инструкция
-                  </Button>
-                )}
-                
-                {/* Кнопка обновления из STS API */}
+                <Button
+                  onClick={() => window.open('/help/point-prices', '_blank')}
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-5 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
+                >
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  Инструкция
+                </Button>
                 {stsApiConfigured && (
                   <Button 
                     onClick={loadPricesFromSTSAPI}
@@ -1022,11 +1015,9 @@ export default function Prices() {
                         <RefreshCw className="w-4 h-4" />
                       )}
                     </div>
-                    {loadingFromSTSAPI ? 'Обновление...' : 'STS API'}
+                    STS API
                   </Button>
                 )}
-                
-                {/* Кнопка создания новой цены */}
                 <Button 
                   onClick={handleCreatePrice}
                   size="sm"
@@ -1037,20 +1028,20 @@ export default function Prices() {
                 </Button>
               </div>
             </CardTitle>
-            
           </CardHeader>
         </Card>
 
 
         {/* Плитки цен */}
         {isInitialLoading ? (
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
+          <div className="px-4 md:px-6 pb-6">
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
               {/* Skeleton плитки для состояния загрузки */}
               {[1, 2, 3, 4].map((n) => (
-                <div key={n} className={`bg-slate-800 border border-slate-700 rounded-lg ${isMobile ? 'p-3' : 'p-6'}`}>
-                  <div className={`flex items-start justify-between ${isMobile ? 'mb-3' : 'mb-4'}`}>
+                <div key={n} className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+                  <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className={`${isMobile ? 'w-8 h-8' : 'w-10 h-10'} bg-slate-600 rounded-lg animate-pulse`}></div>
+                      <div className="w-10 h-10 bg-slate-600 rounded-lg animate-pulse"></div>
                       <div>
                         <div className="h-4 w-16 bg-slate-600 rounded animate-pulse mb-2"></div>
                         <div className="h-3 w-12 bg-slate-700 rounded animate-pulse"></div>
@@ -1059,7 +1050,7 @@ export default function Prices() {
                     <div className="h-5 w-20 bg-slate-600 rounded animate-pulse"></div>
                   </div>
                   
-                  <div className={`${isMobile ? 'space-y-2 mb-3' : 'space-y-3 mb-4'}`}>
+                  <div className="space-y-3 mb-4">
                     <div className="flex justify-between">
                       <div className="h-3 w-24 bg-slate-700 rounded animate-pulse"></div>
                       <div className="h-3 w-16 bg-slate-600 rounded animate-pulse"></div>
@@ -1074,7 +1065,7 @@ export default function Prices() {
                     </div>
                   </div>
                   
-                  <div className={`${isMobile ? 'space-y-1 mb-3' : 'space-y-2 mb-4'}`}>
+                  <div className="space-y-2 mb-4">
                     <div className="flex justify-between">
                       <div className="h-3 w-14 bg-slate-700 rounded animate-pulse"></div>
                       <div className="h-3 w-8 bg-slate-600 rounded animate-pulse"></div>
@@ -1092,8 +1083,9 @@ export default function Prices() {
                 </div>
               ))}
             </div>
+          </div>
         ) : filteredPrices.length === 0 ? (
-          <div>
+          <div className="px-4 md:px-6">
             <div className={`text-center ${isMobile ? 'py-8' : 'py-16'}`}>
               <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4`}>
                 <span className={`text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>💰</span>
@@ -1115,20 +1107,18 @@ export default function Prices() {
             </div>
           </div>
         ) : (
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
+          <div className="px-4 md:px-6 pb-6">
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
               {filteredPrices.map((price) => (
-                <div key={price.id} className={`bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200 ${isMobile ? 'p-3' : 'p-6'}`}>
+                <div key={price.id} className={`bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200 ${isMobile ? 'p-4' : 'p-6'}`}>
                   {/* Header с видом топлива и статусом */}
-                  <div className={`${isMobile ? 'space-y-2' : 'flex items-start justify-between'} ${isMobile ? 'mb-3' : 'mb-4'}`}>
+                  <div className={`${isMobile ? 'space-y-3' : 'flex items-start justify-between'} mb-4`}>
                     <div className="flex items-center gap-3">
-                      <div className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg flex items-center justify-center border border-blue-500/20 flex-shrink-0`}>
-                        <Fuel className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} text-blue-400`} />
+                      <div className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg flex items-center justify-center border border-blue-500/20 flex-shrink-0`}>
+                        <Fuel className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-blue-400`} />
                       </div>
                       <div className="flex-1">
-                        <div className={`font-semibold text-white ${isMobile ? 'text-sm truncate' : 'text-lg'}`}>{price.fuelType || 'Неизвестно'}</div>
-                        {price.fuelCode && price.fuelCode !== price.fuelType && (
-                          <div className={`text-slate-300 font-mono bg-slate-700/50 px-2 py-1 rounded ${isMobile ? 'text-xs' : 'text-sm'}`}>{price.fuelCode}</div>
-                        )}
+                        <div className={`font-semibold text-white ${isMobile ? 'text-base truncate' : 'text-lg'}`}>{price.fuelType || 'Неизвестно'}</div>
                       </div>
                     </div>
                     <Badge variant="secondary" className={`text-xs ${getStatusColor(price.status)} ${isMobile ? 'self-start flex-shrink-0' : ''}`}>
@@ -1140,7 +1130,7 @@ export default function Prices() {
                   </div>
 
                   {/* Цены */}
-                  <div className={`${isMobile ? 'space-y-2 mb-3' : 'space-y-3 mb-4'}`}>
+                  <div className="space-y-3 mb-4">
                     <div className={`flex items-center justify-between border-t border-slate-600 pt-2 ${isMobile ? 'gap-2' : ''}`}>
                       <span className={`text-slate-400 ${isMobile ? 'text-xs flex-shrink-0' : 'text-sm'}`}>Цена:</span>
                       {editingPriceId === price.id ? (
@@ -1151,7 +1141,7 @@ export default function Prices() {
                             min="0"
                             value={editingValue}
                             onChange={(e) => handleEditingValueChange(e.target.value)}
-                            className={`${isMobile ? 'w-16 h-6 text-xs' : 'w-24 h-8'} text-right bg-slate-700 border-slate-600 text-white font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}
+                            className={`${isMobile ? 'w-20 h-7' : 'w-24 h-8'} text-right bg-slate-700 border-slate-600 text-white font-bold text-sm`}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 handleSaveInlinePrice();
@@ -1166,7 +1156,7 @@ export default function Prices() {
                       ) : (
                         <button
                           onClick={() => handleInlineEdit(price.id, price.priceGross)}
-                          className={`text-white font-bold hover:text-blue-400 hover:underline transition-colors cursor-pointer ${isMobile ? 'text-sm min-w-0 truncate' : 'text-lg'}`}
+                          className={`text-white font-bold hover:text-blue-400 hover:underline transition-colors cursor-pointer ${isMobile ? 'text-base min-w-0 truncate' : 'text-lg'}`}
                           title="Нажмите для редактирования цены"
                         >
                           {formatPrice(price.priceGross, price.source !== 'sts-api')}
@@ -1176,7 +1166,7 @@ export default function Prices() {
                   </div>
 
                   {/* Дополнительная информация */}
-                  <div className={`${isMobile ? 'space-y-1 mb-3 text-xs' : 'space-y-2 mb-4 text-sm'}`}>
+                  <div className={`space-y-2 mb-4 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                     <div className={`flex items-center justify-between ${isMobile ? 'gap-2' : ''}`}>
                       <span className="text-slate-400">Единица:</span>
                       <span className={`text-white text-right ${isMobile ? 'min-w-0 truncate' : ''}`}>{price.unit}</span>
@@ -1184,15 +1174,15 @@ export default function Prices() {
                   </div>
 
                   {/* Действия */}
-                  <div className={`flex gap-2 ${isMobile ? 'pt-2 border-t border-slate-700 flex-col' : 'pt-3 border-t border-slate-700 flex-row'}`}>
+                  <div className={`flex gap-2 pt-3 border-t border-slate-700 ${isMobile ? 'flex-col' : 'flex-row'}`}>
                     {editingPriceId === price.id ? (
                       <>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size={isMobile ? "default" : "sm"}
                           onClick={handleSaveInlinePrice}
                           disabled={!hasChanges}
-                          className={`flex-1 text-green-400 hover:text-green-300 hover:bg-green-500/10 disabled:text-slate-500 disabled:hover:text-slate-500 ${isMobile ? 'text-xs h-8' : ''}`}
+                          className="flex-1 text-green-400 hover:text-green-300 hover:bg-green-500/10 disabled:text-slate-500 disabled:hover:text-slate-500"
                         >
                           <Save className="w-4 h-4" />
                           <span className={isMobile ? "ml-2" : "ml-1"}>Сохранить</span>
@@ -1201,7 +1191,7 @@ export default function Prices() {
                           variant="ghost"
                           size="sm"
                           onClick={handleCancelInlineEdit}
-                          className={`text-slate-400 hover:text-red-400 hover:bg-red-500/10 ${isMobile ? 'h-8' : ''}`}
+                          className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -1212,15 +1202,15 @@ export default function Prices() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditPrice(price)}
-                          className={`flex-1 text-slate-400 hover:text-white hover:bg-slate-700 ${isMobile ? 'text-xs h-8' : ''}`}
+                          className="flex-1 text-slate-400 hover:text-white hover:bg-slate-700"
                         >
-                          <Edit className={`w-4 h-4 ${isMobile ? 'mr-1' : 'mr-2'}`} />
+                          <Edit className="w-4 h-4 mr-2" />
                           Редактировать
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 ${isMobile ? 'h-8 px-2' : ''}`}
+                          className="text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
                           title="История цены"
                         >
                           <History className="w-4 h-4" />
