@@ -36,10 +36,10 @@ export default defineConfig(({ mode }) => ({
             return 'react-query';
           }
           
-          // Chart libraries (keep together to avoid initialization issues)
-          if (id.includes('recharts')) {
-            return 'recharts';
-          }
+          // Chart libraries - don't split to avoid initialization issues
+          // if (id.includes('recharts')) {
+          //   return 'recharts';
+          // }
           if (id.includes('chart.js') || id.includes('chartjs-adapter-date-fns')) {
             return 'chartjs';
           }
