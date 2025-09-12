@@ -246,7 +246,7 @@ export default function STSApiSettings() {
   };
 
   const buildRequestBody = (method: any, config: STSApiConfig): any => {
-    const body: any = {};
+    let body: any = {};
     
     // Анализируем requestBody из OpenAPI схемы
     if (method.requestBody?.content?.['application/json']?.schema) {
