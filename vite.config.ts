@@ -69,8 +69,11 @@ export default defineConfig(({ mode }) => ({
             return 'dnd';
           }
           
-          // Database clients
-          if (id.includes('@supabase/supabase-js') || id.includes('pg')) {
+          // Database clients - keep together to avoid initialization issues
+          if (id.includes('@supabase/supabase-js')) {
+            return 'supabase';
+          }
+          if (id.includes('pg')) {
             return 'database';
           }
           
