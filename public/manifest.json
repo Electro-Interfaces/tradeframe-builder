@@ -3,7 +3,7 @@
   "short_name": "TradeFrame",
   "description": "Система управления торговыми сетями и АЗС. Включает: обзор сетей, операции, цены, резервуары, оборудование, управление пользователями. Неиспользуемые разделы: история цен, остатки топлива, номенклатура, регламенты.",
   "theme_color": "#1e293b",
-  "background_color": "#0f172a",
+  "background_color": "#1e293b",
   "display": "standalone",
   "orientation": "portrait",
   "scope": "/tradeframe-builder/",

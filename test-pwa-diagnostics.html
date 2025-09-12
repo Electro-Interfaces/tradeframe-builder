@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PWA Диагностика TradeFrame</title>
+  
+  <!-- Политики безопасности -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self'; object-src 'none'; frame-src 'none';" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  
+  <!-- PWA настройки -->
+  <meta name="theme-color" content="#1e293b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="/tradeframe-builder/manifest.json">
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1e293b;
+      color: white;
+      padding: 20px;
+      margin: 0;
+      line-height: 1.6;
+    }
+    
+    .test-section {
+      background: rgba(255, 255, 255, 0.1);
+      margin: 20px 0;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    
+    .success { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .warning { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+    .error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    
+    .info {
+      font-family: monospace;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      font-size: 12px;
+    }
+    
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    
+    button:hover {
+      background: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 PWA Диагностика TradeFrame</h1>
+  
+  <div class="test-section">
+    <h2>📱 Информация о браузере</h2>
+    <div id="browser-info" class="info"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>🛡️ Service Worker</h2>
+    <div id="sw-status"></div>
+    <button onclick="testServiceWorker()">Проверить SW</button>
+    <button onclick="unregisterSW()">Удалить SW</button>
+    <div id="sw-info" class="info"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>📋 PWA Manifest</h2>
+    <div id="manifest-status"></div>
+    <button onclick="testManifest()">Проверить Manifest</button>
+    <div id="manifest-info" class="info"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>💾 Кэш и хранилище</h2>
+    <div id="storage-status"></div>
+    <button onclick="testStorage()">Проверить Storage</button>
+    <button onclick="clearAllStorage()">Очистить всё</button>
+    <div id="storage-info" class="info"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>🌐 Сеть и HTTPS</h2>
+    <div id="network-status"></div>
+    <button onclick="testNetwork()">Проверить сеть</button>
+    <div id="network-info" class="info"></div>
+  </div>
+
+  <script>
+    function addStatus(containerId, message, type = 'info') {
+      const container = document.getElementById(containerId);
+      const div = document.createElement('div');
+      div.className = `status ${type}`;
+      div.textContent = message;
+      container.appendChild(div);
+    }
+
+    function updateInfo(containerId, info) {
+      document.getElementById(containerId).textContent = info;
+    }
+
+    // Инициализация - показать информацию о браузере
+    function initBrowserInfo() {
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        cookiesEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        screen: `${window.screen.width}x${window.screen.height}`,
+        devicePixelRatio: window.devicePixelRatio,
+        location: window.location.href,
+        protocol: window.location.protocol,
+        isSecure: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
+        standalone: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
+      };
+      
+      updateInfo('browser-info', JSON.stringify(info, null, 2));
+    }
+
+    // Тест Service Worker
+    function testServiceWorker() {
+      document.getElementById('sw-status').innerHTML = '';
+      
+      if (!('serviceWorker' in navigator)) {
+        addStatus('sw-status', '❌ Service Worker не поддерживается', 'error');
+        return;
+      }
+
+      addStatus('sw-status', '✅ Service Worker поддерживается', 'success');
+      
+      navigator.serviceWorker.getRegistrations()
+        .then(registrations => {
+          let swInfo = `Зарегистрированных SW: ${registrations.length}\n\n`;
+          
+          registrations.forEach((reg, index) => {
+            swInfo += `SW ${index + 1}:\n`;
+            swInfo += `  Scope: ${reg.scope}\n`;
+            swInfo += `  State: ${reg.active?.state || 'none'}\n`;
+            swInfo += `  Script URL: ${reg.active?.scriptURL || 'none'}\n\n`;
+          });
+          
+          updateInfo('sw-info', swInfo);
+          
+          if (registrations.length > 0) {
+            addStatus('sw-status', `✅ Найдено ${registrations.length} Service Worker(s)`, 'success');
+          } else {
+            addStatus('sw-status', '⚠️ Service Worker не зарегистрирован', 'warning');
+          }
+        })
+        .catch(error => {
+          addStatus('sw-status', `❌ Ошибка проверки SW: ${error.message}`, 'error');
+          updateInfo('sw-info', error.stack);
+        });
+    }
+
+    // Удаление Service Worker
+    function unregisterSW() {
+      navigator.serviceWorker.getRegistrations()
+        .then(registrations => {
+          Promise.all(registrations.map(reg => reg.unregister()))
+            .then(() => {
+              addStatus('sw-status', '✅ Все Service Workers удалены', 'success');
+              updateInfo('sw-info', 'Service Workers удалены. Перезагрузите страницу.');
+            });
+        });
+    }
+
+    // Тест Manifest
+    function testManifest() {
+      document.getElementById('manifest-status').innerHTML = '';
+      
+      fetch('/tradeframe-builder/manifest.json')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(manifest => {
+          addStatus('manifest-status', '✅ Manifest загружен успешно', 'success');
+          updateInfo('manifest-info', JSON.stringify(manifest, null, 2));
+          
+          // Проверяем основные свойства
+          if (manifest.name && manifest.short_name) {
+            addStatus('manifest-status', '✅ Имя приложения найдено', 'success');
+          }
+          if (manifest.icons && manifest.icons.length > 0) {
+            addStatus('manifest-status', `✅ Найдено ${manifest.icons.length} иконок`, 'success');
+          }
+          if (manifest.start_url) {
+            addStatus('manifest-status', '✅ Start URL настроен', 'success');
+          }
+        })
+        .catch(error => {
+          addStatus('manifest-status', `❌ Ошибка загрузки manifest: ${error.message}`, 'error');
+          updateInfo('manifest-info', error.stack);
+        });
+    }
+
+    // Тест хранилища
+    function testStorage() {
+      document.getElementById('storage-status').innerHTML = '';
+      
+      let storageInfo = '';
+      
+      // localStorage
+      try {
+        const testKey = '__test_storage__';
+        localStorage.setItem(testKey, 'test');
+        localStorage.removeItem(testKey);
+        addStatus('storage-status', '✅ localStorage доступен', 'success');
+        storageInfo += `localStorage: ${Object.keys(localStorage).length} ключей\n`;
+      } catch (e) {
+        addStatus('storage-status', '❌ localStorage недоступен', 'error');
+      }
+
+      // sessionStorage
+      try {
+        const testKey = '__test_session__';
+        sessionStorage.setItem(testKey, 'test');
+        sessionStorage.removeItem(testKey);
+        addStatus('storage-status', '✅ sessionStorage доступен', 'success');
+        storageInfo += `sessionStorage: ${Object.keys(sessionStorage).length} ключей\n`;
+      } catch (e) {
+        addStatus('storage-status', '❌ sessionStorage недоступен', 'error');
+      }
+
+      // Cache API
+      if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+          addStatus('storage-status', '✅ Cache API доступен', 'success');
+          storageInfo += `Caches: ${cacheNames.length} (${cacheNames.join(', ')})\n`;
+          updateInfo('storage-info', storageInfo);
+        });
+      } else {
+        addStatus('storage-status', '❌ Cache API недоступен', 'error');
+        updateInfo('storage-info', storageInfo);
+      }
+    }
+
+    // Очистка всего хранилища
+    function clearAllStorage() {
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+          return Promise.all(cacheNames.map(name => caches.delete(name)));
+        }).then(() => {
+          addStatus('storage-status', '✅ Всё хранилище очищено', 'success');
+        });
+      }
+    }
+
+    // Тест сети
+    function testNetwork() {
+      document.getElementById('network-status').innerHTML = '';
+      
+      const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+      
+      if (isSecure) {
+        addStatus('network-status', '✅ Secure context (HTTPS)', 'success');
+      } else {
+        addStatus('network-status', '❌ Не secure context (HTTP)', 'error');
+      }
+      
+      if (navigator.onLine) {
+        addStatus('network-status', '✅ Браузер в сети', 'success');
+      } else {
+        addStatus('network-status', '⚠️ Браузер в offline режиме', 'warning');
+      }
+      
+      // Тест загрузки ресурсов
+      const testUrls = [
+        '/tradeframe-builder/',
+        '/tradeframe-builder/manifest.json',
+        '/tradeframe-builder/sw.js'
+      ];
+      
+      Promise.all(testUrls.map(url => 
+        fetch(url, { method: 'HEAD' })
+          .then(response => ({ url, status: response.status, ok: response.ok }))
+          .catch(error => ({ url, status: 'ERROR', error: error.message }))
+      )).then(results => {
+        let networkInfo = 'Тест загрузки ресурсов:\n\n';
+        results.forEach(result => {
+          networkInfo += `${result.url}: ${result.status}${result.ok ? ' ✅' : ' ❌'}\n`;
+          if (result.error) networkInfo += `  Error: ${result.error}\n`;
+        });
+        updateInfo('network-info', networkInfo);
+      });
+    }
+
+    // Инициализация при загрузке
+    window.addEventListener('load', () => {
+      initBrowserInfo();
+      testServiceWorker();
+      testManifest();
+      testStorage();
+      testNetwork();
+    });
+  </script>
+</body>
+</html>

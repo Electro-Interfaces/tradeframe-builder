@@ -8,10 +8,12 @@ import './styles/mobile.css'
 // Импортируем утилиту для отчетов о localStorage
 import './utils/localStorageReport'
 
-// Регистрация Service Worker для PWA
-if ('serviceWorker' in navigator) {
+// Регистрация Service Worker для PWA с улучшенной обработкой ошибок
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    const swPath = import.meta.env.PROD ? '/tradeframe-builder/sw.js' : '/sw.js';
+    
+    navigator.serviceWorker.register(swPath)
       .then((registration) => {
         console.log('✅ SW registered:', registration.scope);
         
@@ -30,8 +32,14 @@ if ('serviceWorker' in navigator) {
       })
       .catch((error) => {
         console.log('❌ SW registration failed:', error);
+        // Не блокируем приложение если SW не загружается
+        console.log('📱 App will continue without PWA features');
       });
   });
+} else if (!('serviceWorker' in navigator)) {
+  console.log('🚫 Service Worker not supported in this browser');
+} else {
+  console.log('🔧 Service Worker disabled in development mode');
 }
 
 // Глобальная функция для сброса демо данных
@@ -49,6 +57,37 @@ window.resetDemoData = () => {
 };
 
 console.log('💡 Для сброса демо-данных выполните в консоли: resetDemoData()');
+
+// Детекция браузера и платформы для диагностики
+if (typeof window !== 'undefined') {
+  const userAgent = navigator.userAgent;
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  const isWebView = /wv|WebView|Version.*Chrome/i.test(userAgent) && isMobile;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                      (window.navigator as any).standalone;
+  
+  console.log('🔍 Browser Detection:', {
+    userAgent: userAgent.substring(0, 50) + '...',
+    isMobile,
+    isWebView,
+    isStandalone,
+    viewport: `${window.innerWidth}x${window.innerHeight}`,
+    cookiesEnabled: navigator.cookieEnabled,
+    onLine: navigator.onLine
+  });
+
+  // Специальные фиксы для WebView
+  if (isWebView) {
+    console.log('📱 WebView detected, applying fixes');
+    document.documentElement.classList.add('webview-optimized');
+  }
+
+  // Специальные фиксы для PWA режима  
+  if (isStandalone) {
+    console.log('📱 PWA standalone mode detected');
+    document.documentElement.classList.add('pwa-installed');
+  }
+}
 
 // GitHub Pages SPA routing support
 if (typeof window !== 'undefined') {
