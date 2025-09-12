@@ -36,9 +36,12 @@ export default defineConfig(({ mode }) => ({
             return 'react-query';
           }
           
-          // Chart libraries (heavy - separate chunk)
-          if (id.includes('recharts') || id.includes('chart.js') || id.includes('chartjs-adapter-date-fns')) {
-            return 'charts';
+          // Chart libraries (keep together to avoid initialization issues)
+          if (id.includes('recharts')) {
+            return 'recharts';
+          }
+          if (id.includes('chart.js') || id.includes('chartjs-adapter-date-fns')) {
+            return 'chartjs';
           }
           
           // Export utilities (loaded on demand)
@@ -92,8 +95,13 @@ export default defineConfig(({ mode }) => ({
             return 'pages-settings';
           }
           
-          // Heavy pages chunk (критические страницы)
-          if (id.includes('/pages/Prices') || id.includes('/pages/STSApiSettings') || 
+          // Critical pages - no splitting for Prices to avoid chart issues
+          if (id.includes('/pages/Prices')) {
+            return undefined; // Don't split Prices page
+          }
+          
+          // Heavy pages chunk (other critical pages)
+          if (id.includes('/pages/STSApiSettings') || 
               id.includes('/pages/Tanks') || id.includes('/pages/OperationsTransactionsPageSimple')) {
             return 'pages-heavy';
           }
