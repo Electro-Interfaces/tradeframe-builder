@@ -3,6 +3,7 @@
  */
 
 import { usersService, type User } from './usersService';
+import { externalUsersService } from './externalUsersService';
 
 interface CurrentUserProfileData {
   firstName: string;
@@ -89,7 +90,26 @@ class CurrentUserService {
    */
   async getUserByEmail(email: string): Promise<User | null> {
     try {
-      return await usersService.getUserByEmail(email);
+      // Сначала пробуем реальную БД с ролями
+      try {
+        const usersWithRoles = await externalUsersService.getUsersWithRoles();
+        const userWithRoles = usersWithRoles.find(u => u.email === email);
+        if (userWithRoles) {
+          console.log('✅ Пользователь найден в реальной БД с ролями:', userWithRoles);
+          return userWithRoles;
+        }
+      } catch (dbError) {
+        console.warn('⚠️ Ошибка поиска в реальной БД:', dbError);
+      }
+
+      // Fallback к моковым данным
+      const mockUser = await usersService.getUserByEmail(email);
+      if (mockUser) {
+        console.log('✅ Пользователь найден в моковых данных:', mockUser);
+        return mockUser;
+      }
+
+      return null;
     } catch (error) {
       console.error('Ошибка получения пользователя по email:', error);
       throw error;

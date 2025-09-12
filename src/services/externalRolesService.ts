@@ -108,17 +108,9 @@ class ExternalRolesService {
 
   private async getRolePermissions(roleId: string): Promise<Permission[]> {
     try {
-      const response = await this.makeRequest(
-        `role_permissions?role_id=eq.${roleId}`,
-        { method: 'GET' }
-      );
-
-      return response.map((perm: any) => ({
-        section: perm.section,
-        resource: perm.resource,
-        actions: perm.actions,
-        conditions: perm.conditions || []
-      }));
+      // Получаем разрешения из поля permissions роли
+      const role = await this.getRoleById(roleId);
+      return role?.permissions || [];
     } catch (error) {
       console.error('Error fetching role permissions:', error);
       return [];
@@ -309,26 +301,14 @@ class ExternalRolesService {
 
   private async setRolePermissions(roleId: string, permissions: Permission[]): Promise<void> {
     try {
-      // Удаляем старые разрешения
-      await this.makeRequest(`role_permissions?role_id=eq.${roleId}`, {
-        method: 'DELETE'
+      // Обновляем поле permissions в таблице roles
+      await this.makeRequest(`roles?id=eq.${roleId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          permissions: permissions,
+          updated_at: new Date().toISOString()
+        })
       });
-
-      // Добавляем новые разрешения
-      if (permissions.length > 0) {
-        const permissionData = permissions.map(perm => ({
-          role_id: roleId,
-          section: perm.section,
-          resource: perm.resource,
-          actions: perm.actions,
-          conditions: perm.conditions || []
-        }));
-
-        await this.makeRequest('role_permissions', {
-          method: 'POST',
-          body: JSON.stringify(permissionData)
-        });
-      }
     } catch (error) {
       console.error('Error setting role permissions:', error);
       throw error;

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, memo } from "react";
 import { NavLink } from "react-router-dom";
 import { useMenuVisibility } from "@/hooks/useMenuVisibility";
+
+console.log('📁 AppSidebar.tsx: Module loaded!');
 import {
   Sidebar,
   SidebarContent,
@@ -56,6 +58,11 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   
   const [openGroups, setOpenGroups] = useState<string[]>(getInitialOpenGroups);
   const menuVisibility = useMenuVisibility();
+  
+  // Логирование в AppSidebar
+  console.log('🗂️ AppSidebar: menuVisibility result:', menuVisibility);
+  const visibleSections = Object.entries(menuVisibility).filter(([key, value]) => value);
+  console.log('🗂️ AppSidebar: visible sections:', visibleSections.map(([key]) => key));
   
   // Сохраняем состояние в localStorage при изменении
   useEffect(() => {

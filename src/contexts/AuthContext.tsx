@@ -4,7 +4,15 @@ import { testServiceConnection } from '../services/supabaseServiceClient';
 import { currentUserService } from '../services/currentUserService';
 import { type User as DBUser } from '../services/usersService';
 
+console.log('📁 AuthContext.tsx: Module loaded!');
+
 // Типы пользователей и ролей
+export interface Permission {
+  section: string;
+  resource: string;
+  actions: string[];
+}
+
 export interface User {
   id: string;
   email: string;
@@ -15,7 +23,7 @@ export interface User {
   role: string;
   networkId?: string;
   tradingPointIds: string[];
-  permissions: string[];
+  permissions: (string | Permission)[];
   roles?: UserRole[];
   status?: 'active' | 'inactive' | 'blocked';
   lastLogin?: string;
@@ -167,19 +175,24 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  console.log('🚀 AuthProvider: component initialized');
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<Role[]>(SYSTEM_ROLES);
   const [loading, setLoading] = useState(true);
+  
+  console.log('🚀 AuthProvider: current user state:', user);
 
   // Инициализация пользователя при загрузке приложения
   // Проверяем, есть ли сохраненная сессия
   useEffect(() => {
+    console.log('🔄 AuthProvider: useEffect called - initializing auth');
     const initializeAuth = async () => {
       try {
         if (typeof window !== 'undefined') {
           // Проверяем есть ли сохраненная сессия
           const savedUser = localStorage.getItem('currentUser');
           const authToken = localStorage.getItem('auth_token');
+          console.log('🔍 AuthProvider: localStorage check - savedUser exists:', !!savedUser, 'authToken exists:', !!authToken);
           
           if (savedUser && authToken) {
             try {
@@ -195,6 +208,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
               // Восстанавливаем пользователя из сохраненной сессии
               const parsedUser = JSON.parse(savedUser);
               console.log('🔄 Restoring user from localStorage:', parsedUser);
+              console.log('👤 User role:', parsedUser.role);
+              console.log('🔑 User permissions count:', parsedUser.permissions?.length || 0);
+              console.log('🔑 User permissions:', parsedUser.permissions);
               setUser(parsedUser);
             } catch (error) {
               console.error('❌ Error parsing saved user data:', error);
@@ -306,18 +322,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (dbUser) {
         console.log('✅ User found in database:', dbUser);
         
+        // Определяем основную роль пользователя
+        let primaryRole = 'user';
+        if (dbUser.roles && dbUser.roles.length > 0) {
+          // Используем код первой активной роли
+          primaryRole = dbUser.roles[0].role_code || 'user';
+        }
+
         // Преобразуем пользователя из БД в формат для AuthContext
         const contextUser: User = {
           id: dbUser.id.toString(),
           email: dbUser.email,
-          name: `${dbUser.firstName} ${dbUser.lastName}`.trim(),
+          name: dbUser.name || `${dbUser.firstName || ''} ${dbUser.lastName || ''}`.trim(),
           firstName: dbUser.firstName,
           lastName: dbUser.lastName,
           phone: dbUser.phone,
-          role: 'user',
+          role: primaryRole, // Используем код роли из user_roles
           networkId: undefined,
           tradingPointIds: [],
-          permissions: dbUser.permissions || ['basic'],
+          permissions: dbUser.roles ? dbUser.roles.flatMap(r => r.permissions || []) : ['basic'],
           roles: dbUser.roles || [],
           status: dbUser.status,
           lastLogin: new Date().toISOString()
@@ -329,12 +352,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Устанавливаем ID текущего пользователя в сервисе
         currentUserService.setCurrentUserId(dbUser.id);
         
-        // Сохраняем пользователя в localStorage
+        // Сохраняем пользователя в localStorage (используем тот же ключ что и при восстановлении)
         if (typeof window !== 'undefined') {
           try {
             const userJson = JSON.stringify(contextUser);
-            localStorage.setItem('currentUser', userJson);
-            localStorage.setItem('auth_token', 'database_session');
+            localStorage.setItem('tradeframe_user', userJson);
+            localStorage.setItem('authToken', 'database_session');
             console.log('✅ Successfully saved DB user to localStorage');
           } catch (error) {
             console.error('❌ Error saving user to localStorage:', error);
@@ -362,12 +385,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.log('🎯 Context user being set:', contextUser);
         setUser(contextUser);
         
-        // Сохраняем пользователя в localStorage
+        // Сохраняем пользователя в localStorage (используем тот же ключ что и при восстановлении)
         if (typeof window !== 'undefined') {
           try {
             const userJson = JSON.stringify(contextUser);
-            localStorage.setItem('currentUser', userJson);
-            localStorage.setItem('auth_token', 'supabase_session');
+            localStorage.setItem('tradeframe_user', userJson);
+            localStorage.setItem('authToken', 'supabase_session');
             console.log('✅ Successfully saved Supabase user to localStorage');
           } catch (error) {
             console.error('❌ Error saving user to localStorage:', error);

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Users as UsersIcon, Search, Edit, Trash2, User } from 'lucide-react'
+import { Plus, Users as UsersIcon, Search, Edit, Trash2, User, KeyRound } from 'lucide-react'
 import { User as UserType, UserStatus } from '@/types/auth'
 import { externalUsersService } from '@/services/externalUsersService'
 import { externalRolesService } from '@/services/externalRolesService'
@@ -21,14 +21,18 @@ import { MainLayout } from '@/components/layout/MainLayout'
 import { useIsMobile } from "@/hooks/use-mobile";
 import { HelpButton } from "@/components/help/HelpButton"
 import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from '@/components/data-source/DataSourceIndicator'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Users() {
   const { hasExternalDatabase } = useDataSourceInfo()
+  const { user } = useAuth()
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all')
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false)
+  const [userToResetPassword, setUserToResetPassword] = useState<UserType | null>(null)
 
   const { data: users = [], isLoading, error, refetch } = useQuery({
     queryKey: ['external-users'],
@@ -69,6 +73,71 @@ export default function Users() {
       await refetch()
     } catch (error) {
       console.error('Failed to delete user:', error)
+    }
+  }
+
+  const handleResetPassword = (user: UserType) => {
+    setUserToResetPassword(user)
+    setIsResetPasswordOpen(true)
+  }
+
+  const handleResetPasswordConfirm = async () => {
+    if (!userToResetPassword) return
+    
+    try {
+      // Генерируем временный пароль
+      const tempPassword = generateTemporaryPassword()
+      await externalUsersService.changePassword(userToResetPassword.id, tempPassword)
+      
+      // Показываем пароль администратору
+      alert(`Пароль для пользователя ${userToResetPassword.name} сброшен.\n\nНовый временный пароль: ${tempPassword}\n\nПожалуйста, передайте этот пароль пользователю безопасным способом.`)
+      
+      setIsResetPasswordOpen(false)
+      setUserToResetPassword(null)
+    } catch (error) {
+      console.error('Failed to reset password:', error)
+      alert('Ошибка при сбросе пароля. Попробуйте еще раз.')
+    }
+  }
+
+  const generateTemporaryPassword = (): string => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
+    let password = ''
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return password
+  }
+
+  const handleCleanupDeletedUsers = async () => {
+    const confirmed = window.confirm(
+      'Вы уверены, что хотите физически удалить всех помеченных к удалению пользователей?\n\n' +
+      'Это действие нельзя отменить. Пользователи будут удалены из базы данных навсегда.'
+    )
+    
+    if (!confirmed) return
+    
+    try {
+      console.log('🧹 Начинаем очистку soft-deleted пользователей...')
+      console.log('🔧 Проверяем сервис:', externalUsersService)
+      
+      const result = await externalUsersService.permanentlyDeleteAllSoftDeletedUsers()
+      console.log('📊 Результат очистки:', result)
+      
+      if (result && result.deletedCount > 0) {
+        alert(`✅ Успешно удалено ${result.deletedCount} пользователей из базы данных.`)
+        await refetch() // Обновляем список пользователей
+      } else {
+        alert('ℹ️ Помеченные к удалению пользователи не найдены.')
+      }
+    } catch (error) {
+      console.error('❌ Детальная ошибка при очистке удаленных пользователей:', error)
+      console.error('❌ Стек ошибки:', error?.stack)
+      console.error('❌ Сообщение ошибки:', error?.message)
+      
+      // Показываем более детальную ошибку
+      const errorMessage = error?.message || 'Неизвестная ошибка'
+      alert(`❌ Ошибка при очистке удаленных пользователей:\n\n${errorMessage}\n\nПроверьте консоль для подробностей.`)
     }
   }
 
@@ -128,13 +197,27 @@ export default function Users() {
                   Всего: {filteredUsers.length} из {users.length}
                 </div>
               </div>
-              <Button 
-                onClick={handleCreate}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Новый пользователь
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleCreate}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Новый пользователь
+                </Button>
+                {/* Кнопка очистки удаленных пользователей - только для администраторов */}
+                {(user?.role === 'super_admin' || user?.role === 'system_admin' || user?.role === 'network_admin' || user?.email?.includes('admin')) && (
+                  <Button 
+                    onClick={handleCleanupDeletedUsers}
+                    variant="outline"
+                    className="bg-red-600/10 border-red-500 text-red-400 hover:bg-red-600/20 hover:text-red-300"
+                    title="Физически удалить всех помеченных к удалению пользователей"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Очистить удаленных
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Фильтры */}
@@ -184,12 +267,12 @@ export default function Users() {
               <table className="w-full text-sm min-w-full table-fixed">
                 <thead className="bg-slate-700/80">
                   <tr>
-                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '25%'}}>ПОЛЬЗОВАТЕЛЬ</th>
+                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '23%'}}>ПОЛЬЗОВАТЕЛЬ</th>
                     <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '20%'}}>EMAIL</th>
                     <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '10%'}}>СТАТУС</th>
-                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '20%'}}>РОЛИ</th>
+                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '19%'}}>РОЛИ</th>
                     <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>ПОСЛЕДНИЙ ВХОД</th>
-                    <th className="px-6 py-4 text-right text-slate-100 font-medium" style={{width: '10%'}}>ДЕЙСТВИЯ</th>
+                    <th className="px-6 py-4 text-right text-slate-100 font-medium" style={{width: '13%'}}>ДЕЙСТВИЯ</th>
                   </tr>
                 </thead>
                 <tbody className="bg-slate-800">
@@ -261,14 +344,25 @@ export default function Users() {
                               size="sm"
                               onClick={() => handleEdit(user)}
                               className="text-slate-400 hover:text-white hover:bg-slate-700"
+                              title="Редактировать пользователя"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => handleResetPassword(user)}
+                              className="text-slate-400 hover:text-yellow-400 hover:bg-slate-700"
+                              title="Сбросить пароль"
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => confirmDelete.openDialog(user.id, `пользователя "${user.name}"`)}
                               className="text-slate-400 hover:text-red-400 hover:bg-slate-700"
+                              title="Удалить пользователя"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -299,6 +393,23 @@ export default function Users() {
         onConfirm={confirmDelete.confirm}
         confirmText="Удалить"
         variant="destructive"
+      />
+
+      <ConfirmDialog
+        open={isResetPasswordOpen}
+        onOpenChange={(open) => {
+          setIsResetPasswordOpen(open)
+          if (!open) setUserToResetPassword(null)
+        }}
+        title="Сброс пароля"
+        description={
+          userToResetPassword 
+            ? `Вы действительно хотите сбросить пароль для пользователя "${userToResetPassword.name}"?\n\nБудет сгенерирован новый временный пароль, который нужно будет передать пользователю.`
+            : ''
+        }
+        onConfirm={handleResetPasswordConfirm}
+        confirmText="Сбросить пароль"
+        variant="default"
       />
       </div>
     </MainLayout>

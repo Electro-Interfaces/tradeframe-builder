@@ -3,12 +3,16 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
+console.log('📁 ProtectedRoute.tsx: Module loaded!');
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  console.log('🛡️ ProtectedRoute: component rendered');
   const { user, loading } = useAuth();
+  console.log('🛡️ ProtectedRoute: user =', user, 'loading =', loading);
   const location = useLocation();
 
   // Показываем загрузку пока проверяем аутентификацию

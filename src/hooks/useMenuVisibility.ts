@@ -5,6 +5,8 @@
 import { useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 
+console.log('📁 useMenuVisibility.ts: Module loaded!');
+
 export interface MenuVisibilityConfig {
   networks: boolean
   tradingPoint: boolean
@@ -22,24 +24,69 @@ export function useMenuVisibility(): MenuVisibilityConfig {
   const { user } = useAuth()
 
   return useMemo(() => {
-    // Специальная логика для МенеджерБТО
-    if (user && user.role === 'bto_manager') {
+    console.log('🔍 useMenuVisibility called with user:', user);
+    
+    if (!user) {
+      console.log('❌ No user found - hiding all menu items');
+      // Неавторизованные пользователи не видят меню
       return {
-        networks: true,        // Показываем - может просматривать торговые сети
-        tradingPoint: true,    // Показываем - может просматривать торговые точки  
-        admin: false,          // Скрываем - нет административных прав
-        settings: false,       // Скрываем - нет доступа к настройкам
-        prices: false,         // Скрываем - не может управлять ценами
-        tanks: false,          // Скрываем - нет доступа к резервуарам
-        equipment: false,      // Скрываем - нет доступа к оборудованию
-        reports: false,        // Скрываем - нет доступа к отчетам
-        analytics: false,      // Скрываем - нет доступа к аналитике
-        misc: false            // Скрываем - нет доступа к разделу "Разное"
+        networks: false,
+        tradingPoint: false,
+        admin: false,
+        settings: false,
+        prices: false,
+        tanks: false,
+        equipment: false,
+        reports: false,
+        analytics: false,
+        misc: false
       }
     }
+    
+    console.log('👤 User role:', user.role);
+    console.log('🔑 User permissions (raw):', user.permissions);
+    console.log('🔑 User permissions (parsed):', user.permissions?.map(p => typeof p === 'string' ? p : JSON.stringify(p)));
 
-    // Системный администратор имеет доступ ко всем разделам
-    if (user && user.role === 'system_admin') {
+    // Функция для проверки разрешения на видимость меню
+    const hasMenuPermission = (menuResource: string): boolean => {
+      console.log(`🔍 Checking permission for: ${menuResource}`);
+      console.log('👤 User permissions:', user.permissions);
+      
+      if (!user.permissions) {
+        console.log(`❌ No permissions found for ${menuResource}`);
+        return false;
+      }
+
+      // Проверяем разрешение на просмотр конкретного меню
+      const result = user.permissions.some(permission => {
+        // Обрабатываем объектный формат разрешений
+        if (typeof permission === 'object' && permission !== null && 'section' in permission) {
+          const match = permission.section === 'menu_visibility' && 
+                 permission.resource === menuResource &&
+                 permission.actions?.includes('view_menu');
+          console.log(`🔍 Object permission ${JSON.stringify(permission)} -> ${menuResource}: ${match}`);
+          return match;
+        }
+        
+        // Обрабатываем строковый формат разрешений (старый формат)
+        if (typeof permission === 'string') {
+          const match = permission === `menu_visibility.${menuResource}.view_menu`;
+          if (permission.includes('menu_visibility') || match) {
+            console.log(`🔍 String permission "${permission}" -> ${menuResource}: ${match}`);
+          }
+          return match;
+        }
+        
+        return false;
+      });
+      
+      console.log(`📊 Final result for ${menuResource}: ${result}`);
+      return result;
+    };
+
+    // Системный администратор (супер админ) имеет доступ ко всем разделам
+    if (user.role === 'super_admin' || user.role === 'system_admin') {
+      console.log('🎯 User is super_admin/system_admin - showing all menus');
       return {
         networks: true,
         tradingPoint: true,
@@ -54,19 +101,134 @@ export function useMenuVisibility(): MenuVisibilityConfig {
       }
     }
 
-    // Для всех остальных ролей показываем все меню (по умолчанию)
-    return {
-      networks: true,
-      tradingPoint: true,
-      admin: true,
-      settings: true,
-      prices: true,
-      tanks: true,
-      equipment: true,
-      reports: true,
-      analytics: true,
-      misc: true
+    // БТО менеджер - показываем только определенные разделы
+    if (user.role === 'network_admin' || user.role === 'manager' || user.role_name === 'Менеджер БТО') {
+      console.log('🎯 User is БТО manager - showing limited menus');
+      return {
+        networks: true,      // ТОРГОВЫЕ СЕТИ: Обзор, Операции
+        tradingPoint: true,  // ТОРГОВАЯ ТОЧКА: Цены, Резервуары, Оборудование
+        admin: false,
+        settings: false,
+        prices: false,       // Цены теперь в tradingPoint
+        tanks: false,        // Резервуары теперь в tradingPoint  
+        equipment: false,    // Оборудование теперь в tradingPoint
+        reports: false,
+        analytics: false,
+        misc: false
+      }
     }
+
+    // Fallback: если у пользователя есть разрешение "all", показываем все меню  
+    const hasAllPermission = user.permissions.some(permission => {
+      if (typeof permission === 'string') {
+        return permission === 'all';
+      }
+      return false;
+    });
+    
+    if (hasAllPermission) {
+      console.log('🎯 User has "all" permission - showing all menus');
+      return {
+        networks: true,
+        tradingPoint: true,
+        admin: true,
+        settings: true,
+        prices: true,
+        tanks: true,
+        equipment: true,
+        reports: true,
+        analytics: true,
+        misc: true
+      }
+    }
+
+    // Для всех остальных ролей используем разрешения из базы данных
+    const menuConfig = {
+      networks: hasMenuPermission('networks_menu'),
+      tradingPoint: hasMenuPermission('trading_point_menu'),
+      admin: hasMenuPermission('admin_menu'),
+      settings: hasMenuPermission('settings_menu'),
+      prices: hasMenuPermission('prices_menu'),
+      tanks: hasMenuPermission('tanks_menu'),
+      equipment: hasMenuPermission('equipment_menu'),
+      reports: hasMenuPermission('reports_menu'),
+      analytics: hasMenuPermission('analytics_menu'),
+      misc: hasMenuPermission('misc_menu')
+    };
+
+    // Fallback: если ни одно меню не видимо, но пользователь имеет некоторые разрешения,
+    // показываем базовые разделы для администратора сети
+    const hasAnyMenu = Object.values(menuConfig).some(visible => visible);
+    if (!hasAnyMenu && user.permissions.length > 0) {
+      // Проверяем, есть ли у пользователя административные разрешения
+      const hasAdminPermissions = user.permissions.some(permission => {
+        if (typeof permission === 'string') {
+          return permission.includes('network.manage') || 
+                 permission.includes('points.manage') || 
+                 permission.includes('users.manage') ||
+                 permission.includes('admin');
+        }
+        return false;
+      });
+
+      if (hasAdminPermissions) {
+        return {
+          networks: true,
+          tradingPoint: true,
+          admin: true,
+          settings: true,
+          prices: true,
+          tanks: true,
+          equipment: true,
+          reports: true,
+          analytics: true,
+          misc: true
+        };
+      }
+    }
+
+    console.log('✅ useMenuVisibility final result:', menuConfig);
+    const visibleCount = Object.values(menuConfig).filter(v => v).length;
+    console.log(`📊 Menu sections visible: ${visibleCount}/10`);
+    
+    // ВРЕМЕННЫЙ FALLBACK: если ни одного меню не видно, показываем разделы в зависимости от роли
+    if (visibleCount === 0) {
+      console.log('⚠️ FALLBACK: ни одного меню не видно, используем роль для определения доступа');
+      
+      // Для БТО менеджера показываем ограниченный набор
+      if (user.role === 'network_admin' || user.role === 'manager' || user.role_name === 'Менеджер БТО') {
+        console.log('🎯 FALLBACK: БТО manager - показываем ограниченные разделы');
+        return {
+          networks: true,      // ТОРГОВЫЕ СЕТИ: Обзор, Операции  
+          tradingPoint: true,  // ТОРГОВАЯ ТОЧКА: Цены, Резервуары, Оборудование
+          admin: false,
+          settings: false,
+          prices: false,       
+          tanks: false,        
+          equipment: false,    
+          reports: false,
+          analytics: false,
+          misc: false
+        };
+      }
+      
+      // Для всех остальных показываем все разделы
+      console.log('⚠️ FALLBACK: показываем все разделы для роли:', user.role);
+      return {
+        networks: true,
+        tradingPoint: true,
+        admin: true,
+        settings: true,
+        prices: true,
+        tanks: true,
+        equipment: true,
+        reports: true,
+        analytics: true,
+        misc: true
+      };
+    }
+    
+    return menuConfig;
 
     // Оригинальная логика (закомментирована)
     /*

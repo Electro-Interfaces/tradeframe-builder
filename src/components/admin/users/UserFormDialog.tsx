@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { useToast } from '@/hooks/use-toast'
 import { Users as UsersIcon } from 'lucide-react'
 import { externalUsersService } from '@/services/externalUsersService'
 import { externalRolesService } from '@/services/externalRolesService'
@@ -49,6 +50,7 @@ const STATUS_OPTIONS: Array<{ value: UserStatus; label: string; description: str
 
 export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: UserFormDialogProps) {
   const isMobile = useIsMobile()
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -95,12 +97,20 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
 
     // Валидация
     if (!user && formData.password !== formData.confirmPassword) {
-      alert('Пароли не совпадают')
+      toast({
+        title: "Ошибка валидации",
+        description: "Пароли не совпадают. Пожалуйста, проверьте введенные пароли.",
+        variant: "destructive"
+      })
       return
     }
 
     if (!user && !formData.password) {
-      alert('Пароль обязателен для нового пользователя')
+      toast({
+        title: "Ошибка валидации", 
+        description: "Пароль обязателен для создания нового пользователя.",
+        variant: "destructive"
+      })
       return
     }
 
@@ -147,10 +157,44 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         })
       }
 
+      // Показываем уведомление об успехе
+      toast({
+        title: "Успешно сохранено",
+        description: user ? "Данные пользователя обновлены" : "Новый пользователь создан",
+        variant: "default"
+      })
+
       onSaved()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Ошибка сохранения пользователя:', error)
-      alert('Не удалось сохранить пользователя: ' + error)
+      
+      // Обработка специфичных ошибок
+      let errorMessage = 'Произошла неизвестная ошибка при сохранении пользователя'
+      
+      if (error?.message) {
+        const message = error.message
+        
+        if (message.includes('был удален ранее')) {
+          // Специальная обработка для удаленных пользователей
+          errorMessage = message
+        } else if (message.toLowerCase().includes('duplicate key value violates unique constraint') && message.toLowerCase().includes('email')) {
+          errorMessage = 'Пользователь с таким email уже существует. Пожалуйста, используйте другой email адрес.'
+        } else if (message.includes('23505')) {
+          errorMessage = 'Данные пользователя конфликтуют с существующими записями. Проверьте уникальность email адреса.'
+        } else if (message.toLowerCase().includes('network error') || message.toLowerCase().includes('fetch')) {
+          errorMessage = 'Ошибка соединения с сервером. Проверьте подключение к интернету.'
+        } else if (message.toLowerCase().includes('validation')) {
+          errorMessage = 'Ошибка валидации данных. Проверьте корректность введенной информации.'
+        } else {
+          errorMessage = 'Не удалось сохранить пользователя. Попробуйте еще раз или обратитесь к администратору.'
+        }
+      }
+      
+      toast({
+        title: "Ошибка сохранения",
+        description: errorMessage,
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }

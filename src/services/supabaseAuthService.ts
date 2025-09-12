@@ -5,7 +5,7 @@
 
 import { supabaseService } from '@/services/supabaseServiceClient';
 import { createClient } from '@supabase/supabase-js';
-import * as bcrypt from 'bcryptjs';
+import { CryptoUtils } from '@/utils/crypto';
 
 interface SupabaseUser {
   id: string;
@@ -89,8 +89,8 @@ export class SupabaseAuthService {
           throw new Error(`Неверный пароль. Используйте пароль: ${demoUsers[user.email as keyof typeof demoUsers]}`);
         }
       } else {
-        // Для остальных пользователей проверяем хэш пароля (новое поле pwd_hash)
-        const isPasswordValid = await bcrypt.compare(password, user.pwd_hash);
+        // Для остальных пользователей проверяем хэш пароля используя PBKDF2 (совместимо с externalUsersService)
+        const isPasswordValid = await CryptoUtils.verifyPassword(password, user.pwd_hash, user.pwd_salt);
         if (!isPasswordValid) {
           throw new Error('Неверный пароль');
         }

@@ -73,18 +73,28 @@ const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances")
 
 // Используем предварительно настроенный queryClient из lib/supabase/queryClient
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <SelectionProvider>
-          <BrowserRouter>
-          <Routes>
-          {/* Критически важные страницы - без lazy loading */}
-          <Route path="/login" element={<LoginPageWithLegal />} />
-          <Route path="/" element={<ProtectedRoute><Equipment /></ProtectedRoute>} />
+const App = () => {
+  console.log('🚀 App: component rendering');
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <SelectionProvider>
+            <BrowserRouter>
+            <Routes>
+            {/* Критически важные страницы - без lazy loading */}
+            <Route path="/login" element={<LoginPageWithLegal />} />
+            <Route 
+              path="/" 
+              element={
+                <>
+                  {console.log('🚀 App: Rendering home route with ProtectedRoute + Equipment')}
+                  <ProtectedRoute><Equipment /></ProtectedRoute>
+                </>
+              } 
+            />
           <Route path="/network/overview" element={<ProtectedRoute><NetworkOverview /></ProtectedRoute>} />
           
           {/* Самые тяжелые страницы - приоритет 1 */}
@@ -149,6 +159,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

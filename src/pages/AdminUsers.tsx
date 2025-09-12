@@ -29,7 +29,8 @@ import {
   Plus,
   Search,
   MoreHorizontal,
-  X
+  X,
+  Eye
 } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 

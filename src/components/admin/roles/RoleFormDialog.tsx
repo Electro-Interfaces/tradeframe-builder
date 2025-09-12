@@ -137,9 +137,9 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
       const existing = current.find(p => p.section === section && p.resource === resource)
       
       if (existing) {
-        if (existing.actions.includes(action)) {
+        if (existing.actions?.includes(action)) {
           // Убираем действие
-          const newActions = existing.actions.filter(a => a !== action)
+          const newActions = existing.actions?.filter(a => a !== action) || []
           if (newActions.length === 0) {
             // Убираем разрешение полностью
             return current.filter(p => !(p.section === section && p.resource === resource))
@@ -155,7 +155,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
           // Добавляем действие
           return current.map(p => 
             p.section === section && p.resource === resource
-              ? { ...p, actions: [...p.actions, action] }
+              ? { ...p, actions: [...(p.actions || []), action] }
               : p
           )
         }
@@ -172,7 +172,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
   const hasPermission = (section: string, resource: string, action: PermissionAction): boolean => {
     const permission = permissions.find(p => p.section === section && p.resource === resource)
-    return permission?.actions.includes(action) || false
+    return permission?.actions?.includes(action) || false
   }
 
 
@@ -253,7 +253,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                 Разрешения
                 {permissions.length > 0 && (
                   <Badge className="ml-2 h-5 px-1" variant="secondary">
-                    {permissions.reduce((sum, p) => sum + p.actions.length, 0)}
+                    {permissions.reduce((sum, p) => sum + (p.actions?.length || 0), 0)}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -342,7 +342,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                     </p>
                     {permissions.length > 0 && (
                       <p className="text-sm text-green-400 mt-2">
-                        ✓ Настроено {permissions.reduce((sum, p) => sum + p.actions.length, 0)} разрешений
+                        ✓ Настроено {permissions.reduce((sum, p) => sum + (p.actions?.length || 0), 0)} разрешений
                       </p>
                     )}
                     <div className="flex justify-between items-center mt-3">
@@ -448,7 +448,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg text-slate-200">Список разрешений</CardTitle>
                       <Badge variant="outline">
-                        {permissions.reduce((sum, p) => sum + p.actions.length, 0)} из {Object.values(PERMISSION_SECTIONS).reduce((total, section) => total + Object.keys(section.resources).length * 4, 0)} возможных
+                        {permissions.reduce((sum, p) => sum + (p.actions?.length || 0), 0)} из {Object.values(PERMISSION_SECTIONS).reduce((total, section) => total + Object.keys(section.resources).length * 4, 0)} возможных
                       </Badge>
                     </div>
                     <CardDescription className="text-slate-400">

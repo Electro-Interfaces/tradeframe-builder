@@ -176,8 +176,30 @@ class ExternalUsersService {
     }
   }
 
+  async getDeletedUserByEmail(email: string): Promise<User | null> {
+    try {
+      const response = await this.makeRequest(
+        `users?email=eq.${encodeURIComponent(email)}&deleted_at=not.is.null&limit=1`,
+        { method: 'GET' }
+      );
+
+      if (response.length === 0) return null;
+      
+      return this.transformUserFromDB(response[0]);
+    } catch (error) {
+      console.error('Error fetching deleted user by email:', error);
+      throw error;
+    }
+  }
+
   async createUser(input: CreateUserInput): Promise<User> {
     try {
+      // Проверяем, есть ли удаленный пользователь с таким email
+      const deletedUser = await this.getDeletedUserByEmail(input.email);
+      if (deletedUser) {
+        throw new Error(`Пользователь с email ${input.email} был удален ранее. Для повторного использования этого email обратитесь к администратору системы для восстановления учетной записи.`);
+      }
+
       // Генерируем соль и хешируем пароль
       const salt = this.generateSalt();
       const passwordHash = await this.hashPassword(input.password, salt);
@@ -251,6 +273,77 @@ class ExternalUsersService {
     }
   }
 
+  async restoreUser(id: string): Promise<User> {
+    try {
+      // Восстанавливаем пользователя (убираем deleted_at)
+      const response = await this.makeRequest(`users?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          deleted_at: null,
+          updated_at: new Date().toISOString()
+        })
+      });
+
+      return this.transformUserFromDB(response[0]);
+    } catch (error) {
+      console.error('Error restoring user:', error);
+      throw error;
+    }
+  }
+
+  async permanentlyDeleteAllSoftDeletedUsers(): Promise<{ deletedCount: number }> {
+    try {
+      console.log('🗑️ Начинаем физическое удаление всех помеченных как удаленные пользователей...');
+      
+      // Сначала получаем список всех удаленных пользователей
+      const deletedUsers = await this.makeRequest(
+        'users?deleted_at=not.is.null',
+        { method: 'GET' }
+      );
+
+      console.log(`📊 Найдено удаленных пользователей: ${deletedUsers.length}`);
+
+      if (deletedUsers.length === 0) {
+        return { deletedCount: 0 };
+      }
+
+      // Показываем список пользователей, которые будут удалены
+      deletedUsers.forEach((user: any, index: number) => {
+        console.log(`${index + 1}. ${user.email} (${user.name}) - удален ${user.deleted_at}`);
+      });
+
+      // Получаем IDs удаленных пользователей для очистки связанных данных
+      const deletedUserIds = deletedUsers.map((user: any) => user.id);
+      console.log(`🔗 IDs удаленных пользователей:`, deletedUserIds);
+
+      // Сначала удаляем все назначения ролей для удаленных пользователей
+      for (const userId of deletedUserIds) {
+        console.log(`🧹 Удаляем назначения ролей для пользователя ${userId}...`);
+        try {
+          await this.makeRequest(`user_roles?user_id=eq.${userId}`, {
+            method: 'DELETE'
+          });
+          console.log(`✅ Назначения ролей удалены для пользователя ${userId}`);
+        } catch (roleError) {
+          console.warn(`⚠️ Ошибка при удалении ролей для пользователя ${userId}:`, roleError);
+        }
+      }
+
+      // Теперь можем безопасно удалить пользователей
+      console.log('🗑️ Удаляем пользователей после очистки связанных данных...');
+      await this.makeRequest('users?deleted_at=not.is.null', {
+        method: 'DELETE'
+      });
+
+      console.log(`✅ Успешно физически удалено пользователей: ${deletedUsers.length}`);
+      
+      return { deletedCount: deletedUsers.length };
+    } catch (error) {
+      console.error('Error permanently deleting soft-deleted users:', error);
+      throw error;
+    }
+  }
+
   async changePassword(userId: string, newPassword: string): Promise<void> {
     try {
       const salt = this.generateSalt();
@@ -272,69 +365,71 @@ class ExternalUsersService {
 
   async getUsersWithRoles(): Promise<User[]> {
     try {
-      console.log('externalUsersService: Загружаем пользователей...');
+      console.log('externalUsersService: Загружаем пользователей с ролями...');
       
-      // Сначала пробуем получить представление user_roles_view
-      try {
-        const response = await this.makeRequest(
-          'user_roles_view?order=user_created_at.desc',
-          { method: 'GET' }
-        );
+      // Получаем всех пользователей
+      const users = await this.getAllUsers();
+      console.log('externalUsersService: Получено пользователей:', users.length);
 
-        console.log('externalUsersService: Получен ответ от user_roles_view:', response);
+      // Получаем все назначения ролей
+      const userRolesData = await this.makeRequest(
+        'user_roles?is_active=eq.true&deleted_at=is.null',
+        { method: 'GET' }
+      );
+      console.log('externalUsersService: Получено назначений ролей:', userRolesData.length);
 
-        // Группируем пользователей и их роли
-        const usersMap = new Map();
-        
-        response.forEach((row: any) => {
-          const userId = row.user_id;
-          
-          if (!usersMap.has(userId)) {
-            usersMap.set(userId, {
-              id: userId,
-              tenant_id: row.tenant_id,
-              email: row.email,
-              name: row.name,
-              status: row.status,
-              last_login: row.last_login ? new Date(row.last_login) : undefined,
-              created_at: new Date(row.user_created_at),
-              roles: [],
-              direct_permissions: [],
-              preferences: {},
-              pwd_salt: '',
-              pwd_hash: '',
-              updated_at: new Date(row.user_created_at)
-            });
-          }
+      // Получаем все роли
+      const rolesData = await this.makeRequest(
+        'roles?deleted_at=is.null&is_active=eq.true',
+        { method: 'GET' }
+      );
+      console.log('externalUsersService: Получено ролей:', rolesData.length);
 
-          if (row.role_id && row.is_role_valid) {
-            const user = usersMap.get(userId);
-            user.roles.push({
-              role_id: row.role_id,
-              role_code: row.role_code,
-              role_name: row.role_name,
-              scope: row.role_scope,
-              scope_value: row.scope_value,
-              permissions: [], // Будет загружено отдельно при необходимости
-              assigned_at: new Date(row.assigned_at),
-              expires_at: row.expires_at ? new Date(row.expires_at) : undefined
-            });
-          }
-        });
+      // Создаем карту ролей для быстрого поиска
+      const rolesMap = new Map();
+      rolesData.forEach((role: any) => {
+        rolesMap.set(role.id, role);
+      });
 
-        const users = Array.from(usersMap.values());
-        console.log('externalUsersService: Обработанные пользователи из view:', users);
-        return users;
-        
-      } catch (viewError) {
-        console.log('externalUsersService: user_roles_view недоступно, используем простой запрос к users');
-        // Фоллбек - получаем просто пользователей
-        return this.getAllUsers();
-      }
+      // Добавляем роли к пользователям
+      const usersWithRoles = users.map(user => {
+        const userRoles = userRolesData
+          .filter((ur: any) => ur.user_id === user.id)
+          .map((ur: any) => {
+            const roleData = rolesMap.get(ur.role_id);
+            if (!roleData) return null;
+            
+            return {
+              role_id: ur.role_id,
+              role_code: roleData.code,
+              role_name: roleData.name,
+              scope: roleData.scope,
+              scope_value: ur.scope_value,
+              permissions: roleData.permissions || [],
+              assigned_at: new Date(ur.assigned_at),
+              expires_at: ur.expires_at ? new Date(ur.expires_at) : undefined
+            };
+          })
+          .filter(role => role !== null);
+
+        return {
+          ...user,
+          roles: userRoles
+        };
+      });
+
+      console.log('externalUsersService: Пользователи с назначенными ролями:', usersWithRoles);
+      return usersWithRoles;
     } catch (error) {
       console.error('Error fetching users with roles:', error);
-      // Последний фоллбек - возвращаем пустой массив
-      return [];
+      // Фоллбек - получаем просто пользователей без ролей
+      try {
+        const users = await this.getAllUsers();
+        return users.map(user => ({ ...user, roles: [] }));
+      } catch (fallbackError) {
+        console.error('Error in fallback getAllUsers:', fallbackError);
+        return [];
+      }
     }
   }
 
@@ -357,23 +452,58 @@ class ExternalUsersService {
   }
 
   private generateSalt(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < 32; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    // Генерируем криптографически стойкую соль как Base64 (совместимо с CryptoUtils)
+    const salt = new Uint8Array(16); // 16 байт как в CryptoUtils
+    crypto.getRandomValues(salt);
+    return this.arrayBufferToBase64(salt);
+  }
+
+  private arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
-    return result;
+    return btoa(binary);
+  }
+
+  private base64ToArrayBuffer(base64: string): ArrayBuffer {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
   }
 
   private async hashPassword(password: string, salt: string): Promise<string> {
-    // В реальном приложении используйте bcrypt или аналогичную библиотеку
-    // Здесь простая имитация для демо
+    // Используем PBKDF2 для совместимости с authService
     const encoder = new TextEncoder();
-    const data = encoder.encode(password + salt);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    const passwordBytes = encoder.encode(password);
+    const saltBytes = this.base64ToArrayBuffer(salt);
+
+    // Импортируем пароль как ключ для PBKDF2
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      passwordBytes,
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits']
+    );
+
+    // Выполняем PBKDF2 хеширование (совместимо с CryptoUtils)
+    const hashBuffer = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: saltBytes,
+        iterations: 100000, // Такие же итерации как в CryptoUtils
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      32 * 8  // 32 байта в битах
+    );
+
+    return this.arrayBufferToBase64(hashBuffer);
   }
 
   async testConnection(): Promise<{ success: boolean; error?: string }> {
