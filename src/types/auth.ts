@@ -62,7 +62,6 @@ export interface User {
   tenant_id: string
   email: string
   name: string
-  phone?: string
   status: UserStatus
   roles: UserRole[]               // множественные роли
   direct_permissions?: Permission[] // прямые разрешения (override ролей)
@@ -126,7 +125,6 @@ export interface UpdateRoleInput {
 export interface CreateUserInput {
   email: string
   name: string
-  phone?: string
   password: string
   status?: UserStatus
   roles?: string[]                // массив role_id для назначения
@@ -135,7 +133,6 @@ export interface CreateUserInput {
 export interface UpdateUserInput {
   email?: string
   name?: string
-  phone?: string
   status?: UserStatus
 }
 

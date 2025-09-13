@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useSelection } from "@/context/SelectionContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -80,6 +80,17 @@ export default function Equipment() {
   const [terminalEquipment, setTerminalEquipment] = useState<TerminalEquipmentItem[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [terminalInfo, setTerminalInfo] = useState<TerminalInfo | null>(null);
+
+  // Состояния для pull-to-refresh
+  const [pullState, setPullState] = useState<'idle' | 'pulling' | 'canRefresh' | 'refreshing'>('idle');
+  const [pullDistance, setPullDistance] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const startTouchRef = useRef<{ y: number; time: number } | null>(null);
+  const rafId = useRef<number | null>(null);
+
+  const PULL_THRESHOLD = 80; // Порог для активации обновления
+  const MAX_PULL_DISTANCE = 120; // Максимальное расстояние растягивания
+  const INDICATOR_APPEAR_THRESHOLD = 30; // Порог появления индикатора
 
   // Загружаем данные при монтировании или изменении торговой точки
   // Упрощенная автоматическая загрузка данных оборудования при инициализации
@@ -168,14 +179,7 @@ export default function Equipment() {
       const equipmentItems = mapTerminalInfoToEquipment(terminalInfoData);
       setTerminalEquipment(equipmentItems);
 
-      // Показываем уведомление только на десктопе
-      const checkIsMobile = window.innerWidth < 768;
-      if (!checkIsMobile) {
-        toast({
-          title: "Данные загружены",
-          description: "Информация об оборудовании успешно получена от СТС"
-        });
-      }
+      // Успешная загрузка - уведомление убрано
     } catch (error) {
       console.error('Ошибка загрузки данных оборудования:', error);
       toast({
@@ -194,6 +198,118 @@ export default function Equipment() {
   const handleRefresh = async () => {
     await loadEquipmentData();
   };
+
+  // Pull-to-refresh функционал
+  const handleRefreshData = async () => {
+    if (selectedTradingPoint) {
+      console.log('🔄 Pull-to-refresh: обновляем данные оборудования...');
+      await loadEquipmentData();
+    }
+  };
+
+  // Функция для вибрации на поддерживаемых устройствах
+  const triggerHapticFeedback = () => {
+    if ('vibrate' in navigator && isMobile) {
+      navigator.vibrate(50);
+    }
+  };
+
+  // Плавное обновление расстояния с throttling через RAF
+  const updatePullDistance = (distance: number) => {
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+    }
+
+    rafId.current = requestAnimationFrame(() => {
+      const clampedDistance = Math.min(distance, MAX_PULL_DISTANCE);
+      setPullDistance(clampedDistance);
+
+      // Обновляем состояние на основе расстояния
+      if (clampedDistance >= PULL_THRESHOLD && pullState !== 'canRefresh' && pullState !== 'refreshing') {
+        setPullState('canRefresh');
+        triggerHapticFeedback();
+      } else if (clampedDistance < PULL_THRESHOLD && pullState === 'canRefresh') {
+        setPullState('pulling');
+      }
+    });
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile || pullState === 'refreshing') return;
+
+    const container = scrollContainerRef.current;
+    if (!container || container.scrollTop > 0) return;
+
+    startTouchRef.current = {
+      y: e.touches[0].clientY,
+      time: Date.now()
+    };
+    setPullState('pulling');
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !startTouchRef.current || pullState === 'refreshing') return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - startTouchRef.current.y;
+
+    // Только если движение вниз и мы в верху страницы
+    if (deltaY > 0 && container.scrollTop === 0) {
+      e.preventDefault();
+
+      // Применяем эластичность (чем больше тянем, тем медленнее)
+      const elasticity = Math.max(0.5, 1 - (deltaY / MAX_PULL_DISTANCE) * 0.5);
+      const adjustedDistance = deltaY * elasticity;
+
+      updatePullDistance(adjustedDistance);
+    } else if (deltaY <= 0 || container.scrollTop > 0) {
+      // Сбрасываем если движение вверх или начался скролл
+      resetPull();
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isMobile || !startTouchRef.current) return;
+
+    const shouldRefresh = pullState === 'canRefresh';
+
+    if (shouldRefresh) {
+      setPullState('refreshing');
+      triggerHapticFeedback();
+
+      try {
+        await handleRefreshData();
+      } finally {
+        setTimeout(() => {
+          resetPull();
+        }, 300);
+      }
+    } else {
+      resetPull();
+    }
+  };
+
+  const resetPull = () => {
+    setPullState('idle');
+    setPullDistance(0);
+    startTouchRef.current = null;
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+  };
+
+  // Cleanup при размонтировании
+  useEffect(() => {
+    return () => {
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+      }
+    };
+  }, []);
 
   // Преобразует данные из TerminalInfo в формат для отображения
   const mapTerminalInfoToEquipment = (info: TerminalInfo): TerminalEquipmentItem[] => {
@@ -331,66 +447,115 @@ export default function Equipment() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
-        {/* Premium Header Card */}
-        <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30">
-            <CardTitle className="text-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
-                <div className="flex flex-col">
-                  <span className="text-3xl font-bold text-white leading-tight">Оборудование</span>
-                  <span className="text-slate-400 text-sm font-medium">Управление оборудованием торговой точки</span>
+      <div
+        ref={scrollContainerRef}
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobile ? 'pt-4' : ''}`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
+          transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
+        }}
+      >
+        {/* Стандартный мобильный pull-to-refresh индикатор */}
+        {isMobile && pullState !== 'idle' && pullDistance >= INDICATOR_APPEAR_THRESHOLD && (
+          <div
+            className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
+            style={{
+              transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`,
+              opacity: Math.min(1, (pullDistance - INDICATOR_APPEAR_THRESHOLD) / 40)
+            }}
+          >
+            <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
+              {pullState === 'refreshing' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
+                  <span className="text-sm font-medium">Обновление...</span>
+                </>
+              ) : pullState === 'canRefresh' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium">Отпустите для обновления</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw
+                    className="w-4 h-4 text-slate-500"
+                    style={{
+                      transform: `rotate(${pullDistance * 2}deg)`
+                    }}
+                  />
+                  <span className="text-sm font-medium">Потяните для обновления</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        {/* Заголовок страницы */}
+        <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm ${isMobile ? 'mx-0' : ''} overflow-hidden`}>
+          <CardHeader className={`${isMobile ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
+            <CardTitle className={`text-slate-100 flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
+              <div className="flex items-center justify-between flex-1">
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
+                  <div className="flex flex-col">
+                    <span className={`${isMobile ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Системы</span>
+                    {!isMobile && (
+                      <span className="text-slate-400 text-sm font-medium">Управление системами торговой точки</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Кнопки в заголовке */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => window.open('/help/equipment.html', '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="bg-slate-700/50 border-slate-600/50 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-500 shadow-lg transition-all duration-300 px-3 py-2 rounded-lg"
+                    title="Инструкция"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-4 items-center">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="bg-gradient-to-r from-slate-700 to-slate-800 border-slate-600 text-slate-300 hover:from-slate-800 hover:to-slate-900 hover:border-slate-500 hover:text-white shadow-lg backdrop-blur-sm"
-                >
-                  <HelpCircle className="w-4 h-4 mr-2" />
-                  Инструкция
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  className="bg-gradient-to-r from-green-600 to-green-700 border-green-600 text-white hover:from-green-700 hover:to-green-800 hover:border-green-700 shadow-lg backdrop-blur-sm"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  )}
-                  Обновить STS данные
-                </Button>
+
+              <div className={`flex ${isMobile ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
+
+                {/* Кнопка обновления данных */}
+                {!isMobile && (
+                  <Button
+                    onClick={handleRefresh}
+                    disabled={loading}
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
+                  >
+                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </div>
+                    {loading ? 'Загрузка...' : 'Обновить STS данные'}
+                  </Button>
+                )}
               </div>
             </CardTitle>
           </CardHeader>
         </Card>
 
-        {/* Терминальное оборудование */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className={`${isMobile ? "pb-3" : "pb-4"}`}>
-            <div className={`flex ${isMobile ? "flex-col gap-2" : "items-center justify-between"}`}>
-              <div className="flex items-center gap-3">
-                <div className={`${isMobile ? "w-6 h-6" : "w-8 h-8"} bg-blue-600 rounded-full flex items-center justify-center`}>
-                  <Settings className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} text-white`} />
-                </div>
-                <div>
-                  <CardTitle className={`text-white ${isMobile ? "text-base" : ""}`}>Терминальное оборудование</CardTitle>
-                  <p className={`text-slate-400 mt-1 ${isMobile ? "text-xs" : "text-sm"}`}>8 ед.</p>
-                </div>
-              </div>
-              {!isMobile && (
-                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                  <Settings className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          </CardHeader>
+        <div>
+          <div className="space-y-6">
+          {/* Терминальное оборудование */}
+          <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+            <CardHeader className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
+              <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
+                <Settings className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-blue-400`} />
+                Терминальное оборудование
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             {/* Фильтруем оборудование: купюроприемник отдельно, остальное в сетке */}
             {(() => {
@@ -449,7 +614,7 @@ export default function Equipment() {
                   )}
                   
                   {/* Остальное оборудование в сетке */}
-                  <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'}`}>
+                  <div className={`grid gap-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'}`}>
                     {otherEquipment.map((equipment) => (
                       <div
                         key={equipment.id}
@@ -489,26 +654,14 @@ export default function Equipment() {
           </CardContent>
         </Card>
 
-        {/* Резервуары */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className={`${isMobile ? "pb-3" : "pb-4"}`}>
-            <div className={`flex ${isMobile ? "flex-col gap-2" : "items-center justify-between"}`}>
-              <div className="flex items-center gap-3">
-                <div className={`${isMobile ? "w-6 h-6" : "w-8 h-8"} bg-green-600 rounded-full flex items-center justify-center`}>
-                  <Database className={`${isMobile ? "w-3 h-3" : "w-4 h-4"} text-white`} />
-                </div>
-                <div>
-                  <CardTitle className={`text-white ${isMobile ? "text-base" : ""}`}>Резервуары</CardTitle>
-                  <p className={`text-slate-400 mt-1 ${isMobile ? "text-xs" : "text-sm hidden md:block"}`}>Всего резервуаров: 3</p>
-                </div>
-              </div>
-              {!isMobile && (
-                <Button size="sm" variant="outline" className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white">
-                  Обновить
-                </Button>
-              )}
-            </div>
-          </CardHeader>
+          {/* Резервуары */}
+          <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+            <CardHeader className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
+              <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
+                <Database className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-400`} />
+                Резервуары
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             {/* Desktop Table */}
             <div className="hidden md:block">
@@ -697,6 +850,8 @@ export default function Equipment() {
             </div>
           </CardContent>
         </Card>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

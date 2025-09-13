@@ -71,51 +71,53 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
               </SheetContent>
             </Sheet>
             
-            {/* Mobile Trading Point Selector - показываем только если есть сеть */}
-            {selectedNetwork && (
-              <div className="pt-header px-4 py-3 bg-gray-800 border-b border-gray-700">
-                <Select 
-                  value={selectedTradingPoint} 
-                  onValueChange={handleTradingPointChange}
-                  disabled={!selectedNetwork}
-                >
-                  <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white hover:bg-gray-600 focus:ring-blue-500">
-                    <MapPin className="h-4 w-4 mr-2 text-blue-400" />
-                    <SelectValue 
-                      placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"} 
-                      className="text-white"
-                    />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-gray-600">
-                    <SelectItem 
-                      value="all"
-                      className="text-white hover:bg-gray-600 focus:bg-blue-600 font-medium border-b border-gray-600"
-                    >
-                    Все торговые точки
-                  </SelectItem>
-                  {tradingPoints.map((point) => (
-                    <SelectItem 
-                      key={point.id} 
-                      value={point.id}
-                      className="text-white hover:bg-gray-600 focus:bg-blue-600"
-                    >
-                      {point.name}
+            <div className={`${isMobile ? 'pt-0' : 'pt-20'} bg-gray-900`}>
+              {/* Mobile Trading Point Selector - отдельно от верхнего бара */}
+              {selectedNetwork && (
+                <div className="mx-4 pt-3 pb-4 px-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg mt-3">
+                  <Select
+                    value={selectedTradingPoint}
+                    onValueChange={handleTradingPointChange}
+                    disabled={!selectedNetwork}
+                  >
+                    <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white hover:bg-gray-600 focus:ring-blue-500">
+                      <MapPin className="h-4 w-4 mr-2 text-blue-400" />
+                      <SelectValue
+                        placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"}
+                        className="text-white"
+                      />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-600">
+                      <SelectItem
+                        value="all"
+                        className="text-white hover:bg-gray-600 focus:bg-blue-600 font-medium border-b border-gray-600"
+                      >
+                      Все торговые точки
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {tradingPoints.map((point) => (
+                      <SelectItem
+                        key={point.id}
+                        value={point.id}
+                        className="text-white hover:bg-gray-600 focus:bg-blue-600"
+                      >
+                        {point.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              )}
             </div>
-            )}
-            
+
             <main className="flex-1 min-w-0 w-full max-w-none">
-              <div className={fullWidth ? "w-full max-w-none" : "px-0 md:px-6 lg:px-8 w-full max-w-none"}>
+              <div className={fullWidth ? "w-full max-w-none pt-4" : "px-0 md:px-6 lg:px-8 w-full max-w-none pt-4"}>
                 {children}
               </div>
             </main>
           </>
         ) : (
           // Desktop Layout
-          <div className="flex w-full max-w-none pt-header">
+          <div className={`flex w-full max-w-none ${isMobile ? 'pt-0' : 'pt-header'}`}>
             <AppSidebar selectedTradingPoint={selectedTradingPoint} />
             
             <main className="flex-1 min-w-0 w-full max-w-none">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -341,6 +341,18 @@ export default function Tanks() {
   const [loadingFromSTSAPI, setLoadingFromSTSAPI] = useState(false);
   const [calibrationHistory, setCalibrationHistory] = useState<{[key: number]: any[]}>({});
   const [tanks, setTanks] = useState(mockTanks);
+
+  // Состояния для pull-to-refresh
+  const [pullState, setPullState] = useState<'idle' | 'pulling' | 'canRefresh' | 'refreshing'>('idle');
+  const [pullDistance, setPullDistance] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const startTouchRef = useRef<{ y: number; time: number } | null>(null);
+  const rafId = useRef<number | null>(null);
+
+  const PULL_THRESHOLD = 80; // Порог для активации обновления
+  const MAX_PULL_DISTANCE = 120; // Максимальное расстояние растягивания
+  const INDICATOR_APPEAR_THRESHOLD = 30; // Порог появления индикатора
+
   const [filters, setFilters] = useState({
     period: '',
     tankId: '',
@@ -356,6 +368,109 @@ export default function Tanks() {
   const calibrationForm = useForm({
     resolver: zodResolver(calibrationSchema)
   });
+
+  // Функция для обновления данных через pull-to-refresh
+  const handleRefreshData = async () => {
+    console.log('🔄 Pull-to-refresh: обновляем данные резервуаров...');
+    if (selectedTradingPoint) {
+      await loadEquipment();
+    }
+  };
+
+  // Функция для вибрации на поддерживаемых устройствах
+  const triggerHapticFeedback = () => {
+    if ('vibrate' in navigator && isMobile) {
+      navigator.vibrate(50);
+    }
+  };
+
+  // Плавное обновление расстояния с throttling через RAF
+  const updatePullDistance = (distance: number) => {
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+    }
+
+    rafId.current = requestAnimationFrame(() => {
+      const clampedDistance = Math.min(distance, MAX_PULL_DISTANCE);
+      setPullDistance(clampedDistance);
+
+      // Обновляем состояние на основе расстояния
+      if (clampedDistance >= PULL_THRESHOLD && pullState !== 'canRefresh' && pullState !== 'refreshing') {
+        setPullState('canRefresh');
+        triggerHapticFeedback();
+      } else if (clampedDistance < PULL_THRESHOLD && pullState === 'canRefresh') {
+        setPullState('pulling');
+      }
+    });
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile || pullState === 'refreshing') return;
+
+    const container = scrollContainerRef.current;
+    if (!container || container.scrollTop > 0) return;
+
+    startTouchRef.current = {
+      y: e.touches[0].clientY,
+      time: Date.now()
+    };
+    setPullState('pulling');
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !startTouchRef.current || pullState === 'refreshing') return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - startTouchRef.current.y;
+
+    // Только если движение вниз и мы в верху страницы
+    if (deltaY > 0 && container.scrollTop === 0) {
+      e.preventDefault();
+
+      // Применяем эластичность (чем больше тянем, тем медленнее)
+      const elasticity = Math.max(0.5, 1 - (deltaY / MAX_PULL_DISTANCE) * 0.5);
+      const adjustedDistance = deltaY * elasticity;
+
+      updatePullDistance(adjustedDistance);
+    } else if (deltaY <= 0 || container.scrollTop > 0) {
+      // Сбрасываем если движение вверх или начался скролл
+      resetPull();
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isMobile || !startTouchRef.current) return;
+
+    const shouldRefresh = pullState === 'canRefresh';
+
+    if (shouldRefresh) {
+      setPullState('refreshing');
+      triggerHapticFeedback();
+
+      try {
+        await handleRefreshData();
+      } finally {
+        setTimeout(() => {
+          resetPull();
+        }, 300);
+      }
+    } else {
+      resetPull();
+    }
+  };
+
+  const resetPull = () => {
+    setPullState('idle');
+    setPullDistance(0);
+    startTouchRef.current = null;
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+  };
 
   // Загружаем оборудование при смене торговой точки
   useEffect(() => {
@@ -460,6 +575,15 @@ export default function Tanks() {
 
     loadEquipment();
   }, [selectedTradingPoint]);
+
+  // Cleanup RAF при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+      }
+    };
+  }, []);
 
   // Load tank events and calibration history on component mount
   useEffect(() => {
@@ -779,7 +903,51 @@ export default function Tanks() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className={`w-full space-y-6 ${isMobile ? 'px-2 py-4' : 'px-4 md:px-6 lg:px-8 py-6'}`}>
+      <div
+        ref={scrollContainerRef}
+        className={`w-full space-y-6 ${isMobile ? 'px-2 py-4' : 'px-4 md:px-6 lg:px-8 py-6'} relative overflow-hidden`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
+          transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
+        }}
+      >
+        {/* Стандартный мобильный pull-to-refresh индикатор */}
+        {isMobile && pullState !== 'idle' && pullDistance >= INDICATOR_APPEAR_THRESHOLD && (
+          <div
+            className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
+            style={{
+              transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`,
+              opacity: Math.min(1, (pullDistance - INDICATOR_APPEAR_THRESHOLD) / 40)
+            }}
+          >
+            <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
+              {pullState === 'refreshing' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                  <span className="text-sm font-medium">Обновление...</span>
+                </>
+              ) : pullState === 'canRefresh' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium">Отпустите для обновления</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw
+                    className="w-4 h-4 text-slate-500"
+                    style={{
+                      transform: `rotate(${pullDistance * 2}deg)`
+                    }}
+                  />
+                  <span className="text-sm font-medium">Потяните для обновления</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         {/* Заголовок страницы */}
         <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm ${isMobile ? 'mx-0' : ''} overflow-hidden`}>
           <CardHeader className={`${isMobile ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>

@@ -54,7 +54,6 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
   const [formData, setFormData] = useState({
     email: '',
     name: '',
-    phone: '',
     password: '',
     confirmPassword: '',
     status: 'active' as UserStatus
@@ -70,7 +69,6 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
       setFormData({
         email: user.email,
         name: user.name,
-        phone: user.phone || '',
         password: '',
         confirmPassword: '',
         status: user.status
@@ -81,7 +79,6 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
       setFormData({
         email: '',
         name: '',
-        phone: '',
         password: '',
         confirmPassword: '',
         status: 'active'
@@ -122,7 +119,6 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         await externalUsersService.updateUser(user.id, {
           email: formData.email,
           name: formData.name,
-          phone: formData.phone || undefined,
           status: formData.status
         })
 
@@ -150,7 +146,6 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         await externalUsersService.createUser({
           email: formData.email,
           name: formData.name,
-          phone: formData.phone || undefined,
           password: formData.password,
           status: formData.status,
           roles: selectedRole ? [selectedRole] : []
@@ -267,16 +262,6 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-slate-200">Телефон</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="+7 (999) 123-45-67"
-                  className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
-                />
-              </div>
 
               <div className="space-y-2">
                 <Label className="text-slate-200">Статус</Label>

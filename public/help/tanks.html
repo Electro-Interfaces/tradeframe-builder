@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инструкция - Резервуары</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #e2e8f0;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 15px;
+            background: #0f172a;
+            min-height: 100vh;
+        }
+        .container {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border: 1px solid #374151;
+        }
+        h1 {
+            color: #ffffff;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 12px;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        h2 {
+            color: #f1f5f9;
+            margin-top: 25px;
+            margin-bottom: 12px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h3 {
+            color: #cbd5e1;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        .feature {
+            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+            padding: 18px;
+            border-left: 4px solid #3b82f6;
+            margin: 12px 0;
+            border-radius: 0 12px 12px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .tip {
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+            border: 1px solid #10b981;
+            padding: 18px;
+            border-radius: 12px;
+            margin: 12px 0;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+        }
+        .warning {
+            background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+            border: 1px solid #f59e0b;
+            padding: 18px;
+            border-radius: 12px;
+            margin: 12px 0;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+        }
+        .mobile-note {
+            background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%);
+            border: 1px solid #8b5cf6;
+            padding: 18px;
+            border-radius: 12px;
+            margin: 12px 0;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+        }
+        ul, ol {
+            padding-left: 22px;
+        }
+        li {
+            margin-bottom: 6px;
+            color: #cbd5e1;
+        }
+        code {
+            background: #374151;
+            color: #fbbf24;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #4b5563;
+        }
+        .button-demo {
+            display: inline-block;
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            margin: 3px;
+            box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+            font-weight: 500;
+        }
+        .steps {
+            background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            border: 1px solid #475569;
+        }
+        .steps ol {
+            margin: 0;
+        }
+        .steps li {
+            padding: 8px 0;
+            border-bottom: 1px solid #374151;
+        }
+        .steps li:last-child {
+            border-bottom: none;
+        }
+        .icon {
+            font-size: 1.2em;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            h2 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="icon">🛢️</span> Резервуары</h1>
+
+        <h2><span class="icon">🎯</span> Назначение</h2>
+        <p>Мониторинг состояния резервуаров с топливом. Контроль уровня, объемов, температуры, качества топлива и систем безопасности.</p>
+
+        <h2><span class="icon">⚡</span> Быстрый старт</h2>
+        <div class="steps">
+            <ol>
+                <li><strong>Выберите торговую точку</strong> в селекторе</li>
+                <li><strong>Просмотрите статус</strong> всех резервуаров</li>
+                <li><strong>Проверьте уровни</strong> топлива в каждом резервуаре</li>
+                <li><strong>Отслеживайте критические</strong> показатели и сигналы</li>
+            </ol>
+        </div>
+
+        <h2><span class="icon">🔧</span> Функции</h2>
+
+        <div class="feature">
+            <h3>📊 Уровни и объемы</h3>
+            <p>• Текущий уровень топлива • Объем в литрах • Процент заполнения • Доступный объем для загрузки</p>
+        </div>
+
+        <div class="feature">
+            <h3>🌡️ Контроль температуры</h3>
+            <p>• Температура топлива • Температурные тренды • Критические пороги • Система охлаждения</p>
+        </div>
+
+        <div class="feature">
+            <h3>💧 Качество топлива</h3>
+            <p>• Наличие воды в топливе • Плотность • Качественные показатели • Загрязнения</p>
+        </div>
+
+        <div class="feature">
+            <h3>⚠️ Системы безопасности</h3>
+            <p>• Датчики протечки • Система вентиляции • Пожарная безопасность • Аварийные сигналы</p>
+        </div>
+
+        <h2><span class="icon">📱</span> Мобильная версия</h2>
+        <div class="mobile-note">
+            <h3>💡 Pull-to-Refresh</h3>
+            <p><strong>Обновление данных жестом:</strong></p>
+            <p>1. Потяните экран вниз → 2. Появится индикатор → 3. Отпустите для обновления</p>
+        </div>
+
+        <div class="tip">
+            <h3>💡 Индикаторы состояния</h3>
+            <p>🟢 <strong>Нормально</strong> - резервуар работает в штатном режиме</p>
+            <p>🟡 <strong>Внимание</strong> - низкий уровень топлива или предупреждения</p>
+            <p>🔴 <strong>Критично</strong> - аварийная ситуация, требует немедленного реагирования</p>
+            <p>🔵 <strong>Обслуживание</strong> - резервуар на техническом обслуживании</p>
+        </div>
+
+        <div class="warning">
+            <h3>⚠️ Критически важно</h3>
+            <p>• Красные сигналы требуют немедленного реагирования • Низкие уровни топлива могут привести к остановке продаж • При обнаружении протечек немедленно отключите подачу</p>
+        </div>
+
+        <h2><span class="icon">🚨</span> Аварийные ситуации</h2>
+        <div class="warning">
+            <h3>🚨 При обнаружении:</h3>
+            <p>• <strong>Протечки</strong> - немедленно остановите все операции и вызовите службу</p>
+            <p>• <strong>Критической температуры</strong> - активируйте систему охлаждения</p>
+            <p>• <strong>Воды в топливе</strong> - прекратите отпуск, проверьте качество</p>
+        </div>
+
+        <h2><span class="icon">🆘</span> Поддержка</h2>
+        <p>При возникновении аварийных ситуаций с резервуарами немедленно обратитесь к техническому специалисту или в службу экстренного реагирования.</p>
+    </div>
+</body>
+</html>

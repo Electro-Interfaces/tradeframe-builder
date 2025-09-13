@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/context/SelectionContext";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -39,8 +39,20 @@ export default function NetworkOverview() {
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
   const [initializing, setInitializing] = useState(true);
 
+  // Состояния для pull-to-refresh
+  const [pullState, setPullState] = useState<'idle' | 'pulling' | 'canRefresh' | 'refreshing'>('idle');
+  const [pullDistance, setPullDistance] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const startTouchRef = useRef<{ y: number; time: number } | null>(null);
+  const rafId = useRef<number | null>(null);
+
+  const PULL_THRESHOLD = 80; // Порог для активации обновления
+  const MAX_PULL_DISTANCE = 120; // Максимальное расстояние растягивания
+  const INDICATOR_APPEAR_THRESHOLD = 30; // Порог появления индикатора
+
   const isNetworkOnly = selectedNetwork && !selectedTradingPoint;
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
+  const canShowData = selectedNetwork && (selectedTradingPoint === 'all' || selectedTradingPoint || !selectedTradingPoint); // Показываем данные если выбрана сеть
   
 
   // Функция загрузки транзакций
@@ -780,9 +792,10 @@ export default function NetworkOverview() {
         
         setInitializing(false);
         
-        // Загружаем данные только если выбрана сеть И настроен STS API
+        // Загружаем данные если выбрана сеть И настроен STS API (торговая точка не обязательна)
         if (selectedNetwork && isConfigured) {
-          console.log('✅ Все готово, загружаем данные');
+          console.log('✅ Сеть выбрана, STS API настроен - загружаем данные');
+          console.log('🔍 Торговая точка:', selectedTradingPoint || 'все точки сети');
           loadTransactions();
         } else if (selectedNetwork && !isConfigured) {
           console.log('⚠️ STS API не настроен, показываем сообщение');
@@ -1286,50 +1299,219 @@ export default function NetworkOverview() {
     return heatmapGrid;
   }, [selectedNetwork, transactions]);
 
+  // Pull-to-refresh функционал
+  const handleRefreshData = async () => {
+    if (selectedNetwork) {
+      console.log('🔄 Pull-to-refresh: обновляем данные...');
+      await loadTransactions();
+    }
+  };
+
+  // Функция для вибрации на поддерживаемых устройствах
+  const triggerHapticFeedback = () => {
+    if ('vibrate' in navigator && isMobile) {
+      navigator.vibrate(50);
+    }
+  };
+
+  // Плавное обновление расстояния с throttling через RAF
+  const updatePullDistance = (distance: number) => {
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+    }
+
+    rafId.current = requestAnimationFrame(() => {
+      const clampedDistance = Math.min(distance, MAX_PULL_DISTANCE);
+      setPullDistance(clampedDistance);
+
+      // Обновляем состояние на основе расстояния
+      if (clampedDistance >= PULL_THRESHOLD && pullState !== 'canRefresh' && pullState !== 'refreshing') {
+        setPullState('canRefresh');
+        triggerHapticFeedback();
+      } else if (clampedDistance < PULL_THRESHOLD && pullState === 'canRefresh') {
+        setPullState('pulling');
+      }
+    });
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile || pullState === 'refreshing') return;
+
+    const container = scrollContainerRef.current;
+    if (!container || container.scrollTop > 0) return;
+
+    startTouchRef.current = {
+      y: e.touches[0].clientY,
+      time: Date.now()
+    };
+    setPullState('pulling');
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !startTouchRef.current || pullState === 'refreshing') return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - startTouchRef.current.y;
+
+    // Только если движение вниз и мы в верху страницы
+    if (deltaY > 0 && container.scrollTop === 0) {
+      e.preventDefault();
+
+      // Применяем эластичность (чем больше тянем, тем медленнее)
+      const elasticity = Math.max(0.5, 1 - (deltaY / MAX_PULL_DISTANCE) * 0.5);
+      const adjustedDistance = deltaY * elasticity;
+
+      updatePullDistance(adjustedDistance);
+    } else if (deltaY <= 0 || container.scrollTop > 0) {
+      // Сбрасываем если движение вверх или начался скролл
+      resetPull();
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isMobile || !startTouchRef.current) return;
+
+    const shouldRefresh = pullState === 'canRefresh';
+
+    if (shouldRefresh) {
+      setPullState('refreshing');
+      triggerHapticFeedback();
+
+      try {
+        await handleRefreshData();
+      } finally {
+        setTimeout(() => {
+          resetPull();
+        }, 300);
+      }
+    } else {
+      resetPull();
+    }
+  };
+
+  const resetPull = () => {
+    setPullState('idle');
+    setPullDistance(0);
+    startTouchRef.current = null;
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+  };
+
+  // Добавляем обработчики touch событий
+  useEffect(() => {
+    if (!isMobile || !scrollContainerRef.current) return;
+
+    const container = scrollContainerRef.current;
+
+  }, []);
+
+  // Cleanup RAF при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+      }
+    };
+  }, []);
+
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
+      <div
+        ref={scrollContainerRef}
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobile ? 'pt-4' : ''}`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
+          transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
+        }}
+      >
+        {/* Стандартный мобильный pull-to-refresh индикатор */}
+        {isMobile && pullState !== 'idle' && pullDistance >= INDICATOR_APPEAR_THRESHOLD && (
+          <div
+            className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
+            style={{
+              transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`,
+              opacity: Math.min(1, (pullDistance - INDICATOR_APPEAR_THRESHOLD) / 40)
+            }}
+          >
+            <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
+              {pullState === 'refreshing' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                  <span className="text-sm font-medium">Обновление...</span>
+                </>
+              ) : pullState === 'canRefresh' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium">Отпустите для обновления</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw
+                    className="w-4 h-4 text-slate-500"
+                    style={{
+                      transform: `rotate(${pullDistance * 2}deg)`
+                    }}
+                  />
+                  <span className="text-sm font-medium">Потяните для обновления</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         {/* Заголовок страницы */}
         <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm ${isMobile ? 'mx-0' : ''} overflow-hidden`}>
           <CardHeader className={`${isMobile ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
             <CardTitle className={`text-slate-100 flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
-                <div className="flex flex-col">
-                  <span className={`${isMobile ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Обзор сети</span>
-                  <span className="text-slate-400 text-sm font-medium">Общая информация и аналитика по торговой сети</span>
+              <div className="flex items-center justify-between flex-1">
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
+                  <div className="flex flex-col">
+                    <span className={`${isMobile ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Обзор сети</span>
+                    {!isMobile && (
+                      <span className="text-slate-400 text-sm font-medium">Общая информация и аналитика по торговой сети</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Кнопки в заголовке */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => window.open('/help/network-overview.html', '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="bg-slate-700/50 border-slate-600/50 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-500 shadow-lg transition-all duration-300 px-3 py-2 rounded-lg"
+                    title="Инструкция"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                  </Button>
+
+                  {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
+                    <Button
+                      onClick={exportToExcel}
+                      disabled={loading}
+                      size="sm"
+                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-3 py-2 rounded-lg font-medium text-xs"
+                      title="Экспортировать данные в Excel"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Excel
+                    </Button>
+                  )}
                 </div>
               </div>
               
               <div className={`flex ${isMobile ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
-                {!isMobile && (
-                  <Button
-                    onClick={() => window.open('/help/network-overview', '_blank')}
-                    variant="outline"
-                    size="sm"
-                    className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-5 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
-                  >
-                    <HelpCircle className="w-4 h-4 mr-2" />
-                    Инструкция
-                  </Button>
-                )}
-                
-                {/* Кнопка экспорта */}
-                {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
-                  <Button
-                    onClick={exportToExcel}
-                    disabled={loading}
-                    size="sm"
-                    className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium"
-                    title="Экспортировать данные в Excel"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Экспорт в Excel
-                  </Button>
-                )}
                 
                 {/* Кнопка обновления данных */}
-                {!initializing && selectedNetwork && (
+                {!isMobile && !initializing && selectedNetwork && (
                   <Button
                     onClick={loadTransactions}
                     disabled={loading}
@@ -1357,145 +1539,254 @@ export default function NetworkOverview() {
         {!initializing && selectedNetwork && (
           <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobile ? 'mx-0' : ''}`}>
             <CardContent className={`${isMobile ? 'px-4 py-4' : 'px-6 py-4'}`}>
-              <div className={`flex items-center gap-3 ${isMobile ? 'mb-4' : 'mb-6'}`}>
+              <div className={`flex items-center gap-3 ${isMobile ? 'mb-3' : 'mb-6'}`}>
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
                   <span className="text-white text-sm">⚙️</span>
                 </div>
                 <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold text-white`}>Фильтры анализа</h2>
               </div>
               
-              <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-2 gap-6'}`}>
+              <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-2 gap-6'}`}>
                 {/* Дата начала */}
-                <Card className="bg-slate-800 border-slate-600">
-                  <CardContent className="p-4">
-                    <Label htmlFor="dateFrom" className="text-slate-300 text-sm font-medium mb-2 block">Дата с</Label>
-                    <div className="relative">
+                <div className={`${isMobile ? 'flex items-center gap-3' : ''}`}>
+                  {isMobile ? (
+                    <>
+                      <Label htmlFor="dateFrom" className="text-slate-300 text-xs font-medium w-6 flex-shrink-0">С:</Label>
                       <Input
                         id="dateFrom"
                         type="date"
                         value={dateFrom}
                         onChange={(e) => setDateFrom(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 focus:border-blue-500 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm flex-1 min-w-0 focus:border-blue-500 focus:ring-blue-500"
                       />
-                      <Calendar 
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none" 
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-                
+                    </>
+                  ) : (
+                    <Card className="bg-slate-800 border-slate-600">
+                      <CardContent className="p-4">
+                        <Label htmlFor="dateFrom" className="text-slate-300 text-sm font-medium mb-2 block">Дата с</Label>
+                        <div className="relative">
+                          <Input
+                            id="dateFrom"
+                            type="date"
+                            value={dateFrom}
+                            onChange={(e) => setDateFrom(e.target.value)}
+                            className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 focus:border-blue-500 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          />
+                          <Calendar
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
                 {/* Дата окончания */}
-                <Card className="bg-slate-800 border-slate-600">
-                  <CardContent className="p-4">
-                    <Label htmlFor="dateTo" className="text-slate-300 text-sm font-medium mb-2 block">Дата по</Label>
-                    <div className="relative">
+                <div className={`${isMobile ? 'flex items-center gap-3' : ''}`}>
+                  {isMobile ? (
+                    <>
+                      <Label htmlFor="dateTo" className="text-slate-300 text-xs font-medium w-6 flex-shrink-0">По:</Label>
                       <Input
                         id="dateTo"
                         type="date"
                         value={dateTo}
                         onChange={(e) => setDateTo(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 focus:border-blue-500 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm flex-1 min-w-0 focus:border-blue-500 focus:ring-blue-500"
                       />
-                      <Calendar 
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none" 
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                    </>
+                  ) : (
+                    <Card className="bg-slate-800 border-slate-600">
+                      <CardContent className="p-4">
+                        <Label htmlFor="dateTo" className="text-slate-300 text-sm font-medium mb-2 block">Дата по</Label>
+                        <div className="relative">
+                          <Input
+                            id="dateTo"
+                            type="date"
+                            value={dateTo}
+                            onChange={(e) => setDateTo(e.target.value)}
+                            className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 focus:border-blue-500 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          />
+                          <Calendar
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Статистика по видам топлива */}
+        {/* KPI блок */}
         {!initializing && selectedNetwork && fuelTypeStats.length > 0 && (
-          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
-            {fuelTypeStats.map((fuel) => (
-              <Card key={fuel.type} className="bg-slate-800 border-slate-600">
-                <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
-                  <div className="flex items-center">
-                    <div className="p-2 bg-purple-600 rounded-lg mr-4">
-                      <Fuel className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-white font-semibold mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>{fuel.type}</p>
-                      <p className={`font-bold text-white mb-0.5 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                        {Math.round(fuel.revenue).toLocaleString('ru-RU')} ₽
-                      </p>
-                      <div className="space-y-0.5">
-                        <p className={`font-bold text-white ${isMobile ? 'text-base' : 'text-xl'}`}>{Math.round(fuel.volume).toLocaleString('ru-RU')} л</p>
-                        <p className="text-sm text-slate-400">{fuel.operations} операций</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            
-            {/* Итоговая карточка */}
-            <Card className="bg-slate-700 border-slate-500 border-2">
-              <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
-                <div className="flex items-center">
-                  <div className="p-2 bg-blue-600 rounded-lg mr-4">
-                    <Activity className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className={`text-white font-semibold mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>Итого</p>
-                    <p className={`font-bold text-white mb-0.5 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                      {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
-                    </p>
-                    <div className="space-y-0.5">
-                      <p className={`font-bold text-white ${isMobile ? 'text-base' : 'text-xl'}`}>{Math.round(totalVolume).toLocaleString('ru-RU')} л</p>
-                      <p className="text-sm text-slate-400">{filteredTransactions.length} операций</p>
-                    </div>
-                  </div>
+          <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-6'}`}>
+            {/* Таблица по видам топлива */}
+            <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+              <CardHeader className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
+                <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
+                  <Fuel className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-purple-400`} />
+                  Виды топлива
+                </CardTitle>
+              </CardHeader>
+              <CardContent className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-600">
+                        <th className={`text-left py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Топливо</th>
+                        <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Выручка</th>
+                        <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Объем</th>
+                        <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>№</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fuelTypeStats.map((fuel) => (
+                        <tr key={fuel.type} className="border-b border-slate-700 hover:bg-slate-700 transition-colors duration-200">
+                          <td className={`py-4 text-white font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>{fuel.type}</td>
+                          <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                            {Math.round(fuel.revenue).toLocaleString('ru-RU')} ₽
+                          </td>
+                          <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                            {Math.round(fuel.volume).toLocaleString('ru-RU')} л
+                          </td>
+                          <td className={`py-4 text-right text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                            {fuel.operations}
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Итоговая строка для топлива */}
+                      <tr className="border-t-2 border-blue-400 bg-blue-900/30">
+                        <td className={`py-4 text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>Итого</td>
+                        <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                          {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
+                        </td>
+                        <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                          {Math.round(totalVolume).toLocaleString('ru-RU')} л
+                        </td>
+                        <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                          {filteredTransactions.length}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
 
-        {/* Статистика по способам оплаты */}
-        {!initializing && selectedNetwork && paymentTypeStats.length > 0 && (
-          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
-            {paymentTypeStats.map((payment) => (
-              <Card key={payment.type} className="bg-slate-800 border-slate-600">
-                <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
-                  <div className="flex items-center">
-                    <div className="p-2 bg-green-600 rounded-lg mr-4">
-                      <CreditCard className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-white font-semibold mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>{payment.type}</p>
-                      <p className={`font-bold text-white mb-0.5 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                        {Math.round(payment.revenue).toLocaleString('ru-RU')} ₽
-                      </p>
-                      <div className="space-y-0.5">
-                        <p className={`font-bold text-white ${isMobile ? 'text-base' : 'text-xl'}`}>{Math.round(payment.volume).toLocaleString('ru-RU')} л</p>
-                        <p className="text-sm text-slate-400">{payment.operations} операций</p>
-                      </div>
-                    </div>
+            {/* Таблица по способам оплаты */}
+            {paymentTypeStats.length > 0 && (
+              <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+                <CardHeader className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
+                  <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
+                    <CreditCard className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-400`} />
+                    Способы оплаты
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-600">
+                          <th className={`text-left py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Вид</th>
+                          <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Выручка</th>
+                          <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Объем</th>
+                          <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>№</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paymentTypeStats.map((payment) => {
+                          // Сокращаем названия способов оплаты
+                          const shortName = payment.type
+                            .replace('Банковская карта', 'Банковские')
+                            .replace('Наличные', 'Наличные')
+                            .replace('Топливная карта', 'Топливные')
+                            .replace('Онлайн заказ', 'Онлайн');
+
+                          return (
+                          <tr key={payment.type} className="border-b border-slate-700 hover:bg-slate-700 transition-colors duration-200">
+                            <td className={`py-4 text-white font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>{shortName}</td>
+                            <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                              {Math.round(payment.revenue).toLocaleString('ru-RU')} ₽
+                            </td>
+                            <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                              {Math.round(payment.volume).toLocaleString('ru-RU')} л
+                            </td>
+                            <td className={`py-4 text-right text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                              {payment.operations}
+                            </td>
+                          </tr>
+                          );
+                        })}
+                        {/* Итоговая строка для способов оплаты */}
+                        <tr className="border-t-2 border-blue-400 bg-blue-900/30">
+                          <td className={`py-4 text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>Итого</td>
+                          <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                            {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
+                          </td>
+                          <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                            {Math.round(totalVolume).toLocaleString('ru-RU')} л
+                          </td>
+                          <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                            {filteredTransactions.length}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-            
-            {/* Карточка среднего чека */}
-            <Card className="bg-slate-800 border-slate-600">
+            )}
+
+            {/* Ключевые KPI */}
+            <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
               <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
-                <div className="flex items-center">
-                  <div className="p-2 bg-purple-600 rounded-lg mr-4">
-                    <Monitor className="h-6 w-6 text-white" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-600 rounded-lg">
+                      <Activity className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} text-white`} />
+                    </div>
+                    <h3 className={`text-slate-200 font-bold ${isMobile ? 'text-base' : 'text-xl'}`}>Ключевые показатели</h3>
                   </div>
-                  <div className="flex-1">
-                    <p className={`text-white font-semibold mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>Средний чек</p>
-                    <p className={`font-bold text-white mb-0.5 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                </div>
+
+                <div className={`grid ${isMobile ? 'grid-cols-2 gap-3' : 'grid-cols-4 gap-6'}`}>
+                  {/* Средний чек */}
+                  <div className="text-center">
+                    <p className={`text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-base'}`}>Средний чек</p>
+                    <p className={`font-bold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                       {Math.round(averageCheck).toLocaleString('ru-RU')} ₽
                     </p>
-                    <div className="space-y-0.5">
-                      <p className={`font-bold text-white ${isMobile ? 'text-base' : 'text-xl'}`}>&nbsp;</p>
-                      <p className="text-sm text-slate-400">&nbsp;</p>
-                    </div>
+                  </div>
+
+                  {/* Средний объем */}
+                  <div className="text-center">
+                    <p className={`text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-base'}`}>Средний объем</p>
+                    <p className={`font-bold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                      {filteredTransactions.length > 0 ? Math.round(totalVolume / filteredTransactions.length) : 0} л
+                    </p>
+                  </div>
+
+                  {/* Эффективность */}
+                  <div className="text-center">
+                    <p className={`text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-base'}`}>Эффективность</p>
+                    <p className={`font-bold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                      {totalVolume > 0 ? Math.round(totalRevenue / totalVolume) : 0} ₽/л
+                    </p>
+                  </div>
+
+                  {/* Операций в день */}
+                  <div className="text-center">
+                    <p className={`text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-base'}`}>Операций/день</p>
+                    <p className={`font-bold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+                      {(() => {
+                        const startDate = new Date(dateFrom);
+                        const endDate = new Date(dateTo);
+                        const daysDiff = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+                        return Math.round(filteredTransactions.length / daysDiff);
+                      })()}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -1867,10 +2158,7 @@ export default function NetworkOverview() {
                     setInitializing(false);
                     
                     if (isConfigured) {
-                      toast({
-                        title: "Успешно",
-                        description: "STS API настроен и готов к работе",
-                      });
+                      // API настроен - уведомление убрано
                       loadTransactions();
                     } else {
                       toast({

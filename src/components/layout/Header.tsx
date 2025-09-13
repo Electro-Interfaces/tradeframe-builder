@@ -82,34 +82,34 @@ export function Header({
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-header bg-background/95 backdrop-blur-sm border-b border-border shadow-soft">
-      <div className="flex items-center justify-between h-full px-3 md:px-6">
+    <header className={`${isMobile ? 'relative' : 'fixed'} top-0 left-0 right-0 z-50 h-header bg-slate-900/98 backdrop-blur-md border-b border-slate-700/50 shadow-lg`}>
+      <div className="flex items-center justify-between h-full px-4 md:px-6">
         {/* Mobile Left Section: Burger + Network Selector */}
-        <div className="flex items-center gap-2 md:hidden flex-1 min-w-0">
+        <div className="flex items-center gap-3 md:hidden flex-1 min-w-0">
           <Button
             variant="ghost"
             size="icon"
             onClick={handleMobileMenuClick}
-            className={`shrink-0 h-10 w-10 bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 ${mobileInfo.isTouchDevice ? 'mobile-touch-target mobile-button mobile-no-highlight' : ''}`}
+            className={`shrink-0 h-10 w-10 bg-slate-800/80 hover:bg-slate-700 text-white border border-slate-600/50 rounded-lg transition-all duration-200 ${mobileInfo.isTouchDevice ? 'mobile-touch-target mobile-button mobile-no-highlight' : ''}`}
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-4 w-4" />
           </Button>
-          
-          <NetworkSelect 
-            value={selectedNetwork} 
+
+          <NetworkSelect
+            value={selectedNetwork}
             onValueChange={onNetworkChange}
-            className="h-8 text-xs min-w-0 flex-1"
+            className="!h-10 !py-0 text-sm min-w-0 flex-1 bg-slate-800/50 border-slate-600/50 hover:bg-slate-700/50"
           />
         </div>
 
         {/* Desktop Left Section: Logo + Brand */}
-        <div className="hidden md:flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">TC</span>
+        <div className="hidden md:flex items-center gap-4">
+          <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+            <span className="text-white font-bold text-sm">TF</span>
           </div>
           <div>
-            <h1 className="font-semibold text-foreground text-lg">TradeFrame</h1>
-            <p className="text-xs text-muted-foreground">v1.5.1</p>
+            <h1 className="font-semibold text-white text-lg tracking-tight">TradeFrame</h1>
+            <p className="text-xs text-slate-400">v1.5.1</p>
           </div>
         </div>
 
@@ -126,42 +126,42 @@ export function Header({
         </div>
 
         {/* Right Section: Notifications + User Profile */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Mobile Quick Actions */}
-          <div className="flex md:hidden items-center">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Bell className="h-4 w-4" />
+          <div className="flex md:hidden items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-800/50 rounded-lg">
+              <Bell className="h-4 w-4 text-slate-300" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MessageCircle className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-800/50 rounded-lg">
+              <MessageCircle className="h-4 w-4 text-slate-300" />
             </Button>
           </div>
 
           {/* Desktop Quick Actions */}
-          <div className="hidden md:flex items-center gap-2">
-            <Button variant="ghost" size="icon">
-              <Bell className="h-5 w-5" />
+          <div className="hidden md:flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-slate-800/50 rounded-lg">
+              <Bell className="h-5 w-5 text-slate-300 hover:text-white" />
             </Button>
-            <Button variant="ghost" size="icon">
-              <MessageCircle className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-slate-800/50 rounded-lg">
+              <MessageCircle className="h-5 w-5 text-slate-300 hover:text-white" />
             </Button>
           </div>
 
           {/* User Profile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                className="flex items-center gap-2 px-2 md:px-3 transition-all duration-200 h-9 md:h-10 hover:bg-accent/50 rounded-lg border border-transparent hover:border-border"
+              <Button
+                variant="ghost"
+                className="flex items-center gap-3 px-2 md:px-3 transition-all duration-200 h-10 md:h-11 hover:bg-slate-800/50 rounded-lg border border-slate-700/30 hover:border-slate-600/50"
               >
-                <Avatar className="w-8 h-8 md:w-9 md:h-9 rounded-lg shadow-sm ring-2 ring-background">
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-sm font-semibold rounded-lg">
+                <Avatar className="w-8 h-8 md:w-9 md:h-9 rounded-lg shadow-md ring-1 ring-slate-700/50">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-lg">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden lg:flex flex-col items-start">
-                  <span className="font-medium text-sm text-foreground leading-none">{getUserDisplayName()}</span>
-                  <span className="text-xs text-muted-foreground mt-1">{getUserRole()}</span>
+                  <span className="font-medium text-sm text-white leading-none">{getUserDisplayName()}</span>
+                  <span className="text-xs text-slate-400 mt-1">{getUserRole()}</span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -183,12 +183,6 @@ export function Header({
               >
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span>Профиль</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer"
-              >
-                <Settings className="h-4 w-4 text-muted-foreground" />
-                <span>Настройки</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="my-2" />
               <DropdownMenuItem 

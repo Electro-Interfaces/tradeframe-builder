@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/context/SelectionContext";
@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, Calendar, Fuel, CreditCard, Pin, HelpCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, Calendar, Fuel, CreditCard, Pin, HelpCircle, RefreshCw } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { operationsService } from "@/services/operationsService";
 import { stsApiService, Transaction } from "@/services/stsApi";
@@ -51,6 +52,17 @@ export default function OperationsTransactionsPageSimple() {
   // KPI карточки фильтры
   const [selectedKpiFuels, setSelectedKpiFuels] = useState(new Set());
   const [selectedKpiPayments, setSelectedKpiPayments] = useState(new Set());
+
+  // Модальное окно деталей операции
+  const [selectedOperation, setSelectedOperation] = useState(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  // Pull-to-refresh состояния
+  const [pullState, setPullState] = useState('idle');
+  const [pullDistance, setPullDistance] = useState(0);
+  const startTouchRef = useRef(null);
+  const rafId = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   // Функции экспорта
   const exportToExcel = () => {
@@ -833,7 +845,124 @@ export default function OperationsTransactionsPageSimple() {
     setTotalPages(totalPages);
     return filteredOperations.slice(startIndex, endIndex);
   }, [filteredOperations, currentPage, itemsPerPage]);
-  
+
+  // Pull-to-refresh константы и функции
+  const PULL_THRESHOLD = 80;
+  const MAX_PULL_DISTANCE = 120;
+  const INDICATOR_APPEAR_THRESHOLD = 30;
+
+  // Pull-to-refresh функционал
+  const handleRefreshData = async () => {
+    if (selectedNetwork && selectedTradingPoint) {
+      console.log('🔄 Pull-to-refresh: обновляем данные операций...');
+      await loadOperations();
+    }
+  };
+
+  // Функция для вибрации на поддерживаемых устройствах
+  const triggerHapticFeedback = () => {
+    if ('vibrate' in navigator && isMobileForced) {
+      navigator.vibrate(50);
+    }
+  };
+
+  // Плавное обновление расстояния с throttling через RAF
+  const updatePullDistance = (distance) => {
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+    }
+
+    rafId.current = requestAnimationFrame(() => {
+      const clampedDistance = Math.min(distance, MAX_PULL_DISTANCE);
+      setPullDistance(clampedDistance);
+
+      // Обновляем состояние на основе расстояния
+      if (clampedDistance >= PULL_THRESHOLD && pullState !== 'canRefresh' && pullState !== 'refreshing') {
+        setPullState('canRefresh');
+        triggerHapticFeedback();
+      } else if (clampedDistance < PULL_THRESHOLD && pullState === 'canRefresh') {
+        setPullState('pulling');
+      }
+    });
+  };
+
+  const handleTouchStart = (e) => {
+    if (!isMobileForced || pullState === 'refreshing') return;
+
+    const container = scrollContainerRef.current;
+    if (!container || container.scrollTop > 0) return;
+
+    startTouchRef.current = {
+      y: e.touches[0].clientY,
+      time: Date.now()
+    };
+    setPullState('pulling');
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isMobileForced || !startTouchRef.current || pullState === 'refreshing') return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - startTouchRef.current.y;
+
+    // Только если движение вниз и мы в верху страницы
+    if (deltaY > 0 && container.scrollTop === 0) {
+      e.preventDefault();
+
+      // Применяем эластичность (чем больше тянем, тем медленнее)
+      const elasticity = Math.max(0.5, 1 - (deltaY / MAX_PULL_DISTANCE) * 0.5);
+      const adjustedDistance = deltaY * elasticity;
+
+      updatePullDistance(adjustedDistance);
+    } else if (deltaY <= 0 || container.scrollTop > 0) {
+      // Сбрасываем если движение вверх или начался скролл
+      resetPull();
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isMobileForced || !startTouchRef.current) return;
+
+    const shouldRefresh = pullState === 'canRefresh';
+
+    if (shouldRefresh) {
+      setPullState('refreshing');
+      triggerHapticFeedback();
+
+      try {
+        await handleRefreshData();
+      } finally {
+        setTimeout(() => {
+          resetPull();
+        }, 300);
+      }
+    } else {
+      resetPull();
+    }
+  };
+
+  const resetPull = () => {
+    setPullState('idle');
+    setPullDistance(0);
+    startTouchRef.current = null;
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+  };
+
+  // Cleanup RAF при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+      }
+    };
+  }, []);
+
   // Функции управления KPI фильтрами
   const handleKpiFuelClick = (fuel) => {
     const newSelected = new Set(selectedKpiFuels);
@@ -899,45 +1028,100 @@ export default function OperationsTransactionsPageSimple() {
     }
   };
 
+  const getCompactStatusBadge = (status) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-slate-600 text-slate-200 text-xs px-1 py-0">ОК</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-blue-600 text-white text-xs px-1 py-0">В работе</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-600 text-white text-xs px-1 py-0">Ошибка</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-600 text-white text-xs px-1 py-0">Ожидает</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-gray-600 text-slate-200 text-xs px-1 py-0">Отмена</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-xs px-1 py-0">{status}</Badge>;
+    }
+  };
+
   return (
     <MainLayout fullWidth={true}>
-      <div 
-        className={`${isMobileForced ? 'p-0 space-y-3' : 'p-6 space-y-6'} w-full report-full-width min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}
+      <div
+        ref={scrollContainerRef}
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobileForced ? 'pt-4' : ''} min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          transform: isMobileForced && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
+          transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
+        }}
       >
+        {/* Стандартный мобильный pull-to-refresh индикатор */}
+        {isMobileForced && pullState !== 'idle' && pullDistance >= INDICATOR_APPEAR_THRESHOLD && (
+          <div
+            className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
+            style={{
+              transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`,
+              opacity: Math.min(1, (pullDistance - INDICATOR_APPEAR_THRESHOLD) / 40)
+            }}
+          >
+            <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
+              {pullState === 'refreshing' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                  <span className="text-sm font-medium">Обновление...</span>
+                </>
+              ) : pullState === 'canRefresh' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium">Отпустите для обновления</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw
+                    className="w-4 h-4 text-slate-500"
+                    style={{
+                      transform: `rotate(${pullDistance * 2}deg)`
+                    }}
+                  />
+                  <span className="text-sm font-medium">Потяните для обновления</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Заголовок страницы */}
-        <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm ${isMobileForced ? 'mx-0' : ''} overflow-hidden`}>
+        <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm overflow-hidden">
           <CardHeader className={`${isMobileForced ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
-            <CardTitle className={`text-slate-100 flex ${isMobileForced ? 'flex-col gap-3' : 'items-center justify-between'}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
-                <div className="flex flex-col">
-                  <span className={`${isMobileForced ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Операции</span>
-                  <span className="text-slate-400 text-sm font-medium">Управление транзакциями</span>
-                </div>
+            <CardTitle className="text-slate-100 flex items-center justify-between min-w-0">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg flex-shrink-0"></div>
+                <span className={`${isMobileForced ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight truncate`}>Операции</span>
               </div>
-              
-              <div className={`flex ${isMobileForced ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
-                {!isMobileForced && (
-                  <Button
-                    onClick={() => window.open('/help/operations-transactions', '_blank')}
-                    variant="outline"
-                    size="sm"
-                    className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-5 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
-                  >
-                    <HelpCircle className="w-4 h-4 mr-2" />
-                    Инструкция
-                  </Button>
-                )}
+
+              <div className={`flex ${isMobileForced ? 'gap-1' : 'gap-2'} items-center flex-shrink-0`}>
+                <Button
+                  onClick={() => window.open('/help/operations-transactions', '_blank')}
+                  variant="outline"
+                  size="sm"
+                  className={`border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 transition-all duration-200 rounded-lg bg-slate-700/30 ${isMobileForced ? 'px-2 py-1.5 text-xs' : 'px-3 py-2'}`}
+                >
+                  <HelpCircle className={`${isMobileForced ? 'w-3 h-3' : 'w-4 h-4'} ${isMobileForced ? '' : 'mr-2'}`} />
+                  {!isMobileForced && 'Инструкция'}
+                </Button>
                 
                 {/* Кнопка экспорта */}
                 {filteredOperations.length > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium"
+                      <Button
+                        className={`bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg font-medium ${isMobileForced ? 'px-3 py-1.5 text-xs' : 'px-3 py-2'}`}
                         size="sm"
                       >
-                        <Download className="w-4 h-4 mr-2" />
+                        <Download className={`${isMobileForced ? 'w-3 h-3' : 'w-4 h-4'} mr-2`} />
                         Экспорт
                       </Button>
                     </DropdownMenuTrigger>
@@ -954,156 +1138,219 @@ export default function OperationsTransactionsPageSimple() {
                   </DropdownMenu>
                 )}
                 
-                {/* STS API кнопка */}
-                {stsApiConfigured ? (
-                  <Button
-                    onClick={loadFromStsApi}
-                    disabled={loadingFromSTS}
-                    size="sm"
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
-                  >
-                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                      {loadingFromSTS ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4" />
-                      )}
-                    </div>
-                    {loadingFromSTS ? 'Обновление...' : 'Обновить данные'}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => {
-                      if (!isMobile) alert('STS API не настроен. Перейдите в Настройки → API СТС');
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="border-red-500/60 text-red-400 hover:bg-red-600/20 hover:border-red-400 transition-all duration-300 px-5 py-2.5 rounded-lg bg-red-900/10 backdrop-blur-sm"
-                  >
-                    <AlertTriangle className="w-4 h-4 mr-2" />
-                    Настроить STS API
-                  </Button>
-                )}
+                {/* STS API кнопка - скрыта */}
               </div>
             </CardTitle>
           </CardHeader>
         </Card>
 
-        {/* Быстрые фильтры в стиле карточек */}
-        <div className={`grid ${isMobileForced ? 'grid-cols-2' : 'grid-cols-4'} gap-4 mb-6`}>
-          {/* Статус */}
-          <Card className="bg-slate-800 border-slate-600">
-            <CardContent className="p-4">
-              <Label htmlFor="status" className="text-slate-300 text-sm font-medium mb-2 block">Статус</Label>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm hover:bg-slate-600 transition-colors">
-                  <SelectValue placeholder="Выберите статус" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  {statusTypes.map((status) => (
-                    <SelectItem key={status} value={status} className="text-slate-200 focus:bg-slate-700">
-                      {status === "Все" ? status : ({
-                        'completed': 'Завершено',
-                        'in_progress': 'Выполняется',
-                        'failed': 'Ошибка',
-                        'pending': 'Ожидание',
-                        'cancelled': 'Отменено'
-                      }[status] || status)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          {/* Дата с */}
-          <Card className="bg-slate-800 border-slate-600">
-            <CardContent className="p-4">
-              <Label htmlFor="date-from" className="text-slate-300 text-sm font-medium mb-2 block">Дата с</Label>
-              <div className="relative">
-                <Input
-                  id="date-from"
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm hover:bg-slate-600 transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-4 [&::-webkit-calendar-picker-indicator]:h-4 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                />
-                <Calendar 
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none" 
-                />
+        {/* Компактные фильтры */}
+        <Card className="bg-slate-800 border-slate-600 mb-4">
+          <CardContent className={`${isMobileForced ? 'p-4' : 'p-6'}`}>
+            <div className={`flex items-center gap-3 ${isMobileForced ? 'mb-3' : 'mb-4'}`}>
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+                <span className="text-white text-sm">⚙️</span>
               </div>
-            </CardContent>
-          </Card>
+              <h2 className={`${isMobileForced ? 'text-lg' : 'text-xl'} font-semibold text-white`}>Фильтры</h2>
+            </div>
 
-          {/* Дата по */}
-          <Card className="bg-slate-800 border-slate-600">
-            <CardContent className="p-4">
-              <Label htmlFor="date-to" className="text-slate-300 text-sm font-medium mb-2 block">Дата по</Label>
-              <div className="relative">
-                <Input
-                  id="date-to"
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => {
-                    console.log('📅 Changing dateTo from', dateTo, 'to', e.target.value);
-                    setDateTo(e.target.value);
-                  }}
-                  className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm hover:bg-slate-600 transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-4 [&::-webkit-calendar-picker-indicator]:h-4 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                />
-                <Calendar 
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none" 
-                />
+            {/* Верхняя строка - Статус и Поиск */}
+            <div className={`${isMobileForced ? 'space-y-3 mb-4' : 'grid grid-cols-2 gap-6 mb-4'}`}>
+              {/* Статус */}
+              <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
+                {isMobileForced ? (
+                  <>
+                    <Label htmlFor="status" className="text-slate-300 text-xs font-medium w-14 flex-shrink-0">Статус:</Label>
+                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm flex-1 min-w-0">
+                        <SelectValue placeholder="Все" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        {statusTypes.map((status) => (
+                          <SelectItem key={status} value={status} className="text-slate-200 focus:bg-slate-700">
+                            {status === "Все" ? status : ({
+                              'completed': 'Завершено',
+                              'in_progress': 'Выполняется',
+                              'failed': 'Ошибка',
+                              'pending': 'Ожидание',
+                              'cancelled': 'Отменено'
+                            }[status] || status)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : (
+                  <>
+                    <Label htmlFor="status" className="text-slate-300 text-sm font-medium mb-2 block">Статус операций</Label>
+                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                      <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base">
+                        <SelectValue placeholder="Выберите статус" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        {statusTypes.map((status) => (
+                          <SelectItem key={status} value={status} className="text-slate-200 focus:bg-slate-700">
+                            {status === "Все" ? status : ({
+                              'completed': 'Завершено',
+                              'in_progress': 'Выполняется',
+                              'failed': 'Ошибка',
+                              'pending': 'Ожидание',
+                              'cancelled': 'Отменено'
+                            }[status] || status)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Поиск */}
-          <Card className={`bg-slate-800 border-slate-600 ${isMobileForced ? 'col-span-2' : 'col-span-1'}`}>
-            <CardContent className="p-4">
-              <Label htmlFor="search" className="text-slate-300 text-sm font-medium mb-2 block">Поиск</Label>
-              <Input
-                id="search"
-                type="text"
-                placeholder={isMobileForced ? "Поиск..." : "Поиск по операции, устройству, ID..."}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-slate-200 placeholder-slate-400 h-8 text-sm hover:bg-slate-600 transition-colors w-full"
-              />
-            </CardContent>
-          </Card>
-        </div>
+              {/* Поиск */}
+              <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
+                {isMobileForced ? (
+                  <>
+                    <Label htmlFor="search" className="text-slate-300 text-xs font-medium w-14 flex-shrink-0">Поиск:</Label>
+                    <Input
+                      id="search"
+                      type="text"
+                      placeholder="ID, устройство..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-slate-200 placeholder-slate-400 h-8 text-sm flex-1 min-w-0"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Label htmlFor="search" className="text-slate-300 text-sm font-medium mb-2 block">Поиск по операциям</Label>
+                    <Input
+                      id="search"
+                      type="text"
+                      placeholder="Поиск по ID операции, устройству, номеру ТО..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-slate-200 placeholder-slate-400 h-10 text-base"
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Нижняя строка - Даты */}
+            <div className={`${isMobileForced ? 'space-y-3' : 'grid grid-cols-2 gap-6'}`}>
+              {/* Дата начала */}
+              <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
+                {isMobileForced ? (
+                  <>
+                    <Label htmlFor="dateFrom" className="text-slate-300 text-xs font-medium w-14 flex-shrink-0">С:</Label>
+                    <Input
+                      id="dateFrom"
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm flex-1 min-w-0"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Label htmlFor="dateFrom" className="text-slate-300 text-sm font-medium mb-2 block">Дата начала</Label>
+                    <div className="relative">
+                      <Input
+                        id="dateFrom"
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      />
+                      <Calendar
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Дата окончания */}
+              <div className={`${isMobileForced ? 'flex items-center gap-3 min-w-0' : ''}`}>
+                {isMobileForced ? (
+                  <>
+                    <Label htmlFor="dateTo" className="text-slate-300 text-xs font-medium w-14 flex-shrink-0">По:</Label>
+                    <Input
+                      id="dateTo"
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm flex-1 min-w-0"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Label htmlFor="dateTo" className="text-slate-300 text-sm font-medium mb-2 block">Дата окончания</Label>
+                    <div className="relative">
+                      <Input
+                        id="dateTo"
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      />
+                      <Calendar
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Заголовок фильтров */}
         {operations.length > 0 && (
           <div className="mb-4">
-            <div className="flex items-center gap-4">
-              <h3 className="text-xl font-semibold text-white">Фильтры</h3>
-              <p className="text-xl text-slate-400">
-                {(() => {
-                  const selectedFuels = Array.from(selectedKpiFuels);
-                  const selectedPayments = Array.from(selectedKpiPayments).map(method => ({
-                    'cash': 'Наличные',
-                    'bank_card': 'Банковская карта',
-                    'fuel_card': 'Топливная карта',
-                    'online_order': 'Онлайн заказ'
-                  }[method] || method));
-                  
-                  const allSelected = [...selectedFuels, ...selectedPayments];
-                  
-                  if (allSelected.length === 0) {
-                    return "Выберите один или несколько элементов для установки фильтра";
-                  } else {
-                    return `Выбрано: ${allSelected.join(', ')}`;
-                  }
-                })()}
-              </p>
+            <div className="space-y-1">
+              {!isMobileForced && (
+                <h3 className="text-xl font-semibold text-white">Фильтр</h3>
+              )}
+              <p className="text-xs text-slate-500">выберите один или несколько элементов</p>
             </div>
           </div>
         )}
 
         {/* KPI карточки */}
         {operations.length > 0 && (
-          <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+          <div className="space-y-4">
+            {/* Карточки по видам топлива */}
+            <div className="space-y-2">
+              {isMobileForced && (
+                <div className="flex justify-between items-center px-2">
+                  <h3 className="text-slate-300 text-sm font-medium">Виды топлива</h3>
+                  <span className="text-xs">
+                    {(() => {
+                      const selectedFuels = Array.from(selectedKpiFuels);
+                      const selectedPayments = Array.from(selectedKpiPayments).map(method => ({
+                        'cash': 'Наличные',
+                        'bank_card': 'Банковская карта',
+                        'fuel_card': 'Топливная карта',
+                        'online_order': 'Онлайн заказ'
+                      }[method] || method));
+
+                      const allSelected = [...selectedFuels, ...selectedPayments];
+
+                      if (allSelected.length === 0) {
+                        return <span className="text-slate-400">не выбрано</span>;
+                      } else {
+                        return (
+                          <span>
+                            <span className="text-slate-400">выбрано: </span>
+                            <span className="text-blue-400 font-bold">{allSelected.join(', ')}</span>
+                          </span>
+                        );
+                      }
+                    })()}
+                  </span>
+                </div>
+              )}
+              <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-3 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {[...new Set(operations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
                   // Всегда показываем все карточки - данные берем из полного набора операций
                   const allFuelOps = operations.filter(op => op.fuelType === fuel && op.status === 'completed');
@@ -1130,70 +1377,58 @@ export default function OperationsTransactionsPageSimple() {
                       className={`${cardStyle} cursor-pointer transition-all duration-200`}
                       onClick={() => handleKpiFuelClick(fuel)}
                     >
-                      <CardContent className={`${isMobileForced ? 'p-4' : 'p-6'}`}>
-                        <div className="flex items-center">
-                          <div className="p-2 bg-purple-600 rounded-lg mr-4">
-                            <Fuel className="h-6 w-6 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <p className={`text-white font-semibold mb-1 ${isMobileForced ? 'text-sm' : 'text-base'}`}>{fuel}</p>
-                              {isSelected && (
-                                <Pin className="w-6 h-6 text-yellow-400 drop-shadow-lg" />
-                              )}
+                      <CardContent className={`${isMobileForced ? 'p-3' : 'p-6'}`}>
+                        {isMobileForced ? (
+                          <div className="relative">
+                            <div className="mb-1">
+                              <p className="text-white font-semibold text-xs truncate">{fuel}</p>
                             </div>
-                            <p className={`font-bold text-white mb-0.5 ${isMobileForced ? 'text-lg' : 'text-2xl'}`}>
+                            <p className="font-bold text-white text-sm mb-1">
                               {Math.round(allRevenue).toLocaleString('ru-RU')} ₽
                             </p>
-                            <div className="space-y-0.5">
-                              <p className={`font-bold text-white ${isMobileForced ? 'text-base' : 'text-xl'}`}>{Math.round(allVolume).toLocaleString('ru-RU')} л</p>
-                              <p className="text-sm text-slate-400">{allFuelOps.length} операций</p>
+                            <div className="text-xs text-slate-400 space-y-0.5">
+                              <div>{Math.round(allVolume).toLocaleString('ru-RU')} л</div>
+                              <div>{allFuelOps.length} оп.</div>
+                            </div>
+                            {isSelected && (
+                              <Pin className="w-4 h-4 text-yellow-400 absolute bottom-0 right-0 drop-shadow-lg" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 bg-purple-600 rounded-lg mr-4">
+                              <Fuel className="h-6 w-6 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <p className="text-white font-semibold mb-1 text-base">{fuel}</p>
+                                {isSelected && (
+                                  <Pin className="w-6 h-6 text-yellow-400 drop-shadow-lg" />
+                                )}
+                              </div>
+                              <p className="font-bold text-white mb-0.5 text-2xl">
+                                {Math.round(allRevenue).toLocaleString('ru-RU')} ₽
+                              </p>
+                              <div className="space-y-0.5">
+                                <p className="font-bold text-white text-xl">{Math.round(allVolume).toLocaleString('ru-RU')} л</p>
+                                <p className="text-sm text-slate-400">{allFuelOps.length} операций</p>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
                 })}
-                
-                {/* Итоговая карточка */}
-                {(() => {
-                  const totalOps = filteredOperations.filter(op => op.status === 'completed');
-                  const totalVolume = totalOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                  const totalRevenue = totalOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
-                  
-                  const hasActiveFilters = selectedKpiFuels.size > 0 || selectedKpiPayments.size > 0;
-                  return (
-                    <Card 
-                      className={`${
-                        hasActiveFilters 
-                          ? 'bg-blue-700 border-blue-300 border-2 cursor-pointer hover:bg-blue-600' 
-                          : 'bg-slate-700 border-slate-500 border-2'
-                      } transition-all duration-200`}
-                      onClick={hasActiveFilters ? handleKpiResetAll : undefined}
-                    >
-                      <CardContent className={`${isMobileForced ? 'p-4' : 'p-6'}`}>
-                        <div className="flex items-center">
-                          <div className="p-2 bg-blue-600 rounded-lg mr-4">
-                            <Activity className="h-6 w-6 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <p className={`text-white font-semibold mb-1 ${isMobileForced ? 'text-sm' : 'text-base'}`}>Итого</p>
-                            <p className={`font-bold text-white mb-0.5 ${isMobileForced ? 'text-lg' : 'text-2xl'}`}>
-                              {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
-                            </p>
-                            <div className="space-y-0.5">
-                              <p className={`font-bold text-white ${isMobileForced ? 'text-base' : 'text-xl'}`}>{Math.round(totalVolume).toLocaleString('ru-RU')} л</p>
-                              <p className="text-sm text-slate-400">{totalOps.length} операций</p>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })()}
-                
-                {/* Карточки по способам оплаты */}
+              </div>
+            </div>
+
+            {/* Карточки по способам оплаты */}
+            <div className="space-y-2">
+              {isMobileForced && (
+                <h3 className="text-slate-300 text-sm font-medium px-2">Способы оплаты</h3>
+              )}
+              <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-3 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {['cash', 'bank_card', 'fuel_card', 'online_order']
                   .map(paymentMethod => {
                     // Всегда показываем все карточки - данные берем из полного набора операций
@@ -1232,44 +1467,126 @@ export default function OperationsTransactionsPageSimple() {
                       className={`${cardStyle} cursor-pointer transition-all duration-200`}
                       onClick={() => handleKpiPaymentClick(paymentMethod)}
                     >
-                      <CardContent className={`${isMobileForced ? 'p-4' : 'p-6'}`}>
-                        <div className="flex items-center">
-                          <div className="p-2 bg-green-600 rounded-lg mr-4">
-                            <CreditCard className="h-6 w-6 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <p className={`text-white font-semibold mb-1 ${isMobileForced ? 'text-sm' : 'text-base'}`}>{displayName}</p>
-                              {isSelected && (
-                                <Pin className="w-6 h-6 text-yellow-400 drop-shadow-lg" />
-                              )}
+                      <CardContent className={`${isMobileForced ? 'p-3' : 'p-6'}`}>
+                        {isMobileForced ? (
+                          <div className="relative">
+                            <div className="mb-1">
+                              <p className="text-white font-semibold text-xs truncate">{displayName}</p>
                             </div>
-                            <p className={`font-bold text-white mb-0.5 ${isMobileForced ? 'text-lg' : 'text-2xl'}`}>
+                            <p className="font-bold text-white text-sm mb-1">
                               {Math.round(allRevenue).toLocaleString('ru-RU')} ₽
                             </p>
-                            <div className="space-y-0.5">
-                              <p className={`font-bold text-white ${isMobileForced ? 'text-base' : 'text-xl'}`}>{Math.round(allVolume).toLocaleString('ru-RU')} л</p>
-                              <p className="text-sm text-slate-400">{allPaymentOps.length} операций</p>
+                            <div className="text-xs text-slate-400 space-y-0.5">
+                              <div>{Math.round(allVolume).toLocaleString('ru-RU')} л</div>
+                              <div>{allPaymentOps.length} оп.</div>
+                            </div>
+                            {isSelected && (
+                              <Pin className="w-4 h-4 text-yellow-400 absolute bottom-0 right-0 drop-shadow-lg" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <div className="p-2 bg-green-600 rounded-lg mr-4">
+                              <CreditCard className="h-6 w-6 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <p className="text-white font-semibold mb-1 text-base">{displayName}</p>
+                                {isSelected && (
+                                  <Pin className="w-6 h-6 text-yellow-400 drop-shadow-lg" />
+                                )}
+                              </div>
+                              <p className="font-bold text-white mb-0.5 text-2xl">
+                                {Math.round(allRevenue).toLocaleString('ru-RU')} ₽
+                              </p>
+                              <div className="space-y-0.5">
+                                <p className="font-bold text-white text-xl">{Math.round(allVolume).toLocaleString('ru-RU')} л</p>
+                                <p className="text-sm text-slate-400">{allPaymentOps.length} операций</p>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Итоговая карточка */}
+            <div className="space-y-2">
+              {isMobileForced && (
+                <h3 className="text-slate-300 text-sm font-medium px-2">Итого</h3>
+              )}
+              <div className={`grid ${isMobileForced ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+                {(() => {
+                  const totalOps = filteredOperations.filter(op => op.status === 'completed');
+                  const totalVolume = totalOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
+                  const totalRevenue = totalOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+
+                  const hasActiveFilters = selectedKpiFuels.size > 0 || selectedKpiPayments.size > 0;
+                  return (
+                    <Card
+                      className={`${
+                        hasActiveFilters
+                          ? 'bg-blue-700 border-blue-300 border-2 cursor-pointer hover:bg-blue-600'
+                          : 'bg-slate-700 border-slate-500 border-2'
+                      } transition-all duration-200`}
+                      onClick={hasActiveFilters ? handleKpiResetAll : undefined}
+                    >
+                      <CardContent className={`${isMobileForced ? 'p-3' : 'p-6'}`}>
+                        {isMobileForced ? (
+                          <div>
+                            <div className="flex justify-between items-start mb-1">
+                              <p className="text-blue-300 font-semibold text-sm">Итого</p>
+                              {hasActiveFilters && (
+                                <p className="text-xs text-blue-200">Сброс Фильтра</p>
+                              )}
+                            </div>
+                            <p className="font-bold text-white text-lg mb-1">
+                              {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
+                            </p>
+                            <div className="flex justify-between text-xs text-slate-400">
+                              <span>{Math.round(totalVolume).toLocaleString('ru-RU')} л</span>
+                              <span>{totalOps.length} оп.</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <div className="p-2 bg-blue-600 rounded-lg mr-4">
+                              <Activity className="h-6 w-6 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-white font-semibold mb-1 text-base">Итого</p>
+                              <p className="font-bold text-white mb-0.5 text-2xl">
+                                {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
+                              </p>
+                              <div className="space-y-0.5">
+                                <p className="font-bold text-white text-xl">{Math.round(totalVolume).toLocaleString('ru-RU')} л</p>
+                                <p className="text-sm text-slate-400">{totalOps.length} операций</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         )}
 
         {/* Таблица операций */}
-        <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobileForced ? 'mx-0' : ''}`}>
-          <CardHeader className={`${isMobileForced ? 'px-3 py-2' : 'pb-4'}`}>
+        <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobileForced ? 'mx-0 mt-1' : ''}`}>
+          <CardHeader className={`${isMobileForced ? 'px-3 py-1.5' : 'pb-4'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobileForced ? 'text-sm' : 'text-xl'}`}>
-                  <FileText className="w-5 h-5" />
+                <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobileForced ? 'text-base' : 'text-xl'}`}>
+                  <FileText className={`${isMobileForced ? 'w-4 h-4' : 'w-5 h-5'}`} />
                   Операции
                 </CardTitle>
-                <p className={`text-slate-400 ${isMobileForced ? 'text-xs' : 'text-sm'} mt-1`}>
+                <p className={`text-slate-400 ${isMobileForced ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
                   Показано {paginatedOperations.length} из {filteredOperations.length} операций
                   {totalPages > 1 && ` • Страница ${currentPage} из ${totalPages}`}
                 </p>
@@ -1305,102 +1622,59 @@ export default function OperationsTransactionsPageSimple() {
           </CardHeader>
           <CardContent className={`${isMobileForced ? 'px-0 pb-3' : ''}`}>
             {isMobileForced ? (
-              // Mobile card layout
-              <div className="space-y-2 px-3">
-                {paginatedOperations.map((record) => (
-                  <Card key={record.id} className={`bg-slate-700 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors ${record.isFromStsApi ? 'border-blue-800/50 bg-blue-950/20' : ''}`}>
-                    <CardHeader className={`${isMobileForced ? 'pb-1 px-3 pt-2' : 'pb-3'}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {record.isFromStsApi && (
-                            <Badge variant="outline" className="bg-blue-900 text-blue-300 border-blue-600 text-xs">
-                              STS
-                            </Badge>
-                          )}
-                          <span className="font-medium text-white text-sm">{record.status === 'completed' ? 'Завершено' : record.status}</span>
-                        </div>
-                        {getStatusBadge(record.status)}
-                      </div>
-                      <div className="text-xs text-slate-400 mt-1 font-mono">{record.id}</div>
-                    </CardHeader>
-                    <CardContent className={`${isMobileForced ? 'pt-0 px-3 pb-2 space-y-1' : 'pt-0 space-y-3'}`}>
-                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
-                        <span className="text-slate-400">Номер ТО:</span>
-                        <span className="text-white">{record.toNumber || '-'}</span>
-                      </div>
-                      
-                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
-                        <span className="text-slate-400">Время начала:</span>
-                        <span className="text-white font-mono">
-                          {new Date(record.startTime).toLocaleString('ru-RU', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-                      
-                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
-                        <span className="text-slate-400">Вид топлива:</span>
-                        <span className="text-white">{record.fuelType || '-'}</span>
-                      </div>
-                      
-                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
-                        <span className="text-slate-400">Количество:</span>
-                        <span className="text-white font-mono">
-                          {record.actualQuantity ? `${record.actualQuantity.toFixed(2)} л` : 
-                           record.quantity ? `${record.quantity.toFixed(2)} л` : '-'}
-                        </span>
-                      </div>
-                      
-                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
-                        <span className="text-slate-400">Цена:</span>
-                        <span className="text-white font-mono">
-                          {record.price ? `${record.price.toFixed(2)} ₽/л` : '-'}
-                        </span>
-                      </div>
-                      
-                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
-                        <span className="text-slate-400">Сумма:</span>
-                        <span className="text-white font-mono font-bold">
-                          {record.actualAmount ? `${record.actualAmount.toFixed(2)} ₽` : 
-                           record.totalCost ? `${record.totalCost.toFixed(2)} ₽` : '-'}
-                        </span>
-                      </div>
-                      
-                      <div className={`flex justify-between ${isMobileForced ? 'text-xs' : 'text-sm'}`}>
-                        <span className="text-slate-400">Вид оплаты:</span>
-                        <span className="text-white">
-                          {{
-                            'cash': 'Наличные',
-                            'bank_card': 'Банк. карты',
-                            'fuel_card': 'Топл. карты', 
-                            'online_order': 'Онлайн заказы'
-                          }[record.paymentMethod] || record.paymentMethod || '-'}
-                        </span>
-                      </div>
-                      
-                      {(record.posNumber || record.shiftNumber) && (
-                        <div className="border-t border-slate-600 pt-2 space-y-2 text-sm">
-                          {record.posNumber && record.posNumber !== '-' && (
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">POS:</span>
-                              <span className="text-white">{record.posNumber}</span>
+              // Mobile compact table layout
+              <div>
+                <div className="bg-slate-800 overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-slate-700 text-slate-300 border-b border-slate-600">
+                        <th className="px-2 py-2 text-left font-medium">ID</th>
+                        <th className="px-2 py-2 text-left font-medium">Топливо</th>
+                        <th className="px-2 py-2 text-right font-medium">Кол-во</th>
+                        <th className="px-2 py-2 text-right font-medium">Сумма</th>
+                        <th className="px-2 py-2 text-center font-medium">№ ТО</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedOperations.map((record, index) => (
+                        <tr
+                          key={record.id}
+                          className={`hover:bg-slate-600 cursor-pointer transition-colors border-b border-slate-700 ${index % 2 === 0 ? 'bg-slate-800' : 'bg-slate-750'}`}
+                          onClick={() => {
+                            setSelectedOperation(record);
+                            setIsDetailsOpen(true);
+                          }}
+                        >
+                          <td className="px-2 py-2">
+                            <div className="flex flex-col">
+                              <span className="text-white font-mono text-xs truncate" title={record.id}>
+                                {record.id.slice(-8)}
+                              </span>
+                              <div className="mt-0.5">
+                                {getCompactStatusBadge(record.status)}
+                              </div>
                             </div>
-                          )}
-                          {record.shiftNumber && record.shiftNumber !== '-' && (
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Смена:</span>
-                              <span className="text-white">{record.shiftNumber}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-                
+                          </td>
+                          <td className="px-2 py-2 text-white">
+                            {record.fuelType || '-'}
+                          </td>
+                          <td className="px-2 py-2 text-white text-right font-mono">
+                            {record.actualQuantity ? `${record.actualQuantity.toFixed(1)}л` :
+                             record.quantity ? `${record.quantity.toFixed(1)}л` : '-'}
+                          </td>
+                          <td className="px-2 py-2 text-white text-right font-mono font-bold">
+                            {record.actualAmount ? `${Math.round(record.actualAmount)}₽` :
+                             record.totalCost ? `${Math.round(record.totalCost)}₽` : '-'}
+                          </td>
+                          <td className="px-2 py-2 text-center text-white text-xs">
+                            {record.toNumber || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
                 {paginatedOperations.length === 0 && (
                   <div className="text-center py-8 text-slate-400">
                     {loading ? (
@@ -1413,7 +1687,7 @@ export default function OperationsTransactionsPageSimple() {
                     )}
                   </div>
                 )}
-                
+
                 {isMobile && totalPages > 1 && (
                   <div className="flex items-center justify-center gap-2 py-4">
                     <Button
@@ -1609,6 +1883,117 @@ export default function OperationsTransactionsPageSimple() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Модальное окно с деталями операции */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-sm mx-auto bg-slate-800 border border-slate-600 text-white max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-base font-semibold text-white">
+              Операция #{selectedOperation?.id?.slice(-8)}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedOperation && (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-1 text-sm">
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-slate-400">Статус:</span>
+                  <div>{getStatusBadge(selectedOperation.status)}</div>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-slate-400">Номер ТО:</span>
+                  <span className="text-white font-mono text-sm">{selectedOperation.toNumber || '-'}</span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-slate-400">Время начала:</span>
+                  <span className="text-white font-mono text-xs">
+                    {new Date(selectedOperation.startTime).toLocaleString('ru-RU')}
+                  </span>
+                </div>
+
+                {selectedOperation.endTime && (
+                  <div className="flex justify-between py-2 border-b border-slate-700">
+                    <span className="text-slate-400">Время окончания:</span>
+                    <span className="text-white font-mono text-xs">
+                      {new Date(selectedOperation.endTime).toLocaleString('ru-RU')}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-slate-400">Вид топлива:</span>
+                  <span className="text-white font-medium">{selectedOperation.fuelType || '-'}</span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-slate-400">Количество:</span>
+                  <span className="text-white font-mono font-bold">
+                    {selectedOperation.actualQuantity ? `${selectedOperation.actualQuantity.toFixed(2)} л` :
+                     selectedOperation.quantity ? `${selectedOperation.quantity.toFixed(2)} л` : '-'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-slate-400">Цена за литр:</span>
+                  <span className="text-white font-mono">
+                    {selectedOperation.price ? `${selectedOperation.price.toFixed(2)} ₽/л` : '-'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-slate-700 bg-slate-750 px-2 -mx-2 rounded">
+                  <span className="text-slate-300 font-medium">Общая сумма:</span>
+                  <span className="text-white font-mono font-bold text-lg">
+                    {selectedOperation.actualAmount ? `${selectedOperation.actualAmount.toFixed(2)} ₽` :
+                     selectedOperation.totalCost ? `${selectedOperation.totalCost.toFixed(2)} ₽` : '-'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-slate-400">Способ оплаты:</span>
+                  <span className="text-white font-medium">
+                    {{
+                      'cash': 'Наличные',
+                      'bank_card': 'Банковская карта',
+                      'fuel_card': 'Топливная карта',
+                      'online_order': 'Онлайн заказ'
+                    }[selectedOperation.paymentMethod] || selectedOperation.paymentMethod || '-'}
+                  </span>
+                </div>
+
+                {selectedOperation.posNumber && selectedOperation.posNumber !== '-' && (
+                  <div className="flex justify-between py-2 border-b border-slate-700">
+                    <span className="text-slate-400">Номер POS:</span>
+                    <span className="text-white font-mono">{selectedOperation.posNumber}</span>
+                  </div>
+                )}
+
+                {selectedOperation.shiftNumber && selectedOperation.shiftNumber !== '-' && (
+                  <div className="flex justify-between py-2 border-b border-slate-700">
+                    <span className="text-slate-400">Номер смены:</span>
+                    <span className="text-white font-mono">{selectedOperation.shiftNumber}</span>
+                  </div>
+                )}
+
+                {selectedOperation.isFromStsApi && (
+                  <div className="flex justify-between py-2 border-b border-slate-700">
+                    <span className="text-slate-400">Источник данных:</span>
+                    <Badge variant="outline" className="bg-blue-900 text-blue-300 border-blue-600">
+                      STS API
+                    </Badge>
+                  </div>
+                )}
+
+                <div className="flex justify-between py-2 text-xs">
+                  <span className="text-slate-500">ID операции:</span>
+                  <span className="text-slate-400 font-mono">{selectedOperation.id}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }

@@ -52,17 +52,13 @@ const CommandTemplates = lazy(() => import("./pages/CommandTemplates"));
 const NewCommandTemplates = lazy(() => import("./pages/NewCommandTemplates"));
 
 // Остальные страницы - ленивая загрузка (приоритет 4)
-const AdminUsersAndRoles = lazy(() => import("./pages/AdminUsersAndRoles"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const NewUsersAndRoles = lazy(() => import("./pages/admin/UsersAndRoles"));
 const NetworksPage = lazy(() => import("./pages/NetworksPage"));
 const Nomenclature = lazy(() => import("./pages/Nomenclature"));
 const Connections = lazy(() => import("./pages/Connections"));
 const Workflows = lazy(() => import("./pages/Workflows"));
-const NetworkOverviewTest = lazy(() => import("./pages/NetworkOverviewTest"));
 const ShiftReports = lazy(() => import("./pages/ShiftReports"));
-const SalesAnalysisPageTest = lazy(() => import("./pages/SalesAnalysisPageTest"));
-const OperationsTransactionsPage = lazy(() => import("./pages/OperationsTransactionsPage"));
 const SimpleProfile = lazy(() => import("./pages/SimpleProfile"));
 const TestServices = lazy(() => import("./pages/TestServices"));
 const TestServicesSimple = lazy(() => import("./pages/TestServicesSimple"));

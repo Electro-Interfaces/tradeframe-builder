@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -251,6 +251,17 @@ export default function Prices() {
   const [loadingFromSTSAPI, setLoadingFromSTSAPI] = useState(false);
   const [initialLoadTriggered, setInitialLoadTriggered] = useState(false);
   const [pageReady, setPageReady] = useState(false);
+
+  // Состояния для pull-to-refresh (стандартный мобильный подход)
+  const [pullState, setPullState] = useState<'idle' | 'pulling' | 'canRefresh' | 'refreshing'>('idle');
+  const [pullDistance, setPullDistance] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const startTouchRef = useRef<{ y: number; time: number } | null>(null);
+  const rafId = useRef<number | null>(null);
+
+  const PULL_THRESHOLD = 80; // Порог для активации обновления
+  const MAX_PULL_DISTANCE = 120; // Максимальное расстояние растягивания
+  const INDICATOR_APPEAR_THRESHOLD = 30; // Порог появления индикатора
 
   const form = useForm<PriceFormData>({
     resolver: zodResolver(priceFormSchema),
@@ -525,10 +536,7 @@ export default function Prices() {
         setCurrentPrices(transformedPrices);
         setDataSourceType('external-api');
         
-        toast({
-          title: "Цены загружены из внешнего API",
-          description: `Получено ${transformedPrices.length} цен из внешней базы данных`,
-        });
+        // Цены загружены - уведомление убрано
       } else {
         console.log('Цены не найдены во внешнем API, используем кэш');
         setDataSourceType('cache');
@@ -678,10 +686,7 @@ export default function Prices() {
         }
         setIsInitialLoading(false); // ВАЖНО: Сбрасываем состояние загрузки
         
-        toast({
-          title: "Цены загружены",
-          description: `Загружено ${transformedPrices.length} цен из STS API`
-        });
+        // Цены загружены - уведомление убрано
       } else {
         console.log('ℹ️ Цены не найдены в STS API');
         setCurrentPrices([]);
@@ -736,12 +741,7 @@ export default function Prices() {
       const prices = await pricesCacheService.refreshPricesFromNetwork(tradingPointId);
       setCurrentPrices(prices);
 
-      if (!isMobile) {
-        toast({
-          title: "Цены обновлены",
-          description: `Получено ${prices.length} цен с торговой точки`,
-        });
-      }
+      // Цены обновлены - уведомление убрано (только на мобильных и так не показывалось)
     } catch (error) {
       console.error('Ошибка при обновлении цен:', error);
       if (!isMobile) {
@@ -755,6 +755,126 @@ export default function Prices() {
       setIsUpdatingPrices(false);
     }
   };
+
+  // Стандартный мобильный pull-to-refresh
+  const triggerHapticFeedback = () => {
+    if ('vibrate' in navigator && isMobile) {
+      navigator.vibrate(50);
+    }
+  };
+
+  const handleRefreshData = async () => {
+    if (!selectedTradingPoint || selectedTradingPoint === 'all') return;
+
+    setPullState('refreshing');
+    console.log('🔄 Pull-to-refresh: обновляем данные...');
+
+    try {
+      if (stsApiConfigured) {
+        await loadPricesFromSTSAPI();
+      } else {
+        const tradingPointId = typeof selectedTradingPoint === 'string' ?
+          selectedTradingPoint : selectedTradingPoint.id;
+        await loadPricesFromCache(tradingPointId);
+      }
+
+      triggerHapticFeedback();
+    } catch (error) {
+      console.error('Ошибка обновления:', error);
+    }
+
+    // Анимация завершения
+    setTimeout(() => {
+      setPullState('idle');
+      setPullDistance(0);
+    }, 500);
+  };
+
+  const updatePullDistance = (distance: number) => {
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+    }
+
+    rafId.current = requestAnimationFrame(() => {
+      const clampedDistance = Math.min(distance, MAX_PULL_DISTANCE);
+      setPullDistance(clampedDistance);
+
+      // Обновляем состояние на основе расстояния
+      if (clampedDistance >= PULL_THRESHOLD && pullState !== 'canRefresh' && pullState !== 'refreshing') {
+        setPullState('canRefresh');
+        triggerHapticFeedback();
+      } else if (clampedDistance < PULL_THRESHOLD && pullState === 'canRefresh') {
+        setPullState('pulling');
+      }
+    });
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile || !scrollContainerRef.current || pullState === 'refreshing') return;
+
+    const container = scrollContainerRef.current;
+    if (container.scrollTop > 0) return;
+
+    startTouchRef.current = {
+      y: e.touches[0].clientY,
+      time: Date.now()
+    };
+    setPullState('pulling');
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !startTouchRef.current || !scrollContainerRef.current || pullState === 'refreshing') return;
+
+    const container = scrollContainerRef.current;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - startTouchRef.current.y;
+
+    // Только если движение вниз и мы в верху страницы
+    if (deltaY > 0 && container.scrollTop === 0) {
+      e.preventDefault();
+
+      // Применяем эластичность (чем больше тянем, тем медленнее)
+      const elasticity = Math.max(0.5, 1 - (deltaY / MAX_PULL_DISTANCE) * 0.5);
+      const adjustedDistance = deltaY * elasticity;
+
+      updatePullDistance(adjustedDistance);
+    } else if (deltaY <= 0 || container.scrollTop > 0) {
+      // Сбрасываем если движение вверх или начался скролл
+      setPullState('idle');
+      setPullDistance(0);
+      startTouchRef.current = null;
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isMobile || !startTouchRef.current) return;
+
+    startTouchRef.current = null;
+
+    if (pullState === 'canRefresh') {
+      await handleRefreshData();
+    } else {
+      // Плавная анимация возврата
+      setPullState('idle');
+      setPullDistance(0);
+    }
+  };
+
+  // Подключаем обработчики touch событий
+  useEffect(() => {
+    return () => {
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+      }
+    };
+  }, []);
+
+  // Очищаем состояние при смене торговой точки
+  useEffect(() => {
+    setPullState('idle');
+    setPullDistance(0);
+    startTouchRef.current = null;
+  }, [selectedTradingPoint]);
 
   // Handlers
   const handleCreatePrice = () => {
@@ -978,53 +1098,81 @@ export default function Prices() {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full h-full px-4 md:px-6 lg:px-8">
+      <div
+        ref={scrollContainerRef}
+        className="w-full h-full px-4 relative"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
+          transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
+        }}
+      >
+        {/* Стандартный мобильный pull-to-refresh индикатор */}
+        {isMobile && pullState !== 'idle' && pullDistance >= INDICATOR_APPEAR_THRESHOLD && (
+          <div
+            className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
+            style={{
+              transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`,
+              opacity: Math.min(1, (pullDistance - INDICATOR_APPEAR_THRESHOLD) / 40)
+            }}
+          >
+            <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
+              {pullState === 'refreshing' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                  <span className="text-sm font-medium">Обновление...</span>
+                </>
+              ) : pullState === 'canRefresh' ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm font-medium text-green-600">Отпустите для обновления</span>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="w-4 h-4 border-2 border-slate-300 border-t-blue-500 rounded-full"
+                    style={{
+                      transform: `rotate(${pullDistance * 3}deg)`
+                    }}
+                  />
+                  <span className="text-sm font-medium">Потяните для обновления</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         {/* Premium Header */}
         <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm mb-6 mt-4">
           <CardHeader className="pb-6">
-            <CardTitle className={`text-slate-100 flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
+            <CardTitle className={`text-slate-100 flex items-center justify-between`}>
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
                 <div className="flex flex-col">
                   <span className={`${isMobile ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Цены</span>
-                  <span className="text-slate-400 text-sm font-medium">Управление ценами на топливо с отложенным применением и журналом изменений</span>
+                  {!isMobile && (
+                    <span className="text-slate-400 text-sm font-medium">Управление ценами на топливо с отложенным применением и журналом изменений</span>
+                  )}
                 </div>
               </div>
-              
-              <div className={`flex ${isMobile ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
+
+              <div className={`flex ${isMobile ? 'gap-2' : 'gap-4'} items-center`}>
                 <Button
                   onClick={() => window.open('/help/point-prices', '_blank')}
                   variant="outline"
                   size="sm"
-                  className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-5 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
+                  className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-3 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
                 >
-                  <HelpCircle className="w-4 h-4 mr-2" />
-                  Инструкция
+                  <HelpCircle className="w-4 h-4" />
                 </Button>
-                {stsApiConfigured && (
-                  <Button 
-                    onClick={loadPricesFromSTSAPI}
-                    disabled={loadingFromSTSAPI}
-                    size="sm"
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
-                  >
-                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                      {loadingFromSTSAPI ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                    </div>
-                    STS API
-                  </Button>
-                )}
-                <Button 
+                <Button
                   onClick={handleCreatePrice}
                   size="sm"
-                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium"
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-3 py-2.5 rounded-lg font-medium"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Новая цена
+                  <Plus className="w-4 h-4 mr-1" />
+                  {isMobile ? "Новая" : "Новая цена"}
                 </Button>
               </div>
             </CardTitle>
@@ -1034,8 +1182,8 @@ export default function Prices() {
 
         {/* Плитки цен */}
         {isInitialLoading ? (
-          <div className="px-4 md:px-6 pb-6">
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
+          <div className="pb-6">
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'}`}>
               {/* Skeleton плитки для состояния загрузки */}
               {[1, 2, 3, 4].map((n) => (
                 <div key={n} className="bg-slate-800 border border-slate-700 rounded-lg p-6">
@@ -1085,7 +1233,7 @@ export default function Prices() {
             </div>
           </div>
         ) : filteredPrices.length === 0 ? (
-          <div className="px-4 md:px-6">
+          <div>
             <div className={`text-center ${isMobile ? 'py-8' : 'py-16'}`}>
               <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4`}>
                 <span className={`text-white ${isMobile ? 'text-xl' : 'text-2xl'}`}>💰</span>
@@ -1107,8 +1255,8 @@ export default function Prices() {
             </div>
           </div>
         ) : (
-          <div className="px-4 md:px-6 pb-6">
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6'}`}>
+          <div className="pb-6">
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'}`}>
               {filteredPrices.map((price) => (
                 <div key={price.id} className={`bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200 ${isMobile ? 'p-4' : 'p-6'}`}>
                   {/* Header с видом топлива и статусом */}

@@ -174,15 +174,6 @@ export default function SimpleProfile() {
                   </div>
                 </div>
 
-                {user?.phone && (
-                  <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-slate-400" />
-                    <div>
-                      <p className="text-sm text-slate-400">Телефон</p>
-                      <p className="text-white">{user.phone}</p>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="space-y-4">
