@@ -11,7 +11,9 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className }) => {
   const [hasUpdate, setHasUpdate] = useState(false);
 
   const currentVersion = '1.5.3';
-  const buildNumber = '1.5.3';
+  // Генерируем номер сборки на основе даты (YYYYMMDD + часы)
+  const now = new Date();
+  const buildNumber = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.${now.getHours().toString().padStart(2, '0')}`;
 
   const checkForUpdates = async () => {
     if (isChecking) return;
@@ -86,7 +88,7 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className }) => {
           {isChecking ? 'Проверка обновлений...' : hasUpdate ? 'Устанавливается...' : 'Обновить'}
         </span>
         <span className="text-xs text-muted-foreground">
-          Версия {buildNumber}
+          v{currentVersion} (#{buildNumber})
         </span>
         {lastChecked && (
           <span className="text-xs text-muted-foreground">
