@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Browser Test - TradeFrame</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            font-size: 12px;
+        }
+        .supported { background: #28a745; }
+        .partial { background: #ffc107; color: black; }
+        .not-supported { background: #dc3545; }
+        .info { background: #17a2b8; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 PWA Browser Compatibility Test</h1>
+    <p>Тест совместимости TradeFrame PWA с различными браузерами</p>
+
+    <div class="test-card">
+        <h3>🔍 Browser Detection</h3>
+        <div id="browser-info"></div>
+    </div>
+
+    <div class="test-card">
+        <h3>📱 PWA API Support</h3>
+        <div id="pwa-support"></div>
+    </div>
+
+    <div class="test-card">
+        <h3>🎯 Manifest Test</h3>
+        <div id="manifest-test"></div>
+    </div>
+
+    <div class="test-card">
+        <h3>🔧 Service Worker Status</h3>
+        <div id="sw-status"></div>
+    </div>
+
+    <div class="test-card">
+        <h3>📋 Installation Status</h3>
+        <div id="install-status"></div>
+        <button id="test-install" style="margin-top: 10px;">Test Install Prompt</button>
+    </div>
+
+    <script>
+        // Browser Detection
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            const browsers = {
+                'Chrome': /Chrome/i.test(ua) && !/Edg/i.test(ua) && !/YaBrowser/i.test(ua),
+                'Edge': /Edg/i.test(ua),
+                'Firefox': /Firefox/i.test(ua),
+                'Safari': /Safari/i.test(ua) && !/Chrome/i.test(ua),
+                'Yandex': /YaBrowser|YandexBrowser/i.test(ua),
+                'Opera': /Opera|OPR\//i.test(ua),
+                'Mobile': /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua),
+                'iOS': /iPad|iPhone|iPod/.test(ua)
+            };
+
+            let html = '<pre>' + ua + '</pre>';
+            Object.entries(browsers).forEach(([name, detected]) => {
+                const statusClass = detected ? 'supported' : 'not-supported';
+                html += `<span class="status ${statusClass}">${name}: ${detected ? 'YES' : 'NO'}</span> `;
+            });
+
+            document.getElementById('browser-info').innerHTML = html;
+        }
+
+        // PWA API Support
+        function checkPWASupport() {
+            const features = {
+                'Service Worker': 'serviceWorker' in navigator,
+                'beforeinstallprompt': 'onbeforeinstallprompt' in window,
+                'App Manifest': 'onappinstalled' in window,
+                'Push Notifications': 'PushManager' in window,
+                'Background Sync': 'serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype,
+                'Web Share API': 'share' in navigator,
+                'Fullscreen API': 'requestFullscreen' in document.documentElement
+            };
+
+            let html = '';
+            Object.entries(features).forEach(([name, supported]) => {
+                const statusClass = supported ? 'supported' : 'not-supported';
+                html += `<span class="status ${statusClass}">${name}: ${supported ? 'YES' : 'NO'}</span> `;
+            });
+
+            document.getElementById('pwa-support').innerHTML = html;
+        }
+
+        // Manifest Test
+        async function testManifest() {
+            try {
+                const response = await fetch('/tradeframe-builder/manifest.json');
+                const manifest = await response.json();
+
+                let html = '<span class="status supported">Manifest loaded successfully</span><br>';
+                html += `<strong>Name:</strong> ${manifest.name}<br>`;
+                html += `<strong>Short Name:</strong> ${manifest.short_name}<br>`;
+                html += `<strong>Icons:</strong> ${manifest.icons.length} icons<br>`;
+                html += `<strong>Display:</strong> ${manifest.display}<br>`;
+                html += `<strong>Start URL:</strong> ${manifest.start_url}<br>`;
+
+                document.getElementById('manifest-test').innerHTML = html;
+            } catch (error) {
+                document.getElementById('manifest-test').innerHTML =
+                    `<span class="status not-supported">Manifest load failed: ${error.message}</span>`;
+            }
+        }
+
+        // Service Worker Status
+        async function checkServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    let html = `<span class="status supported">Service Worker supported</span><br>`;
+                    html += `<strong>Registrations:</strong> ${registrations.length}<br>`;
+
+                    if (registrations.length > 0) {
+                        const reg = registrations[0];
+                        html += `<strong>Scope:</strong> ${reg.scope}<br>`;
+                        html += `<strong>Active:</strong> ${!!reg.active}<br>`;
+                        html += `<strong>Waiting:</strong> ${!!reg.waiting}<br>`;
+                    }
+
+                    document.getElementById('sw-status').innerHTML = html;
+                } catch (error) {
+                    document.getElementById('sw-status').innerHTML =
+                        `<span class="status not-supported">SW Error: ${error.message}</span>`;
+                }
+            } else {
+                document.getElementById('sw-status').innerHTML =
+                    '<span class="status not-supported">Service Worker not supported</span>';
+            }
+        }
+
+        // Installation Status
+        function checkInstallation() {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                               (window.navigator as any).standalone;
+
+            let html = '';
+            if (isStandalone) {
+                html = '<span class="status supported">App is installed (standalone mode)</span>';
+            } else {
+                html = '<span class="status info">App is running in browser</span>';
+            }
+
+            document.getElementById('install-status').innerHTML = html;
+        }
+
+        // Test Install Prompt
+        let deferredPrompt = null;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('beforeinstallprompt event captured');
+        });
+
+        document.getElementById('test-install').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                try {
+                    await deferredPrompt.prompt();
+                    const result = await deferredPrompt.userChoice;
+                    alert(`Install prompt result: ${result.outcome}`);
+                    deferredPrompt = null;
+                } catch (error) {
+                    alert(`Install error: ${error.message}`);
+                }
+            } else {
+                alert('No install prompt available. Try manual installation through browser menu.');
+            }
+        });
+
+        // Run all tests
+        document.addEventListener('DOMContentLoaded', () => {
+            detectBrowser();
+            checkPWASupport();
+            testManifest();
+            checkServiceWorker();
+            checkInstallation();
+        });
+    </script>
+</body>
+</html>

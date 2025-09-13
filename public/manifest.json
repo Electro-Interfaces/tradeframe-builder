@@ -1,12 +1,12 @@
 {
   "name": "TradeFrame - Управление торговыми сетями",
   "short_name": "TradeFrame",
-  "description": "Система управления торговыми сетями и АЗС. Включает: обзор сетей, операции, цены, резервуары, оборудование, управление пользователями. Неиспользуемые разделы: история цен, остатки топлива, номенклатура, регламенты.",
+  "description": "Система управления торговыми сетями и АЗС. Включает: обзор сетей, операции, цены, резервуары, оборудование, управление пользователями.",
   "theme_color": "#1e293b",
   "background_color": "#1e293b",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "orientation": "portrait-primary",
+  "display_override": ["standalone", "minimal-ui", "fullscreen"],
+  "orientation": "any",
   "scope": "/tradeframe-builder/",
   "start_url": "/tradeframe-builder/?utm_source=pwa&utm_medium=app",
   "id": "/tradeframe-builder/",
@@ -70,10 +70,15 @@
   "lang": "ru",
   "dir": "ltr",
   "prefer_related_applications": false,
+  "iarc_rating_id": "",
   "edge_side_panel": {
     "preferred_width": 400
   },
   "protocol_handlers": [],
+  "related_applications": [],
+  "launch_handler": {
+    "client_mode": "navigate-new"
+  },
   "shortcuts": [
     {
       "name": "Операции",

@@ -41,9 +41,9 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
     const userAgent = navigator.userAgent;
     const detectedOpera = /Opera|OPR\//i.test(userAgent);
     const detectedMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-    const isYandex = /YaBrowser/i.test(userAgent);
+    const isYandex = /YaBrowser|YandexBrowser/i.test(userAgent);
     const isFirefox = /Firefox/i.test(userAgent);
-    const isChrome = /Chrome/i.test(userAgent) && !/Edg/i.test(userAgent);
+    const isChrome = /Chrome/i.test(userAgent) && !/Edg/i.test(userAgent) && !/YaBrowser/i.test(userAgent);
     const detectedSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent) && !/Chromium/i.test(userAgent);
     const detectedIOS = /iPad|iPhone|iPod/.test(userAgent);
 
