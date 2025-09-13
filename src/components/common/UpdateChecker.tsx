@@ -3,9 +3,19 @@ import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface UpdateCheckerProps {
   className?: string;
+  onShowUpdateInfo?: (details: {
+    version: string;
+    buildNumber: string;
+    hasUpdate: boolean;
+    swRegistrations: number;
+    swActive: boolean;
+    swWaiting: boolean;
+    swScope: string;
+    lastCheck: string;
+  }) => void;
 }
 
-export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className }) => {
+export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowUpdateInfo }) => {
   const [isChecking, setIsChecking] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [hasUpdate, setHasUpdate] = useState(false);
@@ -19,59 +29,143 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className }) => {
   const checkForUpdates = async () => {
     if (isChecking) return;
 
+    console.log('🔄 UpdateChecker: Начинаем проверку обновлений...');
     setIsChecking(true);
     setLastChecked(new Date());
+    setUpdateStatus(null); // Сбрасываем предыдущий статус
 
     try {
       // Проверяем Service Worker на наличие обновлений
       if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
+        console.log('🔄 UpdateChecker: Service Worker поддерживается');
+
+        // Проверяем, есть ли зарегистрированные Service Workers
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        console.log('🔄 UpdateChecker: Найдено Service Worker регистраций:', registrations.length);
+
+        if (registrations.length === 0) {
+          console.log('❌ UpdateChecker: Service Worker не зарегистрирован, попробуем зарегистрировать...');
+
+          try {
+            const swPath = import.meta.env.PROD ? '/tradeframe-builder/sw.js' : '/sw.js';
+            console.log('🔄 UpdateChecker: Регистрируем Service Worker:', swPath);
+            const registration = await navigator.serviceWorker.register(swPath);
+            console.log('✅ UpdateChecker: Service Worker успешно зарегистрирован:', registration);
+
+            // После регистрации ждем немного и проверяем обновления
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } catch (regError) {
+            console.error('❌ UpdateChecker: Ошибка регистрации Service Worker:', regError);
+            setUpdateStatus('no-updates');
+            setTimeout(() => setUpdateStatus(null), 3000);
+            return;
+          }
+        }
+
+        // Добавляем тайм-аут для ready
+        const readyPromise = navigator.serviceWorker.ready;
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Service Worker ready timeout')), 5000)
+        );
+
+        const registration = await Promise.race([readyPromise, timeoutPromise]) as ServiceWorkerRegistration;
+        console.log('🔄 UpdateChecker: Service Worker готов:', registration);
+
+        // Дополнительные проверки состояния
+        console.log('🔄 UpdateChecker: Registration state:', {
+          active: !!registration.active,
+          installing: !!registration.installing,
+          waiting: !!registration.waiting,
+          scope: registration.scope
+        });
 
         // Принудительно проверяем обновления
+        console.log('🔄 UpdateChecker: Запускаем принудительное обновление...');
         await registration.update();
 
         // Ждем немного для обработки
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
         // Проверяем есть ли ожидающий SW
         if (registration.waiting) {
+          console.log('🔄 UpdateChecker: Найден ожидающий Service Worker - есть обновления!');
           setHasUpdate(true);
           setUpdateStatus('found-updates');
+
+          // Вызываем callback для показа информационного окна
+          onShowUpdateInfo?.({
+            version: currentVersion,
+            buildNumber,
+            hasUpdate: true,
+            swRegistrations: registrations.length,
+            swActive: !!registration.active,
+            swWaiting: !!registration.waiting,
+            swScope: registration.scope,
+            lastCheck: new Date().toLocaleString('ru-RU')
+          });
+
           // Активируем новый Service Worker
           registration.waiting.postMessage({ type: 'SKIP_WAITING' });
 
-          // Показываем уведомление и перезагружаем через 2 сек
+          // Показываем уведомление и перезагружаем через 3 сек
           setTimeout(() => {
+            console.log('🔄 UpdateChecker: Перезагружаем страницу...');
             window.location.reload();
-          }, 2000);
+          }, 3000);
         } else {
+          console.log('🔄 UpdateChecker: Ожидающий Service Worker не найден - обновлений нет');
           setHasUpdate(false);
           setUpdateStatus('no-updates');
 
-          // Сбрасываем статус "нет обновлений" через 3 секунды
-          setTimeout(() => {
-            setUpdateStatus(null);
-          }, 3000);
+          // Вызываем callback для показа информационного окна
+          console.log('🔄 UpdateChecker: Показываем информационное окно (нет обновлений)');
+          onShowUpdateInfo?.({
+            version: currentVersion,
+            buildNumber,
+            hasUpdate: false,
+            swRegistrations: registrations.length,
+            swActive: !!registration.active,
+            swWaiting: !!registration.waiting,
+            swScope: registration.scope,
+            lastCheck: new Date().toLocaleString('ru-RU')
+          });
         }
+      } else {
+        console.log('❌ UpdateChecker: Service Worker не поддерживается');
+        setUpdateStatus('no-updates');
+        setTimeout(() => {
+          setUpdateStatus(null);
+        }, 3000);
       }
     } catch (error) {
-      console.error('Error checking for updates:', error);
+      console.error('❌ UpdateChecker: Ошибка при проверке обновлений:', error);
+      setUpdateStatus('no-updates');
+      setTimeout(() => {
+        setUpdateStatus(null);
+      }, 3000);
     } finally {
+      console.log('🔄 UpdateChecker: Проверка завершена');
       setIsChecking(false);
     }
   };
 
   const getStatusIcon = () => {
     if (isChecking) {
-      return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />;
+      return <RefreshCw className="h-4 w-4 text-blue-400 animate-spin" />;
     }
     if (hasUpdate) {
       return <AlertCircle className="h-4 w-4 text-orange-500" />;
     }
+    if (updateStatus === 'no-updates') {
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    }
+    if (updateStatus === 'found-updates') {
+      return <AlertCircle className="h-4 w-4 text-orange-500 animate-pulse" />;
+    }
     if (lastChecked) {
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     }
-    return <RefreshCw className="h-4 w-4 text-muted-foreground" />;
+    return <RefreshCw className="h-4 w-4 text-slate-400" />;
   };
 
   const getStatusText = () => {
@@ -95,18 +189,14 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className }) => {
       {getStatusIcon()}
       <div className="flex flex-col">
         <span className="text-sm font-medium">
-          {isChecking ? 'Проверка обновлений...' :
-           hasUpdate ? 'Устанавливается...' :
-           updateStatus === 'no-updates' ? 'Нет обновлений' :
-           updateStatus === 'found-updates' ? 'Найдены обновления!' :
-           'Обновить'}
+          {isChecking ? 'Проверка обновлений...' : 'Проверить обновления'}
         </span>
         <span className="text-xs text-muted-foreground">
           v{currentVersion} (#{buildNumber})
         </span>
         {lastChecked && (
           <span className="text-xs text-muted-foreground">
-            {getStatusText()}
+            Последняя проверка: {lastChecked.toLocaleTimeString('ru-RU')}
           </span>
         )}
       </div>

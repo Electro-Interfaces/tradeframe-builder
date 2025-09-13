@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Settings, LogOut, User, Menu, Bell, MessageCircle, Info } from "lucide-react";
 import UpdateChecker from "@/components/common/UpdateChecker";
+import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { NetworkSelect } from "@/components/selects/NetworkSelect";
 import { PointSelect } from "@/components/selects/PointSelect";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,10 +26,10 @@ interface HeaderProps {
   isMobile?: boolean;
 }
 
-export function Header({ 
-  selectedNetwork, 
-  selectedTradingPoint, 
-  onNetworkChange, 
+export function Header({
+  selectedNetwork,
+  selectedTradingPoint,
+  onNetworkChange,
   onTradingPointChange,
   onMobileMenuToggle,
   isMobile = false
@@ -35,7 +37,35 @@ export function Header({
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const mobileInfo = useMobile();
-  
+
+  // Состояние для диалога информации об обновлениях
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [updateDetails, setUpdateDetails] = useState<{
+    version: string;
+    buildNumber: string;
+    hasUpdate: boolean;
+    swRegistrations: number;
+    swActive: boolean;
+    swWaiting: boolean;
+    swScope: string;
+    lastCheck: string;
+  } | null>(null);
+
+  const handleShowUpdateInfo = (details: {
+    version: string;
+    buildNumber: string;
+    hasUpdate: boolean;
+    swRegistrations: number;
+    swActive: boolean;
+    swWaiting: boolean;
+    swScope: string;
+    lastCheck: string;
+  }) => {
+    console.log('🔄 Header: Получили данные для диалога обновлений:', details);
+    setUpdateDetails(details);
+    setShowUpdateDialog(true);
+  };
+
   const handleLogout = async () => {
     try {
       // Виброотклик на мобильных устройствах
@@ -188,7 +218,7 @@ export function Header({
               </DropdownMenuItem>
 
               <DropdownMenuItem className="p-0">
-                <UpdateChecker />
+                <UpdateChecker onShowUpdateInfo={handleShowUpdateInfo} />
               </DropdownMenuItem>
 
               <DropdownMenuSeparator className="my-2" />
@@ -203,6 +233,12 @@ export function Header({
           </DropdownMenu>
         </div>
       </div>
+
+      <UpdateInfoDialog
+        open={showUpdateDialog}
+        onOpenChange={setShowUpdateDialog}
+        details={updateDetails}
+      />
     </header>
   );
 }

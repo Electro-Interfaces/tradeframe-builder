@@ -1106,7 +1106,8 @@ export default function NetworkOverview() {
     
     filteredTransactions.forEach(tx => {
       const txDate = new Date(tx.timestamp || tx.createdAt || tx.date);
-      const dateKey = txDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      // Используем локальную дату, а не UTC для правильной группировки по дням
+      const dateKey = `${txDate.getFullYear()}-${(txDate.getMonth() + 1).toString().padStart(2, '0')}-${txDate.getDate().toString().padStart(2, '0')}`;
       const fuelType = tx.fuelType || tx.apiData?.product_name || 'Неизвестно';
       
       if (!grouped[dateKey]) {
