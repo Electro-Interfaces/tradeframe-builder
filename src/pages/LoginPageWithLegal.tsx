@@ -12,7 +12,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, AlertCircle, FileText, Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import { legalDocumentsService } from '@/services/legalDocumentsService';
 import { DocumentType } from '@/types/legal';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useMobile } from '@/hooks/useMobile';
 
 interface LegalDocument {
@@ -42,8 +41,8 @@ const LoginPageWithLegal = () => {
   const [legalDocuments, setLegalDocuments] = useState<LegalDocument[]>([]);
   
   // Mobile state
-  const isMobile = useIsMobile();
   const mobileInfo = useMobile();
+  const isMobile = mobileInfo.isMobile;
   console.log('📱 LoginPageWithLegal: isMobile =', isMobile);
   
   const { login } = useAuth();
