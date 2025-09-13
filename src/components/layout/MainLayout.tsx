@@ -66,7 +66,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
           // Mobile Layout with Sheet
           <>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetContent side="left" className="p-0 w-80 overscroll-contain touch-auto overflow-auto">
+              <SheetContent side="left" className="p-0 w-80">
                 <AppSidebar selectedTradingPoint={selectedTradingPoint} isMobile={true} setMobileMenuOpen={setMobileMenuOpen} />
               </SheetContent>
             </Sheet>
