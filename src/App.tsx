@@ -11,6 +11,7 @@ import LazyLoader from "./components/LazyLoader";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PWAInstaller from "./components/pwa/PWAInstaller";
+import UpdateNotification from "./components/pwa/UpdateNotification";
 
 // Критически важные страницы - загружаются сразу
 import LoginPageWithLegal from "./pages/LoginPageWithLegal";
@@ -170,6 +171,9 @@ const App = () => {
 
           {/* PWA Installation Prompt */}
           <PWAInstaller />
+
+          {/* PWA Update Notification */}
+          <UpdateNotification />
         </SelectionProvider>
       </AuthProvider>
     </TooltipProvider>

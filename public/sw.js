@@ -1,27 +1,23 @@
 // Service Worker для TradeFrame PWA - Minimal Safe Version
 console.log('[SW] TradeFrame Service Worker starting...');
 
-const CACHE_NAME = 'tradeframe-v1';
+const CACHE_NAME = `tradeframe-v${Date.now()}`; // Уникальная версия для каждой сборки
 const BASE_PATH = '/tradeframe-builder/';
 
 // Минимальная установка SW
 self.addEventListener('install', event => {
-  console.log('[SW] Installing minimal service worker');
+  console.log('[SW] Installing service worker version:', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('[SW] Cache opened successfully');
-        // Не кешируем ничего при установке, чтобы избежать проблем
         return Promise.resolve();
-      })
-      .then(() => {
-        console.log('[SW] Install complete, skipping waiting');
-        return self.skipWaiting();
       })
       .catch(error => {
         console.error('[SW] Install failed:', error);
       })
   );
+  // Не вызываем skipWaiting() автоматически - ждем команды от клиента
 });
 
 // Активация SW
@@ -64,6 +60,14 @@ self.addEventListener('fetch', event => {
     );
   }
   // Все остальные запросы проходят без изменений
+});
+
+// Обработка сообщений от клиента
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Received SKIP_WAITING message, activating new version');
+    self.skipWaiting();
+  }
 });
 /*
 const CACHE_NAME = 'tradecontrol-v1';
