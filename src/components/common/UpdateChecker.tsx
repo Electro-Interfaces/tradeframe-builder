@@ -9,8 +9,9 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className }) => {
   const [isChecking, setIsChecking] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [hasUpdate, setHasUpdate] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'no-updates' | 'found-updates' | null>(null);
 
-  const currentVersion = '1.5.3';
+  const currentVersion = '1.5.5';
   // Генерируем номер сборки на основе даты (YYYYMMDD + часы)
   const now = new Date();
   const buildNumber = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.${now.getHours().toString().padStart(2, '0')}`;
@@ -35,6 +36,7 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className }) => {
         // Проверяем есть ли ожидающий SW
         if (registration.waiting) {
           setHasUpdate(true);
+          setUpdateStatus('found-updates');
           // Активируем новый Service Worker
           registration.waiting.postMessage({ type: 'SKIP_WAITING' });
 
@@ -44,6 +46,12 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className }) => {
           }, 2000);
         } else {
           setHasUpdate(false);
+          setUpdateStatus('no-updates');
+
+          // Сбрасываем статус "нет обновлений" через 3 секунды
+          setTimeout(() => {
+            setUpdateStatus(null);
+          }, 3000);
         }
       }
     } catch (error) {
@@ -69,6 +77,8 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className }) => {
   const getStatusText = () => {
     if (isChecking) return 'Проверка...';
     if (hasUpdate) return 'Обновление...';
+    if (updateStatus === 'no-updates') return 'Актуальная версия';
+    if (updateStatus === 'found-updates') return 'Найдены обновления!';
     if (lastChecked) {
       const timeDiff = Date.now() - lastChecked.getTime();
       const minutes = Math.floor(timeDiff / (1000 * 60));
@@ -85,7 +95,11 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className }) => {
       {getStatusIcon()}
       <div className="flex flex-col">
         <span className="text-sm font-medium">
-          {isChecking ? 'Проверка обновлений...' : hasUpdate ? 'Устанавливается...' : 'Обновить'}
+          {isChecking ? 'Проверка обновлений...' :
+           hasUpdate ? 'Устанавливается...' :
+           updateStatus === 'no-updates' ? 'Нет обновлений' :
+           updateStatus === 'found-updates' ? 'Найдены обновления!' :
+           'Обновить'}
         </span>
         <span className="text-xs text-muted-foreground">
           v{currentVersion} (#{buildNumber})

@@ -114,7 +114,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
   }
 
   return (
-    <Card className="fixed bottom-4 left-4 right-4 z-50 shadow-2xl border-2 border-green-500/50 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md md:max-w-md md:left-auto md:right-4 animate-pulse">
+    <Card className="fixed bottom-4 left-4 right-4 z-50 shadow-2xl border-2 border-green-500/50 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md md:max-w-md md:left-auto md:right-4">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">

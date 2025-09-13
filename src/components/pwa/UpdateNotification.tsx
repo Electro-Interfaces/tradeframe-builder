@@ -11,6 +11,8 @@ interface UpdateNotificationProps {
 export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate, onDismiss }) => {
   const [showUpdate, setShowUpdate] = useState(false);
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<'checking' | 'updating' | 'no-updates' | null>(null);
 
   useEffect(() => {
     const handleServiceWorkerUpdate = () => {
@@ -42,10 +44,32 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate
 
   const handleUpdateClick = () => {
     if (waitingWorker) {
+      setIsUpdating(true);
+      setUpdateStatus('updating');
+
       // Сообщаем новому SW, что он может стать активным
       waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-      setShowUpdate(false);
-      onUpdate?.();
+
+      // Показываем статус обновления
+      setTimeout(() => {
+        setShowUpdate(false);
+        setIsUpdating(false);
+        onUpdate?.();
+      }, 1500);
+    } else {
+      // Если нет ожидающего воркера, проверяем обновления
+      setIsUpdating(true);
+      setUpdateStatus('checking');
+
+      setTimeout(() => {
+        setUpdateStatus('no-updates');
+        setIsUpdating(false);
+
+        // Скрываем сообщение через 3 секунды
+        setTimeout(() => {
+          setUpdateStatus(null);
+        }, 3000);
+      }, 1000);
     }
   };
 
@@ -54,7 +78,7 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate
     onDismiss?.();
   };
 
-  if (!showUpdate) {
+  if (!showUpdate && !updateStatus) {
     return null;
   }
 
@@ -68,20 +92,30 @@ export const UpdateNotification: React.FC<UpdateNotificationProps> = ({ onUpdate
 
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-white mb-1">
-              Доступно обновление
+              {updateStatus === 'checking' ? 'Проверка обновлений...' :
+               updateStatus === 'updating' ? 'Обновление...' :
+               updateStatus === 'no-updates' ? 'Нет доступных обновлений' :
+               'Доступно обновление'}
             </h3>
             <p className="text-xs text-slate-300 mb-3">
-              Новая версия TradeFrame готова к установке. Обновите для получения последних улучшений.
+              {updateStatus === 'checking' ? 'Поиск новых версий приложения' :
+               updateStatus === 'updating' ? 'Применение обновления, пожалуйста подождите' :
+               updateStatus === 'no-updates' ? 'У вас установлена последняя версия' :
+               'Новая версия TradeFrame готова к установке. Обновите для получения последних улучшений.'}
             </p>
 
             <div className="flex gap-2">
               <Button
                 onClick={handleUpdateClick}
                 size="sm"
-                className="bg-trade.blue hover:bg-trade.blue/90 text-white"
+                disabled={isUpdating || updateStatus === 'no-updates'}
+                className="bg-trade.blue hover:bg-trade.blue/90 text-white disabled:opacity-50"
               >
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Обновить
+                <RefreshCw className={`h-4 w-4 mr-1 ${isUpdating ? 'animate-spin' : ''}`} />
+                {updateStatus === 'checking' ? 'Проверка...' :
+                 updateStatus === 'updating' ? 'Обновление...' :
+                 updateStatus === 'no-updates' ? 'Актуально' :
+                 'Обновить'}
               </Button>
 
               <Button
