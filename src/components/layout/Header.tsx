@@ -104,8 +104,9 @@ export function Header({
 
         {/* Desktop Left Section: Logo + Brand */}
         <div className="hidden md:flex items-center gap-4">
-          <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+          <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md relative">
             <span className="text-white font-bold text-sm">TF</span>
+            <span className="absolute -top-1 -right-1 text-white font-bold text-xs bg-blue-400 rounded-full w-4 h-4 flex items-center justify-center">24</span>
           </div>
           <div>
             <h1 className="font-semibold text-white text-lg tracking-tight">TradeFrame</h1>

@@ -1,6 +1,7 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" fill="#1e293b" rx="64"/>
   <rect x="64" y="64" width="384" height="384" fill="#3b82f6" rx="32"/>
-  <text x="256" y="300" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="120" font-weight="bold">TC</text>
+  <text x="256" y="300" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="120" font-weight="bold">TF</text>
+  <text x="380" y="200" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="36" font-weight="bold">24</text>
   <rect x="128" y="380" width="256" height="4" fill="white" rx="2"/>
 </svg>
