@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, memo } from "react";
 import { NavLink } from "react-router-dom";
 import { useMenuVisibility } from "@/hooks/useMenuVisibility";
-
-console.log('📁 AppSidebar.tsx: Module loaded!');
 import {
   Sidebar,
   SidebarContent,
