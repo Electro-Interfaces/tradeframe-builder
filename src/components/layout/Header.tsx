@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Settings, LogOut, User, Menu, Bell, MessageCircle, Info } from "lucide-react";
+import UpdateChecker from "@/components/common/UpdateChecker";
 import { NetworkSelect } from "@/components/selects/NetworkSelect";
 import { PointSelect } from "@/components/selects/PointSelect";
 import { useAuth } from "@/contexts/AuthContext";
@@ -186,14 +187,8 @@ export function Header({
                 <span>Профиль</span>
               </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="flex items-center gap-3 p-2 rounded-md cursor-default hover:bg-transparent"
-              >
-                <Info className="h-4 w-4 text-muted-foreground" />
-                <div className="flex flex-col">
-                  <span className="text-sm">TradeFrame</span>
-                  <span className="text-xs text-muted-foreground">Версия 1.5.2</span>
-                </div>
+              <DropdownMenuItem className="p-0">
+                <UpdateChecker />
               </DropdownMenuItem>
 
               <DropdownMenuSeparator className="my-2" />
