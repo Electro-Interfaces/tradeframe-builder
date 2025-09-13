@@ -75,15 +75,19 @@ const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances")
 
 const App = () => {
   console.log('🚀 App: component rendering');
-  
+
   // Обработка перенаправления с GitHub Pages 404
   useEffect(() => {
-    const redirectPath = sessionStorage.getItem('redirectPath');
-    if (redirectPath) {
-      console.log('🔄 App: Found redirect path, navigating to:', redirectPath);
-      sessionStorage.removeItem('redirectPath');
-      // Используем replace чтобы заменить историю, а не добавлять новую запись
-      window.history.replaceState(null, '', redirectPath);
+    try {
+      const redirectPath = sessionStorage.getItem('redirectPath');
+      if (redirectPath) {
+        console.log('🔄 App: Found redirect path, navigating to:', redirectPath);
+        sessionStorage.removeItem('redirectPath');
+        // Используем replace чтобы заменить историю, а не добавлять новую запись
+        window.history.replaceState(null, '', redirectPath);
+      }
+    } catch (error) {
+      console.error('🚫 App useEffect error:', error);
     }
   }, []);
   
@@ -98,13 +102,9 @@ const App = () => {
             <Routes>
             {/* Критически важные страницы - без lazy loading */}
             <Route path="/login" element={<LoginPageWithLegal />} />
-            <Route 
-              path="/" 
-              element={
-                <>
-                  <ProtectedRoute><Equipment /></ProtectedRoute>
-                </>
-              } 
+            <Route
+              path="/"
+              element={<ProtectedRoute><Equipment /></ProtectedRoute>}
             />
           <Route path="/network/overview" element={<ProtectedRoute><NetworkOverview /></ProtectedRoute>} />
           
@@ -169,10 +169,7 @@ const App = () => {
         </Routes>
           </BrowserRouter>
 
-          {/* PWA Installation Prompt */}
           <PWAInstaller />
-
-          {/* PWA Update Notification */}
           <UpdateNotification />
         </SelectionProvider>
       </AuthProvider>
