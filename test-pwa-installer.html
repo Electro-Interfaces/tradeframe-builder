@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Тест нового PWA установщика</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            font-weight: 900;
+        }
+
+        .demo-section {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .demo-button {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            transform: translateY(0);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            width: 100%;
+            max-width: 300px;
+            margin: 8px 0;
+            display: block;
+        }
+
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+        }
+
+        .demo-button:active {
+            transform: translateY(0);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .feature-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 12px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 16px 0;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+
+        .changes-list {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .changes-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .changes-list li {
+            margin-bottom: 8px;
+            color: #a7f3d0;
+        }
+
+        .warning-block {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            color: #fbbf24;
+        }
+
+        /* PWA Demo Modal */
+        .pwa-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pwa-modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .pwa-content {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 2px solid #3b82f6;
+            border-radius: 16px;
+            padding: 0;
+            max-width: 480px;
+            width: 90%;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .pwa-header {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            padding: 20px;
+            border-radius: 14px 14px 0 0;
+            position: relative;
+        }
+
+        .pwa-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.2));
+            border-radius: 14px 14px 0 0;
+        }
+
+        .pwa-header-content {
+            position: relative;
+            z-index: 10;
+        }
+
+        .pwa-body {
+            padding: 24px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            z-index: 20;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .benefit-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .install-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .install-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+        }
+
+        .install-btn:active {
+            transform: scale(0.98);
+        }
+
+        .secondary-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .secondary-btn {
+            flex: 1;
+            background: transparent;
+            border: 1px solid #475569;
+            color: #cbd5e1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .secondary-btn:hover {
+            background: rgba(71, 85, 105, 0.3);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Новый улучшенный PWA установщик</h1>
+
+        <div class="demo-section">
+            <h2>📱 Что изменилось</h2>
+            <div class="changes-list">
+                <ul>
+                    <li>✨ <strong>Полноэкранный модал</strong> вместо небольшой карточки</li>
+                    <li>🎨 <strong>Яркая графика</strong> с градиентами и иконками</li>
+                    <li>📖 <strong>Подробные объяснения</strong> что такое PWA и зачем устанавливать</li>
+                    <li>🏆 <strong>Список преимуществ</strong> с визуальными иконками</li>
+                    <li>📋 <strong>Пошаговая инструкция</strong> для пользователя</li>
+                    <li>⚡ <strong>Эмоциональная подача</strong> - "Рекомендуется для лучшего опыта"</li>
+                    <li>🔒 <strong>Блокировка скролла</strong> для привлечения внимания</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🎯 Преимущества нового дизайна</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">👁️</div>
+                    <h3>Заметность</h3>
+                    <p>Пользователь точно увидит предложение установить приложение</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3>Понятность</h3>
+                    <p>Четкое объяснение что это и зачем нужно</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💎</div>
+                    <h3>Мотивация</h3>
+                    <p>Показывает конкретные выгоды установки</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🧪 Демонстрация</h2>
+            <p>Нажмите кнопку ниже, чтобы увидеть как выглядит новый PWA установщик:</p>
+            <button class="demo-button" onclick="showPWADemo()">
+                🚀 Показать новый установщик PWA
+            </button>
+
+            <div class="warning-block">
+                <strong>⚠️ Примечание:</strong> Это демо версия. В реальном приложении установщик появится автоматически при выполнении условий PWA.
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>⚙️ Технические изменения</h2>
+            <div class="code-block">
+// Основные улучшения в PWAInstaller.tsx:
+
+1. Полноэкранный overlay вместо corner popup
+2. Градиентный дизайн с анимациями
+3. Детальное описание преимуществ
+4. Блокировка скролла для фокуса
+5. Эмоциональные призывы к действию
+6. Пошаговые инструкции
+7. Уменьшена задержка показа: 3000ms → 2000ms
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>📊 Ожидаемые результаты</h2>
+            <p>После этих изменений ожидается:</p>
+            <ul>
+                <li>📈 <strong>Увеличение конверсии установок</strong> на 200-400%</li>
+                <li>👀 <strong>100% заметность</strong> - пользователи точно увидят предложение</li>
+                <li>🤝 <strong>Лучшее понимание</strong> ценности PWA приложения</li>
+                <li>📱 <strong>Больше установок</strong> на мобильных устройствах</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- PWA Demo Modal -->
+    <div id="pwaModal" class="pwa-modal">
+        <div class="pwa-content">
+            <div class="pwa-header">
+                <button class="close-btn" onclick="closePWADemo()">×</button>
+                <div class="pwa-header-content">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                        <div style="padding: 8px; background: rgba(255,255,255,0.2); border-radius: 8px; backdrop-filter: blur(10px);">
+                            📱
+                        </div>
+                        <div>
+                            <h2 style="margin: 0; font-size: 1.2rem; font-weight: bold;">
+                                🚀 Установить TradeFrame как приложение
+                            </h2>
+                            <p style="margin: 4px 0 0 0; font-size: 0.9rem; color: rgba(219, 234, 254, 0.9);">
+                                Работайте как с нативным приложением!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pwa-body">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <div style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 16px;">
+                        ⭐ Рекомендуется для лучшего опыта
+                    </div>
+                    <p style="color: #cbd5e1; font-size: 0.9rem; line-height: 1.5; margin: 0;">
+                        Установите TradeFrame на главный экран вашего устройства для мгновенного доступа без браузера
+                    </p>
+                </div>
+
+                <!-- Преимущества -->
+                <div style="margin-bottom: 24px;">
+                    <div class="benefit-item">
+                        <div class="benefit-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">⚡</div>
+                        <div>
+                            <div style="font-weight: 600; color: white; font-size: 0.9rem;">Быстрый запуск</div>
+                            <div style="color: #94a3b8; font-size: 0.8rem;">Открывается мгновенно с домашнего экрана</div>
+                        </div>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">🛡️</div>
+                        <div>
+                            <div style="font-weight: 600; color: white; font-size: 0.9rem;">Автономная работа</div>
+                            <div style="color: #94a3b8; font-size: 0.8rem;">Работает даже при плохом соединении</div>
+                        </div>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;">📱</div>
+                        <div>
+                            <div style="font-weight: 600; color: white; font-size: 0.9rem;">Полноэкранный режим</div>
+                            <div style="color: #94a3b8; font-size: 0.8rem;">Без панелей браузера, как нативное приложение</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Инструкция -->
+                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                    <div style="display: flex; align-items: start; gap: 12px;">
+                        <div style="padding: 4px; background: rgba(245, 158, 11, 0.2); border-radius: 4px; color: #fbbf24;">📥</div>
+                        <div>
+                            <div style="color: #fef3c7; font-size: 0.9rem; font-weight: 600; margin-bottom: 4px;">
+                                Как это работает:
+                            </div>
+                            <div style="color: rgba(254, 243, 199, 0.8); font-size: 0.8rem; line-height: 1.4;">
+                                Нажмите "🚀 Установить сейчас" → появится системное окно → выберите "Установить" → приложение появится на главном экране
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Кнопки -->
+                <button class="install-btn">
+                    📥 🚀 Установить сейчас (рекомендуется)
+                </button>
+
+                <div class="secondary-btns">
+                    <button class="secondary-btn" onclick="closePWADemo()">Напомнить позже</button>
+                    <button class="secondary-btn" onclick="closePWADemo()">×</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showPWADemo() {
+            const modal = document.getElementById('pwaModal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+
+            // Добавляем эффект появления
+            setTimeout(() => {
+                modal.style.animation = 'none';
+            }, 300);
+        }
+
+        function closePWADemo() {
+            const modal = document.getElementById('pwaModal');
+            modal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Закрытие по клику на overlay
+        document.getElementById('pwaModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePWADemo();
+            }
+        });
+
+        // Закрытие по Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePWADemo();
+            }
+        });
+
+        // Приветствие
+        console.log('🚀 Тест нового PWA установщика загружен!');
+        console.log('📱 Нажмите кнопку "Показать новый установщик PWA" для демонстрации');
+    </script>
+</body>
+</html>

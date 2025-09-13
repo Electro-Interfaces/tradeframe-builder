@@ -50,7 +50,6 @@ const MobileSidebarContent = React.forwardRef<
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStartX(e.touches[0].clientX)
     setTouchStartY(e.touches[0].clientY)
-    console.log(`Touch start: x=${e.touches[0].clientX}, y=${e.touches[0].clientY}`)
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -70,7 +69,6 @@ const MobileSidebarContent = React.forwardRef<
       ? deltaX < -minSwipeDistance // Для левого сайдбара - свайп влево
       : deltaX > minSwipeDistance  // Для правого сайдбара - свайп вправо
     
-    console.log(`Touch end: deltaX=${deltaX}, deltaY=${deltaY}, shouldClose=${shouldClose}, side=${side}`)
     
     // Проверяем, что это горизонтальный свайп в нужном направлении
     if (
@@ -78,7 +76,6 @@ const MobileSidebarContent = React.forwardRef<
       shouldClose && // Свайп в правильном направлении
       Math.abs(deltaY) < 100 // Не слишком много вертикального движения
     ) {
-      console.log(`✅ Closing sidebar with swipe ${side === "left" ? "left" : "right"}`)
       onClose()
     }
 
@@ -106,7 +103,13 @@ const MobileSidebarContent = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn("flex h-full w-full flex-col touch-pan-y", className)}
+      className={cn(
+        "flex h-full w-full flex-col",
+        "touch-pan-y overscroll-behavior-none",
+        "-webkit-overflow-scrolling-touch",
+        "overflow-y-auto scroll-smooth",
+        className
+      )}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
@@ -487,8 +490,9 @@ const SidebarContent = React.forwardRef<
       data-sidebar="content"
       className={cn(
         "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
-        // Исправление прокрутки для мобильных
-        "overscroll-contain touch-auto",
+        // Исправление прокрутки для мобильных - предотвращение залипания
+        "overscroll-behavior-none -webkit-overflow-scrolling-touch",
+        "touch-pan-y scroll-smooth",
         className
       )}
       {...props}
