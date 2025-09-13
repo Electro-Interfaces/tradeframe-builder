@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📱 TradeFrame с мобильными DevTools</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1e293b;
+      color: white;
+      padding: 20px;
+      margin: 0;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    
+    .link-card {
+      background: rgba(59, 130, 246, 0.1);
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      padding: 25px;
+      margin: 20px 0;
+    }
+    
+    .link {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      word-break: break-all;
+      margin: 15px 0;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .link:hover {
+      background: rgba(0, 0, 0, 0.5);
+    }
+    
+    .instructions {
+      text-align: left;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+    
+    .step {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .step:last-child {
+      border-bottom: none;
+    }
+    
+    .warning {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid #f59e0b;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px;
+      width: 100%;
+      max-width: 300px;
+    }
+    
+    button:hover {
+      background: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📱 TradeFrame с DevTools для мобильных</h1>
+    
+    <div class="link-card">
+      <h2>🔧 TradeFrame + Eruda DevTools</h2>
+      <p>Готовая ссылка с встроенными инструментами разработчика:</p>
+      
+      <div class="link" id="devtools-link" onclick="copyAndOpen(this)">
+        https://electro-interfaces.github.io/tradeframe-builder/?devtools=eruda#eruda
+      </div>
+      
+      <button onclick="openWithDevTools()">🚀 Открыть с DevTools</button>
+      <p style="font-size: 14px; opacity: 0.8;">
+        Нажмите кнопку или скопируйте ссылку выше
+      </p>
+    </div>
+    
+    <div class="instructions">
+      <h3>📋 Как использовать:</h3>
+      <div class="step">1. Нажмите кнопку выше или скопируйте ссылку</div>
+      <div class="step">2. Откройте ссылку в мобильном браузере</div>
+      <div class="step">3. В правом нижнем углу появится иконка DevTools</div>
+      <div class="step">4. Нажмите на иконку для открытия консоли</div>
+      <div class="step">5. Перейдите на вкладку "Console" для просмотра ошибок</div>
+    </div>
+    
+    <div class="warning">
+      <h3>💡 Альтернативные ссылки:</h3>
+      
+      <p><strong>Обычное приложение:</strong></p>
+      <div class="link" onclick="copyText(this)">
+        https://electro-interfaces.github.io/tradeframe-builder/
+      </div>
+      
+      <p><strong>Быстрая диагностика:</strong></p>
+      <div class="link" onclick="copyText(this)">
+        https://electro-interfaces.github.io/tradeframe-builder/quick-mobile-test.html
+      </div>
+      
+      <p><strong>Медленная диагностика:</strong></p>
+      <div class="link" onclick="copyText(this)">
+        https://electro-interfaces.github.io/tradeframe-builder/slow-debug.html
+      </div>
+    </div>
+    
+    <div class="instructions">
+      <h3>🔍 Что искать в Console:</h3>
+      <div class="step"><strong>✅ Успешная загрузка:</strong></div>
+      <div class="step">📱 LoginPageWithLegal: component initializing...</div>
+      <div class="step">📱 LoginPageWithLegal: isMobile = true</div>
+      <div class="step">📱 Mobile device detected - skipping legal documents loading</div>
+      
+      <div class="step" style="margin-top: 15px;"><strong>❌ Ошибки (красные сообщения):</strong></div>
+      <div class="step">Uncaught TypeError: ...</div>
+      <div class="step">Failed to fetch ...</div>
+      <div class="step">ReferenceError: ...</div>
+    </div>
+    
+    <div style="margin-top: 30px; font-size: 14px; opacity: 0.7;">
+      <p>🔧 Данная страница создана для диагностики мобильных проблем TradeFrame</p>
+    </div>
+  </div>
+
+  <script>
+    function copyText(element) {
+      const text = element.textContent.trim();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          alert('Ссылка скопирована!');
+        });
+      } else {
+        // Fallback
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Ссылка скопирована!');
+      }
+    }
+    
+    function copyAndOpen(element) {
+      copyText(element);
+      setTimeout(() => {
+        openWithDevTools();
+      }, 1000);
+    }
+    
+    function openWithDevTools() {
+      // Создаем ссылку с Eruda DevTools
+      const baseUrl = 'https://electro-interfaces.github.io/tradeframe-builder/';
+      const erudiCode = `javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/eruda';document.body.appendChild(s);s.onload=function(){eruda.init();eruda.show();}})();void(0);`;
+      
+      // Открываем в новом окне/вкладке
+      window.open(baseUrl, '_blank');
+      
+      // Показываем инструкцию
+      setTimeout(() => {
+        alert(`
+После открытия страницы:
+
+1. Скопируйте этот код:
+javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/eruda';document.body.appendChild(s);s.onload=function(){eruda.init();eruda.show();}})();
+
+2. Вставьте в адресную строку браузера
+3. Нажмите Enter
+4. Появятся DevTools внизу экрана
+        `);
+      }, 2000);
+    }
+    
+    // Автоматически копируем главную ссылку при загрузке
+    window.addEventListener('load', () => {
+      const mainLink = 'https://electro-interfaces.github.io/tradeframe-builder/';
+      console.log('📱 Основная ссылка для копирования:', mainLink);
+    });
+  </script>
+</body>
+</html>

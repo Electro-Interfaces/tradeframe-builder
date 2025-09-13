@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📱 Мобильный доступ к TradeFrame</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      color: white;
+      padding: 20px;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 600px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    h1 {
+      color: #60a5fa;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+    }
+    
+    .qr-section {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      margin: 30px 0;
+      display: inline-block;
+    }
+    
+    .qr-code {
+      font-size: 200px;
+      line-height: 1;
+      margin: 20px 0;
+    }
+    
+    .url {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      word-break: break-all;
+      margin: 20px 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .method {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid #3b82f6;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    
+    .method h3 {
+      color: #60a5fa;
+      margin-top: 0;
+    }
+    
+    .step {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .step:last-child {
+      border-bottom: none;
+    }
+    
+    .warning {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid #f59e0b;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>📱 Доступ к TradeFrame с мобильного</h1>
+    
+    <div class="qr-section">
+      <h2 style="color: #1e293b; margin-top: 0;">📷 Отсканируйте QR-код</h2>
+      <canvas id="qr-canvas" style="max-width: 250px; height: auto;"></canvas>
+      <p style="color: #64748b; margin-bottom: 0; font-size: 14px;">
+        Откройте камеру на телефоне и наведите на QR-код
+      </p>
+    </div>
+    
+    <div class="method">
+      <h3>🔗 Способ 1: Прямая ссылка</h3>
+      <div class="url" id="main-url">
+        https://electro-interfaces.github.io/tradeframe-builder/
+      </div>
+      <div class="step">1. Скопируйте ссылку выше</div>
+      <div class="step">2. Отправьте себе в мессенджер (WhatsApp, Telegram)</div>
+      <div class="step">3. Откройте ссылку на телефоне</div>
+    </div>
+    
+    <div class="method">
+      <h3>📧 Способ 2: Email</h3>
+      <div class="step">1. Отправьте себе email с этой ссылкой:</div>
+      <div class="url">https://electro-interfaces.github.io/tradeframe-builder/</div>
+      <div class="step">2. Откройте email на телефоне и нажмите на ссылку</div>
+    </div>
+    
+    <div class="method">
+      <h3>🔍 Способ 3: Поиск в браузере</h3>
+      <div class="step">1. Откройте браузер на телефоне (Chrome/Safari)</div>
+      <div class="step">2. В адресной строке введите:</div>
+      <div class="url">electro-interfaces.github.io/tradeframe-builder</div>
+    </div>
+    
+    <div class="warning">
+      <h3>🧪 Если основное приложение не работает:</h3>
+      <p>Попробуйте диагностическую страницу:</p>
+      <div class="url">
+        https://electro-interfaces.github.io/tradeframe-builder/quick-mobile-test.html
+      </div>
+    </div>
+    
+    <div class="method">
+      <h3>📱 Тестовые данные для входа:</h3>
+      <div class="step"><strong>Email:</strong> admin@example.com</div>
+      <div class="step"><strong>Пароль:</strong> любой (например: 123456)</div>
+      <div class="step">Или попробуйте: bto.manager@example.com</div>
+    </div>
+    
+    <div style="margin-top: 40px; font-size: 14px; opacity: 0.8;">
+      <p>💡 <strong>Совет:</strong> Добавьте страницу в закладки или на главный экран телефона для быстрого доступа</p>
+    </div>
+  </div>
+
+  <script>
+    // Генерируем QR-код для главной страницы
+    const canvas = document.getElementById('qr-canvas');
+    const url = 'https://electro-interfaces.github.io/tradeframe-builder/';
+    
+    QRCode.toCanvas(canvas, url, {
+      width: 250,
+      margin: 2,
+      color: {
+        dark: '#1e293b',
+        light: '#ffffff'
+      }
+    }, function (error) {
+      if (error) {
+        console.error('QR Code generation failed:', error);
+        canvas.style.display = 'none';
+        document.querySelector('.qr-section').innerHTML = '<p style="color: #ef4444;">Ошибка генерации QR-кода</p>';
+      } else {
+        console.log('QR Code generated successfully');
+      }
+    });
+    
+    // Функция для копирования ссылки
+    function copyUrl() {
+      const url = document.getElementById('main-url').textContent;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => {
+          alert('Ссылка скопирована!');
+        });
+      } else {
+        // Fallback для старых браузеров
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Ссылка скопирована!');
+      }
+    }
+    
+    // Добавляем обработчик клика на URL
+    document.getElementById('main-url').addEventListener('click', copyUrl);
+    document.getElementById('main-url').style.cursor = 'pointer';
+    document.getElementById('main-url').title = 'Нажмите для копирования';
+  </script>
+</body>
+</html>
