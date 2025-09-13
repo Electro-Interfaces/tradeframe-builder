@@ -13,6 +13,7 @@ import { Loader2, AlertCircle, FileText, Shield, Lock, Eye, EyeOff } from 'lucid
 import { legalDocumentsService } from '@/services/legalDocumentsService';
 import { DocumentType } from '@/types/legal';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useMobile } from '@/hooks/useMobile';
 
 interface LegalDocument {
   type: DocumentType;
@@ -42,6 +43,7 @@ const LoginPageWithLegal = () => {
   
   // Mobile state
   const isMobile = useIsMobile();
+  const mobileInfo = useMobile();
   console.log('📱 LoginPageWithLegal: isMobile =', isMobile);
   
   const { login } = useAuth();
