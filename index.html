@@ -64,13 +64,13 @@
           };
         }
         
-        // Принудительная перезагрузка через 3 секунды если страница не загрузилась
-        setTimeout(function() {
-          if (!window.React) {
-            console.log('🔄 React not loaded, forcing reload for mobile');
-            window.location.reload(true);
-          }
-        }, 3000);
+        // ОТКЛЮЧЕНО: Принудительная перезагрузка создавала цикл на мобильных
+        // setTimeout(function() {
+        //   if (!window.React) {
+        //     console.log('🔄 React not loaded, forcing reload for mobile');
+        //     window.location.reload(true);
+        //   }
+        // }, 3000);
         
       } else {
         // Стандартная очистка для desktop и локальной разработки

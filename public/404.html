@@ -14,10 +14,20 @@
     
     <!-- GitHub Pages SPA redirect script -->
     <script>
-      // Store the current path for the React router
-      sessionStorage.setItem('redirectPath', location.pathname + location.search + location.hash);
-      // Redirect to the main page
-      location.replace(window.location.origin + '/tradeframe-builder/');
+      // Только перенаправляем если это не главная страница и не диагностические файлы
+      const path = location.pathname;
+      const isDiagnostic = path.includes('mobile-') || path.includes('quick-') || path.includes('slow-') || path.includes('usb-debug');
+      const isMainPage = path === '/tradeframe-builder/' || path === '/tradeframe-builder/index.html';
+      
+      if (!isMainPage && !isDiagnostic) {
+        console.log('📍 404 redirect: storing path and redirecting', path);
+        // Store the current path for the React router
+        sessionStorage.setItem('redirectPath', location.pathname + location.search + location.hash);
+        // Redirect to the main page
+        location.replace(window.location.origin + '/tradeframe-builder/');
+      } else {
+        console.log('📍 404: Not redirecting, path:', path);
+      }
     </script>
     
     <!-- Принудительная перезагрузка для исправления forwardRef -->

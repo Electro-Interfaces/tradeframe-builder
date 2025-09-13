@@ -76,6 +76,18 @@ const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances")
 
 const App = () => {
   console.log('🚀 App: component rendering');
+  
+  // Обработка перенаправления с GitHub Pages 404
+  React.useEffect(() => {
+    const redirectPath = sessionStorage.getItem('redirectPath');
+    if (redirectPath) {
+      console.log('🔄 App: Found redirect path, navigating to:', redirectPath);
+      sessionStorage.removeItem('redirectPath');
+      // Используем replace чтобы заменить историю, а не добавлять новую запись
+      window.history.replaceState(null, '', redirectPath);
+    }
+  }, []);
+  
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
