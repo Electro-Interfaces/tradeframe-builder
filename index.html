@@ -29,15 +29,8 @@
       if (isMobile && isGitHubPages) {
         console.log('🔧 Mobile GitHub Pages detected - applying fixes');
         
-        // Отключаем Service Worker на мобильных для GitHub Pages
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            registrations.forEach(function(registration) {
-              console.log('🚫 Unregistering SW for mobile GitHub Pages:', registration.scope);
-              registration.unregister();
-            });
-          });
-        }
+        // Мобильное устройство обнаружено
+        console.log('📱 Mobile device detected on GitHub Pages');
         
         // Агрессивная очистка кеша на мобильных
         if ('caches' in window) {
@@ -72,23 +65,19 @@
         //   }
         // }, 3000);
         
-      } else {
-        // Стандартная очистка для desktop и локальной разработки
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) {
-              registration.unregister();
-            }
+      }
+
+      // Регистрация Service Worker для PWA
+      if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/tradeframe-builder/sw.js', {
+            scope: '/tradeframe-builder/'
+          }).then(function(registration) {
+            console.log('✅ SW registered successfully:', registration.scope);
+          }).catch(function(error) {
+            console.log('❌ SW registration failed:', error);
           });
-        }
-        // Очистка кеша
-        if ('caches' in window) {
-          caches.keys().then(cacheNames => {
-            cacheNames.forEach(cacheName => {
-              caches.delete(cacheName);
-            });
-          });
-        }
+        });
       }
     </script>
 

@@ -46,7 +46,7 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Минимальная обработка fetch - только для навигации
+// Обработка fetch запросов
 self.addEventListener('fetch', event => {
   // Обрабатываем только навигационные запросы для SPA routing
   if (event.request.mode === 'navigate') {
@@ -54,12 +54,48 @@ self.addEventListener('fetch', event => {
       fetch(event.request)
         .catch(() => {
           // При ошибке сети возвращаем главную страницу
-          console.log('[SW] Navigation failed, returning index');
-          return caches.match(BASE_PATH) || fetch(BASE_PATH + 'index.html');
+          console.log('[SW] Navigation failed, returning index.html');
+          return fetch(BASE_PATH + 'index.html').catch(() => {
+            // Если и это не работает, возвращаем базовую HTML страницу
+            return new Response(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>TradeFrame</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #1e293b;
+      color: white;
+      text-align: center;
+    }
+    .loading {
+      margin-top: 50px;
+    }
+  </style>
+</head>
+<body>
+  <div class="loading">
+    <h1>TradeFrame</h1>
+    <p>Загрузка приложения...</p>
+    <script>
+      setTimeout(() => {
+        window.location.href = '${BASE_PATH}';
+      }, 1000);
+    </script>
+  </div>
+</body>
+</html>`, {
+              headers: { 'Content-Type': 'text/html' }
+            });
+          });
         })
     );
   }
-  // Все остальные запросы проходят без изменений
 });
 
 // Обработка сообщений от клиента
