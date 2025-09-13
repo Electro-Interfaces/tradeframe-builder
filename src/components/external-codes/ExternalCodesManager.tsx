@@ -84,9 +84,7 @@ export function ExternalCodesManager({
   };
 
   const handleRemove = (codeId: string) => {
-    if (window.confirm("Удалить внешний код?")) {
-      onRemove(codeId);
-    }
+    onRemove(codeId);
   };
 
   return (
