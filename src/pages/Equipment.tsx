@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useSelection } from "@/context/SelectionContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -92,20 +92,8 @@ export default function Equipment() {
   const MAX_PULL_DISTANCE = 120; // Максимальное расстояние растягивания
   const INDICATOR_APPEAR_THRESHOLD = 30; // Порог появления индикатора
 
-  // Загружаем данные при монтировании или изменении торговой точки
-  // Упрощенная автоматическая загрузка данных оборудования при инициализации
-  useEffect(() => {
-    // Обеспечиваем правильную настройку STS API
-    ensureSTSApiConfigured();
-
-    // Автоматически загружаем данные оборудования при выборе торговой точки
-    if (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedNetwork?.external_id) {
-      loadEquipmentData();
-    }
-  }, [selectedTradingPoint, selectedNetwork]);
-
   // Функция для настройки STS API с правильными параметрами
-  const ensureSTSApiConfigured = () => {
+  const ensureSTSApiConfigured = useCallback(() => {
     const correctConfig = {
       url: 'https://pos.autooplata.ru/tms',
       username: 'UserApi',
@@ -140,11 +128,11 @@ export default function Equipment() {
     if (needsUpdate) {
       localStorage.setItem('sts-api-config', JSON.stringify(correctConfig));
     }
-    
-    return correctConfig;
-  };
 
-  const loadEquipmentData = async () => {
+    return correctConfig;
+  }, []);
+
+  const loadEquipmentData = useCallback(async () => {
     if (!selectedTradingPoint || !selectedNetwork?.external_id) return;
     
     setLoading(true);
@@ -185,7 +173,19 @@ export default function Equipment() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedTradingPoint, selectedNetwork, ensureSTSApiConfigured]);
+
+  // Загружаем данные при монтировании или изменении торговой точки
+  // Упрощенная автоматическая загрузка данных оборудования при инициализации
+  useEffect(() => {
+    // Обеспечиваем правильную настройку STS API
+    ensureSTSApiConfigured();
+
+    // Автоматически загружаем данные оборудования при выборе торговой точки
+    if (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedNetwork?.external_id) {
+      loadEquipmentData();
+    }
+  }, [selectedTradingPoint, selectedNetwork, ensureSTSApiConfigured, loadEquipmentData]);
 
   const handleRefresh = async () => {
     await loadEquipmentData();
