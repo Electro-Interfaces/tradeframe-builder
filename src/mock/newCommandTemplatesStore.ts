@@ -590,7 +590,7 @@ const newCommandTemplatesData: NewCommandTemplate[] = [
   {
     id: generateId(),
     template_id: 'trading_point_sync',
-    version: '1.5.2',
+    version: '1.5.3',
     provider_ref: 'cs_crm_system_004',
     scope: 'trading_point',
     mode: 'push',

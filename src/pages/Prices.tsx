@@ -19,11 +19,11 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { 
-  DollarSign, 
-  History, 
-  CheckCircle, 
-  Clock, 
+import {
+  DollarSign,
+  History,
+  CheckCircle,
+  Clock,
   XCircle,
   Fuel,
   CalendarIcon,
@@ -45,10 +45,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { HelpButton } from "@/components/help/HelpButton";
 import { useSelection } from "@/context/SelectionContext";
 import { tradingPointsService } from "@/services/tradingPointsService";
-import { 
-  tradingNetworkAPI, 
-  TradingNetworkPrice, 
-  TradingNetworkService 
+import {
+  tradingNetworkAPI,
+  TradingNetworkPrice,
+  TradingNetworkService
 } from "@/services/tradingNetworkAPI";
 import { nomenclatureService } from "@/services/nomenclatureService";
 import { FuelNomenclature } from "@/types/nomenclature";
@@ -56,6 +56,7 @@ import { pricesCacheService, CachedFuelPrice } from "@/services/pricesCache";
 import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from "@/components/data-source/DataSourceIndicator";
 import { externalPricesService, ExternalPrice } from "@/services/externalPricesService";
 import { stsApiService, Price as STSPrice } from "@/services/stsApi";
+import { RetailPricingDashboard } from "@/components/pricing/RetailPricingDashboard";
 
 // Types - теперь используем CachedFuelPrice как основной тип
 type FuelPrice = CachedFuelPrice;
@@ -1310,6 +1311,11 @@ export default function Prices() {
             </div>
           </div>
         )}
+
+        {/* Панель управления ценами для розничной компании */}
+        <div className="mt-8">
+          <RetailPricingDashboard />
+        </div>
 
         {/* Диалог создания/редактирования цены */}
         <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
