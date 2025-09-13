@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, User, Menu, Bell, MessageCircle } from "lucide-react";
+import { Settings, LogOut, User, Menu, Bell, MessageCircle, Info } from "lucide-react";
 import { NetworkSelect } from "@/components/selects/NetworkSelect";
 import { PointSelect } from "@/components/selects/PointSelect";
 import { useAuth } from "@/contexts/AuthContext";
@@ -109,7 +109,7 @@ export function Header({
           </div>
           <div>
             <h1 className="font-semibold text-white text-lg tracking-tight">TradeFrame</h1>
-            <p className="text-xs text-slate-400">v1.5.1</p>
+            <p className="text-xs text-slate-400">v1.5.2</p>
           </div>
         </div>
 
@@ -177,13 +177,24 @@ export function Header({
                   <span className="text-xs text-muted-foreground">{user?.email || 'admin@tradecontrol.ru'}</span>
                 </div>
               </div>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => navigate('/profile')}
                 className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer"
               >
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span>Профиль</span>
               </DropdownMenuItem>
+
+              <DropdownMenuItem
+                className="flex items-center gap-3 p-2 rounded-md cursor-default hover:bg-transparent"
+              >
+                <Info className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span className="text-sm">TradeFrame</span>
+                  <span className="text-xs text-muted-foreground">Версия 1.5.2</span>
+                </div>
+              </DropdownMenuItem>
+
               <DropdownMenuSeparator className="my-2" />
               <DropdownMenuItem 
                 onClick={handleLogout} 
