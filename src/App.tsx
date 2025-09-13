@@ -6,7 +6,7 @@ import { queryClient } from "./lib/supabase/queryClient";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SelectionProvider } from "./context/SelectionContext";
 import { AuthProvider } from "./contexts/AuthContext";
-import { lazy } from "react";
+import { lazy, useEffect } from "react";
 import LazyLoader from "./components/LazyLoader";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -78,7 +78,7 @@ const App = () => {
   console.log('🚀 App: component rendering');
   
   // Обработка перенаправления с GitHub Pages 404
-  React.useEffect(() => {
+  useEffect(() => {
     const redirectPath = sessionStorage.getItem('redirectPath');
     if (redirectPath) {
       console.log('🔄 App: Found redirect path, navigating to:', redirectPath);
