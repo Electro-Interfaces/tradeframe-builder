@@ -371,7 +371,6 @@ export default function Tanks() {
 
   // Функция для обновления данных через pull-to-refresh
   const handleRefreshData = async () => {
-    console.log('🔄 Pull-to-refresh: обновляем данные резервуаров...');
     if (selectedTradingPoint) {
       await loadEquipment();
     }
@@ -493,7 +492,6 @@ export default function Tanks() {
           item.name && item.name.toLowerCase().includes('резервуар')
         );
 
-        console.log('Загружено оборудование резервуаров:', tankEquipment);
         setEquipment(tankEquipment);
 
         // Преобразуем данные оборудования в формат резервуаров
@@ -557,7 +555,6 @@ export default function Tanks() {
           });
           
           // Обновляем список резервуаров данными от оборудования
-          console.log('Обновляем резервуары данными оборудования:', tanksFromEquipment);
           setTanks(tanksFromEquipment);
         } else {
           // Если нет данных оборудования, используем mock данные
@@ -604,15 +601,12 @@ export default function Tanks() {
 
   // Проверяем и настраиваем STS API при инициализации, автоматически загружаем данные
   useEffect(() => {
-    console.log('🔧 Инициализация раздела резервуаров...');
-    
     // Обеспечиваем правильную настройку STS API
     ensureSTSApiConfigured();
     setStsApiConfigured(true);
-    
+
     // Автоматически загружаем данные резервуаров при выборе торговой точки
     if (selectedTradingPoint && selectedTradingPoint !== 'all') {
-      console.log('🚀 Автоматическая загрузка резервуаров для торговой точки:', selectedTradingPoint);
       loadTanksFromSTSAPI();
     }
   }, [selectedTradingPoint]);
@@ -629,7 +623,6 @@ export default function Tanks() {
 
   // Функция для настройки STS API с правильными параметрами
   const ensureSTSApiConfigured = () => {
-    console.log('🔧 Проверяем и настраиваем STS API конфигурацию...');
     
     const correctConfig = {
       url: 'https://pos.autooplata.ru/tms',
@@ -663,7 +656,6 @@ export default function Tanks() {
     }
     
     if (needsUpdate) {
-      console.log('🔧 Обновляем конфигурацию STS API с правильными параметрами');
       localStorage.setItem('sts-api-config', JSON.stringify(correctConfig));
     }
     
@@ -672,8 +664,6 @@ export default function Tanks() {
 
   // Загрузка резервуаров из STS API (упрощенная версия без дублирования авторизации)
   const loadTanksFromSTSAPI = async () => {
-    console.log('🔧 Начинаем загрузку резервуаров из STS API...');
-
     setLoadingFromSTSAPI(true);
 
     try {
@@ -686,14 +676,12 @@ export default function Tanks() {
       }
 
       // Загружаем полные данные торговой точки
-      console.log('🔍 Загружаем торговую точку по ID:', selectedTradingPoint);
       
       const tradingPointObject = await tradingPointsService.getById(selectedTradingPoint);
       if (!tradingPointObject) {
         throw new Error('Не удалось загрузить данные торговой точки');
       }
 
-      console.log('🏪 Полные данные торговой точки:', tradingPointObject);
 
       // Получаем параметры из селекторов приложения
       const contextParams = {
@@ -701,17 +689,11 @@ export default function Tanks() {
         tradingPointId: tradingPointObject.external_id || '1'
       };
       
-      console.log('🔍 Параметры запроса для резервуаров:', contextParams);
 
       // Загружаем резервуары из STS API (stsApiService сам управляет авторизацией)
-      console.log('🔄 Загружаем резервуары из STS API /v1/tanks...');
       const stsTanks = await stsApiService.getTanks(contextParams);
       
-      console.log('🔍 Исходные данные резервуаров STS API:', stsTanks);
-      
       if (stsTanks && stsTanks.length > 0) {
-        console.log(`✅ Загружено ${stsTanks.length} резервуаров из STS API`);
-        
         // Загружаем события и калибровки для каждого резервуара
         const events: {[key: number]: any[]} = {};
         const calibrations: {[key: number]: any[]} = {};
@@ -725,11 +707,7 @@ export default function Tanks() {
         setCalibrationHistory(calibrations);
         setTanks(stsTanks);
         setStsApiConfigured(true);
-        
-        
-        console.log('✅ Резервуары из STS API успешно загружены и обработаны');
       } else {
-        console.warn('⚠️ STS API вернул пустой список резервуаров');
         if (!isMobile) {
           toast({
             title: "Нет данных",
@@ -1006,7 +984,6 @@ export default function Tanks() {
                         
                         setTankEvents(events);
                         setCalibrationHistory(calibrations);
-                        console.log('✅ Данные резервуаров обновлены (mock API)');
                         if (!isMobile) {
                           toast({
                             title: "Данные обновлены",

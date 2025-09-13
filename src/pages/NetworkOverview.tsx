@@ -77,27 +77,21 @@ export default function NetworkOverview() {
 
     setLoading(true);
     try {
-      console.log('🔄 Начинаем загрузку данных для NetworkOverview (только STS API)...');
-      
       // Очищаем предыдущие данные
       setTransactions([]);
       setTanks([]);
       setTerminalInfo(null);
       setPrices([]);
-      
-      console.log('🔐 Проверяем авторизацию STS API...');
-      
+
       // ЯВНОЕ ОБНОВЛЕНИЕ ТОКЕНА ПЕРЕД ЗАПРОСОМ
       try {
         // Принудительно обновляем токен через логин/пароль
-        console.log('🔍 Принудительно обновляем токен STS API...');
         const tokenRefreshed = await stsApiService.forceRefreshToken();
         
         if (!tokenRefreshed) {
           throw new Error('Ошибка авторизации в STS API. Проверьте настройки логина/пароля.');
         }
         
-        console.log('✅ Токен STS API успешно обновлен');
       } catch (authError) {
         console.error('❌ Ошибка авторизации STS API:', authError);
         toast({
@@ -117,21 +111,16 @@ export default function NetworkOverview() {
 
       // Если выбрана конкретная торговая точка (не 'all'), получаем её полные данные
       if (selectedTradingPoint && selectedTradingPoint !== 'all') {
-        console.log('🔍 Загружаем торговую точку по ID:', selectedTradingPoint);
         
         try {
           const tradingPointObject = await tradingPointsService.getById(selectedTradingPoint);
           if (tradingPointObject) {
-            console.log('🏪 Полные данные торговой точки:', tradingPointObject);
             contextParams.tradingPointId = tradingPointObject.external_id || '1';
           }
         } catch (error) {
-          console.warn('⚠️ Не удалось загрузить данные торговой точки:', error);
         }
       }
       
-      console.log('🔍 Параметры запроса:', contextParams);
-      console.log(`🔍 Загружаем транзакции из STS API (${contextParams.tradingPointId ? 'конкретная точка' : 'вся сеть'})...`);
       
       const stsTransactions = await stsApiService.getTransactions(
         dateFrom,
@@ -140,17 +129,14 @@ export default function NetworkOverview() {
         contextParams
       );
       
-      console.log(`✅ Загружено ${stsTransactions.length} транзакций из STS API`);
       setTransactions(stsTransactions);
 
       // Загружаем дополнительные данные для более полного обзора
       let additionalDataLoaded = [];
       try {
-        console.log('🔄 Загружаем дополнительные данные (резервуары, оборудование, цены)...');
         
         // Загружаем резервуары
         const tanksData = await stsApiService.getTanks(contextParams);
-        console.log(`✅ Загружено ${tanksData.length} резервуаров`);
         setTanks(tanksData);
         if (tanksData.length > 0) additionalDataLoaded.push(`${tanksData.length} резервуаров`);
 
@@ -158,11 +144,10 @@ export default function NetworkOverview() {
         if (contextParams.tradingPointId && contextParams.tradingPointId !== '1') {
           try {
             const terminalData = await stsApiService.getTerminalInfo(contextParams);
-            console.log('✅ Загружена информация о терминале');
             setTerminalInfo(terminalData);
             if (terminalData) additionalDataLoaded.push('данные терминала');
           } catch (terminalError) {
-            console.warn('⚠️ Не удалось загрузить информацию о терминале:', terminalError);
+            // Не удалось загрузить информацию о терминале
           }
         }
 
@@ -170,21 +155,18 @@ export default function NetworkOverview() {
         if (contextParams.tradingPointId && contextParams.tradingPointId !== '1') {
           try {
             const pricesData = await stsApiService.getPrices(contextParams);
-            console.log(`✅ Загружено ${pricesData.length} цен`);
             setPrices(pricesData);
             if (pricesData.length > 0) additionalDataLoaded.push(`${pricesData.length} цен`);
           } catch (pricesError) {
-            console.warn('⚠️ Не удалось загрузить цены:', pricesError);
+            // Не удалось загрузить цены
           }
         }
         
       } catch (additionalDataError) {
-        console.warn('⚠️ Не удалось загрузить дополнительные данные:', additionalDataError);
         // Не прерываем выполнение, так как основные данные (транзакции) уже загружены
       }
       
       const additionalText = additionalDataLoaded.length > 0 ? `, ${additionalDataLoaded.join(', ')}` : '';
-      console.log(`✅ Загружено ${stsTransactions.length} транзакций${additionalText}`);
       
     } catch (error) {
       console.error('❌ Ошибка загрузки транзакций:', error);
@@ -201,7 +183,6 @@ export default function NetworkOverview() {
   // Функция экспорта данных в Excel
   const exportToExcel = () => {
     try {
-      console.log('📊 Начинаем экспорт данных в Excel...');
       
       // Создаем новую рабочую книгу
       const workbook = XLSX.utils.book_new();
@@ -762,7 +743,6 @@ export default function NetworkOverview() {
       // Сохраняем файл
       XLSX.writeFile(workbook, fileName);
       
-      console.log('✅ Файл успешно экспортирован:', fileName);
       toast({
         title: "Экспорт завершен",
         description: `Данные сохранены в файл: ${fileName}`,
@@ -780,25 +760,19 @@ export default function NetworkOverview() {
 
   // Инициализация компонента
   useEffect(() => {
-    console.log('🔄 NetworkOverview useEffect запущен');
-    
     // Принудительная проверка конфигурации STS API (обходим кэш)
     const checkConfig = async () => {
       try {
         // Пытаемся получить свежую конфигурацию
         const isConfigured = stsApiService.isConfigured();
-        console.log('🔍 STS API конфигурация проверена:', isConfigured);
         setStsApiConfigured(isConfigured);
         
         setInitializing(false);
         
         // Загружаем данные если выбрана сеть И настроен STS API (торговая точка не обязательна)
         if (selectedNetwork && isConfigured) {
-          console.log('✅ Сеть выбрана, STS API настроен - загружаем данные');
-          console.log('🔍 Торговая точка:', selectedTradingPoint || 'все точки сети');
           loadTransactions();
         } else if (selectedNetwork && !isConfigured) {
-          console.log('⚠️ STS API не настроен, показываем сообщение');
           // Не показываем toast сразу, даем пользователю время
         }
       } catch (error) {
@@ -818,41 +792,13 @@ export default function NetworkOverview() {
     const completed = transactions.filter(tx => tx.status === 'completed' || !tx.status);
     
     // Детальная диагностика всех транзакций
-    console.log('🔍 NetworkOverview: Детальный анализ транзакций:', {
-      totalTransactions: transactions.length,
-      completedTransactions: completed.length,
-      dateFrom,
-      dateTo,
-      sampleTransactions: transactions.slice(0, 3).map(tx => ({
-        id: tx.id,
-        timestamp: tx.timestamp || tx.createdAt || tx.date,
-        status: tx.status,
-        paymentMethod: tx.paymentMethod,
-        apiDataPayment: tx.apiData?.payment_method,
-        paymentType: tx.paymentType,
-        total: tx.total || tx.actualAmount || tx.totalCost,
-        volume: tx.volume || tx.actualQuantity || tx.quantity,
-        fuelType: tx.fuelType || tx.apiData?.product_name
-      }))
-    });
-    
+
     // Проверяем есть ли онлайн заказы среди всех транзакций
     const onlineTransactions = transactions.filter(tx => {
       const paymentMethod = tx.paymentMethod || tx.apiData?.payment_method || tx.paymentType;
       return paymentMethod && String(paymentMethod).toLowerCase().includes('online');
     });
-    
-    console.log('🛒 NetworkOverview: Онлайн транзакции найдены:', {
-      count: onlineTransactions.length,
-      examples: onlineTransactions.slice(0, 2).map(tx => ({
-        id: tx.id,
-        paymentMethod: tx.paymentMethod,
-        apiDataPayment: tx.apiData?.payment_method,
-        status: tx.status,
-        total: tx.total || tx.actualAmount || tx.totalCost
-      }))
-    });
-    
+
     return completed;
   }, [transactions, dateFrom, dateTo]);
 
@@ -869,27 +815,13 @@ export default function NetworkOverview() {
     });
     
     // Диагностика фильтрации по датам
-    console.log('📅 NetworkOverview: Фильтрация по датам:', {
-      dateFrom,
-      dateTo,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      completedTotal: completedTransactions.length,
-      filteredTotal: filtered.length,
-      filteredOutCount: completedTransactions.length - filtered.length
-    });
-    
+
     // Проверяем онлайн заказы после фильтрации по датам
     const onlineFiltered = filtered.filter(tx => {
       const paymentMethod = tx.paymentMethod || tx.apiData?.payment_method || tx.paymentType;
       return paymentMethod && String(paymentMethod).toLowerCase().includes('online');
     });
-    
-    console.log('🛒 NetworkOverview: Онлайн заказы после фильтрации:', {
-      count: onlineFiltered.length,
-      examples: onlineFiltered.slice(0, 2)
-    });
-    
+
     // Проверяем есть ли транзакции вне диапазона дат
     const outsideDateRange = completedTransactions.filter(tx => {
       const txDate = new Date(tx.timestamp || tx.createdAt || tx.date);
@@ -897,14 +829,7 @@ export default function NetworkOverview() {
     });
     
     if (outsideDateRange.length > 0) {
-      console.log('⏰ NetworkOverview: Транзакции вне диапазона дат:', {
-        count: outsideDateRange.length,
-        examples: outsideDateRange.slice(0, 2).map(tx => ({
-          date: tx.timestamp || tx.createdAt || tx.date,
-          paymentMethod: tx.paymentMethod || tx.apiData?.payment_method,
-          status: tx.status
-        }))
-      });
+      // Транзакции вне диапазона дат найдены
     }
     
     return filtered;
@@ -1028,16 +953,14 @@ export default function NetworkOverview() {
         uniquePaymentMethods.add(rawPaymentType);
       }
     });
-    
-    console.log('🔍 NetworkOverview: Уникальные способы оплаты от STS API:', Array.from(uniquePaymentMethods));
-    
+
     const paymentGroups = filteredTransactions.reduce((groups, tx) => {
       const rawPaymentType = tx.paymentMethod || tx.apiData?.payment_method || tx.paymentType || 'Неизвестно';
       const paymentType = getPaymentTypeDisplayName(rawPaymentType);
       
       // Логируем случаи когда способ оплаты не распознается
       if (paymentType === rawPaymentType && rawPaymentType !== 'Неизвестно') {
-        console.log('⚠️ NetworkOverview: Неизвестный способ оплаты от STS API:', rawPaymentType);
+        // Неизвестный способ оплаты от STS API
       }
       
       if (!groups[paymentType]) {
@@ -1222,29 +1145,13 @@ export default function NetworkOverview() {
 
   // Данные для тепловой карты активности по часам за последние 7 дней
   const heatmapData = useMemo(() => {
-    console.log('Heatmap useMemo called:', {
-      selectedNetwork: !!selectedNetwork,
-      transactionsLength: transactions.length,
-      willGenerate: !(!selectedNetwork || transactions.length === 0)
-    });
-    
+
     if (!selectedNetwork || transactions.length === 0) return [];
     
     // Берем последние 7 дней от сегодняшней даты назад
     const today = new Date();
     today.setHours(23, 59, 59, 999); // Устанавливаем на конец дня
-    
-    console.log('Heatmap for last 7 days:', {
-      today: today.toDateString(),
-      transactionsTotal: transactions.length,
-      sampleTodayTransactions: transactions.filter(tx => {
-        const txDate = new Date(tx.timestamp || tx.createdAt || tx.date);
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        return txDate >= todayStart && txDate <= today;
-      }).length
-    });
-    
+
     // Создаем сетку 7 дней × 24 часа (последние 7 дней)
     const heatmapGrid = [];
     const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -1290,7 +1197,7 @@ export default function NetworkOverview() {
       
       const dayTotal = dayRow.hours.reduce((sum, h) => sum + h.transactions, 0);
       if (dayTotal > 0) {
-        console.log(`${dayNames[dayOfWeek]} (${dateStr}): ${dayTotal} транзакций`);
+        // День с транзакциями
       }
       
       heatmapGrid.push(dayRow);
@@ -1302,7 +1209,6 @@ export default function NetworkOverview() {
   // Pull-to-refresh функционал
   const handleRefreshData = async () => {
     if (selectedNetwork) {
-      console.log('🔄 Pull-to-refresh: обновляем данные...');
       await loadTransactions();
     }
   };
@@ -2061,16 +1967,7 @@ export default function NetworkOverview() {
 
         {/* Прогнозирование продаж */}
         {!initializing && selectedNetwork && stsApiConfigured && transactions.length > 0 && (() => {
-          console.log('🔮 NetworkOverview: Передаем в SalesForecast транзакций:', {
-            totalTransactions: transactions.length,
-            completedTransactions: completedTransactions.length,
-            sampleCompletedTransactions: completedTransactions.slice(0, 3).map(tx => ({
-              id: tx.id,
-              startTime: tx.startTime,
-              total: tx.total,
-              fuelType: tx.fuelType
-            }))
-          });
+          // Передаем данные в SalesForecast
           return (
             <SalesForecast 
               transactions={completedTransactions}
@@ -2147,13 +2044,11 @@ export default function NetworkOverview() {
               </Button>
               <Button 
                 onClick={async () => {
-                  console.log('🔄 Принудительная проверка настроек STS API...');
                   setInitializing(true);
                   
                   // Даем время на обновление настроек
                   setTimeout(() => {
                     const isConfigured = stsApiService.isConfigured();
-                    console.log('🔍 Результат проверки:', isConfigured);
                     setStsApiConfigured(isConfigured);
                     setInitializing(false);
                     

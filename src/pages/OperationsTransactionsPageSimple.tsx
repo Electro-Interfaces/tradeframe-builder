@@ -166,7 +166,6 @@ export default function OperationsTransactionsPageSimple() {
       const fileName = `operations_${new Date().toISOString().slice(0, 10)}.xlsx`;
       XLSX.writeFile(wb, fileName);
       
-      console.log(`✅ Экспорт в Excel завершен: ${fileName}`);
       
       // Показываем уведомление об успешном экспорте для всех устройств
       const notification = document.createElement('div');
@@ -243,13 +242,11 @@ export default function OperationsTransactionsPageSimple() {
             chart.destroy();
             resolve(dataUrl);
           } catch (error) {
-            console.warn('Chart canvas conversion failed, using fallback');
             chart.destroy();
             resolve('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
           }
         }, 200);
       } catch (error) {
-        console.warn('Chart creation failed, using fallback', error);
         resolve('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
       }
     });
@@ -362,7 +359,6 @@ export default function OperationsTransactionsPageSimple() {
           });
         }
       } catch (error) {
-        console.warn('Failed to create fuel chart:', error);
       }
       
       try {
@@ -384,7 +380,6 @@ export default function OperationsTransactionsPageSimple() {
           });
         }
       } catch (error) {
-        console.warn('Failed to create payment chart:', error);
       }
       
       // === ПРОСТЫЕ ТЕКСТОВЫЕ ГРАФИКИ ===
@@ -491,7 +486,6 @@ export default function OperationsTransactionsPageSimple() {
       const fileName = `operations_dashboard_${new Date().toISOString().slice(0, 10)}.pdf`;
       pdf.save(fileName);
       
-      console.log(`✅ Экспорт дашборда в PDF завершен: ${fileName}`);
       
       // Показываем уведомление об успешном экспорте для всех устройств
       const notification = document.createElement('div');
@@ -522,29 +516,24 @@ export default function OperationsTransactionsPageSimple() {
   // Функция загрузки из STS API
   const loadFromStsApi = async () => {
     if (!stsApiService.isConfigured()) {
-      console.log('❌ STS API не настроен');
       if (!isMobile) alert('STS API не настроен. Перейдите в Настройки → API СТС');
       return;
     }
 
     if (!selectedNetwork?.external_id) {
-      console.log('❌ Не выбрана сеть или отсутствует external_id');
       if (!isMobile) alert('Выберите сеть с настроенным external_id для загрузки из STS API');
       return;
     }
 
     if (!selectedTradingPoint || selectedTradingPoint === 'all') {
-      console.log('❌ Не выбрана конкретная торговая точка');
       if (!isMobile) alert('Для загрузки транзакций из STS API выберите конкретную торговую точку (не "Все точки")');
       return;
     }
 
     setLoadingFromSTS(true);
     try {
-      console.log('🔄 Начинаем обновление данных из STS API...');
       
       // ОЧИСТКА КЭША И ПРЕДЫДУЩИХ ДАННЫХ
-      console.log('🧹 Очищаем кэш и предыдущие данные...');
       
       // Очищаем localStorage кэш
       localStorage.removeItem('tradeframe_operations');
@@ -557,10 +546,7 @@ export default function OperationsTransactionsPageSimple() {
       // Принудительно очищаем кэш в сервисах
       await operationsService.forceReload();
       
-      console.log('✅ Кэш очищен, предыдущие данные удалены');
       
-      console.log('🔄 Загружаем новые транзакции из STS API...');
-      console.log(`🔍 Параметры: network=${selectedNetwork.external_id}, tradingPointId=${selectedTradingPoint}`);
       
       // Получаем объект торговой точки для получения external_id
       const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
@@ -568,14 +554,11 @@ export default function OperationsTransactionsPageSimple() {
         throw new Error(`Торговая точка с ID ${selectedTradingPoint} не найдена`);
       }
 
-      console.log(`🔍 Загружена торговая точка:`, tradingPoint);
-      console.log(`🔍 external_id торговой точки:`, tradingPoint.external_id, `(тип: ${typeof tradingPoint.external_id})`);
 
       if (tradingPoint.external_id === null || tradingPoint.external_id === undefined || tradingPoint.external_id === '') {
         throw new Error(`У торговой точки "${tradingPoint.name}" отсутствует external_id. Настройте его в разделе администрирования.`);
       }
 
-      console.log(`🔍 Используем external_id торговой точки: ${tradingPoint.external_id}`);
       
       // Обеспечиваем правильную настройку STS API
       ensureSTSApiConfigured();
@@ -590,22 +573,10 @@ export default function OperationsTransactionsPageSimple() {
         }
       );
       
-      console.log(`✅ Получено ${transactions.length} транзакций из STS API`);
-      console.log('🔍 Первые 3 транзакции:', transactions.slice(0, 3));
       
       // Детальный анализ первой транзакции для отладки маппинга
       if (transactions.length > 0) {
         const firstTx = transactions[0];
-        console.log('🔍 Детальный анализ первой транзакции:');
-        console.log('- ID:', firstTx.id, 'transactionId:', firstTx.transactionId);
-        console.log('- Топливо:', firstTx.fuelType);
-        console.log('- Оплата:', firstTx.paymentMethod);
-        console.log('- Исходные данные API:', firstTx.apiData);
-        console.log('- Все поля исходного объекта API:', Object.keys(firstTx.apiData || {}));
-        console.log('- Полная структура JSON:', JSON.stringify(firstTx.apiData, null, 2));
-        console.log('- Объем:', firstTx.volume, 'Цена:', firstTx.price, 'Сумма:', firstTx.total);
-        console.log('- Статус:', firstTx.status);
-        console.log('- ТРК:', firstTx.pumpId, firstTx.pumpName);
       }
       
       // Сортируем транзакции по дате (свежие сверху)
@@ -658,7 +629,6 @@ export default function OperationsTransactionsPageSimple() {
       // Заменяем операции новыми данными из STS API
       setOperations(stsTransactionsWithSource);
       
-      console.log(`✅ Загружено ${transactions.length} новых транзакций из STS API (заменили предыдущие данные)`);
     } catch (error) {
       console.error('❌ Ошибка загрузки из STS API:', error);
       if (!isMobile) alert(`Ошибка STS API: ${error.message}`);
@@ -668,42 +638,28 @@ export default function OperationsTransactionsPageSimple() {
   };
 
   const loadData = async () => {
-    console.log('🔄 loadData() начинает выполнение...');
     setLoading(true);
     try {
-      console.log('🧹 Очищаем localStorage...');
       localStorage.removeItem('tradeframe_operations');
       localStorage.removeItem('operations');
       
-      console.log('🔄 Вызываем operationsService.forceReload()...');
       await operationsService.forceReload();
       
-      console.log('🔄 Вызываем operationsService.getAll()...');
       const data = await operationsService.getAll();
       
-      console.log('✅ Получены данные:', {
-        dataType: typeof data,
-        isArray: Array.isArray(data),
-        length: data?.length || 'undefined',
-        firstItem: data?.[0] || 'none'
-      });
       
-      console.log('🔄 Устанавливаем operations в состояние...');
       setOperations(data);
       
-      console.log('✅ loadData() завершён успешно');
     } catch (error) {
       console.error('❌ Ошибка в loadData():', error);
       console.error('Стек ошибки:', error.stack);
     } finally {
-      console.log('🔄 Устанавливаем loading = false');
       setLoading(false);
     }
   };
 
   // Функция для настройки STS API с правильными параметрами
   const ensureSTSApiConfigured = () => {
-    console.log('🔧 Проверяем и настраиваем STS API конфигурацию...');
     
     const correctConfig = {
       url: 'https://pos.autooplata.ru/tms',
@@ -737,7 +693,6 @@ export default function OperationsTransactionsPageSimple() {
     }
     
     if (needsUpdate) {
-      console.log('🔧 Обновляем конфигурацию STS API с правильными параметрами');
       localStorage.setItem('sts-api-config', JSON.stringify(correctConfig));
     }
     
@@ -746,27 +701,16 @@ export default function OperationsTransactionsPageSimple() {
 
   // Автоматическая загрузка данных при монтировании компонента
   useEffect(() => {
-    console.log('🔧 Инициализация раздела операций...');
     
     // Обеспечиваем правильную настройку STS API
     ensureSTSApiConfigured();
     setStsApiConfigured(true);
     
     // Автоматически загружаем данные операций при выборе торговой точки
-    console.log('🔍 Проверяем условия автозагрузки:', {
-      selectedNetwork: selectedNetwork?.name,
-      selectedNetworkId: selectedNetwork?.id,
-      externalId: selectedNetwork?.external_id,
-      selectedTradingPoint,
-      hasNetwork: !!selectedNetwork,
-      hasTradingPoint: !!(selectedTradingPoint && selectedTradingPoint !== 'all')
-    });
     
     if (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedNetwork?.external_id) {
-      console.log('🚀 Автоматическая загрузка операций...');
       loadFromStsApi();
     } else {
-      console.log('⏳ Ожидаем полную загрузку селекторов для автозагрузки');
     }
   }, [selectedTradingPoint, selectedNetwork]);
 
@@ -854,7 +798,6 @@ export default function OperationsTransactionsPageSimple() {
   // Pull-to-refresh функционал
   const handleRefreshData = async () => {
     if (selectedNetwork && selectedTradingPoint) {
-      console.log('🔄 Pull-to-refresh: обновляем данные операций...');
       await loadOperations();
     }
   };

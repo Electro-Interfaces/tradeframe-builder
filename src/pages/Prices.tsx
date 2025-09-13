@@ -223,9 +223,6 @@ export default function Prices() {
   const { selectedTradingPoint, selectedNetwork } = useSelection();
   const { hasExternalDatabase } = useDataSourceInfo();
   
-  console.log('🏪 Prices page: выбранная торговая точка:', selectedTradingPoint);
-  console.log('🏪 Prices page: тип selectedTradingPoint:', typeof selectedTradingPoint);
-  console.log('🏪 Prices page: selectedTradingPoint.id:', selectedTradingPoint?.id);
   const [currentPrices, setCurrentPrices] = useState<FuelPrice[]>([]);
   const [journalEntries, setJournalEntries] = useState<PriceJournalEntry[]>([]);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
@@ -277,7 +274,6 @@ export default function Prices() {
   // Автоматическая загрузка цен при выборе торговой точки
   // Упрощенная автоматическая загрузка цен при инициализации
   useEffect(() => {
-    console.log('🔧 Инициализация раздела цен...');
     
     // Обеспечиваем правильную настройку STS API
     ensureSTSApiConfigured();
@@ -285,7 +281,6 @@ export default function Prices() {
     
     // Автоматически загружаем данные цен при выборе торговой точки
     if (selectedTradingPoint && selectedTradingPoint !== 'all') {
-      console.log('🚀 Автоматическая загрузка цен для торговой точки:', selectedTradingPoint);
       loadPricesFromSTSAPI();
     } else {
       // Если торговая точка не выбрана, сбрасываем состояние
@@ -297,59 +292,26 @@ export default function Prices() {
   // Отдельный эффект для запуска STS API когда он становится доступным (упрощенный)
   useEffect(() => {
     // Этот эффект теперь менее важен, так как основная логика в предыдущем useEffect
-    console.log('🔄 Проверка доступности STS API:', {
-      stsApiConfigured,
-      selectedTradingPoint: !!selectedTradingPoint,
-      initialLoadTriggered
-    });
   }, [stsApiConfigured, selectedTradingPoint, initialLoadTriggered]);
 
   // Принудительный запуск STS API через небольшую задержку (резервный механизм)
   useEffect(() => {
     const timer = setTimeout(() => {
-      console.log('🔥 Резервная проверка STS API через 1.5 секунды');
       
       const stsConfig = localStorage.getItem('sts-api-config');
       const isConfigured = !!(stsConfig && JSON.parse(stsConfig).enabled);
       const currentSource = currentPrices.length > 0 ? currentPrices[0]?.source : null;
       
-      console.log('🔥 Резервное состояние:', {
-        isConfigured,
-        hasSelectedTradingPoint: !!selectedTradingPoint,
-        currentSource,
-        pricesCount: currentPrices.length,
-        initialLoadTriggered
-      });
 
       // Резервный запуск только если STS настроен, селекторы готовы, и цены не из STS API
       const selectorsReady = selectedNetwork && selectedNetwork.external_id;
-      console.log('🔍 РЕЗЕРВНАЯ проверка готовности селекторов:', {
-        isConfigured,
-        selectedTradingPoint: !!selectedTradingPoint,
-        selectorsReady,
-        selectedNetwork: selectedNetwork ? {
-          id: selectedNetwork.id,
-          external_id: selectedNetwork.external_id,
-          name: selectedNetwork.name
-        } : 'НЕ ГОТОВО',
-        currentSource
-      });
       
       if (isConfigured && selectedTradingPoint && selectedTradingPoint !== 'all' && 
           selectorsReady && currentSource !== 'sts-api') {
-        console.log('🚀 РЕЗЕРВНЫЙ запуск STS API!');
         setStsApiConfigured(true);
         loadPricesFromSTSAPI();
       } else {
         // Принудительно сбрасываем loading если ничего не запускаем
-        console.log('⚠️ Принудительно сбрасываем loading состояние', {
-          reasonsNotToStart: {
-            configNotReady: !isConfigured,
-            tradingPointNotSelected: !selectedTradingPoint || selectedTradingPoint === 'all',
-            selectorsNotReady: !selectorsReady,
-            alreadyFromSTS: currentSource === 'sts-api'
-          }
-        });
         setIsInitialLoading(false);
       }
       
@@ -366,10 +328,6 @@ export default function Prices() {
     // Проверяем настройки STS API
     const stsConfig = localStorage.getItem('sts-api-config');
     const isConfigured = !!(stsConfig && JSON.parse(stsConfig).enabled);
-    console.log('🔧 Проверка настроек STS API:', {
-      stsConfig: stsConfig ? JSON.parse(stsConfig) : null,
-      isConfigured
-    });
     setStsApiConfigured(isConfigured);
   }, [hasExternalDatabase]);
 
@@ -465,11 +423,8 @@ export default function Prices() {
   const loadPricesFromCache = async (tradingPointId: string) => {
     setIsInitialLoading(true);
     try {
-      console.log('💰 Загружаем цены из кэша/сети для:', tradingPointId);
       const prices = await pricesCacheService.getPricesForTradingPoint(tradingPointId);
       setCurrentPrices(prices);
-      
-      console.log(`💰 Загружено ${prices.length} цен (источник: ${prices[0]?.source || 'unknown'})`);
     } catch (error) {
       console.error('Ошибка при загрузке цен:', error);
       toast({
@@ -485,13 +440,11 @@ export default function Prices() {
   // Загрузка цен из внешнего API (по аналогии с резервуарами)
   const loadPricesFromExternalAPI = async () => {
     if (!externalPricesService.isConfigured()) {
-      console.log('External Prices API не настроен');
       return;
     }
 
     setLoadingFromExternalAPI(true);
     try {
-      console.log('🔄 Загружаем цены из внешнего API...');
       
       // Получаем параметры из селекторов приложения
       const contextParams = {
@@ -502,16 +455,6 @@ export default function Prices() {
         status: ['active', 'scheduled'] // загружаем активные и запланированные цены
       };
       
-      console.log('🔍 Параметры запроса цен из селекторов:', {
-        selectedNetwork: selectedNetwork ? {
-          id: selectedNetwork.id,
-          name: selectedNetwork.name,
-          external_id: selectedNetwork.external_id,
-          code: selectedNetwork.code
-        } : null,
-        selectedTradingPoint,
-        resultParams: contextParams
-      });
       
       const externalPrices = await externalPricesService.getPrices(contextParams);
       
@@ -538,7 +481,6 @@ export default function Prices() {
         
         // Цены загружены - уведомление убрано
       } else {
-        console.log('Цены не найдены во внешнем API, используем кэш');
         setDataSourceType('cache');
         // Fallback к кэшу
         if (selectedTradingPoint) {
@@ -569,7 +511,6 @@ export default function Prices() {
 
   // Функция для настройки STS API с правильными параметрами
   const ensureSTSApiConfigured = () => {
-    console.log('🔧 Проверяем и настраиваем STS API конфигурацию...');
     
     const correctConfig = {
       url: 'https://pos.autooplata.ru/tms',
@@ -603,7 +544,6 @@ export default function Prices() {
     }
     
     if (needsUpdate) {
-      console.log('🔧 Обновляем конфигурацию STS API с правильными параметрами');
       localStorage.setItem('sts-api-config', JSON.stringify(correctConfig));
     }
     
@@ -612,7 +552,6 @@ export default function Prices() {
 
   // Загрузка цен из STS API (упрощенная версия без дублирования авторизации)
   const loadPricesFromSTSAPI = async () => {
-    console.log('🔧 Начинаем загрузку цен из STS API...');
 
     setLoadingFromSTSAPI(true);
     setDataSourceType('sts-api');
@@ -628,14 +567,12 @@ export default function Prices() {
       }
 
       // Загружаем полные данные торговой точки
-      console.log('🔍 Загружаем торговую точку по ID:', selectedTradingPoint);
       
       const tradingPointObject = await tradingPointsService.getById(selectedTradingPoint);
       if (!tradingPointObject) {
         throw new Error('Не удалось загрузить данные торговой точки');
       }
 
-      console.log('🏪 Полные данные торговой точки:', tradingPointObject);
 
       // Получаем параметры из селекторов приложения
       const contextParams = {
@@ -643,21 +580,16 @@ export default function Prices() {
         tradingPointId: tradingPointObject.external_id || '1'
       };
       
-      console.log('🔍 Параметры запроса для цен:', contextParams);
 
       // Загружаем цены из STS API (stsApiService сам управляет авторизацией)
-      console.log('🔄 Загружаем цены из STS API...');
       const stsPrices = await stsApiService.getPrices(contextParams);
       
-      console.log('🔍 Исходные данные STS API:', stsPrices);
-      console.log('🔍 Первый элемент STS:', stsPrices[0]);
       
       if (stsPrices && stsPrices.length > 0) {
         // Преобразуем данные STS API в формат страницы
         const transformedPrices: FuelPrice[] = stsPrices
           .filter(stsPrice => stsPrice && stsPrice.id && stsPrice.fuelType)
           .map((stsPrice: STSPrice, index) => {
-          console.log(`🔍 Маппинг элемента ${index}:`, stsPrice);
           
           const mapped = {
             id: String(stsPrice.id || `temp_${index}`),
@@ -679,16 +611,13 @@ export default function Prices() {
 
         if (transformedPrices && transformedPrices.length > 0) {
           setCurrentPrices(transformedPrices);
-          console.log(`✅ Загружено ${transformedPrices.length} цен из STS API`);
         } else {
-          console.log('⚠️ Нет валидных цен для отображения');
           setCurrentPrices([]);
         }
         setIsInitialLoading(false); // ВАЖНО: Сбрасываем состояние загрузки
         
         // Цены загружены - уведомление убрано
       } else {
-        console.log('ℹ️ Цены не найдены в STS API');
         setCurrentPrices([]);
         setIsInitialLoading(false); // ВАЖНО: Сбрасываем состояние загрузки
         
@@ -737,7 +666,6 @@ export default function Prices() {
 
     setIsUpdatingPrices(true);
     try {
-      console.log('🔄 Принудительное обновление цен из сети для:', tradingPointId);
       const prices = await pricesCacheService.refreshPricesFromNetwork(tradingPointId);
       setCurrentPrices(prices);
 
@@ -767,7 +695,6 @@ export default function Prices() {
     if (!selectedTradingPoint || selectedTradingPoint === 'all') return;
 
     setPullState('refreshing');
-    console.log('🔄 Pull-to-refresh: обновляем данные...');
 
     try {
       if (stsApiConfigured) {

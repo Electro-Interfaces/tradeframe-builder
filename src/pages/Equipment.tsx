@@ -95,22 +95,17 @@ export default function Equipment() {
   // Загружаем данные при монтировании или изменении торговой точки
   // Упрощенная автоматическая загрузка данных оборудования при инициализации
   useEffect(() => {
-    console.log('🔧 Инициализация раздела оборудования...');
-    
     // Обеспечиваем правильную настройку STS API
     ensureSTSApiConfigured();
-    
+
     // Автоматически загружаем данные оборудования при выборе торговой точки
     if (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedNetwork?.external_id) {
-      console.log('🚀 Автоматическая загрузка данных оборудования для торговой точки:', selectedTradingPoint);
       loadEquipmentData();
     }
   }, [selectedTradingPoint, selectedNetwork]);
 
   // Функция для настройки STS API с правильными параметрами
   const ensureSTSApiConfigured = () => {
-    console.log('🔧 Проверяем и настраиваем STS API конфигурацию...');
-    
     const correctConfig = {
       url: 'https://pos.autooplata.ru/tms',
       username: 'UserApi',
@@ -143,7 +138,6 @@ export default function Equipment() {
     }
     
     if (needsUpdate) {
-      console.log('🔧 Обновляем конфигурацию STS API с правильными параметрами');
       localStorage.setItem('sts-api-config', JSON.stringify(correctConfig));
     }
     
@@ -163,8 +157,6 @@ export default function Equipment() {
         networkId: selectedNetwork.external_id,
         tradingPointId: selectedTradingPoint
       };
-
-      console.log('🔄 Загружаем данные оборудования из STS API...');
 
       // Загружаем данные параллельно (stsApiService сам управляет авторизацией)
       const [terminalInfoData, tanksData] = await Promise.all([
@@ -202,7 +194,6 @@ export default function Equipment() {
   // Pull-to-refresh функционал
   const handleRefreshData = async () => {
     if (selectedTradingPoint) {
-      console.log('🔄 Pull-to-refresh: обновляем данные оборудования...');
       await loadEquipmentData();
     }
   };
@@ -351,13 +342,6 @@ export default function Equipment() {
       const deviceStatus = info.devices.billAcceptor.status; // 'online' или 'error'
       const isOnline = deviceStatus === 'online';
       
-      console.log('🎯 Статус купюроприемника (обработанный):', {
-        status: deviceStatus,
-        isOnline: isOnline,
-        billCount: info.devices.billAcceptor.billCount,
-        billAmount: info.devices.billAcceptor.billAmount,
-        name: info.devices.billAcceptor.name
-      });
       
       equipment.push({
         id: 'bill-acceptor',

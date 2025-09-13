@@ -22,8 +22,6 @@ interface LegalDocument {
 }
 
 const LoginPageWithLegal = () => {
-  console.log('🔐 LoginPageWithLegal: component initializing...');
-  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -43,8 +41,6 @@ const LoginPageWithLegal = () => {
   // Mobile state
   const mobileInfo = useMobile();
   const isMobile = mobileInfo.isMobile;
-  console.log('📱 LoginPageWithLegal: isMobile =', isMobile);
-  
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -55,7 +51,6 @@ const LoginPageWithLegal = () => {
       try {
         // На мобильных устройствах пропускаем загрузку legal documents для избежания ошибок
         if (isMobile) {
-          console.log('📱 Mobile device detected - skipping legal documents loading');
           return;
         }
         
@@ -94,7 +89,6 @@ const LoginPageWithLegal = () => {
         
         setLegalDocuments(docs);
       } catch (error) {
-        console.error('Ошибка загрузки правовых документов:', error);
       }
     };
     
@@ -132,25 +126,18 @@ const LoginPageWithLegal = () => {
                            (loginResult && loginResult.role === 'bto_manager');
       
       if (!skipLegalDocs && email) {
-        console.log('📋 Saving legal document acceptances for:', email);
         
         try {
-          console.log('✍️ Accepting Terms of Service...');
           await legalDocumentsService.acceptDocument('tos', email, 'login');
           
-          console.log('✍️ Accepting Privacy Policy...');
           await legalDocumentsService.acceptDocument('privacy', email, 'login');
           
-          console.log('✍️ Accepting Personal Data Protection...');
           await legalDocumentsService.acceptDocument('pdn', email, 'login');
           
-          console.log('✅ All legal documents accepted successfully');
         } catch (legalError) {
-          console.warn('⚠️ Legal documents acceptance failed, but continuing login:', legalError);
           // Не блокируем логин если юридические документы недоступны
         }
       } else {
-        console.log('ℹ️ Skipping legal documents for:', email);
       }
       
       // Сохраняем email если выбрано "Запомнить меня"
@@ -185,7 +172,6 @@ const LoginPageWithLegal = () => {
         setAcceptedPrivacy(state.acceptedPrivacy !== undefined ? state.acceptedPrivacy : true);
         setAcceptedPdn(state.acceptedPdn !== undefined ? state.acceptedPdn : true);
       } catch (error) {
-        console.warn('Ошибка восстановления состояния формы:', error);
       }
     }
 
