@@ -155,15 +155,6 @@
         visibility: visible;
       }
 
-      /* Временный loading состояние */
-      .app-loading {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        background: hsl(215 28% 12%);
-        color: hsl(0 0% 95%);
-      }
     </style>
     
     <!-- Иконки для мобильных устройств -->
@@ -191,86 +182,7 @@
   </head>
 
   <body>
-    <div id="root">
-      <!-- Fallback loading для медленных соединений -->
-      <div class="app-loading" id="app-loading">
-        <div style="text-align: center;">
-          <div style="width: 40px; height: 40px; border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid hsl(217 91% 60%); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
-          <div id="loading-text" style="font-size: 16px; font-weight: 500;">Загрузка TradeFrame...</div>
-          <div id="loading-status" style="font-size: 14px; color: hsl(215 15% 65%); margin-top: 8px;">Инициализация системы</div>
-          <div id="debug-info" style="font-size: 12px; color: hsl(215 15% 65%); margin-top: 16px; text-align: left; max-width: 300px;"></div>
-        </div>
-      </div>
-    </div>
-    
-    <style>
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    </style>
-    
-    <!-- Диагностика загрузки для мобильных -->
-    <script>
-      let loadingSteps = [];
-      let startTime = Date.now();
-      
-      function updateLoadingStatus(step) {
-        loadingSteps.push(step);
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        
-        const statusEl = document.getElementById('loading-status');
-        const debugEl = document.getElementById('debug-info');
-        
-        if (statusEl) {
-          statusEl.textContent = step;
-        }
-        
-        if (debugEl) {
-          debugEl.innerHTML = [
-            `Время: ${elapsed}с`,
-            `UA: ${navigator.userAgent.substring(0, 30)}...`,
-            `Viewport: ${window.innerWidth}x${window.innerHeight}`,
-            `Шаги: ${loadingSteps.length}`,
-            loadingSteps.slice(-3).map((s, i) => `${i + 1}. ${s}`).join('<br>')
-          ].join('<br>');
-        }
-        
-        console.log(`🔄 [${elapsed}s] ${step}`);
-      }
-      
-      // Начальная диагностика
-      updateLoadingStatus('HTML загружен');
-      
-      // Отслеживаем ошибки JavaScript
-      window.addEventListener('error', function(e) {
-        updateLoadingStatus(`❌ JS Error: ${e.message}`);
-        console.error('JavaScript Error:', e);
-      });
-      
-      // Отслеживаем ошибки модулей
-      window.addEventListener('unhandledrejection', function(e) {
-        updateLoadingStatus(`❌ Promise rejected: ${e.reason}`);
-        console.error('Unhandled Promise Rejection:', e);
-      });
-      
-      // Проверяем загрузку через таймауты
-      setTimeout(() => updateLoadingStatus('1с - ожидание JS'), 1000);
-      setTimeout(() => updateLoadingStatus('3с - проверка React'), 3000);
-      setTimeout(() => updateLoadingStatus('5с - диагностика'), 5000);
-      
-      // Детекция завершения загрузки
-      setTimeout(() => {
-        if (document.getElementById('app-loading')) {
-          updateLoadingStatus('⚠️ React не загрузился');
-        }
-      }, 8000);
-      
-      updateLoadingStatus('Скрипт диагностики готов');
-      
-      // Делаем функцию глобальной
-      window.updateLoadingStatus = updateLoadingStatus;
-    </script>
+    <div id="root"></div>
     
     <script type="module" src="/src/main.tsx"></script>
   </body>
