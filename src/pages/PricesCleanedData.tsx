@@ -50,11 +50,7 @@ import {
   TradingNetworkPrice, 
   TradingNetworkService 
 } from "@/services/tradingNetworkAPI";
-import { nomenclatureService } from "@/services/nomenclatureService";
-import { FuelNomenclature } from "@/types/nomenclature";
-import { pricesCacheService, CachedFuelPrice } from "@/services/pricesCache";
-import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from "@/components/data-source/DataSourceIndicator";
-import { externalPricesService, ExternalPrice } from "@/services/externalPricesService";
+import { CachedFuelPrice } from "@/services/pricesCache";
 import { stsApiService, Price as STSPrice } from "@/services/stsApi";
 
 // Types - теперь используем CachedFuelPrice как основной тип
@@ -1093,18 +1089,6 @@ export default function Prices() {
                 >
                   <HelpCircle className="w-4 h-4" />
                 </Button>
-                {!isMobile && (
-                  <Button
-                    onClick={loadPricesFromSTSAPI}
-                    variant="outline"
-                    size="sm"
-                    disabled={loadingFromSTSAPI}
-                    className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-3 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-1 ${loadingFromSTSAPI ? 'animate-spin' : ''}`} />
-                    Обновить
-                  </Button>
-                )}
                 <Button
                   onClick={handleCreatePrice}
                   size="sm"

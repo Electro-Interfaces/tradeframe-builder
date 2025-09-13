@@ -10,6 +10,7 @@ import { lazy, useEffect } from "react";
 import LazyLoader from "./components/LazyLoader";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PWAInstaller from "./components/pwa/PWAInstaller";
 
 // Критически важные страницы - загружаются сразу
 import LoginPageWithLegal from "./pages/LoginPageWithLegal";
@@ -166,6 +167,9 @@ const App = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
           </BrowserRouter>
+
+          {/* PWA Installation Prompt */}
+          <PWAInstaller />
         </SelectionProvider>
       </AuthProvider>
     </TooltipProvider>

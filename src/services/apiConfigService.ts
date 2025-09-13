@@ -121,7 +121,7 @@ const initialConfig: ApiConfig = {
     {
       id: 'trading-network-api',
       name: 'API торговой сети',
-      url: 'https://pos.autooplata.ru/tms/',
+      url: import.meta.env.VITE_STS_API_URL || 'https://pos.autooplata.ru/tms/',
       type: 'external-api',
       description: 'Внешний API торговой сети для интеграции с POS-системой',
       isActive: false,
@@ -133,8 +133,8 @@ const initialConfig: ApiConfig = {
         retryAttempts: 3,
         ssl: true,
         authType: 'basic',
-        username: 'UserApi',
-        password: 'lHQfLZHzB3tn'
+        username: import.meta.env.VITE_STS_API_USERNAME || 'UserApi',
+        password: import.meta.env.VITE_STS_API_PASSWORD || 'lHQfLZHzB3tn'
       }
     }
   ]

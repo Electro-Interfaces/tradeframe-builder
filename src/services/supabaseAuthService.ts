@@ -73,20 +73,14 @@ export class SupabaseAuthService {
 
       const user: SupabaseUser = users[0];
 
-      // Для демо-режима принимаем специальные пароли для известных пользователей
-      const demoUsers = {
-        'admin@tradeframe.com': 'admin123',
-        'network.admin@demo-azs.ru': 'admin123',
-        'manager@demo-azs.ru': 'admin123',
-        'operator@demo-azs.ru': 'admin123',
-        'bto.manager@tradeframe.com': 'admin123',
-        'superadmin@tradeframe.com': 'SuperAdmin2024!'
-      };
+      // Все хардкод пароли удалены для безопасности
+      const demoUsers = {};
       
       if (user.email in demoUsers) {
         // Для демо-пользователей проверяем специальные пароли
         if (password !== demoUsers[user.email as keyof typeof demoUsers]) {
-          throw new Error(`Неверный пароль. Используйте пароль: ${demoUsers[user.email as keyof typeof demoUsers]}`);
+          // НИКОГДА не показывать реальный пароль в сообщениях об ошибках!
+          throw new Error('Неверный пароль');
         }
       } else {
         // Для остальных пользователей проверяем хэш пароля используя PBKDF2 (совместимо с externalUsersService)

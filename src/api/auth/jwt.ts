@@ -37,8 +37,8 @@ export interface AuthResult {
 }
 
 export class JWTService {
-  private static SECRET = process.env.JWT_SECRET || 'tradeframe-dev-secret-change-in-production';
-  private static REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'tradeframe-refresh-secret';
+  private static SECRET = process.env.JWT_SECRET || import.meta.env.VITE_JWT_SECRET || 'tradeframe-dev-secret-change-in-production';
+  private static REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || import.meta.env.VITE_JWT_REFRESH_SECRET || 'tradeframe-refresh-secret';
   
   /**
    * Хеширование пароля с bcrypt

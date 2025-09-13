@@ -201,16 +201,14 @@ const PricesSimple: React.FC = () => {
               <DollarSign className="h-6 w-6 text-trade.blue" />
               <h1 className="text-2xl font-bold">Цены (Упрощенная версия)</h1>
               {!isMobile && (
-                <>
+                <div className="flex items-center gap-2 ml-4">
                   <HelpButton
                     helpUrl="help/prices.html"
-                    className="ml-2"
                   />
                   <Button
                     onClick={loadPricesFromSTS}
                     disabled={isLoading || !selectedTradingPoint || selectedTradingPoint === 'all'}
                     size="sm"
-                    className="ml-2"
                   >
                     <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
                     Обновить
@@ -219,11 +217,10 @@ const PricesSimple: React.FC = () => {
                     onClick={clearCache}
                     variant="outline"
                     size="sm"
-                    className="ml-2"
                   >
                     Очистить кэш
                   </Button>
-                </>
+                </div>
               )}
             </div>
           </div>
