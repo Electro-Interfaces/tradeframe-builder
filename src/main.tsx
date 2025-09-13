@@ -143,9 +143,17 @@ if (typeof window !== 'undefined') {
   document.addEventListener('touchmove', (e) => {
     const currentY = e.touches[0].clientY;
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
+
+    // Проверяем, находится ли событие внутри мобильного меню
+    const target = e.target as Element;
+    const isInSidebar = target.closest('[role="dialog"]') ||
+                       target.closest('.mobile-sidebar') ||
+                       target.closest('[data-radix-dialog-content]') ||
+                       target.closest('.overflow-y-scroll');
+
     // Если пользователь пытается скроллить вверх когда уже наверху
-    if (scrollTop === 0 && currentY > startY) {
+    // НО не внутри мобильного меню
+    if (scrollTop === 0 && currentY > startY && !isInSidebar) {
       console.log('🚫 Preventing pull-to-refresh');
       e.preventDefault();
       e.stopPropagation();

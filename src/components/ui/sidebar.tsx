@@ -104,10 +104,7 @@ const MobileSidebarContent = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "flex h-full w-full flex-col",
-        "touch-pan-y overscroll-behavior-none",
-        "-webkit-overflow-scrolling-touch",
-        "overflow-y-auto scroll-smooth",
+        "flex h-full w-full flex-col overflow-y-scroll",
         className
       )}
       onTouchStart={handleTouchStart}
@@ -490,9 +487,7 @@ const SidebarContent = React.forwardRef<
       data-sidebar="content"
       className={cn(
         "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
-        // Исправление прокрутки для мобильных - предотвращение залипания
         "overscroll-behavior-none -webkit-overflow-scrolling-touch",
-        "touch-pan-y scroll-smooth",
         className
       )}
       {...props}
