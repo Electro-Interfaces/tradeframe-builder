@@ -80,11 +80,49 @@ const App = () => {
 
   // Показываем PWA инсталлер через 3 секунды после загрузки приложения
   useEffect(() => {
+    console.log('🚀 App.tsx: Настройка PWA installer таймера...');
+
+    // Проверяем PWA критерии
+    const checkPWACriteria = () => {
+      const criteria = {
+        isHTTPS: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
+        hasManifest: !!document.querySelector('link[rel="manifest"]'),
+        hasServiceWorker: 'serviceWorker' in navigator,
+        hasIcons: !!document.querySelector('link[rel="icon"]'),
+        isStandalone: window.matchMedia('(display-mode: standalone)').matches,
+        hasInstallPrompt: false // Будет обновлено при получении beforeinstallprompt
+      };
+
+      console.log('🔍 App.tsx: PWA критерии проверены:', criteria);
+
+      // Проверяем manifest
+      fetch('/tradeframe-builder/manifest.json')
+        .then(response => response.json())
+        .then(manifest => {
+          console.log('📋 App.tsx: Manifest загружен:', {
+            name: manifest.name,
+            shortName: manifest.short_name,
+            display: manifest.display,
+            startUrl: manifest.start_url,
+            iconCount: manifest.icons?.length
+          });
+        })
+        .catch(error => {
+          console.error('❌ App.tsx: Ошибка загрузки manifest:', error);
+        });
+    };
+
+    checkPWACriteria();
+
     const timer = setTimeout(() => {
+      console.log('⏰ App.tsx: 3 секунды прошли, показываем PWA installer');
       setShowPWAInstaller(true);
     }, 3000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      console.log('🧹 App.tsx: Очистка PWA installer таймера');
+      clearTimeout(timer);
+    };
   }, []);
   
   return (

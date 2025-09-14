@@ -21,29 +21,54 @@ window.updateLoadingStatus?.('CSS стили загружены');
 import './utils/localStorageReport'
 
 // Регистрация Service Worker для PWA с улучшенной обработкой ошибок
+console.log('🔧 PWA Service Worker: Проверяем возможность регистрации...', {
+  hasServiceWorker: 'serviceWorker' in navigator,
+  isProd: import.meta.env.PROD,
+  baseUrl: import.meta.env.BASE_URL,
+  userAgent: navigator.userAgent.substring(0, 50) + '...'
+});
+
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isGitHubPages = window.location.hostname === 'electro-interfaces.github.io';
-  
+
+  console.log('📱 PWA Service Worker: Детекция устройства:', {
+    isMobile,
+    isGitHubPages,
+    hostname: window.location.hostname,
+    protocol: window.location.protocol,
+    pathname: window.location.pathname
+  });
+
   // Отключаем Service Worker для мобильных устройств на GitHub Pages
   if (isMobile && isGitHubPages) {
-    console.log('🚫 Service Worker disabled for mobile GitHub Pages');
+    console.log('🚫 PWA Service Worker: Отключен для мобильных GitHub Pages');
   } else {
     // Регистрируем SW сразу, не дожидаясь load события для лучшей PWA установки
     const base = import.meta.env.BASE_URL;
     const swUrl = `${base}sw.js`;
 
+    console.log('🚀 PWA Service Worker: Начинаем регистрацию...', { base, swUrl });
+
     navigator.serviceWorker.register(swUrl, { scope: base })
       .then((registration) => {
-          console.log('✅ SW registered:', registration.scope);
-          
+          console.log('✅ PWA Service Worker: Успешно зарегистрирован!', {
+            scope: registration.scope,
+            updateViaCache: registration.updateViaCache,
+            active: !!registration.active,
+            installing: !!registration.installing,
+            waiting: !!registration.waiting
+          });
+
           // Обработка обновлений
           registration.addEventListener('updatefound', () => {
+            console.log('🔄 PWA Service Worker: Обнаружено обновление');
             const newWorker = registration.installing;
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
+                console.log('🔄 PWA Service Worker: Изменение состояния:', newWorker.state);
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('🔄 New version available');
+                  console.log('🎉 PWA Service Worker: Новая версия готова!');
                   // Можно показать уведомление об обновлении
                 }
               });
@@ -51,15 +76,15 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
           });
         })
         .catch((error) => {
-          console.log('❌ SW registration failed:', error);
+          console.error('❌ PWA Service Worker: Ошибка регистрации:', error);
           // Не блокируем приложение если SW не загружается
-          console.log('📱 App will continue without PWA features');
+          console.log('📱 PWA Service Worker: Приложение продолжит работу без PWA функций');
         });
   }
 } else if (!('serviceWorker' in navigator)) {
-  console.log('🚫 Service Worker not supported in this browser');
+  console.log('🚫 PWA Service Worker: Не поддерживается браузером');
 } else {
-  console.log('🔧 Service Worker disabled in development mode');
+  console.log('🔧 PWA Service Worker: Отключен в режиме разработки');
 }
 
 // Глобальная функция для сброса демо данных

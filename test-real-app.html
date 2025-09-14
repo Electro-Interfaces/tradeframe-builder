@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Проверка исправлений TradeFrame</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    .test-panel {
+      background: #2d2d2d;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      border: 1px solid #444;
+    }
+    .app-frame {
+      width: 100%;
+      height: 600px;
+      border: 2px solid #00ff00;
+      border-radius: 8px;
+      background: #000;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    .success { background: #28a745; }
+    .warning { background: #ffc107; color: #000; }
+    .danger { background: #dc3545; }
+    .info { background: #17a2b8; }
+    .status {
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin: 5px 0;
+      font-size: 14px;
+    }
+    .log {
+      background: #000;
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border: 1px solid #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔧 Проверка исправлений TradeFrame v1.5.7</h1>
+
+  <div class="test-panel">
+    <h2>Статус исправлений:</h2>
+    <div class="status success">✅ X-Frame-Options meta tag удален из index.html</div>
+    <div class="status success">✅ CSP frame-ancestors добавлен для безопасности</div>
+    <div class="status success">✅ Loading detection улучшен (login-form, auth-container, main, sidebar)</div>
+    <div class="status success">✅ PWA installer с задержкой 3 секунды</div>
+    <div class="status success">✅ Fallback timeout увеличен с 5 до 8 секунд</div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Тестирование:</h2>
+    <div class="controls">
+      <button onclick="openApp()" class="success">🚀 Открыть TradeFrame</button>
+      <button onclick="openAppNewWindow()" class="info">🔗 Открыть в новом окне</button>
+      <button onclick="clearStorage()" class="warning">🗑️ Очистить Storage</button>
+      <button onclick="testSequence()" class="info">⚡ Тест последовательности</button>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Что проверить:</h2>
+    <ol>
+      <li><strong>Консоль браузера:</strong> Не должно быть ошибки "X-Frame-Options may only be set via an HTTP header"</li>
+      <li><strong>Loading индикатор:</strong> Должен исчезнуть при появлении React контента</li>
+      <li><strong>Темный экран:</strong> Не должен появляться после авторизации</li>
+      <li><strong>PWA installer:</strong> Должен появиться через 3 секунды после загрузки</li>
+      <li><strong>Анимация:</strong> Плавная загрузка без рывков</li>
+    </ol>
+  </div>
+
+  <div class="test-panel">
+    <h2>Встроенное приложение:</h2>
+    <iframe id="appFrame" class="app-frame" src="about:blank"></iframe>
+  </div>
+
+  <div class="test-panel">
+    <h2>Логи тестирования:</h2>
+    <div id="testLog" class="log">Логи будут отображаться здесь...\n</div>
+    <button onclick="clearLog()">Очистить логи</button>
+  </div>
+
+  <script>
+    const testLog = document.getElementById('testLog');
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+      testLog.textContent += `[${timestamp}] ${emoji} ${message}\n`;
+      testLog.scrollTop = testLog.scrollHeight;
+    }
+
+    function openApp() {
+      log('Загружаем TradeFrame в iframe...', 'info');
+      const frame = document.getElementById('appFrame');
+      frame.src = 'http://localhost:3002';
+
+      setTimeout(() => {
+        log('Проверяем состояние загрузки через 2 секунды...', 'info');
+      }, 2000);
+
+      setTimeout(() => {
+        log('Проверяем PWA installer (должен появиться)...', 'info');
+      }, 5000);
+    }
+
+    function openAppNewWindow() {
+      log('Открываем TradeFrame в новом окне...', 'info');
+      const newWindow = window.open('http://localhost:3002', '_blank');
+      log('Новое окно открыто. Проверьте консоль браузера на наличие ошибок.', 'success');
+    }
+
+    function clearStorage() {
+      localStorage.clear();
+      sessionStorage.clear();
+      log('localStorage и sessionStorage очищены', 'success');
+    }
+
+    function testSequence() {
+      log('Начинаем полный тест последовательности...', 'info');
+      log('1. Очищаем storage...', 'info');
+      clearStorage();
+
+      setTimeout(() => {
+        log('2. Открываем приложение...', 'info');
+        openApp();
+      }, 500);
+
+      setTimeout(() => {
+        log('3. Проверяем отсутствие X-Frame-Options ошибки...', 'info');
+      }, 2000);
+
+      setTimeout(() => {
+        log('4. Проверяем исчезновение loading индикатора...', 'info');
+      }, 3000);
+
+      setTimeout(() => {
+        log('5. Проверяем появление PWA installer...', 'warning');
+      }, 6000);
+
+      setTimeout(() => {
+        log('✅ Полный тест завершен! Проверьте визуально результаты.', 'success');
+      }, 8000);
+    }
+
+    function clearLog() {
+      testLog.textContent = 'Логи очищены, начинаем новое отслеживание...\n';
+    }
+
+    // Инициализация
+    window.onload = function() {
+      log('🔧 Тестер TradeFrame v1.5.7 готов к работе!', 'success');
+      log('📋 Все исправления применены и готовы к тестированию', 'info');
+      log('🎯 Нажмите "Открыть TradeFrame" для начала тестирования', 'info');
+    };
+  </script>
+</body>
+</html>

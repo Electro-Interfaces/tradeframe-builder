@@ -37,6 +37,8 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
+    console.log('🚀 PWA Installer: Starting initialization...');
+
     // Определяем браузер и устройство
     const userAgent = navigator.userAgent;
     const detectedOpera = /Opera|OPR\//i.test(userAgent);
@@ -46,6 +48,8 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
     const isChrome = /Chrome/i.test(userAgent) && !/Edg/i.test(userAgent) && !/YaBrowser/i.test(userAgent);
     const detectedSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent) && !/Chromium/i.test(userAgent);
     const detectedIOS = /iPad|iPhone|iPod/.test(userAgent);
+    const isEdge = /Edg/i.test(userAgent);
+    const isChromium = /Chromium/i.test(userAgent);
 
     setIsOpera(detectedOpera);
     setIsMobile(detectedMobile);
@@ -55,67 +59,139 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
     setIsSafari(detectedSafari);
     setIsIOS(detectedIOS);
 
-    console.log('🔍 PWA Installer: Определение браузера:', {
-      userAgent: userAgent.substring(0, 50) + '...',
-      isOpera: detectedOpera,
-      isMobile: detectedMobile,
-      isYandex,
-      isFirefox,
-      isChrome,
-      isSafari: detectedSafari,
-      isIOS: detectedIOS
+    console.log('🔍 PWA Installer: Полная диагностика браузера:', {
+      fullUserAgent: userAgent,
+      detectedBrowser: {
+        isOpera: detectedOpera,
+        isYandex,
+        isFirefox,
+        isChrome,
+        isEdge,
+        isChromium,
+        isSafari: detectedSafari,
+      },
+      deviceInfo: {
+        isMobile: detectedMobile,
+        isIOS: detectedIOS,
+        isAndroid: /Android/i.test(userAgent),
+        devicePixelRatio: window.devicePixelRatio,
+        screenSize: `${window.screen.width}x${window.screen.height}`,
+        viewportSize: `${window.innerWidth}x${window.innerHeight}`
+      },
+      capabilities: {
+        serviceWorker: 'serviceWorker' in navigator,
+        pushManager: 'PushManager' in window,
+        notifications: 'Notification' in window,
+        fetch: 'fetch' in window,
+        caches: 'caches' in window
+      },
+      protocol: window.location.protocol,
+      isSecure: window.location.protocol === 'https:',
+      domain: window.location.hostname
     });
 
     // Проверяем, установлено ли уже приложение
     const checkInstalled = () => {
+      console.log('🔍 PWA Installer: Проверяем установку приложения...');
+
+      const standaloneMode = window.matchMedia('(display-mode: standalone)').matches;
+      const navigatorStandalone = (window.navigator as any).standalone;
+      const fullscreenMode = window.matchMedia('(display-mode: fullscreen)').matches;
+      const minimalUI = window.matchMedia('(display-mode: minimal-ui)').matches;
+      const browserMode = window.matchMedia('(display-mode: browser)').matches;
+
+      console.log('🔍 PWA Installer: Режимы отображения:', {
+        standaloneMode,
+        navigatorStandalone,
+        fullscreenMode,
+        minimalUI,
+        browserMode,
+        referrer: document.referrer,
+        isInstalled: standaloneMode || navigatorStandalone
+      });
+
       // Проверяем standalone режим
-      if (window.matchMedia('(display-mode: standalone)').matches) {
+      if (standaloneMode) {
+        console.log('✅ PWA Installer: Приложение запущено в standalone режиме');
         setIsInstalled(true);
         return;
       }
 
       // Проверяем Navigator standalone (iOS Safari)
-      if ((window.navigator as any).standalone) {
+      if (navigatorStandalone) {
+        console.log('✅ PWA Installer: Приложение запущено через iOS Home Screen');
         setIsInstalled(true);
         return;
       }
+
+      console.log('ℹ️ PWA Installer: Приложение запущено в обычном браузере');
     };
 
     checkInstalled();
 
     // Слушаем событие beforeinstallprompt
     const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
-      console.log('📱 PWA Installer: beforeinstallprompt получен');
+      console.log('🎉 PWA Installer: beforeinstallprompt событие получено!', {
+        platforms: e.platforms,
+        userChoice: e.userChoice,
+        eventType: e.type,
+        timestamp: new Date().toISOString()
+      });
+
       e.preventDefault();
       setDeferredPrompt(e);
       setCanInstall(true);
 
+      console.log('🔧 PWA Installer: Событие обработано, deferredPrompt сохранен');
+
       // Показываем промпт только на мобильных устройствах или если браузер явно поддерживает PWA
       setTimeout(() => {
+        console.log('⏰ PWA Installer: Проверяем через 3 секунды - показывать ли промпт', {
+          isInstalled,
+          detectedMobile,
+          isYandex,
+          shouldShow: !isInstalled && (detectedMobile || isYandex)
+        });
+
         if (!isInstalled && (detectedMobile || isYandex)) {
+          console.log('✅ PWA Installer: Показываем промпт установки');
           setShowPrompt(true);
+        } else {
+          console.log('❌ PWA Installer: Промпт установки не показан');
         }
       }, 3000);
     };
 
     // Для всех мобильных браузеров с ограниченной beforeinstallprompt поддержкой
+    console.log('⏰ PWA Installer: Запускаем fallback таймер на 5 секунд...');
     const fallbackTimer = setTimeout(() => {
+      console.log('🔍 PWA Installer: Fallback таймер сработал, проверяем состояние:', {
+        canInstall,
+        isInstalled,
+        detectedMobile,
+        detectedIOS,
+        shouldShowFallback: !canInstall && !isInstalled && detectedMobile && !detectedIOS
+      });
+
       if (!canInstall && !isInstalled && detectedMobile && !detectedIOS) {
         // Показываем PWA installer для любого мобильного браузера, если beforeinstallprompt не сработал
-        console.log('🔍 PWA Installer: Мобильный браузер - beforeinstallprompt не сработал за 5 сек, показываем инструкции');
+        console.log('✅ PWA Installer: beforeinstallprompt не сработал за 5 сек, показываем fallback');
         setCanInstall(true);
         setShowPrompt(true);
+      } else {
+        console.log('❌ PWA Installer: Fallback не требуется');
       }
     }, 5000);
 
     // iOS особенность: ВСЕ браузеры на iOS используют WebKit Safari движок
     // Только Safari может устанавливать PWA, остальные браузеры показывают предложение открыть в Safari
     if (detectedIOS && !isInstalled) {
+      console.log('📱 PWA Installer: iOS обнаружена, запускаем iOS таймер...');
       const iosTimer = setTimeout(() => {
         if (detectedSafari) {
-          console.log('🔍 PWA Installer: Safari iOS - показываем инструкции установки PWA');
+          console.log('🍎 PWA Installer: Safari iOS - показываем инструкции установки PWA');
         } else {
-          console.log('🔍 PWA Installer: Сторонний браузер на iOS - предлагаем открыть в Safari для PWA');
+          console.log('🍎 PWA Installer: Сторонний браузер на iOS - предлагаем открыть в Safari для PWA');
         }
         setCanInstall(true);
         setShowPrompt(true);
@@ -123,6 +199,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
 
       // Добавляем в cleanup
       return () => {
+        console.log('🧹 PWA Installer: Очистка event listeners (iOS версия)');
         window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         window.removeEventListener('appinstalled', handleAppInstalled);
         clearTimeout(fallbackTimer);
@@ -132,16 +209,24 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
 
     // Слушаем событие appinstalled
     const handleAppInstalled = () => {
+      console.log('🎉 PWA Installer: Приложение успешно установлено!', {
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent
+      });
       setIsInstalled(true);
       setShowPrompt(false);
       setCanInstall(false);
       onInstalled?.();
     };
 
+    console.log('👂 PWA Installer: Добавляем event listeners...');
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
+    console.log('✅ PWA Installer: Event listeners добавлены, ожидаем события...');
+
     return () => {
+      console.log('🧹 PWA Installer: Очистка event listeners (обычная версия)');
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
       clearTimeout(fallbackTimer);
@@ -149,24 +234,40 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
   }, [isInstalled, onInstalled]);
 
   const handleInstallClick = async () => {
+    console.log('🚀 PWA Installer: Пользователь нажал кнопку установки', {
+      hasDeferredPrompt: !!deferredPrompt,
+      isOpera: isOpera,
+      isMobile: isMobile,
+      isIOS: isIOS,
+      isSafari: isSafari
+    });
+
     // Если есть стандартный промпт - используем его
     if (deferredPrompt) {
+      console.log('✅ PWA Installer: Используем deferredPrompt для установки');
       try {
+        console.log('📱 PWA Installer: Вызываем deferredPrompt.prompt()...');
         await deferredPrompt.prompt();
+
+        console.log('⏳ PWA Installer: Ожидаем выбор пользователя...');
         const choiceResult = await deferredPrompt.userChoice;
 
+        console.log('🎯 PWA Installer: Результат выбора пользователя:', choiceResult);
+
         if (choiceResult.outcome === 'accepted') {
+          console.log('✅ PWA Installer: Пользователь принял установку');
           setShowPrompt(false);
           setIsInstalled(true);
           onInstalled?.();
         } else {
+          console.log('❌ PWA Installer: Пользователь отклонил установку');
           onDismissed?.();
         }
 
         setDeferredPrompt(null);
         setCanInstall(false);
       } catch (error) {
-        console.error('Ошибка при установке PWA:', error);
+        console.error('❌ PWA Installer: Ошибка при установке PWA:', error);
       }
       return;
     }

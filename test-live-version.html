@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тест живой версии TradeFrame v1.5.7</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      min-height: 100vh;
+    }
+    .container {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    .test-section {
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .fix-item {
+      background: rgba(76, 175, 80, 0.2);
+      border: 1px solid rgba(76, 175, 80, 0.5);
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .test-item {
+      background: rgba(33, 150, 243, 0.2);
+      border: 1px solid rgba(33, 150, 243, 0.5);
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    }
+    .primary { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); }
+    .warning { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); }
+    .danger { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); }
+    .info { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); }
+
+    .app-frame {
+      width: 100%;
+      height: 500px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 12px;
+      background: rgba(0,0,0,0.2);
+      margin: 20px 0;
+    }
+
+    .step {
+      counter-increment: step-counter;
+      position: relative;
+      padding-left: 40px;
+      margin: 15px 0;
+    }
+    .step::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    .steps-container {
+      counter-reset: step-counter;
+    }
+
+    h1 { text-align: center; margin-bottom: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    h2 { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+    .emoji { font-size: 1.2em; }
+    .highlight { background: rgba(255,255,0,0.3); padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Тест живой версии TradeFrame v1.5.7</h1>
+
+    <div class="test-section">
+      <h2><span class="emoji">✅</span> Исправления в продакшене:</h2>
+      <div class="fix-item">
+        <span class="emoji">🛡️</span>
+        <strong>X-Frame-Options ошибка устранена</strong> - удален проблемный meta tag
+      </div>
+      <div class="fix-item">
+        <span class="emoji">🌗</span>
+        <strong>Темный экран после авторизации исправлен</strong> - улучшена логика loading detection
+      </div>
+      <div class="fix-item">
+        <span class="emoji">📱</span>
+        <strong>PWA installer показывается правильно</strong> - задержка 3 секунды
+      </div>
+      <div class="fix-item">
+        <span class="emoji">⚡</span>
+        <strong>Loading индикатор оптимизирован</strong> - fallback механизмы добавлены
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2><span class="emoji">🔗</span> Ссылки для тестирования:</h2>
+      <button onclick="openLiveApp()" class="primary">
+        <span class="emoji">🌐</span> Открыть живую версию
+      </button>
+      <button onclick="openLiveAppNewTab()" class="info">
+        <span class="emoji">🔗</span> Новая вкладка
+      </button>
+      <button onclick="openDevTools()" class="warning">
+        <span class="emoji">🔧</span> Инструкции для DevTools
+      </button>
+    </div>
+
+    <div class="test-section">
+      <h2><span class="emoji">📋</span> Что проверить в живой версии:</h2>
+      <div class="steps-container">
+        <div class="step">
+          <strong>Консоль браузера (F12):</strong> Отсутствие ошибки <span class="highlight">"X-Frame-Options may only be set via an HTTP header"</span>
+        </div>
+        <div class="step">
+          <strong>Loading sequence:</strong> Красивый индикатор загрузки исчезает когда React готов
+        </div>
+        <div class="step">
+          <strong>Авторизация:</strong> После логина нет темного экрана, плавный переход
+        </div>
+        <div class="step">
+          <strong>PWA installer:</strong> Появляется через 3 секунды после загрузки приложения
+        </div>
+        <div class="step">
+          <strong>Мобильная версия:</strong> Корректная работа на мобильных устройствах
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2><span class="emoji">🖼️</span> Встроенный просмотр:</h2>
+      <iframe id="liveFrame" class="app-frame" src="about:blank"></iframe>
+      <button onclick="loadInFrame()" class="primary">Загрузить в iframe</button>
+      <button onclick="refreshFrame()" class="info">Обновить iframe</button>
+    </div>
+
+    <div class="test-section">
+      <h2><span class="emoji">⚙️</span> Техническая информация:</h2>
+      <div class="test-item">
+        <strong>Версия:</strong> v1.5.7
+      </div>
+      <div class="test-item">
+        <strong>GitHub:</strong> https://github.com/Electro-Interfaces/tradeframe-builder
+      </div>
+      <div class="test-item">
+        <strong>Live URL:</strong> https://electro-interfaces.github.io/tradeframe-builder/
+      </div>
+      <div class="test-item">
+        <strong>Коммит:</strong> f0c7a04 - "fix: устранить X-Frame-Options ошибку и темный экран"
+      </div>
+      <div class="test-item">
+        <strong>GitHub Actions:</strong> Автоматический деплой после push в main
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const liveUrl = 'https://electro-interfaces.github.io/tradeframe-builder/';
+
+    function openLiveApp() {
+      console.log('🚀 Открываем живую версию TradeFrame...');
+      window.location.href = liveUrl;
+    }
+
+    function openLiveAppNewTab() {
+      console.log('🔗 Открываем живую версию в новой вкладке...');
+      window.open(liveUrl, '_blank');
+    }
+
+    function openDevTools() {
+      alert(`🔧 Инструкции для тестирования:
+
+1. Откройте живую версию: ${liveUrl}
+2. Нажмите F12 для открытия DevTools
+3. Перейдите на вкладку Console
+4. Обновите страницу (F5)
+5. Проверьте отсутствие ошибки X-Frame-Options
+6. Посмотрите логи загрузки React
+7. Протестируйте PWA installer (появится через 3 сек)
+
+Ожидаемые логи:
+✅ "🎯 Removing initial loading indicator"
+✅ "🚀 React content detected, removing loading"
+❌ НЕТ: "X-Frame-Options may only be set via an HTTP header"`);
+    }
+
+    function loadInFrame() {
+      console.log('📱 Загружаем приложение в iframe...');
+      document.getElementById('liveFrame').src = liveUrl;
+    }
+
+    function refreshFrame() {
+      const frame = document.getElementById('liveFrame');
+      const currentSrc = frame.src;
+      frame.src = 'about:blank';
+      setTimeout(() => {
+        frame.src = currentSrc;
+      }, 100);
+    }
+
+    // Автоматическая загрузка в iframe через 2 секунды
+    setTimeout(() => {
+      loadInFrame();
+    }, 2000);
+
+    console.log('🎯 Тестер готов! Live URL:', liveUrl);
+  </script>
+</body>
+</html>

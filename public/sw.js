@@ -1,8 +1,18 @@
 // Service Worker для TradeFrame PWA - Full PWA Version
-console.log('[SW] TradeFrame Service Worker starting...');
+console.log('[SW] 🚀 TradeFrame Service Worker starting...', {
+  timestamp: new Date().toISOString(),
+  scope: self.registration.scope,
+  location: self.location.href
+});
 
 const CACHE_NAME = `tradeframe-v${Date.now()}`; // Уникальная версия для каждой сборки
 const BASE_PATH = new URL(self.registration.scope).pathname;
+
+console.log('[SW] 🔧 Configuration:', {
+  CACHE_NAME,
+  BASE_PATH,
+  scope: self.registration.scope
+});
 
 // Критические ресурсы для кэширования
 const CORE_CACHE_URLS = [
