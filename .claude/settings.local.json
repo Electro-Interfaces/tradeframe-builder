@@ -137,7 +137,9 @@
       "Bash(start http://localhost:3006/admin/equipment)",
       "Read(/C:\\Users\\magsp\\Documents\\tradeframe-builder\\src\\services/**)",
       "Read(/C:\\Users\\magsp\\Documents\\tradeframe-builder\\src\\services/**)",
-      "Bash(start test-supabase-direct.html)"
+      "Bash(start test-supabase-direct.html)",
+      "Bash(git push:*)",
+      "Bash(start tools/test-pwa-browsers.html)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
