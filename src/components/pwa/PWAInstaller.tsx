@@ -144,46 +144,48 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
 
       console.log('🔧 PWA Installer: Событие обработано, deferredPrompt сохранен');
 
-      // Показываем промпт только на мобильных устройствах или если браузер явно поддерживает PWA
+      // Показываем промпт для всех браузеров агрессивно
       setTimeout(() => {
-        console.log('⏰ PWA Installer: Проверяем через 3 секунды - показывать ли промпт', {
+        console.log('⏰ PWA Installer: Проверяем через 1 секунду - показывать ли промпт', {
           isInstalled,
           detectedMobile,
           isYandex,
-          shouldShow: !isInstalled && (detectedMobile || isYandex)
+          isChrome,
+          isFirefox,
+          shouldShow: !isInstalled
         });
 
         if (!isInstalled) {
-          console.log('✅ PWA Installer: Показываем промпт установки для всех браузеров');
+          console.log('✅ PWA Installer: АГРЕССИВНО показываем промпт установки для ВСЕХ браузеров');
           setShowPrompt(true);
         } else {
           console.log('❌ PWA Installer: Промпт установки не показан - приложение уже установлено');
         }
-      }, 3000);
+      }, 1000); // Уменьшаем с 3 сек до 1 сек
     };
 
-    // Для всех мобильных браузеров с ограниченной beforeinstallprompt поддержкой
-    console.log('⏰ PWA Installer: Запускаем fallback таймер на 5 секунд...');
+    // АГРЕССИВНЫЙ fallback для всех браузеров
+    console.log('⏰ PWA Installer: Запускаем АГРЕССИВНЫЙ fallback таймер на 2 секунды...');
     const fallbackTimer = setTimeout(() => {
-      console.log('🔍 PWA Installer: Fallback таймер сработал, проверяем состояние:', {
+      console.log('🔍 PWA Installer: АГРЕССИВНЫЙ Fallback таймер сработал, проверяем состояние:', {
         canInstall,
         isInstalled,
         detectedMobile,
         detectedIOS,
-        shouldShowFallback: !canInstall && !isInstalled && detectedMobile && !detectedIOS
+        isChrome,
+        isFirefox,
+        shouldShowFallback: !canInstall && !isInstalled
       });
 
-      if (!canInstall && !isInstalled && !detectedIOS) {
-        // Показываем PWA installer для любого браузера (не только мобильного), если beforeinstallprompt не сработал
-        console.log('✅ PWA Installer: beforeinstallprompt не сработал за 5 сек, показываем fallback для всех браузеров');
+      if (!canInstall && !isInstalled) {
+        // Показываем PWA installer для ВСЕХ браузеров агрессивно
+        console.log('🚀 PWA Installer: АГРЕССИВНО показываем fallback для ВСЕХ браузеров (Chrome, Firefox, Safari, все!)');
         setCanInstall(true);
         setShowPrompt(true);
-      } else if (detectedIOS) {
-        console.log('ℹ️ PWA Installer: iOS обрабатывается отдельным таймером');
       } else {
         console.log('❌ PWA Installer: Fallback не требуется - уже установлен или canInstall = true');
       }
-    }, 5000);
+    }, 2000); // Уменьшаем с 5 сек до 2 сек
 
     // iOS особенность: ВСЕ браузеры на iOS используют WebKit Safari движок
     // Только Safari может устанавливать PWA, остальные браузеры показывают предложение открыть в Safari
