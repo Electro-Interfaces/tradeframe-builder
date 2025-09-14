@@ -177,7 +177,7 @@ class AuthService {
       {
         name: 'PBKDF2',
         salt: saltBytes,
-        iterations: 10000, // Вместо 100000
+        iterations: 100000, // Вместо 10000
         hash: 'SHA-256'
       },
       keyMaterial,
