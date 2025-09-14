@@ -2,7 +2,7 @@
 console.log('[SW] TradeFrame Service Worker starting...');
 
 const CACHE_NAME = `tradeframe-v${Date.now()}`; // Уникальная версия для каждой сборки
-const BASE_PATH = '/tradeframe-builder/';
+const BASE_PATH = new URL(self.registration.scope).pathname;
 
 // Критические ресурсы для кэширования
 const CORE_CACHE_URLS = [

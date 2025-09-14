@@ -90,23 +90,21 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
       setDeferredPrompt(e);
       setCanInstall(true);
 
-      // Показываем промпт через небольшую задержку
+      // Показываем промпт только на мобильных устройствах или если браузер явно поддерживает PWA
       setTimeout(() => {
-        if (!isInstalled) {
+        if (!isInstalled && (detectedMobile || isYandex)) {
           setShowPrompt(true);
         }
       }, 3000);
     };
 
-    // Для браузеров с ограниченной beforeinstallprompt поддержкой
+    // Для всех мобильных браузеров с ограниченной beforeinstallprompt поддержкой
     const fallbackTimer = setTimeout(() => {
-      if (!canInstall && !isInstalled) {
-        // Opera Mobile - иногда поддерживает beforeinstallprompt, даем больше времени
-        if (detectedOpera && detectedMobile) {
-          console.log('🔍 PWA Installer: Opera mobile - beforeinstallprompt не сработал за 5 сек, показываем инструкции');
-          setCanInstall(true);
-          setShowPrompt(true);
-        }
+      if (!canInstall && !isInstalled && detectedMobile && !detectedIOS) {
+        // Показываем PWA installer для любого мобильного браузера, если beforeinstallprompt не сработал
+        console.log('🔍 PWA Installer: Мобильный браузер - beforeinstallprompt не сработал за 5 сек, показываем инструкции');
+        setCanInstall(true);
+        setShowPrompt(true);
       }
     }, 5000);
 

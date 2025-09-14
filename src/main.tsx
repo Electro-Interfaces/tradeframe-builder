@@ -29,11 +29,12 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   if (isMobile && isGitHubPages) {
     console.log('🚫 Service Worker disabled for mobile GitHub Pages');
   } else {
-    window.addEventListener('load', () => {
-      const swPath = import.meta.env.PROD ? '/tradeframe-builder/sw.js' : '/sw.js';
-      
-      navigator.serviceWorker.register(swPath)
-        .then((registration) => {
+    // Регистрируем SW сразу, не дожидаясь load события для лучшей PWA установки
+    const base = import.meta.env.BASE_URL;
+    const swUrl = `${base}sw.js`;
+
+    navigator.serviceWorker.register(swUrl, { scope: base })
+      .then((registration) => {
           console.log('✅ SW registered:', registration.scope);
           
           // Обработка обновлений
@@ -54,7 +55,6 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
           // Не блокируем приложение если SW не загружается
           console.log('📱 App will continue without PWA features');
         });
-    });
   }
 } else if (!('serviceWorker' in navigator)) {
   console.log('🚫 Service Worker not supported in this browser');

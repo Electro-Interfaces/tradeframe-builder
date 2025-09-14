@@ -7,60 +7,60 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "fullscreen"],
   "orientation": "any",
-  "scope": "/tradeframe-builder/",
-  "start_url": "/tradeframe-builder/?utm_source=pwa&utm_medium=app",
-  "id": "/tradeframe-builder/",
+  "scope": "./",
+  "start_url": "./?utm_source=pwa&utm_medium=app",
+  "id": "./",
   "icons": [
     {
-      "src": "/tradeframe-builder/favicon.ico",
+      "src": "favicon.ico",
       "sizes": "48x48",
       "type": "image/x-icon",
       "purpose": "any"
     },
     {
-      "src": "/tradeframe-builder/icon-72x72.png",
+      "src": "icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/tradeframe-builder/icon-96x96.png",
+      "src": "icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/tradeframe-builder/icon-192x192.png",
+      "src": "icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/tradeframe-builder/icon-512x512.png",
+      "src": "icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/tradeframe-builder/icon.svg",
+      "src": "icon.svg",
       "sizes": "128x128 144x144 152x152 384x384",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/tradeframe-builder/icon.svg",
+      "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/tradeframe-builder/icon-192x192.png",
+      "src": "icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/tradeframe-builder/icon-512x512.png",
+      "src": "icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -84,10 +84,10 @@
       "name": "Операции",
       "short_name": "Операции",
       "description": "Просмотр операций и транзакций",
-      "url": "/tradeframe-builder/network/operations-transactions",
+      "url": "network/operations-transactions",
       "icons": [
         {
-          "src": "/tradeframe-builder/icon-96x96.png",
+          "src": "icon-96x96.png",
           "sizes": "96x96"
         }
       ]
@@ -96,10 +96,10 @@
       "name": "Цены",
       "short_name": "Цены",
       "description": "Управление ценами на топливо",
-      "url": "/tradeframe-builder/point/prices",
+      "url": "point/prices",
       "icons": [
         {
-          "src": "/tradeframe-builder/icon-96x96.png",
+          "src": "icon-96x96.png",
           "sizes": "96x96"
         }
       ]
