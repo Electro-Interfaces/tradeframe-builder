@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Chrome Диагностика</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 { color: #333; }
+        .status { padding: 8px 12px; border-radius: 4px; margin: 8px 0; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .metric-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 PWA Chrome Диагностика TradeFrame</h1>
+    <p><strong>Время запуска:</strong> <span id="startTime"></span></p>
+
+    <div class="container">
+        <h2>🌐 Основная информация</h2>
+        <div id="basicInfo"></div>
+    </div>
+
+    <div class="container">
+        <h2>📋 Анализ Manifest</h2>
+        <button onclick="checkManifest()">Проверить Manifest</button>
+        <div id="manifestInfo"></div>
+    </div>
+
+    <div class="container">
+        <h2>⚙️ Service Worker</h2>
+        <button onclick="checkServiceWorker()">Проверить SW</button>
+        <div id="swInfo"></div>
+    </div>
+
+    <div class="container">
+        <h2>🖼️ Иконки</h2>
+        <button onclick="checkIcons()">Проверить иконки</button>
+        <div id="iconsInfo"></div>
+    </div>
+
+    <div class="container">
+        <h2>⚡ PWA Критерии</h2>
+        <button onclick="checkPWACriteria()">Полная проверка PWA</button>
+        <div id="pwaInfo"></div>
+    </div>
+
+    <div class="container">
+        <h2>🎯 Install Prompt</h2>
+        <div>
+            <button onclick="waitForInstallPrompt()">Ждать beforeinstallprompt (30сек)</button>
+            <button onclick="clearData()">Сбросить данные сайта</button>
+            <button onclick="checkInstallState()">Проверить состояние установки</button>
+        </div>
+        <div id="installInfo"></div>
+    </div>
+
+    <div class="container">
+        <h2>🔬 Chrome DevTools</h2>
+        <div class="warning">
+            <p><strong>Для диагностики откройте Chrome DevTools:</strong></p>
+            <ol>
+                <li>F12 → Application → Manifest</li>
+                <li>Application → Service Workers</li>
+                <li>Lighthouse → PWA анализ</li>
+                <li>Console → проверить ошибки</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Время запуска
+        document.getElementById('startTime').textContent = new Date().toLocaleString();
+
+        let installPromptEvent = null;
+        let installPromptReceived = false;
+
+        // Слушаем beforeinstallprompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('✅ beforeinstallprompt получен!', e);
+            installPromptEvent = e;
+            installPromptReceived = true;
+            document.getElementById('installInfo').innerHTML +=
+                '<div class="success">✅ beforeinstallprompt событие получено!</div>';
+        });
+
+        // Слушаем appinstalled
+        window.addEventListener('appinstalled', (e) => {
+            console.log('🎉 PWA установлено!', e);
+            document.getElementById('installInfo').innerHTML +=
+                '<div class="success">🎉 PWA успешно установлено!</div>';
+        });
+
+        // Основная информация
+        function showBasicInfo() {
+            const info = {
+                'URL': window.location.href,
+                'Protocol': window.location.protocol,
+                'User Agent': navigator.userAgent,
+                'Platform': navigator.platform,
+                'Language': navigator.language,
+                'Online': navigator.onLine,
+                'Standalone': window.matchMedia('(display-mode: standalone)').matches,
+                'Mobile': /Mobi|Android/i.test(navigator.userAgent),
+                'Viewport Width': window.innerWidth,
+                'Viewport Height': window.innerHeight
+            };
+
+            let html = '<div class="metric-grid">';
+            Object.entries(info).forEach(([key, value]) => {
+                html += `
+                    <div class="metric-card">
+                        <strong>${key}:</strong><br>
+                        <span style="word-break: break-all;">${value}</span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            document.getElementById('basicInfo').innerHTML = html;
+        }
+
+        // Проверка манифеста
+        async function checkManifest() {
+            const output = document.getElementById('manifestInfo');
+            output.innerHTML = '<div class="info">Проверяем manifest...</div>';
+
+            try {
+                const manifestPath = '/tradeframe-builder/manifest.json';
+                console.log('Загружаем manifest:', manifestPath);
+
+                const response = await fetch(manifestPath);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const manifest = await response.json();
+                console.log('Manifest загружен:', manifest);
+
+                let html = '<div class="success">✅ Manifest загружен успешно</div>';
+                html += '<h3>Содержимое manifest:</h3>';
+                html += `<pre>${JSON.stringify(manifest, null, 2)}</pre>`;
+
+                // Проверка критических полей
+                const requiredFields = ['name', 'short_name', 'start_url', 'display', 'icons'];
+                html += '<h3>Проверка обязательных полей:</h3>';
+
+                requiredFields.forEach(field => {
+                    if (manifest[field]) {
+                        html += `<div class="success">✅ ${field}: найдено</div>`;
+                    } else {
+                        html += `<div class="error">❌ ${field}: отсутствует</div>`;
+                    }
+                });
+
+                // Проверка иконок в манифесте
+                if (manifest.icons && manifest.icons.length > 0) {
+                    html += '<h3>Иконки в манифесте:</h3>';
+                    manifest.icons.forEach((icon, index) => {
+                        html += `<div class="info">Иконка ${index + 1}: ${icon.src} (${icon.sizes})</div>`;
+                    });
+                } else {
+                    html += '<div class="error">❌ Иконки не найдены в манифесте</div>';
+                }
+
+                output.innerHTML = html;
+            } catch (error) {
+                console.error('Ошибка загрузки manifest:', error);
+                output.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        // Проверка Service Worker
+        async function checkServiceWorker() {
+            const output = document.getElementById('swInfo');
+            output.innerHTML = '<div class="info">Проверяем Service Worker...</div>';
+
+            let html = '';
+
+            if ('serviceWorker' in navigator) {
+                html += '<div class="success">✅ Service Worker поддерживается</div>';
+
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        html += '<div class="success">✅ Service Worker зарегистрирован</div>';
+                        html += `<div class="info">Scope: ${registration.scope}</div>`;
+                        html += `<div class="info">State: ${registration.active?.state || 'неизвестно'}</div>`;
+
+                        if (registration.waiting) {
+                            html += '<div class="warning">⚠️ Есть ожидающий SW (требует обновления)</div>';
+                        }
+
+                        if (registration.installing) {
+                            html += '<div class="info">🔄 SW устанавливается...</div>';
+                        }
+                    } else {
+                        html += '<div class="error">❌ Service Worker не зарегистрирован</div>';
+                    }
+                } catch (error) {
+                    html += `<div class="error">❌ Ошибка проверки SW: ${error.message}</div>`;
+                }
+            } else {
+                html += '<div class="error">❌ Service Worker не поддерживается браузером</div>';
+            }
+
+            output.innerHTML = html;
+        }
+
+        // Проверка иконок
+        async function checkIcons() {
+            const output = document.getElementById('iconsInfo');
+            output.innerHTML = '<div class="info">Проверяем иконки...</div>';
+
+            const iconSizes = ['72x72', '96x96', '192x192', '512x512'];
+            let html = '<h3>Проверка доступности иконок:</h3>';
+
+            for (const size of iconSizes) {
+                const iconUrl = `/tradeframe-builder/icon-${size}.png`;
+                try {
+                    const response = await fetch(iconUrl, { method: 'HEAD' });
+                    if (response.ok) {
+                        html += `<div class="success">✅ icon-${size}.png - доступна (${response.headers.get('content-length')} байт)</div>`;
+                    } else {
+                        html += `<div class="error">❌ icon-${size}.png - HTTP ${response.status}</div>`;
+                    }
+                } catch (error) {
+                    html += `<div class="error">❌ icon-${size}.png - ошибка: ${error.message}</div>`;
+                }
+            }
+
+            output.innerHTML = html;
+        }
+
+        // Полная проверка PWA критериев
+        async function checkPWACriteria() {
+            const output = document.getElementById('pwaInfo');
+            output.innerHTML = '<div class="info">Проверяем PWA критерии...</div>';
+
+            let html = '<h3>PWA Критерии для Chrome:</h3>';
+
+            // HTTPS
+            if (window.location.protocol === 'https:' || window.location.hostname === 'localhost') {
+                html += '<div class="success">✅ HTTPS - OK</div>';
+            } else {
+                html += '<div class="error">❌ Требуется HTTPS</div>';
+            }
+
+            // Service Worker
+            const swSupported = 'serviceWorker' in navigator;
+            html += swSupported ?
+                '<div class="success">✅ Service Worker - поддерживается</div>' :
+                '<div class="error">❌ Service Worker - не поддерживается</div>';
+
+            // Manifest
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            html += manifestLink ?
+                '<div class="success">✅ Manifest - ссылка найдена</div>' :
+                '<div class="error">❌ Manifest - ссылка не найдена</div>';
+
+            // Установка
+            const isInstalled = window.matchMedia('(display-mode: standalone)').matches ||
+                              window.navigator.standalone === true;
+            html += isInstalled ?
+                '<div class="info">ℹ️ PWA уже установлено</div>' :
+                '<div class="info">ℹ️ PWA не установлено</div>';
+
+            // Engagement heuristics
+            html += '<h3>Chrome Engagement критерии:</h3>';
+            html += '<div class="warning">⚠️ Chrome требует "достаточного взаимодействия":</div>';
+            html += '<div class="info">• Пользователь должен провести на сайте некоторое время</div>';
+            html += '<div class="info">• Должно быть несколько взаимодействий (клики, скроллы)</div>';
+            html += '<div class="info">• Может потребоваться несколько визитов</div>';
+
+            // Install prompt
+            html += '<h3>Install Prompt состояние:</h3>';
+            html += installPromptReceived ?
+                '<div class="success">✅ beforeinstallprompt получен</div>' :
+                '<div class="warning">⚠️ beforeinstallprompt ещё не получен</div>';
+
+            output.innerHTML = html;
+        }
+
+        // Ожидание install prompt
+        function waitForInstallPrompt() {
+            const output = document.getElementById('installInfo');
+            output.innerHTML = '<div class="info">Ожидаем beforeinstallprompt событие 30 секунд...</div>';
+
+            let countdown = 30;
+            const timer = setInterval(() => {
+                if (installPromptReceived) {
+                    clearInterval(timer);
+                    output.innerHTML += '<div class="success">✅ Событие получено!</div>';
+                    if (installPromptEvent) {
+                        output.innerHTML += '<button onclick="triggerInstall()">Запустить установку</button>';
+                    }
+                } else {
+                    countdown--;
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        output.innerHTML += '<div class="warning">⚠️ Событие не получено за 30 секунд</div>';
+                        output.innerHTML += '<div class="info">Возможные причины:<br>• PWA уже установлено<br>• Недостаточно user engagement<br>• Проблемы с критериями PWA</div>';
+                    }
+                }
+            }, 1000);
+        }
+
+        // Запуск установки
+        async function triggerInstall() {
+            if (!installPromptEvent) {
+                alert('beforeinstallprompt событие недоступно');
+                return;
+            }
+
+            try {
+                const result = await installPromptEvent.prompt();
+                console.log('Install prompt result:', result);
+                document.getElementById('installInfo').innerHTML +=
+                    `<div class="info">Результат установки: ${result.outcome}</div>`;
+            } catch (error) {
+                console.error('Install error:', error);
+                document.getElementById('installInfo').innerHTML +=
+                    `<div class="error">Ошибка установки: ${error.message}</div>`;
+            }
+        }
+
+        // Сброс данных
+        async function clearData() {
+            try {
+                // Очистка кеша
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                }
+
+                // Очистка localStorage
+                localStorage.clear();
+                sessionStorage.clear();
+
+                // Отмена регистрации SW
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map(reg => reg.unregister()));
+                }
+
+                alert('Данные сайта очищены. Перезагрузите страницу.');
+            } catch (error) {
+                alert('Ошибка очистки: ' + error.message);
+            }
+        }
+
+        // Проверка состояния установки
+        function checkInstallState() {
+            const output = document.getElementById('installInfo');
+
+            let html = '<h3>Состояние установки:</h3>';
+
+            // Проверки установки
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            const isIOS = window.navigator.standalone;
+            const hasInstallPrompt = !!installPromptEvent;
+
+            html += isStandalone ?
+                '<div class="success">✅ Запущено как standalone приложение</div>' :
+                '<div class="info">ℹ️ Запущено в браузере</div>';
+
+            html += isIOS ?
+                '<div class="success">✅ iOS PWA режим активен</div>' :
+                '<div class="info">ℹ️ Не iOS или не в PWA режиме</div>';
+
+            html += hasInstallPrompt ?
+                '<div class="success">✅ Install prompt доступен</div>' :
+                '<div class="warning">⚠️ Install prompt недоступен</div>';
+
+            output.innerHTML = html;
+        }
+
+        // Автозапуск базовой информации
+        showBasicInfo();
+
+        // Автопроверка через 2 секунды
+        setTimeout(() => {
+            console.log('🔍 Автоматическая диагностика через 2 секунды...');
+            checkManifest();
+            checkServiceWorker();
+        }, 2000);
+    </script>
+</body>
+</html>

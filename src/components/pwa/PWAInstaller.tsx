@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Download, X, Smartphone, MoreVertical, Share } from 'lucide-react';
+import { useEngagementTracker } from '@/hooks/useEngagementTracker';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -35,6 +36,25 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
   const [isChrome, setIsChrome] = useState(false);
   const [isSafari, setIsSafari] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+
+  // Отслеживание активности пользователя
+  const { metrics, isEngagementSufficient, isUserActive, boostEngagement } = useEngagementTracker();
+
+  // Отслеживаем достижение engagement для Chrome
+  useEffect(() => {
+    if (isChrome && isEngagementSufficient && !canInstall && !isInstalled && !showPrompt) {
+      console.log('🎯 PWA Installer: Engagement достигнут для Chrome! Показываем промпт немедленно', {
+        metrics,
+        isEngagementSufficient,
+        canInstall,
+        isInstalled,
+        showPrompt
+      });
+
+      setCanInstall(true);
+      setShowPrompt(true);
+    }
+  }, [isEngagementSufficient, isChrome, canInstall, isInstalled, showPrompt, metrics]);
 
   useEffect(() => {
     console.log('🚀 PWA Installer: Starting initialization...');
@@ -221,24 +241,43 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
       });
 
       if (!canInstall && !isInstalled) {
-        // Показываем PWA installer для ВСЕХ браузеров агрессивно
-        console.log('🚀 PWA Installer: АГРЕССИВНО показываем fallback для ВСЕХ браузеров (Chrome, Firefox, Safari, все!)');
+        // Для Chrome требуем engagement, для других браузеров - показываем сразу
+        if (isChrome && !isEngagementSufficient) {
+          console.log('⚠️ Chrome PWA: Недостаточный engagement, ждем больше активности:', {
+            timeSpent: metrics.timeSpent,
+            interactions: metrics.interactions,
+            scrollEvents: metrics.scrollEvents,
+            required: { timeSpent: 30, interactions: 5, scrollEvents: 2 }
+          });
 
-        // Специальное сообщение для Chrome
-        if (isChrome) {
           console.log('💡 Chrome PWA: beforeinstallprompt не сработал, возможные причины:');
           console.log('- PWA уже установлено (проверьте chrome://apps)');
-          console.log('- Недостаточно user engagement (попробуйте перезагрузить и подождать)');
+          console.log('- Недостаточно user engagement (нужно больше взаимодействий)');
           console.log('- Проблемы с manifest или Service Worker');
           console.log('- Chrome требует больше времени для анализа PWA критериев');
+
+          // Добавим кнопку для разработчиков
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🛠️ DEV: Для тестирования выполните в консоли: window.boostEngagement()');
+            (window as any).boostEngagement = boostEngagement;
+          }
+
+          return; // Не показываем промпт для Chrome без engagement
         }
+
+        // Показываем PWA installer
+        console.log('🚀 PWA Installer: Показываем fallback установку', {
+          browser: isChrome ? 'Chrome (engagement ✅)' : isFirefox ? 'Firefox' : isSafari ? 'Safari' : 'Other',
+          engagement: isEngagementSufficient ? '✅ Sufficient' : '❌ Insufficient',
+          reason: isChrome && isEngagementSufficient ? 'Chrome + engagement' : 'Non-Chrome browser'
+        });
 
         setCanInstall(true);
         setShowPrompt(true);
       } else {
         console.log('❌ PWA Installer: Fallback не требуется - уже установлен или canInstall = true');
       }
-    }, 2000); // Уменьшаем с 5 сек до 2 сек
+    }, isChrome ? 5000 : 2000); // Для Chrome ждем дольше
 
     // iOS особенность: ВСЕ браузеры на iOS используют WebKit Safari движок
     // Только Safari может устанавливать PWA, остальные браузеры показывают предложение открыть в Safari
