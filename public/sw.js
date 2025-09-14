@@ -2,8 +2,15 @@
 console.log('[SW] 🚀 TradeFrame Service Worker starting...', {
   timestamp: new Date().toISOString(),
   scope: self.registration.scope,
-  location: self.location.href
+  location: self.location.href,
+  userAgent: self.navigator.userAgent.substring(0, 50)
 });
+
+// Детекция iOS для специальной обработки
+const isIOS = /iPad|iPhone|iPod/.test(self.navigator.userAgent);
+if (isIOS) {
+  console.log('[SW] 🍎 iOS detected, applying iOS-specific PWA fixes');
+}
 
 const CACHE_NAME = `tradeframe-v${Date.now()}`; // Уникальная версия для каждой сборки
 const BASE_PATH = new URL(self.registration.scope).pathname;
@@ -111,8 +118,11 @@ self.addEventListener('fetch', event => {
   else if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
-        .catch(() => {
-          console.log('[SW] Navigation failed, returning cached index.html');
+        .catch((error) => {
+          console.log('[SW] Navigation failed, returning cached index.html', { error: error.message, isIOS });
+          if (isIOS) {
+            console.log('[SW] 🍎 iOS PWA navigation error, applying iOS-specific handling');
+          }
           return caches.match(BASE_PATH + 'index.html')
             .then(cachedResponse => {
               if (cachedResponse) {

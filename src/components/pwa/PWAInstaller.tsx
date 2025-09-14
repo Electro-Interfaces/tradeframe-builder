@@ -338,6 +338,23 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
       isSafari: isSafari
     });
 
+    // КРИТИЧЕСКИЙ ФИК ДЛЯ iOS PWA: Создаем резервную копию auth данных
+    if (isIOS) {
+      console.log('🍎 iOS PWA: Создаем резервную копию auth данных перед установкой');
+      const currentUser = localStorage.getItem('tradeframe_user');
+      const authToken = localStorage.getItem('authToken');
+
+      if (currentUser && authToken) {
+        const authBackup = {
+          user: currentUser,
+          token: authToken,
+          timestamp: new Date().toISOString()
+        };
+        sessionStorage.setItem('pwa-auth-backup', JSON.stringify(authBackup));
+        console.log('✅ iOS PWA: Auth данные сохранены в резервную копию');
+      }
+    }
+
     // Если есть стандартный промпт - используем его
     if (deferredPrompt) {
       console.log('✅ PWA Installer: Используем deferredPrompt для установки');

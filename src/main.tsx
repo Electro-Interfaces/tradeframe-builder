@@ -128,10 +128,31 @@ if (typeof window !== 'undefined') {
     document.documentElement.classList.add('webview-optimized');
   }
 
-  // Специальные фиксы для PWA режима  
+  // Специальные фиксы для PWA режима
   if (isStandalone) {
     console.log('📱 PWA standalone mode detected');
     document.documentElement.classList.add('pwa-installed');
+
+    // КРИТИЧЕСКИЙ ФИК ДЛЯ iOS PWA: Восстановление auth данных
+    const authFromBrowser = sessionStorage.getItem('pwa-auth-backup');
+    if (authFromBrowser && !localStorage.getItem('tradeframe_user')) {
+      console.log('🔧 iOS PWA: Восстанавливаем auth данные из резервной копии');
+      try {
+        const authData = JSON.parse(authFromBrowser);
+        localStorage.setItem('tradeframe_user', authData.user);
+        localStorage.setItem('authToken', authData.token);
+      } catch (e) {
+        console.error('❌ iOS PWA: Ошибка восстановления auth данных:', e);
+      }
+    }
+
+    // Дополнительная защита от падения iOS PWA
+    window.addEventListener('error', (e) => {
+      console.error('🍎 iOS PWA Critical Error:', e.error);
+      // Пытаемся предотвратить полное падение
+      e.preventDefault();
+      return true;
+    });
   }
 }
 

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS PWA Debug</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status { padding: 8px 12px; border-radius: 4px; margin: 8px 0; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        button {
+            background: #007bff; color: white; border: none; padding: 10px 20px;
+            border-radius: 4px; cursor: pointer; margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .critical { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🍎 iOS PWA Debug Tool</h1>
+
+    <div class="container">
+        <h2>📱 Device & Environment Detection</h2>
+        <div id="deviceInfo"></div>
+    </div>
+
+    <div class="container">
+        <h2>🌐 PWA Mode Detection</h2>
+        <div id="pwaMode"></div>
+    </div>
+
+    <div class="container">
+        <h2>📋 Service Worker Status</h2>
+        <button onclick="checkServiceWorker()">Check Service Worker</button>
+        <div id="swStatus"></div>
+    </div>
+
+    <div class="container">
+        <h2>📄 Manifest Check</h2>
+        <button onclick="checkManifest()">Check Manifest</button>
+        <div id="manifestStatus"></div>
+    </div>
+
+    <div class="container">
+        <h2>💾 Storage & Cache</h2>
+        <button onclick="checkStorage()">Check Storage</button>
+        <div id="storageStatus"></div>
+    </div>
+
+    <div class="container">
+        <h2>⚠️ iOS-specific Issues</h2>
+        <div id="iosIssues"></div>
+    </div>
+
+    <div class="container">
+        <h2>🛠️ Debug Actions</h2>
+        <button onclick="clearAllData()">Clear All Data</button>
+        <button onclick="reloadSW()">Reload Service Worker</button>
+        <button onclick="runFullDiagnostic()">Full Diagnostic</button>
+    </div>
+
+    <script>
+        console.log('🍎 iOS PWA Debug Tool starting...');
+
+        // Device detection
+        function detectDevice() {
+            const ua = navigator.userAgent;
+            const isIOS = /iPad|iPhone|iPod/.test(ua);
+            const isIPad = /iPad/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isIPhone = /iPhone/.test(ua);
+            const isPWAMode = window.navigator.standalone === true;
+            const isWebApp = window.matchMedia('(display-mode: standalone)').matches;
+
+            return {
+                isIOS,
+                isIPad,
+                isIPhone,
+                isPWAMode,
+                isWebApp,
+                userAgent: ua,
+                standalone: window.navigator.standalone,
+                displayMode: window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser'
+            };
+        }
+
+        // Show device info
+        function showDeviceInfo() {
+            const device = detectDevice();
+            const container = document.getElementById('deviceInfo');
+
+            let html = '<h3>Device Information:</h3>';
+            html += '<pre>' + JSON.stringify(device, null, 2) + '</pre>';
+
+            if (!device.isIOS) {
+                html += '<div class="warning">⚠️ This tool is designed for iOS devices</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // PWA mode detection
+        function showPWAMode() {
+            const device = detectDevice();
+            const container = document.getElementById('pwaMode');
+
+            let html = '<h3>PWA Mode Status:</h3>';
+
+            if (device.isPWAMode) {
+                html += '<div class="success">✅ Running in PWA mode (standalone)</div>';
+            } else if (device.isWebApp) {
+                html += '<div class="success">✅ Running in Web App mode</div>';
+            } else {
+                html += '<div class="info">ℹ️ Running in browser mode</div>';
+            }
+
+            html += `<div class="info">Display mode: ${device.displayMode}</div>`;
+            html += `<div class="info">Navigator.standalone: ${device.standalone}</div>`;
+
+            container.innerHTML = html;
+        }
+
+        // Service Worker check
+        async function checkServiceWorker() {
+            const container = document.getElementById('swStatus');
+            container.innerHTML = '<div class="info">Checking Service Worker...</div>';
+
+            try {
+                if (!('serviceWorker' in navigator)) {
+                    container.innerHTML = '<div class="error">❌ Service Worker not supported</div>';
+                    return;
+                }
+
+                const registration = await navigator.serviceWorker.getRegistration();
+                let html = '<h3>Service Worker Status:</h3>';
+
+                if (registration) {
+                    html += '<div class="success">✅ Service Worker registered</div>';
+                    html += `<div class="info">Scope: ${registration.scope}</div>`;
+                    html += `<div class="info">State: ${registration.active ? 'Active' : 'Not Active'}</div>`;
+
+                    if (registration.active) {
+                        html += `<div class="info">Script URL: ${registration.active.scriptURL}</div>`;
+                        html += `<div class="info">State: ${registration.active.state}</div>`;
+                    }
+
+                    if (registration.waiting) {
+                        html += '<div class="warning">⚠️ New Service Worker waiting</div>';
+                    }
+
+                    if (registration.installing) {
+                        html += '<div class="info">🔄 Service Worker installing</div>';
+                    }
+                } else {
+                    html += '<div class="error">❌ No Service Worker registered</div>';
+                }
+
+                // Check for errors in console
+                const swErrors = await checkServiceWorkerErrors();
+                if (swErrors.length > 0) {
+                    html += '<div class="error">⚠️ Service Worker Errors:</div>';
+                    html += '<pre>' + swErrors.join('\n') + '</pre>';
+                }
+
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error checking SW: ${error.message}</div>`;
+            }
+        }
+
+        // Check manifest
+        async function checkManifest() {
+            const container = document.getElementById('manifestStatus');
+            container.innerHTML = '<div class="info">Checking Manifest...</div>';
+
+            try {
+                const response = await fetch('/manifest.json');
+                let html = '<h3>Manifest Status:</h3>';
+
+                if (response.ok) {
+                    const manifest = await response.json();
+                    html += '<div class="success">✅ Manifest loaded successfully</div>';
+
+                    // Check critical fields
+                    const required = ['name', 'short_name', 'start_url', 'display', 'icons'];
+                    const missing = required.filter(field => !manifest[field]);
+
+                    if (missing.length === 0) {
+                        html += '<div class="success">✅ All required fields present</div>';
+                    } else {
+                        html += `<div class="error">❌ Missing fields: ${missing.join(', ')}</div>`;
+                    }
+
+                    // Check icons
+                    if (manifest.icons && manifest.icons.length > 0) {
+                        const hasLargeIcon = manifest.icons.some(icon => {
+                            const sizes = icon.sizes?.split('x');
+                            return sizes && parseInt(sizes[0]) >= 192;
+                        });
+
+                        if (hasLargeIcon) {
+                            html += '<div class="success">✅ Has large icons (192px+)</div>';
+                        } else {
+                            html += '<div class="error">❌ No large icons found</div>';
+                        }
+                    } else {
+                        html += '<div class="error">❌ No icons defined</div>';
+                    }
+
+                    html += '<h4>Manifest Content:</h4>';
+                    html += '<pre>' + JSON.stringify(manifest, null, 2) + '</pre>';
+                } else {
+                    html += `<div class="error">❌ Failed to load manifest: ${response.status}</div>`;
+                }
+
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="error">❌ Error checking manifest: ${error.message}</div>`;
+            }
+        }
+
+        // Check storage
+        async function checkStorage() {
+            const container = document.getElementById('storageStatus');
+            let html = '<h3>Storage Status:</h3>';
+
+            try {
+                // LocalStorage
+                const lsSize = JSON.stringify(localStorage).length;
+                html += `<div class="info">LocalStorage: ${lsSize} bytes</div>`;
+
+                // SessionStorage
+                const ssSize = JSON.stringify(sessionStorage).length;
+                html += `<div class="info">SessionStorage: ${ssSize} bytes</div>`;
+
+                // Cache Storage
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    html += `<div class="info">Cache Storage: ${cacheNames.length} caches</div>`;
+
+                    for (const cacheName of cacheNames) {
+                        const cache = await caches.open(cacheName);
+                        const requests = await cache.keys();
+                        html += `<div class="info">  - ${cacheName}: ${requests.length} items</div>`;
+                    }
+                } else {
+                    html += '<div class="error">❌ Cache Storage not available</div>';
+                }
+
+                // IndexedDB
+                if ('indexedDB' in window) {
+                    html += '<div class="success">✅ IndexedDB available</div>';
+                } else {
+                    html += '<div class="error">❌ IndexedDB not available</div>';
+                }
+
+            } catch (error) {
+                html += `<div class="error">❌ Error checking storage: ${error.message}</div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // iOS-specific issues
+        function checkIOSIssues() {
+            const container = document.getElementById('iosIssues');
+            const device = detectDevice();
+            let html = '<h3>iOS-specific Issues Check:</h3>';
+
+            if (!device.isIOS) {
+                html += '<div class="info">ℹ️ Not an iOS device</div>';
+                container.innerHTML = html;
+                return;
+            }
+
+            // Issue 1: iOS 16.4+ Storage Partitioning
+            if (device.isPWAMode) {
+                html += '<div class="warning">⚠️ iOS 16.4+ Storage Partitioning: PWA has separate storage from browser</div>';
+            }
+
+            // Issue 2: Service Worker scope issues
+            if (window.location.pathname !== '/') {
+                html += '<div class="warning">⚠️ App not served from root - potential SW scope issues</div>';
+            }
+
+            // Issue 3: HTTPS requirement
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                html += '<div class="error">❌ HTTPS required for PWA features</div>';
+            }
+
+            // Issue 4: Cache issues
+            html += '<div class="info">💡 Common iOS PWA issues:</div>';
+            html += '<ul>';
+            html += '<li>Storage partitioning in iOS 16.4+ can cause data loss</li>';
+            html += '<li>Service Worker may fail silently</li>';
+            html += '<li>Cache size limits are more restrictive</li>';
+            html += '<li>Some JS features may be limited in PWA mode</li>';
+            html += '</ul>';
+
+            container.innerHTML = html;
+        }
+
+        // Service Worker error detection
+        async function checkServiceWorkerErrors() {
+            const errors = [];
+
+            // Listen for SW errors
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration && registration.active) {
+                        // Check if SW is responding
+                        const controller = navigator.serviceWorker.controller;
+                        if (!controller) {
+                            errors.push('Service Worker not controlling page');
+                        }
+                    }
+                } catch (error) {
+                    errors.push(`SW check failed: ${error.message}`);
+                }
+            }
+
+            return errors;
+        }
+
+        // Clear all data
+        async function clearAllData() {
+            if (!confirm('This will clear ALL app data. Continue?')) return;
+
+            try {
+                // Clear storage
+                localStorage.clear();
+                sessionStorage.clear();
+
+                // Clear caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                }
+
+                // Unregister SW
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map(reg => reg.unregister()));
+                }
+
+                alert('All data cleared! Please reload the page.');
+                setTimeout(() => window.location.reload(), 1000);
+            } catch (error) {
+                alert(`Error clearing data: ${error.message}`);
+            }
+        }
+
+        // Reload Service Worker
+        async function reloadSW() {
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        await registration.update();
+                        alert('Service Worker update requested');
+                    } else {
+                        alert('No Service Worker registered');
+                    }
+                }
+            } catch (error) {
+                alert(`Error reloading SW: ${error.message}`);
+            }
+        }
+
+        // Full diagnostic
+        async function runFullDiagnostic() {
+            console.log('🔍 Running full iOS PWA diagnostic...');
+
+            await checkServiceWorker();
+            await checkManifest();
+            await checkStorage();
+
+            // Generate diagnostic report
+            const device = detectDevice();
+            const report = {
+                timestamp: new Date().toISOString(),
+                device,
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                localStorage: JSON.stringify(localStorage).length,
+                sessionStorage: JSON.stringify(sessionStorage).length
+            };
+
+            console.log('📋 Diagnostic Report:', report);
+
+            // Download report
+            const blob = new Blob([JSON.stringify(report, null, 2)],
+                { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ios-pwa-diagnostic-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            showDeviceInfo();
+            showPWAMode();
+            checkIOSIssues();
+        });
+
+        // Log unhandled errors
+        window.addEventListener('error', (event) => {
+            console.error('🚨 Unhandled error:', event.error);
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('🚨 Unhandled promise rejection:', event.reason);
+        });
+    </script>
+</body>
+</html>

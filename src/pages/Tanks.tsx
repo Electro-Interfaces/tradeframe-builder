@@ -951,8 +951,8 @@ export default function Tanks() {
                   </Button>
                 )}
                 
-                {/* Кнопка обновления данных */}
-                {stsApiConfigured ? (
+                {/* Кнопка обновления данных - скрыта на мобильных */}
+                {!isMobile && (stsApiConfigured ? (
                   <Button
                     onClick={loadTanksFromSTSAPI}
                     disabled={loadingFromSTSAPI}
@@ -976,12 +976,12 @@ export default function Tanks() {
                         // Перезагружаем данные резервуаров из mock API
                         const events: {[key: number]: any[]} = {};
                         const calibrations: {[key: number]: any[]} = {};
-                        
+
                         for (const tank of mockTanks) {
                           events[tank.id] = await mockAPI.getTankEvents(tank.id);
                           calibrations[tank.id] = await mockAPI.getTankCalibrations(tank.id);
                         }
-                        
+
                         setTankEvents(events);
                         setCalibrationHistory(calibrations);
                         if (!isMobile) {
@@ -1017,7 +1017,7 @@ export default function Tanks() {
                     </div>
                     {loading ? 'Обновление...' : 'Обновить данные'}
                   </Button>
-                )}
+                ))}
               </div>
             </CardTitle>
           </CardHeader>
