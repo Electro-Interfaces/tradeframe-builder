@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Edit, Trash2, Copy, History, Play, Pause, Mail, MessageSquare, Webhook, Filter, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSelection } from "@/context/SelectionContext";
+import { useSelection } from "@/contexts/SelectionContext";
 import { HelpButton } from "@/components/help/HelpButton";
 import { NotificationRuleForm } from "@/components/notifications/NotificationRuleForm";
 import { NotificationHistory } from "@/components/notifications/NotificationHistory";

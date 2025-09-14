@@ -16,7 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, X, ExternalLink, Save, AlertCircle } from "lucide-react";
 import { FuelNomenclature, FuelNomenclatureFormData, ExternalCodeMapping } from '@/types/nomenclature';
 import { nomenclatureService } from '@/services/nomenclatureService';
-import { useSelection } from "@/context/SelectionContext";
+import { useSelection } from "@/contexts/SelectionContext";
 
 const externalCodeSchema = z.object({
   systemType: z.enum(['CRM', '1C', 'PROCESSING', 'OTHER'] as const),

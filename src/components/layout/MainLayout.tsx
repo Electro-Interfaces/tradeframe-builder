@@ -10,7 +10,7 @@ import { Header } from "./Header";
 import { AppSidebar } from "./AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 // Мобильные утилиты временно отключены
-import { useSelection } from "@/context/SelectionContext";
+import { useSelection } from "@/contexts/SelectionContext";
 
 interface MainLayoutProps {
   children: React.ReactNode;

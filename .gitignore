@@ -58,6 +58,18 @@ build/
 # Backup files
 *.backup
 *.old
+*.bak
+*.tmp
+*.temp
+*.broken
+*.main
+*.new-*
+*~
+
+# Temporary directories
+.temp/
+dist_temp/
+demo-db-export/
 
 # Cache
 .cache/

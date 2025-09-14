@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useSelection } from "@/context/SelectionContext";
+import { useSelection } from "@/contexts/SelectionContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";

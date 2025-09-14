@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { nomenclatureService } from '@/services/nomenclatureService';
 import { FuelNomenclature, FuelNomenclatureFilters } from '@/types/nomenclature';
-import { useSelection } from "@/context/SelectionContext";
+import { useSelection } from "@/contexts/SelectionContext";
 
 interface NomenclatureListProps {
   onEdit?: (item: FuelNomenclature) => void;

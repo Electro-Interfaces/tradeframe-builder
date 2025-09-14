@@ -3,7 +3,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { SalesAnalysisSimple } from "@/components/reports/SalesAnalysisSimple";
 import { SalesAnalysisChartsSimple } from "@/components/reports/SalesAnalysisChartsSimple";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSelection } from "@/context/SelectionContext";
+import { useSelection } from "@/contexts/SelectionContext";
 
 export default function SalesAnalysisPage() {
   const isMobile = useIsMobile();

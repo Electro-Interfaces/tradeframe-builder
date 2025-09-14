@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HelpButton } from "@/components/help/HelpButton";
-import { useSelection } from "@/context/SelectionContext";
+import { useSelection } from "@/contexts/SelectionContext";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { stsApiService, Price as STSPrice } from "@/services/stsApi";
 

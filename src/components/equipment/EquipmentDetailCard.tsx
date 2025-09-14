@@ -46,7 +46,7 @@ import {
 } from "@/types/equipment";
 import { nomenclatureService } from "@/services/nomenclatureService";
 import { FuelNomenclature } from "@/types/nomenclature";
-import { useSelection } from "@/context/SelectionContext";
+import { useSelection } from "@/contexts/SelectionContext";
 import { ComponentsTab } from "./ComponentsTab";
 
 // Схема валидации для редактирования

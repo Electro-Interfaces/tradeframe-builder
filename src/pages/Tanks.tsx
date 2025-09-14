@@ -18,7 +18,7 @@ import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth, usePermissions } from "@/contexts/AuthContext";
-import { useSelection } from "@/context/SelectionContext";
+import { useSelection } from "@/contexts/SelectionContext";
 import { HelpButton } from "@/components/help/HelpButton";
 import { currentEquipmentAPI } from "@/services/equipment";
 import { Equipment } from "@/types/equipment";

@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/supabase/queryClient";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SelectionProvider } from "./context/SelectionContext";
+import { SelectionProvider } from "./contexts/SelectionContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { lazy, useEffect } from "react";
 import LazyLoader from "./components/LazyLoader";
