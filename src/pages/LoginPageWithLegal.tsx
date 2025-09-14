@@ -563,7 +563,7 @@ const LoginPageWithLegal = () => {
         {/* Информация о безопасности - супер компактная */}
         <div className="text-center">
           <p className="text-xs text-slate-600">
-            © 2024 TradeFrame v1.5.1
+            © 2024 TradeFrame v1.5.8
           </p>
         </div>
       </div>
