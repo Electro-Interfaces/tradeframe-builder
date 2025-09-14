@@ -1,0 +1,20 @@
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "ms-vscode.vscode-typescript-next",
+    "christian-kohler.path-intellisense",
+    "formulahendry.auto-rename-tag",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml",
+    "humao.rest-client",
+    "ms-vscode.vscode-todo-highlight",
+    "gruntfuggly.todo-tree"
+  ],
+  "unwantedRecommendations": [
+    "ms-vscode.vscode-typescript",
+    "hookyqr.beautify"
+  ]
+}
