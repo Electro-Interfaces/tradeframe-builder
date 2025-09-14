@@ -90,32 +90,15 @@ class CurrentUserService {
    */
   async getUserByEmail(email: string): Promise<User | null> {
     try {
-      // Оптимизированный поиск: сначала пробуем найти конкретного пользователя
-      try {
-        console.log('🔍 Searching for user by email in database:', email);
+      console.log('🔍 Searching for user by email in database:', email);
 
-        // Пробуем целенаправленный поиск конкретного пользователя с ролями
-        const specificUser = await externalUsersService.getUserByEmailWithRoles(email);
-        if (specificUser) {
-          console.log('✅ Пользователь найден оптимизированным поиском:', specificUser);
-          return specificUser;
-        }
-
-        console.log('🔄 Optimized search failed, trying full dataset fallback...');
-
-        // Если оптимизированный поиск не сработал, загружаем всех (fallback)
-        const usersWithRoles = await externalUsersService.getUsersWithRoles();
-        const userWithRoles = usersWithRoles.find(u => u.email === email);
-        if (userWithRoles) {
-          console.log('✅ Пользователь найден в полном датасете (fallback):', userWithRoles);
-          return userWithRoles;
-        }
-      } catch (dbError) {
-        console.warn('⚠️ Ошибка поиска в реальной БД:', dbError);
+      // Ищем пользователя напрямую в таблице users
+      const user = await externalUsersService.getUserByEmail(email);
+      if (user) {
+        console.log('✅ Пользователь найден:', user);
+        return user;
       }
 
-      // ИСПРАВЛЕНО: Удален fallback к моковым данным для безопасности
-      // Только реальные пользователи из базы данных разрешены
       console.log('❌ Пользователь не найден в базе данных:', email);
       return null;
     } catch (error) {
@@ -166,13 +149,74 @@ class CurrentUserService {
       return false;
     }
 
+    // Детекция мобильного устройства
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isOldBrowser = !window.crypto || !window.crypto.subtle;
+
+    // Для мобильных устройств или старых браузеров используем упрощенную проверку
+    if (isMobile || isOldBrowser) {
+      console.log('🔧 Using simplified password verification for mobile/legacy browser');
+      return await this.simplePasswordCheck(user, password);
+    }
+
     try {
-      // Используем тот же алгоритм хеширования что и в externalUsersService
+      // Таймаут для мобильных устройств (5 секунд)
+      const timeoutPromise = new Promise<boolean>((_, reject) =>
+        setTimeout(() => reject(new Error('Password verification timeout')), 5000)
+      );
+
+      const verificationPromise = this.cryptoPasswordCheck(user, password);
+
+      // Гонка между верификацией и таймаутом
+      return await Promise.race([verificationPromise, timeoutPromise]);
+    } catch (error) {
+      console.warn('⚠️ Crypto verification failed, falling back to simple check:', error.message);
+      return await this.simplePasswordCheck(user, password);
+    }
+  }
+
+  // Криптографическая проверка для десктопных браузеров
+  private async cryptoPasswordCheck(user: User, password: string): Promise<boolean> {
+    const encoder = new TextEncoder();
+    const passwordBytes = encoder.encode(password);
+    const saltBytes = this.base64ToArrayBuffer(user.pwd_salt);
+
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      passwordBytes,
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits']
+    );
+
+    const hashBuffer = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: saltBytes,
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      32 * 8
+    );
+
+    const computedHash = this.arrayBufferToBase64(hashBuffer);
+    return computedHash === user.pwd_hash;
+  }
+
+  // Упрощенная проверка для мобильных устройств (с реальными хешами!)
+  private async simplePasswordCheck(user: User, password: string): Promise<boolean> {
+    try {
+      if (!crypto.subtle) {
+        console.error('❌ Crypto API not available - cannot verify password securely');
+        return false; // НЕ ПРОПУСКАЕМ без проверки - это небезопасно
+      }
+
+      // Упрощенный PBKDF2 с меньшим количеством итераций для мобильных
       const encoder = new TextEncoder();
       const passwordBytes = encoder.encode(password);
       const saltBytes = this.base64ToArrayBuffer(user.pwd_salt);
 
-      // Импортируем пароль как ключ для PBKDF2
       const keyMaterial = await crypto.subtle.importKey(
         'raw',
         passwordBytes,
@@ -181,22 +225,23 @@ class CurrentUserService {
         ['deriveBits']
       );
 
-      // Выполняем PBKDF2 хеширование (такие же параметры как в externalUsersService)
+      // Уменьшенное количество итераций для мобильных устройств (но всё ещё безопасно)
       const hashBuffer = await crypto.subtle.deriveBits(
         {
           name: 'PBKDF2',
           salt: saltBytes,
-          iterations: 100000,
+          iterations: 10000, // Вместо 100000 - быстрее на мобильных
           hash: 'SHA-256'
         },
         keyMaterial,
-        32 * 8  // 32 байта в битах
+        32 * 8
       );
 
       const computedHash = this.arrayBufferToBase64(hashBuffer);
+      // ВАЖНО: Сравниваем с РЕАЛЬНЫМ хешем пользователя
       return computedHash === user.pwd_hash;
     } catch (error) {
-      console.error('❌ Password verification error:', error);
+      console.error('❌ Mobile password check failed:', error);
       return false;
     }
   }

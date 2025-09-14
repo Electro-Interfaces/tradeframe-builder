@@ -1330,7 +1330,7 @@ export default function NetworkOverview() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
-        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobile ? 'pt-4' : ''}`}
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobile ? 'pt-4' : 'pt-6'}`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -1390,6 +1390,7 @@ export default function NetworkOverview() {
 
                 {/* Кнопки в заголовке */}
                 <div className="flex items-center gap-2">
+                  {/* Кнопка помощи */}
                   <Button
                     onClick={() => window.open('/help/network-overview.html', '_blank')}
                     variant="outline"
@@ -1400,41 +1401,40 @@ export default function NetworkOverview() {
                     <HelpCircle className="w-4 h-4" />
                   </Button>
 
+                  {/* Кнопка обновления данных */}
+                  {!isMobile && !initializing && selectedNetwork && (
+                    <Button
+                      onClick={loadTransactions}
+                      disabled={loading}
+                      size="sm"
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+                      title="Обновить данные"
+                    >
+                      <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                        {loading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                      </div>
+                      {loading ? 'Загрузка...' : 'Обновить'}
+                    </Button>
+                  )}
+
+                  {/* Кнопка экспорта */}
                   {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
                     <Button
                       onClick={exportToExcel}
                       disabled={loading}
                       size="sm"
-                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-3 py-2 rounded-lg font-medium text-xs"
+                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-2 rounded-lg font-medium"
                       title="Экспортировать данные в Excel"
                     >
-                      <Download className="w-4 h-4 mr-1" />
+                      <Download className="w-4 h-4 mr-2" />
                       Excel
                     </Button>
                   )}
                 </div>
-              </div>
-              
-              <div className={`flex ${isMobile ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
-                
-                {/* Кнопка обновления данных */}
-                {!isMobile && !initializing && selectedNetwork && (
-                  <Button
-                    onClick={loadTransactions}
-                    disabled={loading}
-                    size="sm"
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
-                  >
-                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                      {loading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                    </div>
-                    {loading ? 'Загрузка...' : 'Обновить данные'}
-                  </Button>
-                )}
               </div>
             </CardTitle>
           </CardHeader>

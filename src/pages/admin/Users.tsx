@@ -21,11 +21,11 @@ import { MainLayout } from '@/components/layout/MainLayout'
 import { useIsMobile } from "@/hooks/use-mobile";
 import { HelpButton } from "@/components/help/HelpButton"
 import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from '@/components/data-source/DataSourceIndicator'
-import { useAuth } from '@/contexts/AuthContext'
+import { useNewAuth } from "@/contexts/NewAuthContext";
 
 export default function Users() {
   const { hasExternalDatabase } = useDataSourceInfo()
-  const { user } = useAuth()
+  const { user } = useNewAuth()
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all')

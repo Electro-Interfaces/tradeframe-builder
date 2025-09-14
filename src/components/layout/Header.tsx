@@ -14,7 +14,7 @@ import UpdateChecker from "@/components/common/UpdateChecker";
 import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { NetworkSelect } from "@/components/selects/NetworkSelect";
 import { PointSelect } from "@/components/selects/PointSelect";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNewAuth } from "@/contexts/NewAuthContext";
 import { useMobile, mobileUtils } from "@/hooks/useMobile";
 
 interface HeaderProps {
@@ -35,7 +35,7 @@ export function Header({
   isMobile = false
 }: HeaderProps) {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout } = useNewAuth();
   const mobileInfo = useMobile();
 
   // Состояние для диалога информации об обновлениях
@@ -113,7 +113,7 @@ export function Header({
   };
 
   return (
-    <header className={`${isMobile ? 'relative' : 'fixed'} top-0 left-0 right-0 z-50 h-header bg-slate-900/98 backdrop-blur-md border-b border-slate-700/50 shadow-lg`}>
+    <header className={`${isMobile ? 'relative' : 'fixed'} top-0 left-0 right-0 z-50 h-header bg-slate-900 border-b border-slate-700/50 shadow-lg`}>
       <div className="flex items-center justify-between h-full px-4 md:px-6">
         {/* Mobile Left Section: Burger + Network Selector */}
         <div className="flex items-center gap-3 md:hidden flex-1 min-w-0">

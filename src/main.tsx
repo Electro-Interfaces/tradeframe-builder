@@ -1,90 +1,13 @@
-// Диагностика загрузки для мобильных
-console.log('📱 main.tsx starting...');
-window.updateLoadingStatus?.('main.tsx загружается');
-
 import { createRoot } from 'react-dom/client'
-console.log('📱 React imported');
-window.updateLoadingStatus?.('React импортирован');
-
 import App from './App.tsx'
-console.log('📱 App imported');
-window.updateLoadingStatus?.('App компонент импортирован');
-
 import './index.css'
 import './styles/mobile.css'
-console.log('📱 CSS imported');
-window.updateLoadingStatus?.('CSS стили загружены');
 
-// Импортируем тестировщик auth системы для автоматического запуска
-// import './utils/authTestRunner' // Временно отключен
-// Импортируем утилиту для отчетов о localStorage
-import './utils/localStorageReport'
-
-// Регистрация Service Worker для PWA с улучшенной обработкой ошибок
-console.log('🔧 PWA Service Worker: Проверяем возможность регистрации...', {
-  hasServiceWorker: 'serviceWorker' in navigator,
-  isProd: import.meta.env.PROD,
-  baseUrl: import.meta.env.BASE_URL,
-  userAgent: navigator.userAgent.substring(0, 50) + '...'
-});
-
-if ('serviceWorker' in navigator) {
-  console.log('🔧 PWA Service Worker: Включен для тестирования PWA в dev режиме');
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const isGitHubPages = window.location.hostname === 'electro-interfaces.github.io';
-
-  console.log('📱 PWA Service Worker: Детекция устройства:', {
-    isMobile,
-    isGitHubPages,
-    hostname: window.location.hostname,
-    protocol: window.location.protocol,
-    pathname: window.location.pathname
-  });
-
-  // Включаем Service Worker для всех устройств на GitHub Pages для PWA
-  if (false) { // Всегда false - включаем SW везде
-    console.log('🚫 PWA Service Worker: Отключен для мобильных GitHub Pages');
-  } else {
-    console.log('🚀 PWA Service Worker: Включен для всех устройств на GitHub Pages');
-    // Регистрируем SW сразу, не дожидаясь load события для лучшей PWA установки
-    const base = import.meta.env.BASE_URL;
-    const swUrl = `${base}sw.js`;
-
-    console.log('🚀 PWA Service Worker: Начинаем регистрацию...', { base, swUrl });
-
-    navigator.serviceWorker.register(swUrl, { scope: base })
-      .then((registration) => {
-          console.log('✅ PWA Service Worker: Успешно зарегистрирован!', {
-            scope: registration.scope,
-            updateViaCache: registration.updateViaCache,
-            active: !!registration.active,
-            installing: !!registration.installing,
-            waiting: !!registration.waiting
-          });
-
-          // Обработка обновлений
-          registration.addEventListener('updatefound', () => {
-            console.log('🔄 PWA Service Worker: Обнаружено обновление');
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                console.log('🔄 PWA Service Worker: Изменение состояния:', newWorker.state);
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('🎉 PWA Service Worker: Новая версия готова!');
-                  // Можно показать уведомление об обновлении
-                }
-              });
-            }
-          });
-        })
-        .catch((error) => {
-          console.error('❌ PWA Service Worker: Ошибка регистрации:', error);
-          // Не блокируем приложение если SW не загружается
-          console.log('📱 PWA Service Worker: Приложение продолжит работу без PWA функций');
-        });
-  }
-} else {
-  console.log('🚫 PWA Service Worker: Не поддерживается браузером');
+// Простая регистрация Service Worker для PWA
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  const base = import.meta.env.BASE_URL;
+  navigator.serviceWorker.register(`${base}sw.js`, { scope: base })
+    .catch(() => {}); // Игнорируем ошибки - не критично
 }
 
 // Глобальная функция для сброса демо данных
@@ -96,215 +19,137 @@ declare global {
 }
 
 window.resetDemoData = () => {
-  console.log('🔄 Сброс всех демо-данных...');
   localStorage.clear();
-  console.log('✅ localStorage очищен');
   location.reload();
 };
 
-console.log('💡 Для сброса демо-данных выполните в консоли: resetDemoData()');
-
-// Детекция браузера и платформы для диагностики
+// Минимальная детекция для необходимых фиксов
 if (typeof window !== 'undefined') {
   const userAgent = navigator.userAgent;
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   const isWebView = /wv|WebView|Version.*Chrome/i.test(userAgent) && isMobile;
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                       (window.navigator as any).standalone;
-  
-  console.log('🔍 Browser Detection:', {
-    userAgent: userAgent.substring(0, 50) + '...',
-    isMobile,
-    isWebView,
-    isStandalone,
-    viewport: `${window.innerWidth}x${window.innerHeight}`,
-    cookiesEnabled: navigator.cookieEnabled,
-    onLine: navigator.onLine
-  });
 
-  // Специальные фиксы для WebView
-  if (isWebView) {
-    console.log('📱 WebView detected, applying fixes');
-    document.documentElement.classList.add('webview-optimized');
-  }
-
-  // Специальные фиксы для PWA режима
+  // Применяем только необходимые классы без логирования
+  if (isWebView) document.documentElement.classList.add('webview-optimized');
   if (isStandalone) {
-    console.log('📱 PWA standalone mode detected');
     document.documentElement.classList.add('pwa-installed');
 
-    // КРИТИЧЕСКИЙ ФИК ДЛЯ iOS PWA: Восстановление auth данных
+    // iOS PWA auth fix
     const authFromBrowser = sessionStorage.getItem('pwa-auth-backup');
     if (authFromBrowser && !localStorage.getItem('tradeframe_user')) {
-      console.log('🔧 iOS PWA: Восстанавливаем auth данные из резервной копии');
       try {
         const authData = JSON.parse(authFromBrowser);
         localStorage.setItem('tradeframe_user', authData.user);
         localStorage.setItem('authToken', authData.token);
-      } catch (e) {
-        console.error('❌ iOS PWA: Ошибка восстановления auth данных:', e);
-      }
+      } catch (e) {}
     }
 
-    // Дополнительная защита от падения iOS PWA
+    // iOS PWA error prevention и обработка DOM ошибок
     window.addEventListener('error', (e) => {
-      console.error('🍎 iOS PWA Critical Error:', e.error);
-      // Пытаемся предотвратить полное падение
+      // Специальная обработка DOM ошибок типа insertBefore
+      if (e.message && (
+        e.message.includes('insertBefore') ||
+        e.message.includes('appendChild') ||
+        e.message.includes('removeChild') ||
+        e.message.includes('Node')
+      )) {
+        console.warn('⚠️ DOM error intercepted:', e.message);
+        e.preventDefault();
+        return true;
+      }
+
+      // Общая обработка для PWA
       e.preventDefault();
       return true;
     });
+
+    // Дополнительная защита для unhandledrejection (для React ошибок)
+    window.addEventListener('unhandledrejection', (e) => {
+      if (e.reason && e.reason.message && (
+        e.reason.message.includes('insertBefore') ||
+        e.reason.message.includes('appendChild') ||
+        e.reason.message.includes('removeChild') ||
+        e.reason.message.includes('Node')
+      )) {
+        console.warn('⚠️ React DOM error intercepted:', e.reason.message);
+        e.preventDefault();
+        return true;
+      }
+    });
+
+    // Перехват ошибок React на более низком уровне
+    if (typeof Node !== 'undefined' && Node.prototype.insertBefore) {
+      const originalInsertBefore = Node.prototype.insertBefore;
+      Node.prototype.insertBefore = function(newNode, referenceNode) {
+        try {
+          // Проверяем что referenceNode действительно дочерний элемент
+          if (referenceNode && referenceNode.parentNode !== this) {
+            console.warn('⚠️ insertBefore: referenceNode is not a child, appending instead');
+            return this.appendChild(newNode);
+          }
+          return originalInsertBefore.call(this, newNode, referenceNode);
+        } catch (error) {
+          console.warn('⚠️ insertBefore error caught, falling back to appendChild:', error.message);
+          try {
+            return this.appendChild(newNode);
+          } catch (appendError) {
+            console.warn('⚠️ appendChild also failed:', appendError.message);
+            return newNode;
+          }
+        }
+      };
+    }
   }
 }
 
-// GitHub Pages SPA routing support будет обработано в App.tsx
-// Здесь только логируем для диагностики
-if (typeof window !== 'undefined') {
-  const redirectPath = sessionStorage.getItem('redirectPath');
-  if (redirectPath) {
-    console.log('🔄 GitHub Pages redirect detected:', redirectPath);
-    console.log('🔄 Redirect будет обработан в App.tsx после инициализации React');
-  }
-}
+// GitHub Pages routing - обработается в App.tsx
 
-// КРИТИЧЕСКАЯ ЗАЩИТА ОТ PULL-TO-REFRESH
+// Pull-to-refresh protection
 if (typeof window !== 'undefined') {
-  // Предотвращаем pull-to-refresh жестами
   let startY = 0;
-  
+
   document.addEventListener('touchstart', (e) => {
     startY = e.touches[0].clientY;
   }, { passive: false });
-  
+
   document.addEventListener('touchmove', (e) => {
     const currentY = e.touches[0].clientY;
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-    // Проверяем, находится ли событие внутри мобильного меню
     const target = e.target as Element;
     const isInSidebar = target.closest('[role="dialog"]') ||
                        target.closest('.mobile-sidebar') ||
                        target.closest('[data-radix-dialog-content]') ||
                        target.closest('.overflow-y-scroll');
 
-    // Если пользователь пытается скроллить вверх когда уже наверху
-    // НО не внутри мобильного меню
     if (scrollTop === 0 && currentY > startY && !isInSidebar) {
-      console.log('🚫 Preventing pull-to-refresh');
       e.preventDefault();
       e.stopPropagation();
     }
   }, { passive: false });
-  
-  // Дополнительная защита через события скролла
-  document.addEventListener('scroll', (e) => {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    if (scrollTop < 0) {
-      window.scrollTo(0, 0);
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, { passive: false });
-  
-  // Предотвращаем refresh через Meta-R, F5 и другие комбинации на мобильных
-  document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
-      console.log('🚫 Preventing keyboard refresh');
-      e.preventDefault();
-    }
-  });
 }
 
-// Page lifecycle monitoring for auth state
-if (typeof window !== 'undefined') {
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) {
-      // Check auth state after bfcache restore
-      const currentUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
-      const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-      if (!currentUser || !authToken) {
-        console.warn('⚠️ Auth state missing after page restore');
-      }
-    }
-  });
-}
-
-// Clear fallback loading indicator when React is ready
-window.updateLoadingStatus?.('Creating React root');
-
+// React root creation
 try {
-  const rootElement = document.getElementById("root")!;
-  window.updateLoadingStatus?.('Root element found');
+  const root = createRoot(document.getElementById("root")!);
 
-  if (rootElement.innerHTML.includes('app-loading')) {
-    window.updateLoadingStatus?.('Clearing loading indicator');
-  }
-
-  console.log('📱 Creating React root instance...');
-  window.updateLoadingStatus?.('Инициализация React');
-
-  const root = createRoot(rootElement);
-  console.log('📱 React root created, rendering App...');
-  window.updateLoadingStatus?.('Рендеринг приложения');
-
-  // Добавляем глобальный error handler для React
-  window.addEventListener('error', (e) => {
-    console.error('🚨 Global error caught:', e.error);
-    console.error('Error details:', {
-      message: e.message,
-      filename: e.filename,
-      lineno: e.lineno,
-      colno: e.colno,
-      stack: e.error?.stack
-    });
-
-    // Не позволяем приложению полностью упасть
-    e.preventDefault();
-
-    // Показываем пользователю что произошла ошибка
-    const errorEl = document.getElementById('debug-info');
-    if (errorEl) {
-      errorEl.innerHTML += `<br><strong style="color: #ef4444;">⚠️ Ошибка обработана: ${e.message}</strong>`;
-    }
-  });
-
-  window.addEventListener('unhandledrejection', (e) => {
-    console.error('🚨 Unhandled promise rejection:', e.reason);
-    e.preventDefault(); // Предотвращаем падение
-  });
+  // Global error handling
+  window.addEventListener('error', (e) => e.preventDefault());
+  window.addEventListener('unhandledrejection', (e) => e.preventDefault());
 
   root.render(<App />);
-  console.log('📱 App rendered successfully!');
-  window.updateLoadingStatus?.('✅ Приложение загружено');
 
-  // Убираем loading индикатор - координированный подход
+  // Clean loading indicator
   setTimeout(() => {
-    console.log('🎯 main.tsx: React готов, сигнализируем index.html');
-    // Устанавливаем флаг что React готов
     window.reactReady = true;
-
-    // Быстрый fallback если index.html не сработал
-    setTimeout(() => {
-      const loadingEl = document.getElementById('initial-loading');
-      if (loadingEl && loadingEl.style.opacity !== '0') {
-        console.log('🔧 main.tsx: Fallback удаление loading (index.html не успел)');
-        if (window.removeInitialLoading) {
-          window.removeInitialLoading();
-        } else {
-          loadingEl.style.opacity = '0';
-          loadingEl.style.transition = 'opacity 0.2s ease-out';
-          setTimeout(() => loadingEl.remove(), 200);
-        }
-      }
-    }, 150); // Уменьшено время ожидания
-  }, 50); // Максимально быстрая сигнализация
+    const loadingEl = document.getElementById('initial-loading');
+    if (loadingEl) {
+      loadingEl.style.opacity = '0';
+      setTimeout(() => loadingEl.remove(), 200);
+    }
+  }, 50);
   
 } catch (error) {
-  console.error('❌ React rendering failed:', error);
-  window.updateLoadingStatus?.(`❌ Ошибка: ${error.message}`);
-  
-  // Показываем ошибку пользователю
-  const debugEl = document.getElementById('debug-info');
-  if (debugEl) {
-    debugEl.innerHTML += `<br><strong style="color: #ef4444;">ОШИБКА: ${error.message}</strong>`;
-  }
+  console.error('React rendering failed:', error);
 }

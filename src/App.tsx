@@ -1,14 +1,13 @@
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import SafeRender from "@/components/common/SafeRender";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/supabase/queryClient";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SelectionProvider } from "./contexts/SelectionContext";
-import { AuthProvider } from "./contexts/AuthContext";
+import { NewAuthProvider } from "./contexts/NewAuthContext";
 import { lazy, useEffect, useState } from "react";
 import LazyLoader from "./components/LazyLoader";
-import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PWAInstaller from "./components/pwa/PWAInstaller";
 import UpdateNotification from "./components/pwa/UpdateNotification";
@@ -192,14 +191,14 @@ const App = () => {
   }, []);
   
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <SafeRender>
           <Toaster />
-          <Sonner />
-          <AuthProvider>
-            <SelectionProvider>
-              <BrowserRouter basename={import.meta.env.PROD ? "/tradeframe-builder" : "/"}>
+        </SafeRender>
+        <NewAuthProvider>
+          <SelectionProvider>
+            <BrowserRouter basename={import.meta.env.PROD ? "/tradeframe-builder" : "/"}>
                 <div data-testid="router-ready" style={{ display: 'none' }}></div>
             <Routes>
             {/* Критически важные страницы - без lazy loading */}
@@ -260,10 +259,9 @@ const App = () => {
           {showPWAInstaller && <PWAInstaller />}
           <UpdateNotification />
         </SelectionProvider>
-      </AuthProvider>
+      </NewAuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
-    </ErrorBoundary>
 );
 };
 

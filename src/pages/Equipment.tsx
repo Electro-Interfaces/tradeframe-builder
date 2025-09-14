@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { stsApiService, TerminalInfo, Tank } from "@/services/stsApi";
 import { MobileButton } from "@/components/ui/mobile-button";
 import { MobileTable } from "@/components/ui/mobile-table";
-import { HelpButton } from "@/components/help/HelpButton";
 import { 
   Settings, 
   AlertCircle, 
@@ -419,7 +418,7 @@ export default function Equipment() {
   if (!selectedTradingPoint) {
     return (
       <MainLayout fullWidth={true}>
-        <div className="w-full space-y-6 px-4 md:px-6 lg:px-8">
+        <div className="w-full space-y-6 px-4 md:px-6 lg:px-8 pt-6">
           <div className="mb-6 pt-4">
             <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
             <p className="text-slate-400 mt-2">Выберите торговую точку для просмотра оборудования</p>
@@ -433,7 +432,7 @@ export default function Equipment() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
-        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobile ? 'pt-4' : ''}`}
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobile ? 'pt-4' : 'pt-6'}`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

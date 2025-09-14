@@ -57,7 +57,6 @@ export const supabaseEquipmentTemplatesAPI = {
       allow_component_template_ids: item.allow_component_template_ids || []
     })) as EquipmentTemplate[];
 
-    console.log(`✅ Loaded ${templates.length} equipment templates from Supabase`);
     return templates;
   },
 

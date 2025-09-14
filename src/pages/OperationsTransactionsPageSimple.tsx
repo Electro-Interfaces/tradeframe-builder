@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, Calendar, Fuel, CreditCard, Pin, HelpCircle, RefreshCw } from "lucide-react";
-import { HelpButton } from "@/components/help/HelpButton";
 import { operationsService } from "@/services/operationsService";
 import { stsApiService, Transaction } from "@/services/stsApi";
 import { tradingPointsService } from "@/services/tradingPointsService";
@@ -992,7 +991,7 @@ export default function OperationsTransactionsPageSimple() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
-        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobileForced ? 'pt-4' : ''} min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobileForced ? 'pt-4' : 'pt-6'} min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

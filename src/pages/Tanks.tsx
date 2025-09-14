@@ -17,9 +17,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth, usePermissions } from "@/contexts/AuthContext";
+import { useNewAuth } from "@/contexts/NewAuthContext";
+import { hasPermission } from "@/services/auth/permissionService";
 import { useSelection } from "@/contexts/SelectionContext";
-import { HelpButton } from "@/components/help/HelpButton";
 import { currentEquipmentAPI } from "@/services/equipment";
 import { Equipment } from "@/types/equipment";
 import { stsApiService } from "@/services/stsApi";
@@ -307,8 +307,11 @@ const calibrationSchema = z.object({
 });
 
 export default function Tanks() {
-  const { user, getUserRole } = useAuth();
-  const { canManageTanks, canCalibrate, canApproveDrains } = usePermissions();
+  const { user } = useNewAuth();
+  // Вычисляем разрешения на основе пользователя
+  const canManageTanks = hasPermission(user, 'tanks.manage') || user?.role === 'super_admin';
+  const canCalibrate = hasPermission(user, 'tanks.calibrate') || user?.role === 'super_admin';
+  const canApproveDrains = hasPermission(user, 'drains.approve') || user?.role === 'super_admin';
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   
   // Получаем название торговой точки для отображения
@@ -855,10 +858,10 @@ export default function Tanks() {
     }
   };
 
-  // Права доступа получаем из AuthContext
-  const canEdit = canManageTanks();
-  const canPerformCalibration = canCalibrate();
-  const canApproveDrainOperations = canApproveDrains();
+  // Права доступа на основе разрешений пользователя
+  const canEdit = canManageTanks;
+  const canPerformCalibration = canCalibrate;
+  const canApproveDrainOperations = canApproveDrains;
 
   // Empty state if no trading point selected
   if (!selectedTradingPoint) {

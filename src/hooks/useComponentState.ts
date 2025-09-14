@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNewAuth } from '@/contexts/NewAuthContext';
+import { hasPermission, hasRole } from '@/services/auth/permissionService';
 
 // Типы состояний компонентов
 export type ComponentState = 'loading' | 'ready' | 'error' | 'unauthorized' | 'disabled';
@@ -27,7 +28,7 @@ export function useComponentState(
   componentName: string,
   config: ComponentConfig = {}
 ): ComponentStateInfo {
-  const { user, hasPermission, hasRole } = useAuth();
+  const { user } = useNewAuth();
   const [state, setState] = useState<ComponentState>('loading');
   const [message, setMessage] = useState<string>();
 
@@ -39,7 +40,7 @@ export function useComponentState(
     }
 
     // Проверка административных прав
-    if (config.adminOnly && !hasRole('super_admin') && !hasRole('network_admin')) {
+    if (config.adminOnly && !hasRole(user, 'super_admin') && !hasRole(user, 'network_admin')) {
       setState('unauthorized');
       setMessage('Недостаточно прав доступа');
       return;
@@ -47,10 +48,10 @@ export function useComponentState(
 
     // Проверка обязательных разрешений
     if (config.requiredPermissions?.length) {
-      const hasRequiredPermissions = config.requiredPermissions.every(permission => 
-        hasPermission(permission)
+      const hasRequiredPermissions = config.requiredPermissions.every(permission =>
+        hasPermission(user, permission)
       );
-      
+
       if (!hasRequiredPermissions) {
         setState('unauthorized');
         setMessage('Недостаточно разрешений');
@@ -60,8 +61,8 @@ export function useComponentState(
 
     // Проверка обязательных ролей
     if (config.requiredRoles?.length) {
-      const hasRequiredRoles = config.requiredRoles.some(role => hasRole(role));
-      
+      const hasRequiredRoles = config.requiredRoles.some(role => hasRole(user, role));
+
       if (!hasRequiredRoles) {
         setState('unauthorized');
         setMessage('Недостаточно прав доступа');
@@ -71,24 +72,24 @@ export function useComponentState(
 
     setState('ready');
     setMessage(undefined);
-  }, [user, config, hasPermission, hasRole]);
+  }, [user, config]);
 
   // Вычисляем права доступа
   const canView = state === 'ready' || (
-    config.readOnlyPermissions?.some(permission => hasPermission(permission)) ?? false
+    config.readOnlyPermissions?.some(permission => hasPermission(user, permission)) ?? false
   );
 
   const canEdit = state === 'ready' && (
-    hasPermission('all') ||
-    config.requiredPermissions?.some(permission => hasPermission(permission)) ||
-    hasRole('super_admin') ||
-    hasRole('network_admin')
+    hasPermission(user, 'all') ||
+    config.requiredPermissions?.some(permission => hasPermission(user, permission)) ||
+    hasRole(user, 'super_admin') ||
+    hasRole(user, 'network_admin')
   );
 
   const canDelete = canEdit && (
-    hasPermission('all') ||
-    hasRole('super_admin') ||
-    hasRole('network_admin')
+    hasPermission(user, 'all') ||
+    hasRole(user, 'super_admin') ||
+    hasRole(user, 'network_admin')
   );
 
   const canCreate = canEdit;

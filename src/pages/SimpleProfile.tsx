@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNewAuth } from "@/contexts/NewAuthContext";
 import { Shield, Mail, Lock, User, Calendar, LogOut } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 
@@ -23,7 +23,7 @@ interface PasswordFormData {
 export default function SimpleProfile() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, logout } = useAuth();
+  const { user, logout } = useNewAuth();
   const isMobile = useIsMobile();
   
   const [isLoading, setIsLoading] = useState(false);

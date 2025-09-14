@@ -3,7 +3,7 @@
  */
 
 import { useMemo } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useNewAuth } from '@/contexts/NewAuthContext'
 
 console.log('📁 useMenuVisibility.ts: Module loaded!');
 
@@ -21,7 +21,7 @@ export interface MenuVisibilityConfig {
 }
 
 export function useMenuVisibility(): MenuVisibilityConfig {
-  const { user } = useAuth()
+  const { user } = useNewAuth()
 
   return useMemo(() => {
     console.log('🔍 useMenuVisibility called with user:', user);
@@ -172,10 +172,11 @@ export function useMenuVisibility(): MenuVisibilityConfig {
       });
 
       if (hasAdminPermissions) {
+        console.log('🎯 Пользователь с админ разрешениями - показываем админ разделы');
         return {
           networks: true,
           tradingPoint: true,
-          admin: true,
+          admin: true,        // Админ доступ только при наличии админ разрешений
           settings: true,
           prices: true,
           tanks: true,
@@ -212,19 +213,19 @@ export function useMenuVisibility(): MenuVisibilityConfig {
         };
       }
       
-      // Для всех остальных показываем все разделы
-      console.log('⚠️ FALLBACK: показываем все разделы для роли:', user.role);
+      // Для всех остальных пользователей без ролей - МИНИМАЛЬНЫЙ доступ
+      console.log('⚠️ FALLBACK: пользователь без разрешений - минимальный доступ для роли:', user.role);
       return {
-        networks: true,
-        tradingPoint: true,
-        admin: true,
-        settings: true,
-        prices: true,
-        tanks: true,
-        equipment: true,
-        reports: true,
-        analytics: true,
-        misc: true
+        networks: true,      // Базовый доступ к просмотру сетей
+        tradingPoint: true,  // Базовый доступ к торговой точке
+        admin: false,        // НЕТ админ доступа
+        settings: false,     // НЕТ настроек
+        prices: false,
+        tanks: false,
+        equipment: false,
+        reports: false,
+        analytics: false,
+        misc: false
       };
     }
     
@@ -269,7 +270,7 @@ export function useMenuVisibility(): MenuVisibilityConfig {
  * Хук для проверки конкретного разрешения на видимость меню
  */
 export function useHasMenuPermission(menuResource: string): boolean {
-  const { user } = useAuth()
+  const { user } = useNewAuth()
 
   return useMemo(() => {
     if (!user || !user.permissions) {

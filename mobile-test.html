@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Network Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            text-align: center;
+        }
+        .status {
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 18px;
+        }
+        .success { background: #22c55e; }
+        .error { background: #ef4444; }
+        .info { background: #3b82f6; }
+        .test-btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .test-btn:hover { background: #4f46e5; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Mobile Network Access Test</h1>
+
+    <div class="status info">
+        <strong>Server Status:</strong> Testing connection...
+    </div>
+
+    <div id="network-info" class="status info">
+        <strong>Your IP:</strong> Loading...
+    </div>
+
+    <div id="server-info" class="status info">
+        <strong>Server:</strong> http://192.168.1.37:3000
+    </div>
+
+    <div id="test-results"></div>
+
+    <button class="test-btn" onclick="testConnection()">🧪 Test Connection</button>
+    <button class="test-btn" onclick="openApp()">📱 Open App</button>
+    <button class="test-btn" onclick="clearCache()">🗑️ Clear Cache</button>
+
+    <div id="instructions" style="margin-top: 30px; text-align: left; background: #333; padding: 20px; border-radius: 8px;">
+        <h3>📋 Troubleshooting Steps:</h3>
+        <ol>
+            <li><strong>Check Network:</strong> Убедитесь что мобильный и компьютер в одной WiFi сети</li>
+            <li><strong>Firewall:</strong> Windows может блокировать порт 3000</li>
+            <li><strong>Cache:</strong> Очистите кэш браузера на мобильном</li>
+            <li><strong>URL:</strong> Используйте <code>http://192.168.1.37:3000</code></li>
+            <li><strong>HTTPS:</strong> Не используйте HTTPS, только HTTP</li>
+        </ol>
+
+        <h3>🛠️ Windows Firewall Fix:</h3>
+        <p>Откройте PowerShell как администратор и выполните:</p>
+        <code style="background: #222; padding: 10px; display: block; margin: 10px 0;">
+            netsh advfirewall firewall add rule name="Vite Dev Server" dir=in action=allow protocol=TCP localport=3000
+        </code>
+    </div>
+
+    <script>
+        // Получаем IP пользователя
+        fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('network-info').innerHTML =
+                    '<strong>Your IP:</strong> ' + data.ip;
+            })
+            .catch(error => {
+                document.getElementById('network-info').innerHTML =
+                    '<strong>Network:</strong> Unable to detect IP';
+            });
+
+        function testConnection() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<div class="status info">Testing connection...</div>';
+
+            // Тестируем доступ к серверу разработки
+            fetch('http://192.168.1.37:3000')
+                .then(response => {
+                    if (response.ok) {
+                        resultsDiv.innerHTML = '<div class="status success">✅ Server accessible! Connection OK</div>';
+                    } else {
+                        resultsDiv.innerHTML = '<div class="status error">❌ Server responded with error: ' + response.status + '</div>';
+                    }
+                })
+                .catch(error => {
+                    resultsDiv.innerHTML = '<div class="status error">❌ Connection failed: ' + error.message + '</div>';
+                });
+        }
+
+        function openApp() {
+            window.open('http://192.168.1.37:3000', '_blank');
+        }
+
+        function clearCache() {
+            // Очищаем localStorage и sessionStorage
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // Показываем уведомление
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<div class="status success">🗑️ Browser cache cleared! Now try opening the app.</div>';
+
+            // Перезагружаем через 2 секунды
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        }
+
+        // Автоматический тест при загрузке
+        window.addEventListener('load', () => {
+            setTimeout(testConnection, 1000);
+        });
+
+        // Показываем информацию об устройстве
+        const userAgent = navigator.userAgent;
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+
+        document.getElementById('instructions').innerHTML +=
+            '<h3>📱 Device Info:</h3>' +
+            '<p><strong>Mobile:</strong> ' + (isMobile ? 'Yes' : 'No') + '</p>' +
+            '<p><strong>User Agent:</strong> ' + userAgent + '</p>';
+    </script>
+</body>
+</html>

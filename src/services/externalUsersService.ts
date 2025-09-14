@@ -104,6 +104,20 @@ class ExternalUsersService {
   }
 
   private transformUserFromDB(dbUser: any): User {
+    // Извлекаем роли из preferences если они там есть
+    const preferences = dbUser.preferences || {};
+    const roles = [];
+
+    // Если в preferences есть данные о роли, создаем объект роли
+    if (preferences.role && preferences.role_id) {
+      roles.push({
+        role_id: preferences.role_id,
+        role_name: preferences.role,
+        role_code: preferences.role,
+        permissions: preferences.permissions || []
+      });
+    }
+
     return {
       id: dbUser.id,
       tenant_id: dbUser.tenant_id || '00000000-0000-0000-0000-000000000001',
@@ -111,9 +125,9 @@ class ExternalUsersService {
       name: dbUser.name,
       phone: dbUser.phone,
       status: dbUser.status as UserStatus,
-      roles: [], // Роли загружаются отдельно
-      direct_permissions: [],
-      preferences: dbUser.preferences || {},
+      roles: roles,
+      direct_permissions: preferences.permissions || [],
+      preferences: preferences,
       pwd_salt: dbUser.pwd_salt,
       pwd_hash: dbUser.pwd_hash,
       last_login: dbUser.last_login ? new Date(dbUser.last_login) : undefined,

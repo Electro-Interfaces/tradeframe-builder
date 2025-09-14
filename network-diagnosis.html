@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Diagnosis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .success { background: #22c55e; color: white; }
+        .error { background: #ef4444; color: white; }
+        .warning { background: #f59e0b; color: white; }
+        .info { background: #3b82f6; color: white; }
+        .test-btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 5px;
+            display: inline-block;
+        }
+        .test-btn:hover { background: #4f46e5; }
+        .test-btn:disabled { background: #666; cursor: not-allowed; }
+        pre {
+            background: #333;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .card {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: #555;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #22c55e;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Network Diagnosis Tool</h1>
+
+    <div class="status info">
+        <strong>Current Status:</strong> Checking network connectivity...
+    </div>
+
+    <div class="progress">
+        <div class="progress-bar" id="progress"></div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>🖥️ Server Information</h3>
+            <div id="server-info">
+                <p><strong>Target IP:</strong> 192.168.1.37</p>
+                <p><strong>Target Port:</strong> 3001</p>
+                <p><strong>URL:</strong> http://192.168.1.37:3001</p>
+                <p><strong>Status:</strong> <span id="server-status">Checking...</span></p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📱 Device Information</h3>
+            <div id="device-info">Loading...</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>🧪 Connection Tests</h3>
+        <div id="test-results"></div>
+        <button class="test-btn" onclick="runAllTests()">🔄 Run All Tests</button>
+        <button class="test-btn" onclick="testPing()">📡 Ping Test</button>
+        <button class="test-btn" onclick="testHTTP()">🌐 HTTP Test</button>
+        <button class="test-btn" onclick="testWebSocket()">⚡ WebSocket Test</button>
+        <button class="test-btn" onclick="openApp()">🚀 Open App</button>
+    </div>
+
+    <div class="card">
+        <h3>🛠️ Troubleshooting Steps</h3>
+        <ol>
+            <li><strong>WiFi Network:</strong> Убедитесь что оба устройства в одной WiFi сети</li>
+            <li><strong>Windows Firewall:</strong> Проверьте что порт 3001 открыт</li>
+            <li><strong>Антивирус:</strong> Отключите временно антивирус/файрвол</li>
+            <li><strong>Mobile Browser:</strong> Попробуйте разные браузеры (Chrome, Firefox, Safari)</li>
+            <li><strong>Router:</strong> Проверьте настройки маршрутизатора (AP Isolation)</li>
+            <li><strong>HTTP vs HTTPS:</strong> Используйте только HTTP, не HTTPS</li>
+        </ol>
+
+        <h4>🔥 Windows Firewall Commands:</h4>
+        <pre>netsh advfirewall firewall add rule name="Vite 3001" dir=in action=allow protocol=TCP localport=3001</pre>
+
+        <h4>📋 Router Settings to Check:</h4>
+        <ul>
+            <li>AP Isolation должен быть выключен</li>
+            <li>Client Isolation должен быть выключен</li>
+            <li>Wireless Isolation должен быть выключен</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h3>📊 Test Log</h3>
+        <pre id="test-log">Starting diagnosis...\n</pre>
+    </div>
+
+    <script>
+        let testProgress = 0;
+        const maxTests = 5;
+
+        function updateProgress(increment = 1) {
+            testProgress += increment;
+            const percentage = (testProgress / maxTests) * 100;
+            document.getElementById('progress').style.width = percentage + '%';
+        }
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('test-log');
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateDeviceInfo() {
+            const userAgent = navigator.userAgent;
+            const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+            let deviceHTML = `
+                <p><strong>Device Type:</strong> ${isMobile ? 'Mobile' : 'Desktop'}</p>
+                <p><strong>Platform:</strong> ${navigator.platform}</p>
+                <p><strong>Browser:</strong> ${getBrowserName()}</p>
+                <p><strong>Language:</strong> ${navigator.language}</p>
+                <p><strong>Online:</strong> ${navigator.onLine ? 'Yes' : 'No'}</p>
+            `;
+
+            if (connection) {
+                deviceHTML += `
+                    <p><strong>Connection Type:</strong> ${connection.effectiveType || connection.type || 'Unknown'}</p>
+                    <p><strong>Downlink:</strong> ${connection.downlink || 'Unknown'} Mbps</p>
+                `;
+            }
+
+            document.getElementById('device-info').innerHTML = deviceHTML;
+            log(`Device detected: ${isMobile ? 'Mobile' : 'Desktop'} - ${getBrowserName()}`);
+        }
+
+        function getBrowserName() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Firefox')) return 'Firefox';
+            if (ua.includes('Chrome')) return 'Chrome';
+            if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+            if (ua.includes('Edge')) return 'Edge';
+            return 'Unknown';
+        }
+
+        async function testPing() {
+            log('Testing network reachability...');
+            try {
+                const start = performance.now();
+                const response = await fetch('http://192.168.1.37:3001', {
+                    method: 'HEAD',
+                    mode: 'no-cors',
+                    timeout: 5000
+                });
+                const end = performance.now();
+                const time = Math.round(end - start);
+
+                appendTestResult('✅ Network Reachable', `Ping time: ${time}ms`, 'success');
+                log(`Ping successful: ${time}ms`);
+                updateProgress();
+                return true;
+            } catch (error) {
+                appendTestResult('❌ Network Unreachable', `Error: ${error.message}`, 'error');
+                log(`Ping failed: ${error.message}`);
+                updateProgress();
+                return false;
+            }
+        }
+
+        async function testHTTP() {
+            log('Testing HTTP connection...');
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                const response = await fetch('http://192.168.1.37:3001', {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    appendTestResult('✅ HTTP Connection OK', `Status: ${response.status}, Type: ${contentType}`, 'success');
+                    log(`HTTP successful: ${response.status}`);
+                    updateProgress();
+                    return true;
+                } else {
+                    appendTestResult('⚠️ HTTP Response Error', `Status: ${response.status} ${response.statusText}`, 'warning');
+                    log(`HTTP error: ${response.status}`);
+                    updateProgress();
+                    return false;
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    appendTestResult('❌ HTTP Timeout', 'Connection timed out after 10s', 'error');
+                    log('HTTP timeout after 10s');
+                } else {
+                    appendTestResult('❌ HTTP Connection Failed', `Error: ${error.message}`, 'error');
+                    log(`HTTP failed: ${error.message}`);
+                }
+                updateProgress();
+                return false;
+            }
+        }
+
+        async function testWebSocket() {
+            log('Testing WebSocket connection...');
+            return new Promise((resolve) => {
+                try {
+                    const ws = new WebSocket('ws://192.168.1.37:3001');
+                    let resolved = false;
+
+                    ws.onopen = () => {
+                        if (!resolved) {
+                            appendTestResult('✅ WebSocket Connected', 'Real-time connection available', 'success');
+                            log('WebSocket connection successful');
+                            ws.close();
+                            resolved = true;
+                            updateProgress();
+                            resolve(true);
+                        }
+                    };
+
+                    ws.onerror = (error) => {
+                        if (!resolved) {
+                            appendTestResult('❌ WebSocket Failed', 'Real-time features may not work', 'error');
+                            log('WebSocket connection failed');
+                            resolved = true;
+                            updateProgress();
+                            resolve(false);
+                        }
+                    };
+
+                    setTimeout(() => {
+                        if (!resolved) {
+                            appendTestResult('⚠️ WebSocket Timeout', 'Connection attempt timed out', 'warning');
+                            log('WebSocket timeout');
+                            ws.close();
+                            resolved = true;
+                            updateProgress();
+                            resolve(false);
+                        }
+                    }, 5000);
+                } catch (error) {
+                    appendTestResult('❌ WebSocket Error', `Error: ${error.message}`, 'error');
+                    log(`WebSocket error: ${error.message}`);
+                    updateProgress();
+                    resolve(false);
+                }
+            });
+        }
+
+        function appendTestResult(title, description, type) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `status ${type}`;
+            resultDiv.innerHTML = `<strong>${title}:</strong> ${description}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function runAllTests() {
+            document.getElementById('test-results').innerHTML = '';
+            testProgress = 0;
+            updateProgress(0);
+            log('Starting comprehensive network test...');
+
+            // Test sequence
+            await testPing();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testHTTP();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testWebSocket();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Final test - try to load a resource
+            log('Testing resource loading...');
+            try {
+                const img = new Image();
+                img.onload = () => {
+                    appendTestResult('✅ Resource Loading', 'Static files accessible', 'success');
+                    log('Resource loading successful');
+                    updateProgress();
+                };
+                img.onerror = () => {
+                    appendTestResult('❌ Resource Loading Failed', 'Static files not accessible', 'error');
+                    log('Resource loading failed');
+                    updateProgress();
+                };
+                img.src = 'http://192.168.1.37:3001/favicon.ico?' + Date.now();
+            } catch (error) {
+                appendTestResult('❌ Resource Test Error', error.message, 'error');
+                log(`Resource test error: ${error.message}`);
+                updateProgress();
+            }
+
+            // Network info test
+            log('Gathering network information...');
+            if ('connection' in navigator) {
+                const conn = navigator.connection;
+                appendTestResult('📊 Network Info',
+                    `Type: ${conn.effectiveType}, Speed: ${conn.downlink}Mbps, RTT: ${conn.rtt}ms`, 'info');
+            }
+            updateProgress();
+
+            log('All tests completed!');
+        }
+
+        function openApp() {
+            log('Opening main application...');
+            window.open('http://192.168.1.37:3001', '_blank');
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            updateDeviceInfo();
+            log('Page loaded, starting auto-diagnosis...');
+            setTimeout(() => {
+                runAllTests();
+            }, 1000);
+        });
+
+        // Monitor online status
+        window.addEventListener('online', () => {
+            log('Network connection restored');
+            document.getElementById('server-status').textContent = 'Online';
+        });
+
+        window.addEventListener('offline', () => {
+            log('Network connection lost');
+            document.getElementById('server-status').textContent = 'Offline';
+        });
+    </script>
+</body>
+</html>

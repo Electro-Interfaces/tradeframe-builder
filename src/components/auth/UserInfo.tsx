@@ -1,11 +1,11 @@
 import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNewAuth } from '@/contexts/NewAuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Shield, Clock, Phone, Mail } from 'lucide-react';
 
 export function UserInfo() {
-  const { user } = useAuth();
+  const { user } = useNewAuth();
 
   if (!user) {
     return null;

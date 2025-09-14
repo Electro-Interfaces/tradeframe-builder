@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useNewAuth } from '../contexts/NewAuthContext';
 import { Loader2 } from 'lucide-react';
 import '../types/window';
 
@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   console.log('🛡️ ProtectedRoute: component rendered');
-  const { user, loading } = useAuth();
+  const { user, loading } = useNewAuth();
   console.log('🛡️ ProtectedRoute: user =', user, 'loading =', loading);
   const location = useLocation();
 

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { networksService } from "@/services/networksService";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { Network } from "@/types/network";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNewAuth } from "@/contexts/NewAuthContext";
 
 type SelectionContextValue = {
   selectedNetwork: Network | null;
@@ -17,7 +17,7 @@ const SelectionContext = createContext<SelectionContextValue | undefined>(undefi
 export function SelectionProvider({ children }: { children: React.ReactNode }) {
   const [selectedNetworkId, setSelectedNetworkId] = useState<string>("");
   const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>("");
-  const { user } = useAuth();
+  const { user } = useNewAuth();
 
   // Получаем объект сети по ID
   const [selectedNetwork, setSelectedNetworkState] = useState<Network | null>(null);

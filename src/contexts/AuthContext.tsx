@@ -5,7 +5,6 @@ import { currentUserService } from '../services/currentUserService';
 import { type User as DBUser } from '../services/usersService';
 import '../types/window';
 
-console.log('📁 AuthContext.tsx: Module loaded!');
 
 // Типы пользователей и ролей
 export interface Permission {
@@ -176,7 +175,6 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  console.log('🚀 AuthProvider: component initialized');
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<Role[]>(SYSTEM_ROLES);
   const [loading, setLoading] = useState(true);
@@ -193,48 +191,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Логируем состояние только при изменениях, не при каждом рендере
-  console.log('🚀 AuthProvider: initial user state:', user);
 
   // Инициализация пользователя при загрузке приложения
   // Проверяем, есть ли сохраненная сессия
   useEffect(() => {
-    console.log('🔄 AuthProvider: useEffect called - initializing auth');
     const initializeAuth = async () => {
       try {
         if (typeof window !== 'undefined') {
-          // Проверяем есть ли сохраненная сессия (используем единые ключи)
           const savedUser = localStorage.getItem('tradeframe_user');
           const authToken = localStorage.getItem('authToken');
-          console.log('🔍 AuthProvider: localStorage check - savedUser exists:', !!savedUser, 'authToken exists:', !!authToken);
-          
+
           if (savedUser && authToken) {
             try {
-              // Проверяем, что savedUser является валидным JSON
               if (savedUser.startsWith('[object Object]') || savedUser === '[object Object]') {
-                console.warn('🚫 Corrupted localStorage data detected, clearing...');
                 clearAllAuthData();
                 setUser(null);
                 return;
               }
-              
-              // Восстанавливаем пользователя из сохраненной сессии
+
               const parsedUser = JSON.parse(savedUser);
-              console.log('🔄 Restoring user from localStorage:', parsedUser);
-              console.log('👤 User role:', parsedUser.role);
-              console.log('🔑 User permissions count:', parsedUser.permissions?.length || 0);
-              console.log('🔑 User permissions:', parsedUser.permissions);
               setUser(parsedUser);
             } catch (error) {
-              console.error('❌ Error parsing saved user data:', error);
-              console.log('🧹 Clearing corrupted localStorage data');
               clearAllAuthData();
               setUser(null);
             }
           } else {
             // Нет сохраненной сессии - пользователь должен войти
             setUser(null);
-            console.log('❌ No saved session - user needs to login');
           }
         } else {
           // На сервере пользователь не авторизован
@@ -249,7 +232,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setLoading(false);
         // Убираем индикатор загрузки index.html когда авторизация завершена
         if (typeof window !== 'undefined' && window.removeInitialLoading) {
-          console.log('🎯 AuthContext: Авторизация завершена, убираем начальную загрузку');
           window.removeInitialLoading();
         }
       }
@@ -328,13 +310,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
-      console.log('🔐 Starting login process for:', email);
 
       // Авторизация только через реальную базу данных
       const dbUser = await currentUserService.authenticateUser(email, password);
 
       if (dbUser) {
-        console.log('✅ User found in database:', dbUser);
         
         // Определяем основную роль пользователя
         let primaryRole = 'user';
@@ -360,7 +340,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           lastLogin: new Date().toISOString()
         };
         
-        console.log('✅ Created user object from DB:', contextUser);
         setUser(contextUser);
         
         // Устанавливаем ID текущего пользователя в сервисе
@@ -372,15 +351,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const userJson = JSON.stringify(contextUser);
             localStorage.setItem('tradeframe_user', userJson);
             localStorage.setItem('authToken', 'database_session');
-            console.log('✅ Successfully saved DB user to localStorage');
           } catch (error) {
             console.error('❌ Error saving user to localStorage:', error);
           }
         }
       } else {
-        // ИСПРАВЛЕНО: Убран fallback к Supabase для безопасности
-        // Только реальные пользователи из базы данных разрешены
-        console.log('❌ User authentication failed - user not found in database');
+        // ТОЛЬКО реальные пользователи из базы данных - никаких демо пользователей
         throw new Error('Пользователь не найден или неверный пароль');
       }
     } catch (error: any) {
@@ -389,7 +365,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(false);
       // Убираем индикатор загрузки index.html после попытки входа
       if (typeof window !== 'undefined' && window.removeInitialLoading) {
-        console.log('🎯 AuthContext: Попытка входа завершена, убираем начальную загрузку');
         window.removeInitialLoading();
       }
     }
@@ -398,17 +373,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Выход из системы
   const logout = async (): Promise<void> => {
     try {
-      console.log('🚪 Starting logout process');
       await SupabaseAuthService.logout();
       setUser(null);
       clearAllAuthData();
-      console.log('🧹 Cleared localStorage on logout');
     } catch (error: any) {
       console.error('❌ Logout error:', error);
       // Даже если ошибка, очищаем локальные данные
       setUser(null);
       clearAllAuthData();
-      console.log('🧹 Force cleared localStorage after error');
     }
   };
 

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNewAuth } from '@/contexts/NewAuthContext';
 import { externalUsersService } from '@/services/externalUsersService';
 import type { User } from '@/types/auth';
 
@@ -7,7 +7,7 @@ import type { User } from '@/types/auth';
  * Хук для загрузки актуальных данных профиля текущего пользователя из внешней БД
  */
 export const useCurrentUserProfile = () => {
-  const { user: authUser } = useAuth();
+  const { user: authUser } = useNewAuth();
   
   console.log('useCurrentUserProfile: Хук инициализирован, authUser:', authUser);
   

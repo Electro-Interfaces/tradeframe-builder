@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useNewAuth } from '../contexts/NewAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -198,7 +198,7 @@ const LoginPageWithLegal = () => {
   // Mobile state
   const mobileInfo = useMobile();
   const isMobile = mobileInfo.isMobile;
-  const { login } = useAuth();
+  const { login } = useNewAuth();
   const navigate = useNavigate();
 
 
@@ -435,7 +435,7 @@ const LoginPageWithLegal = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 pr-10 h-8 text-sm"
                     required
-                    autoComplete="current-password"
+                    autoComplete="off"
                   />
                   <Button
                     type="button"

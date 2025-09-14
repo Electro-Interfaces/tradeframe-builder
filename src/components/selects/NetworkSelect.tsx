@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { networksService } from "@/services/networksService";
 import type { Network } from "@/types/network";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNewAuth } from "@/contexts/NewAuthContext";
 
 interface NetworkSelectProps {
   value?: string;
@@ -16,7 +16,7 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
   const [open, setOpen] = useState(false);
   const [networks, setNetworks] = useState<Network[]>([]);
   const selectedNetwork = networks.find(n => n.id === value);
-  const { user } = useAuth();
+  const { user } = useNewAuth();
   
   const loadNetworks = async () => {
     try {
