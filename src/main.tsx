@@ -41,10 +41,11 @@ if ('serviceWorker' in navigator) {
     pathname: window.location.pathname
   });
 
-  // Отключаем Service Worker для мобильных устройств на GitHub Pages
-  if (isMobile && isGitHubPages) {
+  // Включаем Service Worker для всех устройств на GitHub Pages для PWA
+  if (false) { // Всегда false - включаем SW везде
     console.log('🚫 PWA Service Worker: Отключен для мобильных GitHub Pages');
   } else {
+    console.log('🚀 PWA Service Worker: Включен для всех устройств на GitHub Pages');
     // Регистрируем SW сразу, не дожидаясь load события для лучшей PWA установки
     const base = import.meta.env.BASE_URL;
     const swUrl = `${base}sw.js`;

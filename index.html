@@ -161,7 +161,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/tradeframe-builder/icon-512x512.png" />
     <link rel="icon" type="image/svg+xml" href="/tradeframe-builder/icon.svg" />
     <link rel="icon" type="image/x-icon" href="/tradeframe-builder/favicon.ico" />
-    <link rel="manifest" href="manifest.json" />
+    <link rel="manifest" href="/tradeframe-builder/manifest.json" />
 
     <!-- iOS Splash Screens для разных устройств -->
     <link rel="apple-touch-startup-image" media="screen and (device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/tradeframe-builder/splash-640x1136.png" />
@@ -315,13 +315,19 @@
               rootEl.querySelector('.login-form') ||
               rootEl.querySelector('.auth-container') ||
               rootEl.querySelector('[class*="sidebar"]') ||
-              rootEl.querySelector('main')
+              rootEl.querySelector('main') ||
+              rootEl.querySelector('[role="main"]') ||
+              rootEl.querySelector('.equipment-page') ||
+              rootEl.querySelector('.network-overview') ||
+              rootEl.querySelector('nav') ||
+              // Дополнительная проверка для авторизованного состояния
+              rootEl.querySelector('[class*="layout"]')
             );
 
             if (hasReactContent) {
               clearInterval(checkReact);
               console.log('🚀 React content detected, removing loading');
-              setTimeout(removeLoadingIndicator, 800); // Небольшая задержка для плавности
+              setTimeout(removeLoadingIndicator, 500); // Уменьшаем задержку
             }
           }, 200);
 
