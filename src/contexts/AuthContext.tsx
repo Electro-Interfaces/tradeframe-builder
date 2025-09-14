@@ -3,6 +3,7 @@ import { SupabaseAuthService, type AuthUser } from '../services/supabaseAuthServ
 import { testServiceConnection } from '../services/supabaseServiceClient';
 import { currentUserService } from '../services/currentUserService';
 import { type User as DBUser } from '../services/usersService';
+import '../types/window';
 
 console.log('📁 AuthContext.tsx: Module loaded!');
 
@@ -180,6 +181,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [roles, setRoles] = useState<Role[]>(SYSTEM_ROLES);
   const [loading, setLoading] = useState(true);
 
+  // Функция для полной очистки данных авторизации
+  const clearAllAuthData = () => {
+    if (typeof window !== 'undefined') {
+      // Единые ключи (основные)
+      localStorage.removeItem('tradeframe_user');
+      localStorage.removeItem('authToken');
+      // Старые ключи (для совместимости)
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('auth_token');
+    }
+  };
+
   // Логируем состояние только при изменениях, не при каждом рендере
   console.log('🚀 AuthProvider: initial user state:', user);
 
@@ -190,9 +203,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const initializeAuth = async () => {
       try {
         if (typeof window !== 'undefined') {
-          // Проверяем есть ли сохраненная сессия
-          const savedUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
-          const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+          // Проверяем есть ли сохраненная сессия (используем единые ключи)
+          const savedUser = localStorage.getItem('tradeframe_user');
+          const authToken = localStorage.getItem('authToken');
           console.log('🔍 AuthProvider: localStorage check - savedUser exists:', !!savedUser, 'authToken exists:', !!authToken);
           
           if (savedUser && authToken) {
@@ -200,10 +213,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               // Проверяем, что savedUser является валидным JSON
               if (savedUser.startsWith('[object Object]') || savedUser === '[object Object]') {
                 console.warn('🚫 Corrupted localStorage data detected, clearing...');
-                localStorage.removeItem('currentUser');
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('tradeframe_user');
-                localStorage.removeItem('authToken');
+                clearAllAuthData();
                 setUser(null);
                 return;
               }
@@ -218,10 +228,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             } catch (error) {
               console.error('❌ Error parsing saved user data:', error);
               console.log('🧹 Clearing corrupted localStorage data');
-              localStorage.removeItem('currentUser');
-              localStorage.removeItem('auth_token');
-              localStorage.removeItem('tradeframe_user');
-              localStorage.removeItem('authToken');
+              clearAllAuthData();
               setUser(null);
             }
           } else {
@@ -237,14 +244,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.error('Auth initialization error:', error);
         setUser(null);
         // Очищаем поврежденные данные
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('currentUser');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('tradeframe_user');
-          localStorage.removeItem('authToken');
-        }
+        clearAllAuthData();
       } finally {
         setLoading(false);
+        // Убираем индикатор загрузки index.html когда авторизация завершена
+        if (typeof window !== 'undefined' && window.removeInitialLoading) {
+          console.log('🎯 AuthContext: Авторизация завершена, убираем начальную загрузку');
+          window.removeInitialLoading();
+        }
       }
     };
 
@@ -317,15 +324,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Вход в систему через Supabase
+  // Вход в систему через базу данных с улучшенной обработкой ошибок
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
       console.log('🔐 Starting login process for:', email);
-      
-      // Сначала попробуем найти пользователя в нашей базе данных
+
+      // Авторизация только через реальную базу данных
       const dbUser = await currentUserService.authenticateUser(email, password);
-      
+
       if (dbUser) {
         console.log('✅ User found in database:', dbUser);
         
@@ -371,43 +378,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
       } else {
-        // Если пользователя нет в БД, пробуем Supabase (fallback)
-        console.log('🔄 User not found in DB, trying Supabase...');
-        const authUser = await SupabaseAuthService.login(email, password);
-        console.log('✅ AuthUser from Supabase:', authUser);
-        
-        // Конвертируем AuthUser в User для контекста
-        const contextUser: User = {
-          id: authUser.id,
-          email: authUser.email,
-          name: authUser.name, // Это должно быть "Системный администратор"
-          role: authUser.role,
-          networkId: authUser.networkId,
-          tradingPointIds: authUser.tradingPointIds,
-          permissions: authUser.permissions,
-          status: 'active',
-          lastLogin: new Date().toISOString()
-        };
-
-        console.log('🎯 Context user being set:', contextUser);
-        setUser(contextUser);
-        
-        // Сохраняем пользователя в localStorage (используем тот же ключ что и при восстановлении)
-        if (typeof window !== 'undefined') {
-          try {
-            const userJson = JSON.stringify(contextUser);
-            localStorage.setItem('tradeframe_user', userJson);
-            localStorage.setItem('authToken', 'supabase_session');
-            console.log('✅ Successfully saved Supabase user to localStorage');
-          } catch (error) {
-            console.error('❌ Error saving user to localStorage:', error);
-          }
-        }
+        // ИСПРАВЛЕНО: Убран fallback к Supabase для безопасности
+        // Только реальные пользователи из базы данных разрешены
+        console.log('❌ User authentication failed - user not found in database');
+        throw new Error('Пользователь не найден или неверный пароль');
       }
     } catch (error: any) {
       throw new Error(error.message || 'Ошибка входа в систему');
     } finally {
       setLoading(false);
+      // Убираем индикатор загрузки index.html после попытки входа
+      if (typeof window !== 'undefined' && window.removeInitialLoading) {
+        console.log('🎯 AuthContext: Попытка входа завершена, убираем начальную загрузку');
+        window.removeInitialLoading();
+      }
     }
   };
 
@@ -417,25 +401,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('🚪 Starting logout process');
       await SupabaseAuthService.logout();
       setUser(null);
-      
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('tradeframe_user');
-        localStorage.removeItem('authToken');
-        console.log('🧹 Cleared localStorage on logout');
-      }
+      clearAllAuthData();
+      console.log('🧹 Cleared localStorage on logout');
     } catch (error: any) {
       console.error('❌ Logout error:', error);
       // Даже если ошибка, очищаем локальные данные
       setUser(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('tradeframe_user');
-        localStorage.removeItem('authToken');
-        console.log('🧹 Force cleared localStorage after error');
-      }
+      clearAllAuthData();
+      console.log('🧹 Force cleared localStorage after error');
     }
   };
 

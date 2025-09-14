@@ -165,10 +165,83 @@ class ExternalUsersService {
       );
 
       if (response.length === 0) return null;
-      
+
       return this.transformUserFromDB(response[0]);
     } catch (error) {
       console.error('Error fetching user by email:', error);
+      throw error;
+    }
+  }
+
+  async getUserByEmailWithRoles(email: string): Promise<User | null> {
+    try {
+      console.log('🔍 ExternalUsersService: Ищем пользователя с ролями по email:', email);
+
+      // Получаем базовые данные пользователя
+      const response = await this.makeRequest(
+        `users?email=eq.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`,
+        { method: 'GET' }
+      );
+
+      if (response.length === 0) {
+        console.log('❌ ExternalUsersService: Пользователь не найден:', email);
+        return null;
+      }
+
+      const user = this.transformUserFromDB(response[0]);
+      console.log('✅ ExternalUsersService: Найден пользователь:', user.email);
+
+      // Получаем назначения ролей для этого пользователя
+      const userRolesData = await this.makeRequest(
+        `user_roles?user_id=eq.${user.id}&is_active=eq.true&deleted_at=is.null`,
+        { method: 'GET' }
+      );
+      console.log('📋 ExternalUsersService: Найдено назначений ролей:', userRolesData.length);
+
+      if (userRolesData.length === 0) {
+        console.log('⚠️ ExternalUsersService: У пользователя нет активных ролей');
+        return { ...user, roles: [] };
+      }
+
+      // Получаем данные о ролях
+      const roleIds = userRolesData.map((ur: any) => ur.role_id);
+      const rolesResponse = await this.makeRequest(
+        `roles?id=in.(${roleIds.join(',')})&deleted_at=is.null&is_active=eq.true`,
+        { method: 'GET' }
+      );
+      console.log('🎭 ExternalUsersService: Найдено активных ролей:', rolesResponse.length);
+
+      // Создаем карту ролей
+      const rolesMap = new Map();
+      rolesResponse.forEach((role: any) => {
+        rolesMap.set(role.id, role);
+      });
+
+      // Формируем роли пользователя
+      const userRoles = userRolesData
+        .map((ur: any) => {
+          const roleData = rolesMap.get(ur.role_id);
+          if (!roleData) return null;
+
+          return {
+            role_id: ur.role_id,
+            role_code: roleData.code,
+            role_name: roleData.name,
+            scope: roleData.scope,
+            scope_value: ur.scope_value,
+            permissions: roleData.permissions || [],
+            assigned_at: new Date(ur.assigned_at),
+            expires_at: ur.expires_at ? new Date(ur.expires_at) : undefined
+          };
+        })
+        .filter(role => role !== null);
+
+      const userWithRoles = { ...user, roles: userRoles };
+      console.log('✅ ExternalUsersService: Пользователь с ролями готов:', userWithRoles.email, 'ролей:', userRoles.length);
+
+      return userWithRoles;
+    } catch (error) {
+      console.error('❌ ExternalUsersService: Ошибка получения пользователя с ролями:', error);
       throw error;
     }
   }

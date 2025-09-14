@@ -320,6 +320,8 @@
             const hasReactContent = rootEl && (
               // ПРИОРИТЕТ: флаг от main.tsx что React готов
               window.reactReady ||
+              // Проверяем наличие React Router (всегда присутствует после загрузки App)
+              rootEl.querySelector('[data-testid="router-ready"]') ||
               // Быстрая детекция: есть дочерние элементы (React загрузился)
               rootEl.children.length > 0 ||
               // Ключевые селекторы основных компонентов
@@ -327,7 +329,7 @@
               rootEl.querySelector('main') ||
               rootEl.querySelector('nav') ||
               rootEl.querySelector('form') ||
-              // Проверяем минимальное содержимое
+              // Проверяем минимальное содержимое (но не полагаемся только на это)
               (rootEl.textContent && rootEl.textContent.trim().length > 20)
             );
 

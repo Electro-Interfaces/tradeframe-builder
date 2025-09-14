@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест загрузки приложения</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .log {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        .info { color: #3b82f6; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Тест загрузки приложения и авторизации</h1>
+
+    <div class="test-section">
+        <h2>1. Проверка localStorage</h2>
+        <button onclick="checkLocalStorage()">Проверить данные</button>
+        <button onclick="clearAllData()">Очистить все данные</button>
+        <div id="localStorage-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Тест загрузки приложения</h2>
+        <button onclick="openAppAndWatch()">Открыть приложение и следить</button>
+        <button onclick="openAppFresh()">Открыть в новом окне</button>
+        <button onclick="simulateRefresh()">Симулировать обновление</button>
+        <div id="loading-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Тест авторизации</h2>
+        <div style="margin: 10px 0;">
+            <input type="email" id="test-email" placeholder="Email" value="" />
+            <input type="password" id="test-password" placeholder="Пароль" />
+            <button onclick="testLogin()">Тестировать вход</button>
+        </div>
+        <button onclick="testInvalidLogin()">Тест неверных данных</button>
+        <button onclick="testLogout()">Тестировать выход</button>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Логи и диагностика</h2>
+        <button onclick="startLogging()">Начать мониторинг</button>
+        <button onclick="clearLogs()">Очистить логи</button>
+        <div class="log" id="logs">Нажмите "Начать мониторинг" для просмотра логов...</div>
+    </div>
+
+    <script>
+        let logContainer = document.getElementById('logs');
+        let isLogging = false;
+        let originalConsoleLog = console.log;
+        let originalConsoleError = console.error;
+        let originalConsoleWarn = console.warn;
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            const prefix = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : '📝';
+            logContainer.innerHTML += `<span class="${className}">[${timestamp}] ${prefix} ${message}</span>\n`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function startLogging() {
+            if (isLogging) return;
+            isLogging = true;
+
+            // Перехватываем console методы
+            console.log = function(...args) {
+                if (isLogging) addLog(args.join(' '), 'info');
+                originalConsoleLog.apply(console, args);
+            };
+
+            console.error = function(...args) {
+                if (isLogging) addLog(args.join(' '), 'error');
+                originalConsoleError.apply(console, args);
+            };
+
+            console.warn = function(...args) {
+                if (isLogging) addLog(args.join(' '), 'warning');
+                originalConsoleWarn.apply(console, args);
+            };
+
+            addLog('Мониторинг логов запущен', 'success');
+        }
+
+        function clearLogs() {
+            logContainer.innerHTML = 'Логи очищены...\n';
+        }
+
+        function checkLocalStorage() {
+            const status = document.getElementById('localStorage-status');
+            const data = {
+                tradeframe_user: localStorage.getItem('tradeframe_user'),
+                authToken: localStorage.getItem('authToken'),
+                rememberedEmail: localStorage.getItem('rememberedEmail'),
+                currentUser: localStorage.getItem('currentUser'),
+                auth_token: localStorage.getItem('auth_token')
+            };
+
+            let html = '<h3>Состояние localStorage:</h3>';
+            for (let key in data) {
+                const value = data[key];
+                if (value) {
+                    html += `<p><strong>${key}:</strong> ${value.length > 50 ? value.substring(0, 50) + '...' : value}</p>`;
+                } else {
+                    html += `<p><strong>${key}:</strong> <em>не установлен</em></p>`;
+                }
+            }
+
+            status.innerHTML = html;
+            addLog('Проверка localStorage выполнена', 'info');
+        }
+
+        function clearAllData() {
+            localStorage.clear();
+            sessionStorage.clear();
+            addLog('Все данные localStorage и sessionStorage очищены', 'warning');
+            checkLocalStorage();
+        }
+
+        function openAppAndWatch() {
+            addLog('Открываем приложение для мониторинга...', 'info');
+            const appWindow = window.open('http://localhost:3004', '_blank');
+
+            // Мониторим события загрузки
+            setTimeout(() => {
+                if (appWindow && !appWindow.closed) {
+                    addLog('Приложение открыто успешно', 'success');
+                } else {
+                    addLog('Ошибка открытия приложения', 'error');
+                }
+            }, 2000);
+        }
+
+        function openAppFresh() {
+            clearAllData();
+            setTimeout(() => {
+                addLog('Открываем приложение с чистыми данными...', 'info');
+                window.open('http://localhost:3004', '_blank');
+            }, 500);
+        }
+
+        function simulateRefresh() {
+            addLog('Симулируем обновление страницы приложения...', 'info');
+            const appWindow = window.open('http://localhost:3004', '_blank');
+            setTimeout(() => {
+                if (appWindow && !appWindow.closed) {
+                    appWindow.location.reload();
+                    addLog('Обновление страницы выполнено', 'info');
+                }
+            }, 3000);
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+
+            if (!email || !password) {
+                addLog('Введите email и пароль для тестирования', 'warning');
+                return;
+            }
+
+            addLog(`Тестируем вход с email: ${email}`, 'info');
+
+            try {
+                // Отправляем запрос к API приложения (если доступно)
+                const response = await fetch('http://localhost:3004/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (response.ok) {
+                    addLog('Авторизация прошла успешно!', 'success');
+                } else {
+                    addLog(`Авторизация неудачна: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addLog(`Ошибка тестирования: ${error.message}`, 'error');
+                addLog('Возможно, API сервер не запущен или недоступен', 'warning');
+            }
+        }
+
+        function testInvalidLogin() {
+            addLog('Тестируем вход с неверными данными...', 'info');
+            document.getElementById('test-email').value = 'invalid@test.com';
+            document.getElementById('test-password').value = 'wrongpassword';
+            testLogin();
+        }
+
+        function testLogout() {
+            addLog('Тестируем выход из системы...', 'info');
+            clearAllData();
+            addLog('Данные сессии очищены (симуляция logout)', 'success');
+        }
+
+        // Автоматически проверяем localStorage при загрузке
+        window.onload = function() {
+            checkLocalStorage();
+            addLog('Страница тестирования загружена', 'success');
+            addLog('Готов к тестированию загрузки и авторизации', 'info');
+        };
+    </script>
+</body>
+</html>

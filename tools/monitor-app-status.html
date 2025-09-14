@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Монитор статуса приложения</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .status-card {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+        .status-card h3 {
+            margin-top: 0;
+            color: #3b82f6;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-ok { background: #10b981; }
+        .status-warning { background: #f59e0b; }
+        .status-error { background: #ef4444; }
+        .status-unknown { background: #6b7280; }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #2563eb; }
+        .danger { background: #ef4444; }
+        .danger:hover { background: #dc2626; }
+
+        .log {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid #334155;
+        }
+        .timing-info {
+            background: #164e63;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Монитор статуса приложения TradeFrame</h1>
+
+    <div style="margin: 20px 0;">
+        <button onclick="startMonitoring()">▶ Начать мониторинг</button>
+        <button onclick="stopMonitoring()">⏸ Остановить</button>
+        <button onclick="testFullCycle()">🔄 Полный тест цикла</button>
+        <button onclick="clearLogs()" class="danger">🗑 Очистить логи</button>
+    </div>
+
+    <div class="status-grid">
+        <div class="status-card">
+            <h3>🌐 Сервер статус</h3>
+            <div id="server-status">
+                <span class="status-indicator status-unknown"></span>
+                Проверяется...
+            </div>
+            <div class="timing-info" id="server-timing">
+                Время ответа: неизвестно
+            </div>
+        </div>
+
+        <div class="status-card">
+            <h3>📱 Загрузка приложения</h3>
+            <div id="app-status">
+                <span class="status-indicator status-unknown"></span>
+                Не проверялось
+            </div>
+            <div class="timing-info" id="app-timing">
+                Время загрузки: неизвестно
+            </div>
+        </div>
+
+        <div class="status-card">
+            <h3>🔐 Авторизация</h3>
+            <div id="auth-status">
+                <span class="status-indicator status-unknown"></span>
+                Не тестировалось
+            </div>
+            <div class="timing-info" id="auth-timing">
+                Время ответа API: неизвестно
+            </div>
+        </div>
+
+        <div class="status-card">
+            <h3>💾 localStorage</h3>
+            <div id="storage-status">
+                <span class="status-indicator status-unknown"></span>
+                Не проверялось
+            </div>
+            <div id="storage-details" style="font-size: 12px; margin-top: 10px;">
+                Детали будут показаны после проверки
+            </div>
+        </div>
+    </div>
+
+    <div class="status-card">
+        <h3>📊 Логи мониторинга</h3>
+        <div class="log" id="monitor-log">Нажмите "Начать мониторинг" для просмотра логов...</div>
+    </div>
+
+    <script>
+        let monitoringInterval;
+        let isMonitoring = false;
+        const APP_URL = 'http://localhost:3004';
+
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('monitor-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : '📝';
+            logContainer.innerHTML += `[${timestamp}] ${icon} ${message}\n`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateStatus(elementId, status, text, timing = null) {
+            const element = document.getElementById(elementId);
+            const indicator = element.querySelector('.status-indicator');
+            indicator.className = `status-indicator status-${status}`;
+            element.innerHTML = indicator.outerHTML + ' ' + text;
+
+            if (timing && elementId.includes('-status')) {
+                const timingElement = document.getElementById(elementId.replace('-status', '-timing'));
+                if (timingElement) {
+                    timingElement.textContent = timing;
+                }
+            }
+        }
+
+        async function checkServerStatus() {
+            const startTime = Date.now();
+            try {
+                const response = await fetch(APP_URL, {
+                    method: 'HEAD',
+                    cache: 'no-cache'
+                });
+                const responseTime = Date.now() - startTime;
+
+                if (response.ok) {
+                    updateStatus('server-status', 'ok', `Сервер доступен (${response.status})`, `Время ответа: ${responseTime}мс`);
+                    return true;
+                } else {
+                    updateStatus('server-status', 'warning', `Сервер отвечает с ошибкой (${response.status})`, `Время ответа: ${responseTime}мс`);
+                    return false;
+                }
+            } catch (error) {
+                const responseTime = Date.now() - startTime;
+                updateStatus('server-status', 'error', `Сервер недоступен (${error.message})`, `Время ответа: ${responseTime}мс`);
+                return false;
+            }
+        }
+
+        async function checkAppLoading() {
+            const startTime = Date.now();
+            try {
+                // Открываем приложение в iframe для тестирования
+                const response = await fetch(APP_URL);
+                const html = await response.text();
+                const loadTime = Date.now() - startTime;
+
+                // Проверяем ключевые элементы в HTML
+                const hasInitialLoading = html.includes('initial-loading');
+                const hasReactRoot = html.includes('id="root"');
+                const hasManifest = html.includes('manifest.json');
+
+                if (hasInitialLoading && hasReactRoot) {
+                    updateStatus('app-status', 'ok', 'HTML корректно загружен', `Время загрузки: ${loadTime}мс`);
+                    log(`✅ Приложение: HTML содержит все необходимые элементы (${loadTime}мс)`, 'success');
+                    return true;
+                } else {
+                    updateStatus('app-status', 'warning', 'HTML загружен, но могут отсутствовать элементы', `Время загрузки: ${loadTime}мс`);
+                    log(`⚠️ Приложение: Отсутствуют элементы - loading: ${hasInitialLoading}, root: ${hasReactRoot}`, 'warning');
+                    return false;
+                }
+            } catch (error) {
+                const loadTime = Date.now() - startTime;
+                updateStatus('app-status', 'error', `Ошибка загрузки (${error.message})`, `Время загрузки: ${loadTime}мс`);
+                log(`❌ Приложение: Ошибка загрузки - ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function checkAuthAPI() {
+            const startTime = Date.now();
+            try {
+                // Тестируем запрос к API аутентификации (ожидаем 404 или методы не поддерживаются)
+                const response = await fetch(APP_URL + '/api/auth/status', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const responseTime = Date.now() - startTime;
+
+                // Для SPA приложения ожидаем 404 или перенаправление на index.html
+                if (response.status === 404 || response.status === 200) {
+                    updateStatus('auth-status', 'ok', 'API маршрутизация работает', `Время ответа: ${responseTime}мс`);
+                    log(`✅ API: Маршрутизация работает корректно (${response.status})`, 'success');
+                    return true;
+                } else {
+                    updateStatus('auth-status', 'warning', `Неожиданный ответ API (${response.status})`, `Время ответа: ${responseTime}мс`);
+                    log(`⚠️ API: Неожиданный статус ${response.status}`, 'warning');
+                    return false;
+                }
+            } catch (error) {
+                const responseTime = Date.now() - startTime;
+                updateStatus('auth-status', 'error', `API недоступно (${error.message})`, `Время ответа: ${responseTime}мс`);
+                log(`❌ API: Недоступно - ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        function checkLocalStorage() {
+            const keys = ['tradeframe_user', 'authToken', 'rememberedEmail', 'currentUser', 'auth_token'];
+            const storage = {};
+            let hasData = false;
+
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value) {
+                    storage[key] = value.length > 50 ? `${value.substring(0, 50)}...` : value;
+                    hasData = true;
+                }
+            });
+
+            if (hasData) {
+                updateStatus('storage-status', 'warning', 'Есть сохраненные данные');
+                document.getElementById('storage-details').innerHTML = Object.keys(storage).map(key =>
+                    `<div><strong>${key}:</strong> ${storage[key]}</div>`
+                ).join('');
+                log(`⚠️ localStorage: Найдены данные - ${Object.keys(storage).join(', ')}`, 'warning');
+            } else {
+                updateStatus('storage-status', 'ok', 'localStorage чист');
+                document.getElementById('storage-details').innerHTML = '<div>Нет сохраненных данных авторизации</div>';
+                log('✅ localStorage: Чистый, нет данных авторизации', 'success');
+            }
+        }
+
+        async function runFullCheck() {
+            log('🔄 Начинаем полную проверку системы...', 'info');
+
+            const serverOk = await checkServerStatus();
+            if (!serverOk) {
+                log('❌ Сервер недоступен, останавливаем проверку', 'error');
+                return;
+            }
+
+            const appOk = await checkAppLoading();
+            await checkAuthAPI();
+            checkLocalStorage();
+
+            log('🎯 Полная проверка завершена', 'success');
+        }
+
+        function startMonitoring() {
+            if (isMonitoring) return;
+
+            isMonitoring = true;
+            log('▶ Мониторинг запущен', 'success');
+
+            // Первоначальная проверка
+            runFullCheck();
+
+            // Периодическая проверка каждые 10 секунд
+            monitoringInterval = setInterval(() => {
+                checkServerStatus();
+                checkLocalStorage();
+            }, 10000);
+        }
+
+        function stopMonitoring() {
+            if (!isMonitoring) return;
+
+            isMonitoring = false;
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+            }
+            log('⏸ Мониторинг остановлен', 'info');
+        }
+
+        async function testFullCycle() {
+            log('🔄 Запуск полного тестового цикла...', 'info');
+
+            // 1. Очистка данных
+            localStorage.clear();
+            sessionStorage.clear();
+            log('🧹 Данные очищены', 'info');
+
+            // 2. Проверка сервера
+            await checkServerStatus();
+
+            // 3. Проверка загрузки
+            await checkAppLoading();
+
+            // 4. Проверка API
+            await checkAuthAPI();
+
+            // 5. Проверка localStorage
+            checkLocalStorage();
+
+            // 6. Открытие приложения для визуального тестирования
+            log('🌐 Открываем приложение для визуального тестирования...', 'info');
+            window.open(APP_URL, '_blank');
+
+            log('🎯 Полный тестовый цикл завершен', 'success');
+        }
+
+        function clearLogs() {
+            document.getElementById('monitor-log').innerHTML = '';
+        }
+
+        // Автоматический запуск при загрузке страницы
+        window.onload = function() {
+            log('🚀 Монитор статуса загружен', 'success');
+            runFullCheck();
+        };
+    </script>
+</body>
+</html>

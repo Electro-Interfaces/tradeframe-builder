@@ -92,7 +92,7 @@ const App = () => {
         }
 
         // ВАЖНО: Если пользователь авторизован, не перенаправляем на /login
-        const isUserLoggedIn = localStorage.getItem('tradeframe_user') || localStorage.getItem('authToken');
+        const isUserLoggedIn = localStorage.getItem('tradeframe_user') && localStorage.getItem('authToken');
         if (targetPath === '/login' && isUserLoggedIn) {
           console.log('🔄 App: User is already logged in, redirecting to home instead of login');
           targetPath = '/';
@@ -200,6 +200,7 @@ const App = () => {
           <AuthProvider>
             <SelectionProvider>
               <BrowserRouter basename={import.meta.env.PROD ? "/tradeframe-builder" : "/"}>
+                <div data-testid="router-ready" style={{ display: 'none' }}></div>
             <Routes>
             {/* Критически важные страницы - без lazy loading */}
             <Route path="/login" element={<LoginPageWithLegal />} />

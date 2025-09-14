@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import '../types/window';
 
 console.log('📁 ProtectedRoute.tsx: Module loaded!');
 
@@ -15,16 +16,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   console.log('🛡️ ProtectedRoute: user =', user, 'loading =', loading);
   const location = useLocation();
 
-  // Показываем загрузку пока проверяем аутентификацию
+  // Показываем загрузку пока проверяем аутентификацию (полагаемся на index.html)
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Проверка авторизации...</p>
-        </div>
-      </div>
-    );
+    console.log('🔄 ProtectedRoute: loading=true, возвращаем null (загрузку показывает index.html)');
+    // Обновляем статус в index.html
+    if (typeof window !== 'undefined' && window.updateLoadingStatus) {
+      window.updateLoadingStatus('Проверка авторизации...');
+    }
+    return null; // Пусть index.html показывает загрузку
   }
 
   // Если пользователь не авторизован - перенаправляем на страницу входа

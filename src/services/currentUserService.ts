@@ -90,25 +90,33 @@ class CurrentUserService {
    */
   async getUserByEmail(email: string): Promise<User | null> {
     try {
-      // Сначала пробуем реальную БД с ролями
+      // Оптимизированный поиск: сначала пробуем найти конкретного пользователя
       try {
+        console.log('🔍 Searching for user by email in database:', email);
+
+        // Пробуем целенаправленный поиск конкретного пользователя с ролями
+        const specificUser = await externalUsersService.getUserByEmailWithRoles(email);
+        if (specificUser) {
+          console.log('✅ Пользователь найден оптимизированным поиском:', specificUser);
+          return specificUser;
+        }
+
+        console.log('🔄 Optimized search failed, trying full dataset fallback...');
+
+        // Если оптимизированный поиск не сработал, загружаем всех (fallback)
         const usersWithRoles = await externalUsersService.getUsersWithRoles();
         const userWithRoles = usersWithRoles.find(u => u.email === email);
         if (userWithRoles) {
-          console.log('✅ Пользователь найден в реальной БД с ролями:', userWithRoles);
+          console.log('✅ Пользователь найден в полном датасете (fallback):', userWithRoles);
           return userWithRoles;
         }
       } catch (dbError) {
         console.warn('⚠️ Ошибка поиска в реальной БД:', dbError);
       }
 
-      // Fallback к моковым данным
-      const mockUser = await usersService.getUserByEmail(email);
-      if (mockUser) {
-        console.log('✅ Пользователь найден в моковых данных:', mockUser);
-        return mockUser;
-      }
-
+      // ИСПРАВЛЕНО: Удален fallback к моковым данным для безопасности
+      // Только реальные пользователи из базы данных разрешены
+      console.log('❌ Пользователь не найден в базе данных:', email);
       return null;
     } catch (error) {
       console.error('Ошибка получения пользователя по email:', error);
@@ -128,8 +136,8 @@ class CurrentUserService {
         return null;
       }
 
-      // Улучшенная проверка паролей с обратной совместимостью
-      if (this.isValidPassword(email, password)) {
+      // Проверка пароля с использованием реальных хешей из БД
+      if (await this.isValidPassword(user, password)) {
         console.log('✅ Authentication successful for:', email);
         return user;
       }
@@ -143,23 +151,73 @@ class CurrentUserService {
   }
 
   /**
-   * Проверка пароля с поддержкой разных типов пользователей
-   * Обратная совместимость: сохранены все текущие рабочие пароли
+   * Проверка пароля с использованием реальных хешей из базы данных
+   * ТОЛЬКО реальная проверка паролей - никаких демо данных
    */
-  private isValidPassword(email: string, password: string): boolean {
+  private async isValidPassword(user: User, password: string): Promise<boolean> {
     // Минимальная длина пароля
     if (!password || password.length < 3) {
       return false;
     }
 
-    // Все тестовые пароли удалены для безопасности
+    // Проверяем есть ли сохраненные данные пароля в пользователе
+    if (!user.pwd_salt || !user.pwd_hash) {
+      console.log('❌ User password data missing - cannot authenticate');
+      return false;
+    }
 
-    // TODO: В production добавить реальную проверку хешированных паролей
-    // const hashedPassword = await bcrypt.hash(password, 10);
-    // return await bcrypt.compare(password, user.passwordHash);
+    try {
+      // Используем тот же алгоритм хеширования что и в externalUsersService
+      const encoder = new TextEncoder();
+      const passwordBytes = encoder.encode(password);
+      const saltBytes = this.base64ToArrayBuffer(user.pwd_salt);
 
-    // ИСПРАВЛЕНО: отклоняем неизвестные пароли (только известные тестовые пароли принимаются)
-    return false;
+      // Импортируем пароль как ключ для PBKDF2
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw',
+        passwordBytes,
+        { name: 'PBKDF2' },
+        false,
+        ['deriveBits']
+      );
+
+      // Выполняем PBKDF2 хеширование (такие же параметры как в externalUsersService)
+      const hashBuffer = await crypto.subtle.deriveBits(
+        {
+          name: 'PBKDF2',
+          salt: saltBytes,
+          iterations: 100000,
+          hash: 'SHA-256'
+        },
+        keyMaterial,
+        32 * 8  // 32 байта в битах
+      );
+
+      const computedHash = this.arrayBufferToBase64(hashBuffer);
+      return computedHash === user.pwd_hash;
+    } catch (error) {
+      console.error('❌ Password verification error:', error);
+      return false;
+    }
+  }
+
+  // Вспомогательные методы для работы с Base64 (копия из externalUsersService)
+  private arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+
+  private base64ToArrayBuffer(base64: string): ArrayBuffer {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
   }
 }
 
