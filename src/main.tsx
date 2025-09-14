@@ -255,28 +255,27 @@ try {
   console.log('📱 App rendered successfully!');
   window.updateLoadingStatus?.('✅ Приложение загружено');
 
-  // Убираем initial loading индикатор через координированную задержку
-  // Отключаем main.tsx таймер - пусть index.html детекция управляет
+  // Убираем loading индикатор - координированный подход
   setTimeout(() => {
     console.log('🎯 main.tsx: React готов, сигнализируем index.html');
     // Устанавливаем флаг что React готов
     window.reactReady = true;
 
-    // Только fallback если index.html не сработал
+    // Быстрый fallback если index.html не сработал
     setTimeout(() => {
       const loadingEl = document.getElementById('initial-loading');
-      if (loadingEl && loadingEl.style.display !== 'none') {
-        console.log('🔧 main.tsx: Fallback удаление loading (index.html не сработал)');
+      if (loadingEl && loadingEl.style.opacity !== '0') {
+        console.log('🔧 main.tsx: Fallback удаление loading (index.html не успел)');
         if (window.removeInitialLoading) {
           window.removeInitialLoading();
         } else {
           loadingEl.style.opacity = '0';
-          loadingEl.style.transition = 'opacity 0.3s ease-out';
-          setTimeout(() => loadingEl.remove(), 300);
+          loadingEl.style.transition = 'opacity 0.2s ease-out';
+          setTimeout(() => loadingEl.remove(), 200);
         }
       }
-    }, 200); // Даем время index.html детекции сработать
-  }, 100); // Быстрая сигнализация готовности
+    }, 150); // Уменьшено время ожидания
+  }, 50); // Максимально быстрая сигнализация
   
 } catch (error) {
   console.error('❌ React rendering failed:', error);

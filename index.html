@@ -314,35 +314,21 @@
 
         // Удаляем когда React полностью загружен
         document.addEventListener('DOMContentLoaded', function() {
-          // Проверяем каждые 200мс готов ли React
+          // Проверяем каждые 100мс готов ли React (быстрее для лучшего UX)
           const checkReact = setInterval(() => {
             const rootEl = document.querySelector('#root');
             const hasReactContent = rootEl && (
-              // Приоритет: флаг от main.tsx что React готов
+              // ПРИОРИТЕТ: флаг от main.tsx что React готов
               window.reactReady ||
-              // Традиционная детекция React
-              window.React ||
-              rootEl.querySelector('[data-reactroot]') ||
-              rootEl.children.length > 1 ||
+              // Быстрая детекция: есть дочерние элементы (React загрузился)
+              rootEl.children.length > 0 ||
+              // Ключевые селекторы основных компонентов
               rootEl.querySelector('.login-form') ||
-              rootEl.querySelector('.auth-container') ||
-              rootEl.querySelector('[class*="sidebar"]') ||
               rootEl.querySelector('main') ||
-              rootEl.querySelector('[role="main"]') ||
-              rootEl.querySelector('.equipment-page') ||
-              rootEl.querySelector('.network-overview') ||
               rootEl.querySelector('nav') ||
-              rootEl.querySelector('[class*="layout"]') ||
-              // Дополнительные селекторы для быстрой детекции
-              rootEl.querySelector('header') ||
-              rootEl.querySelector('aside') ||
-              rootEl.querySelector('.bg-slate') ||
-              rootEl.querySelector('.flex') ||
-              rootEl.querySelector('[class*="container"]') ||
               rootEl.querySelector('form') ||
-              rootEl.querySelector('button') ||
-              // Проверяем что контент не пустой
-              (rootEl.textContent && rootEl.textContent.length > 50)
+              // Проверяем минимальное содержимое
+              (rootEl.textContent && rootEl.textContent.trim().length > 20)
             );
 
             if (hasReactContent) {
@@ -350,13 +336,13 @@
               console.log('🚀 React content detected, removing loading');
               setTimeout(removeLoadingIndicator, 100); // Максимально быстро
             }
-          }, 200);
+          }, 100); // Уменьшен интервал для быстрой детекции
 
-          // Fallback для clearInterval через 8 секунд
+          // Fallback для clearInterval через 6 секунд (быстрее)
           setTimeout(() => {
             clearInterval(checkReact);
             console.log('⏰ Stopping React detection interval');
-          }, 8000);
+          }, 6000);
         });
       </script>
     </div>

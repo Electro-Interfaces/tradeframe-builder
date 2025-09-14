@@ -179,8 +179,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<Role[]>(SYSTEM_ROLES);
   const [loading, setLoading] = useState(true);
-  
-  console.log('🚀 AuthProvider: current user state:', user);
+
+  // Логируем состояние только при изменениях, не при каждом рендере
+  console.log('🚀 AuthProvider: initial user state:', user);
 
   // Инициализация пользователя при загрузке приложения
   // Проверяем, есть ли сохраненная сессия
