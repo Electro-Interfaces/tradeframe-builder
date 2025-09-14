@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Pages PWA Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        pre { background: #e9ecef; padding: 10px; overflow-x: auto; }
+        button { background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🧪 GitHub Pages PWA Diagnostic</h1>
+    <p><strong>URL:</strong> <span id="currentUrl"></span></p>
+
+    <div class="test">
+        <h3>📋 Manifest Test</h3>
+        <button onclick="testManifest()">Test Manifest Loading</button>
+        <div id="manifestResults"></div>
+    </div>
+
+    <div class="test">
+        <h3>🖼️ Icon URLs Test</h3>
+        <button onclick="testIconUrls()">Test All Icon URLs</button>
+        <div id="iconResults"></div>
+    </div>
+
+    <div class="test">
+        <h3>⚙️ Service Worker Test</h3>
+        <button onclick="testServiceWorker()">Test Service Worker</button>
+        <div id="swResults"></div>
+    </div>
+
+    <div class="test">
+        <h3>🎯 PWA Install Check</h3>
+        <button onclick="checkPWAInstallability()">Check PWA Installability</button>
+        <div id="installResults"></div>
+    </div>
+
+    <script>
+        document.getElementById('currentUrl').textContent = location.href;
+
+        async function testManifest() {
+            const output = document.getElementById('manifestResults');
+            output.innerHTML = '<p>Testing manifest loading...</p>';
+
+            try {
+                const manifestUrl = new URL('manifest.json', location.href).href;
+                console.log('Testing manifest URL:', manifestUrl);
+
+                const response = await fetch('manifest.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const manifest = await response.json();
+                let html = `<div class="success">✅ Manifest loaded successfully from: ${manifestUrl}</div>`;
+                html += '<pre>' + JSON.stringify(manifest, null, 2) + '</pre>';
+                output.innerHTML = html;
+                return manifest;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Manifest error: ${error.message}</div>`;
+                return null;
+            }
+        }
+
+        async function testIconUrls() {
+            const output = document.getElementById('iconResults');
+            output.innerHTML = '<p>Testing icon URLs...</p>';
+
+            const manifest = await testManifest();
+            if (!manifest) {
+                output.innerHTML = '<div class="error">❌ Cannot test icons - manifest not loaded</div>';
+                return;
+            }
+
+            let html = '<h4>Icon URL Tests:</h4>';
+
+            for (const icon of manifest.icons) {
+                try {
+                    // Resolve icon URL relative to manifest
+                    const iconUrl = new URL(icon.src, new URL('manifest.json', location.href)).href;
+                    console.log(`Testing icon: ${icon.src} -> ${iconUrl}`);
+
+                    const response = await fetch(iconUrl, { method: 'HEAD' });
+                    if (response.ok) {
+                        html += `<div class="success">✅ ${icon.src} (${icon.sizes}) - OK</div>`;
+                    } else {
+                        html += `<div class="error">❌ ${icon.src} (${icon.sizes}) - HTTP ${response.status}</div>`;
+                    }
+                } catch (error) {
+                    html += `<div class="error">❌ ${icon.src} (${icon.sizes}) - ${error.message}</div>`;
+                }
+            }
+
+            output.innerHTML = html;
+        }
+
+        async function testServiceWorker() {
+            const output = document.getElementById('swResults');
+            output.innerHTML = '<p>Testing Service Worker...</p>';
+
+            if (!('serviceWorker' in navigator)) {
+                output.innerHTML = '<div class="error">❌ Service Worker not supported</div>';
+                return;
+            }
+
+            try {
+                // Test SW file availability
+                const swUrl = new URL('sw.js', location.href).href;
+                const response = await fetch('sw.js', { method: 'HEAD' });
+
+                let html = '';
+                if (response.ok) {
+                    html += `<div class="success">✅ SW file accessible: ${swUrl}</div>`;
+                } else {
+                    html += `<div class="error">❌ SW file not accessible: HTTP ${response.status}</div>`;
+                }
+
+                // Check current registration
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    html += `<div class="success">✅ SW registered: ${registration.scope}</div>`;
+                    html += `<div>State: ${registration.active ? 'Active' : 'Not active'}</div>`;
+                } else {
+                    html += '<div class="warning">⚠️ SW not registered</div>';
+                }
+
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ SW test error: ${error.message}</div>`;
+            }
+        }
+
+        async function checkPWAInstallability() {
+            const output = document.getElementById('installResults');
+            output.innerHTML = '<p>Checking PWA installability...</p>';
+
+            const checks = {
+                https: location.protocol === 'https:',
+                manifest: false,
+                serviceWorker: 'serviceWorker' in navigator,
+                icons: false,
+                validManifest: false
+            };
+
+            // Test manifest and icons
+            try {
+                const response = await fetch('manifest.json');
+                checks.manifest = response.ok;
+
+                if (response.ok) {
+                    const manifest = await response.json();
+                    checks.validManifest = !!(manifest.name && manifest.start_url && manifest.display);
+
+                    // Test at least one large icon
+                    const largeIcons = manifest.icons?.filter(icon => {
+                        const sizes = icon.sizes?.split('x');
+                        return sizes && parseInt(sizes[0]) >= 192;
+                    });
+                    checks.icons = largeIcons?.length > 0;
+                }
+            } catch (e) {
+                checks.manifest = false;
+            }
+
+            // Check SW registration
+            let swRegistered = false;
+            if (checks.serviceWorker) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    swRegistered = !!registration?.active;
+                } catch (e) {}
+            }
+
+            let html = '<h4>PWA Installability Checklist:</h4>';
+            html += `<div class="${checks.https ? 'success' : 'error'}">HTTPS: ${checks.https ? '✅' : '❌'}</div>`;
+            html += `<div class="${checks.manifest ? 'success' : 'error'}">Manifest accessible: ${checks.manifest ? '✅' : '❌'}</div>`;
+            html += `<div class="${checks.validManifest ? 'success' : 'error'}">Valid manifest: ${checks.validManifest ? '✅' : '❌'}</div>`;
+            html += `<div class="${checks.icons ? 'success' : 'error'}">Large icons (192px+): ${checks.icons ? '✅' : '❌'}</div>`;
+            html += `<div class="${checks.serviceWorker ? 'success' : 'error'}">SW support: ${checks.serviceWorker ? '✅' : '❌'}</div>`;
+            html += `<div class="${swRegistered ? 'success' : 'warning'}">SW registered: ${swRegistered ? '✅' : '⚠️'}</div>`;
+
+            const installable = checks.https && checks.manifest && checks.validManifest && checks.icons && swRegistered;
+            html += `<div class="${installable ? 'success' : 'error'}"><strong>PWA Installable: ${installable ? '✅ YES' : '❌ NO'}</strong></div>`;
+
+            if (!installable) {
+                html += '<div class="warning">Missing requirements prevent PWA installation</div>';
+            }
+
+            output.innerHTML = html;
+        }
+
+        // Auto-run tests
+        setTimeout(() => {
+            console.log('Auto-running PWA tests...');
+            testManifest();
+            setTimeout(testIconUrls, 1000);
+            setTimeout(testServiceWorker, 2000);
+            setTimeout(checkPWAInstallability, 3000);
+        }, 1000);
+    </script>
+</body>
+</html>
