@@ -1,23 +1,39 @@
-// Service Worker для TradeFrame PWA - Minimal Safe Version
+// Service Worker для TradeFrame PWA - Full PWA Version
 console.log('[SW] TradeFrame Service Worker starting...');
 
 const CACHE_NAME = `tradeframe-v${Date.now()}`; // Уникальная версия для каждой сборки
 const BASE_PATH = '/tradeframe-builder/';
 
-// Минимальная установка SW
+// Критические ресурсы для кэширования
+const CORE_CACHE_URLS = [
+  BASE_PATH,
+  BASE_PATH + 'index.html',
+  BASE_PATH + 'manifest.json',
+  BASE_PATH + 'icon.svg',
+  BASE_PATH + 'favicon.ico',
+  BASE_PATH + 'icon-192x192.png',
+  BASE_PATH + 'icon-512x512.png'
+];
+
+// Полная установка SW с кэшированием
 self.addEventListener('install', event => {
   console.log('[SW] Installing service worker version:', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('[SW] Cache opened successfully');
-        return Promise.resolve();
+        console.log('[SW] Caching core app resources');
+        return cache.addAll(CORE_CACHE_URLS);
+      })
+      .then(() => {
+        console.log('[SW] Core resources cached successfully');
+        return self.skipWaiting(); // Активируем новый SW сразу
       })
       .catch(error => {
         console.error('[SW] Install failed:', error);
+        // Продолжаем установку даже при ошибке кэширования
+        return Promise.resolve();
       })
   );
-  // Не вызываем skipWaiting() автоматически - ждем команды от клиента
 });
 
 // Активация SW
@@ -46,53 +62,81 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Обработка fetch запросов
+// Обработка fetch запросов - Cache First для статики, Network First для данных
 self.addEventListener('fetch', event => {
-  // Обрабатываем только навигационные запросы для SPA routing
-  if (event.request.mode === 'navigate') {
+  const url = new URL(event.request.url);
+
+  // Кэшируем статические ресурсы (изображения, иконки, манифест)
+  if (event.request.destination === 'image' ||
+      url.pathname.endsWith('.png') ||
+      url.pathname.endsWith('.svg') ||
+      url.pathname.endsWith('.ico') ||
+      url.pathname.endsWith('manifest.json')) {
+    event.respondWith(
+      caches.match(event.request)
+        .then(cachedResponse => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(event.request).then(networkResponse => {
+            // Кэшируем успешные ответы
+            if (networkResponse.ok) {
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, responseClone);
+              });
+            }
+            return networkResponse;
+          });
+        })
+        .catch(() => {
+          // Возвращаем fallback для изображений
+          if (event.request.destination === 'image') {
+            return new Response('', { status: 404 });
+          }
+        })
+    );
+  }
+  // Обрабатываем навигационные запросы для SPA
+  else if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
         .catch(() => {
-          // При ошибке сети возвращаем главную страницу
-          console.log('[SW] Navigation failed, returning index.html');
-          return fetch(BASE_PATH + 'index.html').catch(() => {
-            // Если и это не работает, возвращаем базовую HTML страницу
-            return new Response(`
+          console.log('[SW] Navigation failed, returning cached index.html');
+          return caches.match(BASE_PATH + 'index.html')
+            .then(cachedResponse => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              // Fallback offline страница
+              return new Response(`
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>TradeFrame</title>
+  <title>TradeFrame - Офлайн</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
-      margin: 0;
-      padding: 20px;
-      font-family: Arial, sans-serif;
-      background: #1e293b;
-      color: white;
-      text-align: center;
+      margin: 0; padding: 20px; font-family: Arial, sans-serif;
+      background: #1e293b; color: white; text-align: center;
     }
-    .loading {
-      margin-top: 50px;
-    }
+    .offline { margin-top: 50px; }
+    .retry { margin-top: 20px; padding: 10px 20px; background: #3b82f6;
+             color: white; border: none; border-radius: 5px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <div class="loading">
-    <h1>TradeFrame</h1>
-    <p>Загрузка приложения...</p>
-    <script>
-      setTimeout(() => {
-        window.location.href = '${BASE_PATH}';
-      }, 1000);
-    </script>
+  <div class="offline">
+    <h1>🌐 TradeFrame</h1>
+    <p>Нет подключения к интернету</p>
+    <button class="retry" onclick="window.location.reload()">Повторить</button>
   </div>
 </body>
 </html>`, {
-              headers: { 'Content-Type': 'text/html' }
+                headers: { 'Content-Type': 'text/html' }
+              });
             });
-          });
         })
     );
   }
