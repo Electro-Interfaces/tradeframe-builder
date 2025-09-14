@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Flexible Paths Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 { color: #333; }
+        .status { padding: 8px 12px; border-radius: 4px; margin: 8px 0; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .test-scenario {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 PWA Flexible Paths Test</h1>
+    <p><strong>Цель:</strong> Проверить что PWA работает с разными базовыми путями</p>
+
+    <div class="container">
+        <h2>🔍 Текущая конфигурация</h2>
+        <div id="currentConfig"></div>
+    </div>
+
+    <div class="container">
+        <h2>📋 Тест Manifest</h2>
+        <button onclick="testManifest()">Проверить Manifest</button>
+        <div id="manifestResults"></div>
+    </div>
+
+    <div class="container">
+        <h2>⚙️ Тест Service Worker</h2>
+        <button onclick="testServiceWorker()">Проверить SW регистрацию</button>
+        <div id="swResults"></div>
+    </div>
+
+    <div class="container">
+        <h2>🎯 Симуляция разных путей</h2>
+        <div class="test-scenario">
+            <h3>Сценарий 1: GitHub Pages Project (/tradeframe-builder/)</h3>
+            <button onclick="simulatePath('/tradeframe-builder/')">Симулировать</button>
+            <div id="scenario1"></div>
+        </div>
+
+        <div class="test-scenario">
+            <h3>Сценарий 2: Custom Domain (/)</h3>
+            <button onclick="simulatePath('/')">Симулировать</button>
+            <div id="scenario2"></div>
+        </div>
+
+        <div class="test-scenario">
+            <h3>Сценарий 3: Subfolder (/my-app/)</h3>
+            <button onclick="simulatePath('/my-app/')">Симулировать</button>
+            <div id="scenario3"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>✅ Результат тестирования</h2>
+        <div id="testSummary"></div>
+    </div>
+
+    <script>
+        let testResults = {
+            manifest: false,
+            serviceWorker: false,
+            scenarios: {}
+        };
+
+        // Показать текущую конфигурацию
+        function showCurrentConfig() {
+            const config = {
+                'URL': location.href,
+                'Pathname': location.pathname,
+                'Hostname': location.hostname,
+                'Protocol': location.protocol,
+                'Base detected': detectBasePath(),
+                'Manifest link': document.querySelector('link[rel="manifest"]')?.href || 'Not found',
+                'SW supported': 'serviceWorker' in navigator
+            };
+
+            let html = '<pre>';
+            Object.entries(config).forEach(([key, value]) => {
+                html += `${key}: ${value}\n`;
+            });
+            html += '</pre>';
+
+            document.getElementById('currentConfig').innerHTML = html;
+        }
+
+        // Определяем базовый путь (копия логики из index.html)
+        function detectBasePath() {
+            let basePath = '/';
+
+            const baseTag = document.querySelector('base');
+            if (baseTag) {
+                basePath = baseTag.getAttribute('href') || '/';
+            } else if (location.pathname.includes('/tradeframe-builder/')) {
+                basePath = '/tradeframe-builder/';
+            }
+
+            return basePath.endsWith('/') ? basePath : basePath + '/';
+        }
+
+        // Тест манифеста
+        async function testManifest() {
+            const output = document.getElementById('manifestResults');
+            output.innerHTML = '<div class="info">Тестируем manifest...</div>';
+
+            try {
+                // Пробуем загрузить манифест
+                const response = await fetch('manifest.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const manifest = await response.json();
+
+                let html = '<div class="success">✅ Manifest загружен успешно</div>';
+                html += '<h3>Ключевые поля:</h3>';
+                html += `<pre>${JSON.stringify({
+                    scope: manifest.scope,
+                    start_url: manifest.start_url,
+                    id: manifest.id,
+                    icons_count: manifest.icons?.length || 0,
+                    first_icon_src: manifest.icons?.[0]?.src || 'none'
+                }, null, 2)}</pre>`;
+
+                // Проверяем что пути относительные
+                const isRelative = manifest.scope.startsWith('./') &&
+                                 manifest.start_url.startsWith('./') &&
+                                 manifest.icons?.every(icon => !icon.src.startsWith('/'));
+
+                if (isRelative) {
+                    html += '<div class="success">✅ Все пути относительные - отлично!</div>';
+                    testResults.manifest = true;
+                } else {
+                    html += '<div class="warning">⚠️ Некоторые пути могут быть абсолютными</div>';
+                }
+
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+                testResults.manifest = false;
+            }
+        }
+
+        // Тест Service Worker
+        async function testServiceWorker() {
+            const output = document.getElementById('swResults');
+            output.innerHTML = '<div class="info">Тестируем Service Worker...</div>';
+
+            if (!('serviceWorker' in navigator)) {
+                output.innerHTML = '<div class="error">❌ Service Worker не поддерживается</div>';
+                testResults.serviceWorker = false;
+                return;
+            }
+
+            try {
+                const basePath = detectBasePath();
+                console.log('🔧 Test SW: Detected base path:', basePath);
+
+                // Пробуем зарегистрировать SW с определенным путем
+                const registration = await navigator.serviceWorker.register(`${basePath}sw.js`, {
+                    scope: basePath
+                });
+
+                let html = '<div class="success">✅ Service Worker зарегистрирован</div>';
+                html += `<div class="info">Scope: ${registration.scope}</div>`;
+                html += `<div class="info">Base path: ${basePath}</div>`;
+
+                // Проверяем что scope соответствует пути
+                const expectedScope = new URL(basePath, location.origin).href;
+                if (registration.scope === expectedScope) {
+                    html += '<div class="success">✅ Scope корректный</div>';
+                    testResults.serviceWorker = true;
+                } else {
+                    html += '<div class="warning">⚠️ Scope может быть некорректным</div>';
+                }
+
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Ошибка регистрации SW: ${error.message}</div>`;
+                testResults.serviceWorker = false;
+            }
+        }
+
+        // Симуляция разных путей
+        function simulatePath(testPath) {
+            const scenario = testPath === '/tradeframe-builder/' ? 'scenario1' :
+                           testPath === '/' ? 'scenario2' : 'scenario3';
+            const output = document.getElementById(scenario);
+
+            // Симулируем логику из index.html
+            let basePath = '/';
+            const baseTag = document.querySelector('base');
+            if (baseTag) {
+                basePath = baseTag.getAttribute('href') || '/';
+            } else if (testPath.includes('/tradeframe-builder/')) {
+                basePath = '/tradeframe-builder/';
+            } else if (testPath !== '/') {
+                basePath = testPath;
+            }
+
+            const normalizedBase = basePath.endsWith('/') ? basePath : basePath + '/';
+
+            let html = `<div class="info">Тестируем путь: ${testPath}</div>`;
+            html += `<div>Определенный base: ${normalizedBase}</div>`;
+            html += `<div>SW URL: ${normalizedBase}sw.js</div>`;
+            html += `<div>Manifest URL: ${normalizedBase}manifest.json</div>`;
+
+            // Проверяем логику
+            const isCorrect = (testPath === '/tradeframe-builder/' && normalizedBase === '/tradeframe-builder/') ||
+                             (testPath === '/' && normalizedBase === '/') ||
+                             (testPath !== '/' && testPath !== '/tradeframe-builder/' && normalizedBase === testPath);
+
+            if (isCorrect) {
+                html += '<div class="success">✅ Логика определения пути работает правильно</div>';
+                testResults.scenarios[testPath] = true;
+            } else {
+                html += '<div class="error">❌ Логика определения пути работает некорректно</div>';
+                testResults.scenarios[testPath] = false;
+            }
+
+            output.innerHTML = html;
+            updateSummary();
+        }
+
+        // Обновить сводку
+        function updateSummary() {
+            const totalScenarios = Object.keys(testResults.scenarios).length;
+            const passedScenarios = Object.values(testResults.scenarios).filter(Boolean).length;
+
+            let html = '<h3>Сводка тестирования:</h3>';
+            html += `<div>Manifest: ${testResults.manifest ? '✅' : '❌'}</div>`;
+            html += `<div>Service Worker: ${testResults.serviceWorker ? '✅' : '❌'}</div>`;
+            html += `<div>Сценарии путей: ${passedScenarios}/${totalScenarios} ✅</div>`;
+
+            const allPassed = testResults.manifest && testResults.serviceWorker &&
+                            (totalScenarios === 0 || passedScenarios === totalScenarios);
+
+            if (allPassed && totalScenarios > 0) {
+                html += '<div class="success"><strong>🎉 Все тесты пройдены! PWA должно работать на разных путях.</strong></div>';
+            } else if (totalScenarios === 0) {
+                html += '<div class="warning">⚠️ Запустите тесты сценариев для полной проверки</div>';
+            } else {
+                html += '<div class="warning">⚠️ Некоторые тесты не прошли, требуется доработка</div>';
+            }
+
+            document.getElementById('testSummary').innerHTML = html;
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            showCurrentConfig();
+            updateSummary();
+
+            // Автотест через 1 секунду
+            setTimeout(() => {
+                console.log('🔄 Запуск автотестов...');
+                testManifest();
+                setTimeout(testServiceWorker, 1000);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
