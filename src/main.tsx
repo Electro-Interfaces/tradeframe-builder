@@ -28,7 +28,8 @@ console.log('🔧 PWA Service Worker: Проверяем возможность 
   userAgent: navigator.userAgent.substring(0, 50) + '...'
 });
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if ('serviceWorker' in navigator) {
+  console.log('🔧 PWA Service Worker: Включен для тестирования PWA в dev режиме');
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isGitHubPages = window.location.hostname === 'electro-interfaces.github.io';
 
@@ -81,10 +82,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
           console.log('📱 PWA Service Worker: Приложение продолжит работу без PWA функций');
         });
   }
-} else if (!('serviceWorker' in navigator)) {
-  console.log('🚫 PWA Service Worker: Не поддерживается браузером');
 } else {
-  console.log('🔧 PWA Service Worker: Отключен в режиме разработки');
+  console.log('🚫 PWA Service Worker: Не поддерживается браузером');
 }
 
 // Глобальная функция для сброса демо данных

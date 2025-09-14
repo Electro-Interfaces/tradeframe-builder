@@ -153,11 +153,11 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
           shouldShow: !isInstalled && (detectedMobile || isYandex)
         });
 
-        if (!isInstalled && (detectedMobile || isYandex)) {
-          console.log('✅ PWA Installer: Показываем промпт установки');
+        if (!isInstalled) {
+          console.log('✅ PWA Installer: Показываем промпт установки для всех браузеров');
           setShowPrompt(true);
         } else {
-          console.log('❌ PWA Installer: Промпт установки не показан');
+          console.log('❌ PWA Installer: Промпт установки не показан - приложение уже установлено');
         }
       }, 3000);
     };
@@ -173,13 +173,15 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
         shouldShowFallback: !canInstall && !isInstalled && detectedMobile && !detectedIOS
       });
 
-      if (!canInstall && !isInstalled && detectedMobile && !detectedIOS) {
-        // Показываем PWA installer для любого мобильного браузера, если beforeinstallprompt не сработал
-        console.log('✅ PWA Installer: beforeinstallprompt не сработал за 5 сек, показываем fallback');
+      if (!canInstall && !isInstalled && !detectedIOS) {
+        // Показываем PWA installer для любого браузера (не только мобильного), если beforeinstallprompt не сработал
+        console.log('✅ PWA Installer: beforeinstallprompt не сработал за 5 сек, показываем fallback для всех браузеров');
         setCanInstall(true);
         setShowPrompt(true);
+      } else if (detectedIOS) {
+        console.log('ℹ️ PWA Installer: iOS обрабатывается отдельным таймером');
       } else {
-        console.log('❌ PWA Installer: Fallback не требуется');
+        console.log('❌ PWA Installer: Fallback не требуется - уже установлен или canInstall = true');
       }
     }, 5000);
 

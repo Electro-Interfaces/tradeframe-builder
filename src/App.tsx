@@ -95,9 +95,19 @@ const App = () => {
 
       console.log('🔍 App.tsx: PWA критерии проверены:', criteria);
 
-      // Проверяем manifest
-      fetch('/tradeframe-builder/manifest.json')
-        .then(response => response.json())
+      // Проверяем manifest (разные пути для dev и prod)
+      const manifestPath = import.meta.env.PROD ? '/tradeframe-builder/manifest.json' : '/manifest.json';
+      console.log('🔍 App.tsx: Проверяем manifest по пути:', manifestPath);
+
+      fetch(manifestPath)
+        .then(response => {
+          console.log('📋 App.tsx: Manifest ответ:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries())
+          });
+          return response.json();
+        })
         .then(manifest => {
           console.log('📋 App.tsx: Manifest загружен:', {
             name: manifest.name,
@@ -109,6 +119,18 @@ const App = () => {
         })
         .catch(error => {
           console.error('❌ App.tsx: Ошибка загрузки manifest:', error);
+          console.log('🔍 App.tsx: Попробуем альтернативный путь...');
+
+          // Fallback для разных путей
+          const altPath = import.meta.env.PROD ? '/manifest.json' : '/tradeframe-builder/manifest.json';
+          fetch(altPath)
+            .then(response => response.json())
+            .then(manifest => {
+              console.log('✅ App.tsx: Manifest загружен через альтернативный путь:', manifest.name);
+            })
+            .catch(altError => {
+              console.error('❌ App.tsx: Альтернативный путь тоже не работает:', altError);
+            });
         });
     };
 
