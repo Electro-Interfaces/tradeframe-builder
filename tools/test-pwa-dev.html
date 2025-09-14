@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Dev Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status { padding: 8px 12px; border-radius: 4px; margin: 8px 0; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        button {
+            background: #007bff; color: white; border: none; padding: 10px 20px;
+            border-radius: 4px; cursor: pointer; margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .test-result { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 PWA Development Test</h1>
+    <p><strong>URL:</strong> <span id="currentUrl"></span></p>
+
+    <div class="container">
+        <h2>📋 Manifest Test</h2>
+        <button onclick="testManifest()">Test Manifest</button>
+        <div id="manifestResults"></div>
+    </div>
+
+    <div class="container">
+        <h2>⚙️ Service Worker Test</h2>
+        <button onclick="testServiceWorker()">Test Service Worker</button>
+        <div id="swResults"></div>
+    </div>
+
+    <div class="container">
+        <h2>🎯 Path Detection Test</h2>
+        <button onclick="testPathDetection()">Test Path Detection</button>
+        <div id="pathResults"></div>
+    </div>
+
+    <div class="container">
+        <h2>✅ PWA Install Check</h2>
+        <button onclick="checkPWAReadiness()">Check PWA Readiness</button>
+        <div id="pwaResults"></div>
+    </div>
+
+    <script>
+        // Show current URL
+        document.getElementById('currentUrl').textContent = location.href;
+
+        // Test manifest loading
+        async function testManifest() {
+            const output = document.getElementById('manifestResults');
+            output.innerHTML = '<div class="info">Testing manifest...</div>';
+
+            try {
+                const response = await fetch('/manifest.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const manifest = await response.json();
+                let html = '<div class="success">✅ Manifest loaded successfully</div>';
+                html += '<pre>' + JSON.stringify({
+                    name: manifest.name,
+                    scope: manifest.scope,
+                    start_url: manifest.start_url,
+                    id: manifest.id,
+                    icons_count: manifest.icons?.length || 0
+                }, null, 2) + '</pre>';
+
+                output.innerHTML = html;
+                return true;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        // Test Service Worker registration
+        async function testServiceWorker() {
+            const output = document.getElementById('swResults');
+            output.innerHTML = '<div class="info">Testing Service Worker...</div>';
+
+            if (!('serviceWorker' in navigator)) {
+                output.innerHTML = '<div class="error">❌ Service Worker not supported</div>';
+                return false;
+            }
+
+            try {
+                // Use the same logic as the main app
+                let basePath = '/';
+                if (typeof __BASE__ !== 'undefined') {
+                    basePath = __BASE__;
+                } else {
+                    const baseTag = document.querySelector('base');
+                    if (baseTag) {
+                        basePath = baseTag.getAttribute('href') || '/';
+                    } else if (location.pathname.includes('/tradeframe-builder/')) {
+                        basePath = '/tradeframe-builder/';
+                    }
+                }
+                const normalizedBase = basePath.endsWith('/') ? basePath : basePath + '/';
+
+                console.log('🔧 SW Test: Detected base path:', normalizedBase);
+
+                const registration = await navigator.serviceWorker.register(`${normalizedBase}sw.js`, {
+                    scope: normalizedBase
+                });
+
+                let html = '<div class="success">✅ Service Worker registered</div>';
+                html += `<div class="info">Scope: ${registration.scope}</div>`;
+                html += `<div class="info">Script URL: ${registration.scope}sw.js</div>`;
+                html += `<div class="info">Base path detected: ${normalizedBase}</div>`;
+
+                output.innerHTML = html;
+                return true;
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ SW registration error: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        // Test path detection logic
+        function testPathDetection() {
+            const output = document.getElementById('pathResults');
+
+            let basePath = '/';
+            const detectionSteps = [];
+
+            // Step 1: Check Vite BASE
+            if (typeof __BASE__ !== 'undefined') {
+                basePath = __BASE__;
+                detectionSteps.push(`Vite __BASE__: ${basePath}`);
+            } else {
+                detectionSteps.push('Vite __BASE__: undefined');
+
+                // Step 2: Check base tag
+                const baseTag = document.querySelector('base');
+                if (baseTag) {
+                    basePath = baseTag.getAttribute('href') || '/';
+                    detectionSteps.push(`Base tag: ${basePath}`);
+                } else {
+                    detectionSteps.push('Base tag: not found');
+
+                    // Step 3: Check pathname
+                    if (location.pathname.includes('/tradeframe-builder/')) {
+                        basePath = '/tradeframe-builder/';
+                        detectionSteps.push(`GitHub Pages path detected: ${basePath}`);
+                    } else {
+                        detectionSteps.push('GitHub Pages path: not detected');
+                    }
+                }
+            }
+
+            const normalizedBase = basePath.endsWith('/') ? basePath : basePath + '/';
+
+            let html = '<div class="info">Path Detection Steps:</div>';
+            html += '<pre>' + detectionSteps.join('\n') + '</pre>';
+            html += `<div class="success">✅ Final base path: ${normalizedBase}</div>`;
+            html += `<div class="info">SW would register at: ${normalizedBase}sw.js</div>`;
+            html += `<div class="info">Manifest would load from: ${normalizedBase}manifest.json</div>`;
+
+            output.innerHTML = html;
+            return normalizedBase;
+        }
+
+        // Check PWA readiness
+        async function checkPWAReadiness() {
+            const output = document.getElementById('pwaResults');
+            output.innerHTML = '<div class="info">Checking PWA readiness...</div>';
+
+            const checks = {
+                https: location.protocol === 'https:' || location.hostname === 'localhost',
+                serviceWorker: 'serviceWorker' in navigator,
+                manifest: false,
+                manifestValid: false,
+                serviceWorkerRegistered: false
+            };
+
+            // Test manifest
+            try {
+                const response = await fetch('/manifest.json');
+                checks.manifest = response.ok;
+                if (response.ok) {
+                    const manifest = await response.json();
+                    checks.manifestValid = !!(manifest.name && manifest.icons && manifest.start_url);
+                }
+            } catch (e) {
+                checks.manifest = false;
+            }
+
+            // Test SW registration
+            if (checks.serviceWorker) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    checks.serviceWorkerRegistered = !!registration;
+                } catch (e) {
+                    checks.serviceWorkerRegistered = false;
+                }
+            }
+
+            let html = '<h3>PWA Readiness Checklist:</h3>';
+            html += `<div class="${checks.https ? 'success' : 'error'}">HTTPS/localhost: ${checks.https ? '✅' : '❌'}</div>`;
+            html += `<div class="${checks.serviceWorker ? 'success' : 'error'}">Service Worker support: ${checks.serviceWorker ? '✅' : '❌'}</div>`;
+            html += `<div class="${checks.manifest ? 'success' : 'error'}">Manifest accessible: ${checks.manifest ? '✅' : '❌'}</div>`;
+            html += `<div class="${checks.manifestValid ? 'success' : 'error'}">Manifest valid: ${checks.manifestValid ? '✅' : '❌'}</div>`;
+            html += `<div class="${checks.serviceWorkerRegistered ? 'success' : 'warning'}">Service Worker registered: ${checks.serviceWorkerRegistered ? '✅' : '⚠️ (may need manual test)'}</div>`;
+
+            const allPassed = checks.https && checks.serviceWorker && checks.manifest && checks.manifestValid;
+
+            if (allPassed) {
+                html += '<div class="success"><strong>🎉 PWA should be installable!</strong></div>';
+            } else {
+                html += '<div class="warning">⚠️ Some PWA requirements not met</div>';
+            }
+
+            output.innerHTML = html;
+        }
+
+        // Auto-run basic tests on load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                console.log('🔄 Auto-running tests...');
+                testPathDetection();
+                setTimeout(testManifest, 500);
+                setTimeout(testServiceWorker, 1000);
+                setTimeout(checkPWAReadiness, 1500);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
