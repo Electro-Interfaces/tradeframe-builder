@@ -164,6 +164,49 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
       }, 1000); // Уменьшаем с 3 сек до 1 сек
     };
 
+    // ДИАГНОСТИКА: Проверяем PWA критерии для Chrome
+    if (isChrome) {
+      setTimeout(() => {
+        const diagnose = {
+          hasManifest: !!document.querySelector('link[rel="manifest"]'),
+          hasServiceWorker: 'serviceWorker' in navigator,
+          isHTTPS: location.protocol === 'https:',
+          hasValidIcons: true, // предполагаем что есть
+          isStandalone: window.matchMedia('(display-mode: standalone)').matches,
+          userEngagement: document.visibilityState === 'visible'
+        };
+
+        console.log('🔍 Chrome PWA Диагностика - почему beforeinstallprompt НЕ срабатывает:', diagnose);
+
+        // Дополнительные проверки
+        const additionalChecks = {
+          alreadyInstalled: window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone,
+          hasMinimalUI: window.matchMedia('(display-mode: minimal-ui)').matches,
+          browserUI: window.matchMedia('(display-mode: browser)').matches,
+          relatedApplications: navigator.getInstalledRelatedApps ? 'supported' : 'not supported'
+        };
+
+        console.log('🔍 Chrome PWA Дополнительные проверки:', additionalChecks);
+
+        // Проверим manifest содержимое
+        fetch('/tradeframe-builder/manifest.json')
+          .then(r => r.json())
+          .then(manifest => {
+            console.log('📋 Manifest анализ для Chrome PWA:', {
+              name: manifest.name,
+              shortName: manifest.short_name,
+              display: manifest.display,
+              startUrl: manifest.start_url,
+              themeColor: manifest.theme_color,
+              backgroundColor: manifest.background_color,
+              icons: manifest.icons?.length || 0
+            });
+          })
+          .catch(e => console.error('❌ Ошибка анализа manifest:', e));
+
+      }, 500);
+    }
+
     // АГРЕССИВНЫЙ fallback для всех браузеров
     console.log('⏰ PWA Installer: Запускаем АГРЕССИВНЫЙ fallback таймер на 2 секунды...');
     const fallbackTimer = setTimeout(() => {
@@ -180,6 +223,16 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
       if (!canInstall && !isInstalled) {
         // Показываем PWA installer для ВСЕХ браузеров агрессивно
         console.log('🚀 PWA Installer: АГРЕССИВНО показываем fallback для ВСЕХ браузеров (Chrome, Firefox, Safari, все!)');
+
+        // Специальное сообщение для Chrome
+        if (isChrome) {
+          console.log('💡 Chrome PWA: beforeinstallprompt не сработал, возможные причины:');
+          console.log('- PWA уже установлено (проверьте chrome://apps)');
+          console.log('- Недостаточно user engagement (попробуйте перезагрузить и подождать)');
+          console.log('- Проблемы с manifest или Service Worker');
+          console.log('- Chrome требует больше времени для анализа PWA критериев');
+        }
+
         setCanInstall(true);
         setShowPrompt(true);
       } else {
@@ -313,12 +366,41 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
         'После установки через Safari приложение будет работать как нативное!'
       );
     } else {
-      // Для других браузеров без beforeinstallprompt
+      // Улучшенные инструкции для разных браузеров
       console.log('🔍 PWA Installer: Браузер не поддерживает автоматическую установку PWA');
-      alert(
-        '📱 Ваш браузер не поддерживает автоматическую установку приложений.\n\n' +
-        'Попробуйте найти опцию "Установить приложение" или "Добавить на главный экран" в меню браузера.'
-      );
+
+      if (isChrome) {
+        alert(
+          '🌐 Chrome PWA установка:\n\n' +
+          '• Кликните на иконку "Установить" в адресной строке (если есть)\n' +
+          '• Или меню Chrome (⋮) → "Установить TradeFrame..."\n' +
+          '• Или меню Chrome (⋮) → "Сохранить и поделиться" → "Установить приложение"\n\n' +
+          'Если опции нет, проверьте:\n' +
+          '- Откройте chrome://apps и убедитесь что PWA не установлено\n' +
+          '- Перезагрузите страницу и подождите немного\n' +
+          '- Активно взаимодействуйте со страницей'
+        );
+      } else if (isFirefox) {
+        alert(
+          '🦊 Firefox PWA установка:\n\n' +
+          '• Меню Firefox (☰) → "Установить сайт как приложение"\n' +
+          '• Или создайте закладку и добавьте на главный экран\n\n' +
+          'Firefox поддерживает PWA ограниченно, но приложение будет работать!'
+        );
+      } else if (isEdge) {
+        alert(
+          '🔷 Edge PWA установка:\n\n' +
+          '• Кликните на иконку "Установить приложение" в адресной строке\n' +
+          '• Или меню Edge (...) → "Приложения" → "Установить этот сайт как приложение"\n\n' +
+          'Edge отлично поддерживает PWA!'
+        );
+      } else {
+        alert(
+          '📱 Ваш браузер не поддерживает автоматическую установку приложений.\n\n' +
+          'Попробуйте найти опцию "Установить приложение" или "Добавить на главный экран" в меню браузера.\n\n' +
+          'Для лучшего PWA опыта рекомендуем Chrome, Edge или Safari.'
+        );
+      }
     }
   };
 
