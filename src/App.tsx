@@ -31,36 +31,22 @@ const Users = lazy(() => import("./pages/admin/Users"));
 const Roles = lazy(() => import("./pages/admin/Roles"));
 const Instructions = lazy(() => import("./pages/admin/Instructions"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
-const DataInspector = lazy(() => import("./pages/DataInspector"));
 const DataMigration = lazy(() => import("./pages/DataMigration"));
 
 // Settings страницы - ленивая загрузка (приоритет 2)
-const DatabaseSettings = lazy(() => import("./pages/DatabaseSettings"));
 const ExternalDatabaseSettings = lazy(() => import("./pages/ExternalDatabaseSettings"));
-const PartialMigrationSettings = lazy(() => import("./pages/PartialMigrationSettings"));
-const DatabaseInitialization = lazy(() => import("./pages/DatabaseInitialization"));
 
 // Network страницы - ленивая загрузка (приоритет 3)
 const SalesAnalysisPage = lazy(() => import("./pages/SalesAnalysisPage"));
-const PriceHistoryPage = lazy(() => import("./pages/PriceHistoryPage"));
-const FuelStocksPage = lazy(() => import("./pages/FuelStocksPage"));
-const NetworkEquipmentLog = lazy(() => import("./pages/NetworkEquipmentLog"));
 const NotificationRules = lazy(() => import("./pages/NotificationRules"));
 const Messages = lazy(() => import("./pages/Messages"));
 
 // Equipment и остальные страницы - ленивая загрузка (приоритет 3)
-const EquipmentTypes = lazy(() => import("./pages/EquipmentTypes"));
-const ComponentTypes = lazy(() => import("./pages/ComponentTypes"));
-const CommandTemplates = lazy(() => import("./pages/CommandTemplates"));
-const NewCommandTemplates = lazy(() => import("./pages/NewCommandTemplates"));
 
 // Остальные страницы - ленивая загрузка (приоритет 4)
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const NewUsersAndRoles = lazy(() => import("./pages/admin/UsersAndRoles"));
 const NetworksPage = lazy(() => import("./pages/NetworksPage"));
-const Nomenclature = lazy(() => import("./pages/Nomenclature"));
-const Connections = lazy(() => import("./pages/Connections"));
-const Workflows = lazy(() => import("./pages/Workflows"));
 const ShiftReports = lazy(() => import("./pages/ShiftReports"));
 const SimpleProfile = lazy(() => import("./pages/SimpleProfile"));
 const TestServices = lazy(() => import("./pages/TestServices"));
@@ -121,37 +107,23 @@ const App = () => {
           <Route path="/admin/roles" element={<ProtectedRoute><LazyLoader><Roles /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/instructions" element={<ProtectedRoute><LazyLoader><Instructions /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/audit" element={<ProtectedRoute><LazyLoader><AuditLog /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/data-inspector" element={<ProtectedRoute><LazyLoader><DataInspector /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/data-migration" element={<ProtectedRoute><LazyLoader><DataMigration /></LazyLoader></ProtectedRoute>} />
           
           {/* Settings страницы - приоритет 2 */}
-          <Route path="/settings/database" element={<ProtectedRoute><LazyLoader><DatabaseSettings /></LazyLoader></ProtectedRoute>} />
           <Route path="/settings/external-database" element={<ProtectedRoute><LazyLoader><ExternalDatabaseSettings /></LazyLoader></ProtectedRoute>} />
-          <Route path="/settings/partial-migration" element={<ProtectedRoute><LazyLoader><PartialMigrationSettings /></LazyLoader></ProtectedRoute>} />
-          <Route path="/settings/database-initialization" element={<ProtectedRoute><LazyLoader><DatabaseInitialization /></LazyLoader></ProtectedRoute>} />
           
           {/* Network страницы - приоритет 3 */}
           <Route path="/network/sales-analysis" element={<ProtectedRoute><LazyLoader><SalesAnalysisPage /></LazyLoader></ProtectedRoute>} />
-          <Route path="/network/price-history" element={<ProtectedRoute><LazyLoader><PriceHistoryPage /></LazyLoader></ProtectedRoute>} />
-          <Route path="/network/fuel-stocks" element={<ProtectedRoute><LazyLoader><FuelStocksPage /></LazyLoader></ProtectedRoute>} />
-          <Route path="/network/equipment-log" element={<ProtectedRoute><LazyLoader><NetworkEquipmentLog /></LazyLoader></ProtectedRoute>} />
           <Route path="/network/notifications" element={<ProtectedRoute><LazyLoader><NotificationRules /></LazyLoader></ProtectedRoute>} />
           <Route path="/network/messages" element={<ProtectedRoute><LazyLoader><Messages /></LazyLoader></ProtectedRoute>} />
           
           {/* Equipment страницы - приоритет 3 */}
           <Route path="/point/equipment" element={<ProtectedRoute><Equipment /></ProtectedRoute>} />
-          <Route path="/settings/dictionaries/equipment-types" element={<ProtectedRoute><LazyLoader><EquipmentTypes /></LazyLoader></ProtectedRoute>} />
-          <Route path="/settings/dictionaries/component-types" element={<ProtectedRoute><LazyLoader><ComponentTypes /></LazyLoader></ProtectedRoute>} />
-          <Route path="/settings/dictionaries/command-templates" element={<ProtectedRoute><LazyLoader><CommandTemplates /></LazyLoader></ProtectedRoute>} />
-          <Route path="/settings/templates/command-templates" element={<ProtectedRoute><LazyLoader><NewCommandTemplates /></LazyLoader></ProtectedRoute>} />
           
           {/* Остальные страницы - приоритет 4 */}
           <Route path="/admin/users-and-roles-new" element={<ProtectedRoute><LazyLoader><NewUsersAndRoles /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute><LazyLoader><AdminUsers /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/networks" element={<ProtectedRoute><LazyLoader><NetworksPage /></LazyLoader></ProtectedRoute>} />
-          <Route path="/settings/connections" element={<ProtectedRoute><LazyLoader><Connections /></LazyLoader></ProtectedRoute>} />
-          <Route path="/settings/nomenclature" element={<ProtectedRoute><LazyLoader><Nomenclature /></LazyLoader></ProtectedRoute>} />
-          <Route path="/settings/workflows" element={<ProtectedRoute><LazyLoader><Workflows /></LazyLoader></ProtectedRoute>} />
           <Route path="/point/shift-reports" element={<ProtectedRoute><LazyLoader><ShiftReports /></LazyLoader></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><LazyLoader><SimpleProfile /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/test-services" element={<ProtectedRoute><LazyLoader><TestServices /></LazyLoader></ProtectedRoute>} />

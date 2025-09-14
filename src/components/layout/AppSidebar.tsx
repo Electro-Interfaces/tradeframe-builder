@@ -155,22 +155,9 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   // Эти разделы отображаются в меню, но не имеют функциональной реализации
   // Запланированы для будущих версий приложения
   const miscMenuItems = [
-    { title: "История цен", url: "/network/price-history", icon: TrendingUp }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Остатки топлива", url: "/network/fuel-stocks", icon: Fuel }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Журнал оборудования", url: "/network/equipment-log", icon: Database }, // 🚫 НЕ РЕАЛИЗОВАНО
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell }, // 🚫 НЕ РЕАЛИЗОВАНО
     { title: "Сообщения", url: "/network/messages", icon: MessageSquare }, // 🚫 НЕ РЕАЛИЗОВАНО
     { title: "Сменные отчеты", url: "/point/shift-reports", icon: Clock }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Настройки подключения", url: "/settings/connections", icon: Wifi }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Номенклатура", url: "/settings/nomenclature", icon: FuelIcon }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Типы оборудования", url: "/settings/dictionaries/equipment-types", icon: HardDrive }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Типы компонентов", url: "/settings/dictionaries/component-types", icon: Component }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Шаблоны API команд", url: "/settings/templates/command-templates", icon: Book }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Регламенты", url: "/settings/workflows", icon: Clock }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Частичная миграция", url: "/settings/partial-migration", icon: Cog }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Инициализация БД", url: "/settings/database-initialization", icon: Settings }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Инспектор данных", url: "/admin/data-inspector", icon: HardDrive }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Настройки БД", url: "/settings/database", icon: Database }, // 🚫 НЕ РЕАЛИЗОВАНО
   ];
 
   function renderMenuContent() {
