@@ -91,6 +91,13 @@ const App = () => {
           targetPath = '/';
         }
 
+        // ВАЖНО: Если пользователь авторизован, не перенаправляем на /login
+        const isUserLoggedIn = localStorage.getItem('tradeframe_user') || localStorage.getItem('authToken');
+        if (targetPath === '/login' && isUserLoggedIn) {
+          console.log('🔄 App: User is already logged in, redirecting to home instead of login');
+          targetPath = '/';
+        }
+
         console.log('✅ App: Safe redirect to:', targetPath);
         sessionStorage.removeItem('redirectPath');
 
