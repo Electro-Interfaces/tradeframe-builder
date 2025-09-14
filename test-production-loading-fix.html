@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Production тест исправления loading экрана v1.5.8</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #050510;
+      color: #ffffff;
+    }
+    .test-panel {
+      background: #1a1a3e;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      border: 1px solid #2a2a5e;
+    }
+    .app-frame {
+      width: 100%;
+      height: 700px;
+      border: 3px solid #00ff44;
+      border-radius: 8px;
+      background: #000;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #0077cc;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #005599; }
+    .success { background: #00cc00; }
+    .warning { background: #ff9900; color: #000; }
+    .danger { background: #dd0000; }
+    .info { background: #0099cc; }
+    .version { background: #6600cc; }
+    .status {
+      padding: 12px 18px;
+      border-radius: 6px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    .log {
+      background: #000020;
+      color: #00ff88;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border: 1px solid #004466;
+    }
+    .deploy-info {
+      background: #001122;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #00ff44;
+    }
+    .deploy-info li {
+      margin: 8px 0;
+      color: #00ff88;
+    }
+    .version-badge {
+      display: inline-block;
+      background: #6600cc;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Production тест исправления loading экрана <span class="version-badge">v1.5.8</span></h1>
+
+  <div class="test-panel">
+    <h2>📦 Информация о деплое:</h2>
+    <div class="deploy-info">
+      <ul>
+        <li><strong>Коммит:</strong> e43ebf9 - "fix: исправить множественные показы loading экрана и мерцание"</li>
+        <li><strong>GitHub Pages:</strong> https://electro-interfaces.github.io/tradeframe-builder/</li>
+        <li><strong>Время деплоя:</strong> <span id="deployTime">Определяется...</span></li>
+        <li><strong>Статус деплоя:</strong> <span id="deployStatus">GitHub Pages обновляется...</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>🎯 Что исправлено в этой версии:</h2>
+    <div class="status success">✅ Координация main.tsx ↔ index.html через window.reactReady</div>
+    <div class="status success">✅ Защита от повторных вызовов removeLoadingIndicator</div>
+    <div class="status success">✅ Улучшенная детекция React контента</div>
+    <div class="status success">✅ Исправлены синтаксические ошибки в OperationsTransactionsPageSimple</div>
+    <div class="status warning">⚡ Loading должен показываться ОДИН раз без мерцания</div>
+  </div>
+
+  <div class="test-panel">
+    <h2>🔍 Что тестируем на production:</h2>
+    <ol>
+      <li><strong>Единственный показ loading:</strong> НЕТ мерцания и повторных показов</li>
+      <li><strong>Быстрая загрузка:</strong> 100-300мс до исчезновения loading</li>
+      <li><strong>Плавные переходы:</strong> НЕТ темного экрана между состояниями</li>
+      <li><strong>PWA installer:</strong> Агрессивный показ через 1-2 секунды</li>
+      <li><strong>Авторизация:</strong> НЕТ темного экрана после входа</li>
+    </ol>
+  </div>
+
+  <div class="test-panel">
+    <h2>Тестирование Production:</h2>
+    <div class="controls">
+      <button onclick="openProduction()" class="success">🚀 Production (GitHub Pages)</button>
+      <button onclick="openLocal()" class="info">💻 Local (localhost:3003)</button>
+      <button onclick="compareVersions()" class="version">⚖️ Сравнить версии</button>
+      <button onclick="testMultipleReloads()" class="warning">🔄 Тест множественных перезагрузок</button>
+      <button onclick="clearStorage()" class="danger">🗑️ Очистить Storage</button>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Production приложение:</h2>
+    <iframe id="appFrame" class="app-frame" src="about:blank"></iframe>
+  </div>
+
+  <div class="test-panel">
+    <h2>Консольные сообщения для поиска:</h2>
+    <div class="status success">✅ ХОРОШО: "🎯 main.tsx: React готов, сигнализируем index.html"</div>
+    <div class="status success">✅ ХОРОШО: "🎯 Removing initial loading indicator (ЕДИНСТВЕННЫЙ РАЗ)"</div>
+    <div class="status success">✅ ХОРОШО: "🚀 React content detected, removing loading"</div>
+    <div class="status warning">⚠️ ВОЗМОЖНО: "🔒 Loading уже удален, пропускаем повторный вызов" (если была попытка повтора)</div>
+    <div class="status danger">❌ ПЛОХО: Множественные "Removing initial loading" без защиты</div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Логи тестирования:</h2>
+    <div id="testLog" class="log">Production тестер загрузки v1.5.8 готов...
+Ожидаем: единственный показ loading, быстрое исчезновение, НЕТ мерцания
+GitHub Pages обновляется после push...
+
+</div>
+    <button onclick="clearLog()">Очистить логи</button>
+  </div>
+
+  <script>
+    const testLog = document.getElementById('testLog');
+    let reloadCount = 0;
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+      testLog.textContent += `[${timestamp}] ${emoji} ${message}\n`;
+      testLog.scrollTop = testLog.scrollHeight;
+    }
+
+    function openProduction() {
+      log('🚀 Загружаем Production версию (GitHub Pages)...', 'success');
+      const frame = document.getElementById('appFrame');
+      frame.src = 'https://electro-interfaces.github.io/tradeframe-builder/';
+
+      log('👁️ ВНИМАНИЕ: Следите за loading экраном - должен показаться ОДИН раз!', 'warning');
+      log('⏱️ Ожидаем: исчезновение loading за 100-300мс', 'info');
+
+      setTimeout(() => {
+        log('🔍 Проверяем: НЕТ ли мерцания loading экрана?', 'warning');
+      }, 1000);
+
+      setTimeout(() => {
+        log('🎯 Если PWA installer появился - исправления работают!', 'success');
+      }, 3000);
+    }
+
+    function openLocal() {
+      log('💻 Загружаем Local версию для сравнения...', 'info');
+      const frame = document.getElementById('appFrame');
+      frame.src = 'http://localhost:3003';
+      log('📊 Сравните поведение с production версией', 'info');
+    }
+
+    function compareVersions() {
+      log('⚖️ Сравнение версий:', 'info');
+      log('СТАРАЯ версия: множественные показы loading через темный экран', 'warning');
+      log('НОВАЯ версия (v1.5.8): ОДИН показ loading, плавное исчезновение', 'success');
+
+      // Открываем производственную версию для сравнения
+      setTimeout(() => {
+        openProduction();
+      }, 1000);
+    }
+
+    function testMultipleReloads() {
+      reloadCount++;
+      log(`🔄 Тест множественных перезагрузок #${reloadCount} (Production)...`, 'warning');
+
+      const frame = document.getElementById('appFrame');
+      frame.src = 'about:blank';
+
+      setTimeout(() => {
+        frame.src = 'https://electro-interfaces.github.io/tradeframe-builder/';
+        log(`📱 Перезагрузка #${reloadCount} - проверяем стабильность loading`, 'info');
+      }, 200);
+
+      if (reloadCount < 5) {
+        setTimeout(() => testMultipleReloads(), 3000);
+      } else {
+        setTimeout(() => {
+          log('✅ Тест множественных перезагрузок завершен', 'success');
+          log('🎯 Результат: Loading должен работать стабильно во всех перезагрузках', 'info');
+          reloadCount = 0;
+        }, 3000);
+      }
+    }
+
+    function clearStorage() {
+      localStorage.clear();
+      sessionStorage.clear();
+      log('🗑️ Storage очищен для чистого тестирования', 'success');
+    }
+
+    function clearLog() {
+      testLog.textContent = 'Логи очищены. Production тестер v1.5.8 готов...\n';
+    }
+
+    // Проверка статуса деплоя
+    function checkDeployStatus() {
+      const deployTime = document.getElementById('deployTime');
+      const deployStatus = document.getElementById('deployStatus');
+
+      deployTime.textContent = new Date().toLocaleString();
+
+      // Проверяем доступность GitHub Pages
+      fetch('https://electro-interfaces.github.io/tradeframe-builder/', { mode: 'no-cors' })
+        .then(() => {
+          deployStatus.textContent = '✅ GitHub Pages активен';
+          deployStatus.style.color = '#00ff88';
+        })
+        .catch(() => {
+          deployStatus.textContent = '⏳ GitHub Pages обновляется...';
+          deployStatus.style.color = '#ff9900';
+        });
+    }
+
+    // Мониторинг iframe
+    const frame = document.getElementById('appFrame');
+    frame.addEventListener('load', function() {
+      log('📱 Iframe загружен - проверяем консоль на наличие исправлений', 'success');
+    });
+
+    // Инициализация
+    window.onload = function() {
+      log('🚀 Production тестер исправления loading v1.5.8 готов!', 'success');
+      log('📦 Деплой: e43ebf9 - исправления мерцания loading экрана', 'info');
+      log('🎯 Цель: протестировать ЕДИНСТВЕННЫЙ показ loading без мерцания', 'info');
+      log('📋 Начните с кнопки "Production (GitHub Pages)"', 'info');
+
+      checkDeployStatus();
+    };
+  </script>
+</body>
+</html>

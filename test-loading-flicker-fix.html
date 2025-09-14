@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тест исправления мерцания loading экрана</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #0a0a0f;
+      color: #ffffff;
+    }
+    .test-panel {
+      background: #1a1a2e;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      border: 1px solid #16213e;
+    }
+    .app-frame {
+      width: 100%;
+      height: 600px;
+      border: 2px solid #ff6600;
+      border-radius: 8px;
+      background: #000;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #0066cc;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #004499; }
+    .success { background: #00bb00; }
+    .warning { background: #ff8800; color: #000; }
+    .danger { background: #cc0000; }
+    .info { background: #0088cc; }
+    .status {
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    .log {
+      background: #000015;
+      color: #00ff99;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border: 1px solid #003366;
+    }
+    .fixes-list {
+      background: #001a1a;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #ff6600;
+    }
+    .fixes-list li {
+      margin: 8px 0;
+      color: #ff9944;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔧 Тест исправления мерцания loading экрана v1.5.7</h1>
+
+  <div class="test-panel">
+    <h2>🎯 ПРОБЛЕМА: множественные показы loading экрана</h2>
+    <div class="status warning">⚠️ Экран загрузки показывается несколько раз через темный экран</div>
+    <div class="status warning">⚠️ Выглядит как сбой загрузки</div>
+    <div class="status info">ℹ️ Причина: конфликт между index.html и main.tsx таймерами</div>
+  </div>
+
+  <div class="test-panel">
+    <h2>🛠️ Применённые исправления:</h2>
+    <div class="fixes-list">
+      <ul>
+        <li><strong>main.tsx:</strong> Добавлен флаг window.reactReady для координации</li>
+        <li><strong>main.tsx:</strong> Уменьшена задержка сигнализации до 100мс</li>
+        <li><strong>index.html:</strong> Приоритет флагу window.reactReady в детекции</li>
+        <li><strong>index.html:</strong> Защита от повторных вызовов removeLoadingIndicator</li>
+        <li><strong>Синхронизация:</strong> index.html управляет, main.tsx только сигнализирует</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Ожидаемое поведение:</h2>
+    <div class="status success">✅ Loading показывается ТОЛЬКО ОДИН РАЗ</div>
+    <div class="status success">✅ Плавное исчезновение без мерцания</div>
+    <div class="status success">✅ Время загрузки: 100-300мс</div>
+    <div class="status success">✅ НЕТ повторных показов loading экрана</div>
+    <div class="status success">✅ НЕТ темного экрана между показами</div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Диагностические сообщения в консоли:</h2>
+    <div class="status info">🔍 "🎯 main.tsx: React готов, сигнализируем index.html"</div>
+    <div class="status info">🔍 "🚀 React content detected, removing loading"</div>
+    <div class="status success">✅ "🎯 Removing initial loading indicator (ЕДИНСТВЕННЫЙ РАЗ)"</div>
+    <div class="status warning">⚠️ НЕ должно быть: "🔒 Loading уже удален, пропускаем повторный вызов"</div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Тестирование:</h2>
+    <div class="controls">
+      <button onclick="openApp()" class="success">🚀 Тест загрузки (localhost:3003)</button>
+      <button onclick="reloadMultiple()" class="warning">🔄 Тест множественные перезагрузки</button>
+      <button onclick="clearStorage()" class="danger">🗑️ Очистить Storage</button>
+      <button onclick="monitorConsole()" class="info">📊 Мониторинг консоли</button>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Тестовый iframe:</h2>
+    <iframe id="appFrame" class="app-frame" src="about:blank"></iframe>
+  </div>
+
+  <div class="test-panel">
+    <h2>Логи тестирования:</h2>
+    <div id="testLog" class="log">Тестер исправления мерцания loading экрана готов...
+Ожидаем: ОДИН показ loading экрана без мерцания
+Ожидаем: плавную загрузку за 100-300мс
+
+</div>
+    <button onclick="clearLog()">Очистить логи</button>
+  </div>
+
+  <script>
+    const testLog = document.getElementById('testLog');
+    let reloadCount = 0;
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+      testLog.textContent += `[${timestamp}] ${emoji} ${message}\n`;
+      testLog.scrollTop = testLog.scrollHeight;
+    }
+
+    function openApp() {
+      log('🚀 Загружаем TradeFrame с исправлениями мерцания...', 'info');
+      const frame = document.getElementById('appFrame');
+      frame.src = 'http://localhost:3003';
+
+      log('👁️ Следите за iframe - loading должен показаться ТОЛЬКО ОДИН РАЗ', 'warning');
+
+      setTimeout(() => {
+        log('⏱️ Прошло 100мс - loading должен начать исчезать...', 'info');
+      }, 100);
+
+      setTimeout(() => {
+        log('⏱️ Прошло 500мс - loading должен полностью исчезнуть...', 'success');
+      }, 500);
+
+      setTimeout(() => {
+        log('🔍 Если loading показался несколько раз - проблема не решена', 'warning');
+      }, 1000);
+    }
+
+    function reloadMultiple() {
+      reloadCount++;
+      log(`🔄 Множественная перезагрузка #${reloadCount}...`, 'warning');
+
+      const frame = document.getElementById('appFrame');
+      frame.src = 'about:blank';
+
+      setTimeout(() => {
+        frame.src = 'http://localhost:3003';
+        log(`📱 Перезагрузка #${reloadCount} - проверяем мерцание`, 'info');
+      }, 100);
+
+      if (reloadCount < 3) {
+        setTimeout(() => reloadMultiple(), 2000);
+      } else {
+        setTimeout(() => {
+          log('✅ Тест множественных перезагрузок завершен', 'success');
+          reloadCount = 0;
+        }, 2000);
+      }
+    }
+
+    function clearStorage() {
+      localStorage.clear();
+      sessionStorage.clear();
+      log('🗑️ Storage очищен', 'success');
+    }
+
+    function monitorConsole() {
+      log('📊 Мониторинг консоли активирован:', 'info');
+      log('🔍 Откройте DevTools (F12) → Console', 'info');
+      log('👀 Ищите сообщения от main.tsx и index.html', 'info');
+      log('✅ ХОРОШО: "React готов, сигнализируем", "removing loading (ЕДИНСТВЕННЫЙ РАЗ)"', 'success');
+      log('⚠️ ПЛОХО: "пропускаем повторный вызов", множественные "removing"', 'warning');
+    }
+
+    function clearLog() {
+      testLog.textContent = 'Логи очищены. Тестер исправления мерцания готов...\n';
+    }
+
+    // Автоматический мониторинг iframe
+    const frame = document.getElementById('appFrame');
+    let loadStartTime = null;
+
+    frame.addEventListener('loadstart', function() {
+      loadStartTime = Date.now();
+      log('📱 Iframe начал загрузку...', 'info');
+    });
+
+    frame.addEventListener('load', function() {
+      if (loadStartTime) {
+        const loadTime = Date.now() - loadStartTime;
+        log(`⚡ Iframe загружен за ${loadTime}мс`, loadTime < 1000 ? 'success' : 'warning');
+      } else {
+        log('📱 Iframe загружен', 'success');
+      }
+    });
+
+    // Инициализация
+    window.onload = function() {
+      log('🔧 Тестер исправления мерцания loading экрана v1.5.7 готов!', 'success');
+      log('🎯 Цель: ОДИН показ loading экрана без мерцания', 'info');
+      log('⚡ Исправления: координация main.tsx ↔ index.html, защита от повторов', 'success');
+      log('📋 Начните с "Тест загрузки" и следите за iframe', 'info');
+    };
+  </script>
+</body>
+</html>

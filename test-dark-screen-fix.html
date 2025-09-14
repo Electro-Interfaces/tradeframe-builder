@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тест исправления темного экрана TradeFrame</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #0a0a0a;
+      color: #ffffff;
+    }
+    .test-panel {
+      background: #1a1a2e;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      border: 1px solid #16213e;
+    }
+    .app-frame {
+      width: 100%;
+      height: 700px;
+      border: 2px solid #00ff88;
+      border-radius: 8px;
+      background: #000;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #0066cc;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #004499; }
+    .success { background: #00bb00; }
+    .warning { background: #ff8800; color: #000; }
+    .danger { background: #cc0000; }
+    .info { background: #0088cc; }
+    .status {
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    .log {
+      background: #000015;
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border: 1px solid #003366;
+    }
+    .fixes-list {
+      background: #001a1a;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #00ff88;
+    }
+    .fixes-list li {
+      margin: 8px 0;
+      color: #00ff88;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛠️ Тест исправления темного экрана v1.5.7</h1>
+
+  <div class="test-panel">
+    <h2>🎯 Применённые исправления:</h2>
+    <div class="fixes-list">
+      <ul>
+        <li><strong>main.tsx:</strong> Уменьшил задержку удаления loading с 1.5 сек → 500мс</li>
+        <li><strong>index.html:</strong> Улучшил детекцию React контента (добавил header, aside, form, button)</li>
+        <li><strong>index.html:</strong> Ускорил удаление loading после детекции: 500мс → 100мс</li>
+        <li><strong>OperationsTransactionsPageSimple.tsx:</strong> Исправил синтаксические ошибки (убрал лишние №)</li>
+        <li><strong>SelectionContext:</strong> Исправил путь импорта в App.tsx</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Что должно работать теперь:</h2>
+    <div class="status success">✅ Loading индикатор исчезает быстро (600мс вместо 2+ сек)</div>
+    <div class="status success">✅ Детекция React контента работает надежнее</div>
+    <div class="status success">✅ Нет синтаксических ошибок при компиляции</div>
+    <div class="status success">✅ Правильные пути импорта для всех контекстов</div>
+    <div class="status warning">⚡ Темный экран после авторизации должен исчезнуть</div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Последовательность тестирования:</h2>
+    <ol>
+      <li>Откройте приложение</li>
+      <li>Введите демо-логин (admin/admin)</li>
+      <li>Нажмите "Войти"</li>
+      <li>Проверьте - НЕТ ли темного экрана после авторизации</li>
+      <li>Должна появиться страница Equipment сразу</li>
+    </ol>
+  </div>
+
+  <div class="test-panel">
+    <h2>Тестирование:</h2>
+    <div class="controls">
+      <button onclick="openApp()" class="success">🚀 Открыть TradeFrame (localhost:3003)</button>
+      <button onclick="openAppNewWindow()" class="info">🔗 Открыть в новом окне</button>
+      <button onclick="clearStorage()" class="warning">🗑️ Очистить Storage</button>
+      <button onclick="testLoginSequence()" class="info">⚡ Тест авторизации</button>
+      <button onclick="monitorLogs()" class="danger">📊 Мониторинг логов</button>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Встроенное приложение для тестирования:</h2>
+    <iframe id="appFrame" class="app-frame" src="about:blank"></iframe>
+  </div>
+
+  <div class="test-panel">
+    <h2>Логи тестирования:</h2>
+    <div id="testLog" class="log">Тестер исправления темного экрана готов...
+Ожидаем: быстрое удаление loading индикатора
+Ожидаем: отсутствие темного экрана после авторизации
+
+</div>
+    <button onclick="clearLog()">Очистить логи</button>
+  </div>
+
+  <script>
+    const testLog = document.getElementById('testLog');
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+      testLog.textContent += `[${timestamp}] ${emoji} ${message}\n`;
+      testLog.scrollTop = testLog.scrollHeight;
+    }
+
+    function openApp() {
+      log('🚀 Загружаем TradeFrame с исправлениями темного экрана...', 'info');
+      const frame = document.getElementById('appFrame');
+      frame.src = 'http://localhost:3003';
+
+      setTimeout(() => {
+        log('⏰ Через 1 секунду loading должен начать исчезать...', 'info');
+      }, 1000);
+
+      setTimeout(() => {
+        log('🔍 Проверяем - исчез ли темный экран...', 'warning');
+      }, 2000);
+    }
+
+    function openAppNewWindow() {
+      log('🔗 Открываем TradeFrame в новом окне для чистого тестирования...', 'info');
+      const newWindow = window.open('http://localhost:3003', '_blank');
+      log('✅ Новое окно открыто. Тестируйте авторизацию и темный экран!', 'success');
+    }
+
+    function clearStorage() {
+      localStorage.clear();
+      sessionStorage.clear();
+      log('🗑️ Storage очищен для чистого тестирования', 'success');
+    }
+
+    function testLoginSequence() {
+      log('⚡ Начинаем тест последовательности авторизации:', 'info');
+      log('1. Очищаем storage...', 'info');
+      clearStorage();
+
+      setTimeout(() => {
+        log('2. Открываем приложение...', 'info');
+        openApp();
+      }, 500);
+
+      setTimeout(() => {
+        log('3. В iframe должен появиться экран входа...', 'info');
+      }, 2000);
+
+      setTimeout(() => {
+        log('4. Введите admin/admin и нажмите Войти...', 'warning');
+      }, 3000);
+
+      setTimeout(() => {
+        log('5. Проверьте - НЕТ ли темного экрана после авторизации!', 'success');
+      }, 5000);
+    }
+
+    function monitorLogs() {
+      log('📊 Мониторинг активирован. Следите за консолью браузера:', 'info');
+      log('Ищите сообщения: "🚀 React content detected, removing loading"', 'info');
+      log('Ищите сообщения: "🎯 main.tsx: Removing initial loading"', 'info');
+      log('НЕ должно быть ошибок типа: "SelectionContext not found"', 'warning');
+    }
+
+    function clearLog() {
+      testLog.textContent = 'Логи очищены. Тестер исправления темного экрана готов...\n';
+    }
+
+    // Автоматическая инициализация
+    window.onload = function() {
+      log('🛠️ Тестер исправления темного экрана v1.5.7 готов!', 'success');
+      log('🎯 Применены исправления: быстрые таймауты, улучшенная детекция React', 'info');
+      log('⚡ Темный экран после авторизации должен исчезнуть!', 'success');
+      log('📋 Нажмите "Тест авторизации" для полной проверки', 'info');
+    };
+
+    // Мониторинг iframe загрузки
+    const frame = document.getElementById('appFrame');
+    frame.addEventListener('load', function() {
+      log('📱 Iframe загружен. Проверяем содержимое...', 'info');
+
+      setTimeout(() => {
+        try {
+          const iframeDoc = frame.contentDocument || frame.contentWindow.document;
+          const hasContent = iframeDoc.body && iframeDoc.body.children.length > 0;
+          if (hasContent) {
+            log('✅ Контент обнаружен в iframe', 'success');
+          } else {
+            log('⚠️ Iframe кажется пустым или недоступным', 'warning');
+          }
+        } catch (e) {
+          log('ℹ️ Не удается проверить содержимое iframe (CORS ограничения)', 'info');
+        }
+      }, 500);
+    });
+  </script>
+</body>
+</html>

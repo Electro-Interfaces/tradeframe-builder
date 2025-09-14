@@ -63,18 +63,55 @@ const App = () => {
   console.log('🚀 App: component rendering');
   const [showPWAInstaller, setShowPWAInstaller] = useState(false);
 
-  // Обработка перенаправления с GitHub Pages 404
+  // Обработка перенаправления с GitHub Pages 404 с улучшенной защитой
   useEffect(() => {
     try {
       const redirectPath = sessionStorage.getItem('redirectPath');
       if (redirectPath) {
-        console.log('🔄 App: Found redirect path, navigating to:', redirectPath);
+        console.log('🔄 App: Found redirect path, processing:', redirectPath);
+
+        // Валидация redirect path для предотвращения падений
+        const validPaths = [
+          '/', '/login', '/network/overview', '/network/operations-transactions',
+          '/point/equipment', '/point/prices', '/point/tanks', '/admin/users'
+        ];
+
+        let targetPath = redirectPath;
+        // Убираем базовый путь для GitHub Pages
+        if (targetPath.startsWith('/tradeframe-builder')) {
+          targetPath = targetPath.substring('/tradeframe-builder'.length) || '/';
+        }
+
+        const isValidPath = validPaths.some(path =>
+          targetPath === path || targetPath.startsWith(path + '/')
+        );
+
+        if (!isValidPath) {
+          console.warn('⚠️ App: Invalid redirect path detected, redirecting to home:', targetPath);
+          targetPath = '/';
+        }
+
+        console.log('✅ App: Safe redirect to:', targetPath);
         sessionStorage.removeItem('redirectPath');
-        // Используем replace чтобы заменить историю, а не добавлять новую запись
-        window.history.replaceState(null, '', redirectPath);
+
+        // Безопасное обновление истории
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', targetPath);
+        } else {
+          // Fallback для старых браузеров
+          window.location.href = targetPath;
+        }
       }
     } catch (error) {
-      console.error('🚫 App useEffect error:', error);
+      console.error('🚫 App: Critical redirect error, falling back to home:', error);
+      // В случае критической ошибки просто перенаправляем на главную
+      try {
+        sessionStorage.removeItem('redirectPath');
+        window.history.replaceState(null, '', '/');
+      } catch (fallbackError) {
+        console.error('🚫 App: Fallback also failed:', fallbackError);
+        window.location.href = '/';
+      }
     }
   }, []);
 
@@ -148,13 +185,14 @@ const App = () => {
   }, []);
   
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AuthProvider>
-          <SelectionProvider>
-            <BrowserRouter basename={import.meta.env.PROD ? "/tradeframe-builder" : "/"}>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AuthProvider>
+            <SelectionProvider>
+              <BrowserRouter basename={import.meta.env.PROD ? "/tradeframe-builder" : "/"}>
             <Routes>
             {/* Критически важные страницы - без lazy loading */}
             <Route path="/login" element={<LoginPageWithLegal />} />
@@ -217,6 +255,7 @@ const App = () => {
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
+    </ErrorBoundary>
 );
 };
 

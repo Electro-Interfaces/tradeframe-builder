@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тест агрессивного PWA installer v1.5.7</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #0f0f23;
+      color: #cccccc;
+    }
+    .test-panel {
+      background: #1a1a35;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      border: 1px solid #333366;
+    }
+    .app-frame {
+      width: 100%;
+      height: 600px;
+      border: 2px solid #00ff00;
+      border-radius: 8px;
+      background: #000;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #0066ff;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #0052cc; }
+    .success { background: #00cc00; }
+    .warning { background: #ffaa00; color: #000; }
+    .danger { background: #cc0000; }
+    .info { background: #00aaff; }
+    .status {
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    .log {
+      background: #000011;
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 350px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border: 1px solid #003366;
+    }
+    .changes-list {
+      background: #001122;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #00ff00;
+    }
+    .changes-list li {
+      margin: 5px 0;
+      color: #00ff00;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Тест агрессивного PWA installer v1.5.7</h1>
+
+  <div class="test-panel">
+    <h2>🎯 Ключевые изменения в этой версии:</h2>
+    <div class="changes-list">
+      <ul>
+        <li><strong>Таймауты сокращены:</strong> 3→1 сек для промпта, 5→2 сек для fallback</li>
+        <li><strong>Убраны ограничения по браузерам:</strong> показываем для ВСЕХ браузеров</li>
+        <li><strong>Упрощена логика:</strong> только проверка !isInstalled вместо сложных условий</li>
+        <li><strong>Агрессивный показ:</strong> PWA промпт для Chrome, Firefox, Safari, всех браузеров</li>
+        <li><strong>Улучшено логирование:</strong> "АГРЕССИВНО показываем fallback для ВСЕХ браузеров"</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Что ожидать после изменений:</h2>
+    <div class="status success">✅ Chrome: PWA installer появится через 1-2 секунды вместо "браузер не поддерживает"</div>
+    <div class="status success">✅ Firefox: Агрессивный показ PWA промпта</div>
+    <div class="status success">✅ Safari: Показ инструкций по добавлению на домашний экран</div>
+    <div class="status success">✅ Yandex Browser: Ускоренный показ PWA installer</div>
+    <div class="status warning">⚡ Все браузеры: Намного быстрее появление PWA промпта</div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Тестирование:</h2>
+    <div class="controls">
+      <button onclick="openApp()" class="success">🚀 Открыть TradeFrame (prod)</button>
+      <button onclick="openAppNewWindow()" class="info">🔗 Открыть в новом окне</button>
+      <button onclick="clearStorage()" class="warning">🗑️ Очистить Storage</button>
+      <button onclick="testChrome()" class="info">⚡ Тест Chrome PWA</button>
+      <button onclick="testMobile()" class="success">📱 Тест мобильный</button>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Инструкции для тестирования Chrome:</h2>
+    <ol>
+      <li>Откройте приложение в новом окне (кнопка выше)</li>
+      <li>Дождитесь загрузки (следите за логами)</li>
+      <li>Через 1-2 секунды должен появиться PWA installer</li>
+      <li>Если не появился - проверьте консоль браузера</li>
+      <li>Должно быть сообщение "АГРЕССИВНО показываем fallback для ВСЕХ браузеров"</li>
+    </ol>
+  </div>
+
+  <div class="test-panel">
+    <h2>Встроенное приложение:</h2>
+    <iframe id="appFrame" class="app-frame" src="about:blank"></iframe>
+  </div>
+
+  <div class="test-panel">
+    <h2>Логи тестирования:</h2>
+    <div id="testLog" class="log">Логи тестирования агрессивного PWA installer...
+Ожидаем: "АГРЕССИВНО показываем промпт установки для ВСЕХ браузеров" через 1 сек
+Ожидаем: "АГРЕССИВНО показываем fallback для ВСЕХ браузеров" через 2 сек
+
+</div>
+    <button onclick="clearLog()">Очистить логи</button>
+  </div>
+
+  <script>
+    const testLog = document.getElementById('testLog');
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+      testLog.textContent += `[${timestamp}] ${emoji} ${message}\n`;
+      testLog.scrollTop = testLog.scrollHeight;
+    }
+
+    function openApp() {
+      log('🚀 Загружаем TradeFrame с агрессивным PWA installer...', 'info');
+      const frame = document.getElementById('appFrame');
+      frame.src = 'https://electro-interfaces.github.io/tradeframe-builder/';
+
+      setTimeout(() => {
+        log('⏰ Через 1 секунду должен сработать агрессивный PWA промпт...', 'info');
+      }, 1000);
+
+      setTimeout(() => {
+        log('⚡ Через 2 секунды должен сработать fallback для всех браузеров...', 'warning');
+      }, 2000);
+
+      setTimeout(() => {
+        log('🔍 Проверьте - появился ли PWA installer в iframe?', 'success');
+      }, 3000);
+    }
+
+    function openAppNewWindow() {
+      log('🔗 Открываем TradeFrame в новом окне для тестирования Chrome...', 'info');
+      const newWindow = window.open('https://electro-interfaces.github.io/tradeframe-builder/', '_blank');
+      log('✅ Новое окно открыто. Следите за PWA installer через 1-2 секунды!', 'success');
+      log('🎯 В консоли должно появиться: "АГРЕССИВНО показываем fallback для ВСЕХ браузеров"', 'info');
+    }
+
+    function clearStorage() {
+      localStorage.clear();
+      sessionStorage.clear();
+      log('🗑️ localStorage и sessionStorage очищены для чистого теста', 'success');
+    }
+
+    function testChrome() {
+      log('🔍 Специальный тест для Chrome PWA:', 'info');
+      log('1. Chrome должен показать PWA installer через 1 секунду', 'info');
+      log('2. Если beforeinstallprompt не сработал - fallback через 2 секунды', 'info');
+      log('3. Убраны все ограничения по браузерам', 'success');
+      openAppNewWindow();
+    }
+
+    function testMobile() {
+      log('📱 Тест для мобильных устройств:', 'info');
+      log('- Агрессивный показ для всех мобильных браузеров', 'info');
+      log('- Ускоренные таймауты: 1 сек → промпт, 2 сек → fallback', 'success');
+      openApp();
+    }
+
+    function clearLog() {
+      testLog.textContent = 'Логи очищены. Тестируем агрессивный PWA installer v1.5.7...\n';
+    }
+
+    // Автоматическая инициализация
+    window.onload = function() {
+      log('🚀 Тестер агрессивного PWA installer v1.5.7 готов!', 'success');
+      log('🎯 Ключевые изменения: таймауты 1/2 сек, убраны ограничения браузеров', 'info');
+      log('⚡ Chrome теперь должен показывать PWA installer агрессивно!', 'success');
+      log('📋 Нажмите "Открыть в новом окне" для тестирования Chrome', 'info');
+    };
+  </script>
+</body>
+</html>

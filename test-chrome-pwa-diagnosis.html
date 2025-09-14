@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrome PWA Диагностика - TradeFrame</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #0a0a12;
+      color: #ffffff;
+    }
+    .test-panel {
+      background: #1a1a35;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      border: 1px solid #2a2a55;
+    }
+    .app-frame {
+      width: 100%;
+      height: 650px;
+      border: 3px solid #ff6600;
+      border-radius: 8px;
+      background: #000;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #0077dd;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #0055bb; }
+    .success { background: #00cc00; }
+    .warning { background: #ffaa00; color: #000; }
+    .danger { background: #dd0000; }
+    .info { background: #0099dd; }
+    .chrome { background: #4285f4; }
+    .status {
+      padding: 12px 18px;
+      border-radius: 6px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    .log {
+      background: #000022;
+      color: #00ff99;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border: 1px solid #004477;
+    }
+    .chrome-tips {
+      background: #001122;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #4285f4;
+    }
+    .chrome-tips li {
+      margin: 8px 0;
+      color: #66aaff;
+    }
+    .checklist {
+      background: #002211;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #00ff88;
+    }
+    .checklist li {
+      margin: 10px 0;
+      color: #88ffaa;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌐 Chrome PWA Диагностика - TradeFrame v1.5.8</h1>
+
+  <div class="test-panel">
+    <h2>🎯 Проблема: Chrome не показывает beforeinstallprompt</h2>
+    <div class="status warning">⚠️ Chrome показывает "Браузер не поддерживает автоматическую установку PWA"</div>
+    <div class="status warning">⚠️ Fallback срабатывает вместо нативного Chrome install prompt</div>
+    <div class="status info">ℹ️ Но Chrome точно поддерживает PWA - нужна диагностика</div>
+  </div>
+
+  <div class="test-panel">
+    <h2>🔍 Chrome PWA критерии (должны быть выполнены):</h2>
+    <div class="checklist">
+      <ul>
+        <li>✅ <strong>HTTPS:</strong> GitHub Pages использует HTTPS</li>
+        <li>✅ <strong>Service Worker:</strong> Регистрируется успешно</li>
+        <li>✅ <strong>Web App Manifest:</strong> Загружается корректно</li>
+        <li>❓ <strong>Valid Icons:</strong> 192x192 и 512x512 PNG иконки</li>
+        <li>❓ <strong>User Engagement:</strong> Взаимодействие пользователя</li>
+        <li>❓ <strong>PWA не установлено:</strong> Проверить chrome://apps</li>
+        <li>❓ <strong>Display mode:</strong> standalone или fullscreen в manifest</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>🛠️ Chrome PWA инструкции для пользователей:</h2>
+    <div class="chrome-tips">
+      <ul>
+        <li><strong>Способ 1:</strong> Кликните на иконку "Установить" в адресной строке (если появится)</li>
+        <li><strong>Способ 2:</strong> Меню Chrome (⋮) → "Установить TradeFrame..."</li>
+        <li><strong>Способ 3:</strong> Меню Chrome (⋮) → "Сохранить и поделиться" → "Установить приложение"</li>
+        <li><strong>Способ 4:</strong> Меню Chrome (⋮) → "Дополнительные инструменты" → "Создать ярлык" → ☑️ "Открыть как окно"</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>🔧 Диагностические действия:</h2>
+    <div class="controls">
+      <button onclick="openProduction()" class="chrome">🚀 Загрузить Production</button>
+      <button onclick="checkChromeApps()" class="info">📱 Открыть chrome://apps</button>
+      <button onclick="runDiagnostics()" class="warning">🔍 Запустить диагностику</button>
+      <button onclick="clearChromeData()" class="danger">🗑️ Очистить Chrome данные</button>
+      <button onclick="testEngagement()" class="success">👆 Тест User Engagement</button>
+    </div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Production приложение (с улучшенной диагностикой):</h2>
+    <iframe id="appFrame" class="app-frame" src="about:blank"></iframe>
+  </div>
+
+  <div class="test-panel">
+    <h2>🔬 Ожидаемая диагностика в консоли:</h2>
+    <div class="status success">✅ "🔍 Chrome PWA Диагностика - почему beforeinstallprompt НЕ срабатывает"</div>
+    <div class="status success">✅ "🔍 Chrome PWA Дополнительные проверки"</div>
+    <div class="status success">✅ "📋 Manifest анализ для Chrome PWA"</div>
+    <div class="status warning">⚠️ "💡 Chrome PWA: beforeinstallprompt не сработал, возможные причины"</div>
+  </div>
+
+  <div class="test-panel">
+    <h2>Логи тестирования:</h2>
+    <div id="testLog" class="log">Chrome PWA диагностика готова...
+Добавлена расширенная диагностика для выяснения проблем с beforeinstallprompt
+Улучшены инструкции для Chrome пользователей
+
+</div>
+    <button onclick="clearLog()">Очистить логи</button>
+  </div>
+
+  <script>
+    const testLog = document.getElementById('testLog');
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+      testLog.textContent += `[${timestamp}] ${emoji} ${message}\n`;
+      testLog.scrollTop = testLog.scrollHeight;
+    }
+
+    function openProduction() {
+      log('🚀 Загружаем Production с улучшенной Chrome PWA диагностикой...', 'info');
+      const frame = document.getElementById('appFrame');
+      frame.src = 'https://electro-interfaces.github.io/tradeframe-builder/';
+
+      log('🔍 ВАЖНО: Откройте DevTools (F12) → Console для просмотра диагностики', 'warning');
+
+      setTimeout(() => {
+        log('⏱️ Через 3 секунды должна появиться Chrome PWA диагностика', 'info');
+      }, 1000);
+
+      setTimeout(() => {
+        log('🔬 Ищите сообщения "Chrome PWA Диагностика" в консоли', 'success');
+      }, 4000);
+    }
+
+    function checkChromeApps() {
+      log('📱 Открываем chrome://apps для проверки установленных PWA...', 'info');
+      window.open('chrome://apps', '_blank');
+      log('🔍 Проверьте: есть ли TradeFrame в списке установленных приложений?', 'warning');
+      log('💡 Если есть - удалите его и попробуйте снова', 'info');
+    }
+
+    function runDiagnostics() {
+      log('🔍 Запускаем комплексную диагностику Chrome PWA...', 'info');
+
+      // Проверяем локальные критерии
+      const diagnostics = {
+        isChrome: navigator.userAgent.includes('Chrome'),
+        isHTTPS: location.protocol === 'https:',
+        hasServiceWorker: 'serviceWorker' in navigator,
+        hasManifest: !!document.querySelector('link[rel="manifest"]'),
+        displayMode: window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser',
+        userAgent: navigator.userAgent.substring(0, 80) + '...'
+      };
+
+      log('📊 Локальная диагностика:', 'info');
+      log(JSON.stringify(diagnostics, null, 2), 'info');
+
+      if (!diagnostics.isChrome) {
+        log('❌ Это не Chrome браузер!', 'error');
+      } else {
+        log('✅ Chrome браузер обнаружен', 'success');
+      }
+
+      // Запускаем приложение для подробной диагностики
+      setTimeout(() => {
+        openProduction();
+      }, 1000);
+    }
+
+    function clearChromeData() {
+      log('🗑️ Инструкция по очистке Chrome данных:', 'warning');
+      log('1. Chrome меню (⋮) → "Настройки"', 'info');
+      log('2. "Конфиденциальность и безопасность" → "Очистить данные браузера"', 'info');
+      log('3. Выберите "Файлы cookie", "Кеш", "Данные приложений"', 'info');
+      log('4. Нажмите "Очистить данные"', 'info');
+      log('5. Перезапустите Chrome и попробуйте снова', 'success');
+    }
+
+    function testEngagement() {
+      log('👆 Имитируем активное взаимодействие пользователя...', 'info');
+
+      // Создаем различные события для имитации engagement
+      document.dispatchEvent(new Event('click'));
+      document.dispatchEvent(new Event('scroll'));
+      document.dispatchEvent(new Event('touchstart'));
+      document.dispatchEvent(new Event('keydown'));
+
+      log('✅ События взаимодействия отправлены', 'success');
+      log('🔄 Попробуйте загрузить приложение через 5 секунд...', 'info');
+
+      setTimeout(() => {
+        openProduction();
+      }, 5000);
+    }
+
+    function clearLog() {
+      testLog.textContent = 'Логи очищены. Chrome PWA диагностика готова...\n';
+    }
+
+    // Автоматическая проверка Chrome
+    window.onload = function() {
+      log('🌐 Chrome PWA диагностика v1.5.8 запущена!', 'success');
+
+      const isChrome = navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edg');
+
+      if (isChrome) {
+        log('✅ Chrome браузер обнаружен - можно тестировать PWA', 'success');
+        log('🎯 Цель: выяснить почему beforeinstallprompt не срабатывает', 'info');
+      } else {
+        log('⚠️ Это не Chrome браузер. Для точной диагностики используйте Chrome', 'warning');
+      }
+
+      log('📋 Используйте "Запустить диагностику" для полной проверки', 'info');
+    };
+
+    // Мониторинг iframe
+    const frame = document.getElementById('appFrame');
+    frame.addEventListener('load', function() {
+      log('📱 Приложение загружено в iframe', 'success');
+      log('🔍 Проверьте консоль браузера на наличие Chrome PWA диагностики', 'warning');
+    });
+  </script>
+</body>
+</html>

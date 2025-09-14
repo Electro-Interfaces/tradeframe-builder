@@ -315,7 +315,7 @@ class ExternalRolesService {
     }
   }
 
-  async getRolePermissions(roleId: string): Promise<Permission[]> {
+  async getRolePermissionsPublic(roleId: string): Promise<Permission[]> {
     try {
       const role = await this.getRoleById(roleId);
       return role ? role.permissions : [];

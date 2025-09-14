@@ -135,25 +135,43 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// GitHub Pages SPA routing support
+// GitHub Pages SPA routing support с защитой от падений
 if (typeof window !== 'undefined') {
   const redirectPath = sessionStorage.getItem('redirectPath');
   if (redirectPath) {
+    console.log('🔄 GitHub Pages redirect detected:', redirectPath);
     sessionStorage.removeItem('redirectPath');
-    // Wait for the app to initialize, then navigate to the stored path
-    setTimeout(() => {
-      // Extract the path without the base
-      let targetPath = redirectPath;
-      if (targetPath.startsWith('/tradeframe-builder')) {
-        targetPath = targetPath.substring('/tradeframe-builder'.length);
-      }
-      if (targetPath === '' || targetPath === '/') {
-        targetPath = '/';
-      }
-      console.log('🔄 Redirecting from 404 to:', targetPath);
-      window.history.replaceState(null, '', targetPath);
-      window.dispatchEvent(new Event('popstate'));
-    }, 100);
+
+    try {
+      // Wait for the app to initialize, then navigate to the stored path
+      setTimeout(() => {
+        // Extract the path without the base
+        let targetPath = redirectPath;
+        if (targetPath.startsWith('/tradeframe-builder')) {
+          targetPath = targetPath.substring('/tradeframe-builder'.length);
+        }
+        if (targetPath === '' || targetPath === '/') {
+          targetPath = '/';
+        }
+
+        // Валидируем что это корректный путь
+        const validPaths = ['/', '/login', '/network/overview', '/point/equipment', '/point/prices', '/admin/users'];
+        const isValidPath = validPaths.some(path => targetPath.startsWith(path));
+
+        if (!isValidPath) {
+          console.log('⚠️ Invalid redirect path, defaulting to root:', targetPath);
+          targetPath = '/';
+        }
+
+        console.log('🔄 Redirecting from 404 to:', targetPath);
+        window.history.replaceState(null, '', targetPath);
+        window.dispatchEvent(new Event('popstate'));
+      }, 100);
+    } catch (error) {
+      console.error('❌ Redirect error:', error);
+      // Fallback to root path
+      window.history.replaceState(null, '', '/');
+    }
   }
 }
 
@@ -232,11 +250,37 @@ try {
 
   console.log('📱 Creating React root instance...');
   window.updateLoadingStatus?.('Инициализация React');
-  
+
   const root = createRoot(rootElement);
   console.log('📱 React root created, rendering App...');
   window.updateLoadingStatus?.('Рендеринг приложения');
-  
+
+  // Добавляем глобальный error handler для React
+  window.addEventListener('error', (e) => {
+    console.error('🚨 Global error caught:', e.error);
+    console.error('Error details:', {
+      message: e.message,
+      filename: e.filename,
+      lineno: e.lineno,
+      colno: e.colno,
+      stack: e.error?.stack
+    });
+
+    // Не позволяем приложению полностью упасть
+    e.preventDefault();
+
+    // Показываем пользователю что произошла ошибка
+    const errorEl = document.getElementById('debug-info');
+    if (errorEl) {
+      errorEl.innerHTML += `<br><strong style="color: #ef4444;">⚠️ Ошибка обработана: ${e.message}</strong>`;
+    }
+  });
+
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error('🚨 Unhandled promise rejection:', e.reason);
+    e.preventDefault(); // Предотвращаем падение
+  });
+
   root.render(<App />);
   console.log('📱 App rendered successfully!');
   window.updateLoadingStatus?.('✅ Приложение загружено');
