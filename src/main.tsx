@@ -215,13 +215,15 @@ try {
   console.log('📱 App rendered successfully!');
   window.updateLoadingStatus?.('✅ Приложение загружено');
   
-  // Убираем loading через небольшую задержку
+  // Убираем initial loading индикатор через небольшую задержку
   setTimeout(() => {
-    const loadingEl = document.getElementById('app-loading');
+    const loadingEl = document.getElementById('initial-loading');
     if (loadingEl) {
-      loadingEl.remove();
+      loadingEl.style.opacity = '0';
+      loadingEl.style.transition = 'opacity 0.3s ease-out';
+      setTimeout(() => loadingEl.remove(), 300);
     }
-  }, 500);
+  }, 1000); // Даем время React полностью загрузиться
   
 } catch (error) {
   console.error('❌ React rendering failed:', error);

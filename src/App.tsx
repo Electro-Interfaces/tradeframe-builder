@@ -6,7 +6,7 @@ import { queryClient } from "./lib/supabase/queryClient";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SelectionProvider } from "./contexts/SelectionContext";
 import { AuthProvider } from "./contexts/AuthContext";
-import { lazy, useEffect } from "react";
+import { lazy, useEffect, useState } from "react";
 import LazyLoader from "./components/LazyLoader";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -61,6 +61,7 @@ const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances")
 
 const App = () => {
   console.log('🚀 App: component rendering');
+  const [showPWAInstaller, setShowPWAInstaller] = useState(false);
 
   // Обработка перенаправления с GitHub Pages 404
   useEffect(() => {
@@ -75,6 +76,15 @@ const App = () => {
     } catch (error) {
       console.error('🚫 App useEffect error:', error);
     }
+  }, []);
+
+  // Показываем PWA инсталлер через 3 секунды после загрузки приложения
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowPWAInstaller(true);
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, []);
   
   return (
@@ -141,7 +151,7 @@ const App = () => {
         </Routes>
           </BrowserRouter>
 
-          <PWAInstaller />
+          {showPWAInstaller && <PWAInstaller />}
           <UpdateNotification />
         </SelectionProvider>
       </AuthProvider>

@@ -197,8 +197,118 @@
   </head>
 
   <body>
-    <div id="root"></div>
-    
+    <div id="root">
+      <!-- Fallback Loading Indicator -->
+      <div id="initial-loading" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      ">
+        <!-- Logo -->
+        <div style="
+          width: 80px;
+          height: 80px;
+          background: #3b82f6;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 24px;
+          box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        ">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9,22 9,12 15,12 15,22"/>
+          </svg>
+        </div>
+
+        <!-- App Name -->
+        <h1 style="
+          font-size: 28px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+          letter-spacing: -0.5px;
+        ">TradeFrame</h1>
+
+        <!-- Version -->
+        <p style="
+          font-size: 14px;
+          color: #94a3b8;
+          margin: 0 0 32px 0;
+        ">v1.5.7</p>
+
+        <!-- Loading Animation -->
+        <div style="
+          width: 40px;
+          height: 40px;
+          border: 3px solid #1e293b;
+          border-top: 3px solid #3b82f6;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        "></div>
+
+        <!-- Loading Text -->
+        <p id="loading-text" style="
+          margin-top: 16px;
+          font-size: 14px;
+          color: #64748b;
+        ">Загрузка приложения...</p>
+      </div>
+
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+
+      <script>
+        // Функция обновления статуса загрузки
+        window.updateLoadingStatus = function(status) {
+          const loadingText = document.getElementById('loading-text');
+          if (loadingText) {
+            loadingText.textContent = status;
+          }
+        };
+
+        // Удаляем loading индикатор когда React готов
+        function removeLoadingIndicator() {
+          const loading = document.getElementById('initial-loading');
+          if (loading) {
+            loading.style.opacity = '0';
+            loading.style.transition = 'opacity 0.3s ease-out';
+            setTimeout(() => {
+              loading.remove();
+            }, 300);
+          }
+        }
+
+        // Автоматическое удаление через 10 секунд как fallback
+        setTimeout(removeLoadingIndicator, 10000);
+
+        // Удаляем когда React полностью загружен
+        document.addEventListener('DOMContentLoaded', function() {
+          // Проверяем каждые 100мс готов ли React
+          const checkReact = setInterval(() => {
+            if (window.React || document.querySelector('[data-reactroot]') || document.querySelector('#root').children.length > 1) {
+              clearInterval(checkReact);
+              setTimeout(removeLoadingIndicator, 500); // Небольшая задержка для плавности
+            }
+          }, 100);
+        });
+      </script>
+    </div>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
