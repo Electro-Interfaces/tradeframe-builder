@@ -13,9 +13,8 @@
     <meta http-equiv="Expires" content="0" />
     
     <!-- Политики безопасности -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self'; object-src 'none'; frame-src 'none';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self'; object-src 'none'; frame-src 'none'; frame-ancestors 'none';" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="DENY" />
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
     
@@ -285,26 +284,52 @@
         function removeLoadingIndicator() {
           const loading = document.getElementById('initial-loading');
           if (loading) {
+            console.log('🎯 Removing initial loading indicator');
             loading.style.opacity = '0';
             loading.style.transition = 'opacity 0.3s ease-out';
             setTimeout(() => {
               loading.remove();
+              console.log('✅ Initial loading indicator removed');
             }, 300);
           }
         }
 
-        // Автоматическое удаление через 10 секунд как fallback
-        setTimeout(removeLoadingIndicator, 10000);
+        // Глобальная функция для принудительного удаления
+        window.removeInitialLoading = removeLoadingIndicator;
+
+        // Автоматическое удаление через 5 секунд как fallback
+        setTimeout(() => {
+          console.log('⏰ Fallback: removing loading after 5 seconds');
+          removeLoadingIndicator();
+        }, 5000);
 
         // Удаляем когда React полностью загружен
         document.addEventListener('DOMContentLoaded', function() {
-          // Проверяем каждые 100мс готов ли React
+          // Проверяем каждые 200мс готов ли React
           const checkReact = setInterval(() => {
-            if (window.React || document.querySelector('[data-reactroot]') || document.querySelector('#root').children.length > 1) {
+            const rootEl = document.querySelector('#root');
+            const hasReactContent = rootEl && (
+              window.React ||
+              rootEl.querySelector('[data-reactroot]') ||
+              rootEl.children.length > 1 ||
+              rootEl.querySelector('.login-form') ||
+              rootEl.querySelector('.auth-container') ||
+              rootEl.querySelector('[class*="sidebar"]') ||
+              rootEl.querySelector('main')
+            );
+
+            if (hasReactContent) {
               clearInterval(checkReact);
-              setTimeout(removeLoadingIndicator, 500); // Небольшая задержка для плавности
+              console.log('🚀 React content detected, removing loading');
+              setTimeout(removeLoadingIndicator, 800); // Небольшая задержка для плавности
             }
-          }, 100);
+          }, 200);
+
+          // Fallback для clearInterval через 8 секунд
+          setTimeout(() => {
+            clearInterval(checkReact);
+            console.log('⏰ Stopping React detection interval');
+          }, 8000);
         });
       </script>
     </div>

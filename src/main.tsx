@@ -214,16 +214,22 @@ try {
   root.render(<App />);
   console.log('📱 App rendered successfully!');
   window.updateLoadingStatus?.('✅ Приложение загружено');
-  
-  // Убираем initial loading индикатор через небольшую задержку
+
+  // Убираем initial loading индикатор через задержку
   setTimeout(() => {
-    const loadingEl = document.getElementById('initial-loading');
-    if (loadingEl) {
-      loadingEl.style.opacity = '0';
-      loadingEl.style.transition = 'opacity 0.3s ease-out';
-      setTimeout(() => loadingEl.remove(), 300);
+    console.log('🎯 main.tsx: Removing initial loading');
+    if (window.removeInitialLoading) {
+      window.removeInitialLoading();
+    } else {
+      // Fallback если глобальная функция не доступна
+      const loadingEl = document.getElementById('initial-loading');
+      if (loadingEl) {
+        loadingEl.style.opacity = '0';
+        loadingEl.style.transition = 'opacity 0.3s ease-out';
+        setTimeout(() => loadingEl.remove(), 300);
+      }
     }
-  }, 1000); // Даем время React полностью загрузиться
+  }, 1500); // Увеличиваем время чтобы пользователь увидел статус загрузки
   
 } catch (error) {
   console.error('❌ React rendering failed:', error);
