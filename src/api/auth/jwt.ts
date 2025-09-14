@@ -18,7 +18,7 @@ export interface JWTPayload {
     resource: string;
     action: string;
     scope?: 'global' | 'network' | 'trading_point';
-    conditions?: Record<string, any>;
+    conditions?: Record<string, unknown>;
   }>;
   iat?: number;
   exp?: number;
@@ -179,7 +179,7 @@ export class JWTService {
     
     // Добавляем разрешения из пользовательских ролей
     if (user.user_roles) {
-      user.user_roles.forEach((userRole: any) => {
+      user.user_roles.forEach((userRole: { roles?: { permissions?: JWTPayload['permissions'] } }) => {
         if (userRole.roles && userRole.roles.permissions) {
           permissions.push(...userRole.roles.permissions);
         }
@@ -241,7 +241,7 @@ export class JWTService {
       // Собираем актуальные разрешения
       const permissions: JWTPayload['permissions'] = [];
       if (user.user_roles) {
-        user.user_roles.forEach((userRole: any) => {
+        user.user_roles.forEach((userRole: { roles?: { permissions?: JWTPayload['permissions'] } }) => {
           if (userRole.roles && userRole.roles.permissions) {
             permissions.push(...userRole.roles.permissions);
           }
@@ -299,7 +299,7 @@ export class JWTService {
     // Собираем разрешения
     const permissions: JWTPayload['permissions'] = [];
     if (user.user_roles) {
-      user.user_roles.forEach((userRole: any) => {
+      user.user_roles.forEach((userRole: { roles?: { permissions?: JWTPayload['permissions'] } }) => {
         if (userRole.roles && userRole.roles.permissions) {
           permissions.push(...userRole.roles.permissions);
         }

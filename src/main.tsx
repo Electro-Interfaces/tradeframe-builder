@@ -179,82 +179,29 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Отладка pull-to-refresh проблемы
+// Page lifecycle monitoring for auth state
 if (typeof window !== 'undefined') {
-  // Мониторинг жизненного цикла страницы
-  window.addEventListener('beforeunload', (e) => {
-    console.log('🚨 [PULL-TO-REFRESH DEBUG] beforeunload triggered');
-    const currentUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
-    const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-    console.log('🚨 [PULL-TO-REFRESH DEBUG] Auth data before unload:', {
-      hasUser: !!currentUser,
-      hasToken: !!authToken
-    });
-  });
-
-  window.addEventListener('unload', (e) => {
-    console.log('🚨 [PULL-TO-REFRESH DEBUG] unload triggered');
-  });
-
-  window.addEventListener('pagehide', (e) => {
-    console.log('🚨 [PULL-TO-REFRESH DEBUG] pagehide triggered, persisted:', e.persisted);
-  });
-
   window.addEventListener('pageshow', (e) => {
-    console.log('🚨 [PULL-TO-REFRESH DEBUG] pageshow triggered, persisted:', e.persisted);
     if (e.persisted) {
-      // Страница восстановлена из bfcache
-      console.log('🚨 [PULL-TO-REFRESH DEBUG] Page restored from bfcache');
+      // Check auth state after bfcache restore
       const currentUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
       const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-      console.log('🚨 [PULL-TO-REFRESH DEBUG] Auth data after bfcache restore:', {
-        hasUser: !!currentUser,
-        hasToken: !!authToken
-      });
+      if (!currentUser || !authToken) {
+        console.warn('⚠️ Auth state missing after page restore');
+      }
     }
-  });
-
-  // Мониторинг изменений видимости страницы
-  document.addEventListener('visibilitychange', () => {
-    console.log('🚨 [PULL-TO-REFRESH DEBUG] visibilitychange:', document.visibilityState);
-    if (document.visibilityState === 'visible') {
-      const currentUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
-      const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-      console.log('🚨 [PULL-TO-REFRESH DEBUG] Auth data when visible:', {
-        hasUser: !!currentUser,
-        hasToken: !!authToken
-      });
-    }
-  });
-
-  // Мониторинг focus/blur
-  window.addEventListener('focus', () => {
-    console.log('🚨 [PULL-TO-REFRESH DEBUG] window focus');
-    const currentUser = localStorage.getItem('tradeframe_user') || localStorage.getItem('currentUser');
-    const authToken = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
-    console.log('🚨 [PULL-TO-REFRESH DEBUG] Auth data on focus:', {
-      hasUser: !!currentUser,
-      hasToken: !!authToken
-    });
-  });
-
-  window.addEventListener('blur', () => {
-    console.log('🚨 [PULL-TO-REFRESH DEBUG] window blur');
   });
 }
 
-// Убираем fallback loading индикатор когда React загрузился
-console.log('📱 Creating React root...');
-window.updateLoadingStatus?.('Создание React root');
+// Clear fallback loading indicator when React is ready
+window.updateLoadingStatus?.('Creating React root');
 
 try {
   const rootElement = document.getElementById("root")!;
-  console.log('📱 Root element found:', !!rootElement);
-  window.updateLoadingStatus?.('Root элемент найден');
-  
+  window.updateLoadingStatus?.('Root element found');
+
   if (rootElement.innerHTML.includes('app-loading')) {
-    console.log('🎯 Clearing fallback loading indicator');
-    window.updateLoadingStatus?.('Очистка loading индикатора');
+    window.updateLoadingStatus?.('Clearing loading indicator');
   }
 
   console.log('📱 Creating React root instance...');

@@ -86,7 +86,7 @@ export default function OperationsTransactionsPageSimple() {
           'cash': 'Наличные',
           'bank_card': 'Банк. карты',
           'fuel_card': 'Топл. карты', 
-          'online_order': 'Онлайн заказы'
+          'online_order': 'Онлайн'
         }[record.paymentMethod] || record.paymentMethod || '-',
         'Номер POS': record.posNumber || '-',
         'Смена': record.shiftNumber || '-',
@@ -296,7 +296,7 @@ export default function OperationsTransactionsPageSimple() {
         const paymentOps = completedOps.filter(op => op.paymentMethod === method);
         return {
           method,
-          name: { 'cash': 'Наличные', 'bank_card': 'Банк. карты', 'fuel_card': 'Топл. карты', 'online_order': 'Онлайн заказы' }[method],
+          name: { 'cash': 'Наличные', 'bank_card': 'Банк. карты', 'fuel_card': 'Топл. карты', 'online_order': 'Онлайн' }[method],
           operations: paymentOps.length,
           revenue: paymentOps.reduce((sum, op) => sum + (op.actualAmount || op.totalCost || 0), 0)
         };
@@ -490,7 +490,7 @@ export default function OperationsTransactionsPageSimple() {
       // Показываем уведомление об успешном экспорте для всех устройств
       const notification = document.createElement('div');
       notification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
-      notification.textContent = `PDF дашборд создан: ${filteredOperations.length} операций`;
+      notification.textContent = `PDF дашборд создан: ${filteredOperations.length} №`;
       document.body.appendChild(notification);
       setTimeout(() => {
         if (document.body.contains(notification)) {
@@ -586,7 +586,7 @@ export default function OperationsTransactionsPageSimple() {
         return dateB - dateA; // Убывающий порядок (свежие сверху)
       });
 
-      // Преобразуем STS транзакции в формат операций таблицы
+      // Преобразуем STS транзакции в формат № таблицы
       const stsTransactionsWithSource = sortedTransactions.map(tx => ({
         // Основные поля операции  
         id: tx.transactionId || tx.id?.toString() || `STS-${tx.id}`,
@@ -706,7 +706,7 @@ export default function OperationsTransactionsPageSimple() {
     ensureSTSApiConfigured();
     setStsApiConfigured(true);
     
-    // Автоматически загружаем данные операций при выборе торговой точки
+    // Автоматически загружаем данные № при выборе торговой точки
     
     if (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedNetwork?.external_id) {
       loadFromStsApi();
@@ -715,7 +715,7 @@ export default function OperationsTransactionsPageSimple() {
   }, [selectedTradingPoint, selectedNetwork]);
 
 
-  // Фильтрация операций
+  // Фильтрация №
   const filteredOperations = useMemo(() => {
     const filtered = operations.filter(record => {
       // Исключаем нежелательные способы оплаты
@@ -781,7 +781,7 @@ export default function OperationsTransactionsPageSimple() {
     });
   }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus, dateFrom, dateTo, searchQuery, selectedKpiFuels, selectedKpiPayments]);
   
-  // Пагинация операций
+  // Пагинация №
   const paginatedOperations = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -1125,7 +1125,7 @@ export default function OperationsTransactionsPageSimple() {
                   </>
                 ) : (
                   <>
-                    <Label htmlFor="status" className="text-slate-300 text-sm font-medium mb-2 block">Статус операций</Label>
+                    <Label htmlFor="status" className="text-slate-300 text-sm font-medium mb-2 block">Статус №</Label>
                     <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base">
                         <SelectValue placeholder="Выберите статус" />
@@ -1264,17 +1264,17 @@ export default function OperationsTransactionsPageSimple() {
           <div className="space-y-4">
             {/* Карточки по видам топлива */}
             <div className="space-y-2">
-              {isMobileForced && (
-                <div className="flex justify-between items-center px-2">
-                  <h3 className="text-slate-300 text-sm font-medium">Виды топлива</h3>
+              <div className="flex justify-between items-center px-2">
+                <h3 className={`text-slate-300 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
+                {isMobileForced && (
                   <span className="text-xs">
                     {(() => {
                       const selectedFuels = Array.from(selectedKpiFuels);
                       const selectedPayments = Array.from(selectedKpiPayments).map(method => ({
                         'cash': 'Наличные',
-                        'bank_card': 'Банковская карта',
-                        'fuel_card': 'Топливная карта',
-                        'online_order': 'Онлайн заказ'
+                        'bank_card': 'Банк. карты',
+                        'fuel_card': 'Топл. карты',
+                        'online_order': 'Онлайн'
                       }[method] || method));
 
                       const allSelected = [...selectedFuels, ...selectedPayments];
@@ -1291,25 +1291,29 @@ export default function OperationsTransactionsPageSimple() {
                       }
                     })()}
                   </span>
-                </div>
-              )}
+                )}
+              </div>
               <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-3 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {[...new Set(operations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
-                  // Всегда показываем все карточки - данные берем из полного набора операций
+                  // Всегда показываем все карточки - данные берем из полного набора №
                   const allFuelOps = operations.filter(op => op.fuelType === fuel && op.status === 'completed');
                   const allVolume = allFuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
                   const allRevenue = allFuelOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
                   
-                  // Проверяем есть ли данные в отфильтрованном наборе для этого топлива
+                  // Используем отфильтрованные данные для этого топлива
                   const filteredFuelOps = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
                   const hasFilteredData = filteredFuelOps.length > 0;
+
+                  // Рассчитываем метрики на основе отфильтрованных данных
+                  const filteredVolume = filteredFuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
+                  const filteredRevenue = filteredFuelOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
                   
                   const isSelected = selectedKpiFuels.has(fuel);
                   
                   // Определяем стиль карточки
                   let cardStyle = '';
                   if (isSelected) {
-                    cardStyle = 'bg-slate-700 border-slate-500 border-2';
+                    cardStyle = 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)]';
                   } else {
                     cardStyle = 'bg-slate-800 border-slate-600 hover:bg-slate-700';
                   }
@@ -1320,43 +1324,38 @@ export default function OperationsTransactionsPageSimple() {
                       className={`${cardStyle} cursor-pointer transition-all duration-200`}
                       onClick={() => handleKpiFuelClick(fuel)}
                     >
-                      <CardContent className={`${isMobileForced ? 'p-3' : 'p-6'}`}>
+                      <CardContent className={`${isMobileForced ? 'p-3' : 'p-4'}`}>
                         {isMobileForced ? (
                           <div className="relative">
                             <div className="mb-1">
                               <p className="text-white font-semibold text-xs truncate">{fuel}</p>
                             </div>
                             <p className="font-bold text-white text-sm mb-1">
-                              {Math.round(allRevenue).toLocaleString('ru-RU')} ₽
+                              {Math.round(filteredRevenue).toLocaleString('ru-RU')} ₽
                             </p>
                             <div className="text-xs text-slate-400 space-y-0.5">
-                              <div>{Math.round(allVolume).toLocaleString('ru-RU')} л</div>
-                              <div>{allFuelOps.length} оп.</div>
+                              <div>{Math.round(filteredVolume).toLocaleString('ru-RU')} л</div>
+                              <div>{filteredFuelOps.length} оп.</div>
                             </div>
                             {isSelected && (
                               <Pin className="w-4 h-4 text-yellow-400 absolute bottom-0 right-0 drop-shadow-lg" />
                             )}
                           </div>
                         ) : (
-                          <div className="flex items-center gap-4">
-                            <div className="p-2 bg-purple-600 rounded-lg mr-4">
-                              <Fuel className="h-6 w-6 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <p className="text-white font-semibold mb-1 text-base">{fuel}</p>
-                                {isSelected && (
-                                  <Pin className="w-6 h-6 text-yellow-400 drop-shadow-lg" />
-                                )}
+                          <div className="relative">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <p className="font-bold text-white text-lg leading-tight truncate">{fuel}</p>
+                                <p className="text-base text-slate-400">{filteredFuelOps.length} №</p>
                               </div>
-                              <p className="font-bold text-white mb-0.5 text-2xl">
-                                {Math.round(allRevenue).toLocaleString('ru-RU')} ₽
-                              </p>
-                              <div className="space-y-0.5">
-                                <p className="font-bold text-white text-xl">{Math.round(allVolume).toLocaleString('ru-RU')} л</p>
-                                <p className="text-sm text-slate-400">{allFuelOps.length} операций</p>
+                              <div className="text-right">
+                                <p className="font-bold text-white text-lg leading-tight">
+                                  {Math.round(filteredRevenue).toLocaleString('ru-RU')} ₽
+                                </p>
+                                <p className="text-base text-slate-400">{Math.round(filteredVolume).toLocaleString('ru-RU')} л</p>
                               </div>
                             </div>
+                            {/* Синяя полоса теперь через box-shadow */}
                           </div>
                         )}
                       </CardContent>
@@ -1368,30 +1367,28 @@ export default function OperationsTransactionsPageSimple() {
 
             {/* Карточки по способам оплаты */}
             <div className="space-y-2">
-              {isMobileForced && (
-                <h3 className="text-slate-300 text-sm font-medium px-2">Способы оплаты</h3>
-              )}
+              <h3 className={`text-slate-300 font-medium px-2 ${isMobileForced ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
               <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-3 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {['cash', 'bank_card', 'fuel_card', 'online_order']
                   .map(paymentMethod => {
-                    // Всегда показываем все карточки - данные берем из полного набора операций
+                    // Используем отфильтрованные данные для этого способа оплаты
                     const allPaymentOps = operations.filter(op => op.paymentMethod === paymentMethod && op.status === 'completed');
-                    const allRevenue = allPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
-                    const allVolume = allPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                    
-                    // Проверяем есть ли данные в отфильтрованном наборе для этого способа оплаты
                     const filteredPaymentOps = filteredOperations.filter(op => op.paymentMethod === paymentMethod && op.status === 'completed');
+
+                    // Рассчитываем метрики на основе отфильтрованных данных
+                    const filteredRevenue = filteredPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+                    const filteredVolume = filteredPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
                     const hasFilteredData = filteredPaymentOps.length > 0;
-                    
-                    return { paymentMethod, allPaymentOps, allRevenue, allVolume, hasFilteredData };
+
+                    return { paymentMethod, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, hasFilteredData };
                   })
                   .filter(item => item.allPaymentOps.length > 0)
-                  .map(({ paymentMethod, allPaymentOps, allRevenue, allVolume, hasFilteredData }) => {
+                  .map(({ paymentMethod, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, hasFilteredData }) => {
                     const displayName = {
                       'cash': 'Наличные',
-                      'bank_card': 'Банковская карта',
-                      'fuel_card': 'Топливная карта',
-                      'online_order': 'Онлайн заказ'
+                      'bank_card': 'Банк. карты',
+                      'fuel_card': 'Топл. карты',
+                      'online_order': 'Онлайн'
                     }[paymentMethod];
                     
                     const isSelected = selectedKpiPayments.has(paymentMethod);
@@ -1399,7 +1396,7 @@ export default function OperationsTransactionsPageSimple() {
                     // Определяем стиль карточки
                     let cardStyle = '';
                     if (isSelected) {
-                      cardStyle = 'bg-slate-700 border-slate-500 border-2';
+                      cardStyle = 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)]';
                     } else {
                       cardStyle = 'bg-slate-800 border-slate-600 hover:bg-slate-700';
                     }
@@ -1410,43 +1407,38 @@ export default function OperationsTransactionsPageSimple() {
                       className={`${cardStyle} cursor-pointer transition-all duration-200`}
                       onClick={() => handleKpiPaymentClick(paymentMethod)}
                     >
-                      <CardContent className={`${isMobileForced ? 'p-3' : 'p-6'}`}>
+                      <CardContent className={`${isMobileForced ? 'p-3' : 'p-4'}`}>
                         {isMobileForced ? (
                           <div className="relative">
                             <div className="mb-1">
                               <p className="text-white font-semibold text-xs truncate">{displayName}</p>
                             </div>
                             <p className="font-bold text-white text-sm mb-1">
-                              {Math.round(allRevenue).toLocaleString('ru-RU')} ₽
+                              {Math.round(filteredRevenue).toLocaleString('ru-RU')} ₽
                             </p>
                             <div className="text-xs text-slate-400 space-y-0.5">
-                              <div>{Math.round(allVolume).toLocaleString('ru-RU')} л</div>
-                              <div>{allPaymentOps.length} оп.</div>
+                              <div>{Math.round(filteredVolume).toLocaleString('ru-RU')} л</div>
+                              <div>{filteredPaymentOps.length} оп.</div>
                             </div>
                             {isSelected && (
                               <Pin className="w-4 h-4 text-yellow-400 absolute bottom-0 right-0 drop-shadow-lg" />
                             )}
                           </div>
                         ) : (
-                          <div className="flex items-center">
-                            <div className="p-2 bg-green-600 rounded-lg mr-4">
-                              <CreditCard className="h-6 w-6 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <p className="text-white font-semibold mb-1 text-base">{displayName}</p>
-                                {isSelected && (
-                                  <Pin className="w-6 h-6 text-yellow-400 drop-shadow-lg" />
-                                )}
+                          <div className="relative">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <p className="font-bold text-white text-lg leading-tight truncate">{displayName}</p>
+                                <p className="text-base text-slate-400">{filteredPaymentOps.length} №</p>
                               </div>
-                              <p className="font-bold text-white mb-0.5 text-2xl">
-                                {Math.round(allRevenue).toLocaleString('ru-RU')} ₽
-                              </p>
-                              <div className="space-y-0.5">
-                                <p className="font-bold text-white text-xl">{Math.round(allVolume).toLocaleString('ru-RU')} л</p>
-                                <p className="text-sm text-slate-400">{allPaymentOps.length} операций</p>
+                              <div className="text-right">
+                                <p className="font-bold text-white text-lg leading-tight">
+                                  {Math.round(filteredRevenue).toLocaleString('ru-RU')} ₽
+                                </p>
+                                <p className="text-base text-slate-400">{Math.round(filteredVolume).toLocaleString('ru-RU')} л</p>
                               </div>
                             </div>
+                            {/* Синяя полоса теперь через box-shadow */}
                           </div>
                         )}
                       </CardContent>
@@ -1458,69 +1450,91 @@ export default function OperationsTransactionsPageSimple() {
 
             {/* Итоговая карточка */}
             <div className="space-y-2">
-              {isMobileForced && (
-                <h3 className="text-slate-300 text-sm font-medium px-2">Итого</h3>
-              )}
+              <div className="flex items-center px-2">
+                <h3 className={`text-slate-300 font-medium ${isMobileForced ? 'text-sm' : 'text-base'} mr-4`}>Итого</h3>
+                {!isMobileForced && (
+                  <span className="text-sm">
+                    {(() => {
+                      const selectedFuels = Array.from(selectedKpiFuels);
+                      const selectedPayments = Array.from(selectedKpiPayments).map(method => ({
+                        'cash': 'Наличные',
+                        'bank_card': 'Банк. карты',
+                        'fuel_card': 'Топл. карты',
+                        'online_order': 'Онлайн'
+                      }[method] || method));
+
+                      const allSelected = [...selectedFuels, ...selectedPayments];
+
+                      if (allSelected.length === 0) {
+                        return <span className="text-slate-400">не выбрано</span>;
+                      } else {
+                        return (
+                          <span>
+                            <span className="text-slate-400">выбрано: </span>
+                            <span className="text-blue-400 font-bold">{allSelected.join(', ')}</span>
+                          </span>
+                        );
+                      }
+                    })()}
+                  </span>
+                )}
+              </div>
               <div className={`grid ${isMobileForced ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {(() => {
-                  const totalOps = filteredOperations.filter(op => op.status === 'completed');
-                  const totalVolume = totalOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                  const totalRevenue = totalOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+                    const totalOps = filteredOperations.filter(op => op.status === 'completed');
+                    const totalVolume = totalOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
+                    const totalRevenue = totalOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
 
-                  const hasActiveFilters = selectedKpiFuels.size > 0 || selectedKpiPayments.size > 0;
-                  return (
-                    <Card
-                      className={`${
-                        hasActiveFilters
-                          ? 'bg-blue-700 border-blue-300 border-2 cursor-pointer hover:bg-blue-600'
-                          : 'bg-slate-700 border-slate-500 border-2'
-                      } transition-all duration-200`}
-                      onClick={hasActiveFilters ? handleKpiResetAll : undefined}
-                    >
-                      <CardContent className={`${isMobileForced ? 'p-3' : 'p-6'}`}>
-                        {isMobileForced ? (
-                          <div>
-                            <div className="flex justify-between items-start mb-1">
-                              <p className="text-blue-300 font-semibold text-sm">Итого</p>
-                              {hasActiveFilters && (
-                                <p className="text-xs text-blue-200">Сброс Фильтра</p>
-                              )}
-                            </div>
-                            <p className="font-bold text-white text-lg mb-1">
-                              {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
-                            </p>
-                            <div className="flex justify-between text-xs text-slate-400">
-                              <span>{Math.round(totalVolume).toLocaleString('ru-RU')} л</span>
-                              <span>{totalOps.length} оп.</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center">
-                            <div className="p-2 bg-blue-600 rounded-lg mr-4">
-                              <Activity className="h-6 w-6 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-white font-semibold mb-1 text-base">Итого</p>
-                              <p className="font-bold text-white mb-0.5 text-2xl">
+                    const hasActiveFilters = selectedKpiFuels.size > 0 || selectedKpiPayments.size > 0;
+                    return (
+                      <Card
+                        className={`${
+                          hasActiveFilters
+                            ? 'bg-blue-700 border-blue-300 border-2 cursor-pointer hover:bg-blue-600'
+                            : 'bg-slate-700 border-slate-500 border-2'
+                        } transition-all duration-200`}
+                        onClick={hasActiveFilters ? handleKpiResetAll : undefined}
+                      >
+                        <CardContent className={`${isMobileForced ? 'p-3' : 'p-4'}`}>
+                          {isMobileForced ? (
+                            <div>
+                              <div className="flex justify-between items-start mb-1">
+                                <p className="text-blue-300 font-semibold text-sm">Итого</p>
+                              </div>
+                              <p className="font-bold text-white text-lg mb-1">
                                 {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
                               </p>
-                              <div className="space-y-0.5">
-                                <p className="font-bold text-white text-xl">{Math.round(totalVolume).toLocaleString('ru-RU')} л</p>
-                                <p className="text-sm text-slate-400">{totalOps.length} операций</p>
+                              <div className="flex justify-between text-xs text-slate-400">
+                                <span>{Math.round(totalVolume).toLocaleString('ru-RU')} л</span>
+                                <span>{totalOps.length} оп.</span>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })()}
+                          ) : (
+                            <div className="relative">
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <p className="font-bold text-white text-lg leading-tight">Итого</p>
+                                  <p className="text-base text-slate-400">{totalOps.length} №</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-white text-lg leading-tight">
+                                    {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
+                                  </p>
+                                  <p className="text-sm text-slate-400">{Math.round(totalVolume).toLocaleString('ru-RU')} л</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
               </div>
             </div>
           </div>
         )}
 
-        {/* Таблица операций */}
+        {/* Таблица № */}
         <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobileForced ? 'mx-0 mt-1' : ''}`}>
           <CardHeader className={`${isMobileForced ? 'px-3 py-1.5' : 'pb-4'}`}>
             <div className="flex items-center justify-between">
@@ -1530,7 +1544,7 @@ export default function OperationsTransactionsPageSimple() {
                   Операции
                 </CardTitle>
                 <p className={`text-slate-400 ${isMobileForced ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
-                  Показано {paginatedOperations.length} из {filteredOperations.length} операций
+                  Показано {paginatedOperations.length} из {filteredOperations.length} №
                   {totalPages > 1 && ` • Страница ${currentPage} из ${totalPages}`}
                 </p>
               </div>
@@ -1623,10 +1637,10 @@ export default function OperationsTransactionsPageSimple() {
                     {loading ? (
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Загрузка операций...</span>
+                        <span>Загрузка №...</span>
                       </div>
                     ) : (
-                      'Нет операций по выбранным фильтрам'
+                      'Нет № по выбранным фильтрам'
                     )}
                   </div>
                 )}
@@ -1734,7 +1748,7 @@ export default function OperationsTransactionsPageSimple() {
                           'cash': 'Наличные',
                           'bank_card': 'Банк. карты',
                           'fuel_card': 'Топл. карты', 
-                          'online_order': 'Онлайн заказы'
+                          'online_order': 'Онлайн'
                         }[record.paymentMethod] || record.paymentMethod || '-'}
                       </TableCell>
                       <TableCell className="text-slate-300 text-sm min-w-[100px] text-center">
@@ -1762,10 +1776,10 @@ export default function OperationsTransactionsPageSimple() {
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Загрузка операций...</span>
+                      <span>Загрузка №...</span>
                     </div>
                   ) : (
-                    'Нет операций по выбранным фильтрам'
+                    'Нет № по выбранным фильтрам'
                   )}
                 </div>
               )}

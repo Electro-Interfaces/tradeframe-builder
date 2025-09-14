@@ -1607,7 +1607,6 @@ class PricesService {
       if (error) {
         console.error('Ошибка создания демо-цен:', error);
       } else {
-        console.log(`✅ Создано ${demoPrices.length} демо-цен`);
       }
       
     } catch (error) {

@@ -1526,7 +1526,107 @@ export default function NetworkOverview() {
           </Card>
         )}
 
-        {/* KPI блок */}
+        {/* Средние значения - сразу после фильтров */}
+        {!initializing && selectedNetwork && fuelTypeStats.length > 0 && (
+          <div className="w-full space-y-6">
+            {/* Первая строка - основные средние значения */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center px-2">
+                <h3 className={`text-slate-300 font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>Средние значения</h3>
+              </div>
+              <div className={`grid gap-4 ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-6'}`}>
+                {/* Средний чек */}
+                <Card className="bg-slate-800 border-slate-600">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-slate-400 text-sm mb-2">Средний чек</p>
+                    <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                      {Math.round(averageCheck).toLocaleString('ru-RU')} ₽
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Средний объем общий */}
+                <Card className="bg-slate-800 border-slate-600">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-slate-400 text-sm mb-2">Средний объем</p>
+                    <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                      {filteredTransactions.length > 0 ? Math.round(totalVolume / filteredTransactions.length) : 0} л
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Операций в день */}
+                <Card className="bg-slate-800 border-slate-600">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-slate-400 text-sm mb-2">Операций/день</p>
+                    <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                      {(() => {
+                        const startDate = new Date(dateFrom);
+                        const endDate = new Date(dateTo);
+                        const daysDiff = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+                        return Math.round(filteredTransactions.length / daysDiff);
+                      })()}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Средний объем АИ-92 */}
+                {fuelTypeStats.find(f => f.type.includes('АИ-92')) ? (
+                  <Card className="bg-slate-800 border-slate-600">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-slate-400 text-sm mb-2">АИ-92 сред.</p>
+                      <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                        {(() => {
+                          const fuel92 = fuelTypeStats.find(f => f.type.includes('АИ-92'));
+                          return fuel92 && fuel92.operations > 0 ? Math.round(fuel92.volume / fuel92.operations) : 0;
+                        })()} л
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div></div>
+                )}
+
+                {/* Средний объем АИ-95 */}
+                {fuelTypeStats.find(f => f.type.includes('АИ-95')) ? (
+                  <Card className="bg-slate-800 border-slate-600">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-slate-400 text-sm mb-2">АИ-95 сред.</p>
+                      <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                        {(() => {
+                          const fuel95 = fuelTypeStats.find(f => f.type.includes('АИ-95'));
+                          return fuel95 && fuel95.operations > 0 ? Math.round(fuel95.volume / fuel95.operations) : 0;
+                        })()} л
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div></div>
+                )}
+
+                {/* Средний объем ДТ */}
+                {fuelTypeStats.find(f => f.type.includes('ДТ') || f.type.includes('Дизель')) ? (
+                  <Card className="bg-slate-800 border-slate-600">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-slate-400 text-sm mb-2">ДТ средний</p>
+                      <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
+                        {(() => {
+                          const fuelDT = fuelTypeStats.find(f => f.type.includes('ДТ') || f.type.includes('Дизель'));
+                          return fuelDT && fuelDT.operations > 0 ? Math.round(fuelDT.volume / fuelDT.operations) : 0;
+                        })()} л
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div></div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* KPI блок с таблицами */}
         {!initializing && selectedNetwork && fuelTypeStats.length > 0 && (
           <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-6'}`}>
             {/* Таблица по видам топлива */}
@@ -1646,60 +1746,9 @@ export default function NetworkOverview() {
               </Card>
             )}
 
-            {/* Ключевые KPI */}
-            <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
-              <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-600 rounded-lg">
-                      <Activity className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} text-white`} />
-                    </div>
-                    <h3 className={`text-slate-200 font-bold ${isMobile ? 'text-base' : 'text-xl'}`}>Ключевые показатели</h3>
-                  </div>
-                </div>
-
-                <div className={`grid ${isMobile ? 'grid-cols-2 gap-3' : 'grid-cols-4 gap-6'}`}>
-                  {/* Средний чек */}
-                  <div className="text-center">
-                    <p className={`text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-base'}`}>Средний чек</p>
-                    <p className={`font-bold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                      {Math.round(averageCheck).toLocaleString('ru-RU')} ₽
-                    </p>
-                  </div>
-
-                  {/* Средний объем */}
-                  <div className="text-center">
-                    <p className={`text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-base'}`}>Средний объем</p>
-                    <p className={`font-bold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                      {filteredTransactions.length > 0 ? Math.round(totalVolume / filteredTransactions.length) : 0} л
-                    </p>
-                  </div>
-
-                  {/* Эффективность */}
-                  <div className="text-center">
-                    <p className={`text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-base'}`}>Эффективность</p>
-                    <p className={`font-bold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                      {totalVolume > 0 ? Math.round(totalRevenue / totalVolume) : 0} ₽/л
-                    </p>
-                  </div>
-
-                  {/* Операций в день */}
-                  <div className="text-center">
-                    <p className={`text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-base'}`}>Операций/день</p>
-                    <p className={`font-bold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-                      {(() => {
-                        const startDate = new Date(dateFrom);
-                        const endDate = new Date(dateTo);
-                        const daysDiff = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-                        return Math.round(filteredTransactions.length / daysDiff);
-                      })()}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         )}
+
 
 
         {/* График реализации по дням с разбивкой по топливу */}
