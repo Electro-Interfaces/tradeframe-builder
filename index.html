@@ -281,16 +281,25 @@
         };
 
         // Удаляем loading индикатор когда React готов
+        let loadingRemoved = false; // Защита от повторных вызовов
         function removeLoadingIndicator() {
+          if (loadingRemoved) {
+            console.log('🔒 Loading уже удален, пропускаем повторный вызов');
+            return;
+          }
+
           const loading = document.getElementById('initial-loading');
           if (loading) {
-            console.log('🎯 Removing initial loading indicator');
+            loadingRemoved = true; // Блокируем повторные вызовы
+            console.log('🎯 Removing initial loading indicator (ЕДИНСТВЕННЫЙ РАЗ)');
             loading.style.opacity = '0';
             loading.style.transition = 'opacity 0.3s ease-out';
             setTimeout(() => {
               loading.remove();
               console.log('✅ Initial loading indicator removed');
             }, 300);
+          } else {
+            console.log('💡 Loading element не найден или уже удален');
           }
         }
 
@@ -309,6 +318,9 @@
           const checkReact = setInterval(() => {
             const rootEl = document.querySelector('#root');
             const hasReactContent = rootEl && (
+              // Приоритет: флаг от main.tsx что React готов
+              window.reactReady ||
+              // Традиционная детекция React
               window.React ||
               rootEl.querySelector('[data-reactroot]') ||
               rootEl.children.length > 1 ||
@@ -320,14 +332,23 @@
               rootEl.querySelector('.equipment-page') ||
               rootEl.querySelector('.network-overview') ||
               rootEl.querySelector('nav') ||
-              // Дополнительная проверка для авторизованного состояния
-              rootEl.querySelector('[class*="layout"]')
+              rootEl.querySelector('[class*="layout"]') ||
+              // Дополнительные селекторы для быстрой детекции
+              rootEl.querySelector('header') ||
+              rootEl.querySelector('aside') ||
+              rootEl.querySelector('.bg-slate') ||
+              rootEl.querySelector('.flex') ||
+              rootEl.querySelector('[class*="container"]') ||
+              rootEl.querySelector('form') ||
+              rootEl.querySelector('button') ||
+              // Проверяем что контент не пустой
+              (rootEl.textContent && rootEl.textContent.length > 50)
             );
 
             if (hasReactContent) {
               clearInterval(checkReact);
               console.log('🚀 React content detected, removing loading');
-              setTimeout(removeLoadingIndicator, 500); // Уменьшаем задержку
+              setTimeout(removeLoadingIndicator, 100); // Максимально быстро
             }
           }, 200);
 

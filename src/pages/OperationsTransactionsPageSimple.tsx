@@ -1295,7 +1295,7 @@ export default function OperationsTransactionsPageSimple() {
               </div>
               <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-3 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {[...new Set(operations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
-                  // Всегда показываем все карточки - данные берем из полного набора №
+                  // Всегда показываем все карточки - данные берем из полного набора
                   const allFuelOps = operations.filter(op => op.fuelType === fuel && op.status === 'completed');
                   const allVolume = allFuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
                   const allRevenue = allFuelOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
@@ -1544,7 +1544,7 @@ export default function OperationsTransactionsPageSimple() {
                   Операции
                 </CardTitle>
                 <p className={`text-slate-400 ${isMobileForced ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
-                  Показано {paginatedOperations.length} из {filteredOperations.length} №
+                  Показано {paginatedOperations.length} из {filteredOperations.length}
                   {totalPages > 1 && ` • Страница ${currentPage} из ${totalPages}`}
                 </p>
               </div>

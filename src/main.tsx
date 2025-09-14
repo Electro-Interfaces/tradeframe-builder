@@ -91,6 +91,7 @@ if ('serviceWorker' in navigator) {
 declare global {
   interface Window {
     resetDemoData: () => void;
+    reactReady?: boolean;
   }
 }
 
@@ -240,21 +241,28 @@ try {
   console.log('📱 App rendered successfully!');
   window.updateLoadingStatus?.('✅ Приложение загружено');
 
-  // Убираем initial loading индикатор через задержку
+  // Убираем initial loading индикатор через координированную задержку
+  // Отключаем main.tsx таймер - пусть index.html детекция управляет
   setTimeout(() => {
-    console.log('🎯 main.tsx: Removing initial loading');
-    if (window.removeInitialLoading) {
-      window.removeInitialLoading();
-    } else {
-      // Fallback если глобальная функция не доступна
+    console.log('🎯 main.tsx: React готов, сигнализируем index.html');
+    // Устанавливаем флаг что React готов
+    window.reactReady = true;
+
+    // Только fallback если index.html не сработал
+    setTimeout(() => {
       const loadingEl = document.getElementById('initial-loading');
-      if (loadingEl) {
-        loadingEl.style.opacity = '0';
-        loadingEl.style.transition = 'opacity 0.3s ease-out';
-        setTimeout(() => loadingEl.remove(), 300);
+      if (loadingEl && loadingEl.style.display !== 'none') {
+        console.log('🔧 main.tsx: Fallback удаление loading (index.html не сработал)');
+        if (window.removeInitialLoading) {
+          window.removeInitialLoading();
+        } else {
+          loadingEl.style.opacity = '0';
+          loadingEl.style.transition = 'opacity 0.3s ease-out';
+          setTimeout(() => loadingEl.remove(), 300);
+        }
       }
-    }
-  }, 1500); // Увеличиваем время чтобы пользователь увидел статус загрузки
+    }, 200); // Даем время index.html детекции сработать
+  }, 100); // Быстрая сигнализация готовности
   
 } catch (error) {
   console.error('❌ React rendering failed:', error);
