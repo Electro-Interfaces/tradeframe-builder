@@ -62,14 +62,15 @@ class AuthService {
   }
 
   /**
-   * Ищет пользователя по email в базе данных
+   * Ищет пользователя по email в базе данных (регистронезависимый поиск)
    */
   async getUserByEmail(email: string): Promise<DatabaseUser | null> {
     try {
       console.log('🔍 AuthService: Searching for user:', email);
 
+      // Используем ilike для регистронезависимого поиска
       const users = await this.makeRequest(
-        `users?email=eq.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
+        `users?email=ilike.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
       );
 
       if (users.length === 0) {
@@ -86,10 +87,11 @@ class AuthService {
   }
 
   /**
-   * Проверяет пароль пользователя
+   * Проверяет пароль пользователя (простой SHA-256)
    */
   async verifyPassword(user: DatabaseUser, password: string): Promise<boolean> {
-    if (!password || password.length < 3) {
+    if (!password || password.length < 1) {
+      console.log('❌ AuthService: Empty password');
       return false;
     }
 
@@ -98,97 +100,38 @@ class AuthService {
       return false;
     }
 
+    console.log('🔐 AuthService: Verifying password with SHA-256...');
+
     try {
-      console.log('🔐 AuthService: Verifying password...');
+      // Простое хеширование: пароль + соль
+      const passwordWithSalt = password + user.pwd_salt;
 
-      // Детекция мобильного устройства
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      // Используем SHA-256 если доступен, иначе base64
+      let computedHash: string;
 
-      if (isMobile) {
-        console.log('📱 AuthService: Using mobile-optimized verification');
-        return await this.verifyPasswordMobile(user, password);
+      if (crypto && crypto.subtle) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(passwordWithSalt);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        computedHash = btoa(String.fromCharCode(...hashArray));
       } else {
-        console.log('🖥️ AuthService: Using desktop verification');
-        return await this.verifyPasswordDesktop(user, password);
+        // Простой base64 fallback
+        computedHash = btoa(passwordWithSalt);
       }
+
+      const isValid = computedHash === user.pwd_hash;
+
+      console.log(`🔍 Password check result: ${isValid ? '✅ Valid' : '❌ Invalid'}`);
+      console.log(`📝 Input: "${password}" + "${user.pwd_salt}"`);
+      console.log(`🔑 Computed: ${computedHash.substring(0, 20)}...`);
+      console.log(`🗃️ Stored:   ${user.pwd_hash.substring(0, 20)}...`);
+
+      return isValid;
     } catch (error) {
-      console.error('❌ AuthService: Password verification failed:', error);
+      console.error('❌ AuthService: Password verification error:', error);
       return false;
     }
-  }
-
-  /**
-   * Десктопная версия проверки пароля
-   */
-  private async verifyPasswordDesktop(user: DatabaseUser, password: string): Promise<boolean> {
-    const encoder = new TextEncoder();
-    const passwordBytes = encoder.encode(password);
-    const saltBytes = this.base64ToArrayBuffer(user.pwd_salt);
-
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      passwordBytes,
-      { name: 'PBKDF2' },
-      false,
-      ['deriveBits']
-    );
-
-    const hashBuffer = await crypto.subtle.deriveBits(
-      {
-        name: 'PBKDF2',
-        salt: saltBytes,
-        iterations: 100000,
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      32 * 8
-    );
-
-    const computedHash = this.arrayBufferToBase64(hashBuffer);
-    const isValid = computedHash === user.pwd_hash;
-
-    console.log(isValid ? '✅ Password valid' : '❌ Password invalid');
-    return isValid;
-  }
-
-  /**
-   * Мобильная версия проверки пароля (меньше итераций)
-   */
-  private async verifyPasswordMobile(user: DatabaseUser, password: string): Promise<boolean> {
-    if (!crypto.subtle) {
-      console.error('❌ AuthService: Crypto API not available');
-      return false;
-    }
-
-    const encoder = new TextEncoder();
-    const passwordBytes = encoder.encode(password);
-    const saltBytes = this.base64ToArrayBuffer(user.pwd_salt);
-
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      passwordBytes,
-      { name: 'PBKDF2' },
-      false,
-      ['deriveBits']
-    );
-
-    // Меньше итераций для мобильных устройств
-    const hashBuffer = await crypto.subtle.deriveBits(
-      {
-        name: 'PBKDF2',
-        salt: saltBytes,
-        iterations: 100000, // Вместо 10000
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      32 * 8
-    );
-
-    const computedHash = this.arrayBufferToBase64(hashBuffer);
-    const isValid = computedHash === user.pwd_hash;
-
-    console.log(isValid ? '✅ Password valid' : '❌ Password invalid');
-    return isValid;
   }
 
   /**
@@ -237,23 +180,28 @@ class AuthService {
     };
   }
 
-  // Вспомогательные методы для работы с Base64
-  private arrayBufferToBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
+  /**
+   * Создает простой хеш для пароля (SHA-256 или base64)
+   */
+  async createPasswordHash(password: string, salt: string): Promise<string> {
+    const passwordWithSalt = password + salt;
+
+    if (crypto && crypto.subtle) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(passwordWithSalt);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return btoa(String.fromCharCode(...hashArray));
+    } else {
+      return btoa(passwordWithSalt);
     }
-    return btoa(binary);
   }
 
-  private base64ToArrayBuffer(base64: string): ArrayBuffer {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes.buffer;
+  /**
+   * Генерирует простую соль
+   */
+  generateSalt(): string {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 }
 

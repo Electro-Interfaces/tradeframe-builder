@@ -117,18 +117,29 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     const initializeAuth = () => {
       try {
         console.log('🔄 NewAuthContext: Initializing authentication...');
+        console.log('🔄 NewAuthContext: Device info:', {
+          userAgent: navigator.userAgent,
+          isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+          url: window.location.href,
+          host: window.location.host,
+          protocol: window.location.protocol
+        });
 
         const savedUser = loadUserData();
         if (savedUser) {
           setUser(savedUser);
           console.log('✅ NewAuthContext: User restored from storage:', savedUser.email);
+          console.log('✅ NewAuthContext: User data keys present in localStorage:', Object.keys(localStorage).filter(key => key.includes('tradeframe')));
         } else {
           console.log('ℹ️ NewAuthContext: No saved user found');
+          console.log('ℹ️ NewAuthContext: Available localStorage keys:', Object.keys(localStorage).filter(key => key.includes('tradeframe')));
         }
       } catch (error) {
         console.error('❌ NewAuthContext: Initialization error:', error);
+        console.error('❌ NewAuthContext: Error stack:', error.stack);
         clearAuthData();
       } finally {
+        console.log('🔄 NewAuthContext: Setting loading to false');
         setLoading(false);
       }
     };
