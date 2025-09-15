@@ -73,21 +73,10 @@ export class SupabaseAuthService {
 
       const user: SupabaseUser = users[0];
 
-      // Все хардкод пароли удалены для безопасности
-      const demoUsers = {};
-      
-      if (user.email in demoUsers) {
-        // Для демо-пользователей проверяем специальные пароли
-        if (password !== demoUsers[user.email as keyof typeof demoUsers]) {
-          // НИКОГДА не показывать реальный пароль в сообщениях об ошибках!
-          throw new Error('Неверный пароль');
-        }
-      } else {
-        // Для остальных пользователей проверяем хэш пароля используя простой SHA-256
-        const isPasswordValid = await authService.verifyPassword({ pwd_hash: user.pwd_hash, pwd_salt: user.pwd_salt } as any, password);
-        if (!isPasswordValid) {
-          throw new Error('Неверный пароль');
-        }
+      // Проверяем хэш пароля для всех пользователей используя простой SHA-256
+      const isPasswordValid = await authService.verifyPassword({ pwd_hash: user.pwd_hash, pwd_salt: user.pwd_salt } as any, password);
+      if (!isPasswordValid) {
+        throw new Error('Неверный пароль');
       }
 
       // Извлекаем роль из preferences (новая схема)
