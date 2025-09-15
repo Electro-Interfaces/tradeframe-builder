@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Исправление роли пользователя в БД</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow: auto; }
+        button { padding: 10px 20px; margin: 5px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .danger { background-color: #dc3545; }
+        .danger:hover { background-color: #c82333; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Исправление роли пользователя u@me.com в базе данных</h1>
+
+    <div>
+        <button onclick="checkCurrentData()">🔍 Проверить текущие данные</button>
+        <button onclick="fixUserRole()" class="danger">🛠️ ИСПРАВИТЬ роль на Суперадминистратор</button>
+        <button onclick="testApp()">🚀 Тестировать приложение</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        const supabaseUrl = 'https://ssvazdgnmatbdynkhkqo.supabase.co';
+        const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
+
+        async function checkCurrentData() {
+            const resultDiv = document.getElementById('result');
+
+            try {
+                console.log('🔍 Проверяем текущие данные пользователя u@me.com...');
+
+                const response = await fetch(`${supabaseUrl}/rest/v1/users?email=eq.u@me.com`, {
+                    headers: {
+                        'apikey': supabaseServiceKey,
+                        'Authorization': `Bearer ${supabaseServiceKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const users = await response.json();
+
+                if (users.length === 0) {
+                    resultDiv.innerHTML = '<div class="result error">❌ Пользователь u@me.com не найден в базе данных</div>';
+                    return;
+                }
+
+                const user = users[0];
+
+                resultDiv.innerHTML = `
+                    <div class="result info">
+                        <h3>📊 Текущие данные пользователя:</h3>
+                        <p><strong>ID:</strong> ${user.id}</p>
+                        <p><strong>Email:</strong> ${user.email}</p>
+                        <p><strong>Name:</strong> ${user.name}</p>
+                        <p><strong>Status:</strong> ${user.status}</p>
+                        <p><strong>Preferences:</strong></p>
+                        <pre>${JSON.stringify(user.preferences, null, 2)}</pre>
+
+                        <div class="result warning">
+                            <h4>⚠️ ПРОБЛЕМА:</h4>
+                            <p>Поле <code>preferences</code> ${JSON.stringify(user.preferences) === '{}' ? 'ПУСТОЕ' : 'не содержит роль'}!</p>
+                            <p>Должно быть: <code>{"role": "Суперадминистратор"}</code></p>
+                        </div>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        async function fixUserRole() {
+            const resultDiv = document.getElementById('result');
+
+            try {
+                console.log('🛠️ Исправляем роль пользователя u@me.com...');
+
+                // Устанавливаем правильные preferences с ролью Суперадминистратор
+                const correctPreferences = {
+                    role: "Суперадминистратор",
+                    role_id: 1,
+                    permissions: ["all"]
+                };
+
+                const response = await fetch(`${supabaseUrl}/rest/v1/users?email=eq.u@me.com`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': supabaseServiceKey,
+                        'Authorization': `Bearer ${supabaseServiceKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        preferences: correctPreferences
+                    })
+                });
+
+                if (response.ok) {
+                    const updatedUsers = await response.json();
+                    const user = updatedUsers[0];
+
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ Роль пользователя ИСПРАВЛЕНА!</h3>
+                            <p><strong>Email:</strong> ${user.email}</p>
+                            <p><strong>Новые preferences:</strong></p>
+                            <pre>${JSON.stringify(user.preferences, null, 2)}</pre>
+
+                            <div class="result info">
+                                <h4>🎯 Ожидаемый результат:</h4>
+                                <p>Теперь при входе в приложение:</p>
+                                <ul>
+                                    <li>Роль будет определена как "Суперадминистратор"</li>
+                                    <li>Сработает маппинг: "Суперадминистратор" → "super_admin"</li>
+                                    <li>Будут видны ВСЕ 10 разделов меню</li>
+                                </ul>
+                                <p><strong>Перейдите к приложению и войдите заново!</strong></p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `<div class="result error">❌ Ошибка обновления: ${JSON.stringify(error)}</div>`;
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        function testApp() {
+            window.open('http://localhost:3001', '_blank');
+        }
+
+        // Автоматически показываем данные при загрузке
+        window.onload = checkCurrentData;
+    </script>
+</body>
+</html>

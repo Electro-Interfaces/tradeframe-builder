@@ -11,12 +11,14 @@ interface DatabaseUser {
   status: string;
   pwd_salt: string;
   pwd_hash: string;
-  preferences: {
-    role?: string;
-    role_id?: number;
-    permissions?: string[];
-    [key: string]: any;
-  };
+  user_roles: Array<{
+    role: {
+      id: number;
+      name: string;
+      code: string;
+      permissions: string[];
+    }
+  }>;
   created_at: string;
   updated_at: string;
 }
@@ -62,15 +64,15 @@ class AuthService {
   }
 
   /**
-   * Ищет пользователя по email в базе данных (регистронезависимый поиск)
+   * Ищет пользователя по email в базе данных с ролями (новая схема БД)
    */
   async getUserByEmail(email: string): Promise<DatabaseUser | null> {
     try {
-      console.log('🔍 AuthService: Searching for user:', email);
+      console.log('🔍 AuthService: Searching for user with roles:', email);
 
-      // Используем ilike для регистронезависимого поиска
+      // НОВАЯ СХЕМА: получаем пользователя с ролями через джойн
       const users = await this.makeRequest(
-        `users?email=ilike.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
+        `users?select=*,user_roles(role:roles(*))&email=ilike.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
       );
 
       if (users.length === 0) {
@@ -78,8 +80,15 @@ class AuthService {
         return null;
       }
 
+      const user = users[0];
       console.log('✅ AuthService: User found');
-      return users[0];
+      console.log('🔍 DEBUG: User roles from new schema:', user.user_roles);
+
+      // Логируем роли из новой схемы БД
+      const userRoles = user.user_roles || [];
+      console.log('🎭 AuthService: User roles from database:', userRoles);
+
+      return user;
     } catch (error) {
       console.error('❌ AuthService: Error finding user:', error);
       throw error;
@@ -163,21 +172,60 @@ class AuthService {
   }
 
   /**
-   * Трансформирует пользователя из БД в формат приложения
+   * Трансформирует пользователя из БД в формат приложения (НОВАЯ СХЕМА)
    */
   private transformUser(dbUser: DatabaseUser): AppUser {
-    const preferences = dbUser.preferences || {};
+    console.log('🔄 AuthService: Transforming user with new DB schema');
+    console.log('🔍 DEBUG: dbUser.user_roles =', dbUser.user_roles);
 
-    return {
+    // Получаем первую (основную) роль пользователя из новой схемы БД
+    const userRoles = dbUser.user_roles || [];
+    const primaryRole = userRoles[0]?.role;
+
+    let userRole = 'user';
+    let roleId = 0;
+    let permissions: string[] = [];
+
+    if (primaryRole) {
+      console.log('🎭 AuthService: Found primary role:', primaryRole);
+
+      // Используем код роли напрямую из БД или имя роли для маппинга
+      userRole = primaryRole.code || primaryRole.name;
+      roleId = primaryRole.id;
+      permissions = primaryRole.permissions || [];
+
+      // Маппинг имен ролей на коды для совместимости (если код не задан)
+      if (!primaryRole.code) {
+        const roleNameToCode: Record<string, string> = {
+          'Суперадминистратор': 'super_admin',
+          'Администратор сети': 'network_admin',
+          'Менеджер': 'manager',
+          'Оператор': 'operator',
+          'Менеджер БТО': 'bto_manager'
+        };
+
+        if (roleNameToCode[primaryRole.name]) {
+          console.log('🎭 РОЛЬ МАППИНГ:', primaryRole.name, '->', roleNameToCode[primaryRole.name]);
+          userRole = roleNameToCode[primaryRole.name];
+        }
+      }
+    } else {
+      console.log('⚠️ AuthService: No roles found, using default role "user"');
+    }
+
+    const appUser = {
       id: dbUser.id,
       email: dbUser.email,
       name: dbUser.name,
       phone: dbUser.phone,
       status: dbUser.status,
-      role: preferences.role || 'user',
-      roleId: preferences.role_id || 0,
-      permissions: preferences.permissions || []
+      role: userRole,
+      roleId: roleId,
+      permissions: permissions
     };
+
+    console.log('✅ AuthService: Transformed user role:', userRole);
+    return appUser;
   }
 
   /**

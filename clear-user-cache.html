@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Очистка кеша пользователя</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow: auto; }
+        button { padding: 10px 20px; margin: 5px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .danger { background-color: #dc3545; }
+        .danger:hover { background-color: #c82333; }
+    </style>
+</head>
+<body>
+    <h1>🧹 Очистка кеша пользователя</h1>
+    <p>Эта страница поможет очистить закешированные данные пользователя для корректного применения маппинга ролей.</p>
+
+    <div>
+        <button onclick="showCachedData()">📋 Показать текущие данные</button>
+        <button onclick="clearUserCache()" class="danger">🗑️ Очистить кеш пользователя</button>
+        <button onclick="goToApp()">🚀 Перейти к приложению</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        function showCachedData() {
+            const resultDiv = document.getElementById('result');
+
+            try {
+                // Получаем все ключи localStorage, связанные с пользователем
+                const userKeys = Object.keys(localStorage).filter(key =>
+                    key.includes('tradeframe') || key.includes('auth') || key.includes('user')
+                );
+
+                let html = '<div class="result info"><h3>📊 Текущие данные в localStorage:</h3>';
+
+                if (userKeys.length === 0) {
+                    html += '<p>❌ Данные пользователя не найдены</p>';
+                } else {
+                    userKeys.forEach(key => {
+                        const value = localStorage.getItem(key);
+                        let displayValue = value;
+
+                        // Пытаемся распарсить JSON для красивого отображения
+                        try {
+                            const parsed = JSON.parse(value);
+                            if (parsed && typeof parsed === 'object') {
+                                displayValue = JSON.stringify(parsed, null, 2);
+                            }
+                        } catch (e) {
+                            // Оставляем как есть
+                        }
+
+                        html += `<p><strong>${key}:</strong></p>`;
+                        html += `<pre>${displayValue}</pre>`;
+                    });
+                }
+
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        function clearUserCache() {
+            const resultDiv = document.getElementById('result');
+
+            try {
+                const beforeKeys = Object.keys(localStorage).filter(key =>
+                    key.includes('tradeframe') || key.includes('auth') || key.includes('user')
+                );
+
+                // Очищаем все ключи, связанные с пользователем
+                const keysToRemove = [
+                    // Новые ключи
+                    'tradeframe_user_v2',
+                    'tradeframe_token_v2',
+                    // Старые ключи
+                    'tradeframe_user',
+                    'authToken',
+                    'currentUser',
+                    'auth_token',
+                    'auth_user',
+                    'auth_token_expiry',
+                    'auth_login',
+                    'auth_password'
+                ];
+
+                keysToRemove.forEach(key => {
+                    if (localStorage.getItem(key)) {
+                        localStorage.removeItem(key);
+                        console.log(`Удален ключ: ${key}`);
+                    }
+                });
+
+                const afterKeys = Object.keys(localStorage).filter(key =>
+                    key.includes('tradeframe') || key.includes('auth') || key.includes('user')
+                );
+
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <h3>✅ Кеш пользователя очищен!</h3>
+                        <p><strong>До очистки:</strong> ${beforeKeys.length} ключей</p>
+                        <p><strong>После очистки:</strong> ${afterKeys.length} ключей</p>
+                        <p>🔄 Теперь можете войти в систему заново для применения маппинга ролей</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Ошибка очистки: ${error.message}</div>`;
+            }
+        }
+
+        function goToApp() {
+            window.location.href = 'http://localhost:3001';
+        }
+
+        // Автоматически показываем данные при загрузке
+        window.onload = showCachedData;
+    </script>
+</body>
+</html>

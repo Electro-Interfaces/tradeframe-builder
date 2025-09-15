@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Быстрая проверка роли u@me.com</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Быстрая проверка роли u@me.com</h1>
+    <button onclick="checkUserRole()">Проверить роль</button>
+    <div id="result"></div>
+
+    <script>
+        const supabaseUrl = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+        const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+
+        async function checkUserRole() {
+            const resultDiv = document.getElementById('result');
+
+            try {
+                // Получаем пользователя из Supabase
+                const response = await fetch(`${supabaseUrl}/rest/v1/users?email=eq.u@me.com`, {
+                    headers: {
+                        'apikey': supabaseServiceKey,
+                        'Authorization': `Bearer ${supabaseServiceKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const users = await response.json();
+
+                if (users.length === 0) {
+                    resultDiv.innerHTML = '<div class="result error">❌ Пользователь u@me.com не найден</div>';
+                    return;
+                }
+
+                const user = users[0];
+                const userRole = user.preferences?.role || 'no_role';
+
+                // Симулируем маппинг из supabaseAuthService
+                const roleNameToCode = {
+                    'Суперадминистратор': 'super_admin',
+                    'Администратор сети': 'network_admin',
+                    'Менеджер': 'manager',
+                    'Оператор': 'operator',
+                    'Менеджер БТО': 'bto_manager'
+                };
+
+                let mappedRole = userRole;
+                if (roleNameToCode[userRole]) {
+                    mappedRole = roleNameToCode[userRole];
+                }
+
+                // Проверяем условие из useMenuVisibility
+                const shouldShowAllMenus = mappedRole === 'super_admin' || mappedRole === 'system_admin';
+
+                resultDiv.innerHTML = `
+                    <div class="result info">
+                        <h3>📊 Результат проверки:</h3>
+                        <p><strong>Email:</strong> ${user.email}</p>
+                        <p><strong>Оригинальная роль из БД:</strong> "${userRole}"</p>
+                        <p><strong>Роль после маппинга:</strong> "${mappedRole}"</p>
+                        <p><strong>Должен показать все меню:</strong>
+                            <span style="color: ${shouldShowAllMenus ? 'green' : 'red'}">
+                                ${shouldShowAllMenus ? '✅ ДА' : '❌ НЕТ'}
+                            </span>
+                        </p>
+                        <p><strong>Причина:</strong> ${shouldShowAllMenus ?
+                            'Роль соответствует условию super_admin || system_admin' :
+                            `Роль "${mappedRole}" НЕ равна "super_admin" или "system_admin"`}</p>
+                    </div>
+
+                    <div class="result">
+                        <h4>🔍 Полные данные пользователя:</h4>
+                        <pre>${JSON.stringify(user, null, 2)}</pre>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

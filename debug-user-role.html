@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отладка роли пользователя u@me.com</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Отладка роли пользователя u@me.com</h1>
+
+    <div class="container">
+        <h2>🚀 Проверка пользователя</h2>
+        <button onclick="checkUser()">Проверить пользователя u@me.com</button>
+        <button onclick="checkAllAdmins()">Найти всех админов</button>
+        <div id="userInfo"></div>
+    </div>
+
+    <div class="container">
+        <h2>📊 Результаты проверки</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://tohtryzyffcebtyvkxwh.supabase.co';
+        const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvaHRyeXp5ZmZjZWJ0eXZreHdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg3NTQ0OCwiZXhwIjoyMDcyNDUxNDQ4fQ.kN6uF9YhJzbzu2ugHRQCyzuNOwawsTDtwelGO0uCjyY';
+
+        async function supabaseRequest(endpoint, options = {}) {
+            const response = await fetch(`${supabaseUrl}/rest/v1/${endpoint}`, {
+                ...options,
+                headers: {
+                    'apikey': supabaseServiceKey,
+                    'Authorization': `Bearer ${supabaseServiceKey}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+            }
+
+            return response.json();
+        }
+
+        async function checkUser() {
+            const userInfoDiv = document.getElementById('userInfo');
+            const resultsDiv = document.getElementById('results');
+
+            try {
+                userInfoDiv.innerHTML = '<p class="info">🔍 Ищем пользователя u@me.com...</p>';
+
+                // Поиск пользователя
+                const users = await supabaseRequest('users?email=eq.u@me.com');
+
+                if (users.length === 0) {
+                    userInfoDiv.innerHTML = '<p class="error">❌ Пользователь u@me.com не найден в базе данных</p>';
+                    return;
+                }
+
+                const user = users[0];
+
+                userInfoDiv.innerHTML = `
+                    <h3 class="success">✅ Пользователь найден</h3>
+                    <pre>
+ID: ${user.id}
+Email: ${user.email}
+Name: ${user.name}
+Status: ${user.status}
+Tenant ID: ${user.tenant_id}
+Created: ${user.created_at}
+Preferences: ${JSON.stringify(user.preferences, null, 2)}
+                    </pre>
+                `;
+
+                // Извлекаем роль из preferences
+                const userRole = user.preferences?.role || 'no_role';
+                console.log('🎭 User role from preferences:', userRole);
+
+                // Проверяем роли пользователя в таблице user_roles
+                const userRoles = await supabaseRequest(`user_roles?user_id=eq.${user.id}&select=*,role:roles(*)`);
+
+                console.log('🎭 User roles from user_roles table:', userRoles);
+
+                // Получаем разрешения для роли (как в supabaseAuthService)
+                const permissions = getRolePermissions(userRole);
+
+                resultsDiv.innerHTML = `
+                    <h3>📊 Анализ роли и разрешений</h3>
+                    <div style="background-color: #e9ecef; padding: 15px; border-radius: 4px; margin: 10px 0;">
+                        <strong>Роль из preferences:</strong> <span class="info">${userRole}</span><br>
+                        <strong>Является ли супер-админом:</strong>
+                        <span class="${userRole === 'system_admin' || userRole === 'super_admin' ? 'success' : 'error'}">
+                            ${userRole === 'system_admin' || userRole === 'super_admin' ? '✅ ДА' : '❌ НЕТ'}
+                        </span><br>
+                        <strong>Должен видеть все меню:</strong>
+                        <span class="${userRole === 'system_admin' || userRole === 'super_admin' ? 'success' : 'error'}">
+                            ${userRole === 'system_admin' || userRole === 'super_admin' ? '✅ ДА' : '❌ НЕТ'}
+                        </span>
+                    </div>
+
+                    <h4>🔑 Разрешения роли:</h4>
+                    <pre>${JSON.stringify(permissions, null, 2)}</pre>
+
+                    <h4>🎭 Назначенные роли в базе данных:</h4>
+                    <pre>${JSON.stringify(userRoles, null, 2)}</pre>
+                `;
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = `<p class="error">❌ Ошибка: ${error.message}</p>`;
+            }
+        }
+
+        // Копия функции из supabaseAuthService.ts
+        function getRolePermissions(role) {
+            const rolePermissions = {
+                'system_admin': [
+                    'users.read', 'users.create', 'users.update', 'users.delete',
+                    'networks.read', 'networks.create', 'networks.update', 'networks.delete',
+                    'trading_points.read', 'trading_points.create', 'trading_points.update', 'trading_points.delete',
+                    'equipment.read', 'equipment.create', 'equipment.update', 'equipment.delete',
+                    'operations.read', 'operations.create', 'operations.update', 'operations.delete',
+                    'reports.read', 'reports.create', 'reports.export',
+                    'settings.read', 'settings.update'
+                ],
+                'network_admin': [
+                    'users.read', 'users.create', 'users.update',
+                    'trading_points.read', 'trading_points.update',
+                    'equipment.read', 'equipment.update',
+                    'operations.read', 'operations.create', 'operations.update',
+                    'reports.read', 'reports.create', 'reports.export'
+                ],
+                'manager': [
+                    'operations.read', 'operations.create', 'operations.update',
+                    'equipment.read', 'equipment.update',
+                    'fuel_stocks.read', 'fuel_stocks.update',
+                    'reports.read', 'reports.create'
+                ],
+                'operator': [
+                    'operations.read', 'operations.create',
+                    'equipment.read',
+                    'fuel_stocks.read',
+                    'reports.read'
+                ],
+                'bto_manager': [
+                    'networks.read', 'trading_points.read', 'networks.view_bto', 'points.view_bto'
+                ]
+            };
+
+            return rolePermissions[role] || ['basic.read'];
+        }
+
+        async function checkAllAdmins() {
+            const resultsDiv = document.getElementById('results');
+
+            try {
+                resultsDiv.innerHTML = '<p class="info">🔍 Ищем всех администраторов...</p>';
+
+                // Получаем всех пользователей
+                const users = await supabaseRequest('users');
+
+                const admins = users.filter(user => {
+                    const role = user.preferences?.role;
+                    return role === 'system_admin' || role === 'super_admin' || role === 'network_admin';
+                });
+
+                resultsDiv.innerHTML = `
+                    <h3>🛡️ Найдено администраторов: ${admins.length}</h3>
+                    <div>
+                        ${admins.map(user => `
+                            <div style="border: 1px solid #ccc; margin: 10px 0; padding: 10px; border-radius: 4px;">
+                                <strong>${user.email}</strong> (${user.name})<br>
+                                <span class="info">Роль: ${user.preferences?.role || 'не указана'}</span><br>
+                                <span class="warning">Статус: ${user.status}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = `<p class="error">❌ Ошибка: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

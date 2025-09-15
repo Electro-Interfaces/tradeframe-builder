@@ -80,8 +80,28 @@ export class SupabaseAuthService {
       }
 
       // Извлекаем роль из preferences (новая схема)
-      const userRole = user.preferences?.role || 'operator';
+      // Используем код роли, а не имя роли для проверки разрешений
+      let userRole = user.preferences?.role || 'operator';
       const userRoleId = user.preferences?.role_id;
+
+      console.log('🎭 РОЛЬ ДО МАППИНГА:', userRole);
+
+      // Маппинг имен ролей на коды для совместимости
+      const roleNameToCode: Record<string, string> = {
+        'Суперадминистратор': 'super_admin',
+        'Администратор сети': 'network_admin',
+        'Менеджер': 'manager',
+        'Оператор': 'operator',
+        'Менеджер БТО': 'bto_manager'
+      };
+
+      // Если роль - это имя, конвертируем в код
+      if (roleNameToCode[userRole]) {
+        console.log('🎭 НАЙДЕНО СООТВЕТСТВИЕ:', userRole, '->', roleNameToCode[userRole]);
+        userRole = roleNameToCode[userRole];
+      }
+
+      console.log('🎭 РОЛЬ ПОСЛЕ МАППИНГА:', userRole);
       
       // Получаем разрешения на основе роли
       const permissions = this.getRolePermissions(userRole);
@@ -173,6 +193,16 @@ export class SupabaseAuthService {
    */
   private static getRolePermissions(role: string): string[] {
     const rolePermissions: Record<string, string[]> = {
+      'super_admin': [
+        'users.read', 'users.create', 'users.update', 'users.delete',
+        'networks.read', 'networks.create', 'networks.update', 'networks.delete',
+        'trading_points.read', 'trading_points.create', 'trading_points.update', 'trading_points.delete',
+        'equipment.read', 'equipment.create', 'equipment.update', 'equipment.delete',
+        'operations.read', 'operations.create', 'operations.update', 'operations.delete',
+        'reports.read', 'reports.create', 'reports.export',
+        'settings.read', 'settings.update',
+        'all' // Специальное разрешение "все"
+      ],
       'system_admin': [
         'users.read', 'users.create', 'users.update', 'users.delete',
         'networks.read', 'networks.create', 'networks.update', 'networks.delete',
@@ -213,9 +243,10 @@ export class SupabaseAuthService {
    * Проверка разрешения
    */
   static hasPermission(user: AuthUser, permission: string): boolean {
-    return user.permissions.includes(permission) || 
+    return user.permissions.includes(permission) ||
            user.permissions.includes('all') ||
-           user.role === 'system_admin';
+           user.role === 'system_admin' ||
+           user.role === 'super_admin';
   }
 
   /**

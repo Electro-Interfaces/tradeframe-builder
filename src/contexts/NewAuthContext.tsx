@@ -65,47 +65,112 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   };
 
   /**
-   * Сохраняет данные пользователя в localStorage
+   * Сохраняет только email для повторной аутентификации
    */
-  const saveUserData = (userData: AppUser) => {
+  const saveAuthSession = (email: string) => {
     try {
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
-      localStorage.setItem(STORAGE_KEYS.TOKEN, 'authenticated');
+      sessionStorage.setItem('current_user_email', email);
+      sessionStorage.setItem('auth_timestamp', Date.now().toString());
     } catch (error) {
-      console.error('❌ NewAuthContext: Failed to save user data:', error);
+      console.error('❌ NewAuthContext: Failed to save auth session:', error);
     }
   };
 
   /**
-   * Загружает данные пользователя из localStorage
+   * Получает email из сессии для повторной аутентификации
    */
-  const loadUserData = (): AppUser | null => {
+  const getSessionEmail = (): string | null => {
     try {
-      const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
-      const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
+      const email = sessionStorage.getItem('current_user_email');
+      const timestamp = sessionStorage.getItem('auth_timestamp');
 
-      if (!savedUser || !savedToken) {
+      if (!email || !timestamp) {
         return null;
       }
 
-      // Проверка на поврежденные данные
-      if (savedUser.startsWith('[object Object]') || savedUser === '[object Object]') {
+      // Проверяем, что сессия не старше 8 часов
+      const sessionAge = Date.now() - parseInt(timestamp);
+      const maxAge = 8 * 60 * 60 * 1000; // 8 часов
+
+      if (sessionAge > maxAge) {
+        console.log('⏰ Session expired, clearing');
         clearAuthData();
         return null;
       }
 
-      const userData = JSON.parse(savedUser);
+      return email;
+    } catch (error) {
+      console.error('❌ NewAuthContext: Failed to get session email:', error);
+      return null;
+    }
+  };
 
-      // Базовая валидация данных
-      if (!userData.id || !userData.email) {
-        clearAuthData();
+  /**
+   * Загружает актуальные данные пользователя из базы данных
+   */
+  const loadFreshUserData = async (email: string): Promise<AppUser | null> => {
+    try {
+      console.log('🔄 Loading fresh user data from database for:', email);
+
+      const dbUser = await authService.getUserByEmail(email);
+      if (!dbUser) {
+        console.log('❌ User not found in database');
         return null;
       }
 
+      // ОТЛАДКА: Что именно пришло из базы данных (НОВАЯ СХЕМА)
+      console.log('🔍 DEBUG: dbUser.user_roles =', dbUser.user_roles);
+
+      // Получаем роль из новой схемы БД
+      const userRoles = (dbUser as any).user_roles || [];
+      const primaryRole = userRoles[0]?.role;
+
+      let userRole = 'user';
+      let roleId = 0;
+      let permissions: string[] = [];
+
+      if (primaryRole) {
+        console.log('🎭 NewAuthContext: Found role from DB:', primaryRole);
+
+        // Используем код роли или имя для маппинга
+        userRole = primaryRole.code || primaryRole.name;
+        roleId = primaryRole.id;
+        permissions = primaryRole.permissions || [];
+
+        // Маппинг имен ролей на коды (если код не задан)
+        if (!primaryRole.code) {
+          const roleNameToCode: Record<string, string> = {
+            'Суперадминистратор': 'super_admin',
+            'Администратор сети': 'network_admin',
+            'Менеджер': 'manager',
+            'Оператор': 'operator',
+            'Менеджер БТО': 'bto_manager'
+          };
+
+          if (roleNameToCode[primaryRole.name]) {
+            console.log('🎭 NewAuthContext FRESH РОЛЬ МАППИНГ:', primaryRole.name, '->', roleNameToCode[primaryRole.name]);
+            userRole = roleNameToCode[primaryRole.name];
+          }
+        }
+      } else {
+        console.log('⚠️ NewAuthContext: No roles found in DB, using default "user"');
+      }
+
+      const userData: AppUser = {
+        id: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name,
+        phone: dbUser.phone,
+        status: dbUser.status,
+        role: userRole,
+        roleId: roleId,
+        permissions: permissions
+      };
+
+      console.log('✅ Fresh user data loaded, role:', userData.role);
       return userData;
     } catch (error) {
-      console.error('❌ NewAuthContext: Failed to load user data:', error);
-      clearAuthData();
+      console.error('❌ NewAuthContext: Error loading fresh user data:', error);
       return null;
     }
   };
@@ -114,7 +179,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
    * Инициализация при загрузке приложения
    */
   useEffect(() => {
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       try {
         console.log('🔄 NewAuthContext: Initializing authentication...');
         console.log('🔄 NewAuthContext: Device info:', {
@@ -125,14 +190,20 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
           protocol: window.location.protocol
         });
 
-        const savedUser = loadUserData();
-        if (savedUser) {
-          setUser(savedUser);
-          console.log('✅ NewAuthContext: User restored from storage:', savedUser.email);
-          console.log('✅ NewAuthContext: User data keys present in localStorage:', Object.keys(localStorage).filter(key => key.includes('tradeframe')));
+        const sessionEmail = getSessionEmail();
+        if (sessionEmail) {
+          console.log('🔄 NewAuthContext: Active session found, loading fresh data for:', sessionEmail);
+
+          const freshUser = await loadFreshUserData(sessionEmail);
+          if (freshUser) {
+            setUser(freshUser);
+            console.log('✅ NewAuthContext: Fresh user data loaded from database, role:', freshUser.role);
+          } else {
+            console.log('⚠️ NewAuthContext: Failed to load fresh data, clearing session');
+            clearAuthData();
+          }
         } else {
-          console.log('ℹ️ NewAuthContext: No saved user found');
-          console.log('ℹ️ NewAuthContext: Available localStorage keys:', Object.keys(localStorage).filter(key => key.includes('tradeframe')));
+          console.log('ℹ️ NewAuthContext: No active session found');
         }
       } catch (error) {
         console.error('❌ NewAuthContext: Initialization error:', error);
@@ -163,9 +234,9 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       }
 
       setUser(authenticatedUser);
-      saveUserData(authenticatedUser);
+      saveAuthSession(email); // Сохраняем только email в сессии
 
-      console.log('✅ NewAuthContext: Login successful for:', authenticatedUser.email);
+      console.log('✅ NewAuthContext: Login successful for:', authenticatedUser.email, 'role:', authenticatedUser.role);
     } catch (error: any) {
       console.error('❌ NewAuthContext: Login failed:', error);
       throw new Error(error.message || 'Ошибка входа в систему');
@@ -181,6 +252,9 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     console.log('🔐 NewAuthContext: Logging out user');
     setUser(null);
     clearAuthData();
+    // Очищаем также сессионные данные
+    sessionStorage.removeItem('current_user_email');
+    sessionStorage.removeItem('auth_timestamp');
   };
 
   /**

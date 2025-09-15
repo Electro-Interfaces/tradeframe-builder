@@ -85,6 +85,10 @@ export function useMenuVisibility(): MenuVisibilityConfig {
     };
 
     // Системный администратор (супер админ) имеет доступ ко всем разделам
+    console.log(`🔍 ВАЖНАЯ ПРОВЕРКА: user.role = "${user.role}"`);
+    console.log(`🔍 super_admin проверка: user.role === 'super_admin' = ${user.role === 'super_admin'}`);
+    console.log(`🔍 system_admin проверка: user.role === 'system_admin' = ${user.role === 'system_admin'}`);
+
     if (user.role === 'super_admin' || user.role === 'system_admin') {
       console.log('🎯 User is super_admin/system_admin - showing all menus');
       return {
