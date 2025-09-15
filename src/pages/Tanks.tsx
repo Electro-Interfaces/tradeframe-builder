@@ -942,6 +942,7 @@ export default function Tanks() {
               </div>
               
               <div className={`flex ${isMobile ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
+                {/* Кнопка инструкции скрыта
                 {!isMobile && (
                   <Button
                     onClick={() => window.open('/help/point/tanks', '_blank')}
@@ -953,6 +954,7 @@ export default function Tanks() {
                     Инструкция
                   </Button>
                 )}
+                */}
                 
                 {/* Кнопка обновления данных - скрыта на мобильных */}
                 {!isMobile && (stsApiConfigured ? (

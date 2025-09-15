@@ -1045,6 +1045,7 @@ export default function OperationsTransactionsPageSimple() {
               </div>
 
               <div className={`flex ${isMobileForced ? 'gap-1' : 'gap-2'} items-center flex-shrink-0`}>
+                {/* Кнопка инструкции скрыта
                 <Button
                   onClick={() => window.open('/help/operations-transactions', '_blank')}
                   variant="outline"
@@ -1054,6 +1055,7 @@ export default function OperationsTransactionsPageSimple() {
                   <HelpCircle className={`${isMobileForced ? 'w-3 h-3' : 'w-4 h-4'} ${isMobileForced ? '' : 'mr-2'}`} />
                   {!isMobileForced && 'Инструкция'}
                 </Button>
+                */}
                 
                 {/* Кнопка экспорта */}
                 {filteredOperations.length > 0 && (

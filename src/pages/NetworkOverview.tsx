@@ -1390,7 +1390,7 @@ export default function NetworkOverview() {
 
                 {/* Кнопки в заголовке */}
                 <div className="flex items-center gap-2">
-                  {/* Кнопка помощи */}
+                  {/* Кнопка помощи скрыта
                   <Button
                     onClick={() => window.open('/help/network-overview.html', '_blank')}
                     variant="outline"
@@ -1400,6 +1400,7 @@ export default function NetworkOverview() {
                   >
                     <HelpCircle className="w-4 h-4" />
                   </Button>
+                  */}
 
                   {/* Кнопка обновления данных */}
                   {!isMobile && !initializing && selectedNetwork && (

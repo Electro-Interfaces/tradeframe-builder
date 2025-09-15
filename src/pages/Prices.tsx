@@ -1085,6 +1085,7 @@ export default function Prices() {
               </div>
 
               <div className={`flex ${isMobile ? 'gap-2' : 'gap-4'} items-center`}>
+                {/* Кнопка инструкции скрыта
                 <Button
                   onClick={() => window.open('/help/point-prices', '_blank')}
                   variant="outline"
@@ -1093,6 +1094,7 @@ export default function Prices() {
                 >
                   <HelpCircle className="w-4 h-4" />
                 </Button>
+                */}
                 {!isMobile && (
                   <Button
                     onClick={loadPricesFromSTSAPI}

@@ -492,6 +492,7 @@ export default function Equipment() {
 
                 {/* Кнопки в заголовке */}
                 <div className="flex items-center gap-2">
+                  {/* Кнопка инструкции скрыта
                   <Button
                     onClick={() => window.open('/help/equipment.html', '_blank')}
                     variant="outline"
@@ -501,6 +502,7 @@ export default function Equipment() {
                   >
                     <HelpCircle className="w-4 h-4" />
                   </Button>
+                  */}
                 </div>
               </div>
 
