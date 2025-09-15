@@ -198,12 +198,14 @@ router.post('/', requireRole(['network_admin', 'system_admin']), async (req: Req
       });
     }
     
-    // Хешируем пароль
-    const hashedPassword = await JWTService.hashPassword(data.password);
-    
+    // Хешируем пароль (используем новый простой алгоритм)
+    const salt = JWTService.generateSalt();
+    const hashedPassword = await JWTService.hashPassword(data.password, salt);
+
     const userData = {
       ...data,
       password_hash: hashedPassword,
+      password_salt: salt,
       network_id: data.network_id || req.user?.network_id
     };
     

@@ -41,18 +41,37 @@ export class JWTService {
   private static REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'tradeframe-refresh-secret';
   
   /**
-   * Хеширование пароля с bcrypt
+   * Хеширование пароля (простой SHA-256, совместимый с authService)
    */
-  static async hashPassword(password: string): Promise<string> {
-    const saltRounds = 12;
-    return await bcrypt.hash(password, saltRounds);
+  static async hashPassword(password: string, salt?: string): Promise<string> {
+    const actualSalt = salt || this.generateSalt();
+    const passwordWithSalt = password + actualSalt;
+
+    // Используем SHA-256 если доступен, иначе base64
+    if (crypto && crypto.subtle) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(passwordWithSalt);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return btoa(String.fromCharCode(...hashArray));
+    } else {
+      return btoa(passwordWithSalt);
+    }
   }
-  
+
   /**
-   * Проверка пароля
+   * Генерация простой соли
    */
-  static async verifyPassword(password: string, hash: string): Promise<boolean> {
-    return await bcrypt.compare(password, hash);
+  static generateSalt(): string {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
+
+  /**
+   * Проверка пароля (простой SHA-256)
+   */
+  static async verifyPassword(password: string, hash: string, salt: string): Promise<boolean> {
+    const computedHash = await this.hashPassword(password, salt);
+    return computedHash === hash;
   }
   
   /**

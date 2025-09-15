@@ -3,7 +3,8 @@
  * Использует localStorage для хранения и WebCrypto для хеширования паролей
  */
 
-import { CryptoUtils, type PasswordHash } from '@/utils/crypto'
+// Removed CryptoUtils - using simpler approach
+import { authService as newAuthService } from './auth/authService'
 import { PermissionChecker } from '@/utils/permissions'
 import { persistentStorage } from '@/utils/persistentStorage'
 import type {
@@ -47,11 +48,7 @@ export class AuthService {
     }
 
     // Проверяем пароль
-    const isValidPassword = await CryptoUtils.verifyPassword(
-      credentials.password,
-      user.pwd_hash,
-      user.pwd_salt
-    )
+    const isValidPassword = await newAuthService.verifyPassword(user, credentials.password)
 
     if (!isValidPassword) {
       await this.logAudit('Auth.Login.Failed', 'User', user.id, {
@@ -64,7 +61,7 @@ export class AuthService {
     // Создаем сессию
     const now = new Date()
     const session: Session = {
-      id: CryptoUtils.generateSessionToken(),
+      id: `session_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`,
       user_id: user.id,
       tenant_id: user.tenant_id,
       issued_at: now,
@@ -86,7 +83,7 @@ export class AuthService {
       issued_at: session.issued_at.getTime(),
       expires_at: session.expires_at.getTime()
     }
-    const token = CryptoUtils.createSessionData(tokenData)
+    const token = btoa(JSON.stringify(tokenData))
 
     await this.logAudit('Auth.Login.Success', 'User', user.id, {
       email: user.email,
@@ -130,26 +127,31 @@ export class AuthService {
     }
 
     // Валидируем пароль
-    const passwordValidation = CryptoUtils.validatePasswordStrength(input.password)
+    // Simple password validation - just check length
+    const passwordValidation = {
+      isValid: input.password.length >= 8,
+      errors: input.password.length < 8 ? ['Пароль должен быть не менее 8 символов'] : []
+    }
     if (!passwordValidation.isValid) {
       throw new Error(`Слабый пароль: ${passwordValidation.errors.join(', ')}`)
     }
 
-    // Хешируем пароль
-    const passwordHash = await CryptoUtils.hashPassword(input.password)
+    // Хешируем пароль (используем новый простой алгоритм)
+    const newSalt = newAuthService.generateSalt()
+    const newHash = await newAuthService.createPasswordHash(input.password, newSalt)
 
     // Создаем пользователя
     const now = new Date()
     const user: User = {
-      id: CryptoUtils.generateSecureId(),
+      id: `user_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`,
       tenant_id: input.tenant_id || 'default', // TODO: получать из контекста
       email: input.email,
       name: input.name,
       phone: input.phone,
       status: input.status || 'active',
       roles: [], // роли будут назначены отдельно
-      pwd_salt: passwordHash.salt,
-      pwd_hash: passwordHash.hash,
+      pwd_salt: newSalt,
+      pwd_hash: newHash,
       created_at: now,
       updated_at: now,
       version: 1
@@ -184,8 +186,13 @@ export class AuthService {
     const token = localStorage.getItem(this.SESSION_KEY)
     if (!token) return null
 
-    const sessionData = CryptoUtils.parseSessionData(token)
-    if (!sessionData || !CryptoUtils.isSessionValid(token)) {
+    let sessionData
+    try {
+      sessionData = JSON.parse(atob(token))
+    } catch {
+      sessionData = null
+    }
+    if (!sessionData || sessionData.expires_at < Date.now()) {
       localStorage.removeItem(this.SESSION_KEY)
       return null
     }
@@ -225,7 +232,7 @@ export class AuthService {
       issued_at: currentSession.issued_at.getTime(),
       expires_at: currentSession.expires_at.getTime()
     }
-    const token = CryptoUtils.createSessionData(tokenData)
+    const token = btoa(JSON.stringify(tokenData))
     localStorage.setItem(this.SESSION_KEY, token)
 
     return token
@@ -256,11 +263,7 @@ export class AuthService {
     }
 
     // Проверяем старый пароль
-    const isValidOldPassword = await CryptoUtils.verifyPassword(
-      input.old_password,
-      user.pwd_hash,
-      user.pwd_salt
-    )
+    const isValidOldPassword = await newAuthService.verifyPassword(user, input.old_password)
 
     if (!isValidOldPassword) {
       await this.logAudit('Auth.Password.Change.Failed', 'User', user.id, {
@@ -270,17 +273,22 @@ export class AuthService {
     }
 
     // Валидируем новый пароль
-    const passwordValidation = CryptoUtils.validatePasswordStrength(input.new_password)
+    // Simple password validation - just check length
+    const passwordValidation = {
+      isValid: input.new_password.length >= 8,
+      errors: input.new_password.length < 8 ? ['Пароль должен быть не менее 8 символов'] : []
+    }
     if (!passwordValidation.isValid) {
       throw new Error(`Слабый пароль: ${passwordValidation.errors.join(', ')}`)
     }
 
-    // Хешируем новый пароль
-    const newPasswordHash = await CryptoUtils.hashPassword(input.new_password)
+    // Хешируем новый пароль (используем новый простой алгоритм)
+    const newSalt = newAuthService.generateSalt()
+    const newHash = await newAuthService.createPasswordHash(input.new_password, newSalt)
 
     // Обновляем пароль
-    user.pwd_hash = newPasswordHash.hash
-    user.pwd_salt = newPasswordHash.salt
+    user.pwd_hash = newHash
+    user.pwd_salt = newSalt
     user.updated_at = new Date()
     user.version += 1
 
@@ -339,7 +347,7 @@ export class AuthService {
       issued_at: session.issued_at.getTime(),
       expires_at: session.expires_at.getTime()
     }
-    localStorage.setItem(this.SESSION_KEY, CryptoUtils.createSessionData(tokenData))
+    localStorage.setItem(this.SESSION_KEY, btoa(JSON.stringify(tokenData)))
   }
 
   /**
@@ -404,7 +412,7 @@ export class AuthService {
     const currentUser = await this.getCurrentUser()
     
     const log: AuditLog = {
-      id: CryptoUtils.generateSecureId(),
+      id: `user_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`,
       tenant_id: currentUser?.tenant_id || 'system',
       user_id: currentUser?.id,
       action,

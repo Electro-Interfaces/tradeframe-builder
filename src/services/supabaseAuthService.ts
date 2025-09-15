@@ -5,7 +5,7 @@
 
 import { supabaseService } from '@/services/supabaseServiceClient';
 import { createClient } from '@supabase/supabase-js';
-import { CryptoUtils } from '@/utils/crypto';
+import { authService } from './auth/authService';
 
 interface SupabaseUser {
   id: string;
@@ -83,8 +83,8 @@ export class SupabaseAuthService {
           throw new Error('Неверный пароль');
         }
       } else {
-        // Для остальных пользователей проверяем хэш пароля используя PBKDF2 (совместимо с externalUsersService)
-        const isPasswordValid = await CryptoUtils.verifyPassword(password, user.pwd_hash, user.pwd_salt);
+        // Для остальных пользователей проверяем хэш пароля используя простой SHA-256
+        const isPasswordValid = await authService.verifyPassword({ pwd_hash: user.pwd_hash, pwd_salt: user.pwd_salt } as any, password);
         if (!isPasswordValid) {
           throw new Error('Неверный пароль');
         }

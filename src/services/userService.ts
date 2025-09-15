@@ -4,8 +4,9 @@
  */
 
 import { persistentStorage } from '@/utils/persistentStorage'
-import { CryptoUtils } from '@/utils/crypto'
+// Removed CryptoUtils - using simpler approach
 import { AuthService } from './authService'
+import { authService } from './auth/authService'
 import { RoleService } from './roleService'
 import type {
   User,
@@ -186,15 +187,15 @@ export class UserService {
       throw new Error('Пользователь не найден')
     }
 
-    // Проверяем текущий пароль
-    const currentHash = await CryptoUtils.hashPassword(currentPassword, user.pwd_salt)
-    if (currentHash !== user.pwd_hash) {
+    // Проверяем текущий пароль (используем новый authService)
+    const isCurrentPasswordValid = await authService.verifyPassword(user, currentPassword)
+    if (!isCurrentPasswordValid) {
       throw new Error('Неверный текущий пароль')
     }
 
-    // Генерируем новый хеш пароля
-    const newSalt = CryptoUtils.generateSalt()
-    const newHash = await CryptoUtils.hashPassword(newPassword, newSalt)
+    // Генерируем новый хеш пароля (используем новый простой алгоритм)
+    const newSalt = authService.generateSalt()
+    const newHash = await authService.createPasswordHash(newPassword, newSalt)
 
     // Обновляем пароль
     user.pwd_salt = newSalt
@@ -409,12 +410,13 @@ export class UserService {
       throw new Error('Пользователь не найден')
     }
 
-    // Генерируем временный пароль
-    const temporaryPassword = CryptoUtils.generateSecureId(8)
-    const passwordHash = await CryptoUtils.hashPassword(temporaryPassword)
+    // Генерируем временный пароль (используем новый простой алгоритм)
+    const temporaryPassword = Math.random().toString(36).substring(2, 10)
+    const newSalt = authService.generateSalt()
+    const newHash = await authService.createPasswordHash(temporaryPassword, newSalt)
 
-    user.pwd_hash = passwordHash.hash
-    user.pwd_salt = passwordHash.salt
+    user.pwd_hash = newHash
+    user.pwd_salt = newSalt
     user.updated_at = new Date()
     user.version += 1
 
@@ -598,7 +600,7 @@ export class UserService {
     const auditLogs = await persistentStorage.getItem<AuditLog[]>(this.AUDIT_KEY) || []
     
     const log: AuditLog = {
-      id: CryptoUtils.generateSecureId(),
+      id: `audit_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`,
       tenant_id: 'system', // TODO: получать из контекста
       action,
       entity_type: entityType,
