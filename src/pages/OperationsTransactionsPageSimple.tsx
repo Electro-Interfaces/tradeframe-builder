@@ -17,8 +17,7 @@ import { stsApiService, Transaction } from "@/services/stsApi";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { TradingPoint } from "@/types/tradingpoint";
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// PDF export removed - jsPDF and html2canvas imports disabled
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, TimeScale } from 'chart.js';
 
 export default function OperationsTransactionsPageSimple() {
@@ -251,265 +250,9 @@ export default function OperationsTransactionsPageSimple() {
     });
   };
 
+  // PDF export function removed
   const exportToPDF = async () => {
-    try {
-      const pdf = new jsPDF('l', 'mm', 'a4'); // landscape orientation
-      let yPosition = 20;
-      
-      // === ЗАГОЛОВОК ОТЧЕТА ===
-      pdf.setFillColor(30, 41, 59); // slate-800
-      pdf.rect(0, 0, pdf.internal.pageSize.width, 40, 'F');
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(20);
-      pdf.text('DASHBOARD OPERATSIY I TRANSAKTSIY', 20, 20);
-      
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(12);
-      pdf.text(`Data formirovaniya: ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB')}`, 20, 30);
-      pdf.text(`Period otcheta: ${dateFrom} - ${dateTo}`, 170, 30);
-      
-      yPosition = 50;
-      pdf.setTextColor(0, 0, 0);
-      
-      // === РАСЧЕТ KPI ===
-      const completedOps = filteredOperations.filter(op => op.status === 'completed');
-      const totalVolume = completedOps.reduce((sum, op) => sum + (op.actualQuantity || op.quantity || 0), 0);
-      const totalRevenue = completedOps.reduce((sum, op) => sum + (op.actualAmount || op.totalCost || 0), 0);
-      const avgPrice = totalVolume > 0 ? totalRevenue / totalVolume : 0;
-      
-      // Статистика по видам топлива
-      const fuelStats = [...new Set(completedOps.map(op => op.fuelType).filter(Boolean))].map(fuel => {
-        const fuelOps = completedOps.filter(op => op.fuelType === fuel);
-        return {
-          fuel,
-          operations: fuelOps.length,
-          volume: fuelOps.reduce((sum, op) => sum + (op.actualQuantity || op.quantity || 0), 0),
-          revenue: fuelOps.reduce((sum, op) => sum + (op.actualAmount || op.totalCost || 0), 0)
-        };
-      }).sort((a, b) => b.revenue - a.revenue);
-      
-      // Статистика по способам оплаты
-      const paymentStats = ['cash', 'bank_card', 'fuel_card', 'online_order'].map(method => {
-        const paymentOps = completedOps.filter(op => op.paymentMethod === method);
-        return {
-          method,
-          name: { 'cash': 'Наличные', 'bank_card': 'Банк. карты', 'fuel_card': 'Топл. карты', 'online_order': 'Онлайн' }[method],
-          operations: paymentOps.length,
-          revenue: paymentOps.reduce((sum, op) => sum + (op.actualAmount || op.totalCost || 0), 0)
-        };
-      }).filter(stat => stat.operations > 0).sort((a, b) => b.revenue - a.revenue);
-      
-      // === ГЛАВНЫЕ KPI (4 блока) ===
-      const kpiBlocks = [
-        { title: 'OBSCHAYA VYRUCHKA', value: `${totalRevenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} RUB`, color: [59, 130, 246] },
-        { title: 'OBSCHIY OBEM', value: `${totalVolume.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} L`, color: [16, 185, 129] },
-        { title: 'OPERATSIY', value: `${completedOps.length.toLocaleString('en-US')}`, color: [245, 158, 11] },
-        { title: 'SREDNYAYA TSENA', value: `${avgPrice.toFixed(2)} RUB/L`, color: [139, 92, 246] }
-      ];
-      
-      const blockWidth = 60;
-      const blockHeight = 25;
-      kpiBlocks.forEach((kpi, index) => {
-        const x = 20 + (index * 70);
-        
-        // Фон блока
-        pdf.setFillColor(...kpi.color);
-        pdf.roundedRect(x, yPosition, blockWidth, blockHeight, 3, 3, 'F');
-        
-        // Заголовок
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(9);
-        pdf.text(kpi.title, x + 2, yPosition + 8);
-        
-        // Значение
-        pdf.setFontSize(14);
-        pdf.text(kpi.value, x + 2, yPosition + 18);
-      });
-      
-      yPosition += 35;
-      
-      // === СОЗДАНИЕ ГРАФИКОВ ===
-      let fuelChartData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-      let paymentChartData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-      
-      try {
-        // 1. График по видам топлива (Bar Chart)
-        if (fuelStats.length > 0) {
-          fuelChartData = await createChartCanvas('bar', {
-            labels: fuelStats.slice(0, 5).map(stat => stat.fuel),
-            datasets: [{
-              label: 'Выручка (₽)',
-              data: fuelStats.slice(0, 5).map(stat => stat.revenue),
-              backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'],
-              borderRadius: 4
-            }]
-          }, {
-            plugins: {
-              title: { display: true, text: 'ВЫРУЧКА ПО ВИДАМ ТОПЛИВА', color: '#ffffff', font: { size: 14, weight: 'bold' } },
-              legend: { display: false }
-            },
-            scales: {
-              y: { beginAtZero: true, ticks: { callback: (value) => `${value.toLocaleString()} ₽` } },
-              x: {}
-            }
-          });
-        }
-      } catch (error) {
-      }
-      
-      try {
-        // 2. График по способам оплаты (Pie Chart)
-        if (paymentStats.length > 0) {
-          paymentChartData = await createChartCanvas('pie', {
-            labels: paymentStats.map(stat => stat.name),
-            datasets: [{
-              data: paymentStats.map(stat => stat.revenue),
-              backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'],
-              borderWidth: 2,
-              borderColor: '#ffffff'
-            }]
-          }, {
-            plugins: {
-              title: { display: true, text: 'РАСПРЕДЕЛЕНИЕ ПО СПОСОБАМ ОПЛАТЫ', color: '#ffffff', font: { size: 14, weight: 'bold' } },
-              legend: { position: 'bottom' }
-            }
-          });
-        }
-      } catch (error) {
-      }
-      
-      // === ПРОСТЫЕ ТЕКСТОВЫЕ ГРАФИКИ ===
-      // Левый блок - Топ-3 по видам топлива
-      pdf.setFillColor(30, 41, 59);
-      pdf.roundedRect(15, yPosition - 5, 125, 80, 5, 5, 'F');
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(12);
-      pdf.text('TOP FUEL TYPES BY REVENUE', 20, yPosition + 10);
-      
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(10);
-      let fuelY = yPosition + 20;
-      fuelStats.slice(0, 3).forEach((stat, index) => {
-        const colors = [[59, 130, 246], [16, 185, 129], [245, 158, 11]];
-        pdf.setFillColor(...colors[index]);
-        pdf.rect(22, fuelY, 3, 3, 'F');
-        pdf.setTextColor(255, 255, 255);
-        pdf.text(`${stat.fuel}: ${stat.revenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} RUB`, 28, fuelY + 2);
-        fuelY += 12;
-      });
-      
-      // Правый блок - Способы оплаты
-      pdf.setFillColor(30, 41, 59);
-      pdf.roundedRect(150, yPosition - 5, 125, 80, 5, 5, 'F');
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(12);
-      pdf.text('PAYMENT METHODS', 155, yPosition + 10);
-      
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(10);
-      let paymentY = yPosition + 20;
-      paymentStats.slice(0, 3).forEach((stat, index) => {
-        const colors = [[16, 185, 129], [59, 130, 246], [245, 158, 11]];
-        pdf.setFillColor(...colors[index]);
-        pdf.rect(157, paymentY, 3, 3, 'F');
-        pdf.setTextColor(255, 255, 255);
-        const percentage = totalRevenue > 0 ? (stat.revenue / totalRevenue * 100).toFixed(1) : '0';
-        pdf.text(`${stat.name}: ${percentage}%`, 163, paymentY + 2);
-        paymentY += 12;
-      });
-      
-      yPosition += 85;
-      
-      // === ДЕТАЛЬНАЯ ТАБЛИЦА KPI ===
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(14);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('DETALNAYA STATISTIKA PO VIDAM TOPLIVA', 20, yPosition);
-      yPosition += 10;
-      
-      // Заголовки таблицы
-      pdf.setFillColor(71, 85, 105); // slate-600
-      pdf.rect(20, yPosition, 250, 8, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(10);
-      
-      pdf.text('VID TOPLIVA', 25, yPosition + 6);
-      pdf.text('OPERATSIY', 80, yPosition + 6);
-      pdf.text('OBEM (L)', 120, yPosition + 6);
-      pdf.text('VYRUCHKA (RUB)', 160, yPosition + 6);
-      pdf.text('DOLYA (%)', 220, yPosition + 6);
-      
-      yPosition += 10;
-      
-      // Строки таблицы
-      fuelStats.forEach((stat, index) => {
-        const bgColor = index % 2 === 0 ? [248, 250, 252] : [241, 245, 249]; // alternating rows
-        pdf.setFillColor(...bgColor);
-        pdf.rect(20, yPosition, 250, 6, 'F');
-        
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(9);
-        
-        const share = totalRevenue > 0 ? (stat.revenue / totalRevenue * 100).toFixed(1) : 0;
-        
-        pdf.text(stat.fuel, 25, yPosition + 4);
-        pdf.text(stat.operations.toString(), 85, yPosition + 4);
-        pdf.text(stat.volume.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' '), 125, yPosition + 4);
-        pdf.text(stat.revenue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' '), 165, yPosition + 4);
-        pdf.text(`${share}%`, 225, yPosition + 4);
-        
-        yPosition += 6;
-      });
-      
-      // === ФУТЕР ===
-      const pageHeight = pdf.internal.pageSize.height;
-      pdf.setFillColor(30, 41, 59);
-      pdf.rect(0, pageHeight - 15, pdf.internal.pageSize.width, 15, 'F');
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(8);
-      pdf.text('Generated by TradeControl v2.0', 20, pageHeight - 5);
-      pdf.text('Page 1', pdf.internal.pageSize.width - 30, pageHeight - 5);
-      
-      // Сохраняем PDF
-      const fileName = `operations_dashboard_${new Date().toISOString().slice(0, 10)}.pdf`;
-      pdf.save(fileName);
-      
-      
-      // Показываем уведомление об успешном экспорте для всех устройств
-      const notification = document.createElement('div');
-      notification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
-      notification.textContent = `PDF дашборд создан: ${filteredOperations.length} №`;
-      document.body.appendChild(notification);
-      setTimeout(() => {
-        if (document.body.contains(notification)) {
-          document.body.removeChild(notification);
-        }
-      }, 3000);
-    } catch (error) {
-      console.error('❌ Ошибка экспорта дашборда в PDF:', error);
-      
-      // Показываем ошибку для всех устройств
-      const errorNotification = document.createElement('div');
-      errorNotification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
-      errorNotification.textContent = 'Ошибка при создании PDF дашборда';
-      document.body.appendChild(errorNotification);
-      setTimeout(() => {
-        if (document.body.contains(errorNotification)) {
-          document.body.removeChild(errorNotification);
-        }
-      }, 3000);
-    }
+    console.log('PDF export is disabled');
   };
 
   // Функция загрузки из STS API
@@ -1074,10 +817,12 @@ export default function OperationsTransactionsPageSimple() {
                         <FileSpreadsheet className="w-4 h-4 text-green-400" />
                         <span className="text-sm font-medium">Экспорт в Excel</span>
                       </DropdownMenuItem>
+{/* PDF экспорт убран
                       <DropdownMenuItem onClick={exportToPDF} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
                         <FileText className="w-4 h-4 text-red-400" />
                         <span className="text-sm font-medium">Дашборд PDF</span>
                       </DropdownMenuItem>
+                      */}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
