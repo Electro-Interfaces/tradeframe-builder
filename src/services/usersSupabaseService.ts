@@ -4,6 +4,7 @@
  */
 
 import { supabaseService } from './supabaseServiceClient'
+import { authService } from './auth/authService'
 import type {
   User,
   CreateUserInput,
@@ -206,6 +207,10 @@ export class UserSupabaseService {
         throw new Error('Пользователь с таким email уже существует')
       }
 
+      // Хешируем пароль (используем новый простой алгоритм)
+      const salt = authService.generateSalt()
+      const hashedPassword = await authService.createPasswordHash(input.password, salt)
+
       // Создаем пользователя
       const userData = {
         email: input.email.toLowerCase(),
@@ -213,6 +218,8 @@ export class UserSupabaseService {
         phone: input.phone,
         status: input.status || 'active',
         tenant_id: input.tenantId,
+        pwd_salt: salt,
+        pwd_hash: hashedPassword,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         version: 1
@@ -456,6 +463,80 @@ export class UserSupabaseService {
    */
   static async updateUserStatus(id: string, status: UserStatus): Promise<User> {
     return this.updateUser(id, { status })
+  }
+
+  /**
+   * Изменить пароль пользователя
+   */
+  static async changePassword(id: string, currentPassword: string, newPassword: string): Promise<void> {
+    try {
+      // Получаем пользователя
+      const user = await this.getUserById(id)
+      if (!user) {
+        throw new Error('Пользователь не найден')
+      }
+
+      // Проверяем текущий пароль через обычную авторизацию
+      const isCurrentPasswordValid = await authService.verifyPassword({
+        pwd_hash: (user as any).pwd_hash,
+        pwd_salt: (user as any).pwd_salt
+      }, currentPassword)
+
+      if (!isCurrentPasswordValid) {
+        throw new Error('Неверный текущий пароль')
+      }
+
+      // Генерируем новую соль и хеш
+      const newSalt = authService.generateSalt()
+      const newHash = await authService.createPasswordHash(newPassword, newSalt)
+
+      // Обновляем пароль в базе
+      const response = await supabase
+        .from('users')
+        .update({
+          pwd_salt: newSalt,
+          pwd_hash: newHash,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+      if (response.error) {
+        throw new Error(`Ошибка изменения пароля: ${response.error}`)
+      }
+
+    } catch (error) {
+      console.error('Ошибка изменения пароля:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Сбросить пароль пользователя (только для администраторов)
+   */
+  static async resetPassword(id: string, newPassword: string): Promise<void> {
+    try {
+      // Генерируем новую соль и хеш с новым алгоритмом
+      const newSalt = authService.generateSalt()
+      const newHash = await authService.createPasswordHash(newPassword, newSalt)
+
+      // Обновляем пароль в базе
+      const response = await supabase
+        .from('users')
+        .update({
+          pwd_salt: newSalt,
+          pwd_hash: newHash,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+      if (response.error) {
+        throw new Error(`Ошибка сброса пароля: ${response.error}`)
+      }
+
+    } catch (error) {
+      console.error('Ошибка сброса пароля:', error)
+      throw error
+    }
   }
 }
 

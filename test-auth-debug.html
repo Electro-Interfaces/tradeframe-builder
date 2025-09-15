@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Auth Debug</title>
+</head>
+<body>
+    <h1>Тестирование авторизации</h1>
+
+    <div id="result"></div>
+
+    <script>
+        async function testAuth() {
+            const resultDiv = document.getElementById('result');
+
+            try {
+                // Проверяем разные варианты email
+                const testCases = [
+                    { email: 'l@me.com', password: 'qwerty' },
+                    { email: 'L@me.com', password: 'qwerty' },
+                    { email: 'u@me.com', password: '123456' }
+                ];
+
+                for (const testCase of testCases) {
+                    console.log(`Тестируем: ${testCase.email} / ${testCase.password}`);
+
+                    const response = await fetch('http://localhost:3002/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: testCase.email,
+                            password: testCase.password
+                        })
+                    });
+
+                    const result = await response.json();
+                    console.log(`Результат для ${testCase.email}:`, result);
+
+                    resultDiv.innerHTML += `<p><strong>${testCase.email}</strong>: ${response.status} - ${JSON.stringify(result)}</p>`;
+                }
+
+            } catch (error) {
+                console.error('Ошибка:', error);
+                resultDiv.innerHTML += `<p style="color: red;">Ошибка: ${error.message}</p>`;
+            }
+        }
+
+        // Запускаем тест при загрузке страницы
+        testAuth();
+    </script>
+</body>
+</html>

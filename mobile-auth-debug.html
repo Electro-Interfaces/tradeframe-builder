@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Auth Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 15px;
+            background: #1a1a1a;
+            color: white;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .header {
+            background: #2563eb;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .section {
+            background: #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+        }
+        .status {
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .success { background: #22c55e; color: white; }
+        .error { background: #ef4444; color: white; }
+        .warning { background: #f59e0b; color: white; }
+        .info { background: #3b82f6; color: white; }
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .btn:hover { background: #1d4ed8; }
+        pre {
+            background: #222;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 11px;
+            white-space: pre-wrap;
+        }
+        .grid {
+            display: grid;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        @media (min-width: 768px) {
+            .grid { grid-template-columns: 1fr 1fr; }
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #555;
+        }
+        .metric:last-child { border-bottom: none; }
+        .value { font-weight: bold; color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Mobile Auth Debug Tool</h1>
+        <p>Диагностика проблем авторизации на мобильных устройствах</p>
+    </div>
+
+    <div class="section">
+        <h3>📱 Device Information</h3>
+        <div id="device-info"></div>
+    </div>
+
+    <div class="section">
+        <h3>🔑 Storage Analysis</h3>
+        <div id="storage-info"></div>
+        <button class="btn" onclick="analyzeStorage()">🔄 Analyze Storage</button>
+        <button class="btn" onclick="clearAllStorage()">🗑️ Clear All Storage</button>
+    </div>
+
+    <div class="section">
+        <h3>🌐 Network Tests</h3>
+        <div id="network-results"></div>
+        <button class="btn" onclick="testNetworkAccess()">🧪 Test Network</button>
+        <button class="btn" onclick="testAuthFlow()">🔐 Test Auth Flow</button>
+    </div>
+
+    <div class="section">
+        <h3>📊 Diagnostics Log</h3>
+        <pre id="debug-log">Starting mobile auth diagnostics...
+</pre>
+    </div>
+
+    <script>
+        let logElement = null;
+
+        function log(message) {
+            if (!logElement) {
+                logElement = document.getElementById('debug-log');
+            }
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`Mobile Debug: ${message}`);
+        }
+
+        function updateDeviceInfo() {
+            const userAgent = navigator.userAgent;
+            const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            const isPWA = window.navigator.standalone || isStandalone;
+
+            let deviceHTML = `
+                <div class="metric">
+                    <span>Device Type:</span>
+                    <span class="value">${isMobile ? 'Mobile' : 'Desktop'}</span>
+                </div>
+                <div class="metric">
+                    <span>Platform:</span>
+                    <span class="value">${navigator.platform}</span>
+                </div>
+                <div class="metric">
+                    <span>Browser:</span>
+                    <span class="value">${getBrowserName()}</span>
+                </div>
+                <div class="metric">
+                    <span>Language:</span>
+                    <span class="value">${navigator.language}</span>
+                </div>
+                <div class="metric">
+                    <span>Online Status:</span>
+                    <span class="value">${navigator.onLine ? 'Online' : 'Offline'}</span>
+                </div>
+                <div class="metric">
+                    <span>PWA Mode:</span>
+                    <span class="value">${isPWA ? 'Yes' : 'No'}</span>
+                </div>
+                <div class="metric">
+                    <span>URL:</span>
+                    <span class="value">${window.location.href}</span>
+                </div>
+                <div class="metric">
+                    <span>Protocol:</span>
+                    <span class="value">${window.location.protocol}</span>
+                </div>
+                <div class="metric">
+                    <span>Host:</span>
+                    <span class="value">${window.location.host}</span>
+                </div>
+            `;
+
+            if (connection) {
+                deviceHTML += `
+                    <div class="metric">
+                        <span>Connection:</span>
+                        <span class="value">${connection.effectiveType || connection.type || 'Unknown'}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Downlink:</span>
+                        <span class="value">${connection.downlink || 'Unknown'} Mbps</span>
+                    </div>
+                `;
+            }
+
+            document.getElementById('device-info').innerHTML = deviceHTML;
+            log(`Device detected: ${isMobile ? 'Mobile' : 'Desktop'} - ${getBrowserName()}`);
+        }
+
+        function getBrowserName() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Firefox')) return 'Firefox';
+            if (ua.includes('Chrome')) return 'Chrome';
+            if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+            if (ua.includes('Edge')) return 'Edge';
+            if (ua.includes('Opera') || ua.includes('OPR')) return 'Opera';
+            return 'Unknown';
+        }
+
+        function analyzeStorage() {
+            log('Analyzing localStorage and sessionStorage...');
+
+            const storageData = {
+                localStorage: {},
+                sessionStorage: {},
+                total: 0
+            };
+
+            // Анализ localStorage
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                storageData.localStorage[key] = {
+                    value: value,
+                    size: new Blob([value]).size,
+                    type: typeof value
+                };
+                storageData.total += new Blob([value]).size;
+            }
+
+            // Анализ sessionStorage
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                const value = sessionStorage.getItem(key);
+                storageData.sessionStorage[key] = {
+                    value: value,
+                    size: new Blob([value]).size,
+                    type: typeof value
+                };
+                storageData.total += new Blob([value]).size;
+            }
+
+            // Ключи связанные с авторизацией
+            const authKeys = [
+                'tradeframe_user', 'tradeframe_user_v2',
+                'authToken', 'tradeframe_token_v2',
+                'currentUser', 'auth_token',
+                'redirectPath'
+            ];
+
+            let storageHTML = '<h4>🔍 Auth-related Storage:</h4>';
+
+            authKeys.forEach(key => {
+                const localValue = localStorage.getItem(key);
+                const sessionValue = sessionStorage.getItem(key);
+
+                if (localValue || sessionValue) {
+                    storageHTML += `<div class="status ${localValue || sessionValue ? 'info' : 'error'}">
+                        <strong>${key}:</strong><br>
+                        Local: ${localValue ? `✅ ${localValue.substring(0, 50)}${localValue.length > 50 ? '...' : ''}` : '❌ Not found'}<br>
+                        Session: ${sessionValue ? `✅ ${sessionValue.substring(0, 50)}${sessionValue.length > 50 ? '...' : ''}` : '❌ Not found'}
+                    </div>`;
+                }
+            });
+
+            storageHTML += `<h4>📊 Storage Summary:</h4>
+                <div class="metric">
+                    <span>localStorage items:</span>
+                    <span class="value">${Object.keys(storageData.localStorage).length}</span>
+                </div>
+                <div class="metric">
+                    <span>sessionStorage items:</span>
+                    <span class="value">${Object.keys(storageData.sessionStorage).length}</span>
+                </div>
+                <div class="metric">
+                    <span>Total storage size:</span>
+                    <span class="value">${(storageData.total / 1024).toFixed(2)} KB</span>
+                </div>`;
+
+            document.getElementById('storage-info').innerHTML = storageHTML;
+            log(`Storage analyzed: ${Object.keys(storageData.localStorage).length} local, ${Object.keys(storageData.sessionStorage).length} session items`);
+        }
+
+        function clearAllStorage() {
+            try {
+                const localCount = localStorage.length;
+                const sessionCount = sessionStorage.length;
+
+                localStorage.clear();
+                sessionStorage.clear();
+
+                document.getElementById('storage-info').innerHTML = '<div class="status success">✅ All storage cleared successfully!</div>';
+                log(`Cleared ${localCount} localStorage and ${sessionCount} sessionStorage items`);
+            } catch (error) {
+                document.getElementById('storage-info').innerHTML = `<div class="status error">❌ Error clearing storage: ${error.message}</div>`;
+                log(`Storage clear error: ${error.message}`);
+            }
+        }
+
+        async function testNetworkAccess() {
+            log('Testing network access...');
+            const resultsDiv = document.getElementById('network-results');
+            resultsDiv.innerHTML = '<div class="status info">Testing network connections...</div>';
+
+            const tests = [
+                { name: 'Local Dev Server', url: 'http://localhost:3000' },
+                { name: 'Network Dev Server', url: 'http://192.168.1.37:3000' },
+                { name: 'Local API', url: 'http://localhost:3001' },
+                { name: 'Network API', url: 'http://192.168.1.37:3001' }
+            ];
+
+            let results = '<h4>🌐 Network Test Results:</h4>';
+
+            for (const test of tests) {
+                try {
+                    log(`Testing ${test.name}...`);
+                    const start = performance.now();
+                    const response = await fetch(test.url, {
+                        method: 'HEAD',
+                        mode: 'no-cors',
+                        timeout: 5000
+                    });
+                    const end = performance.now();
+                    const time = Math.round(end - start);
+
+                    results += `<div class="status success">✅ ${test.name}: ${time}ms</div>`;
+                    log(`${test.name} accessible in ${time}ms`);
+                } catch (error) {
+                    results += `<div class="status error">❌ ${test.name}: ${error.message}</div>`;
+                    log(`${test.name} failed: ${error.message}`);
+                }
+            }
+
+            resultsDiv.innerHTML = results;
+        }
+
+        async function testAuthFlow() {
+            log('Testing authentication flow...');
+            const resultsDiv = document.getElementById('network-results');
+
+            // Симуляция входа с тестовыми данными
+            const authData = {
+                email: 'test@example.com',
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                url: window.location.href
+            };
+
+            // Тест сохранения в storage
+            try {
+                // Старые ключи
+                localStorage.setItem('tradeframe_user', JSON.stringify(authData));
+                localStorage.setItem('authToken', 'test_token_old');
+
+                // Новые ключи
+                localStorage.setItem('tradeframe_user_v2', JSON.stringify(authData));
+                localStorage.setItem('tradeframe_token_v2', 'test_token_new');
+
+                resultsDiv.innerHTML = '<div class="status success">✅ Auth storage test successful</div>';
+                log('Auth storage test passed');
+
+                // Перенаправление на основное приложение
+                setTimeout(() => {
+                    log('Redirecting to main app...');
+                    window.location.href = window.location.origin;
+                }, 2000);
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="status error">❌ Auth storage test failed: ${error.message}</div>`;
+                log(`Auth storage test failed: ${error.message}`);
+            }
+        }
+
+        // Auto-run diagnostics on load
+        window.addEventListener('load', () => {
+            log('Mobile auth debug tool loaded');
+            updateDeviceInfo();
+            analyzeStorage();
+        });
+
+        // Monitor online/offline status
+        window.addEventListener('online', () => {
+            log('Network connection restored');
+            updateDeviceInfo();
+        });
+
+        window.addEventListener('offline', () => {
+            log('Network connection lost');
+            updateDeviceInfo();
+        });
+
+        // Monitor storage changes
+        window.addEventListener('storage', (e) => {
+            log(`Storage changed: ${e.key} = ${e.newValue}`);
+            analyzeStorage();
+        });
+    </script>
+</body>
+</html>

@@ -536,58 +536,25 @@ class ExternalUsersService {
   }
 
   private generateSalt(): string {
-    // Генерируем криптографически стойкую соль как Base64 (совместимо с CryptoUtils)
-    const salt = new Uint8Array(16); // 16 байт как в CryptoUtils
-    crypto.getRandomValues(salt);
-    return this.arrayBufferToBase64(salt);
+    // Простая генерация соли как в authService
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 
-  private arrayBufferToBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  }
-
-  private base64ToArrayBuffer(base64: string): ArrayBuffer {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes.buffer;
-  }
 
   private async hashPassword(password: string, salt: string): Promise<string> {
-    // Используем PBKDF2 для совместимости с authService
-    const encoder = new TextEncoder();
-    const passwordBytes = encoder.encode(password);
-    const saltBytes = this.base64ToArrayBuffer(salt);
+    // Простое хеширование SHA-256 как в authService
+    const passwordWithSalt = password + salt;
 
-    // Импортируем пароль как ключ для PBKDF2
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      passwordBytes,
-      { name: 'PBKDF2' },
-      false,
-      ['deriveBits']
-    );
-
-    // Выполняем PBKDF2 хеширование (совместимо с CryptoUtils)
-    const hashBuffer = await crypto.subtle.deriveBits(
-      {
-        name: 'PBKDF2',
-        salt: saltBytes,
-        iterations: 100000, // Такие же итерации как в CryptoUtils
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      32 * 8  // 32 байта в битах
-    );
-
-    return this.arrayBufferToBase64(hashBuffer);
+    // Используем SHA-256 если доступен, иначе base64
+    if (crypto && crypto.subtle) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(passwordWithSalt);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return btoa(String.fromCharCode(...hashArray));
+    } else {
+      return btoa(passwordWithSalt);
+    }
   }
 
   async testConnection(): Promise<{ success: boolean; error?: string }> {

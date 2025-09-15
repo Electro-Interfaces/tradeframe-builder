@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test New User Creation</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        .info { background: #d1ecf1; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+        button { margin: 5px; padding: 10px; background: #007bff; color: white; border: none; cursor: pointer; }
+        input { margin: 5px; padding: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Тест создания нового пользователя</h1>
+
+    <div>
+        <h3>Создать пользователя через новый authService:</h3>
+        <input type="email" id="newEmail" placeholder="Email" value="newuser@test.com">
+        <input type="text" id="newPassword" placeholder="Пароль" value="testpassword">
+        <input type="text" id="newName" placeholder="Имя" value="Новый Пользователь">
+        <br>
+        <button onclick="testCreateUser()">Создать пользователя</button>
+        <button onclick="testAuthWithCreatedUser()">Проверить авторизацию</button>
+    </div>
+
+    <div>
+        <h3>Создать пользователя напрямую в БД:</h3>
+        <input type="email" id="dbEmail" placeholder="Email" value="dbuser@test.com">
+        <input type="text" id="dbPassword" placeholder="Пароль" value="dbpass123">
+        <input type="text" id="dbName" placeholder="Имя" value="DB Пользователь">
+        <br>
+        <button onclick="createUserInDB()">Создать в БД</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        // Простое хеширование (как в authService)
+        async function createPasswordHash(password, salt) {
+            const passwordWithSalt = password + salt;
+
+            if (crypto && crypto.subtle) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(passwordWithSalt);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return btoa(String.fromCharCode(...hashArray));
+            } else {
+                return btoa(passwordWithSalt);
+            }
+        }
+
+        function generateSalt() {
+            return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+
+        function addResult(title, content, isSuccess = null) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${isSuccess === true ? 'success' : isSuccess === false ? 'error' : 'info'}`;
+            div.innerHTML = `<h3>${title}</h3><pre>${content}</pre>`;
+            results.appendChild(div);
+        }
+
+        // Имитация создания пользователя через authService
+        async function testCreateUser() {
+            const email = document.getElementById('newEmail').value;
+            const password = document.getElementById('newPassword').value;
+            const name = document.getElementById('newName').value;
+
+            // Имитируем процесс создания пользователя
+            const salt = generateSalt();
+            const hash = await createPasswordHash(password, salt);
+
+            const userData = {
+                id: generateSalt(), // Простой ID
+                email: email,
+                name: name,
+                pwd_salt: salt,
+                pwd_hash: hash,
+                status: 'active',
+                algorithm: 'SHA-256',
+                created_at: new Date().toISOString()
+            };
+
+            addResult(
+                'Создан пользователь (authService)',
+                JSON.stringify(userData, null, 2),
+                true
+            );
+
+            // Сохраняем для тестирования авторизации
+            window.createdUser = userData;
+
+            return userData;
+        }
+
+        // Проверка авторизации созданного пользователя
+        async function testAuthWithCreatedUser() {
+            if (!window.createdUser) {
+                addResult('Ошибка', 'Сначала создайте пользователя!', false);
+                return;
+            }
+
+            const user = window.createdUser;
+            const testPassword = document.getElementById('newPassword').value;
+
+            // Проверяем авторизацию
+            const computedHash = await createPasswordHash(testPassword, user.pwd_salt);
+            const isValid = computedHash === user.pwd_hash;
+
+            addResult(
+                'Проверка авторизации',
+                JSON.stringify({
+                    email: user.email,
+                    password: testPassword,
+                    salt: user.pwd_salt,
+                    computedHash: computedHash.substring(0, 20) + '...',
+                    storedHash: user.pwd_hash.substring(0, 20) + '...',
+                    match: isValid,
+                    result: isValid ? '✅ АВТОРИЗАЦИЯ УСПЕШНА' : '❌ АВТОРИЗАЦИЯ ПРОВАЛЕНА'
+                }, null, 2),
+                isValid
+            );
+        }
+
+        // Создание пользователя напрямую в Supabase
+        async function createUserInDB() {
+            const email = document.getElementById('dbEmail').value;
+            const password = document.getElementById('dbPassword').value;
+            const name = document.getElementById('dbName').value;
+
+            const salt = generateSalt();
+            const hash = await createPasswordHash(password, salt);
+
+            const userData = {
+                email: email,
+                name: name,
+                pwd_salt: salt,
+                pwd_hash: hash,
+                status: 'active',
+                tenant_id: '00000000-0000-0000-0000-000000000001',
+                preferences: {}
+            };
+
+            // SQL для вставки
+            const sql = `INSERT INTO users (id, tenant_id, email, name, status, pwd_salt, pwd_hash, preferences)
+VALUES (
+    gen_random_uuid(),
+    '${userData.tenant_id}',
+    '${userData.email}',
+    '${userData.name}',
+    '${userData.status}',
+    '${userData.pwd_salt}',
+    '${userData.pwd_hash}',
+    '{}'
+);`;
+
+            addResult(
+                'SQL для создания пользователя в БД',
+                sql,
+                true
+            );
+
+            addResult(
+                'Данные нового пользователя',
+                JSON.stringify(userData, null, 2)
+            );
+
+            addResult(
+                'Данные для входа',
+                JSON.stringify({
+                    email: email,
+                    password: password,
+                    note: 'Выполните SQL выше, затем используйте эти данные для входа'
+                }, null, 2),
+                true
+            );
+        }
+
+        // Показать статус криптографии
+        window.addEventListener('load', () => {
+            addResult('Статус Web Crypto API', JSON.stringify({
+                protocol: window.location.protocol,
+                isSecure: window.isSecureContext,
+                crypto_available: !!crypto,
+                subtle_available: !!(crypto && crypto.subtle),
+                algorithm: crypto && crypto.subtle ? 'SHA-256' : 'Base64'
+            }, null, 2));
+        });
+    </script>
+</body>
+</html>

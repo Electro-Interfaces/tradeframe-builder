@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test btovbg@mail.ru Auth</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+        button { margin: 5px; padding: 10px; background: #007bff; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Тест авторизации btovbg@mail.ru</h1>
+
+    <div>
+        <h3>Данные пользователя из БД:</h3>
+        <pre>Email: btovbg@mail.ru
+Salt: 9iqa37cbpfs3dksuw0qp5w
+Hash: 9a+VxRBq6WmhcqOiCU00JkE4f5rLi6NleqHhKdOFdyI=</pre>
+    </div>
+
+    <div>
+        <h3>Тест авторизации:</h3>
+        <input type="email" id="email" value="btovbg@mail.ru" readonly>
+        <input type="password" id="password" value="qwerty" placeholder="Пароль">
+        <button onclick="testAuth()">Тестировать авторизацию</button>
+        <button onclick="testDifferentPasswords()">Попробовать разные пароли</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        // Данные пользователя
+        const userData = {
+            email: 'btovbg@mail.ru',
+            pwd_salt: '9iqa37cbpfs3dksuw0qp5w',
+            pwd_hash: '9a+VxRBq6WmhcqOiCU00JkE4f5rLi6NleqHhKdOFdyI='
+        };
+
+        // Простое хеширование (как в authService)
+        async function createPasswordHash(password, salt) {
+            const passwordWithSalt = password + salt;
+
+            if (crypto && crypto.subtle) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(passwordWithSalt);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return btoa(String.fromCharCode(...hashArray));
+            } else {
+                return btoa(passwordWithSalt);
+            }
+        }
+
+        function addResult(title, content, isSuccess = null) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${isSuccess === true ? 'success' : isSuccess === false ? 'error' : ''}`;
+            div.innerHTML = `<h3>${title}</h3><pre>${content}</pre>`;
+            results.appendChild(div);
+        }
+
+        async function testAuth() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            console.log('🔐 Тестируем авторизацию:', { email, password });
+
+            // Имитируем процесс авторизации
+            const passwordWithSalt = password + userData.pwd_salt;
+            const computedHash = await createPasswordHash(password, userData.pwd_salt);
+            const isValid = computedHash === userData.pwd_hash;
+
+            const result = {
+                email: email,
+                password: password,
+                salt: userData.pwd_salt,
+                passwordWithSalt: passwordWithSalt,
+                computedHash: computedHash,
+                storedHash: userData.pwd_hash,
+                match: isValid,
+                result: isValid ? '✅ АВТОРИЗАЦИЯ УСПЕШНА' : '❌ АВТОРИЗАЦИЯ ПРОВАЛЕНА',
+                method: crypto && crypto.subtle ? 'SHA-256' : 'Base64'
+            };
+
+            addResult(
+                `Тест: ${email} / ${password}`,
+                JSON.stringify(result, null, 2),
+                isValid
+            );
+
+            if (isValid) {
+                console.log('✅ Авторизация прошла успешно!');
+            } else {
+                console.log('❌ Авторизация провалена');
+                console.log('Детали:', result);
+            }
+        }
+
+        async function testDifferentPasswords() {
+            const passwords = ['qwerty', 'password', '123456', 'test', 'admin', 'user', 'qwerty123'];
+
+            addResult('🔍 Тестирование разных паролей', 'Начинаем перебор...');
+
+            for (const password of passwords) {
+                const computedHash = await createPasswordHash(password, userData.pwd_salt);
+                const isValid = computedHash === userData.pwd_hash;
+
+                addResult(
+                    `Пароль: "${password}"`,
+                    `Hash: ${computedHash}\nMatch: ${isValid ? '✅ НАЙДЕН!' : '❌'}`,
+                    isValid ? true : null
+                );
+
+                if (isValid) {
+                    alert(`НАЙДЕН ПРАВИЛЬНЫЙ ПАРОЛЬ: "${password}"`);
+                    break;
+                }
+            }
+        }
+
+        // Показать статус криптографии
+        window.addEventListener('load', () => {
+            addResult('Статус Web Crypto API', JSON.stringify({
+                protocol: window.location.protocol,
+                isSecure: window.isSecureContext,
+                crypto_available: !!crypto,
+                subtle_available: !!(crypto && crypto.subtle),
+                method: crypto && crypto.subtle ? 'SHA-256 (быстро)' : 'Base64 (совместимость)'
+            }, null, 2));
+        });
+    </script>
+</body>
+</html>

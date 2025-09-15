@@ -265,22 +265,24 @@ class ExternalProfileService {
 
   // Утилиты для работы с паролями (аналогично usersService)
   private generateSalt(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < 32; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+    // Простая генерация соли как в authService
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 
   private async hashPassword(password: string, salt: string): Promise<string> {
-    // В реальном приложении используйте bcrypt или аналогичную библиотеку
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password + salt);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    // Простое хеширование SHA-256 как в authService
+    const passwordWithSalt = password + salt;
+
+    // Используем SHA-256 если доступен, иначе base64
+    if (crypto && crypto.subtle) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(passwordWithSalt);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return btoa(String.fromCharCode(...hashArray));
+    } else {
+      return btoa(passwordWithSalt);
+    }
   }
 
   // Обновление времени последнего входа

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Simple User</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ddd; background: #f8f9fa; }
+        button { margin: 5px; padding: 10px; background: #007bff; color: white; border: none; cursor: pointer; }
+        input { margin: 5px; padding: 5px; width: 200px; }
+        pre { background: #e9ecef; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Создание простого пользователя</h1>
+
+    <div>
+        <h3>Новый подход: SHA-256 + простая соль</h3>
+        <input type="email" id="email" placeholder="Email" value="simple@test.com">
+        <input type="text" id="password" placeholder="Пароль" value="qwerty">
+        <input type="text" id="name" placeholder="Имя" value="Простой Пользователь">
+        <br>
+        <button onclick="createUser()">Создать пользователя</button>
+        <button onclick="updateExistingUser()">Обновить L@me.com паролем qwerty</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        // Простая генерация соли
+        function generateSalt() {
+            return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+
+        // Простое хеширование (как в новом authService)
+        async function createPasswordHash(password, salt) {
+            const passwordWithSalt = password + salt;
+
+            if (crypto && crypto.subtle) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(passwordWithSalt);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return btoa(String.fromCharCode(...hashArray));
+            } else {
+                return btoa(passwordWithSalt);
+            }
+        }
+
+        function addResult(title, content) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = 'result';
+            div.innerHTML = `<h3>${title}</h3><pre>${content}</pre>`;
+            results.appendChild(div);
+        }
+
+        async function createUser() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
+
+            // Генерируем соль и хеш
+            const salt = generateSalt();
+            const hash = await createPasswordHash(password, salt);
+
+            const userData = {
+                email: email,
+                name: name,
+                password: password, // Только для отображения
+                salt: salt,
+                hash: hash,
+                method: crypto && crypto.subtle ? 'SHA-256' : 'Base64'
+            };
+
+            addResult('Новый пользователь', JSON.stringify(userData, null, 2));
+
+            // SQL для создания
+            const sql = `INSERT INTO users (id, tenant_id, email, name, status, pwd_salt, pwd_hash, preferences)
+VALUES (
+    gen_random_uuid(),
+    '00000000-0000-0000-0000-000000000001',
+    '${email}',
+    '${name}',
+    'active',
+    '${salt}',
+    '${hash}',
+    '{}'
+);`;
+
+            addResult('SQL для создания', sql);
+
+            // Тест авторизации
+            const testAuth = await testAuthentication(email, password, salt, hash);
+            addResult('Тест авторизации', testAuth);
+        }
+
+        async function updateExistingUser() {
+            const email = 'L@me.com';
+            const password = 'qwerty';
+
+            // Генерируем новые соль и хеш для существующего пользователя
+            const salt = generateSalt();
+            const hash = await createPasswordHash(password, salt);
+
+            const updateData = {
+                email: email,
+                password: password,
+                salt: salt,
+                hash: hash,
+                method: crypto && crypto.subtle ? 'SHA-256' : 'Base64'
+            };
+
+            addResult('Обновление L@me.com', JSON.stringify(updateData, null, 2));
+
+            // SQL для обновления
+            const sql = `UPDATE users
+SET pwd_salt = '${salt}',
+    pwd_hash = '${hash}',
+    updated_at = NOW()
+WHERE email ILIKE 'L@me.com';`;
+
+            addResult('SQL для обновления L@me.com', sql);
+
+            // Тест авторизации
+            const testAuth = await testAuthentication(email, password, salt, hash);
+            addResult('Тест авторизации L@me.com', testAuth);
+        }
+
+        async function testAuthentication(email, password, salt, hash) {
+            // Имитируем процесс авторизации
+            const passwordWithSalt = password + salt;
+            let computedHash;
+
+            if (crypto && crypto.subtle) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(passwordWithSalt);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                computedHash = btoa(String.fromCharCode(...hashArray));
+            } else {
+                computedHash = btoa(passwordWithSalt);
+            }
+
+            const isValid = computedHash === hash;
+
+            return JSON.stringify({
+                email: email,
+                password: password,
+                salt: salt,
+                input: passwordWithSalt,
+                computedHash: computedHash,
+                storedHash: hash,
+                match: isValid,
+                result: isValid ? '✅ ВХОД РАЗРЕШЕН' : '❌ ВХОД ЗАПРЕЩЕН'
+            }, null, 2);
+        }
+
+        // Показать статус криптографии
+        window.addEventListener('load', () => {
+            addResult('Статус криптографии', JSON.stringify({
+                protocol: window.location.protocol,
+                isSecure: window.isSecureContext,
+                crypto_available: !!crypto,
+                subtle_available: !!(crypto && crypto.subtle),
+                method: crypto && crypto.subtle ? 'SHA-256 (быстро)' : 'Base64 (универсально)'
+            }, null, 2));
+        });
+    </script>
+</body>
+</html>
