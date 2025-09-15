@@ -1345,7 +1345,10 @@ export default function OperationsTransactionsPageSimple() {
                             <div className="flex justify-between items-start mb-2">
                               <div>
                                 <p className="font-bold text-white text-lg leading-tight truncate">{fuel}</p>
-                                <p className="text-base text-slate-400">{filteredFuelOps.length} №</p>
+                                <p className="text-base text-slate-400 flex items-center gap-1">
+                                  <Activity className="w-3 h-3" />
+                                  {filteredFuelOps.length}
+                                </p>
                               </div>
                               <div className="text-right">
                                 <p className="font-bold text-white text-lg leading-tight">
@@ -1428,7 +1431,10 @@ export default function OperationsTransactionsPageSimple() {
                             <div className="flex justify-between items-start mb-2">
                               <div>
                                 <p className="font-bold text-white text-lg leading-tight truncate">{displayName}</p>
-                                <p className="text-base text-slate-400">{filteredPaymentOps.length} №</p>
+                                <p className="text-base text-slate-400 flex items-center gap-1">
+                                  <Activity className="w-3 h-3" />
+                                  {filteredPaymentOps.length}
+                                </p>
                               </div>
                               <div className="text-right">
                                 <p className="font-bold text-white text-lg leading-tight">
@@ -1513,7 +1519,10 @@ export default function OperationsTransactionsPageSimple() {
                               <div className="flex justify-between items-start mb-2">
                                 <div>
                                   <p className="font-bold text-white text-lg leading-tight">Итого</p>
-                                  <p className="text-base text-slate-400">{totalOps.length} №</p>
+                                  <p className="text-base text-slate-400 flex items-center gap-1">
+                                    <Activity className="w-3 h-3" />
+                                    {totalOps.length}
+                                  </p>
                                 </div>
                                 <div className="text-right">
                                   <p className="font-bold text-white text-lg leading-tight">

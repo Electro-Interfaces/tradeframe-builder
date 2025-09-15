@@ -1645,7 +1645,7 @@ export default function NetworkOverview() {
                         <th className={`text-left py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Топливо</th>
                         <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Выручка</th>
                         <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Объем</th>
-                        <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>№</th>
+                        <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}><Activity className="w-4 h-4 mx-auto" /></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1699,7 +1699,7 @@ export default function NetworkOverview() {
                           <th className={`text-left py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Вид</th>
                           <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Выручка</th>
                           <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Объем</th>
-                          <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>№</th>
+                          <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}><Activity className="w-4 h-4 mx-auto" /></th>
                         </tr>
                       </thead>
                       <tbody>

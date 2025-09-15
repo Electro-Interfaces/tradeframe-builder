@@ -655,7 +655,7 @@ export default function Equipment() {
                       <th className="pb-3 text-slate-300 font-medium">Резервуар</th>
                       <th className="pb-3 text-slate-300 font-medium">Топливо</th>
                       <th className="pb-3 text-slate-300 font-medium">Объем емкости</th>
-                      <th className="pb-3 text-slate-300 font-medium">Уровень</th>
+                      <th className="pb-3 text-slate-300 font-medium">Факт</th>
                       <th className="pb-3 text-slate-300 font-medium">Заполнение</th>
                       <th className="pb-3 text-slate-300 font-medium">Температура</th>
                       <th className="pb-3 text-slate-300 font-medium">Вода</th>
@@ -701,7 +701,7 @@ export default function Equipment() {
                             <div className="flex items-center gap-2">
                               <div className="flex items-center gap-1">
                                 <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                                <span className="text-xs text-slate-400">Уровень</span>
+                                <span className="text-xs text-slate-400">Факт</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <div className="w-2 h-2 bg-red-400 rounded-full" />
@@ -813,7 +813,7 @@ export default function Equipment() {
                       <div className="flex flex-wrap gap-2">
                         <div className="flex items-center gap-1 bg-slate-600/50 rounded px-2 py-1">
                           <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                          <span className="text-xs text-slate-300">Уровень</span>
+                          <span className="text-xs text-slate-300">Факт</span>
                         </div>
                         <div className="flex items-center gap-1 bg-slate-600/50 rounded px-2 py-1">
                           <div className="w-2 h-2 bg-red-400 rounded-full" />

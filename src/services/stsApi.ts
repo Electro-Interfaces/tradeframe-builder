@@ -11,7 +11,6 @@ interface STSApiConfig {
   retryAttempts: number;
   token?: string;
   tokenExpiry?: number;
-  refreshInterval: number;
   // networkId и tradingPointId теперь берутся из селекторов приложения
 }
 
@@ -238,14 +237,15 @@ class STSApiService {
     if (!this.config?.enabled) {
       return false;
     }
-    
+
     const now = Date.now();
     const tokenExists = !!this.config.token;
     const tokenExpired = this.config.tokenExpiry ? this.config.tokenExpiry < now : true;
-    
+
     // Проверяем, нужно ли обновить токен
     if (!tokenExists || tokenExpired || forceRefresh) {
-      
+      console.log('🔍 STS API: Обновляем токен...');
+
       try {
         const response = await fetch(`${this.config.url}/v1/login`, {
           method: 'POST',
@@ -259,20 +259,22 @@ class STSApiService {
           signal: AbortSignal.timeout(this.config.timeout || 30000),
         });
 
-
         if (response.ok) {
           const tokenResponse = await response.text();
           const cleanToken = tokenResponse.replace(/"/g, '');
           // Уменьшаем время жизни токена до 20 минут для более частого обновления
           const newExpiry = Date.now() + (20 * 60 * 1000); // 20 минут вместо 24 часов
-          
-          
+
           this.config.token = cleanToken;
           this.config.tokenExpiry = newExpiry;
-          
+
           // Сохраняем обновленную конфигурацию
           localStorage.setItem('sts-api-config', JSON.stringify(this.config));
-          
+
+          // Сбрасываем счетчик при успешном обновлении
+          this.refreshAttempts = 0;
+          console.log('🔍 STS API: Токен успешно обновлен');
+
           return true;
         } else {
           const errorText = await response.text();
@@ -281,10 +283,19 @@ class STSApiService {
         }
       } catch (error) {
         console.error('🔍 STS API: Исключение при обновлении токена:', error);
+
+        // Проверяем, является ли это ошибкой исчерпания ресурсов
+        if (error.name === 'TypeError' && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
+          console.error('🔍 STS API: Критическая ошибка - исчерпаны ресурсы. Прекращаем попытки на 5 минут.');
+          // Блокируем попытки на 5 минут при критической ошибке
+          this.refreshAttempts = this.MAX_REFRESH_ATTEMPTS;
+          this.lastRefreshAttempt = now;
+        }
+
         return false;
       }
     }
-    
+
     return !!this.config.token;
   }
 

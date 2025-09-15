@@ -39,7 +39,6 @@ interface STSApiConfig {
   retryAttempts: number;
   token?: string;
   tokenExpiry?: number;
-  refreshInterval: number; // в минутах
   networkId?: string;
   tradingPointId?: string;
 }
@@ -50,8 +49,7 @@ const defaultConfig: STSApiConfig = {
   password: 'lHQfLZHzB3tn',
   enabled: true,
   timeout: 30000,
-  retryAttempts: 3,
-  refreshInterval: 30 // 30 минут по умолчанию
+  retryAttempts: 3
 };
 
 export default function STSApiSettings() {
@@ -60,7 +58,6 @@ export default function STSApiSettings() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<{ success?: boolean; error?: string; responseTime?: number } | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [refreshTimer, setRefreshTimer] = useState<NodeJS.Timeout | null>(null);
   const [apiMethods, setApiMethods] = useState<any[]>([]);
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
   const [testingMethod, setTestingMethod] = useState<string | null>(null);
@@ -90,88 +87,14 @@ export default function STSApiSettings() {
         const parsedConfig = { ...defaultConfig, ...JSON.parse(savedConfig) };
         setConfig(parsedConfig);
         reset(parsedConfig);
-        // Запускаем автообновление токена если настройки включены
-        if (parsedConfig.enabled) {
-          startTokenRefresh(parsedConfig);
-        }
       }
     } catch (error) {
       console.error('Ошибка загрузки конфигурации СТС API:', error);
     }
   };
 
-  const refreshToken = async (apiConfig: STSApiConfig): Promise<boolean> => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), apiConfig.timeout);
 
-      const loginResponse = await fetch(`${apiConfig.url}/v1/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: apiConfig.username,
-          password: apiConfig.password
-        }),
-        signal: controller.signal,
-      });
 
-      clearTimeout(timeoutId);
-
-      if (loginResponse.ok) {
-        const token = await loginResponse.text();
-        
-        const updatedConfig = {
-          ...apiConfig,
-          token: token.replace(/"/g, ''),
-          tokenExpiry: Date.now() + (24 * 60 * 60 * 1000) // 24 часа
-        };
-        
-        localStorage.setItem('sts-api-config', JSON.stringify(updatedConfig));
-        setConfig(updatedConfig);
-        
-        console.log('JWT токен обновлен автоматически');
-        return true;
-      } else {
-        console.error('Ошибка автообновления токена:', loginResponse.status);
-        return false;
-      }
-    } catch (error) {
-      console.error('Ошибка автообновления токена:', error);
-      return false;
-    }
-  };
-
-  const startTokenRefresh = (apiConfig: STSApiConfig) => {
-    // Останавливаем предыдущий таймер если есть
-    if (refreshTimer) {
-      clearInterval(refreshTimer);
-    }
-
-    if (!apiConfig.enabled) return;
-
-    // Обновляем токен сразу при запуске если его нет или он истек
-    if (!apiConfig.token || (apiConfig.tokenExpiry && apiConfig.tokenExpiry < Date.now())) {
-      refreshToken(apiConfig);
-    }
-
-    // Устанавливаем интервал автообновления
-    const interval = setInterval(() => {
-      if (apiConfig.enabled) {
-        refreshToken(apiConfig);
-      }
-    }, apiConfig.refreshInterval * 60 * 1000); // конвертируем минуты в миллисекунды
-
-    setRefreshTimer(interval);
-  };
-
-  const stopTokenRefresh = () => {
-    if (refreshTimer) {
-      clearInterval(refreshTimer);
-      setRefreshTimer(null);
-    }
-  };
 
   // Загружаем методы API при изменении конфигурации
   useEffect(() => {
@@ -180,12 +103,6 @@ export default function STSApiSettings() {
     }
   }, [config.url, config.enabled]);
 
-  // Очищаем таймер при размонтировании
-  useEffect(() => {
-    return () => {
-      stopTokenRefresh();
-    };
-  }, []);
 
   const loadApiMethods = async () => {
     setIsLoadingMethods(true);
@@ -758,16 +675,9 @@ export default function STSApiSettings() {
       setConfig(newConfig);
       setHasChanges(false);
       
-      // Перезапускаем автообновление с новыми настройками
-      if (newConfig.enabled) {
-        startTokenRefresh(newConfig);
-        
-        // Если URL изменился, обновляем методы API
-        if (oldUrl !== newConfig.url) {
-          setTimeout(() => loadApiMethods(), 500); // Небольшая задержка для обновления состояния
-        }
-      } else {
-        stopTokenRefresh();
+      // Если URL изменился, обновляем методы API
+      if (oldUrl !== newConfig.url && newConfig.enabled) {
+        setTimeout(() => loadApiMethods(), 500); // Небольшая задержка для обновления состояния
       }
       
       toast({
@@ -954,9 +864,6 @@ export default function STSApiSettings() {
                   ? `Истекает: ${new Date(config.tokenExpiry).toLocaleString('ru-RU')}`
                   : 'Нажмите "Тест подключения" для получения токена'
                 }
-                {config.enabled && refreshTimer && (
-                  <><br />Автообновление: каждые {config.refreshInterval} мин.</>
-                )}
               </p>
             </CardContent>
           </Card>
@@ -1103,24 +1010,6 @@ export default function STSApiSettings() {
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor="refreshInterval" className="text-sm">Обновление (мин)</Label>
-                  <Input
-                    id="refreshInterval"
-                    type="number"
-                    {...register('refreshInterval', { 
-                      min: { value: 5, message: 'Мин: 5' },
-                      max: { value: 720, message: 'Макс: 720' }
-                    })}
-                    min="5"
-                    max="720"
-                    step="5"
-                    className="h-8"
-                  />
-                  {errors.refreshInterval && (
-                    <p className="text-xs text-red-500">{errors.refreshInterval.message}</p>
-                  )}
-                </div>
 
                 <div className="flex items-center space-x-2 pt-5">
                   <Switch

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест обновления токена STS API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow: auto; white-space: pre-wrap; }
+        button { margin: 5px; padding: 10px 15px; cursor: pointer; }
+        .test-section { border: 1px solid #ddd; margin: 20px 0; padding: 15px; border-radius: 8px; }
+        .token-info { font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔄 Тест обновления токена STS API</h1>
+
+    <div class="test-section">
+        <h2>1. Состояние конфигурации</h2>
+        <button onclick="checkConfig()">Проверить конфигурацию</button>
+        <div id="config-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Управление токеном</h2>
+        <button onclick="clearToken()">Очистить токен</button>
+        <button onclick="expireToken()">Сделать токен просроченным</button>
+        <button onclick="forceRefreshToken()">Принудительно обновить токен</button>
+        <div id="token-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Тест запросов с обновлением токена</h2>
+        <button onclick="testApiCall()">Тестовый API запрос</button>
+        <button onclick="testMultipleRequests()">Несколько запросов подряд</button>
+        <div id="api-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Лог действий</h2>
+        <button onclick="clearLog()">Очистить лог</button>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let logEntries = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const entry = `[${timestamp}] ${message}`;
+            logEntries.push(entry);
+
+            const logDiv = document.getElementById('log');
+            const entryDiv = document.createElement('div');
+            entryDiv.className = `result ${type}`;
+            entryDiv.textContent = entry;
+            logDiv.appendChild(entryDiv);
+
+            console.log(entry);
+        }
+
+        function clearLog() {
+            logEntries = [];
+            document.getElementById('log').innerHTML = '';
+        }
+
+        async function checkConfig() {
+            const resultDiv = document.getElementById('config-result');
+
+            try {
+                const savedConfig = localStorage.getItem('sts-api-config');
+                if (!savedConfig) {
+                    resultDiv.innerHTML = '<div class="result error">❌ Конфигурация STS API не найдена</div>';
+                    log('Конфигурация STS API не найдена', 'error');
+                    return;
+                }
+
+                const config = JSON.parse(savedConfig);
+                const now = Date.now();
+                const tokenExists = !!config.token;
+                const tokenExpired = config.tokenExpiry ? config.tokenExpiry < now : true;
+                const timeUntilExpiry = config.tokenExpiry ? Math.max(0, config.tokenExpiry - now) : 0;
+
+                const configInfo = `
+                    <div class="result info">
+                        <h4>📋 Конфигурация STS API:</h4>
+                        <div class="token-info">
+                            <p><strong>URL:</strong> ${config.url}</p>
+                            <p><strong>Включено:</strong> ${config.enabled ? '✅ Да' : '❌ Нет'}</p>
+                            <p><strong>Токен существует:</strong> ${tokenExists ? '✅ Да' : '❌ Нет'}</p>
+                            <p><strong>Токен просрочен:</strong> ${tokenExpired ? '🔴 Да' : '🟢 Нет'}</p>
+                            <p><strong>Время до истечения:</strong> ${timeUntilExpiry > 0 ? `${Math.floor(timeUntilExpiry / (60 * 1000))} мин` : 'Истек'}</p>
+                            <p><strong>Таймаут:</strong> ${config.timeout}мс</p>
+                        </div>
+                    </div>
+                `;
+
+                resultDiv.innerHTML = configInfo;
+                log(`Конфигурация проверена: токен ${tokenExists ? 'есть' : 'отсутствует'}, ${tokenExpired ? 'просрочен' : 'действителен'}`, 'info');
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Ошибка: ${error.message}</div>`;
+                log(`Ошибка проверки конфигурации: ${error.message}`, 'error');
+            }
+        }
+
+        function clearToken() {
+            const resultDiv = document.getElementById('token-result');
+
+            try {
+                const savedConfig = localStorage.getItem('sts-api-config');
+                if (savedConfig) {
+                    const config = JSON.parse(savedConfig);
+                    delete config.token;
+                    delete config.tokenExpiry;
+                    localStorage.setItem('sts-api-config', JSON.stringify(config));
+
+                    resultDiv.innerHTML = '<div class="result success">✅ Токен очищен</div>';
+                    log('Токен очищен из конфигурации', 'success');
+                } else {
+                    resultDiv.innerHTML = '<div class="result error">❌ Конфигурация не найдена</div>';
+                    log('Конфигурация не найдена при очистке токена', 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Ошибка: ${error.message}</div>`;
+                log(`Ошибка очистки токена: ${error.message}`, 'error');
+            }
+        }
+
+        function expireToken() {
+            const resultDiv = document.getElementById('token-result');
+
+            try {
+                const savedConfig = localStorage.getItem('sts-api-config');
+                if (savedConfig) {
+                    const config = JSON.parse(savedConfig);
+                    if (config.token) {
+                        config.tokenExpiry = Date.now() - 1000; // Просрочен на 1 секунду назад
+                        localStorage.setItem('sts-api-config', JSON.stringify(config));
+
+                        resultDiv.innerHTML = '<div class="result warning">⚠️ Токен помечен как просроченный</div>';
+                        log('Токен помечен как просроченный', 'warning');
+                    } else {
+                        resultDiv.innerHTML = '<div class="result info">ℹ️ Токен отсутствует, нечего просрочивать</div>';
+                        log('Токен отсутствует, нечего просрочивать', 'info');
+                    }
+                } else {
+                    resultDiv.innerHTML = '<div class="result error">❌ Конфигурация не найдена</div>';
+                    log('Конфигурация не найдена при просрочивании токена', 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Ошибка: ${error.message}</div>`;
+                log(`Ошибка просрочивания токена: ${error.message}`, 'error');
+            }
+        }
+
+        async function forceRefreshToken() {
+            const resultDiv = document.getElementById('token-result');
+
+            try {
+                log('Начинаем принудительное обновление токена...', 'info');
+
+                const savedConfig = localStorage.getItem('sts-api-config');
+                if (!savedConfig) {
+                    throw new Error('Конфигурация не найдена');
+                }
+
+                const config = JSON.parse(savedConfig);
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), config.timeout || 30000);
+
+                const response = await fetch(`${config.url}/v1/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: config.username,
+                        password: config.password
+                    }),
+                    signal: controller.signal,
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const token = await response.text();
+                    const cleanToken = token.replace(/"/g, '');
+                    const newExpiry = Date.now() + (20 * 60 * 1000); // 20 минут
+
+                    config.token = cleanToken;
+                    config.tokenExpiry = newExpiry;
+                    localStorage.setItem('sts-api-config', JSON.stringify(config));
+
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <h4>✅ Токен успешно обновлен</h4>
+                            <div class="token-info">
+                                <p><strong>Токен:</strong> ${cleanToken.substring(0, 20)}...</p>
+                                <p><strong>Действителен до:</strong> ${new Date(newExpiry).toLocaleString('ru-RU')}</p>
+                            </div>
+                        </div>
+                    `;
+                    log('Токен успешно обновлен принудительно', 'success');
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `<div class="result error">❌ Ошибка HTTP ${response.status}: ${errorText}</div>`;
+                    log(`Ошибка HTTP ${response.status} при обновлении токена: ${errorText}`, 'error');
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Ошибка: ${error.message}</div>`;
+                log(`Ошибка принудительного обновления токена: ${error.message}`, 'error');
+            }
+        }
+
+        async function testApiCall() {
+            const resultDiv = document.getElementById('api-result');
+
+            try {
+                log('Тестируем API запрос с автоматическим обновлением токена...', 'info');
+
+                const savedConfig = localStorage.getItem('sts-api-config');
+                if (!savedConfig) {
+                    throw new Error('Конфигурация не найдена');
+                }
+
+                const config = JSON.parse(savedConfig);
+
+                // Имитируем вызов stsApiService.getTanks()
+                const testUrl = `${config.url}/v1/tanks?system=1`;
+
+                log(`Отправляем запрос: ${testUrl}`, 'info');
+
+                const response = await fetch(testUrl, {
+                    headers: {
+                        'Authorization': config.token ? `Bearer ${config.token}` : '',
+                        'Content-Type': 'application/json'
+                    },
+                    signal: AbortSignal.timeout(config.timeout || 30000),
+                });
+
+                const responseInfo = `
+                    <div class="result ${response.ok ? 'success' : 'error'}">
+                        <h4>${response.ok ? '✅' : '❌'} Ответ API:</h4>
+                        <div class="token-info">
+                            <p><strong>Статус:</strong> ${response.status} ${response.statusText}</p>
+                            <p><strong>URL:</strong> ${testUrl}</p>
+                            <p><strong>Токен использован:</strong> ${config.token ? config.token.substring(0, 20) + '...' : 'Отсутствует'}</p>
+                        </div>
+                    </div>
+                `;
+
+                resultDiv.innerHTML = responseInfo;
+
+                if (response.status === 401) {
+                    log('Получен код 401 - токен недействителен, требуется обновление', 'warning');
+                } else if (response.ok) {
+                    log('API запрос успешен', 'success');
+                } else {
+                    log(`API запрос неуспешен: ${response.status} ${response.statusText}`, 'error');
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Ошибка: ${error.message}</div>`;
+                log(`Ошибка API запроса: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMultipleRequests() {
+            const resultDiv = document.getElementById('api-result');
+
+            log('Запускаем тест множественных запросов...', 'info');
+
+            const requests = [];
+            for (let i = 1; i <= 5; i++) {
+                requests.push(
+                    testApiCall().then(() => {
+                        log(`Запрос ${i}/5 завершен`, 'info');
+                    }).catch(error => {
+                        log(`Запрос ${i}/5 завершился с ошибкой: ${error.message}`, 'error');
+                    })
+                );
+
+                // Небольшая задержка между запросами
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            try {
+                await Promise.all(requests);
+                log('Все множественные запросы завершены', 'success');
+            } catch (error) {
+                log(`Ошибка в множественных запросах: ${error.message}`, 'error');
+            }
+        }
+
+        // Автоматически проверяем конфигурацию при загрузке
+        window.onload = () => {
+            log('Страница загружена, проверяем конфигурацию...', 'info');
+            checkConfig();
+        };
+    </script>
+</body>
+</html>
