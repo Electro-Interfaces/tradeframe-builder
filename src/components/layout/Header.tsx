@@ -141,7 +141,7 @@ export function Header({
           </div>
           <div>
             <h1 className="font-semibold text-white text-lg tracking-tight">TradeFrame</h1>
-            <p className="text-xs text-slate-400">v1.5.7</p>
+            <p className="text-xs text-slate-400">v1.5.15</p>
           </div>
         </div>
 

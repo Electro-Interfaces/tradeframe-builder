@@ -2,7 +2,7 @@
   "name": "TradeFrame - Управление торговыми сетями",
   "short_name": "TradeFrame",
   "description": "Система управления торговыми сетями и АЗС. Включает: обзор сетей, операции, цены, резервуары, оборудование, управление пользователями.",
-  "version": "1.5.12",
+  "version": "1.5.15",
   "theme_color": "#1e293b",
   "background_color": "#1e293b",
   "display": "standalone",
