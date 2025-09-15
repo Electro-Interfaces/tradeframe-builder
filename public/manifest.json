@@ -6,7 +6,11 @@
   "theme_color": "#1e293b",
   "background_color": "#1e293b",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "fullscreen"],
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "fullscreen"
+  ],
   "orientation": "any",
   "scope": "/tradeframe-builder/",
   "start_url": "/tradeframe-builder/?utm_source=pwa&utm_medium=app",
@@ -61,7 +65,11 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["business", "productivity", "utilities"],
+  "categories": [
+    "business",
+    "productivity",
+    "utilities"
+  ],
   "lang": "ru",
   "dir": "ltr",
   "prefer_related_applications": false,

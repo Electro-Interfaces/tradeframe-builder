@@ -13,6 +13,7 @@ import { Settings, LogOut, User, Menu, Bell, MessageCircle, Info } from "lucide-
 import UpdateChecker from "@/components/common/UpdateChecker";
 import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { NetworkSelect } from "@/components/selects/NetworkSelect";
+import { APP_VERSION } from "@/config/version";
 import { PointSelect } from "@/components/selects/PointSelect";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { useMobile, mobileUtils } from "@/hooks/useMobile";
@@ -141,7 +142,7 @@ export function Header({
           </div>
           <div>
             <h1 className="font-semibold text-white text-lg tracking-tight">TradeFrame</h1>
-            <p className="text-xs text-slate-400">v1.5.15</p>
+            <p className="text-xs text-slate-400">v{APP_VERSION}</p>
           </div>
         </div>
 

@@ -13,6 +13,7 @@ import { Loader2, AlertCircle, FileText, Shield, Lock, Eye, EyeOff } from 'lucid
 import { legalDocumentsService } from '@/services/legalDocumentsService';
 import { DocumentType } from '@/types/legal';
 import { useMobile } from '@/hooks/useMobile';
+import { VERSION_INFO } from '@/config/version';
 
 interface LegalDocument {
   type: DocumentType;
@@ -563,7 +564,7 @@ const LoginPageWithLegal = () => {
         {/* Информация о безопасности - супер компактная */}
         <div className="text-center">
           <p className="text-xs text-slate-600">
-            © 2024 TradeFrame v1.5.15
+            {VERSION_INFO.copyright}
           </p>
         </div>
       </div>
