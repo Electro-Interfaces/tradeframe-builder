@@ -21,7 +21,7 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
   const [hasUpdate, setHasUpdate] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'no-updates' | 'found-updates' | null>(null);
 
-  const currentVersion = '1.5.7';
+  const currentVersion = '1.5.15';
   // Генерируем номер сборки на основе даты (YYYYMMDD + часы)
   const now = new Date();
   const buildNumber = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.${now.getHours().toString().padStart(2, '0')}`;
