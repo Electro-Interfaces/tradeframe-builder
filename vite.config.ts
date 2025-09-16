@@ -8,9 +8,9 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
   base: mode === 'production' ? '/tradeframe-builder/' : '/',
   server: {
-    host: "0.0.0.0",
+    host: "127.0.0.1",
     port: 3000,
-    allowedHosts: [".e2b.dev"],
+    allowedHosts: ["prod.dataworker.ru"],
   },
   plugins: [
     react(),
@@ -22,25 +22,25 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: (id) => {
           // ТОЛЬКО критичные external библиотеки, ВСЕ остальное в main bundle
-          
+
           // Large external libraries that are worth splitting
           if (id.includes('react') && id.includes('node_modules')) {
             return 'react-vendor';
           }
-          
+
           if (id.includes('chart.js') && id.includes('node_modules')) {
             return 'charts-vendor';
           }
-          
+
           // Large utility libraries
           if (id.includes('date-fns') && id.includes('node_modules')) {
             return 'date-vendor';
           }
-          
+
           if (id.includes('xlsx') && id.includes('node_modules')) {
             return 'xlsx-vendor';
           }
-          
+
           // Всё остальное (включая наш код) остаётся в main bundle
           // Это исключает все проблемы с React contexts и forwardRef
         },

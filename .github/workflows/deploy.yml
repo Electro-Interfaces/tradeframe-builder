@@ -1,18 +1,9 @@
-name: Deploy to GitHub Pages
+name: Deploy production
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
 
 jobs:
   build:
@@ -31,25 +22,26 @@ jobs:
         run: npm ci
         
       - name: Build
-        env:
-          GITHUB_PAGES: true
         run: npm run build
         
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-        
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './dist'
-
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
+
+    env:
+        PROD_ADDRESS: ${{secrets.PROD_ADDRESS}}
+        PROD_USER: ${{secrets.PROD_USER}}
+        PROD_PASS: ${{secrets.PROD_PASS}}
+        PROD_PORT: ${{secrets.PROD_PORT}}
+
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: connect to server and deploy
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+            host: ${{env.PROD_ADDRESS}}
+            username: ${{env.PROD_USER}}
+            password: ${{env.PROD_PASS}}
+            port: ${{env.PROD_PORT}}
+            script: |
+                  cd /var/www/www-root/data/www/prod.dataworker.ru
+                  git pull
+                  pm2 restart "npm run dev"
