@@ -203,9 +203,9 @@ export default function NetworkOverview() {
         ['ОСНОВНЫЕ ПОКАЗАТЕЛИ'],
         [''],
         ['Показатель', 'Значение', '', 'Показатель', 'Значение'],
-        ['Общая выручка (₽)', Math.round(totalRevenue), '', 'Количество операций', filteredTransactions.length],
-        ['Общий объем (л)', Math.round(totalVolume), '', 'Средний чек (₽)', Math.round(averageCheck)],
-        ['Средний объем на операцию (л)', filteredTransactions.length > 0 ? Math.round(totalVolume / filteredTransactions.length) : 0],
+        ['Общая выручка (₽)', Number(totalRevenue.toFixed(2)), '', 'Количество операций', filteredTransactions.length],
+        ['Общий объем (л)', Number(totalVolume.toFixed(2)), '', 'Средний чек (₽)', Number(averageCheck.toFixed(2))],
+        ['Средний объем на операцию (л)', filteredTransactions.length > 0 ? Number((totalVolume / filteredTransactions.length).toFixed(2)) : 0],
         [''],
         ['']
       ];
@@ -220,10 +220,10 @@ export default function NetworkOverview() {
           mainData.push([
             fuel.type,
             fuel.operations,
-            Math.round(fuel.revenue),
-            Math.round(fuel.volume),
-            fuel.operations > 0 ? Math.round(fuel.revenue / fuel.operations) : 0,
-            totalRevenue > 0 ? Math.round((fuel.revenue / totalRevenue) * 100 * 100) / 100 : 0
+            Number(fuel.revenue.toFixed(2)),
+            Number(fuel.volume.toFixed(2)),
+            fuel.operations > 0 ? Number((fuel.revenue / fuel.operations).toFixed(2)) : 0,
+            totalRevenue > 0 ? Number(((fuel.revenue / totalRevenue) * 100).toFixed(2)) : 0
           ]);
         });
         
@@ -231,9 +231,9 @@ export default function NetworkOverview() {
         mainData.push([
           'ИТОГО',
           filteredTransactions.length,
-          Math.round(totalRevenue),
-          Math.round(totalVolume),
-          Math.round(averageCheck),
+          Number(totalRevenue.toFixed(2)),
+          Number(totalVolume.toFixed(2)),
+          Number(averageCheck.toFixed(2)),
           100
         ]);
         
@@ -251,10 +251,10 @@ export default function NetworkOverview() {
           mainData.push([
             payment.type,
             payment.operations,
-            Math.round(payment.revenue),
-            Math.round(payment.volume),
-            payment.operations > 0 ? Math.round(payment.revenue / payment.operations) : 0,
-            totalRevenue > 0 ? Math.round((payment.revenue / totalRevenue) * 100 * 100) / 100 : 0
+            Number(payment.revenue.toFixed(2)),
+            Number(payment.volume.toFixed(2)),
+            payment.operations > 0 ? Number((payment.revenue / payment.operations).toFixed(2)) : 0,
+            totalRevenue > 0 ? Number(((payment.revenue / totalRevenue) * 100).toFixed(2)) : 0
           ]);
         });
         
@@ -262,9 +262,9 @@ export default function NetworkOverview() {
         mainData.push([
           'ИТОГО',
           filteredTransactions.length,
-          Math.round(totalRevenue),
-          Math.round(totalVolume),
-          Math.round(averageCheck),
+          Number(totalRevenue.toFixed(2)),
+          Number(totalVolume.toFixed(2)),
+          Number(averageCheck.toFixed(2)),
           100
         ]);
         
@@ -322,15 +322,15 @@ export default function NetworkOverview() {
           
           fuelTypesForPayment.forEach(fuelType => {
             const fuelData = paymentData[fuelType];
-            const percentOfPayment = payment.revenue > 0 ? Math.round((fuelData.revenue / payment.revenue) * 100 * 100) / 100 : 0;
+            const percentOfPayment = payment.revenue > 0 ? Number(((fuelData.revenue / payment.revenue) * 100).toFixed(2)) : 0;
             
             mainData.push([
               isFirstRow ? payment.type : '', // Показываем способ оплаты только в первой строке
               fuelType,
               fuelData.operations,
-              Math.round(fuelData.revenue),
-              Math.round(fuelData.volume),
-              fuelData.operations > 0 ? Math.round(fuelData.revenue / fuelData.operations) : 0,
+              Number(fuelData.revenue.toFixed(2)),
+              Number(fuelData.volume.toFixed(2)),
+              fuelData.operations > 0 ? Number((fuelData.revenue / fuelData.operations).toFixed(2)) : 0,
               percentOfPayment
             ]);
             
@@ -343,9 +343,9 @@ export default function NetworkOverview() {
               `ИТОГО по "${payment.type}"`,
               '',
               payment.operations,
-              Math.round(payment.revenue),
-              Math.round(payment.volume),
-              payment.operations > 0 ? Math.round(payment.revenue / payment.operations) : 0,
+              Number(payment.revenue.toFixed(2)),
+              Number(payment.volume.toFixed(2)),
+              payment.operations > 0 ? Number((payment.revenue / payment.operations).toFixed(2)) : 0,
               100 // Всегда 100% от способа оплаты
             ]);
             
@@ -359,9 +359,9 @@ export default function NetworkOverview() {
           'ОБЩИЙ ИТОГ',
           `${allFuelTypes.length} видов топлива`,
           filteredTransactions.length,
-          Math.round(totalRevenue),
-          Math.round(totalVolume),
-          Math.round(averageCheck),
+          Number(totalRevenue.toFixed(2)),
+          Number(totalVolume.toFixed(2)),
+          Number(averageCheck.toFixed(2)),
           100
         ]);
       }
@@ -415,8 +415,8 @@ export default function NetworkOverview() {
           ...dailyActivityData.map(hour => [
             hour.hour,
             hour.operations,
-            Math.round(hour.revenue),
-            hour.operations > 0 ? Math.round(hour.revenue / hour.operations) : 0
+            Number(hour.revenue.toFixed(2)),
+            hour.operations > 0 ? Number((hour.revenue / hour.operations).toFixed(2)) : 0
           ])
         ];
         
@@ -457,14 +457,14 @@ export default function NetworkOverview() {
             const baseData = [
               day.date,
               day.operations,
-              Math.round(day.revenue),
-              Math.round(day.volume),
-              day.operations > 0 ? Math.round(day.revenue / day.operations) : 0
+              Number(day.revenue.toFixed(2)),
+              Number(day.volume.toFixed(2)),
+              day.operations > 0 ? Number((day.revenue / day.operations).toFixed(2)) : 0
             ];
             
             // Добавляем данные по каждому виду топлива
             dailySalesData.fuelTypes.forEach(fuelType => {
-              baseData.push(Math.round(day[fuelType] || 0));
+              baseData.push(Number((day[fuelType] || 0).toFixed(2)));
             });
             
             return baseData;
@@ -1654,10 +1654,10 @@ export default function NetworkOverview() {
                         <tr key={fuel.type} className="border-b border-slate-700 hover:bg-slate-700 transition-colors duration-200">
                           <td className={`py-4 text-white font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>{fuel.type}</td>
                           <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
-                            {Math.round(fuel.revenue).toLocaleString('ru-RU')} ₽
+                            {fuel.revenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                           </td>
                           <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
-                            {Math.round(fuel.volume).toLocaleString('ru-RU')} л
+                            {fuel.volume.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л
                           </td>
                           <td className={`py-4 text-right text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>
                             {fuel.operations}
@@ -1716,10 +1716,10 @@ export default function NetworkOverview() {
                           <tr key={payment.type} className="border-b border-slate-700 hover:bg-slate-700 transition-colors duration-200">
                             <td className={`py-4 text-white font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>{shortName}</td>
                             <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
-                              {Math.round(payment.revenue).toLocaleString('ru-RU')} ₽
+                              {payment.revenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                             </td>
                             <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
-                              {Math.round(payment.volume).toLocaleString('ru-RU')} л
+                              {payment.volume.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л
                             </td>
                             <td className={`py-4 text-right text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>
                               {payment.operations}

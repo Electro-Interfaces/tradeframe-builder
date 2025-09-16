@@ -1077,7 +1077,7 @@ export default function OperationsTransactionsPageSimple() {
                               <p className="text-white font-semibold text-xs truncate">{fuel}</p>
                             </div>
                             <p className="font-bold text-white text-sm mb-1">
-                              {Math.round(filteredRevenue).toLocaleString('ru-RU')} ₽
+                              {filteredRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                             </p>
                             <div className="text-xs text-slate-400 space-y-0.5">
                               <div>{Math.round(filteredVolume).toLocaleString('ru-RU')} л</div>
@@ -1099,7 +1099,7 @@ export default function OperationsTransactionsPageSimple() {
                               </div>
                               <div className="text-right">
                                 <p className="font-bold text-white text-lg leading-tight">
-                                  {Math.round(filteredRevenue).toLocaleString('ru-RU')} ₽
+                                  {filteredRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                                 </p>
                                 <p className="text-base text-slate-400">{Math.round(filteredVolume).toLocaleString('ru-RU')} л</p>
                               </div>
@@ -1163,7 +1163,7 @@ export default function OperationsTransactionsPageSimple() {
                               <p className="text-white font-semibold text-xs truncate">{displayName}</p>
                             </div>
                             <p className="font-bold text-white text-sm mb-1">
-                              {Math.round(filteredRevenue).toLocaleString('ru-RU')} ₽
+                              {filteredRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                             </p>
                             <div className="text-xs text-slate-400 space-y-0.5">
                               <div>{Math.round(filteredVolume).toLocaleString('ru-RU')} л</div>
@@ -1185,7 +1185,7 @@ export default function OperationsTransactionsPageSimple() {
                               </div>
                               <div className="text-right">
                                 <p className="font-bold text-white text-lg leading-tight">
-                                  {Math.round(filteredRevenue).toLocaleString('ru-RU')} ₽
+                                  {filteredRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                                 </p>
                                 <p className="text-base text-slate-400">{Math.round(filteredVolume).toLocaleString('ru-RU')} л</p>
                               </div>
@@ -1273,7 +1273,7 @@ export default function OperationsTransactionsPageSimple() {
                                 </div>
                                 <div className="text-right">
                                   <p className="font-bold text-white text-lg leading-tight">
-                                    {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
+                                    {totalRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                                   </p>
                                   <p className="text-sm text-slate-400">{Math.round(totalVolume).toLocaleString('ru-RU')} л</p>
                                 </div>
@@ -1371,12 +1371,12 @@ export default function OperationsTransactionsPageSimple() {
                             {record.fuelType || '-'}
                           </td>
                           <td className="px-2 py-2 text-white text-right font-mono">
-                            {record.actualQuantity ? `${record.actualQuantity.toFixed(1)}л` :
-                             record.quantity ? `${record.quantity.toFixed(1)}л` : '-'}
+                            {record.actualQuantity ? `${record.actualQuantity.toFixed(2)}л` :
+                             record.quantity ? `${record.quantity.toFixed(2)}л` : '-'}
                           </td>
                           <td className="px-2 py-2 text-white text-right font-mono font-bold">
-                            {record.actualAmount ? `${Math.round(record.actualAmount)}₽` :
-                             record.totalCost ? `${Math.round(record.totalCost)}₽` : '-'}
+                            {record.actualAmount ? `${record.actualAmount.toFixed(2)}₽` :
+                             record.totalCost ? `${record.totalCost.toFixed(2)}₽` : '-'}
                           </td>
                           <td className="px-2 py-2 text-center text-white text-xs">
                             {record.toNumber || '-'}
