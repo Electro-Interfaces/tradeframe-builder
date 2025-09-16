@@ -14,6 +14,7 @@ interface AuthContextType {
   // Основные методы
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUserName: (newName: string) => Promise<void>;
 
   // Проверки разрешений
   hasPermission: (permission: string) => boolean;
@@ -258,6 +259,36 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   };
 
   /**
+   * Обновление имени пользователя
+   */
+  const updateUserName = async (newName: string): Promise<void> => {
+    if (!user) {
+      throw new Error('Нет авторизованного пользователя');
+    }
+
+    try {
+      console.log('🔄 NewAuthContext: Updating user name to:', newName);
+
+      // Обновляем в базе данных
+      await authService.updateUserName(user.id, newName);
+
+      // Обновляем локальное состояние
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        return {
+          ...prevUser,
+          name: newName.trim()
+        };
+      });
+
+      console.log('✅ NewAuthContext: User name updated successfully');
+    } catch (error: any) {
+      console.error('❌ NewAuthContext: Failed to update user name:', error);
+      throw new Error(error.message || 'Не удалось обновить имя пользователя');
+    }
+  };
+
+  /**
    * Проверка разрешения
    */
   const hasPermission = (permission: string): boolean => {
@@ -328,6 +359,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     loading,
     login,
     logout,
+    updateUserName,
     hasPermission,
     isAdmin,
     canManageTanks,

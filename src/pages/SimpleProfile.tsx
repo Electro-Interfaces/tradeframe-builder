@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNewAuth } from "@/contexts/NewAuthContext";
-import { Shield, Mail, Lock, User, Calendar, LogOut } from "lucide-react";
+import { Shield, Mail, Lock, User, Calendar, LogOut, Edit, Save, X } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 
 interface PasswordFormData {
@@ -23,11 +23,13 @@ interface PasswordFormData {
 export default function SimpleProfile() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, logout } = useNewAuth();
+  const { user, logout, updateUserName } = useNewAuth();
   const isMobile = useIsMobile();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(user?.name || '');
 
   // Форма смены пароля
   const {
@@ -97,11 +99,56 @@ export default function SimpleProfile() {
     }
   };
 
+  // Обработчики для редактирования имени
+  const handleEditName = () => {
+    setEditedName(user?.name || '');
+    setIsEditingName(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!editedName.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "Имя не может быть пустым",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (editedName.trim() === user?.name) {
+      setIsEditingName(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await updateUserName(editedName.trim());
+      setIsEditingName(false);
+      toast({
+        title: "Успешно",
+        description: "Имя пользователя обновлено",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Ошибка",
+        description: error.message || "Не удалось обновить имя",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelEditName = () => {
+    setEditedName(user?.name || '');
+    setIsEditingName(false);
+  };
+
   const formatDate = (date: string | undefined) => {
     if (!date) return 'Не указано';
     return new Date(date).toLocaleDateString('ru-RU', {
       day: '2-digit',
-      month: '2-digit', 
+      month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -131,13 +178,60 @@ export default function SimpleProfile() {
               <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
                 <User className="w-8 h-8 text-white" />
               </div>
-              <div>
-                <h2 className="text-xl font-semibold text-white">
-                  {user?.name || user?.firstName ? 
-                    (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name) :
-                    'Пользователь системы'
-                  }
-                </h2>
+              <div className="flex-1">
+                {isEditingName ? (
+                  <div className="flex items-center gap-2 mb-2">
+                    <Input
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-white text-xl font-semibold"
+                      disabled={isLoading}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveName();
+                        } else if (e.key === 'Escape') {
+                          handleCancelEditName();
+                        }
+                      }}
+                      autoFocus
+                    />
+                    <Button
+                      onClick={handleSaveName}
+                      disabled={isLoading}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={handleCancelEditName}
+                      disabled={isLoading}
+                      size="sm"
+                      variant="outline"
+                      className="border-slate-600 text-slate-300"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 mb-2">
+                    <h2 className="text-xl font-semibold text-white">
+                      {user?.name || user?.firstName ?
+                        (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name) :
+                        'Пользователь системы'
+                      }
+                    </h2>
+                    <Button
+                      onClick={handleEditName}
+                      size="sm"
+                      variant="ghost"
+                      className="text-slate-400 hover:text-white p-1"
+                      disabled={isLoading}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
                 <p className="text-slate-300">{user?.email}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge variant={user?.status === 'active' ? 'default' : 'secondary'}

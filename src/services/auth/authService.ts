@@ -251,6 +251,28 @@ class AuthService {
   generateSalt(): string {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
+
+  /**
+   * Обновляет имя пользователя в базе данных
+   */
+  async updateUserName(userId: string, newName: string): Promise<void> {
+    try {
+      console.log('🔄 AuthService: Updating user name for:', userId);
+
+      await this.makeRequest(`users?id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: newName.trim(),
+          updated_at: new Date().toISOString()
+        })
+      });
+
+      console.log('✅ AuthService: User name updated successfully');
+    } catch (error) {
+      console.error('❌ AuthService: Error updating user name:', error);
+      throw error;
+    }
+  }
 }
 
 export const authService = new AuthService();

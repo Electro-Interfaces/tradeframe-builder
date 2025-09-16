@@ -247,7 +247,7 @@ export default function Prices() {
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
   const [loadingFromSTSAPI, setLoadingFromSTSAPI] = useState(false);
   const [initialLoadTriggered, setInitialLoadTriggered] = useState(false);
-  const [pageReady, setPageReady] = useState(false);
+  const [pageReady, setPageReady] = useState(true);
 
   // Состояния для pull-to-refresh (стандартный мобильный подход)
   const [pullState, setPullState] = useState<'idle' | 'pulling' | 'canRefresh' | 'refreshing'>('idle');
@@ -271,14 +271,12 @@ export default function Prices() {
     }
   });
 
-  // Автоматическая загрузка цен при выборе торговой точки
-  // Упрощенная автоматическая загрузка цен при инициализации
+  // Упрощенная автоматическая загрузка цен при выборе торговой точки
   useEffect(() => {
-    
     // Обеспечиваем правильную настройку STS API
     ensureSTSApiConfigured();
     setStsApiConfigured(true);
-    
+
     // Автоматически загружаем данные цен при выборе торговой точки
     if (selectedTradingPoint && selectedTradingPoint !== 'all') {
       loadPricesFromSTSAPI();
@@ -287,39 +285,8 @@ export default function Prices() {
       setCurrentPrices([]);
       setIsInitialLoading(false);
     }
-  }, [selectedTradingPoint]);
-
-  // Отдельный эффект для запуска STS API когда он становится доступным (упрощенный)
-  useEffect(() => {
-    // Этот эффект теперь менее важен, так как основная логика в предыдущем useEffect
-  }, [stsApiConfigured, selectedTradingPoint, initialLoadTriggered]);
-
-  // Принудительный запуск STS API через небольшую задержку (резервный механизм)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      
-      const stsConfig = localStorage.getItem('sts-api-config');
-      const isConfigured = !!(stsConfig && JSON.parse(stsConfig).enabled);
-      const currentSource = currentPrices.length > 0 ? currentPrices[0]?.source : null;
-      
-
-      // Резервный запуск только если STS настроен, селекторы готовы, и цены не из STS API
-      const selectorsReady = selectedNetwork && selectedNetwork.external_id;
-      
-      if (isConfigured && selectedTradingPoint && selectedTradingPoint !== 'all' && 
-          selectorsReady && currentSource !== 'sts-api') {
-        setStsApiConfigured(true);
-        loadPricesFromSTSAPI();
-      } else {
-        // Принудительно сбрасываем loading если ничего не запускаем
-        setIsInitialLoading(false);
-      }
-      
-      setPageReady(true);
-    }, 1500); // Увеличиваем время до 1.5 сек
-
-    return () => clearTimeout(timer);
-  }, []); // Запускаем только один раз при монтировании
+    setPageReady(true);
+  }, [selectedTradingPoint])
 
   // Проверяем настройку внешнего API при инициализации
   useEffect(() => {
@@ -552,7 +519,6 @@ export default function Prices() {
 
   // Загрузка цен из STS API (упрощенная версия без дублирования авторизации)
   const loadPricesFromSTSAPI = async () => {
-
     setLoadingFromSTSAPI(true);
     setDataSourceType('sts-api');
     setIsInitialLoading(true);
