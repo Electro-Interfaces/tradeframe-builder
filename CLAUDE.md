@@ -1,26 +1,26 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Этот файл содержит инструкции для Claude Code (claude.ai/code) при работе с кодом данного репозитория.
 
-## Development Commands
+## 🚀 Команды разработки
 
 ```bash
-# Install dependencies
+# Установка зависимостей
 npm install
 
-# Start development server (port 3000)
+# Запуск dev-сервера (порт 3000)
 npm run dev
 
-# Build for production
+# Сборка для production
 npm run build
 
-# Build for development mode
+# Сборка для разработки
 npm run build:dev
 
-# Run linter
+# Запуск линтера
 npm run lint
 
-# Preview production build
+# Предпросмотр production сборки
 npm run preview
 ```
 
@@ -48,82 +48,134 @@ import { executeSelect, describeTable } from './tools/sql-direct.js';
 
 See `tools/README.md` for complete documentation.
 
-## Architecture Overview
+## Обзор архитектуры
 
-This is a React-based trading platform UI built with:
-- **Vite** - Build tool and dev server
-- **React 18** with TypeScript
-- **React Router v6** - Routing with pages in `src/pages/`
-- **shadcn/ui components** - UI components in `src/components/ui/`
-- **Tailwind CSS** - Styling with custom trade platform colors
-- **React Query (TanStack Query)** - Data fetching and caching
-- **React Hook Form + Zod** - Form handling and validation
+TradeFrame Builder v1.5.16 - платформа управления торговыми сетями АЗС на базе React:
 
-### 📋 Feature Implementation Status
-**✅ Active sections:** Network overview, operations-transactions, prices, tanks, equipment, user management, roles, instructions, external database settings
-**🚫 Unused sections (not implemented):** Price history, fuel stocks, equipment log, network notifications, messages, shift reports, nomenclature, equipment types, component types, API command templates, workflows, partial migration, DB initialization, data inspector, DB settings
+- **Vite** - Инструмент сборки и dev-сервер
+- **React 18** с TypeScript
+- **React Router v6** - Маршрутизация со страницами в `src/pages/`
+- **shadcn/ui компоненты** - UI компоненты в `src/components/ui/`
+- **Tailwind CSS** - Стилизация с кастомными цветами торговой платформы
+- **React Query (TanStack Query)** - Загрузка данных и кэширование
+- **React Hook Form + Zod** - Обработка форм и валидация
+- **Supabase** - База данных и аутентификация
 
-> **Important:** Unused sections appear in sidebar menu ("РАЗНОЕ") but have no functional implementation. See `UNUSED_FEATURES.md` for complete list and `src/components/layout/AppSidebar.tsx` lines 152-169 for code location.
+### 📋 Статус реализации функций
 
-## Project Structure
+**✅ АКТИВНЫЕ РАЗДЕЛЫ (полностью реализованы):**
+- **Торговые сети**: Обзор (`/network/overview`), Операции (`/network/operations-transactions`) - **РЕАЛЬНЫЕ данные**
+- **Торговая точка**: Цены (`/point/prices`), Резервуары (`/point/tanks`), Оборудование (`/point/equipment`) - **РЕАЛЬНЫЕ данные**
+- **Администрирование**: Сети и ТТ, Пользователи, Роли, Инструкции, Правовые документы, Журнал аудита - **РЕАЛЬНЫЕ данные**
+- **Настройки**: API CTC настройки, Внешняя БД
 
-### Key Directories
-- `src/pages/` - Route components mapped in App.tsx
-- `src/components/` - Reusable components organized by feature
-- `src/services/` - API clients and service layer
-- `src/contexts/` - React contexts (Auth, Selection)
-- `src/hooks/` - Custom React hooks
-- `src/types/` - TypeScript type definitions
+**🚫 АРХИВНЫЕ РАЗДЕЛЫ (НЕ РЕАЛИЗОВАНЫ):**
+- Оповещения сети, Сообщения, Сменные отчеты (в группе "РАЗНОЕ")
+- История цен, остатки топлива, журнал оборудования
+- Номенклатура, типы оборудования и компонентов
 
-### Routing Pattern
-All routes are defined in `src/App.tsx`:
-- Admin routes: `/admin/*`
-- Settings routes: `/settings/*`
-- Network routes: `/network/*`
-- Point routes: `/point/*`
+> **Важно:** Архивные разделы отображаются в меню в группе "РАЗНОЕ (НЕ ИСПОЛЬЗУЕТСЯ)" но не имеют функциональной реализации. См. `src/components/layout/AppSidebar.tsx` строки 157-161.
 
-### API Integration
-- HTTP clients in `src/services/httpClients.ts` with full auth support
-- Mock services available for development
-- API base URL configured via `VITE_API_URL` env variable
-- Automatic auth token handling from localStorage/sessionStorage
+## Структура проекта
 
-## Component Patterns
+### Ключевые директории
+- `src/pages/` - Компоненты маршрутов, подключенные в App.tsx
+- `src/components/` - Переиспользуемые компоненты, организованные по функциям
+- `src/services/` - API клиенты и сервисный слой
+- `src/contexts/` - React контексты (Auth, Selection)
+- `src/hooks/` - Кастомные React хуки
+- `src/types/` - Определения типов TypeScript
+- `src/config/` - Конфигурация (версия приложения в `version.ts`)
 
-### UI Components
-- All UI primitives from shadcn/ui in `src/components/ui/`
-- Follow existing patterns when creating new components
-- Use CVA (class-variance-authority) for component variants
-- Leverage Tailwind utility classes with `cn()` helper
+### Паттерн маршрутизации
+Все маршруты определены в `src/App.tsx`:
+- Админ маршруты: `/admin/*`
+- Маршруты настроек: `/settings/*`
+- Сетевые маршруты: `/network/*`
+- Маршруты точек: `/point/*`
 
-### Form Components
-- Use React Hook Form with Zod schemas
-- Form components use the `<Form>` wrapper from `src/components/ui/form.tsx`
-- Validation schemas should be defined with Zod
+### Интеграция API
 
-### Data Fetching
-- Use React Query hooks for API calls
-- Services layer handles HTTP requests
-- Loading states handled with Skeleton components
-- Error states use ErrorState/EmptyState components
+**Гибридная система доступа к данным:**
 
-## TypeScript Configuration
+#### 🔐 Внутренняя аутентификация (Supabase)
+- **База пользователей**: PostgreSQL через Supabase REST API (**РЕАЛЬНЫЕ данные**)
+- **Токены**: Генерируются локально, срок действия 1 час с автообновлением
+- **Конфигурация**: `src/services/auth/authService.ts` (строки 38-39 - URL и ключи)
+- **Обновление**: При 401 ошибке через сохраненные учетные данные
+- **⚠️ ВАЖНО**: Торговые сети, торговые точки, пользователи и роли ВСЕГДА используют реальные данные, не mock
 
-- Path alias `@/*` maps to `./src/*`
-- Relaxed TypeScript settings (no implicit any, unused params allowed)
-- Type definitions should be in `src/types/`
+#### 🌐 Внешний API торговой сети (STS)
+- **Назначение**: Получение данных по работе торговой сети и POS-системы
+- **Аутентификация**: HTTP Basic Auth
+- **Конфигурация**: `src/services/apiConfigService.ts` (строки 124, 136-137)
+- **Переменные окружения**:
+  - `VITE_STS_API_URL` - URL API
+  - `VITE_STS_API_USERNAME` - логин для доступа
+  - `VITE_STS_API_PASSWORD` - пароль для доступа
 
-## Styling Conventions
+#### 🛠️ Управление учетными данными
+- **Конфигурация подключений**: UI настройки `/settings/external-database`
+- **Переключение источников**: Supabase, внешний API, mock данные
+- **Автотестирование**: Проверка доступности подключений
+- **Безопасность**: Учетные данные не хранятся в коде, только в переменных окружения
 
-- Tailwind CSS for all styling
-- Custom theme colors: trade.blue, trade.purple, trade.green, trade.orange
-- Status colors: success, warning, error
-- Container width set to 100% with 1.5rem padding
-- Use existing shadow and border radius variables
+#### 📡 HTTP клиенты
+- `src/services/httpClients.ts`: Retry логика, Idempotency-Key, Trace-Id
+- `src/services/auth/authService.ts`: Простое SHA-256 хеширование паролей
+- Автоматическая обработка токенов из localStorage/sessionStorage
 
-## Important Notes
+## Паттерны компонентов
 
-- This is a Lovable.dev project with automatic Git sync
-- Component tagger active in development mode
-- Supports PM2 deployment with `ecosystem.config.js`
-- Express server available for production deployment
+### UI Компоненты
+- Все UI примитивы из shadcn/ui в `src/components/ui/`
+- Следуйте существующим паттернам при создании новых компонентов
+- Используйте CVA (class-variance-authority) для вариантов компонентов
+- Применяйте утилитарные классы Tailwind с помощником `cn()`
+
+### Компоненты форм
+- Используйте React Hook Form со схемами Zod
+- Компоненты форм используют обертку `<Form>` из `src/components/ui/form.tsx`
+- Схемы валидации должны быть определены с помощью Zod
+
+### Загрузка данных
+- Используйте хуки React Query для API вызовов
+- Сервисный слой обрабатывает HTTP запросы
+- Состояния загрузки обрабатываются с помощью Skeleton компонентов
+- Состояния ошибок используют компоненты ErrorState/EmptyState
+
+## Конфигурация TypeScript
+
+- Алиас пути `@/*` указывает на `./src/*`
+- Мягкие настройки TypeScript (нет неявного any, неиспользуемые параметры разрешены)
+- Определения типов должны быть в `src/types/`
+
+## Конвенции стилизации
+
+- Tailwind CSS для всей стилизации
+- Кастомные цвета темы: trade.blue, trade.purple, trade.green, trade.orange
+- Цвета состояний: success, warning, error
+- Ширина контейнера установлена на 100% с отступом 1.5rem
+- Используйте существующие переменные теней и радиуса границ
+
+## Развертывание
+
+### Система двойного репозитория
+- **Demo (GitHub Pages)**: `electro-interfaces/tradeframe-builder` → https://electro-interfaces.github.io/tradeframe-builder/
+- **Production**: `electro-interfaces/TradeControl` → https://prod.dataworker.ru/
+
+### Автоматический деплой
+- **Demo**: При push в ветку `main` автоматически происходит деплой на GitHub Pages через GitHub Actions
+- **Production**: Имеет собственную схему деплоя на рабочий домен https://prod.dataworker.ru/
+
+## Важные заметки
+
+- Текущая версия: **v1.5.16** (управляется через `src/config/version.ts`)
+- Независимый проект (больше не связан с Lovable.dev)
+- Компонентный таггер активен в режиме разработки
+- Поддерживает PM2 деплой с `ecosystem.config.js`
+- Express сервер доступен для production развертывания
+
+## Рабочий язык
+
+**ОБЯЗАТЕЛЬНО**: Все взаимодействие с агентами Claude Code ведется на **русском языке**. Планы, отчеты, комментарии, коммиты - все на русском.
