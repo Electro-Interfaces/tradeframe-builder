@@ -125,6 +125,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const networkMenuItems = [
     { title: "Обзор", url: "/network/overview", icon: Network },
     { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
+    { title: "Купоны(демо)", url: "/network/coupons", icon: Component },
   ];
 
   const tradingPointMenuItems = [
