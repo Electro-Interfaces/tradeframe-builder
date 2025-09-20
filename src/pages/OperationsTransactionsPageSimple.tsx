@@ -19,6 +19,7 @@ import { TradingPoint } from "@/types/tradingpoint";
 import * as XLSX from 'xlsx';
 // PDF export removed - jsPDF and html2canvas imports disabled
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, TimeScale } from 'chart.js';
+import { loadPdfMake } from "@/utils/pdfMake";
 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
@@ -254,9 +255,353 @@ export default function OperationsTransactionsPageSimple() {
     });
   };
 
-  // PDF export function removed
-  const exportToPDF = async () => {
-    console.log('PDF export is disabled');
+  const exportToPdf = async () => {
+    if (!filteredOperations.length) {
+      const emptyNotification = document.createElement('div');
+      emptyNotification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+      emptyNotification.textContent = 'Нет данных для экспорта';
+      document.body.appendChild(emptyNotification);
+      setTimeout(() => {
+        if (document.body.contains(emptyNotification)) {
+          document.body.removeChild(emptyNotification);
+        }
+      }, 2500);
+      return;
+    }
+
+    try {
+      const pdfMake = await loadPdfMake();
+
+      const formatNumber = (value: number) =>
+        value.toLocaleString('ru-RU', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+
+      const statusMap: Record<string, string> = {
+        completed: 'Завершено',
+        in_progress: 'Выполняется',
+        failed: 'Ошибка',
+        pending: 'Ожидание',
+        cancelled: 'Отменено',
+      };
+
+      const paymentMethodMap: Record<string, string> = {
+        cash: 'Наличные',
+        bank_card: 'Банк. карты',
+        fuel_card: 'Топл. карты',
+        online_order: 'Онлайн',
+      };
+
+      const totals = filteredOperations.reduce(
+        (acc, record) => {
+          const liters = Number(record.actualQuantity ?? record.quantity ?? 0) || 0;
+          const amount = Number(record.actualAmount ?? record.totalCost ?? 0) || 0;
+          const orderedLiters = Number(record.orderedQuantity ?? 0) || 0;
+          const orderedAmount = Number(record.orderedAmount ?? 0) || 0;
+          return {
+            liters: acc.liters + liters,
+            amount: acc.amount + amount,
+            orderedLiters: acc.orderedLiters + orderedLiters,
+            orderedAmount: acc.orderedAmount + orderedAmount,
+          };
+        },
+        { liters: 0, amount: 0, orderedLiters: 0, orderedAmount: 0 }
+      );
+
+      const fuelTotals = Array.from(
+        filteredOperations.reduce((acc, record) => {
+          const key = record.fuelType || '—';
+          const entry = acc.get(key) ?? { liters: 0, amount: 0 };
+          const liters = Number(record.actualQuantity ?? record.quantity ?? 0) || 0;
+          const amount = Number(record.actualAmount ?? record.totalCost ?? 0) || 0;
+          entry.liters += liters;
+          entry.amount += amount;
+          acc.set(key, entry);
+          return acc;
+        }, new Map<string, { liters: number; amount: number }>()),
+      ).sort((a, b) => b[1].amount - a[1].amount);
+
+      const paymentTotals = Array.from(
+        filteredOperations.reduce((acc, record) => {
+          const key = paymentMethodMap[record.paymentMethod] || record.paymentMethod || '—';
+          const entry = acc.get(key) ?? { liters: 0, amount: 0 };
+          const liters = Number(record.actualQuantity ?? record.quantity ?? 0) || 0;
+          const amount = Number(record.actualAmount ?? record.totalCost ?? 0) || 0;
+          entry.liters += liters;
+          entry.amount += amount;
+          acc.set(key, entry);
+          return acc;
+        }, new Map<string, { liters: number; amount: number }>()),
+      ).sort((a, b) => b[1].amount - a[1].amount);
+
+      const tableBody = [
+        [
+          { text: 'Чек', style: 'tableHeader' },
+          { text: 'ID', style: 'tableHeader' },
+          { text: 'Дата и время', style: 'tableHeader' },
+          { text: 'Пист.', style: 'tableHeader', alignment: 'center' },
+          { text: 'Топливо', style: 'tableHeader' },
+          { text: 'Кол-во, л', style: 'tableHeader', alignment: 'right' },
+          { text: 'Цена, ₽/л', style: 'tableHeader', alignment: 'right' },
+          { text: 'Сумма, ₽', style: 'tableHeader', alignment: 'right' },
+          { text: 'Оплата', style: 'tableHeader' },
+          { text: 'POS', style: 'tableHeader', alignment: 'center' },
+          { text: 'Смена', style: 'tableHeader', alignment: 'center' },
+          { text: 'Заказ, л', style: 'tableHeader', alignment: 'right' },
+          { text: 'Статус', style: 'tableHeader' },
+        ],
+        ...filteredOperations.map((record) => {
+          const liters = Number(record.actualQuantity ?? record.quantity ?? 0) || 0;
+          const amount = Number(record.actualAmount ?? record.totalCost ?? 0) || 0;
+          const price = Number(record.price ?? 0) || 0;
+          const orderedLiters = Number(record.orderedQuantity ?? 0) || 0;
+          const orderedAmount = Number(record.orderedAmount ?? 0) || 0;
+
+          return [
+            { text: record.receiptNumber || '-', style: 'tableCellMono' },
+            { text: record.id ?? '-', style: 'tableCellMono' },
+            {
+              text: new Date(record.startTime).toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+              style: 'tableCell',
+            },
+            { text: record.nozzleNumber ? String(record.nozzleNumber) : '-', style: 'tableCell', alignment: 'center' },
+            { text: record.fuelType || '-', style: 'tableCell' },
+            { text: liters ? formatNumber(liters) : '-', style: 'tableCell', alignment: 'right' },
+            { text: price ? formatNumber(price) : '-', style: 'tableCell', alignment: 'right' },
+            { text: amount ? formatNumber(amount) : '-', style: 'tableCell', alignment: 'right' },
+            { text: paymentMethodMap[record.paymentMethod] || record.paymentMethod || '-', style: 'tableCell' },
+            { text: record.posNumber ? String(record.posNumber) : '-', style: 'tableCell', alignment: 'center' },
+            { text: record.shiftNumber ? String(record.shiftNumber) : '-', style: 'tableCell', alignment: 'center' },
+            { text: orderedLiters ? formatNumber(orderedLiters) : '-', style: 'tableCell', alignment: 'right' },
+            { text: statusMap[record.status] || record.status || '-', style: 'tableCell' },
+          ];
+        }),
+      ];
+
+      const selectedPointName = (() => {
+        if (typeof selectedTradingPoint === 'string') {
+          return selectedTradingPoint === 'all' ? 'Все торговые точки' : selectedTradingPoint;
+        }
+        return selectedTradingPoint?.name ?? '—';
+      })();
+
+      const content: Array<Record<string, unknown>> = [
+          { text: 'Отчёт по операциям', style: 'title' },
+          {
+            columns: [
+              {
+                text: [
+                  { text: 'Сеть: ', bold: true },
+                  selectedNetwork?.name || '—',
+                  '\n',
+                  { text: 'Точка: ', bold: true },
+                  selectedPointName || '—',
+                ],
+                style: 'infoBlock',
+              },
+              {
+                text: [
+                  { text: 'Период: ', bold: true },
+                  `${dateFrom || '—'} – ${dateTo || '—'}`,
+                  '\n',
+                  { text: 'Сформировано: ', bold: true },
+                  new Date().toLocaleString('ru-RU'),
+                ],
+                style: 'infoBlock',
+                alignment: 'right',
+              },
+            ],
+            columnGap: 12,
+            margin: [0, 0, 0, 12],
+          },
+          {
+            columns: [
+              {
+                text: [
+                  { text: 'Количество операций: ', bold: true },
+                  String(filteredOperations.length),
+                ],
+                style: 'summaryBlock',
+              },
+              {
+                text: [
+                  { text: 'Отпуск, л: ', bold: true },
+                  formatNumber(totals.liters),
+                ],
+                style: 'summaryBlock',
+                alignment: 'center',
+              },
+              {
+                text: [
+                  { text: 'Сумма, ₽: ', bold: true },
+                  formatNumber(totals.amount),
+                ],
+                style: 'summaryBlock',
+                alignment: 'center',
+              },
+              {
+                text: [
+                  { text: 'Заказ, л: ', bold: true },
+                  formatNumber(totals.orderedLiters),
+                  '\n',
+                  { text: 'Заказ, ₽: ', bold: true },
+                  formatNumber(totals.orderedAmount),
+                ],
+                style: 'summaryBlock',
+                alignment: 'right',
+              },
+            ],
+            columnGap: 12,
+            margin: [0, 0, 0, 16],
+          },
+      ];
+
+      const breakdownColumns: Array<Record<string, unknown>> = [];
+      if (fuelTotals.length > 0) {
+        breakdownColumns.push({
+          width: '*',
+          stack: [
+            { text: 'Итоги по топливу', style: 'sectionLabel' },
+            ...fuelTotals.map(([fuel, data]) => ({
+              text: `${fuel}: ${formatNumber(data.liters)} л / ${formatNumber(data.amount)} ₽`,
+              style: 'summaryDetail',
+            })),
+          ],
+        });
+      }
+      if (paymentTotals.length > 0) {
+        breakdownColumns.push({
+          width: '*',
+          stack: [
+            { text: 'Итоги по оплатам', style: 'sectionLabel' },
+            ...paymentTotals.map(([method, data]) => ({
+              text: `${method}: ${formatNumber(data.liters)} л / ${formatNumber(data.amount)} ₽`,
+              style: 'summaryDetail',
+            })),
+          ],
+        });
+      }
+
+      if (breakdownColumns.length > 0) {
+        content.push({
+          columns: breakdownColumns,
+          columnGap: 18,
+          margin: [0, 0, 0, 16],
+        });
+      }
+
+      content.push({
+        table: {
+          headerRows: 1,
+          widths: [40, 45, 75, 26, 60, 38, 38, 45, 50, 24, 24, 65, 50],
+          body: tableBody,
+        },
+        layout: {
+          fillColor: (rowIndex: number) => {
+            if (rowIndex === 0) {
+              return '#1f2937';
+            }
+            return rowIndex % 2 === 0 ? '#f3f4f6' : '#ffffff';
+          },
+          hLineColor: () => '#d1d5db',
+          vLineColor: () => '#d1d5db',
+          paddingLeft: () => 8,
+          paddingRight: () => 8,
+          paddingTop: () => 6,
+          paddingBottom: () => 6,
+        },
+      });
+
+      const docDefinition = {
+        info: {
+          title: 'Отчёт по операциям',
+          author: 'TradeFrame Builder',
+          subject: 'Экспорт операций',
+        },
+        pageOrientation: 'landscape',
+        pageMargins: [24, 24, 24, 32],
+        content,
+        styles: {
+          title: {
+            fontSize: 18,
+            bold: true,
+            margin: [0, 0, 0, 12],
+            color: '#111827',
+          },
+          infoBlock: {
+            fontSize: 10,
+            color: '#111827',
+          },
+          summaryBlock: {
+            fontSize: 11,
+            color: '#111827',
+          },
+          sectionLabel: {
+            fontSize: 11,
+            color: '#111827',
+            bold: true,
+            margin: [0, 0, 0, 4],
+          },
+          summaryDetail: {
+            fontSize: 10,
+            color: '#374151',
+            margin: [0, 0, 0, 2],
+          },
+          tableHeader: {
+            bold: true,
+            color: '#f9fafb',
+            fontSize: 10,
+          },
+          tableCell: {
+            fontSize: 9,
+            color: '#111827',
+            noWrap: false,
+            lineHeight: 1.2,
+          },
+          tableCellMono: {
+            fontSize: 8,
+            color: '#111827',
+            font: 'Roboto',
+            noWrap: false,
+            lineHeight: 1.2,
+          },
+        },
+        defaultStyle: {
+          font: 'Roboto',
+        },
+      } as const;
+
+      const fileName = `operations_${dateFrom || 'start'}_${dateTo || 'end'}.pdf`;
+      pdfMake.createPdf(docDefinition).download(fileName);
+
+      const successNotification = document.createElement('div');
+      successNotification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+      successNotification.textContent = `PDF файл создан: ${filteredOperations.length} записей`;
+      document.body.appendChild(successNotification);
+      setTimeout(() => {
+        if (document.body.contains(successNotification)) {
+          document.body.removeChild(successNotification);
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('❌ Ошибка экспорта в PDF:', error);
+      const errorNotification = document.createElement('div');
+      errorNotification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+      errorNotification.textContent = 'Ошибка при создании PDF файла';
+      document.body.appendChild(errorNotification);
+      setTimeout(() => {
+        if (document.body.contains(errorNotification)) {
+          document.body.removeChild(errorNotification);
+        }
+      }, 3000);
+    }
   };
 
   // Функция загрузки из STS API
@@ -832,12 +1177,10 @@ export default function OperationsTransactionsPageSimple() {
                         <FileSpreadsheet className="w-4 h-4 text-green-400" />
                         <span className="text-sm font-medium">Экспорт в Excel</span>
                       </DropdownMenuItem>
-{/* PDF экспорт убран
-                      <DropdownMenuItem onClick={exportToPDF} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
+                      <DropdownMenuItem onClick={exportToPdf} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
                         <FileText className="w-4 h-4 text-red-400" />
-                        <span className="text-sm font-medium">Дашборд PDF</span>
+                        <span className="text-sm font-medium">Экспорт в PDF</span>
                       </DropdownMenuItem>
-                      */}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
