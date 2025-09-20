@@ -3,41 +3,52 @@
  * API: /v1/coupons
  */
 
-// Основной интерфейс купона
-export interface Coupon {
-  number: string;          // Номер купона (для поиска клиентом)
-  dt_beg: string;         // Дата/время выдачи купона (ISO 8601)
-  pos: number;            // Номер POS терминала
-  shift: number;          // Номер смены (когда выдан)
-  opernum: number;        // Номер операции выдачи
-  summ_total: number;     // Первоначальная сумма купона (сдача)
-  summ_used: number;      // Уже использованная сумма
-  dt_end: string | null;  // Дата полного погашения (если есть)
-  state: CouponState;     // Текущий статус купона
-  rest: number;           // Остаток к использованию
-
-  // Новые поля для топливных купонов (опциональные для совместимости)
-  fuel_type?: FuelType;     // Тип топлива
-  fuel_price?: number;      // Цена за литр на момент выдачи
-  fuel_amount?: number;     // Первоначальное количество литров
-  fuel_used?: number;       // Использованное количество литров
-  fuel_rest?: number;       // Остаток в литрах
-  can_change_fuel?: boolean; // Можно ли поменять тип топлива
-  is_unused?: boolean;      // Спец отметка - не было ни одного литра использовано
-  expires_at?: string;      // Дата истечения (30 дней с момента выдачи)
+// Сервис (топливо) в купоне
+export interface CouponService {
+  service_code: number;     // Код продукта/услуги
+  service_name: string;     // Наименование (АИ-92, АИ-95, АИ-98, ДТ и т.д.)
 }
 
-// Статусы купонов
-export type CouponState = "Активен" | "Погашен";
+// Состояние купона
+export interface CouponState {
+  id: number;               // Идентификатор состояния (0 - Активный, 2 - Погашен и т.д.)
+  name: string;             // Наименование состояния
+}
 
-// Типы топлива
+// Основной интерфейс купона (по реальному API)
+export interface Coupon {
+  number: string;           // Номер купона
+  dt: string;              // Дата создания (ISO 8601)
+  pos: number;             // Рабочее место
+  shift: number;           // Номер смены
+  opernum: number;         // Порядковый номер в пределах смены
+  summ_total: number;      // Сумма всего
+  qty_total: number;       // Количество всего
+  qty_used: number;        // Количество использовано
+  summ_used: number;       // Сумма использовано
+  price: number;           // Цена
+  service: CouponService;  // Информация о продукте/топливе
+  state: CouponState;      // Статус талона
+  rest_summ: number;       // Остаток суммы
+  rest_qty: number;        // Остаток количества
+}
+
+// Типы топлива (расширенный список)
 export type FuelType = "АИ-92" | "АИ-95" | "АИ-98" | "ДТ" | "ДТ-З";
 
-// Ответ API для одной системы/станции
+// Итоговые данные по станции
+export interface CouponsTotal {
+  active: number;           // Количество активных талонов
+  redeem: number;           // Количество погашенных талонов
+  expire: number;           // Количество просроченных талонов
+}
+
+// Ответ API для одной системы/станции (по реальному API)
 export interface CouponSystemResponse {
-  system: number;           // ID системы (торговой сети)
-  number: number;          // ID станции
-  coupons: Coupon[];       // Массив купонов
+  system: number;           // Код системы
+  number: number;           // Номер торговой точки
+  coupons: Coupon[];        // Массив купонов
+  total: CouponsTotal;      // Итоговые данные
 }
 
 // Полный ответ API (массив систем/станций)
@@ -58,6 +69,9 @@ export interface CouponWithAge extends Coupon {
   isOld: boolean;           // Старше 7 дней
   isCritical: boolean;      // Старше 30 дней
   priority: CouponPriority; // Приоритет внимания
+  isActive: boolean;        // Активен ли купон (state.id === 0)
+  isRedeemed: boolean;      // Погашен ли купон (state.id === 2)
+  isExpired: boolean;       // Истек ли купон
 }
 
 // Приоритеты купонов для мониторинга
@@ -87,6 +101,12 @@ export interface CouponsStats {
   averageRest: number;      // Средний остаток на купон
   oldCouponsCount: number;  // Купоны старше 7 дней
   criticalCouponsCount: number; // Купоны старше 30 дней
+  // Новые поля для аналитики
+  expiredCoupons: number;   // Просроченные купоны (>7 дней)
+  expiredAmount: number;    // Сумма просроченных купонов
+  totalFuelDelivered: number; // Общий объем выданного топлива (л)
+  expiredFuelLoss: number;  // Потери топлива по просроченным купонам (л)
+  utilizationRate: number;  // Процент использования купонов
 }
 
 // Фильтры для поиска и фильтрации купонов

@@ -19,9 +19,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useSelection } from '@/contexts/SelectionContext';
 
 // Импорты сервисов и компонентов
-import { couponsApiService } from '@/services/couponsService';
-import { couponsBusinessService } from '@/services/couponsBusinessService';
-import type { CouponsApiResponse, CouponsFilter, Coupon } from '@/types/coupons';
+import { couponsApiService } from '@/services/couponsApiService';
+import type {
+  CouponsApiResponse,
+  CouponsFilter,
+  Coupon,
+  CouponsSearchResult,
+  CouponsApiParams
+} from '@/types/coupons';
 
 import {
   Receipt,
@@ -41,7 +46,12 @@ import {
   Activity,
   Pin,
   Loader2,
-  Copy
+  Copy,
+  Fuel,
+  TrendingUp,
+  XCircle,
+  Ticket,
+  Package
 } from 'lucide-react';
 
 export default function CouponsPage() {
@@ -50,8 +60,8 @@ export default function CouponsPage() {
   const { selectedTradingPoint, selectedNetwork } = useSelection();
 
   // Состояния данных
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [searchResult, setSearchResult] = useState<CouponsSearchResult | null>(null);
+  const [loading, setLoading] = useState(true); // Начинаем с loading=true
   const [error, setError] = useState<string | null>(null);
 
   // Пагинация
@@ -61,13 +71,24 @@ export default function CouponsPage() {
 
   // Состояния фильтров
   const [filters, setFilters] = useState<CouponsFilter>({
-    system: 15, // По умолчанию система 15
+    system: 15, // Начальное значение
     search: '',
     state: undefined,
     ageFilter: 'all',
+    // Устанавливаем период по умолчанию - месяц от текущей даты (формат для HTML input)
     dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 дней назад
     dateTo: new Date().toISOString().split('T')[0] // сегодня
   });
+
+  // Обновляем system в фильтрах при изменении выбранной сети
+  useEffect(() => {
+    if (selectedNetwork?.external_id && !isNaN(Number(selectedNetwork.external_id))) {
+      setFilters(prev => ({
+        ...prev,
+        system: Number(selectedNetwork.external_id)
+      }));
+    }
+  }, [selectedNetwork]);
 
   // Фильтр по типу топлива
   const [selectedFuelType, setSelectedFuelType] = useState<string>('all');
@@ -104,276 +125,53 @@ export default function CouponsPage() {
       console.log('🎫 Загрузка купонов с фильтрами:', filters);
       console.log('🎫 Выбранная торговая точка:', selectedTradingPoint);
 
-      // Временно используем только демо-данные с топливными купонами
-      console.log('🎫 Загружаем демо-данные с топливными купонами (API отключен)');
+      // Параметры запроса к API
+      const apiParams: CouponsApiParams = {
+        system: filters.system,
+        // Используем external_id торговой точки если он число
+        ...(selectedTradingPoint?.external_id && !isNaN(Number(selectedTradingPoint.external_id)) && {
+          station: Number(selectedTradingPoint.external_id)
+        }),
+        ...(filters.dateFrom && { dt_beg: filters.dateFrom }),
+        ...(filters.dateTo && { dt_end: filters.dateTo })
+      };
 
-        // Fallback на демо-данные с новым форматом топливных купонов
-        const mockCoupons = [
-          {
-            number: "CPN001234567",
-            station: 1,
-            date: "2025-09-15T14:30:00",
-            amount: 1500.50,
-            state: "Активен" as const,
-            description: "Купон АИ-95 (32.6 л остается)",
-            systemId: 15,
-            systemNumber: 1,
-            fuel_type: "АИ-95" as const,
-            fuel_price: 46.05,
-            fuel_amount: 32.6,
-            fuel_used: 0,
-            fuel_rest: 32.6,
-            can_change_fuel: true,
-            is_unused: true,
-            expires_at: "2025-10-15T14:30:00"
-          },
-          {
-            number: "CPN001234568",
-            station: 1,
-            date: "2025-09-14T10:15:00",
-            amount: 750.00,
-            state: "Активен" as const,
-            description: "Купон ДТ (12.5 л остается)",
-            systemId: 15,
-            systemNumber: 1,
-            fuel_type: "ДТ" as const,
-            fuel_price: 60.00,
-            fuel_amount: 15.0,
-            fuel_used: 2.5,
-            fuel_rest: 12.5,
-            can_change_fuel: false,
-            is_unused: false,
-            expires_at: "2025-10-14T10:15:00"
-          },
-          {
-            number: "CPN001234569",
-            station: 2,
-            date: "2025-09-13T16:45:00",
-            amount: 320.75,
-            state: "Активен" as const,
-            description: "Купон АИ-92 (7.8 л остается)",
-            systemId: 15,
-            systemNumber: 2,
-            fuel_type: "АИ-92" as const,
-            fuel_price: 41.12,
-            fuel_amount: 7.8,
-            fuel_used: 0,
-            fuel_rest: 7.8,
-            can_change_fuel: true,
-            is_unused: true,
-            expires_at: "2025-10-13T16:45:00"
-          },
-          {
-            number: "CPN001234570",
-            station: 2,
-            date: "2025-09-12T09:20:00",
-            amount: 890.25,
-            state: "Активен" as const,
-            description: "Купон АИ-98 (16.9 л остается)",
-            systemId: 15,
-            systemNumber: 2,
-            fuel_type: "АИ-98" as const,
-            fuel_price: 52.70,
-            fuel_amount: 16.9,
-            fuel_used: 0,
-            fuel_rest: 16.9,
-            can_change_fuel: true,
-            is_unused: true,
-            expires_at: "2025-10-12T09:20:00"
-          },
-          {
-            number: "CPN001234571",
-            station: 3,
-            date: "2025-09-11T13:10:00",
-            amount: 450.00,
-            state: "Погашен" as const,
-            description: "Купон ДТ-З (полностью использован)",
-            systemId: 15,
-            systemNumber: 3,
-            fuel_type: "ДТ-З" as const,
-            fuel_price: 65.00,
-            fuel_amount: 6.92,
-            fuel_used: 6.92,
-            fuel_rest: 0,
-            can_change_fuel: false,
-            is_unused: false,
-            expires_at: "2025-10-11T13:10:00"
-          },
-          {
-            number: "CPN001234572",
-            station: 1,
-            date: "2025-09-10T11:45:00",
-            amount: 675.30,
-            state: "Активен" as const,
-            description: "Купон АИ-95 (14.7 л остается) 🔄",
-            systemId: 15,
-            systemNumber: 1,
-            fuel_type: "АИ-95" as const,
-            fuel_price: 46.05,
-            fuel_amount: 14.7,
-            fuel_used: 0,
-            fuel_rest: 14.7,
-            can_change_fuel: true,
-            is_unused: true,
-            expires_at: "2025-10-10T11:45:00"
-          },
-          {
-            number: "CPN001234573",
-            station: 2,
-            date: "2025-09-09T15:20:00",
-            amount: 412.50,
-            state: "Активен" as const,
-            description: "Купон АИ-92 (10.0 л остается)",
-            systemId: 15,
-            systemNumber: 2,
-            fuel_type: "АИ-92" as const,
-            fuel_price: 41.25,
-            fuel_amount: 10.0,
-            fuel_used: 0,
-            fuel_rest: 10.0,
-            can_change_fuel: true,
-            is_unused: true,
-            expires_at: "2025-10-09T15:20:00"
-          },
-          {
-            number: "CPN001234574",
-            station: 3,
-            date: "2025-09-08T12:30:00",
-            amount: 920.00,
-            state: "Активен" as const,
-            description: "Купон ДТ (частично использован)",
-            systemId: 15,
-            systemNumber: 3,
-            fuel_type: "ДТ" as const,
-            fuel_price: 58.00,
-            fuel_amount: 20.0,
-            fuel_used: 4.1,
-            fuel_rest: 15.9,
-            can_change_fuel: false,
-            is_unused: false,
-            expires_at: "2025-10-08T12:30:00"
-          },
-          {
-            number: "CPN001234575",
-            station: 1,
-            date: "2025-09-07T08:45:00",
-            amount: 2280.90,
-            state: "Активен" as const,
-            description: "Купон АИ-98 (большая сумма)",
-            systemId: 15,
-            systemNumber: 1,
-            fuel_type: "АИ-98" as const,
-            fuel_price: 52.30,
-            fuel_amount: 43.6,
-            fuel_used: 0,
-            fuel_rest: 43.6,
-            can_change_fuel: true,
-            is_unused: true,
-            expires_at: "2025-10-07T08:45:00"
-          },
-          {
-            number: "CPN001234576",
-            station: 2,
-            date: "2025-09-06T17:15:00",
-            amount: 325.00,
-            state: "Погашен" as const,
-            description: "Купон АИ-92 (полностью использован)",
-            systemId: 15,
-            systemNumber: 2,
-            fuel_type: "АИ-92" as const,
-            fuel_price: 41.25,
-            fuel_amount: 7.88,
-            fuel_used: 7.88,
-            fuel_rest: 0,
-            can_change_fuel: false,
-            is_unused: false,
-            expires_at: "2025-10-06T17:15:00"
-          },
-          {
-            number: "CPN001234577",
-            station: 3,
-            date: "2025-09-05T14:00:00",
-            amount: 650.00,
-            state: "Активен" as const,
-            description: "Купон ДТ-З (малый остаток)",
-            systemId: 15,
-            systemNumber: 3,
-            fuel_type: "ДТ-З" as const,
-            fuel_price: 65.00,
-            fuel_amount: 12.0,
-            fuel_used: 10.0,
-            fuel_rest: 2.0,
-            can_change_fuel: false,
-            is_unused: false,
-            expires_at: "2025-10-05T14:00:00"
-          },
-          {
-            number: "CPN001234578",
-            station: 1,
-            date: "2025-09-04T11:30:00",
-            amount: 1380.45,
-            state: "Активен" as const,
-            description: "Купон АИ-95 (30.0 л остается) 🔄",
-            systemId: 15,
-            systemNumber: 1,
-            fuel_type: "АИ-95" as const,
-            fuel_price: 46.02,
-            fuel_amount: 30.0,
-            fuel_used: 0,
-            fuel_rest: 30.0,
-            can_change_fuel: true,
-            is_unused: true,
-            expires_at: "2025-10-04T11:30:00"
-          },
-          {
-            number: "CPN001234579",
-            station: 2,
-            date: "2025-09-03T16:20:00",
-            amount: 2115.60,
-            state: "Активен" as const,
-            description: "Купон АИ-98 (частично использован)",
-            systemId: 15,
-            systemNumber: 2,
-            fuel_type: "АИ-98" as const,
-            fuel_price: 52.89,
-            fuel_amount: 45.0,
-            fuel_used: 5.0,
-            fuel_rest: 40.0,
-            can_change_fuel: false,
-            is_unused: false,
-            expires_at: "2025-10-03T16:20:00"
-          },
-          {
-            number: "CPN001234580",
-            station: 3,
-            date: "2025-09-02T09:10:00",
-            amount: 522.50,
-            state: "Погашен" as const,
-            description: "Купон ДТ (полностью использован)",
-            systemId: 15,
-            systemNumber: 3,
-            fuel_type: "ДТ" as const,
-            fuel_price: 58.06,
-            fuel_amount: 9.0,
-            fuel_used: 9.0,
-            fuel_rest: 0,
-            can_change_fuel: false,
-            is_unused: false,
-            expires_at: "2025-10-02T09:10:00"
-          }
-        ];
+      console.log('🎫 API параметры:', apiParams);
+      console.log('🎫 Выбранная торговая точка ID:', selectedTradingPoint?.id);
 
-        setCoupons(mockCoupons);
+      // Загружаем данные с API
+      const apiResponse = await couponsApiService.getCoupons(apiParams);
 
-        toast({
-          title: "Загружены демо-данные с топливными купонами",
-          description: `Показано ${mockCoupons.length} купонов с разными типами топлива`,
-          variant: "default"
-        });
+      // Обрабатываем ответ API
+      const processedResult = couponsApiService.processRawCoupons(apiResponse);
+
+      // Применяем дополнительные фильтры
+      const filteredResult = couponsApiService.filterCoupons(processedResult, filters);
+
+      setSearchResult(filteredResult);
+
 
     } catch (err: any) {
       const errorMessage = err.message || 'Неизвестная ошибка при загрузке данных';
       setError(errorMessage);
+
+      // В случае ошибки API используем пустой результат
+      setSearchResult({
+        groups: [],
+        stats: {
+          totalCoupons: 0,
+          activeCoupons: 0,
+          redeemedCoupons: 0,
+          totalDebt: 0,
+          totalAmount: 0,
+          usedAmount: 0,
+          averageRest: 0,
+          oldCouponsCount: 0,
+          criticalCouponsCount: 0
+        },
+        totalFound: 0,
+        appliedFilters: filters
+      });
 
       toast({
         title: "Ошибка загрузки",
@@ -386,67 +184,191 @@ export default function CouponsPage() {
   };
 
   /**
-   * Экспорт данных
+   * Экспорт данных в Excel с аналитикой
    */
-  const exportToExcel = () => {
-    if (!filteredCoupons || filteredCoupons.length === 0) return;
+  const exportToExcel = async () => {
+    // Динамический импорт библиотеки xlsx
+    const XLSX = await import('xlsx');
+    const allCoupons = searchResult?.groups.flatMap(g => g.coupons) || [];
+    if (allCoupons.length === 0) return;
 
-    const csvData = couponsBusinessService.exportToCsv(filteredCoupons);
+    const currentDate = new Date().toLocaleDateString('ru-RU');
+    const networkName = selectedNetwork?.name || 'Не выбрана';
+    const stationName = selectedTradingPoint?.name || 'Все станции';
 
-    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
+    // Создаем новую рабочую книгу Excel
+    const workbook = XLSX.utils.book_new();
 
-    link.setAttribute('href', url);
-    link.setAttribute('download', `coupons_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    // Лист "Аналитика"
+    const analyticsData = [];
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Заголовок отчета
+    analyticsData.push(['ОТЧЕТ ПО КУПОНАМ']);
+    analyticsData.push(['Дата формирования:', currentDate]);
+    analyticsData.push(['Сеть:', networkName]);
+    analyticsData.push(['Торговая точка:', stationName]);
+    analyticsData.push(['']); // Пустая строка
+
+    // Аналитические показатели (в том же порядке, что и карточки)
+    analyticsData.push(['АНАЛИТИЧЕСКИЕ ПОКАЗАТЕЛИ']);
+
+    // 1. Выдано купонов
+    const totalIssuedLiters = allCoupons.reduce((sum, c) => sum + c.qty_total, 0);
+    analyticsData.push(['1. ВЫДАНО КУПОНОВ']);
+    analyticsData.push(['   Объем (л):', totalIssuedLiters]);
+    analyticsData.push(['   Сумма (₽):', searchResult?.stats.totalAmount || 0]);
+    analyticsData.push(['   Количество (шт):', searchResult?.stats.totalCoupons || 0]);
+    analyticsData.push(['']);
+
+    // 2. Выдано топлива
+    const usedCouponsCount = allCoupons.filter(c => c.qty_used > 0).length;
+    analyticsData.push(['2. ВЫДАНО ТОПЛИВА']);
+    analyticsData.push(['   Объем (л):', searchResult?.stats.totalFuelDelivered || 0]);
+    analyticsData.push(['   Сумма (₽):', searchResult?.stats.usedAmount || 0]);
+    analyticsData.push(['   Количество купонов (шт):', usedCouponsCount]);
+    analyticsData.push(['']);
+
+    // 3. Остаток (активные купоны)
+    const activeCoupons = allCoupons.filter(c => c.isActive && !c.isOld);
+    const remainingLiters = activeCoupons.reduce((sum, c) => sum + c.rest_qty, 0);
+    const remainingAmount = activeCoupons.reduce((sum, c) => sum + c.rest_summ, 0);
+    analyticsData.push(['3. ОСТАТОК (активные купоны)']);
+    analyticsData.push(['   Объем (л):', remainingLiters]);
+    analyticsData.push(['   Сумма (₽):', remainingAmount]);
+    analyticsData.push(['   Количество (шт):', activeCoupons.length]);
+    analyticsData.push(['']);
+
+    // 4. Просрочено
+    analyticsData.push(['4. ПРОСРОЧЕНО (старше 7 дней)']);
+    analyticsData.push(['   Объем (л):', searchResult?.stats.expiredFuelLoss || 0]);
+    analyticsData.push(['   Сумма (₽):', searchResult?.stats.expiredAmount || 0]);
+    analyticsData.push(['   Количество (шт):', searchResult?.stats.expiredCoupons || 0]);
+    analyticsData.push(['']);
+
+    // Дополнительные показатели
+    analyticsData.push(['ДОПОЛНИТЕЛЬНЫЕ ПОКАЗАТЕЛИ']);
+    analyticsData.push(['Активных купонов:', searchResult?.stats.activeCoupons || 0]);
+    analyticsData.push(['Погашенных купонов:', searchResult?.stats.redeemedCoupons || 0]);
+    analyticsData.push(['']); // Пустая строка
+
+    analyticsData.push(['Процент использования (%):', searchResult?.stats.utilizationRate || 0]);
+
+    // Создаем лист аналитики
+    const analyticsSheet = XLSX.utils.aoa_to_sheet(analyticsData);
+
+    // Форматирование для числовых значений в аналитике (2 знака после запятой)
+    const range = XLSX.utils.decode_range(analyticsSheet['!ref'] || 'A1');
+    for (let row = range.s.r; row <= range.e.r; row++) {
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+        const cell = analyticsSheet[cellAddress];
+        if (cell && typeof cell.v === 'number' && col === 1) { // Столбец B (значения)
+          cell.z = '0.00'; // Формат с 2 знаками после запятой
+        }
+      }
+    }
+
+    XLSX.utils.book_append_sheet(workbook, analyticsSheet, 'Аналитика');
+
+    // Лист "Детальная информация"
+    const detailsData = [];
+    const headers = [
+      'Номер купона',
+      'Дата создания',
+      'Время создания',
+      'Тип топлива',
+      'Цена за литр (₽)',
+      'Общее количество (л)',
+      'Использовано (л)',
+      'Остаток (л)',
+      'Общая сумма (₽)',
+      'Использованная сумма (₽)',
+      'Остаток (₽)',
+      'Статус',
+      'Станция',
+      'Смена',
+      'Операция'
+    ];
+    detailsData.push(headers);
+
+    // Данные купонов
+    const rows = allCoupons.map(coupon => {
+      const date = new Date(coupon.dt);
+      return [
+        coupon.number,
+        date.toLocaleDateString('ru-RU'),
+        date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        coupon.service.service_name,
+        coupon.price,
+        coupon.qty_total,
+        coupon.qty_used,
+        coupon.rest_qty,
+        coupon.summ_total,
+        coupon.summ_used,
+        coupon.rest_summ,
+        coupon.state.name,
+        `Станция ${searchResult?.groups.find(g => g.coupons.includes(coupon))?.stationId || ''}`,
+        coupon.shift,
+        coupon.opernum
+      ];
+    });
+
+    detailsData.push(...rows);
+
+    // Создаем лист детальной информации
+    const detailsSheet = XLSX.utils.aoa_to_sheet(detailsData);
+
+    // Форматирование для числовых столбцов в детальной таблице
+    const detailsRange = XLSX.utils.decode_range(detailsSheet['!ref'] || 'A1');
+    for (let row = 1; row <= detailsRange.e.r; row++) { // Начинаем с 1 (пропускаем заголовки)
+      // Столбцы с числовыми данными: D(4), E(5), F(6), G(7), H(8), I(9), J(10), N(13), O(14)
+      const numericColumns = [4, 5, 6, 7, 8, 9, 10, 13, 14]; // Цена, объемы, суммы, смена, операция
+
+      numericColumns.forEach(col => {
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+        const cell = detailsSheet[cellAddress];
+        if (cell && typeof cell.v === 'number') {
+          if (col >= 4 && col <= 10) { // Денежные и объемные поля
+            cell.z = '0.00'; // 2 знака после запятой
+          } else { // Смена и операция
+            cell.z = '0'; // Целые числа
+          }
+        }
+      });
+    }
+
+    XLSX.utils.book_append_sheet(workbook, detailsSheet, 'Детальная информация');
+
+    // Сохраняем Excel файл
+    const fileName = `kupony_${networkName.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
 
     toast({
       title: "Экспорт завершен",
-      description: `Экспортировано ${filteredCoupons.length} купонов`,
+      description: `Экспортировано ${allCoupons.length} купонов с полной аналитикой`,
     });
   };
 
-  // Отфильтрованные купоны
+  // Получаем все купоны из результата поиска
+  const allCoupons = useMemo(() => {
+    return searchResult?.groups.flatMap(g => g.coupons) || [];
+  }, [searchResult]);
+
+  // Отфильтрованные купоны (дополнительная фильтрация поверх API)
   const filteredCoupons = useMemo(() => {
-    let filtered = coupons.filter(coupon => {
-      // Фильтр по поиску
+    let filtered = allCoupons.filter(coupon => {
+      // Фильтр по поиску (дополнительный)
       if (filters.search && !coupon.number.toLowerCase().includes(filters.search.toLowerCase())) {
         return false;
       }
 
-      // Фильтр по датам
-      if (filters.dateFrom || filters.dateTo) {
-        const couponDate = new Date(coupon.date);
-
-        // Проверяем валидность даты
-        if (isNaN(couponDate.getTime())) {
-          console.warn('🎫 Невалидная дата в купоне:', coupon.date, coupon);
-          return true; // Показываем купон если дата невалидна
-        }
-
-        const couponDateStr = couponDate.toISOString().split('T')[0];
-
-        if (filters.dateFrom && couponDateStr < filters.dateFrom) {
-          return false;
-        }
-
-        if (filters.dateTo && couponDateStr > filters.dateTo) {
-          return false;
-        }
-      }
-
       // KPI фильтры по статусам
-      if (selectedKpiStates.size > 0 && !selectedKpiStates.has(coupon.state)) {
+      if (selectedKpiStates.size > 0 && !selectedKpiStates.has(coupon.state.name)) {
         return false;
       }
 
       // Фильтр по типу топлива
-      if (selectedFuelType !== 'all' && coupon.fuel_type !== selectedFuelType) {
+      if (selectedFuelType !== 'all' && coupon.service.service_name !== selectedFuelType) {
         return false;
       }
 
@@ -455,8 +377,8 @@ export default function CouponsPage() {
 
     // Сортировка по дате (свежие сверху)
     return filtered.sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
+      const dateA = new Date(a.dt);
+      const dateB = new Date(b.dt);
 
       // Обрабатываем невалидные даты
       const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
@@ -464,7 +386,7 @@ export default function CouponsPage() {
 
       return timeB - timeA;
     });
-  }, [coupons, filters, selectedKpiStates, selectedFuelType]);
+  }, [allCoupons, filters, selectedKpiStates, selectedFuelType]);
 
   // Пагинация
   const paginatedCoupons = useMemo(() => {
@@ -475,29 +397,29 @@ export default function CouponsPage() {
     return filteredCoupons.slice(startIndex, endIndex);
   }, [filteredCoupons, currentPage, itemsPerPage]);
 
-  // Уникальные статусы для KPI (убираем станции)
+  // Уникальные статусы для KPI
   const uniqueStates = useMemo(() => {
-    const states = new Set(coupons.map(c => c.state));
+    const states = new Set(allCoupons.map(c => c.state.name));
     return Array.from(states).sort();
-  }, [coupons]);
+  }, [allCoupons]);
 
   // Уникальные типы топлива для KPI
   const uniqueFuelTypes = useMemo(() => {
-    const fuelTypes = new Set(coupons.map(c => c.fuel_type).filter(Boolean));
+    const fuelTypes = new Set(allCoupons.map(c => c.service.service_name));
     return Array.from(fuelTypes).sort();
-  }, [coupons]);
+  }, [allCoupons]);
 
   // Статистика по типам топлива
   const fuelStats = useMemo(() => {
     return uniqueFuelTypes.map(fuelType => {
-      const fuelCoupons = coupons.filter(c => c.fuel_type === fuelType);
-      const filteredFuelCoupons = filteredCoupons.filter(c => c.fuel_type === fuelType);
+      const fuelCoupons = allCoupons.filter(c => c.service.service_name === fuelType);
+      const filteredFuelCoupons = filteredCoupons.filter(c => c.service.service_name === fuelType);
 
-      const totalAmount = fuelCoupons.reduce((sum, c) => sum + (c.amount || 0), 0);
-      const filteredAmount = filteredFuelCoupons.reduce((sum, c) => sum + (c.amount || 0), 0);
+      const totalAmount = fuelCoupons.reduce((sum, c) => sum + c.rest_summ, 0);
+      const filteredAmount = filteredFuelCoupons.reduce((sum, c) => sum + c.rest_summ, 0);
 
-      const totalLiters = fuelCoupons.reduce((sum, c) => sum + (c.fuel_rest || 0), 0);
-      const filteredLiters = filteredFuelCoupons.reduce((sum, c) => sum + (c.fuel_rest || 0), 0);
+      const totalLiters = fuelCoupons.reduce((sum, c) => sum + c.rest_qty, 0);
+      const filteredLiters = filteredFuelCoupons.reduce((sum, c) => sum + c.rest_qty, 0);
 
       return {
         fuelType,
@@ -509,7 +431,7 @@ export default function CouponsPage() {
         filteredLiters
       };
     });
-  }, [coupons, filteredCoupons, uniqueFuelTypes]);
+  }, [allCoupons, filteredCoupons, uniqueFuelTypes]);
 
   // Функции управления KPI фильтрами (убираем станции)
   const handleKpiStateClick = (state: string) => {
@@ -538,29 +460,36 @@ export default function CouponsPage() {
 
   // Загружаем данные при монтировании и при изменении торговой точки
   useEffect(() => {
-    loadCouponsData();
-  }, [selectedTradingPoint]);
+    // Добавляем проверку для избежания вызова без необходимых данных
+    if (selectedNetwork?.external_id) {
+      loadCouponsData();
+    } else {
+      // Если нет выбранной сети, устанавливаем loading=false
+      setLoading(false);
+      setError('Выберите сеть для загрузки купонов');
+    }
+  }, [selectedTradingPoint, selectedNetwork]);
 
   // Получаем badge для статуса
-  const getStatusBadge = (state: string) => {
-    switch (state) {
-      case 'Активен':
-        return <Badge className="bg-green-600 text-white">Активен</Badge>;
+  const getStatusBadge = (stateName: string) => {
+    switch (stateName) {
+      case 'Активный':
+        return <Badge className="bg-green-600 text-white">Активный</Badge>;
       case 'Погашен':
         return <Badge className="bg-slate-600 text-slate-200">Погашен</Badge>;
       default:
-        return <Badge variant="secondary">{state}</Badge>;
+        return <Badge variant="secondary">{stateName}</Badge>;
     }
   };
 
-  const getCompactStatusBadge = (state: string) => {
-    switch (state) {
-      case 'Активен':
-        return <Badge className="bg-green-600 text-white text-xs px-1 py-0">Активен</Badge>;
+  const getCompactStatusBadge = (stateName: string) => {
+    switch (stateName) {
+      case 'Активный':
+        return <Badge className="bg-green-600 text-white text-xs px-1 py-0">Активный</Badge>;
       case 'Погашен':
         return <Badge className="bg-slate-600 text-slate-200 text-xs px-1 py-0">Погашен</Badge>;
       default:
-        return <Badge variant="secondary" className="text-xs px-1 py-0">{state}</Badge>;
+        return <Badge variant="secondary" className="text-xs px-1 py-0">{stateName}</Badge>;
     }
   };
 
@@ -575,9 +504,6 @@ export default function CouponsPage() {
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg flex-shrink-0"></div>
                 <span className={`${isMobile ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight truncate`}>Купоны</span>
-                <span className="text-amber-400 text-sm font-medium">
-                  (Это демо режим - все данные предоставлены для согласования механизма работы с купонами)
-                </span>
               </div>
 
               <div className={`flex ${isMobile ? 'gap-1' : 'gap-2'} items-center flex-shrink-0`}>
@@ -620,6 +546,119 @@ export default function CouponsPage() {
             </CardTitle>
           </CardHeader>
         </Card>
+
+        {/* Аналитические карточки */}
+        {searchResult && searchResult.stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
+            {/* Выдано купонов */}
+            <Card className="bg-slate-800 border-slate-600">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-full">
+                    <p className="text-slate-300 text-sm font-medium mb-2">Выдано купонов</p>
+                    <p className="text-white text-xl font-bold mb-1">
+                      {(() => {
+                        const allCoupons = searchResult.groups?.flatMap(g => g.coupons) || [];
+                        const totalLiters = allCoupons.reduce((sum, c) => sum + c.qty_total, 0);
+                        return `${totalLiters.toFixed(1)} л`;
+                      })()}
+                    </p>
+                    <p className="text-white text-xl font-bold mb-1">
+                      {searchResult.stats?.totalAmount?.toFixed(0) || '0'} ₽
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      {searchResult.stats?.totalCoupons || 0} шт
+                    </p>
+                  </div>
+                  <Ticket className="text-slate-400 w-8 h-8" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Объем выданного топлива */}
+            <Card className="bg-slate-800 border-slate-600">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-full">
+                    <p className="text-slate-300 text-sm font-medium mb-2">Выдано топлива</p>
+                    <p className="text-white text-xl font-bold mb-1">
+                      {searchResult.stats?.totalFuelDelivered?.toFixed(1) || '0.0'} л
+                    </p>
+                    <p className="text-white text-xl font-bold mb-1">
+                      {searchResult.stats?.usedAmount?.toFixed(0) || '0'} ₽
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      {(() => {
+                        const allCoupons = searchResult.groups?.flatMap(g => g.coupons) || [];
+                        const usedCoupons = allCoupons.filter(c => c.qty_used > 0);
+                        return usedCoupons.length;
+                      })()} шт
+                    </p>
+                  </div>
+                  <Fuel className="text-slate-400 w-8 h-8" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Остаток (активные купоны) */}
+            <Card className="bg-slate-800 border-slate-600">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-full">
+                    <p className="text-slate-300 text-sm font-medium mb-2">Остаток</p>
+                    <p className="text-white text-xl font-bold mb-1">
+                      {(() => {
+                        const allCoupons = searchResult.groups?.flatMap(g => g.coupons) || [];
+                        const activeCoupons = allCoupons.filter(c => c.isActive && !c.isOld);
+                        const totalRestLiters = activeCoupons.reduce((sum, c) => sum + c.rest_qty, 0);
+                        return `${totalRestLiters.toFixed(1)} л`;
+                      })()}
+                    </p>
+                    <p className="text-white text-xl font-bold mb-1">
+                      {(() => {
+                        const allCoupons = searchResult.groups?.flatMap(g => g.coupons) || [];
+                        const activeCoupons = allCoupons.filter(c => c.isActive && !c.isOld);
+                        const totalRestSum = activeCoupons.reduce((sum, c) => sum + c.rest_summ, 0);
+                        return `${totalRestSum.toFixed(0)} ₽`;
+                      })()}
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      {(() => {
+                        const allCoupons = searchResult.groups?.flatMap(g => g.coupons) || [];
+                        const activeCoupons = allCoupons.filter(c => c.isActive && !c.isOld);
+                        return `${activeCoupons.length} шт`;
+                      })()}
+                    </p>
+                  </div>
+                  <Package className="text-slate-400 w-8 h-8" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Просроченные купоны */}
+            <Card className="bg-slate-800 border-slate-600">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-full">
+                    <p className="text-slate-300 text-sm font-medium mb-2">Просрочено</p>
+                    <p className="text-white text-xl font-bold mb-1">
+                      {searchResult.stats?.expiredFuelLoss?.toFixed(1) || '0.0'} л
+                    </p>
+                    <p className="text-white text-xl font-bold mb-1">
+                      {searchResult.stats?.expiredAmount?.toFixed(0) || '0'} ₽
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      {searchResult.stats?.expiredCoupons || 0} шт
+                    </p>
+                  </div>
+                  <Clock className="text-slate-400 w-8 h-8" />
+                </div>
+              </CardContent>
+            </Card>
+
+
+          </div>
+        )}
 
         {/* Компактные фильтры */}
         <Card className="bg-slate-800 border-slate-600 mb-4">
@@ -729,7 +768,7 @@ export default function CouponsPage() {
         </Card>
 
         {/* Заголовок фильтров */}
-        {coupons.length > 0 && (
+        {allCoupons.length > 0 && (
           <div className="mb-4">
             <div className="space-y-1">
               {!isMobile && (
@@ -741,18 +780,18 @@ export default function CouponsPage() {
         )}
 
         {/* KPI карточки */}
-        {coupons.length > 0 && (
+        {allCoupons.length > 0 && (
           <div className="space-y-4">
             {/* Карточки по статусам */}
             <div className="space-y-2">
               <h3 className={`text-slate-300 font-medium px-2 ${isMobile ? 'text-sm' : 'text-base'}`}>Статусы</h3>
               <div className={`grid gap-4 ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {uniqueStates.map(state => {
-                  const allStateCoupons = coupons.filter(c => c.state === state);
-                  const filteredStateCoupons = filteredCoupons.filter(c => c.state === state);
+                  const allStateCoupons = allCoupons.filter(c => c.state.name === state);
+                  const filteredStateCoupons = filteredCoupons.filter(c => c.state.name === state);
 
-                  const allAmount = allStateCoupons.reduce((sum, c) => sum + (c.amount || 0), 0);
-                  const filteredAmount = filteredStateCoupons.reduce((sum, c) => sum + (c.amount || 0), 0);
+                  const allAmount = allStateCoupons.reduce((sum, c) => sum + c.rest_summ, 0);
+                  const filteredAmount = filteredStateCoupons.reduce((sum, c) => sum + c.rest_summ, 0);
 
                   const isSelected = selectedKpiStates.has(state);
 
@@ -906,7 +945,7 @@ export default function CouponsPage() {
               </div>
               <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {(() => {
-                  const totalAmount = filteredCoupons.reduce((sum, c) => sum + (c.amount || 0), 0);
+                  const totalAmount = filteredCoupons.reduce((sum, c) => sum + c.rest_summ, 0);
                   const hasActiveFilters = selectedKpiStates.size > 0;
 
                   return (
@@ -1008,7 +1047,7 @@ export default function CouponsPage() {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-slate-700 text-slate-300 border-b border-slate-600">
-                        <th className="px-2 py-2 text-left font-medium">Номер</th>
+                        <th className="px-2 py-2 text-left font-medium">Номер / Дата</th>
                         <th className="px-2 py-2 text-center font-medium">Топливо</th>
                         <th className="px-2 py-2 text-right font-medium">Остаток</th>
                         <th className="px-2 py-2 text-center font-medium">Статус</th>
@@ -1029,25 +1068,28 @@ export default function CouponsPage() {
                               <span className="text-white font-mono text-xs truncate" title={coupon.number}>
                                 {coupon.number}
                               </span>
-                              {(coupon.can_change_fuel || false) && (coupon.is_unused || false) && (
-                                <span className="text-yellow-400 text-xs">🔄 Можно сменить</span>
+                              <span className="text-slate-400 text-xs font-mono">
+                                {safeDateFormat(coupon.dt, (date) => date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))}
+                              </span>
+                              {coupon.isActive && coupon.qty_used === 0 && (
+                                <span className="text-yellow-400 text-xs">🔄 Не использован</span>
                               )}
                             </div>
                           </td>
                           <td className="px-2 py-2 text-center">
                             <div className="flex flex-col items-center">
-                              <span className="text-white font-semibold text-xs">{coupon.fuel_type || 'АИ-95'}</span>
-                              <span className="text-slate-300 text-xs">{(coupon.fuel_price || 46.00).toFixed(2)} ₽/л</span>
+                              <span className="text-white font-semibold text-xs">{coupon.service.service_name}</span>
+                              <span className="text-slate-300 text-xs">{coupon.price.toFixed(2)} ₽/л</span>
                             </div>
                           </td>
                           <td className="px-2 py-2 text-white text-right">
                             <div className="flex flex-col items-end">
-                              <span className="font-bold text-xs">{(coupon.fuel_rest || (coupon.amount || 0) / (coupon.fuel_price || 46.00)).toFixed(1)} л</span>
-                              <span className="text-slate-300 text-xs">{((coupon.fuel_rest || (coupon.amount || 0) / (coupon.fuel_price || 46.00)) * (coupon.fuel_price || 46.00)).toFixed(0)} ₽</span>
+                              <span className="font-bold text-xs">{coupon.rest_qty.toFixed(1)} л</span>
+                              <span className="text-slate-300 text-xs">{coupon.rest_summ.toFixed(0)} ₽</span>
                             </div>
                           </td>
                           <td className="px-2 py-2 text-center">
-                            {getCompactStatusBadge(coupon.state)}
+                            {getCompactStatusBadge(coupon.state.name)}
                           </td>
                         </tr>
                       ))}
@@ -1100,12 +1142,13 @@ export default function CouponsPage() {
                   <TableHeader>
                     <TableRow className="border-slate-700 hover:bg-slate-800">
                       <TableHead className="text-slate-300 min-w-[120px]">Номер купона</TableHead>
+                      <TableHead className="text-slate-300 min-w-[140px]">Дата создания</TableHead>
                       <TableHead className="text-slate-300 min-w-[100px]">Тип топлива</TableHead>
                       <TableHead className="text-slate-300 min-w-[100px]">Цена за литр</TableHead>
                       <TableHead className="text-slate-300 min-w-[120px]">Остаток (л)</TableHead>
                       <TableHead className="text-slate-300 min-w-[100px]">Остаток (₽)</TableHead>
                       <TableHead className="text-slate-300 min-w-[100px]">Статус</TableHead>
-                      <TableHead className="text-slate-300 min-w-[120px]">Срок действия</TableHead>
+                      <TableHead className="text-slate-300 min-w-[120px]">Смена</TableHead>
                       <TableHead className="text-slate-300 min-w-[100px]">Действия</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1118,45 +1161,51 @@ export default function CouponsPage() {
                         <TableCell className="text-slate-300 font-mono text-sm min-w-[120px]">
                           <div className="flex flex-col">
                             <span>{coupon.number}</span>
-                            {(coupon.can_change_fuel || false) && (coupon.is_unused || false) && (
+                            {coupon.isActive && coupon.qty_used === 0 && (
                               <span className="text-yellow-400 text-xs flex items-center gap-1">
-                                🔄 Можно сменить топливо
+                                🔄 Не использован
                               </span>
                             )}
                           </div>
                         </TableCell>
+                        <TableCell className="text-slate-300 text-sm min-w-[140px]">
+                          <div className="flex flex-col">
+                            <span className="font-mono">{safeDateFormat(coupon.dt, (date) => date.toLocaleDateString('ru-RU'))}</span>
+                            <span className="text-xs text-slate-400 font-mono">{safeDateFormat(coupon.dt, (date) => date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }))}</span>
+                          </div>
+                        </TableCell>
                         <TableCell className="text-slate-300 text-sm min-w-[100px] text-center">
                           <div className="flex flex-col items-center">
-                            <span className="font-semibold text-blue-300">{coupon.fuel_type || 'АИ-95'}</span>
+                            <span className="font-semibold text-blue-300">{coupon.service.service_name}</span>
                             <span className="text-xs text-slate-400">
-                              {(coupon.fuel_used || 0) > 0 ? `Исп: ${(coupon.fuel_used || 0).toFixed(1)}л` : 'Не использован'}
+                              {coupon.qty_used > 0 ? `Исп: ${coupon.qty_used.toFixed(1)}л` : 'Не использован'}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-slate-300 text-sm min-w-[100px] text-right">
-                          <span className="font-mono">{(coupon.fuel_price || 46.00).toFixed(2)} ₽</span>
+                          <span className="font-mono">{coupon.price.toFixed(2)} ₽</span>
                         </TableCell>
                         <TableCell className="text-slate-300 text-sm min-w-[120px] text-right font-bold">
                           <div className="flex flex-col items-end">
-                            <span className="text-green-400 font-bold">{(coupon.fuel_rest || (coupon.amount || 0) / (coupon.fuel_price || 46.00)).toFixed(1)} л</span>
+                            <span className="text-green-400 font-bold">{coupon.rest_qty.toFixed(1)} л</span>
                             <span className="text-xs text-slate-400">
-                              из {(coupon.fuel_amount || (coupon.amount || 0) / (coupon.fuel_price || 46.00)).toFixed(1)} л
+                              из {coupon.qty_total.toFixed(1)} л
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-slate-300 text-sm min-w-[100px] text-right font-bold">
-                          <span className="text-green-400">{((coupon.fuel_rest || (coupon.amount || 0) / (coupon.fuel_price || 46.00)) * (coupon.fuel_price || 46.00)).toFixed(2)} ₽</span>
+                          <span className="text-green-400">{coupon.rest_summ.toFixed(2)} ₽</span>
                         </TableCell>
                         <TableCell className="min-w-[100px]">
-                          {getStatusBadge(coupon.state)}
+                          {getStatusBadge(coupon.state.name)}
                         </TableCell>
                         <TableCell className="text-slate-300 text-sm min-w-[120px]">
                           <div className="flex flex-col">
                             <span className="text-xs">
-                              {coupon.expires_at ? safeDateFormat(coupon.expires_at, date => date.toLocaleDateString('ru-RU')) : '-'}
+                              Смена #{coupon.shift}
                             </span>
                             <span className="text-xs text-slate-400">
-                              {coupon.expires_at ? `(истекает через ${Math.ceil((new Date(coupon.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} дн.)` : '30 дней'}
+                              Операция #{coupon.opernum}
                             </span>
                           </div>
                         </TableCell>
@@ -1265,59 +1314,54 @@ export default function CouponsPage() {
               <div className="grid grid-cols-1 gap-1 text-sm">
                 <div className="flex justify-between py-2 border-b border-slate-700">
                   <span className="text-slate-400">Статус:</span>
-                  <div>{getStatusBadge(selectedCoupon.state)}</div>
+                  <div>{getStatusBadge(selectedCoupon.state.name)}</div>
                 </div>
 
                 <div className="flex justify-between py-2 border-b border-slate-700 bg-blue-900/30 px-2 -mx-2 rounded">
                   <span className="text-slate-300 font-medium">Тип топлива:</span>
-                  <span className="text-blue-300 font-bold text-lg">{selectedCoupon.fuel_type || 'АИ-95'}</span>
+                  <span className="text-blue-300 font-bold text-lg">{selectedCoupon.service.service_name}</span>
                 </div>
 
                 <div className="flex justify-between py-2 border-b border-slate-700">
                   <span className="text-slate-400">Цена за литр:</span>
-                  <span className="text-white font-mono text-sm">{(selectedCoupon.fuel_price || 46.00).toFixed(2)} ₽/л</span>
+                  <span className="text-white font-mono text-sm">{selectedCoupon.price.toFixed(2)} ₽/л</span>
                 </div>
 
                 <div className="flex justify-between py-2 border-b border-slate-700 bg-green-900/30 px-2 -mx-2 rounded">
                   <span className="text-slate-300 font-medium">Остаток:</span>
                   <div className="text-right">
-                    <div className="text-green-300 font-bold text-lg">{(selectedCoupon.fuel_rest || (selectedCoupon.amount || 0) / (selectedCoupon.fuel_price || 46.00)).toFixed(1)} литров</div>
-                    <div className="text-slate-400 text-xs">на сумму {((selectedCoupon.fuel_rest || (selectedCoupon.amount || 0) / (selectedCoupon.fuel_price || 46.00)) * (selectedCoupon.fuel_price || 46.00)).toFixed(2)} ₽</div>
+                    <div className="text-green-300 font-bold text-lg">{selectedCoupon.rest_qty.toFixed(1)} литров</div>
+                    <div className="text-slate-400 text-xs">на сумму {selectedCoupon.rest_summ.toFixed(2)} ₽</div>
                   </div>
                 </div>
 
                 <div className="flex justify-between py-2 border-b border-slate-700">
                   <span className="text-slate-400">Использовано:</span>
                   <span className="text-white font-mono text-sm">
-                    {(selectedCoupon.fuel_used || 0).toFixed(1)} л из {(selectedCoupon.fuel_amount || (selectedCoupon.amount || 0) / (selectedCoupon.fuel_price || 46.00)).toFixed(1)} л
+                    {selectedCoupon.qty_used.toFixed(1)} л из {selectedCoupon.qty_total.toFixed(1)} л
                   </span>
                 </div>
 
                 <div className="flex justify-between py-2 border-b border-slate-700">
                   <span className="text-slate-400">Дата выдачи:</span>
                   <span className="text-white font-mono text-xs">
-                    {safeDateFormat(selectedCoupon.date, date => date.toLocaleString('ru-RU'))}
+                    {safeDateFormat(selectedCoupon.dt, date => date.toLocaleString('ru-RU'))}
                   </span>
                 </div>
 
                 <div className="flex justify-between py-2 border-b border-slate-700">
-                  <span className="text-slate-400">Срок действия:</span>
-                  <div className="text-right">
-                    <div className="text-white font-mono text-xs">
-                      {selectedCoupon.expires_at ? safeDateFormat(selectedCoupon.expires_at, date => date.toLocaleDateString('ru-RU')) : 'Через 30 дней'}
-                    </div>
-                    <div className="text-slate-400 text-xs">
-                      {selectedCoupon.expires_at ? `(осталось ${Math.ceil((new Date(selectedCoupon.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} дней)` : '(30 дней с момента выдачи)'}
-                    </div>
-                  </div>
+                  <span className="text-slate-400">Номер смены:</span>
+                  <span className="text-white font-mono text-sm">
+                    Смена #{selectedCoupon.shift}, операция #{selectedCoupon.opernum}
+                  </span>
                 </div>
 
-                {(selectedCoupon.can_change_fuel || false) && (selectedCoupon.is_unused || false) && (
+                {selectedCoupon.isActive && selectedCoupon.qty_used === 0 && (
                   <div className="flex justify-between py-2 border-b border-slate-700 bg-yellow-900/30 px-2 -mx-2 rounded">
-                    <span className="text-slate-300 font-medium">Смена топлива:</span>
+                    <span className="text-slate-300 font-medium">Статус:</span>
                     <div className="text-right">
-                      <div className="text-yellow-300 font-bold">🔄 Доступна</div>
-                      <div className="text-slate-400 text-xs">Можно поменять тип топлива</div>
+                      <div className="text-yellow-300 font-bold">🔄 Не использован</div>
+                      <div className="text-slate-400 text-xs">Купон не использовался</div>
                     </div>
                   </div>
                 )}
