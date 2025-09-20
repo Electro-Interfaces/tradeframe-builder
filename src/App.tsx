@@ -20,7 +20,6 @@ import NotFound from "./pages/NotFound";
 
 // Самые тяжелые страницы - ленивая загрузка (приоритет 1)
 const Prices = lazy(() => import("./pages/Prices"));
-const PricesSimple = lazy(() => import("./pages/PricesSimple"));
 const STSApiSettings = lazy(() => import("./pages/STSApiSettings"));
 const Tanks = lazy(() => import("./pages/Tanks"));
 const OperationsTransactionsPageSimple = lazy(() => import("./pages/OperationsTransactionsPageSimple"));
@@ -216,7 +215,6 @@ const App = () => {
           
           {/* Самые тяжелые страницы - приоритет 1 */}
           <Route path="/point/prices" element={<ProtectedRoute><LazyLoader><Prices /></LazyLoader></ProtectedRoute>} />
-          <Route path="/point/prices-simple" element={<ProtectedRoute><LazyLoader><PricesSimple /></LazyLoader></ProtectedRoute>} />
           <Route path="/settings/sts-api" element={<ProtectedRoute><LazyLoader><STSApiSettings /></LazyLoader></ProtectedRoute>} />
           <Route path="/settings/api-cts" element={<ProtectedRoute><LazyLoader><STSApiSettings /></LazyLoader></ProtectedRoute>} />
           <Route path="/point/tanks" element={<ProtectedRoute><LazyLoader><Tanks /></LazyLoader></ProtectedRoute>} />

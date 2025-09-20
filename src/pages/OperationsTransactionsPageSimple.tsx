@@ -73,22 +73,24 @@ export default function OperationsTransactionsPageSimple() {
                   record.status === 'failed' ? 'Ошибка' : 
                   record.status === 'pending' ? 'Ожидание' : 
                   record.status === 'cancelled' ? 'Отменено' : record.status,
-        'Номер ТО': record.toNumber || '-',
         'Время начала': new Date(record.startTime).toLocaleString('ru-RU'),
-        'Время окончания': record.endTime ? new Date(record.endTime).toLocaleString('ru-RU') : '-',
         'Вид топлива': record.fuelType || '-',
-        'Фактич. отпуск (литры)': Number(record.actualQuantity || record.quantity || 0),
+        'Номер пистолета': record.nozzleNumber || '-',
+        'Номер резервуара': record.tankNumber || '-',
+        'Факт.(литры)': Number(record.actualQuantity || record.quantity || 0),
         'Цена за литр (₽)': Number(record.price || 0),
-        'Фактич. отпуск (сумма ₽)': Number(record.actualAmount || record.totalCost || 0),
+        'Факт.(сумма ₽)': Number(record.actualAmount || record.totalCost || 0),
         'Вид оплаты': {
           'cash': 'Наличные',
           'bank_card': 'Банк. карты',
-          'fuel_card': 'Топл. карты', 
+          'fuel_card': 'Топл. карты',
           'online_order': 'Онлайн'
         }[record.paymentMethod] || record.paymentMethod || '-',
-        'Номер POS': record.posNumber || '-',
+        'POS': record.posNumber || '-',
         'Смена': record.shiftNumber || '-',
-        'Номер карты': record.cardNumber || '-',
+        'Карта': record.cardNumber || '-',
+        'Номер чека': record.receiptNumber || '-',
+        'Тип операции': record.operationType || '-',
         'Заказ (литры)': Number(record.orderedQuantity || 0),
         'Заказ (сумма ₽)': Number(record.orderedAmount || 0),
         'Источник данных': record.isFromStsApi ? 'STS API' : 'Локальные данные'
@@ -102,17 +104,19 @@ export default function OperationsTransactionsPageSimple() {
       const colWidths = [
         { wch: 20 }, // ID операции
         { wch: 12 }, // Статус
-        { wch: 10 }, // Номер ТО
         { wch: 18 }, // Время начала
-        { wch: 18 }, // Время окончания
         { wch: 15 }, // Вид топлива
-        { wch: 18 }, // Фактич. отпуск (литры)
+        { wch: 12 }, // Номер пистолета
+        { wch: 15 }, // Номер резервуара
+        { wch: 18 }, // Факт.(литры)
         { wch: 15 }, // Цена за литр
         { wch: 20 }, // Фактич. отпуск (сумма)
         { wch: 15 }, // Вид оплаты
         { wch: 12 }, // Номер POS
         { wch: 8 },  // Смена
         { wch: 15 }, // Номер карты
+        { wch: 15 }, // Номер чека
+        { wch: 15 }, // Тип операции
         { wch: 15 }, // Заказ (литры)
         { wch: 18 }, // Заказ (сумма)
         { wch: 15 }  // Источник данных
@@ -122,36 +126,36 @@ export default function OperationsTransactionsPageSimple() {
       // Настраиваем форматы для числовых столбцов
       const range = XLSX.utils.decode_range(ws['!ref']);
       for (let row = range.s.r + 1; row <= range.e.r; row++) {
-        // Столбец G - Фактич. отпуск (литры) - формат чисел с 2 знаками
-        const literCell = XLSX.utils.encode_cell({ r: row, c: 6 });
+        // Столбец I - Факт.(литры) - формат чисел с 2 знаками
+        const literCell = XLSX.utils.encode_cell({ r: row, c: 8 });
         if (ws[literCell] && typeof ws[literCell].v === 'number') {
           ws[literCell].z = '0.00';
           ws[literCell].t = 'n';
         }
-        
-        // Столбец H - Цена за литр - формат чисел с 2 знаками
-        const priceCell = XLSX.utils.encode_cell({ r: row, c: 7 });
+
+        // Столбец J - Цена за литр - формат чисел с 2 знаками
+        const priceCell = XLSX.utils.encode_cell({ r: row, c: 9 });
         if (ws[priceCell] && typeof ws[priceCell].v === 'number') {
           ws[priceCell].z = '0.00';
           ws[priceCell].t = 'n';
         }
-        
-        // Столбец I - Фактич. отпуск (сумма) - формат чисел с 2 знаками
-        const amountCell = XLSX.utils.encode_cell({ r: row, c: 8 });
+
+        // Столбец K - Фактич. отпуск (сумма) - формат чисел с 2 знаками
+        const amountCell = XLSX.utils.encode_cell({ r: row, c: 10 });
         if (ws[amountCell] && typeof ws[amountCell].v === 'number') {
           ws[amountCell].z = '0.00';
           ws[amountCell].t = 'n';
         }
-        
-        // Столбец N - Заказ (литры) - формат чисел с 2 знаками
-        const orderedLiterCell = XLSX.utils.encode_cell({ r: row, c: 13 });
+
+        // Столбец S - Заказ (литры) - формат чисел с 2 знаками
+        const orderedLiterCell = XLSX.utils.encode_cell({ r: row, c: 18 });
         if (ws[orderedLiterCell] && typeof ws[orderedLiterCell].v === 'number') {
           ws[orderedLiterCell].z = '0.00';
           ws[orderedLiterCell].t = 'n';
         }
-        
-        // Столбец O - Заказ (сумма) - формат чисел с 2 знаками
-        const orderedAmountCell = XLSX.utils.encode_cell({ r: row, c: 14 });
+
+        // Столбец T - Заказ (сумма) - формат чисел с 2 знаками
+        const orderedAmountCell = XLSX.utils.encode_cell({ r: row, c: 19 });
         if (ws[orderedAmountCell] && typeof ws[orderedAmountCell].v === 'number') {
           ws[orderedAmountCell].z = '0.00';
           ws[orderedAmountCell].t = 'n';
@@ -329,44 +333,55 @@ export default function OperationsTransactionsPageSimple() {
       });
 
       // Преобразуем STS транзакции в формат № таблицы
-      const stsTransactionsWithSource = sortedTransactions.map(tx => ({
-        // Основные поля операции  
-        id: tx.transactionId || tx.id?.toString() || `STS-${tx.id}`,
-        status: tx.status || 'completed', 
-        toNumber: tx.pumpId?.toString() || tx.pumpName || '-', // Номер ТО (ТРК)
-        startTime: tx.startTime || tx.date,
-        endTime: tx.endTime,
-        
-        // Топливо и количество
-        fuelType: tx.fuelType || tx.apiData?.product_name || tx.apiData?.fuel_type || '-',
-        actualQuantity: tx.volume || 0, // Фактический отпуск в литрах
-        quantity: tx.volume || 0,
-        price: tx.price || 0, // Цена за литр
-        actualAmount: tx.total || (tx.volume * tx.price) || 0, // Фактический отпуск в рублях
-        totalCost: tx.total || (tx.volume * tx.price) || 0,
-        
-        // Оплата и POS  
-        paymentMethod: tx.paymentMethod || tx.apiData?.payment_method || tx.apiData?.payment_type || '-',
-        posNumber: tx.apiData?.pos?.toString() || tx.pumpId?.toString() || '-', // Номер POS из API
-        cardNumber: tx.cardNumber || '-',
-        
-        // Заказанное количество (для STS может быть равно фактическому)
-        orderedQuantity: tx.volume || 0,
-        orderedAmount: tx.total || (tx.volume * tx.price) || 0,
-        
-        // Дополнительные поля
-        shiftNumber: tx.apiData?.shift?.toString() || '-', // Смена из исходных данных API
-        receiptNumber: tx.receiptNumber,
-        operatorName: tx.operatorName,
-        duration: tx.duration,
-        
-        // Метки для различения источника
-        source: 'STS_API',
-        isFromStsApi: true,
-        
-        // Сохраняем исходные данные STS для отладки
-        stsData: tx
-      }));
+      const stsTransactionsWithSource = sortedTransactions.map(tx => {
+        // Берем данные из реальной структуры STS API
+        const rawTx = tx.apiData || tx; // Используем apiData если есть, иначе сам объект
+
+        return {
+          // Основные поля операции
+          id: rawTx.id?.toString() || tx.transactionId || rawTx.id,
+          status: tx.status || 'completed',
+          toNumber: '4', // Номер ТО (фиксированное значение)
+          startTime: rawTx.dt || tx.startTime || tx.date,
+          endTime: tx.endTime,
+
+          // Топливо и количество
+          fuelType: rawTx.fuel_name || tx.fuelType || '-',
+          actualQuantity: parseFloat(rawTx.quantity || tx.volume || '0'), // Фактический отпуск в литрах
+          quantity: parseFloat(rawTx.quantity || tx.volume || '0'),
+          price: parseFloat(rawTx.price || tx.price || '0'), // Цена за литр
+          actualAmount: parseFloat(rawTx.cost || tx.total || '0'), // Фактический отпуск в рублях
+          totalCost: parseFloat(rawTx.cost || tx.total || '0'),
+
+          // Оплата и POS - ИСПРАВЛЕНО согласно реальной структуре API
+          paymentMethod: rawTx.pay_type?.name || tx.paymentMethod || '-',
+          posNumber: rawTx.pos?.toString() || '-', // Номер POS из реального API
+          cardNumber: rawTx.card || tx.cardNumber || '-',
+
+          // Заказанное количество
+          orderedQuantity: parseFloat(rawTx.order || rawTx.quantity || tx.volume || '0'),
+          orderedAmount: parseFloat(rawTx.cost || tx.total || '0'),
+
+          // Дополнительные поля - ИСПРАВЛЕНО согласно реальной структуре API
+          shiftNumber: rawTx.shift?.toString() || '-', // Смена из реальных данных API
+          receiptNumber: rawTx.number?.toString() || '-', // Номер чека из реальных данных API
+          operatorName: '-', // В STS API нет информации об операторе
+          operationType: 'sale', // По умолчанию продажа, так как в STS API нет типа операции
+          pumpId: rawTx.pos || rawTx.nozzle, // Номер ТРК или пистолета
+          pumpName: `ТРК-${rawTx.pos || rawTx.nozzle || '?'}`, // Генерируем имя ТРК
+          nozzleNumber: rawTx.nozzle?.toString() || '-', // Номер пистолета
+          tankNumber: rawTx.tank?.toString() || '-', // Номер резервуара
+          duration: tx.duration,
+
+          // Метки для различения источника
+          source: 'STS_API',
+          isFromStsApi: true,
+
+          // Сохраняем исходные данные STS для отладки
+          stsData: tx,
+          apiData: rawTx
+        };
+      });
       
       // Заменяем операции новыми данными из STS API
       setOperations(stsTransactionsWithSource);
@@ -1344,7 +1359,7 @@ export default function OperationsTransactionsPageSimple() {
                         <th className="px-2 py-2 text-left font-medium">Топливо</th>
                         <th className="px-2 py-2 text-right font-medium">Кол-во</th>
                         <th className="px-2 py-2 text-right font-medium">Сумма</th>
-                        <th className="px-2 py-2 text-center font-medium">№ ТО</th>
+                        <th className="px-2 py-2 text-center font-medium">Пист.</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1379,7 +1394,7 @@ export default function OperationsTransactionsPageSimple() {
                              record.totalCost ? `${record.totalCost.toFixed(2)}₽` : '-'}
                           </td>
                           <td className="px-2 py-2 text-center text-white text-xs">
-                            {record.toNumber || '-'}
+                            {record.nozzleNumber || '-'}
                           </td>
                         </tr>
                       ))}
@@ -1431,21 +1446,22 @@ export default function OperationsTransactionsPageSimple() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-slate-700 hover:bg-slate-800">
-                    <TableHead className="text-slate-300 min-w-[100px]">Статус</TableHead>
-                    <TableHead className="text-slate-300 min-w-[150px]">ID</TableHead>
-                    <TableHead className="text-slate-300 min-w-[100px]">Номер ТО</TableHead>
-                    <TableHead className="text-slate-300 min-w-[140px]">Время начала</TableHead>
-                    <TableHead className="text-slate-300 min-w-[140px]">Время окончания</TableHead>
-                    <TableHead className="text-slate-300 min-w-[120px]">Вид топлива</TableHead>
-                    <TableHead className="text-slate-300 min-w-[140px]">Фактич. отпуск (литры)</TableHead>
-                    <TableHead className="text-slate-300 min-w-[100px]">Цена за л</TableHead>
-                    <TableHead className="text-slate-300 min-w-[140px]">Фактич. отпуск (сумма)</TableHead>
-                    <TableHead className="text-slate-300 min-w-[120px]">Вид оплаты</TableHead>
-                    <TableHead className="text-slate-300 min-w-[100px]">Номер POS</TableHead>
-                    <TableHead className="text-slate-300 min-w-[80px]">Смена</TableHead>
-                    <TableHead className="text-slate-300 min-w-[120px]">Номер карты</TableHead>
-                    <TableHead className="text-slate-300 min-w-[120px]">Заказ (литры)</TableHead>
-                    <TableHead className="text-slate-300 min-w-[120px]">Заказ (сумма)</TableHead>
+                    <TableHead className="text-slate-300 w-24">Статус</TableHead>
+                    <TableHead className="text-slate-300 w-32">ID</TableHead>
+                    <TableHead className="text-slate-300 w-36">Время начала</TableHead>
+                    <TableHead className="text-slate-300 w-20">Пист.</TableHead>
+                    <TableHead className="text-slate-300 w-28" style={{backgroundColor: 'rgba(30, 58, 138, 0.3)'}}>Вид топлива</TableHead>
+                    <TableHead className="text-slate-300 w-28" style={{backgroundColor: 'rgba(30, 58, 138, 0.3)'}}>Факт.(литры)</TableHead>
+                    <TableHead className="text-slate-300 w-24" style={{backgroundColor: 'rgba(30, 58, 138, 0.3)'}}>Цена за л</TableHead>
+                    <TableHead className="text-slate-300 w-28" style={{backgroundColor: 'rgba(30, 58, 138, 0.3)'}}>Факт.(сумма)</TableHead>
+                    <TableHead className="text-slate-300 w-28" style={{backgroundColor: 'rgba(30, 58, 138, 0.3)'}}>Вид оплаты</TableHead>
+                    <TableHead className="text-slate-300 w-16">POS</TableHead>
+                    <TableHead className="text-slate-300 w-20">Смена</TableHead>
+                    <TableHead className="text-slate-300 w-32">Карта</TableHead>
+                    <TableHead className="text-slate-300 w-24">№ чека</TableHead>
+                    <TableHead className="text-slate-300 w-24">Тип оп.</TableHead>
+                    <TableHead className="text-slate-300 w-28">Заказ (литры)</TableHead>
+                    <TableHead className="text-slate-300 w-28">Заказ (сумма)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1456,19 +1472,11 @@ export default function OperationsTransactionsPageSimple() {
                         record.isFromStsApi ? 'bg-blue-950/20 border-blue-800/30' : ''
                       }`}
                     >
-                      <TableCell className="min-w-[100px]">{getStatusBadge(record.status)}</TableCell>
-                      <TableCell className="text-slate-300 font-mono text-xs min-w-[150px]">
-                        {record.isFromStsApi && (
-                          <Badge variant="outline" className="bg-blue-900 text-blue-300 border-blue-600 mr-2 text-xs">
-                            STS
-                          </Badge>
-                        )}
+                      <TableCell className="w-24 py-2">{getStatusBadge(record.status)}</TableCell>
+                      <TableCell className="text-slate-300 font-mono text-xs w-32 py-2">
                         {record.id}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[100px] text-center">
-                        {record.toNumber || '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[140px]">
+                      <TableCell className="text-slate-300 text-sm w-36 py-2">
                         {new Date(record.startTime).toLocaleString('ru-RU', {
                           day: '2-digit',
                           month: '2-digit',
@@ -1476,50 +1484,51 @@ export default function OperationsTransactionsPageSimple() {
                           minute: '2-digit'
                         })}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[140px]">
-                        {record.endTime ? new Date(record.endTime).toLocaleString('ru-RU', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : '-'}
+                      <TableCell className="text-slate-300 text-sm w-20 text-center py-2">
+                        {record.nozzleNumber || '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[120px]">
+                      <TableCell className="text-slate-300 text-sm w-28 py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
                         {record.fuelType || '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[140px] text-right">
-                        {record.actualQuantity ? `${record.actualQuantity.toFixed(2)} л` : 
-                         record.quantity ? `${record.quantity.toFixed(2)} л` : '-'}
+                      <TableCell className="text-slate-300 text-sm w-28 text-right py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
+                        {record.actualQuantity ? record.actualQuantity.toFixed(2) :
+                         record.quantity ? record.quantity.toFixed(2) : '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[100px] text-right">
-                        {record.price ? `${record.price.toFixed(2)} ₽` : '-'}
+                      <TableCell className="text-slate-300 text-sm w-24 text-right py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
+                        {record.price ? record.price.toFixed(2) : '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[140px] text-right">
-                        {record.actualAmount ? `${record.actualAmount.toFixed(2)} ₽` : 
-                         record.totalCost ? `${record.totalCost.toFixed(2)} ₽` : '-'}
+                      <TableCell className="text-slate-300 text-sm w-28 text-right py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
+                        {record.actualAmount ? record.actualAmount.toFixed(2) :
+                         record.totalCost ? record.totalCost.toFixed(2) : '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[120px]">
+                      <TableCell className="text-slate-300 text-sm w-28 py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
                         {{
                           'cash': 'Наличные',
                           'bank_card': 'Банк. карты',
-                          'fuel_card': 'Топл. карты', 
+                          'fuel_card': 'Топл. карты',
                           'online_order': 'Онлайн'
                         }[record.paymentMethod] || record.paymentMethod || '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[100px] text-center">
+                      <TableCell className="text-slate-300 text-sm w-16 text-center py-2">
                         {record.posNumber || '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[80px] text-center">
+                      <TableCell className="text-slate-300 text-sm w-20 text-center py-2">
                         {record.shiftNumber || '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[120px] font-mono">
+                      <TableCell className="text-slate-300 text-sm w-32 font-mono py-2">
                         {record.cardNumber || '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[120px] text-right">
-                        {record.orderedQuantity ? `${record.orderedQuantity.toFixed(2)} л` : '-'}
+                      <TableCell className="text-slate-300 text-sm w-24 font-mono py-2">
+                        {record.receiptNumber || '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm min-w-[120px] text-right">
-                        {record.orderedAmount ? `${record.orderedAmount.toFixed(2)} ₽` : '-'}
+                      <TableCell className="text-slate-300 text-sm w-24 py-2">
+                        {record.operationType || '-'}
+                      </TableCell>
+                      <TableCell className="text-slate-300 text-sm w-28 text-right py-2">
+                        {record.orderedQuantity ? record.orderedQuantity.toFixed(2) : '-'}
+                      </TableCell>
+                      <TableCell className="text-slate-300 text-sm w-28 text-right py-2">
+                        {record.orderedAmount ? record.orderedAmount.toFixed(2) : '-'}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1613,10 +1622,6 @@ export default function OperationsTransactionsPageSimple() {
                   <div>{getStatusBadge(selectedOperation.status)}</div>
                 </div>
 
-                <div className="flex justify-between py-2 border-b border-slate-700">
-                  <span className="text-slate-400">Номер ТО:</span>
-                  <span className="text-white font-mono text-sm">{selectedOperation.toNumber || '-'}</span>
-                </div>
 
                 <div className="flex justify-between py-2 border-b border-slate-700">
                   <span className="text-slate-400">Время начала:</span>
@@ -1625,14 +1630,6 @@ export default function OperationsTransactionsPageSimple() {
                   </span>
                 </div>
 
-                {selectedOperation.endTime && (
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Время окончания:</span>
-                    <span className="text-white font-mono text-xs">
-                      {new Date(selectedOperation.endTime).toLocaleString('ru-RU')}
-                    </span>
-                  </div>
-                )}
 
                 <div className="flex justify-between py-2 border-b border-slate-700">
                   <span className="text-slate-400">Вид топлива:</span>
@@ -1681,12 +1678,42 @@ export default function OperationsTransactionsPageSimple() {
                   </div>
                 )}
 
+
+                {selectedOperation.nozzleNumber && selectedOperation.nozzleNumber !== '-' && (
+                  <div className="flex justify-between py-2 border-b border-slate-700">
+                    <span className="text-slate-400">Номер пистолета:</span>
+                    <span className="text-white font-mono">{selectedOperation.nozzleNumber}</span>
+                  </div>
+                )}
+
+                {selectedOperation.tankNumber && selectedOperation.tankNumber !== '-' && (
+                  <div className="flex justify-between py-2 border-b border-slate-700">
+                    <span className="text-slate-400">Номер резервуара:</span>
+                    <span className="text-white font-mono">{selectedOperation.tankNumber}</span>
+                  </div>
+                )}
+
                 {selectedOperation.shiftNumber && selectedOperation.shiftNumber !== '-' && (
                   <div className="flex justify-between py-2 border-b border-slate-700">
                     <span className="text-slate-400">Номер смены:</span>
                     <span className="text-white font-mono">{selectedOperation.shiftNumber}</span>
                   </div>
                 )}
+
+                {selectedOperation.receiptNumber && selectedOperation.receiptNumber !== '-' && (
+                  <div className="flex justify-between py-2 border-b border-slate-700">
+                    <span className="text-slate-400">Номер чека:</span>
+                    <span className="text-white font-mono">{selectedOperation.receiptNumber}</span>
+                  </div>
+                )}
+
+                {selectedOperation.operationType && selectedOperation.operationType !== '-' && (
+                  <div className="flex justify-between py-2 border-b border-slate-700">
+                    <span className="text-slate-400">Тип операции:</span>
+                    <span className="text-white font-medium">{selectedOperation.operationType}</span>
+                  </div>
+                )}
+
 
                 {selectedOperation.isFromStsApi && (
                   <div className="flex justify-between py-2 border-b border-slate-700">
