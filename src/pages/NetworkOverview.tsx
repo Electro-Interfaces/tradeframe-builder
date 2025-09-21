@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { DollarSign, Users, Fuel, Monitor, CreditCard, Loader2, RefreshCw, Activity, Calendar, Download, HelpCircle } from "lucide-react";
+import { DollarSign, Users, Fuel, Monitor, CreditCard, Loader2, RefreshCw, Activity, Calendar, Download, HelpCircle, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,8 @@ import { tradingPointsService } from "@/services/tradingPointsService";
 import { useToast } from "@/hooks/use-toast";
 import { SalesForecast } from "@/components/charts/SalesForecast";
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
+import { loadPdfMake } from "@/utils/pdfMake";
 
 
 export default function NetworkOverview() {
@@ -38,6 +40,7 @@ export default function NetworkOverview() {
   const [loading, setLoading] = useState(false);
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   // Состояния для pull-to-refresh
   const [pullState, setPullState] = useState<'idle' | 'pulling' | 'canRefresh' | 'refreshing'>('idle');
@@ -45,6 +48,10 @@ export default function NetworkOverview() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const startTouchRef = useRef<{ y: number; time: number } | null>(null);
   const rafId = useRef<number | null>(null);
+  const dailySalesCardRef = useRef<HTMLDivElement | null>(null);
+  const heatmapCardRef = useRef<HTMLDivElement | null>(null);
+  const activityCardRef = useRef<HTMLDivElement | null>(null);
+  const forecastCardRef = useRef<HTMLDivElement | null>(null);
 
   const PULL_THRESHOLD = 80; // Порог для активации обновления
   const MAX_PULL_DISTANCE = 120; // Максимальное расстояние растягивания
@@ -758,6 +765,227 @@ export default function NetworkOverview() {
     }
   };
 
+  const exportDashboardToPdf = async () => {
+    if (initializing || !selectedNetwork || filteredTransactions.length === 0) {
+      toast({
+        title: "Нет данных для экспорта",
+        description: "Выберите сеть, период и дождитесь загрузки аналитики",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setExportingPdf(true);
+
+    try {
+      const pdfMake = await loadPdfMake();
+
+      const formatNumber = (value: number) =>
+        value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const formatCurrency = (value: number) => `${formatNumber(value)} ₽`;
+
+      const captureElement = async (element: HTMLDivElement | null) => {
+        if (!element) return null;
+
+        const canvas = await html2canvas(element, {
+          backgroundColor: '#0f172a',
+          scale: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2,
+          useCORS: true,
+        });
+
+        return canvas.toDataURL('image/png');
+      };
+
+      const [dailySalesImage, heatmapImage, activityImage, forecastImage] = await Promise.all([
+        captureElement(dailySalesCardRef.current),
+        captureElement(heatmapCardRef.current),
+        captureElement(activityCardRef.current),
+        captureElement(forecastCardRef.current),
+      ]);
+
+      const pointDisplay = (() => {
+        if (!selectedTradingPoint || selectedTradingPoint === 'all') {
+          return 'Все торговые точки';
+        }
+
+        if (typeof selectedTradingPoint === 'string') {
+          return selectedTradingPoint;
+        }
+
+        return selectedTradingPoint?.name ?? '—';
+      })();
+
+      const content: any[] = [
+        { text: 'Обзор сети', style: 'title' },
+        {
+          columns: [
+            {
+              width: '*',
+              stack: [
+                { text: `Сеть: ${selectedNetwork?.name ?? '—'}`, style: 'infoBlock' },
+                { text: `Точка: ${pointDisplay}`, style: 'infoBlock' },
+                { text: `Период: ${dateFrom} – ${dateTo}`, style: 'infoBlock' },
+                { text: `Сформировано: ${new Date().toLocaleString('ru-RU')}`, style: 'infoBlock' },
+              ],
+            },
+            {
+              width: '*',
+              alignment: 'right',
+              stack: [
+                { text: `Операции: ${filteredTransactions.length}`, style: 'summaryBlock' },
+                { text: `Отпуск, л: ${formatNumber(totalVolume)}`, style: 'summaryBlock' },
+                { text: `Выручка: ${formatCurrency(totalRevenue)}`, style: 'summaryBlock' },
+                { text: `Средний чек: ${formatCurrency(averageCheck)}`, style: 'summaryBlock' },
+              ],
+            },
+          ],
+          columnGap: 16,
+          margin: [0, 0, 0, 16],
+        },
+      ];
+
+      const fuelSummary = fuelTypeStats.slice(0, 6);
+      const paymentSummary = paymentTypeStats.slice(0, 6);
+
+      const breakdownColumns: any[] = [];
+
+      if (fuelSummary.length > 0) {
+        breakdownColumns.push({
+          width: '*',
+          stack: [
+            { text: 'Итоги по видам топлива', style: 'sectionLabel' },
+            ...fuelSummary.map((fuel) => ({
+              text: `${fuel.type}: ${formatNumber(fuel.volume)} л • ${formatCurrency(fuel.revenue)} • ${fuel.operations} оп.`,
+              style: 'summaryDetail',
+            })),
+          ],
+        });
+      }
+
+      if (paymentSummary.length > 0) {
+        breakdownColumns.push({
+          width: '*',
+          stack: [
+            { text: 'Итоги по типам оплаты', style: 'sectionLabel' },
+            ...paymentSummary.map((payment) => ({
+              text: `${payment.type}: ${formatNumber(payment.volume)} л • ${formatCurrency(payment.revenue)} • ${payment.operations} оп.`,
+              style: 'summaryDetail',
+            })),
+          ],
+        });
+      }
+
+      if (breakdownColumns.length > 0) {
+        content.push({
+          columns: breakdownColumns,
+          columnGap: 18,
+          margin: [0, 0, 0, 16],
+        });
+      }
+
+      if (dailySalesImage) {
+        content.push({ text: 'Реализация по дням', style: 'sectionLabel', margin: [0, 0, 0, 8] });
+        content.push({ image: dailySalesImage, width: 520, margin: [0, 0, 0, 16] });
+      }
+
+      if (heatmapImage) {
+        content.push({ text: 'Активность операций (тепловая карта)', style: 'sectionLabel', margin: [0, 0, 0, 8] });
+        content.push({ image: heatmapImage, width: 520, margin: [0, 0, 0, 16] });
+      }
+
+      if (activityImage) {
+        content.push({ text: 'Суточная активность по часам', style: 'sectionLabel', margin: [0, 0, 0, 8] });
+        content.push({ image: activityImage, width: 520, margin: [0, 0, 0, 16] });
+      }
+
+      if (forecastImage) {
+        content.push({ text: 'Прогноз продаж', style: 'sectionLabel', margin: [0, 0, 0, 8] });
+        content.push({ image: forecastImage, width: 520, margin: [0, 0, 0, 16] });
+      }
+
+      const networkSlug = (selectedNetwork?.name || 'network')
+        .replace(/[^a-zA-Zа-яА-Я0-9_-]+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+
+      const docDefinition = {
+        info: {
+          title: 'Обзор сети',
+          author: 'TradeFrame Builder',
+          subject: 'Экспорт дашборда',
+        },
+        pageOrientation: 'landscape',
+        pageMargins: [24, 24, 24, 32],
+        content,
+        styles: {
+          title: {
+            fontSize: 18,
+            bold: true,
+            margin: [0, 0, 0, 12],
+            color: '#111827',
+          },
+          infoBlock: {
+            fontSize: 10,
+            color: '#111827',
+          },
+          summaryBlock: {
+            fontSize: 11,
+            color: '#111827',
+          },
+          sectionLabel: {
+            fontSize: 11,
+            color: '#111827',
+            bold: true,
+            margin: [0, 0, 0, 4],
+          },
+          summaryDetail: {
+            fontSize: 10,
+            color: '#374151',
+            margin: [0, 0, 0, 2],
+          },
+          tableHeader: {
+            bold: true,
+            color: '#f9fafb',
+            fontSize: 10,
+          },
+          tableCell: {
+            fontSize: 9,
+            color: '#111827',
+            noWrap: false,
+            lineHeight: 1.2,
+          },
+          tableCellMono: {
+            fontSize: 8,
+            color: '#111827',
+            font: 'Roboto',
+            noWrap: false,
+            lineHeight: 1.2,
+          },
+        },
+        defaultStyle: {
+          font: 'Roboto',
+        },
+      } as const;
+
+      const fileName = `dashboard_${networkSlug || 'network'}_${dateFrom}_${dateTo}.pdf`;
+      pdfMake.createPdf(docDefinition).download(fileName);
+
+      toast({
+        title: "PDF готов",
+        description: `Файл ${fileName} сформирован и загружен`,
+      });
+    } catch (error) {
+      console.error('❌ Ошибка экспорта в PDF:', error);
+      toast({
+        title: "Ошибка экспорта",
+        description: error instanceof Error ? error.message : 'Не удалось сформировать PDF',
+        variant: "destructive",
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   // Инициализация компонента
   useEffect(() => {
     // Принудительная проверка конфигурации STS API (обходим кэш)
@@ -1435,6 +1663,18 @@ export default function NetworkOverview() {
                       Excel
                     </Button>
                   )}
+                  {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
+                    <Button
+                      onClick={exportDashboardToPdf}
+                      disabled={loading || exportingPdf}
+                      size="sm"
+                      className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-2 rounded-lg font-medium"
+                      title="Экспортировать обзор в PDF"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      {exportingPdf ? 'PDF…' : 'PDF'}
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardTitle>
@@ -1754,7 +1994,8 @@ export default function NetworkOverview() {
 
         {/* График реализации по дням с разбивкой по топливу */}
         {!initializing && selectedNetwork && transactions.length > 0 && (
-          <Card className="bg-slate-800 border-slate-600">
+          <div ref={dailySalesCardRef} className="w-full">
+            <Card className="bg-slate-800 border-slate-600">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-white text-lg flex items-center gap-2">
@@ -1846,28 +2087,30 @@ export default function NetworkOverview() {
                 </div>
               )}
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         )}
 
         {/* Активность операций и суточная активность */}
         {!initializing && selectedNetwork && transactions.length > 0 && (
           <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-2'}`}>
             {/* Тепловая карта активности */}
-            <Card className="bg-slate-800 border-slate-600">
-              <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
-                <div className="flex items-center justify-between">
-                  <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
-                    <Activity className="h-5 w-5 text-blue-400" />
-                    {isMobile ? 'Активность операций' : 'Активность операций'}
-                  </CardTitle>
-                  <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400`}>
-                    {isMobile ? '7 дней' : 'Последние 7 дней'}
+            <div ref={heatmapCardRef} className="w-full">
+              <Card className="bg-slate-800 border-slate-600">
+                <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
+                      <Activity className="h-5 w-5 text-blue-400" />
+                      {isMobile ? 'Активность операций' : 'Активность операций'}
+                    </CardTitle>
+                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400`}>
+                      {isMobile ? '7 дней' : 'Последние 7 дней'}
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
-                {heatmapData && heatmapData.length > 0 ? (
-                  <div className="space-y-3">
+                </CardHeader>
+                <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
+                  {heatmapData && heatmapData.length > 0 ? (
+                    <div className="space-y-3">
                     {/* Заголовок с часами */}
                     <div className="flex items-center">
                       <div className={`${isMobile ? 'w-8' : 'w-12'} shrink-0`}></div>
@@ -1915,7 +2158,7 @@ export default function NetworkOverview() {
                         </div>
                       </div>
                     ))}
-                    
+
                     {/* Легенда */}
                     <div className="flex items-center justify-between text-xs text-slate-400 mt-4 pt-2 border-t border-slate-600">
                       <span>Меньше</span>
@@ -1939,18 +2182,20 @@ export default function NetworkOverview() {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* График суточной активности */}
-            <Card className="bg-slate-800 border-slate-600">
-              <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
-                <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
-                  <Activity className="h-5 w-5 text-blue-400" />
-                  {isMobile ? 'Активность по часам' : 'Суточная активность по часам'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
+            <div ref={activityCardRef} className="w-full">
+              <Card className="bg-slate-800 border-slate-600">
+                <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
+                  <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
+                    <Activity className="h-5 w-5 text-blue-400" />
+                    {isMobile ? 'Активность по часам' : 'Суточная активность по часам'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
                 <div className={`w-full ${isMobile ? 'h-64' : 'h-80'}`}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart 
@@ -2011,19 +2256,21 @@ export default function NetworkOverview() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
         {/* Прогнозирование продаж */}
         {!initializing && selectedNetwork && stsApiConfigured && transactions.length > 0 && (() => {
-          // Передаем данные в SalesForecast
           return (
-            <SalesForecast 
-              transactions={completedTransactions}
-              className="w-full"
-            />
+            <div ref={forecastCardRef} className="w-full">
+              <SalesForecast
+                transactions={completedTransactions}
+                className="w-full"
+              />
+            </div>
           );
         })()}
 
