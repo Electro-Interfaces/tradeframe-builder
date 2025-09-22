@@ -744,7 +744,19 @@ export default function Prices() {
 
       console.log('💰 Цены для отправки (в рублях):', prices);
 
-      const effectiveDate = effectiveDateTime.toISOString();
+      // Формируем ISO дату в локальном времени (без преобразования в UTC)
+      // Это сохранит выбранную пользователем дату как есть
+      const year = effectiveDateTime.getFullYear();
+      const month = String(effectiveDateTime.getMonth() + 1).padStart(2, '0');
+      const day = String(effectiveDateTime.getDate()).padStart(2, '0');
+      const hours = String(effectiveDateTime.getHours()).padStart(2, '0');
+      const minutes = String(effectiveDateTime.getMinutes()).padStart(2, '0');
+      const seconds = String(effectiveDateTime.getSeconds()).padStart(2, '0');
+
+      const effectiveDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+
+      console.log('🕐 Выбранная дата:', effectiveDateTime.toLocaleString('ru-RU'));
+      console.log('🕐 Дата для API (локальное время):', effectiveDate);
 
       const result = await stsApiService.setPrices(prices, effectiveDate, contextParams);
 
