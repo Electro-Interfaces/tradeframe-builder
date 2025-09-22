@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест форматов данных для API установки цен</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .format { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #007bff; }
+        .json { background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre-wrap; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Тест различных форматов данных для POST /v1/prices</h1>
+
+    <p><strong>Проблема:</strong> API возвращает ошибку <code>"value is not a valid integer"</code> для <code>"body","prices","__key__"</code></p>
+
+    <div class="format">
+        <h3>🔬 Формат 1: Стандартный (текущий)</h3>
+        <div class="json" id="format1"></div>
+    </div>
+
+    <div class="format">
+        <h3>🔬 Формат 2: Только массив цен</h3>
+        <div class="json" id="format2"></div>
+    </div>
+
+    <div class="format">
+        <h3>🔬 Формат 3: С полем data</h3>
+        <div class="json" id="format3"></div>
+    </div>
+
+    <div class="format">
+        <h3>🔬 Формат 4: Альтернативные названия полей</h3>
+        <div class="json" id="format4"></div>
+    </div>
+
+    <div class="format">
+        <h3>🔬 Формат 5: Минимальная структура</h3>
+        <div class="json" id="format5"></div>
+    </div>
+
+    <button onclick="generateFormats()">Обновить форматы</button>
+    <button onclick="window.open('http://localhost:3002/point/prices', '_blank')">Открыть страницу цен</button>
+
+    <script>
+        function generateFormats() {
+            const samplePrices = [
+                { fuel_type: "АИ-92", price: 4550 }, // 45.50 руб в копейках
+                { fuel_type: "АИ-95", price: 4820 }, // 48.20 руб в копейках
+                { fuel_type: "ДТ", price: 5210 }     // 52.10 руб в копейках
+            ];
+
+            const effectiveDate = "2024-12-24T00:00:00Z";
+
+            // Формат 1: Стандартный
+            const format1 = {
+                prices: samplePrices,
+                effective_date: effectiveDate
+            };
+
+            // Формат 2: Только массив
+            const format2 = samplePrices;
+
+            // Формат 3: С data
+            const format3 = {
+                data: samplePrices,
+                effective_date: effectiveDate
+            };
+
+            // Формат 4: Альтернативные названия
+            const format4 = {
+                prices: samplePrices.map((item, index) => ({
+                    id: index + 1,
+                    fuelType: item.fuel_type,
+                    amount: item.price,
+                    value: item.price
+                })),
+                effective_date: effectiveDate
+            };
+
+            // Формат 5: Минимальная структура
+            const format5 = {
+                prices: samplePrices.map(item => ({
+                    type: item.fuel_type,
+                    value: item.price
+                })),
+                date: effectiveDate
+            };
+
+            document.getElementById('format1').textContent = JSON.stringify(format1, null, 2);
+            document.getElementById('format2').textContent = JSON.stringify(format2, null, 2);
+            document.getElementById('format3').textContent = JSON.stringify(format3, null, 2);
+            document.getElementById('format4').textContent = JSON.stringify(format4, null, 2);
+            document.getElementById('format5').textContent = JSON.stringify(format5, null, 2);
+        }
+
+        // Генерируем форматы при загрузке
+        window.onload = generateFormats;
+    </script>
+</body>
+</html>

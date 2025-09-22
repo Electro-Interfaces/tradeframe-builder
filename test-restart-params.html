@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест параметров перезагрузки терминала</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; }
+        .success { background: #e8f5e9; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Тест параметров для POST /v1/control/restart</h1>
+
+    <div>
+        <h3>Параметры теста:</h3>
+        <p><strong>Сеть (system):</strong> 15</p>
+        <p><strong>Торговая точка (station):</strong> 4</p>
+    </div>
+
+    <button onclick="testParams()">Проверить параметры в URL</button>
+    <button onclick="clearLogs()">Очистить логи</button>
+
+    <div id="logs"></div>
+
+    <script>
+        function log(message, type = 'log') {
+            const logs = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            logs.appendChild(div);
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testParams() {
+            log('🧪 Начинаем тест параметров для restartTerminal...');
+
+            // Создаем объект аналогичный stsApiService
+            const testConfig = {
+                url: 'https://pos.autooplata.ru/tms',
+                username: 'UserApi',
+                password: 'lHQfLZHzB3tn',
+                enabled: true,
+                token: 'test-token-123'
+            };
+
+            const contextParams = {
+                networkId: '15',
+                tradingPointId: '4'
+            };
+
+            const endpoint = '/v1/control/restart';
+
+            // Имитируем логику из stsApi.ts
+            const networkId = contextParams?.networkId?.trim();
+            const tradingPointId = contextParams?.tradingPointId?.trim();
+
+            log(`📋 Параметры: networkId="${networkId}", tradingPointId="${tradingPointId}"`);
+
+            const url = new URL(`${testConfig.url}${endpoint}`);
+
+            // Добавляем параметры сети и торговой точки если они заданы
+            if (networkId) {
+                const systemParam = String(Number(networkId));
+                url.searchParams.set('system', systemParam);
+                log(`✅ Добавлен параметр system=${systemParam}`);
+            }
+
+            if (tradingPointId && !isNaN(Number(tradingPointId))) {
+                const stationParam = String(Number(tradingPointId));
+                url.searchParams.set('station', stationParam);
+                log(`✅ Добавлен параметр station=${stationParam}`);
+            }
+
+            // Специальная обработка для эндпоинтов управления
+            if (endpoint.includes('/v1/control') && tradingPointId) {
+                const stationParam = String(Number(tradingPointId));
+                url.searchParams.set('station', stationParam);
+                log(`🔧 Принудительно добавлен station=${stationParam} для /v1/control`);
+            }
+
+            log(`🌐 Итоговый URL: ${url.toString()}`, 'success');
+
+            // Проверяем наличие обоих параметров
+            const hasSystem = url.searchParams.has('system');
+            const hasStation = url.searchParams.has('station');
+
+            if (hasSystem && hasStation) {
+                log(`✅ УСПЕХ: Оба параметра присутствуют в URL`, 'success');
+                log(`   - system: ${url.searchParams.get('system')}`, 'success');
+                log(`   - station: ${url.searchParams.get('station')}`, 'success');
+            } else {
+                log(`❌ ОШИБКА: Отсутствуют параметры:`, 'error');
+                if (!hasSystem) log(`   - Отсутствует system`, 'error');
+                if (!hasStation) log(`   - Отсутствует station`, 'error');
+            }
+        }
+
+        // Автоматически запускаем тест при загрузке
+        window.onload = () => {
+            log('🚀 Страница загружена, готов к тестированию');
+        };
+    </script>
+</body>
+</html>

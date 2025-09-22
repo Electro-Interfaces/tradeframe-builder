@@ -11,6 +11,7 @@ import LazyLoader from "./components/LazyLoader";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PWAInstaller from "./components/pwa/PWAInstaller";
 import UpdateNotification from "./components/pwa/UpdateNotification";
+import "./cache-buster"; // Принудительное обновление кеша
 
 // Критически важные страницы - загружаются сразу
 import LoginPageWithLegal from "./pages/LoginPageWithLegal";
