@@ -1,6 +1,3 @@
-import * as pdfMake from 'pdfmake/build/pdfmake';
-import * as pdfFonts from 'pdfmake/build/vfs_fonts';
-
 type PdfMakeInstance = {
   vfs: Record<string, string>;
   fonts: Record<string, { normal: string; bold: string; italics: string; bolditalics: string }>;
@@ -22,9 +19,14 @@ export async function loadPdfMake(): Promise<PdfMakeInstance> {
   }
 
   try {
-    // Use static imports instead of dynamic imports
-    const pdfMakeInstance = (pdfMake as any).default || pdfMake;
-    const pdfFontsInstance = (pdfFonts as any).default || pdfFonts;
+    // Try to dynamically import pdfmake - will fail gracefully if not available
+    const [pdfMakeModule, pdfFontsModule] = await Promise.all([
+      import('pdfmake/build/pdfmake'),
+      import('pdfmake/build/vfs_fonts'),
+    ]);
+
+    const pdfMakeInstance = (pdfMakeModule as any).default || pdfMakeModule;
+    const pdfFontsInstance = (pdfFontsModule as any).default || pdfFontsModule;
 
     // Configure pdfMake with fonts
     pdfMakeInstance.vfs = pdfFontsInstance.pdfMake.vfs;
@@ -40,7 +42,28 @@ export async function loadPdfMake(): Promise<PdfMakeInstance> {
     cachedPdfMake = pdfMakeInstance;
     return pdfMakeInstance;
   } catch (error) {
-    console.error('Failed to load pdfmake:', error);
-    throw new Error('PDF generation is not available in this environment');
+    console.warn('pdfmake not available in this environment:', error);
+
+    // Return a mock implementation when pdfmake is not available
+    const mockPdfMake: PdfMakeInstance = {
+      vfs: {},
+      fonts: {},
+      createPdf: () => ({
+        download: () => {
+          console.warn('PDF download not available - pdfmake not installed');
+          alert('PDF экспорт недоступен в данном окружении');
+        },
+        open: () => {
+          console.warn('PDF open not available - pdfmake not installed');
+          alert('PDF экспорт недоступен в данном окружении');
+        },
+        getBuffer: () => {
+          console.warn('PDF getBuffer not available - pdfmake not installed');
+        },
+      }),
+    };
+
+    cachedPdfMake = mockPdfMake;
+    return mockPdfMake;
   }
 }
