@@ -1745,13 +1745,13 @@ export default function Prices() {
                           type="number"
                           step="0.01"
                           min="0"
-                          value={priceItem.price.toFixed(2)}
+                          value={priceItem.price}
                           onChange={(e) => {
                             const newPrices = [...pricesForUpdate];
                             newPrices[index].price = parseFloat(e.target.value) || 0;
                             setPricesForUpdate(newPrices);
                           }}
-                          className="w-32 bg-slate-700 border-slate-600 text-white text-right"
+                          className="w-40 bg-slate-700 border-slate-600 text-white text-right pr-6"
                         />
                         <span className="text-slate-400 text-sm">₽</span>
                       </div>

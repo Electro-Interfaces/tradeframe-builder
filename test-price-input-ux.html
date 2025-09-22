@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест улучшений UX поля ввода цены</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #0f172a; color: white; }
+        .test-case { background: #1e293b; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #3b82f6; }
+        .header { color: #60a5fa; margin-bottom: 10px; font-weight: bold; }
+        .demo-field { margin: 15px 0; padding: 15px; background: #374151; border-radius: 6px; }
+
+        /* Старый стиль - с проблемами */
+        .old-input {
+            width: 128px; /* w-32 */
+            background: #374151;
+            border: 1px solid #4b5563;
+            color: white;
+            text-align: right;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        /* Новый стиль - улучшенный */
+        .new-input {
+            width: 160px; /* w-40 */
+            background: #374151;
+            border: 1px solid #4b5563;
+            color: white;
+            text-align: right;
+            padding: 8px 24px 8px 8px; /* pr-6 */
+            border-radius: 4px;
+        }
+
+        /* Скрытие стрелочек */
+        .new-input::-webkit-outer-spin-button,
+        .new-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .new-input {
+            -moz-appearance: textfield;
+        }
+
+        .currency { margin-left: 8px; color: #9ca3af; font-size: 14px; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+
+        .problem { border-left-color: #dc2626; }
+        .solution { border-left-color: #16a34a; }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Улучшения UX поля ввода цены</h1>
+
+    <div class="test-case problem">
+        <div class="header">❌ Проблемы в старой версии</div>
+        <ul>
+            <li><strong>Курсор скачет</strong> - из-за toFixed(2) в value</li>
+            <li><strong>Стрелочки залезают</strong> - на второй знак после запятой</li>
+            <li><strong>Узкое поле</strong> - w-32 (128px) мало для комфортного ввода</li>
+            <li><strong>Стрелочки отвлекают</strong> - ненужные элементы управления</li>
+        </ul>
+    </div>
+
+    <div class="test-case solution">
+        <div class="header">✅ Решения в новой версии</div>
+        <ul>
+            <li><strong>Стабильный курсор</strong> - убран toFixed(2) из value</li>
+            <li><strong>Больше места</strong> - увеличена ширина до w-40 (160px)</li>
+            <li><strong>Отступ справа</strong> - pr-6 для размещения стрелочек</li>
+            <li><strong>Скрыты стрелочки</strong> - через CSS appearance: textfield</li>
+        </ul>
+    </div>
+
+    <div class="comparison">
+        <div class="demo-field">
+            <h3>🚫 Старое поле (с проблемами)</h3>
+            <div style="display: flex; align-items: center;">
+                <input type="number" step="0.01" value="45.80" class="old-input" placeholder="Цена">
+                <span class="currency">₽</span>
+            </div>
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">
+                ⚠️ Стрелочки залезают на цифры, узкое поле
+            </p>
+        </div>
+
+        <div class="demo-field">
+            <h3>✅ Новое поле (улучшенное)</h3>
+            <div style="display: flex; align-items: center;">
+                <input type="number" step="0.01" value="45.80" class="new-input" placeholder="Цена">
+                <span class="currency">₽</span>
+            </div>
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">
+                ✅ Стрелочки скрыты, больше места, удобный ввод
+            </p>
+        </div>
+    </div>
+
+    <div class="test-case">
+        <div class="header">🧪 Тестирование в TradeFrame</div>
+        <button onclick="openPricesPage()">Открыть страницу цен</button>
+        <button onclick="testNumberInput()">Тест ввода чисел</button>
+
+        <div style="margin-top: 15px;">
+            <p><strong>Как проверить улучшения:</strong></p>
+            <ol>
+                <li>Откройте страницу цен в TradeFrame</li>
+                <li>Нажмите "Изменить цены"</li>
+                <li>Попробуйте ввести цену: 45.80</li>
+                <li>Проверьте, что курсор не скачет при вводе</li>
+                <li>Убедитесь, что стрелочки не мешают вводу</li>
+                <li>Поле должно быть шире и удобнее для ввода</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function openPricesPage() {
+            window.open('http://localhost:3002/point/prices', '_blank');
+        }
+
+        function testNumberInput() {
+            const input = document.querySelector('.new-input');
+            input.focus();
+
+            // Анимация ввода для демонстрации
+            let value = '';
+            const targetValue = '48.25';
+            let i = 0;
+
+            const typeAnimation = setInterval(() => {
+                if (i < targetValue.length) {
+                    value += targetValue[i];
+                    input.value = value;
+                    i++;
+                } else {
+                    clearInterval(typeAnimation);
+                    setTimeout(() => {
+                        input.value = '45.80';
+                    }, 1000);
+                }
+            }, 200);
+        }
+
+        window.onload = () => {
+            console.log('🎯 Тестовая страница UX улучшений загружена');
+            console.log('✅ Проверьте разницу между старым и новым полем ввода');
+        };
+    </script>
+</body>
+</html>
