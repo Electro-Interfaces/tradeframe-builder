@@ -1890,22 +1890,22 @@ export default function Prices() {
                           className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
                         >
                           <td className="py-3 px-4 text-slate-300 text-sm">
-                            {new Date(entry.created_at).toLocaleString('ru-RU', {
+                            {entry.created_at ? new Date(entry.created_at).toLocaleString('ru-RU', {
                               day: '2-digit',
                               month: '2-digit',
                               year: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit'
-                            })}
+                            }) : '—'}
                           </td>
                           <td className="py-3 px-4 text-slate-300 text-sm">
-                            {new Date(entry.effective_date).toLocaleString('ru-RU', {
+                            {entry.effective_date ? new Date(entry.effective_date).toLocaleString('ru-RU', {
                               day: '2-digit',
                               month: '2-digit',
                               year: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit'
-                            })}
+                            }) : '—'}
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
@@ -1917,7 +1917,7 @@ export default function Prices() {
                           </td>
                           <td className="py-3 px-4 text-right">
                             <span className="text-green-400 font-semibold text-lg">
-                              {(entry.price / 100).toFixed(2)}
+                              {Number(entry.price).toFixed(2)}
                             </span>
                           </td>
                           <td className="py-3 px-4">

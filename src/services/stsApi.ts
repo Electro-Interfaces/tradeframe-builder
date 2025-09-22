@@ -1634,25 +1634,22 @@ class STSApiService {
       // Если дата не передана, используем 01.09.2025
       const dateFrom = startDate || '2025-09-01T00:00:00';
 
-      // Формируем URL с правильным station_number
-      const endpoint = `/v1/schedule/prices/${stationNumber}`;
-
-      // Добавляем параметры запроса
+      // Формируем URL с правильным station_number и параметрами запроса
+      // Используем dt_from для получения истории цен начиная с указанной даты
       const params = new URLSearchParams();
       params.append('system', String(networkNumber));
-      params.append('dt', dateFrom);
+      params.append('dt_from', dateFrom);
 
-      const fullEndpoint = `${endpoint}?${params.toString()}`;
+      const endpoint = `/v1/schedule/prices/${stationNumber}?${params.toString()}`;
 
       console.log('📅 STS API: Запрос журнала цен', {
         networkNumber,
         stationNumber,
         dateFrom,
-        fullEndpoint,
-        params: Object.fromEntries(params)
+        fullEndpoint: endpoint
       });
 
-      const data = await this.apiRequest<any>(fullEndpoint, {
+      const data = await this.apiRequest<any>(endpoint, {
         method: 'GET'
       });
 
@@ -1678,7 +1675,9 @@ class STSApiService {
 
       console.log('📊 STS API: Обрабатываем данные', {
         count: priceData.length,
-        sample: priceData.slice(0, 2)
+        sample: priceData.slice(0, 2),
+        firstItemFields: priceData[0] ? Object.keys(priceData[0]) : [],
+        firstItemData: priceData[0] || null
       });
 
       // Преобразуем данные в удобный формат
@@ -1686,14 +1685,21 @@ class STSApiService {
         const serviceCode = String(item.service_code || item.code || '');
         const fuelType = SERVICE_CODE_TO_FUEL_TYPE[serviceCode] || `Услуга ${serviceCode}`;
 
+        console.log('🔍 Отладка даты из API:', {
+          service_name: item.service_name,
+          dt: item.dt,
+          dtType: typeof item.dt,
+          rawItem: item
+        });
+
         return {
-          id: item.id,
+          id: item.id || Math.floor(Math.random() * 10000),
           service_code: serviceCode,
           service_name: item.service_name || item.name,
           fuel_type: fuelType,
           price: parseFloat(item.price || 0),
-          effective_date: item.effective_date || item.date,
-          created_at: item.created_at,
+          effective_date: item.dt || item.effective_date || item.date,
+          created_at: item.dt || item.created_at,
           status: item.status || 'active'
         };
       });
