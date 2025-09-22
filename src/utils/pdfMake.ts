@@ -45,25 +45,9 @@ export async function loadPdfMake(): Promise<PdfMakeInstance> {
   }
 
   try {
-    // Try to dynamically import pdfmake - only if not disabled
-    const [pdfMakeModule, pdfFontsModule] = await Promise.all([
-      import('pdfmake/build/pdfmake'),
-      import('pdfmake/build/vfs_fonts'),
-    ]);
-
-    const pdfMakeInstance = (pdfMakeModule as any).default || pdfMakeModule;
-    const pdfFontsInstance = (pdfFontsModule as any).default || pdfFontsModule;
-
-    // Configure pdfMake with fonts
-    pdfMakeInstance.vfs = pdfFontsInstance.pdfMake.vfs;
-    pdfMakeInstance.fonts = {
-      Roboto: {
-        normal: 'Roboto-Regular.ttf',
-        bold: 'Roboto-Medium.ttf',
-        italics: 'Roboto-Italic.ttf',
-        bolditalics: 'Roboto-MediumItalic.ttf',
-      },
-    };
+    // Динамически импортируем отдельный модуль с pdfmake
+    const loaderModule = await import('./pdfMakeLoader');
+    const pdfMakeInstance = await loaderModule.loadRealPdfMake();
 
     cachedPdfMake = pdfMakeInstance;
     return pdfMakeInstance;
