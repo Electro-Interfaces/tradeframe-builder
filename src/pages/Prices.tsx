@@ -7,6 +7,17 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
@@ -246,6 +257,12 @@ export default function Prices() {
   const [loadingFromExternalAPI, setLoadingFromExternalAPI] = useState(false);
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
   const [loadingFromSTSAPI, setLoadingFromSTSAPI] = useState(false);
+
+  // Состояния для установки цен через STS API
+  const [isSetPricesDialogOpen, setIsSetPricesDialogOpen] = useState(false);
+  const [pricesForUpdate, setPricesForUpdate] = useState<Array<{ fuel_type: string; price: number; currentPrice?: number }>>([]);
+  const [effectiveDateTime, setEffectiveDateTime] = useState<Date>(new Date());
+  const [isSettingPrices, setIsSettingPrices] = useState(false);
   const [initialLoadTriggered, setInitialLoadTriggered] = useState(false);
   const [pageReady, setPageReady] = useState(true);
 
@@ -613,6 +630,152 @@ export default function Prices() {
       }
     } finally {
       setLoadingFromSTSAPI(false);
+    }
+  };
+
+  // Функция для подготовки диалога установки цен
+  const handleSetPrices = () => {
+    if (!stsApiConfigured) {
+      toast({
+        title: "API СТС не настроен",
+        description: "Настройте подключение к API СТС в разделе настроек",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedTradingPoint || selectedTradingPoint === 'all') {
+      toast({
+        title: "Выберите торговую точку",
+        description: "Для установки цен необходимо выбрать конкретную торговую точку",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Подготавливаем список цен для изменения на основе текущих цен
+    console.log('🔍 Анализ currentPrices:', currentPrices);
+
+    const pricesData = currentPrices.map((price, index) => {
+      console.log(`🔍 Цена ${index + 1}:`, {
+        fuelType: price.fuelType,
+        priceGross: price.priceGross,
+        priceWithVAT: price.priceWithVAT,
+        price: price.price,
+        fullObject: price
+      });
+
+      // Получаем цену в рублях с учетом источника данных
+      let currentPriceValue = 0;
+
+      if (price.priceGross && typeof price.priceGross === 'number') {
+        // Если источник STS API, цена уже в рублях
+        // Если другой источник, цена в копейках
+        if (price.source === 'sts-api') {
+          currentPriceValue = price.priceGross;
+          console.log(`💰 STS API - используем priceGross как рубли: ${currentPriceValue} руб`);
+        } else {
+          currentPriceValue = price.priceGross / 100;
+          console.log(`💰 Другой источник - priceGross: ${price.priceGross} коп = ${currentPriceValue} руб`);
+        }
+      } else if (price.priceWithVAT && typeof price.priceWithVAT === 'number') {
+        currentPriceValue = price.priceWithVAT;
+        console.log(`💰 Используем priceWithVAT: ${currentPriceValue} руб`);
+      } else if (price.price && typeof price.price === 'number') {
+        currentPriceValue = price.price;
+        console.log(`💰 Используем price: ${currentPriceValue} руб`);
+      }
+
+      const result = {
+        fuel_type: price.fuelType || price.fuel_type || 'Неизвестно',
+        price: currentPriceValue,
+        currentPrice: currentPriceValue
+      };
+
+      console.log(`✅ Результат для ${result.fuel_type}:`, result);
+      return result;
+    });
+
+    setPricesForUpdate(pricesData);
+
+    // Устанавливаем дату на следующий день в 00:00
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    setEffectiveDateTime(tomorrow);
+
+    setIsSetPricesDialogOpen(true);
+  };
+
+  // Функция установки цен через STS API
+  const handleConfirmSetPrices = async () => {
+    if (!selectedNetwork || !selectedTradingPoint) {
+      toast({
+        title: "Ошибка",
+        description: "Не выбрана сеть или торговая точка",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSettingPrices(true);
+    try {
+      // Получаем полный объект торговой точки для получения external_id
+      const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
+      if (!tradingPoint?.external_id) {
+        toast({
+          title: "Ошибка",
+          description: "У выбранной торговой точки не указан external_id для API",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const contextParams = {
+        networkId: selectedNetwork.external_id,
+        tradingPointId: tradingPoint.external_id
+      };
+
+      // Готовим массив цен для API (переводим из рублей в копейки)
+      const prices = pricesForUpdate.map(item => ({
+        fuel_type: item.fuel_type,
+        price: Math.round(item.price * 100) // Преобразуем рубли в копейки
+      }));
+
+      console.log('💰 Цены для отправки (в копейках):', prices);
+
+      const effectiveDate = effectiveDateTime.toISOString();
+
+      const result = await stsApiService.setPrices(prices, effectiveDate, contextParams);
+
+      if (result.success) {
+        toast({
+          title: "Цены установлены",
+          description: result.message || "Новые цены успешно установлены",
+          variant: "default"
+        });
+
+        setIsSetPricesDialogOpen(false);
+
+        // Обновляем цены после установки
+        await loadPricesFromSTSAPI();
+      } else {
+        toast({
+          title: "Ошибка установки цен",
+          description: result.message || "Не удалось установить новые цены",
+          variant: "destructive"
+        });
+      }
+
+    } catch (error: any) {
+      console.error('❌ Ошибка установки цен:', error);
+      toast({
+        title: "Ошибка установки цен",
+        description: error.message || "Произошла ошибка при установке цен",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSettingPrices(false);
     }
   };
 
@@ -1073,14 +1236,17 @@ export default function Prices() {
                     Обновить
                   </Button>
                 )}
-                <Button
-                  onClick={handleCreatePrice}
-                  size="sm"
-                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-3 py-2.5 rounded-lg font-medium"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  {isMobile ? "Новая" : "Новая цена"}
-                </Button>
+                {stsApiConfigured && currentPrices.length > 0 && (
+                  <Button
+                    onClick={handleSetPrices}
+                    size="sm"
+                    disabled={isSettingPrices || !selectedTradingPoint || selectedTradingPoint === 'all'}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg font-medium px-3 py-2"
+                  >
+                    <Edit className={`w-4 h-4 ${isMobile ? '' : 'mr-1'} ${isSettingPrices ? 'animate-pulse' : ''}`} />
+                    {!isMobile && "Изменить цены"}
+                  </Button>
+                )}
               </div>
             </CardTitle>
           </CardHeader>
@@ -1251,27 +1417,7 @@ export default function Prices() {
                           <X className="w-4 h-4" />
                         </Button>
                       </>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditPrice(price)}
-                          className="flex-1 text-slate-400 hover:text-white hover:bg-slate-700"
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Редактировать
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
-                          title="История цены"
-                        >
-                          <History className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -1496,6 +1642,137 @@ export default function Prices() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* AlertDialog для установки цен через STS API */}
+        <AlertDialog open={isSetPricesDialogOpen} onOpenChange={setIsSetPricesDialogOpen}>
+          <AlertDialogContent className="max-w-4xl max-h-[90vh] bg-slate-900 border-slate-700 overflow-y-auto">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-semibold text-white flex items-center gap-2">
+                <Edit className="w-5 h-5 text-orange-400" />
+                Установка цен
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-300 text-base">
+                <div className="space-y-3">
+                  <p>
+                    <strong>Внимание!</strong> Будут установлены новые цены для всех видов топлива на выбранной торговой точке.
+                  </p>
+                  <div className="bg-slate-800 p-3 rounded-lg border border-slate-600">
+                    <p className="text-sm"><strong>Сеть:</strong> {selectedNetwork?.name} (ID: {selectedNetwork?.external_id})</p>
+                    <p className="text-sm"><strong>Торговая точка:</strong> {
+                      typeof selectedTradingPoint === 'string' ? selectedTradingPoint : selectedTradingPoint?.name
+                    }</p>
+                    <p className="text-sm"><strong>Количество цен:</strong> {pricesForUpdate.length}</p>
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="my-6 space-y-4">
+              {/* Дата и время вступления в силу */}
+              <div>
+                <Label className="text-white font-medium">Дата и время вступления в силу</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal mt-2 bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {effectiveDateTime ? format(effectiveDateTime, "dd.MM.yyyy HH:mm", { locale: ru }) : "Выберите дату и время"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={effectiveDateTime}
+                      onSelect={(date) => {
+                        if (date) {
+                          const newDateTime = new Date(date);
+                          newDateTime.setHours(effectiveDateTime.getHours());
+                          newDateTime.setMinutes(effectiveDateTime.getMinutes());
+                          setEffectiveDateTime(newDateTime);
+                        }
+                      }}
+                      disabled={(date) => date < new Date("1900-01-01")}
+                      initialFocus
+                      className="bg-slate-800"
+                    />
+                    <div className="p-3 border-t border-slate-600">
+                      <div className="flex gap-2">
+                        <Input
+                          type="time"
+                          value={format(effectiveDateTime, "HH:mm")}
+                          onChange={(e) => {
+                            const [hours, minutes] = e.target.value.split(':');
+                            const newDateTime = new Date(effectiveDateTime);
+                            newDateTime.setHours(parseInt(hours), parseInt(minutes));
+                            setEffectiveDateTime(newDateTime);
+                          }}
+                          className="bg-slate-700 border-slate-600 text-white"
+                        />
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Список цен для изменения */}
+              <div>
+                <Label className="text-white font-medium">Цены для установки</Label>
+                <div className="mt-2 space-y-2">
+                  {pricesForUpdate.map((priceItem, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg border border-slate-600">
+                      <div className="flex-1">
+                        <div className="text-white font-medium">{priceItem.fuel_type}</div>
+                        <div className="text-sm text-slate-400">
+                          Текущая: {priceItem.currentPrice?.toFixed(2) || '—'} ₽
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={priceItem.price.toFixed(2)}
+                          onChange={(e) => {
+                            const newPrices = [...pricesForUpdate];
+                            newPrices[index].price = parseFloat(e.target.value) || 0;
+                            setPricesForUpdate(newPrices);
+                          }}
+                          className="w-32 bg-slate-700 border-slate-600 text-white text-right"
+                        />
+                        <span className="text-slate-400 text-sm">₽</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                Отмена
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmSetPrices}
+                disabled={isSettingPrices}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                {isSettingPrices ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Установка...
+                  </>
+                ) : (
+                  <>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Установить цены
+                  </>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
       </div>
     </MainLayout>
