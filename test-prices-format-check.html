@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Проверка формата отправки цен в API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-case { background: #f8fafc; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #3b82f6; }
+        .json { background: #1e293b; color: #f1f5f9; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; white-space: pre-wrap; font-size: 14px; }
+        .correct { border-left-color: #16a34a; background: #f0fdf4; }
+        .wrong { border-left-color: #dc2626; background: #fef2f2; }
+        .header { color: #1e40af; margin-bottom: 10px; font-weight: bold; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        .difference { background: #fef3c7; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Проверка формата отправки цен</h1>
+    <p><strong>Цель:</strong> Убедиться, что цены отправляются в рублях, а не в копейках</p>
+
+    <div class="test-case correct">
+        <div class="header">✅ Правильный формат (новая спецификация)</div>
+        <p><strong>Пример цены в форме:</strong> 45.80 ₽</p>
+        <p><strong>Что должно отправляться в API:</strong></p>
+        <div class="json" id="correctFormat"></div>
+    </div>
+
+    <div class="test-case wrong">
+        <div class="header">❌ Неправильный формат (старый код)</div>
+        <p><strong>Пример цены в форме:</strong> 45.80 ₽</p>
+        <p><strong>Что НЕ должно отправляться:</strong></p>
+        <div class="json" id="wrongFormat"></div>
+    </div>
+
+    <div class="difference">
+        <strong>Разница:</strong>
+        <ul>
+            <li><strong>Правильно:</strong> Цена 45.80 → отправляем 45.8</li>
+            <li><strong>Неправильно:</strong> Цена 45.80 → отправляем 4580 (45.80 * 100)</li>
+        </ul>
+    </div>
+
+    <div class="test-case">
+        <div class="header">🧪 Тестирование в TradeFrame</div>
+        <button onclick="openPricesPage()">Открыть страницу цен</button>
+        <button onclick="generateTestData()">Обновить примеры</button>
+
+        <div style="margin-top: 15px;">
+            <p><strong>Как проверить:</strong></p>
+            <ol>
+                <li>Откройте страницу цен в TradeFrame</li>
+                <li>Нажмите "Изменить цены"</li>
+                <li>Введите цену, например: 45.80</li>
+                <li>Откройте консоль разработчика (F12)</li>
+                <li>Нажмите "Установить цены"</li>
+                <li>Найдите лог "💰 STS API: Установка новых цен"</li>
+                <li>В объекте requestBody → prices → значения должны быть в рублях (45.8), не в копейках (4580)</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function generateTestData() {
+            // Правильный формат - цены в рублях
+            const correctFormat = {
+                "prices": {
+                    "2": 45.8,   // АИ-92: 45 руб 80 коп
+                    "3": 48.5,   // АИ-95: 48 руб 50 коп
+                    "5": 52.1    // ДТ: 52 руб 10 коп
+                },
+                "effective_date": "2025-09-22T12:00:00Z"
+            };
+
+            // Неправильный формат - цены в копейках
+            const wrongFormat = {
+                "prices": {
+                    "2": 4580,   // АИ-92: 45.80 * 100 = 4580 копеек
+                    "3": 4850,   // АИ-95: 48.50 * 100 = 4850 копеек
+                    "5": 5210    // ДТ: 52.10 * 100 = 5210 копеек
+                },
+                "effective_date": "2025-09-22T12:00:00Z"
+            };
+
+            document.getElementById('correctFormat').textContent = JSON.stringify(correctFormat, null, 2);
+            document.getElementById('wrongFormat').textContent = JSON.stringify(wrongFormat, null, 2);
+        }
+
+        function openPricesPage() {
+            // Открываем локальную версию для тестирования
+            window.open('http://localhost:3002/point/prices', '_blank');
+
+            // Также можно открыть demo версию
+            // window.open('https://electro-interfaces.github.io/tradeframe-builder/point/prices', '_blank');
+        }
+
+        // Генерируем примеры при загрузке
+        window.onload = () => {
+            generateTestData();
+            console.log('🔍 Тестовая страница проверки формата цен загружена');
+            console.log('📌 Проверьте, что цены отправляются в рублях, а не в копейках');
+        };
+    </script>
+</body>
+</html>

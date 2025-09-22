@@ -736,13 +736,13 @@ export default function Prices() {
         tradingPointId: tradingPoint.external_id
       };
 
-      // Готовим массив цен для API (переводим из рублей в копейки)
+      // Готовим массив цен для API (цены передаются в рублях согласно новой спецификации)
       const prices = pricesForUpdate.map(item => ({
         fuel_type: item.fuel_type,
-        price: Math.round(item.price * 100) // Преобразуем рубли в копейки
+        price: item.price // Цены в рублях, не конвертируем в копейки
       }));
 
-      console.log('💰 Цены для отправки (в копейках):', prices);
+      console.log('💰 Цены для отправки (в рублях):', prices);
 
       const effectiveDate = effectiveDateTime.toISOString();
 
