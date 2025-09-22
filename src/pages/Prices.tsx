@@ -60,12 +60,12 @@ import {
   TradingNetworkPrice,
   TradingNetworkService
 } from "@/services/tradingNetworkAPI";
-import { nomenclatureService } from "@/services/nomenclatureService";
+// import { nomenclatureService } from "@/services/nomenclatureService"; // Удален - не используется
 import { FuelNomenclature } from "@/types/nomenclature";
 import { pricesCacheService, CachedFuelPrice } from "@/services/pricesCache";
 import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from "@/components/data-source/DataSourceIndicator";
 import { externalPricesService, ExternalPrice } from "@/services/externalPricesService";
-import { stsApiService, Price as STSPrice } from "@/services/stsApi";
+import { stsApiService, Price as STSPrice, PriceScheduleEntry } from "@/services/stsApi";
 import { RetailPricingDashboard } from "@/components/pricing/RetailPricingDashboard";
 
 // Types - теперь используем CachedFuelPrice как основной тип
@@ -239,7 +239,14 @@ export default function Prices() {
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isJournalDialogOpen, setIsJournalDialogOpen] = useState(false);
   const [selectedPrice, setSelectedPrice] = useState<FuelPrice | null>(null);
-  const [fuelNomenclature, setFuelNomenclature] = useState<FuelNomenclature[]>([]);
+  // Простая номенклатура топлива без загрузки из БД
+  const fuelNomenclature = [
+    { id: '1', name: 'АИ-92', internal_code: 'AI92', network_api_code: '2', status: 'active' as const },
+    { id: '2', name: 'АИ-95', internal_code: 'AI95', network_api_code: '3', status: 'active' as const },
+    { id: '3', name: 'АИ-98', internal_code: 'AI98', network_api_code: '4', status: 'active' as const },
+    { id: '4', name: 'ДТ', internal_code: 'DT', network_api_code: '5', status: 'active' as const },
+    { id: '5', name: 'Газ', internal_code: 'GAS', network_api_code: '6', status: 'active' as const }
+  ];
   
   // Состояния для работы с API торговой сети
   const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
@@ -263,6 +270,11 @@ export default function Prices() {
   const [pricesForUpdate, setPricesForUpdate] = useState<Array<{ fuel_type: string; price: number; currentPrice?: number }>>([]);
   const [effectiveDateTime, setEffectiveDateTime] = useState<Date>(new Date());
   const [isSettingPrices, setIsSettingPrices] = useState(false);
+
+  // Состояния для журнала изменения цен
+  const [priceSchedule, setPriceSchedule] = useState<PriceScheduleEntry[]>([]);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
+  const [isPriceHistoryDialogOpen, setIsPriceHistoryDialogOpen] = useState(false);
   const [initialLoadTriggered, setInitialLoadTriggered] = useState(false);
   const [pageReady, setPageReady] = useState(true);
 
@@ -315,32 +327,7 @@ export default function Prices() {
     setStsApiConfigured(isConfigured);
   }, [hasExternalDatabase]);
 
-  // Загрузка номенклатуры топлива
-  useEffect(() => {
-    const loadFuelNomenclature = async () => {
-      try {
-        const filters = { 
-          status: 'active' as const,
-          ...(selectedTradingPoint?.network_id && { networkId: selectedTradingPoint.network_id })
-        };
-        const data = await nomenclatureService.getNomenclature(filters);
-        
-        // Удаляем дубликаты по названию топлива, оставляя только уникальные названия
-        const uniqueFuelTypes = data.reduce((acc, fuel) => {
-          if (!acc.some(item => item.name === fuel.name)) {
-            acc.push(fuel);
-          }
-          return acc;
-        }, [] as FuelNomenclature[]);
-        
-        setFuelNomenclature(uniqueFuelTypes);
-      } catch (error) {
-        console.error('Failed to load fuel nomenclature:', error);
-        setFuelNomenclature([]);
-      }
-    };
-    loadFuelNomenclature();
-  }, [selectedTradingPoint?.network_id]);
+  // Номенклатура топлива не используется - удалена загрузка из БД
 
   // Просто показываем все цены без фильтрации
   const filteredPrices = currentPrices;
@@ -789,6 +776,65 @@ export default function Prices() {
     } finally {
       setIsSettingPrices(false);
     }
+  };
+
+  // Функция загрузки журнала изменения цен
+  const loadPriceSchedule = async () => {
+    if (!selectedNetwork || !selectedTradingPoint || selectedTradingPoint === 'all') {
+      return;
+    }
+
+    if (!stsApiConfigured) {
+      return;
+    }
+
+    setIsLoadingSchedule(true);
+    try {
+      // Получаем полный объект торговой точки для получения external_id
+      const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
+      if (!tradingPoint?.external_id) {
+        console.warn('Не удается получить external_id торговой точки для журнала цен');
+        return;
+      }
+
+      // Загружаем изменения цен с 01.09.2025
+      const startDate = '2025-09-01T00:00:00';
+
+      console.log('📅 Загрузка журнала цен', {
+        networkId: selectedNetwork.external_id,
+        stationId: tradingPoint.external_id,
+        startDate
+      });
+
+      const schedule = await stsApiService.getPriceSchedule(
+        selectedNetwork.external_id,
+        tradingPoint.external_id,
+        startDate
+      );
+
+      setPriceSchedule(schedule);
+
+      console.log('✅ Журнал цен загружен:', {
+        count: schedule.length,
+        dateRange: `${startDate} - сегодня`
+      });
+
+    } catch (error: any) {
+      console.error('❌ Ошибка загрузки журнала цен:', error);
+      toast({
+        title: "Ошибка загрузки журнала",
+        description: error.message || "Не удалось загрузить историю изменения цен",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingSchedule(false);
+    }
+  };
+
+  // Функция открытия диалога истории цен
+  const handleShowPriceHistory = async () => {
+    setIsPriceHistoryDialogOpen(true);
+    await loadPriceSchedule();
   };
 
   const refreshPricesFromNetwork = async () => {
@@ -1249,15 +1295,27 @@ export default function Prices() {
                   </Button>
                 )}
                 {stsApiConfigured && currentPrices.length > 0 && (
-                  <Button
-                    onClick={handleSetPrices}
-                    size="sm"
-                    disabled={isSettingPrices || !selectedTradingPoint || selectedTradingPoint === 'all'}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg font-medium px-3 py-2"
-                  >
-                    <Edit className={`w-4 h-4 ${isMobile ? '' : 'mr-1'} ${isSettingPrices ? 'animate-pulse' : ''}`} />
-                    {!isMobile && "Изменить цены"}
-                  </Button>
+                  <>
+                    <Button
+                      onClick={handleSetPrices}
+                      size="sm"
+                      disabled={isSettingPrices || !selectedTradingPoint || selectedTradingPoint === 'all'}
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg font-medium px-3 py-2"
+                    >
+                      <Edit className={`w-4 h-4 ${isMobile ? '' : 'mr-1'} ${isSettingPrices ? 'animate-pulse' : ''}`} />
+                      {!isMobile && "Изменить цены"}
+                    </Button>
+                    <Button
+                      onClick={handleShowPriceHistory}
+                      size="sm"
+                      variant="outline"
+                      disabled={isLoadingSchedule || !selectedTradingPoint || selectedTradingPoint === 'all'}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200"
+                    >
+                      <History className={`w-4 h-4 ${isMobile ? '' : 'mr-1'} ${isLoadingSchedule ? 'animate-pulse' : ''}`} />
+                      {!isMobile && "История цен"}
+                    </Button>
+                  </>
                 )}
               </div>
             </CardTitle>
@@ -1782,6 +1840,106 @@ export default function Prices() {
                   </>
                 )}
               </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* AlertDialog для истории цен */}
+        <AlertDialog open={isPriceHistoryDialogOpen} onOpenChange={setIsPriceHistoryDialogOpen}>
+          <AlertDialogContent className="max-w-6xl max-h-[90vh] bg-slate-900 border-slate-700 overflow-y-auto">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-semibold text-white flex items-center gap-2">
+                <History className="w-5 h-5 text-blue-400" />
+                История изменения цен
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-300 text-base">
+                Журнал изменения цен с 01.09.2025 для торговой точки: {selectedTradingPoint}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="my-6">
+              {isLoadingSchedule ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-6 h-6 animate-spin text-blue-400 mr-2" />
+                  <span className="text-slate-300">Загрузка истории цен...</span>
+                </div>
+              ) : priceSchedule.length === 0 ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                  <p className="text-slate-400 text-lg">История цен не найдена</p>
+                  <p className="text-slate-500 text-sm mt-2">
+                    За последние 30 дней изменений цен не было
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-700">
+                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Дата создания</th>
+                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Дата применения</th>
+                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Топливо</th>
+                        <th className="text-right py-3 px-4 text-slate-300 font-medium">Цена (руб/л)</th>
+                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Статус</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {priceSchedule.map((entry, index) => (
+                        <tr
+                          key={`${entry.service_code}-${entry.effective_date}-${index}`}
+                          className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
+                        >
+                          <td className="py-3 px-4 text-slate-300 text-sm">
+                            {new Date(entry.created_at).toLocaleString('ru-RU', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="py-3 px-4 text-slate-300 text-sm">
+                            {new Date(entry.effective_date).toLocaleString('ru-RU', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <Fuel className="w-4 h-4 text-blue-400" />
+                              <span className="text-slate-300 font-medium">
+                                {entry.fuel_type || `Код: ${entry.service_code}`}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <span className="text-green-400 font-semibold text-lg">
+                              {(entry.price / 100).toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge
+                              variant="outline"
+                              className="border-blue-600 text-blue-400 bg-blue-900/20"
+                            >
+                              Применена
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
+                Закрыть
+              </AlertDialogCancel>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

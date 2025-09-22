@@ -201,9 +201,30 @@ const FUEL_TYPE_TO_SERVICE_CODE: Record<string, string> = {
   'ДТ Евро': '7'
 };
 
+// Обратный маппинг кодов услуг к видам топлива
+const SERVICE_CODE_TO_FUEL_TYPE: Record<string, string> = {
+  '2': 'АИ-92',
+  '3': 'АИ-95',
+  '4': 'АИ-98',
+  '5': 'ДТ',
+  '6': 'ДТ Зимнее',
+  '7': 'ДТ Евро'
+};
+
 interface PriceItem {
   fuel_type: string;
   price: number;
+}
+
+interface PriceScheduleEntry {
+  id?: number;
+  service_code: string;
+  service_name?: string;
+  fuel_type?: string;
+  price: number;
+  effective_date: string;
+  created_at?: string;
+  status?: string;
 }
 
 interface Transaction {
@@ -1586,10 +1607,120 @@ class STSApiService {
       }
     }
   }
+
+  /**
+   * Получение журнала изменения цен на дату
+   * GET /v1/pos/schedule/prices/{station_number}
+   */
+  async getPriceSchedule(
+    networkNumber: string | number,
+    stationNumber: string | number,
+    startDate?: string
+  ): Promise<PriceScheduleEntry[]> {
+    console.log('🗂️ STS API: getPriceSchedule called', {
+      networkNumber,
+      stationNumber,
+      startDate
+    });
+
+    if (!this.isConfigured()) {
+      throw new Error('STS API не настроен');
+    }
+
+    try {
+      // Обновляем токен перед запросом
+      await this.refreshTokenIfNeeded(true);
+
+      // Если дата не передана, используем 01.09.2025
+      const dateFrom = startDate || '2025-09-01T00:00:00';
+
+      // Формируем URL с правильным station_number
+      const endpoint = `/v1/pos/schedule/prices/${stationNumber}`;
+
+      // Добавляем параметры запроса
+      const params = new URLSearchParams();
+      params.append('system', String(networkNumber));
+      params.append('dt', dateFrom);
+
+      const fullEndpoint = `${endpoint}?${params.toString()}`;
+
+      console.log('📅 STS API: Запрос журнала цен', {
+        networkNumber,
+        stationNumber,
+        dateFrom,
+        fullEndpoint,
+        params: Object.fromEntries(params)
+      });
+
+      const data = await this.apiRequest<any>(fullEndpoint, {
+        method: 'GET'
+      });
+
+      console.log('✅ STS API: Журнал цен получен', {
+        type: typeof data,
+        isArray: Array.isArray(data),
+        dataKeys: data && typeof data === 'object' ? Object.keys(data) : 'не объект',
+        fullResponse: data
+      });
+
+      // Проверяем структуру ответа и извлекаем массив
+      let priceData: any[] = [];
+      if (Array.isArray(data)) {
+        priceData = data;
+      } else if (data && typeof data === 'object') {
+        // Если ответ - объект, ищем массив в различных возможных полях
+        priceData = data.data || data.items || data.prices || data.schedule || [];
+        if (!Array.isArray(priceData)) {
+          console.warn('⚠️ STS API: Не найден массив в ответе, создаем пустой');
+          priceData = [];
+        }
+      }
+
+      console.log('📊 STS API: Обрабатываем данные', {
+        count: priceData.length,
+        sample: priceData.slice(0, 2)
+      });
+
+      // Преобразуем данные в удобный формат
+      const priceEntries: PriceScheduleEntry[] = priceData.map(item => {
+        const serviceCode = String(item.service_code || item.code || '');
+        const fuelType = SERVICE_CODE_TO_FUEL_TYPE[serviceCode] || `Услуга ${serviceCode}`;
+
+        return {
+          id: item.id,
+          service_code: serviceCode,
+          service_name: item.service_name || item.name,
+          fuel_type: fuelType,
+          price: parseFloat(item.price || 0),
+          effective_date: item.effective_date || item.date,
+          created_at: item.created_at,
+          status: item.status || 'active'
+        };
+      });
+
+      return priceEntries;
+
+    } catch (error: any) {
+      console.error('❌ STS API: Ошибка при получении журнала цен:', error);
+
+      // Обрабатываем различные типы ошибок
+      if (error.message?.includes('422')) {
+        throw new Error('Ошибка параметров: Проверьте номер станции и дату');
+      } else if (error.message?.includes('401')) {
+        throw new Error('Ошибка авторизации: Проверьте настройки API СТС');
+      } else if (error.message?.includes('403')) {
+        throw new Error('Доступ запрещен: Недостаточно прав для просмотра журнала');
+      } else if (error.message?.includes('404')) {
+        throw new Error('Торговая точка не найдена: Проверьте номер станции');
+      } else {
+        throw new Error(`Ошибка получения журнала цен: ${error.message}`);
+      }
+    }
+  }
 }
 
 // Экспортируем типы
-export type { Transaction, Tank, Pump, Sale, Price, TerminalInfo, PriceSetRequest };
+export type { Transaction, Tank, Pump, Sale, Price, TerminalInfo, PriceSetRequest, PriceScheduleEntry };
 
 // Экспортируем единственный экземпляр сервиса
 export const stsApiService = new STSApiService();
