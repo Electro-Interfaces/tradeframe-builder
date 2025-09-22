@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { stsApiService, TerminalInfo, Tank } from "@/services/stsApi";
+import { tradingPointsService } from "@/services/tradingPointsService";
 import { MobileButton } from "@/components/ui/mobile-button";
 import { MobileTable } from "@/components/ui/mobile-table";
 import {
@@ -216,9 +217,21 @@ export default function Equipment() {
 
     setRestartingTerminal(true);
     try {
+      // Получаем полный объект торговой точки для доступа к external_id
+      const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
+
+      if (!tradingPoint?.external_id) {
+        toast({
+          title: "Ошибка",
+          description: "У выбранной торговой точки не указан external_id для API",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const contextParams = {
         networkId: selectedNetwork.external_id,
-        tradingPointId: selectedTradingPoint
+        tradingPointId: tradingPoint.external_id
       };
 
       const result = await stsApiService.restartTerminal(contextParams);

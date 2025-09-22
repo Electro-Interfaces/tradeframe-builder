@@ -355,7 +355,7 @@ class STSApiService {
     }
 
     const url = new URL(`${this.config.url}${endpoint}`);
-    
+
     // Добавляем параметры сети и торговой точки если они заданы
     if (networkId) {
       // Убеждаемся, что передаем число для system
@@ -364,6 +364,12 @@ class STSApiService {
     }
     if (tradingPointId && !isNaN(Number(tradingPointId))) {
       // Убеждаемся, что передаем число для station
+      const stationParam = String(Number(tradingPointId));
+      url.searchParams.set('station', stationParam);
+    }
+
+    // Специальная обработка для эндпоинтов управления - обязательно требуют station
+    if (endpoint.includes('/v1/control') && tradingPointId) {
       const stationParam = String(Number(tradingPointId));
       url.searchParams.set('station', stationParam);
     }
