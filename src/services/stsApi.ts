@@ -1397,6 +1397,71 @@ class STSApiService {
         return 'cash'; // по умолчанию наличные
     }
   }
+
+  /**
+   * Перезагрузить терминал
+   */
+  async restartTerminal(contextParams?: {networkId?: string; tradingPointId?: string}): Promise<{success: boolean; message: string}> {
+    if (!contextParams?.networkId) {
+      throw new Error('Для перезагрузки терминала требуется номер сети (system)');
+    }
+
+    if (!contextParams?.tradingPointId) {
+      throw new Error('Для перезагрузки терминала требуется номер торговой точки (station)');
+    }
+
+    try {
+      const endpoint = '/v1/control/restart';
+
+      console.log('🔄 STS API: Отправка команды перезагрузки терминала', {
+        network: contextParams.networkId,
+        station: contextParams.tradingPointId,
+        endpoint
+      });
+
+      const data = await this.apiRequest<any>(endpoint, {
+        method: 'POST'
+      }, contextParams);
+
+      console.log('🔄 STS API: Ответ от сервера на команду перезагрузки:', data);
+
+      // Проверяем успешность операции
+      if (data && (data.success === true || data.status === 'success' || data.result === 'ok')) {
+        return {
+          success: true,
+          message: 'Команда перезагрузки терминала отправлена успешно'
+        };
+      } else if (data && data.message) {
+        return {
+          success: true,
+          message: data.message
+        };
+      } else {
+        return {
+          success: true,
+          message: 'Команда перезагрузки отправлена'
+        };
+      }
+
+    } catch (error) {
+      console.error('🔄 STS API: Ошибка при перезагрузке терминала:', error);
+
+      // Обрабатываем различные типы ошибок
+      if (error.message?.includes('422')) {
+        throw new Error('Ошибка параметров: Проверьте настройки сети и торговой точки');
+      } else if (error.message?.includes('401')) {
+        throw new Error('Ошибка авторизации: Проверьте настройки API СТС');
+      } else if (error.message?.includes('403')) {
+        throw new Error('Доступ запрещен: Недостаточно прав для перезагрузки терминала');
+      } else if (error.message?.includes('404')) {
+        throw new Error('Терминал не найден: Проверьте номер сети и торговой точки');
+      } else if (error.message?.includes('timeout')) {
+        throw new Error('Превышено время ожидания: Попробуйте позже');
+      } else {
+        throw new Error(`Ошибка перезагрузки терминала: ${error.message}`);
+      }
+    }
+  }
 }
 
 // Экспортируем типы

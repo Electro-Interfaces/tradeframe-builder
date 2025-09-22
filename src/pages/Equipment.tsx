@@ -6,14 +6,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { stsApiService, TerminalInfo, Tank } from "@/services/stsApi";
 import { MobileButton } from "@/components/ui/mobile-button";
 import { MobileTable } from "@/components/ui/mobile-table";
-import { 
-  Settings, 
-  AlertCircle, 
-  CheckCircle2, 
-  Loader2, 
+import {
+  Settings,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
   RefreshCw,
   Thermometer,
   Gauge,
@@ -21,7 +32,9 @@ import {
   Database,
   Banknote,
   CreditCard,
-  HelpCircle
+  HelpCircle,
+  Power,
+  AlertTriangle
 } from "lucide-react";
 
 interface TerminalEquipmentItem {
@@ -79,6 +92,7 @@ export default function Equipment() {
   const [terminalEquipment, setTerminalEquipment] = useState<TerminalEquipmentItem[]>([]);
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [terminalInfo, setTerminalInfo] = useState<TerminalInfo | null>(null);
+  const [restartingTerminal, setRestartingTerminal] = useState(false);
 
   // Состояния для pull-to-refresh
   const [pullState, setPullState] = useState<'idle' | 'pulling' | 'canRefresh' | 'refreshing'>('idle');
@@ -188,6 +202,55 @@ export default function Equipment() {
 
   const handleRefresh = async () => {
     await loadEquipmentData();
+  };
+
+  const handleRestartTerminal = async () => {
+    if (!selectedNetwork?.external_id || !selectedTradingPoint) {
+      toast({
+        title: "Ошибка",
+        description: "Для перезагрузки терминала выберите сеть и торговую точку",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setRestartingTerminal(true);
+    try {
+      const contextParams = {
+        networkId: selectedNetwork.external_id,
+        tradingPointId: selectedTradingPoint
+      };
+
+      const result = await stsApiService.restartTerminal(contextParams);
+
+      if (result.success) {
+        toast({
+          title: "Команда отправлена",
+          description: result.message,
+          variant: "default"
+        });
+
+        // Обновляем данные оборудования через несколько секунд
+        setTimeout(() => {
+          loadEquipmentData();
+        }, 3000);
+      } else {
+        toast({
+          title: "Ошибка",
+          description: result.message || "Не удалось перезагрузить терминал",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка перезагрузки терминала:', error);
+      toast({
+        title: "Ошибка перезагрузки",
+        description: error.message || "Не удалось отправить команду перезагрузки",
+        variant: "destructive"
+      });
+    } finally {
+      setRestartingTerminal(false);
+    }
   };
 
   // Pull-to-refresh функционал
@@ -508,23 +571,84 @@ export default function Equipment() {
 
               <div className={`flex ${isMobile ? 'gap-2 self-start flex-wrap' : 'gap-4'} items-center`}>
 
-                {/* Кнопка обновления данных */}
+                {/* Кнопки управления */}
                 {!isMobile && (
-                  <Button
-                    onClick={handleRefresh}
-                    disabled={loading}
-                    size="sm"
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
-                  >
-                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                      {loading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                    </div>
-                    {loading ? 'Загрузка...' : 'Обновить STS данные'}
-                  </Button>
+                  <div className="flex gap-3">
+                    {/* Кнопка обновления данных */}
+                    <Button
+                      onClick={handleRefresh}
+                      disabled={loading}
+                      size="sm"
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
+                    >
+                      <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                        {loading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                      </div>
+                      {loading ? 'Загрузка...' : 'Обновить STS данные'}
+                    </Button>
+
+                    {/* Кнопка перезагрузки терминала */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          disabled={restartingTerminal || !selectedNetwork?.external_id || !selectedTradingPoint}
+                          size="sm"
+                          className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-5 py-2.5 rounded-lg font-medium disabled:opacity-50"
+                        >
+                          <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                            {restartingTerminal ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Power className="w-4 h-4" />
+                            )}
+                          </div>
+                          {restartingTerminal ? 'Перезагрузка...' : 'Перезагрузить терминал'}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-slate-800 border border-slate-600">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-white flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-red-400" />
+                            Подтверждение перезагрузки терминала
+                          </AlertDialogTitle>
+                          <AlertDialogDescription className="text-slate-300">
+                            Вы уверены, что хотите перезагрузить терминал?
+                            <br />
+                            <br />
+                            <strong className="text-yellow-400">⚠️ ВНИМАНИЕ:</strong>
+                            <br />
+                            • Терминал будет недоступен во время перезагрузки
+                            <br />
+                            • Все активные операции будут прерваны
+                            <br />
+                            • Процесс может занять до 2-3 минут
+                            <br />
+                            <br />
+                            <span className="text-white">
+                              Сеть: <strong>{selectedNetwork?.name}</strong>
+                              <br />
+                              Торговая точка: <strong>{selectedTradingPoint}</strong>
+                            </span>
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white">
+                            Отмена
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleRestartTerminal}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            Да, перезагрузить терминал
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 )}
               </div>
             </CardTitle>
