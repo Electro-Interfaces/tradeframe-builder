@@ -44,4 +44,5 @@ jobs:
             script: |
                   cd /var/www/www-root/data/www/prod.dataworker.ru
                   git pull
+                  npm ci
                   pm2 restart "npm run dev"
