@@ -50,6 +50,8 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "pdfmake/build/pdfmake": "pdfmake/build/pdfmake.js",
+      "pdfmake/build/vfs_fonts": "pdfmake/build/vfs_fonts.js",
     },
   },
 }));

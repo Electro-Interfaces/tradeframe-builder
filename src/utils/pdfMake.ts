@@ -25,8 +25,8 @@ export async function loadPdfMake(): Promise<PdfMakeInstance> {
   }
 
   const [pdfMakeModule, pdfFontsModule] = await Promise.all([
-    import('pdfmake/build/pdfmake.js'),
-    import('pdfmake/build/vfs_fonts.js'),
+    import('pdfmake/build/pdfmake'),
+    import('pdfmake/build/vfs_fonts'),
   ]);
 
   const pdfMake =
