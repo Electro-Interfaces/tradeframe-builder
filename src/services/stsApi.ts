@@ -186,6 +186,26 @@ interface Price {
   status: string;
 }
 
+interface PriceSetRequest {
+  prices: Record<string, number>; // Коды услуг как ключи, цены в рублях как значения
+  effective_date: string; // ISO 8601 format: "2024-01-15T10:30:00Z"
+}
+
+// Маппинг видов топлива к кодам услуг
+const FUEL_TYPE_TO_SERVICE_CODE: Record<string, string> = {
+  'АИ-92': '2',
+  'АИ-95': '3',
+  'АИ-98': '4',
+  'ДТ': '5',
+  'ДТ Зимнее': '6',
+  'ДТ Евро': '7'
+};
+
+interface PriceItem {
+  fuel_type: string;
+  price: number;
+}
+
 interface Transaction {
   id: number;
   transactionId: string;
@@ -1468,10 +1488,108 @@ class STSApiService {
       }
     }
   }
+
+  /**
+   * Устанавливает новые цены на топливо
+   * POST /v1/prices
+   */
+  async setPrices(
+    prices: Array<{ fuel_type: string; price: number }>,
+    effectiveDate: string,
+    contextParams?: { networkId?: string; tradingPointId?: string }
+  ): Promise<{ success: boolean; message: string }> {
+    if (!contextParams?.networkId) {
+      throw new Error('Для установки цен требуется номер сети (system)');
+    }
+
+    if (!contextParams?.tradingPointId) {
+      throw new Error('Для установки цен требуется номер торговой точки (station)');
+    }
+
+    if (!prices || prices.length === 0) {
+      throw new Error('Не указаны цены для установки');
+    }
+
+    if (!effectiveDate) {
+      throw new Error('Не указана дата вступления цен в силу');
+    }
+
+    try {
+      const endpoint = '/v1/prices';
+
+      // Преобразуем массив цен в объект с кодами услуг согласно спецификации API
+      const pricesObject: Record<string, number> = {};
+      const unmappedFuelTypes: string[] = [];
+
+      prices.forEach(priceItem => {
+        const serviceCode = FUEL_TYPE_TO_SERVICE_CODE[priceItem.fuel_type];
+        if (serviceCode) {
+          // Цены передаются в рублях (например, 45.8 для 45 руб 80 коп)
+          pricesObject[serviceCode] = priceItem.price;
+        } else {
+          unmappedFuelTypes.push(priceItem.fuel_type);
+        }
+      });
+
+      if (unmappedFuelTypes.length > 0) {
+        console.warn('⚠️ STS API: Неизвестные виды топлива:', unmappedFuelTypes);
+      }
+
+      if (Object.keys(pricesObject).length === 0) {
+        throw new Error('Ни один вид топлива не был сопоставлен с кодом услуги');
+      }
+
+      // Формат данных согласно спецификации API от Валерия Гаврилова
+      const requestBody: PriceSetRequest = {
+        prices: pricesObject,
+        effective_date: effectiveDate
+      };
+
+      console.log('💰 STS API: Установка новых цен', {
+        network: contextParams?.networkId,
+        station: contextParams?.tradingPointId,
+        endpoint,
+        originalPrices: prices,
+        pricesObject,
+        unmappedFuelTypes,
+        effectiveDate,
+        requestBody: JSON.stringify(requestBody, null, 2)
+      });
+
+      const data = await this.apiRequest<any>(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      }, contextParams);
+
+      console.log('✅ STS API: Цены установлены успешно', data);
+
+      return {
+        success: true,
+        message: data?.message || 'Новые цены установлены успешно'
+      };
+
+    } catch (error: any) {
+      console.error('❌ STS API: Ошибка при установке цен:', error);
+
+      // Обрабатываем различные типы ошибок
+      if (error.message?.includes('422')) {
+        throw new Error('Ошибка параметров: Проверьте формат цен и дату');
+      } else if (error.message?.includes('401')) {
+        throw new Error('Ошибка авторизации: Проверьте настройки API СТС');
+      } else if (error.message?.includes('403')) {
+        throw new Error('Доступ запрещен: Недостаточно прав для установки цен');
+      } else if (error.message?.includes('404')) {
+        throw new Error('Торговая точка не найдена: Проверьте номер сети и ТТ');
+      } else {
+        throw new Error(`Ошибка установки цен: ${error.message}`);
+      }
+    }
+  }
 }
 
 // Экспортируем типы
-export type { Transaction, Tank, Pump, Sale, Price, TerminalInfo };
+export type { Transaction, Tank, Pump, Sale, Price, TerminalInfo, PriceSetRequest };
 
 // Экспортируем единственный экземпляр сервиса
 export const stsApiService = new STSApiService();
