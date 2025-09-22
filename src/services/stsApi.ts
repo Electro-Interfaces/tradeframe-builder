@@ -1610,7 +1610,7 @@ class STSApiService {
 
   /**
    * Получение журнала изменения цен на дату
-   * GET /v1/pos/schedule/prices/{station_number}
+   * GET /v1/schedule/prices/{station_number}
    */
   async getPriceSchedule(
     networkNumber: string | number,
@@ -1635,7 +1635,7 @@ class STSApiService {
       const dateFrom = startDate || '2025-09-01T00:00:00';
 
       // Формируем URL с правильным station_number
-      const endpoint = `/v1/pos/schedule/prices/${stationNumber}`;
+      const endpoint = `/v1/schedule/prices/${stationNumber}`;
 
       // Добавляем параметры запроса
       const params = new URLSearchParams();
