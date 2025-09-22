@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Отладка журнала цен - пустой ответ</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #0f172a; color: white; }
+        .test-case { background: #1e293b; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #3b82f6; }
+        .header { color: #60a5fa; margin-bottom: 10px; font-weight: bold; }
+        .error { border-left-color: #dc2626; }
+        .warning { border-left-color: #f59e0b; }
+        .info { border-left-color: #16a34a; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        .code { background: #1e293b; color: #f1f5f9; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 14px; white-space: pre-wrap; }
+        .result { margin: 10px 0; padding: 10px; background: #374151; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🐛 Отладка: журнал цен пустой</h1>
+
+    <div class="test-case error">
+        <div class="header">❌ Проблема</div>
+        <p>Журнал истории цен пустой - API не возвращает данные</p>
+        <p><strong>Возможные причины:</strong></p>
+        <ul>
+            <li>API возвращает пустой массив</li>
+            <li>API возвращает ошибку</li>
+            <li>Неправильная структура ответа</li>
+            <li>Неверные параметры запроса</li>
+            <li>Нет данных за период с 01.09.2025</li>
+        </ul>
+    </div>
+
+    <div class="test-case warning">
+        <div class="header">🔍 Шаги диагностики</div>
+        <ol>
+            <li><strong>Откройте страницу цен</strong></li>
+            <li><strong>Откройте консоль браузера (F12)</strong></li>
+            <li><strong>Нажмите "История цен"</strong></li>
+            <li><strong>Найдите в консоли логи:</strong>
+                <div class="code">📅 Загрузка журнала цен
+🗂️ STS API: getPriceSchedule called
+✅ STS API: Журнал цен получен
+📊 STS API: Обрабатываем данные</div>
+            </li>
+        </ol>
+
+        <button onclick="openPricesPage()">Открыть страницу цен</button>
+        <button onclick="showInstructions()">Показать инструкции</button>
+    </div>
+
+    <div class="test-case info">
+        <div class="header">📋 Что искать в логах</div>
+
+        <p><strong>1. Проверьте структуру ответа:</strong></p>
+        <div class="code">✅ STS API: Журнал цен получен {
+  type: "object" | "array",
+  isArray: true/false,
+  data: {...}
+}</div>
+
+        <p><strong>2. Проверьте обработанные данные:</strong></p>
+        <div class="code">📊 STS API: Обрабатываем данные {
+  count: 0,  ← ЕСЛИ 0, то данных нет!
+  sample: []
+}</div>
+
+        <p><strong>3. Проверьте параметры запроса:</strong></p>
+        <div class="code">📅 STS API: Запрос журнала цен {
+  networkNumber: "15",
+  stationNumber: "4",
+  dateFrom: "2025-09-01T00:00:00",
+  fullEndpoint: "/v1/pos/schedule/prices/4?system=15&dt=2025-09-01T00%3A00%3A00"
+}</div>
+    </div>
+
+    <div class="test-case">
+        <div class="header">🧪 Возможные исправления</div>
+
+        <p><strong>Если count: 0 - нет данных:</strong></p>
+        <ul>
+            <li>Попробуйте другую дату: "2024-01-01T00:00:00"</li>
+            <li>Проверьте правильность номера сети и станции</li>
+            <li>Возможно, данных за этот период действительно нет</li>
+        </ul>
+
+        <p><strong>Если ошибка в запросе:</strong></p>
+        <ul>
+            <li>Проверьте настройки STS API в /settings/external-database</li>
+            <li>Убедитесь, что токен обновляется</li>
+            <li>Проверьте доступность API</li>
+        </ul>
+
+        <button onclick="testEarlierDate()">Тест с более ранней датой</button>
+        <button onclick="checkApiConfig()">Проверить конфигурацию API</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        function openPricesPage() {
+            window.open('http://localhost:3002/point/prices', '_blank');
+        }
+
+        function showInstructions() {
+            alert(`1. Откройте http://localhost:3002/point/prices
+2. Нажмите F12 для консоли
+3. Нажмите "История цен"
+4. Скопируйте сюда логи из консоли:
+   - "📅 Загрузка журнала цен"
+   - "✅ STS API: Журнал цен получен"
+   - "📊 STS API: Обрабатываем данные"`);
+        }
+
+        function testEarlierDate() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = `
+                <div class="result">
+                    <strong>💡 Предложение:</strong><br>
+                    Попробуйте изменить дату в коде с "2025-09-01T00:00:00" на "2024-01-01T00:00:00"<br>
+                    Возможно, данных за сентябрь 2025 еще нет в системе.
+                </div>
+            `;
+        }
+
+        function checkApiConfig() {
+            const config = localStorage.getItem('sts-api-config');
+            const results = document.getElementById('testResults');
+
+            if (config) {
+                const parsed = JSON.parse(config);
+                results.innerHTML = `
+                    <div class="result">
+                        <strong>🔧 STS API конфигурация:</strong><br>
+                        <div class="code">enabled: ${parsed.enabled}
+baseUrl: ${parsed.baseUrl || 'не установлен'}
+token: ${parsed.token ? 'присутствует' : 'ОТСУТСТВУЕТ!'}
+tokenExpiry: ${parsed.tokenExpiry || 'не установлен'}</div>
+                    </div>
+                `;
+            } else {
+                results.innerHTML = `
+                    <div class="result">
+                        <strong>❌ STS API НЕ НАСТРОЕН!</strong><br>
+                        Перейдите в /settings/external-database и настройте подключение.
+                    </div>
+                `;
+            }
+        }
+
+        window.onload = () => {
+            console.log('🐛 Страница отладки пустого журнала цен');
+            console.log('📋 Следуйте инструкциям для диагностики проблемы');
+        };
+    </script>
+</body>
+</html>

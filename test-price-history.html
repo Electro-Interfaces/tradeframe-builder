@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест журнала истории цен</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #0f172a; color: white; }
+        .test-case { background: #1e293b; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #3b82f6; }
+        .header { color: #60a5fa; margin-bottom: 10px; font-weight: bold; }
+        .success { border-left-color: #16a34a; }
+        .warning { border-left-color: #f59e0b; }
+        .error { border-left-color: #dc2626; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        button.success { background: #16a34a; }
+        button.success:hover { background: #15803d; }
+        .code { background: #1e293b; color: #f1f5f9; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 14px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🗂️ Тест журнала истории цен</h1>
+
+    <div class="test-case success">
+        <div class="header">✅ Исправления завершены</div>
+        <ul>
+            <li><strong>Метод API</strong> - обновлен для принятия networkNumber, stationNumber, startDate</li>
+            <li><strong>Обновление токена</strong> - исправлено на refreshTokenIfNeeded(true)</li>
+            <li><strong>Дата по умолчанию</strong> - установлена на 2025-09-01T00:00:00</li>
+            <li><strong>UI диалог</strong> - добавлен с таблицей и обработкой состояний</li>
+            <li><strong>Параметры запроса</strong> - исправлены в UI</li>
+            <li><strong>Обработка ответа</strong> - ✅ ИСПРАВЛЕНО: data?.slice error</li>
+        </ul>
+    </div>
+
+    <div class="test-case">
+        <div class="header">🧪 Тестирование функциональности</div>
+        <p><strong>Шаги для проверки:</strong></p>
+        <ol>
+            <li>Откройте страницу цен TradeFrame</li>
+            <li>Выберите торговую сеть (БТО)</li>
+            <li>Выберите торговую точку (АЗС 1, 2, 3 или 4)</li>
+            <li>Нажмите кнопку "История цен"</li>
+            <li>Проверьте запрос в консоли браузера</li>
+        </ol>
+
+        <button onclick="openPricesPage()">Открыть страницу цен</button>
+        <button onclick="openDevTools()">Открыть консоль (F12)</button>
+    </div>
+
+    <div class="test-case">
+        <div class="header">📋 Ожидаемое поведение</div>
+        <p><strong>Запрос должен отправляться на:</strong></p>
+        <div class="code">GET /v1/pos/schedule/prices/{station_number}?system={network_number}&dt=2025-09-01T00:00:00</div>
+
+        <p><strong>В консоли должны появиться логи:</strong></p>
+        <div class="code">📅 Загрузка журнала цен { networkId: "15", stationId: "bto-azs-4", startDate: "2025-09-01T00:00:00" }
+🗂️ STS API: getPriceSchedule called { networkNumber: "15", stationNumber: "bto-azs-4", startDate: "2025-09-01T00:00:00" }
+✅ STS API: Журнал цен получен { type: "object", isArray: false, data: {...} }
+📊 STS API: Обрабатываем данные { count: X, sample: [...] }</div>
+    </div>
+
+    <div class="test-case warning">
+        <div class="header">⚠️ Возможные проблемы</div>
+        <ul>
+            <li><strong>STS API не настроен</strong> - проверьте настройки в /settings/external-database</li>
+            <li><strong>Нет токена</strong> - метод refreshTokenIfNeeded должен получить токен</li>
+            <li><strong>Неправильные параметры</strong> - проверьте external_id сети и станции</li>
+            <li><strong>Сетевая ошибка</strong> - проверьте доступность STS API</li>
+        </ul>
+    </div>
+
+    <div class="test-case">
+        <div class="header">🔧 Быстрая отладка</div>
+        <button onclick="checkStsConfig()">Проверить конфигурацию STS</button>
+        <button onclick="testApiEndpoint()">Тест API endpoint</button>
+        <div id="debugInfo" style="margin-top: 15px;"></div>
+    </div>
+
+    <script>
+        function openPricesPage() {
+            window.open('http://localhost:3002/point/prices', '_blank');
+        }
+
+        function openDevTools() {
+            alert('Нажмите F12 для открытия консоли разработчика');
+        }
+
+        function checkStsConfig() {
+            const config = localStorage.getItem('sts-api-config');
+            const debugDiv = document.getElementById('debugInfo');
+
+            if (config) {
+                const parsed = JSON.parse(config);
+                debugDiv.innerHTML = `
+                    <div class="code">STS API конфигурация найдена:
+enabled: ${parsed.enabled}
+baseUrl: ${parsed.baseUrl || 'не установлен'}
+token: ${parsed.token ? 'есть' : 'отсутствует'}
+tokenExpiry: ${parsed.tokenExpiry || 'не установлен'}</div>
+                `;
+            } else {
+                debugDiv.innerHTML = '<div class="code">❌ STS API конфигурация не найдена в localStorage</div>';
+            }
+        }
+
+        function testApiEndpoint() {
+            const debugDiv = document.getElementById('debugInfo');
+            debugDiv.innerHTML = `
+                <div class="code">🧪 Тестовые параметры:
+Network ID: 15 (БТО)
+Station ID: bto-azs-4 (АЗС 4)
+Start Date: 2025-09-01T00:00:00
+
+Ожидаемый URL:
+GET /v1/pos/schedule/prices/bto-azs-4?system=15&dt=2025-09-01T00:00:00</div>
+            `;
+        }
+
+        window.onload = () => {
+            console.log('🗂️ Тестовая страница журнала цен загружена');
+            console.log('✅ Все исправления применены, готово к тестированию');
+        };
+    </script>
+</body>
+</html>

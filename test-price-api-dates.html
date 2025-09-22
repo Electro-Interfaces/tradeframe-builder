@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест различных дат для API журнала цен</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #0f172a; color: white; }
+        .test-case { background: #1e293b; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #3b82f6; }
+        .header { color: #60a5fa; margin-bottom: 10px; font-weight: bold; }
+        .warning { border-left-color: #f59e0b; }
+        .info { border-left-color: #16a34a; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        .code { background: #1e293b; color: #f1f5f9; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 14px; white-space: pre-wrap; }
+        .result { margin: 10px 0; padding: 10px; background: #374151; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>📅 Тест различных дат для API журнала цен</h1>
+
+    <div class="test-case warning">
+        <div class="header">🔍 Диагноз проблемы</div>
+        <p><strong>Из логов видно:</strong></p>
+        <div class="code">✅ STS API: Журнал цен получен {type: 'object', isArray: false, data: {...}}
+📊 STS API: Обрабатываем данные {count: 0, sample: Array(0)}</div>
+
+        <p><strong>Причина:</strong> API отвечает корректно, но возвращает пустой массив данных.</p>
+        <p><strong>Вывод:</strong> В системе нет записей об изменении цен с 01.01.2024.</p>
+    </div>
+
+    <div class="test-case info">
+        <div class="header">🧪 Варианты решения</div>
+        <ol>
+            <li><strong>Проверить другие даты</strong> - возможно, данные есть за другой период</li>
+            <li><strong>Проверить текущую дату</strong> - попробовать сегодняшнюю дату</li>
+            <li><strong>Убрать параметр даты</strong> - получить все доступные записи</li>
+            <li><strong>Проверить другие станции</strong> - может быть, данные есть для других АЗС</li>
+        </ol>
+    </div>
+
+    <div class="test-case">
+        <div class="header">📋 Тестовые сценарии</div>
+
+        <p><strong>1. Проверить fullResponse в консоли:</strong></p>
+        <button onclick="openPricesPage()">Открыть страницу цен</button>
+        <p>Нажмите "История цен" и найдите в консоли <code>fullResponse</code></p>
+
+        <p><strong>2. Попробовать без даты (все записи):</strong></p>
+        <button onclick="suggestNoDate()">Предложить убрать фильтр по дате</button>
+
+        <p><strong>3. Попробовать текущую дату:</strong></p>
+        <button onclick="suggestCurrentDate()">Использовать сегодняшнюю дату</button>
+
+        <div id="suggestions"></div>
+    </div>
+
+    <div class="test-case">
+        <div class="header">🔧 Код для проверки</div>
+
+        <p><strong>Текущий запрос:</strong></p>
+        <div class="code">GET /v1/pos/schedule/prices/4?system=15&dt=2024-01-01T00%3A00%3A00</div>
+
+        <p><strong>Попробуйте убрать параметр dt:</strong></p>
+        <div class="code">GET /v1/pos/schedule/prices/4?system=15</div>
+
+        <p><strong>Или с текущей датой:</strong></p>
+        <div class="code" id="currentDateExample"></div>
+    </div>
+
+    <script>
+        function openPricesPage() {
+            window.open('http://localhost:3002/point/prices', '_blank');
+        }
+
+        function suggestNoDate() {
+            const suggestions = document.getElementById('suggestions');
+            suggestions.innerHTML = `
+                <div class="result">
+                    <strong>💡 Предложение 1: Убрать фильтр по дате</strong><br>
+                    В методе getPriceSchedule не передавать параметр dt:<br>
+                    <div class="code">const params = new URLSearchParams();
+params.append('system', String(networkNumber));
+// Убрать эту строку: params.append('dt', dateFrom);</div>
+                </div>
+            `;
+        }
+
+        function suggestCurrentDate() {
+            const now = new Date();
+            const currentDate = now.toISOString();
+            const suggestions = document.getElementById('suggestions');
+
+            suggestions.innerHTML = `
+                <div class="result">
+                    <strong>💡 Предложение 2: Использовать текущую дату</strong><br>
+                    Заменить дату на сегодняшнюю: <code>${currentDate}</code><br>
+                    <div class="code">const dateFrom = startDate || '${currentDate}';</div>
+                </div>
+            `;
+        }
+
+        function updateCurrentDateExample() {
+            const now = new Date();
+            const currentDate = now.toISOString();
+            const encoded = encodeURIComponent(currentDate);
+
+            document.getElementById('currentDateExample').textContent =
+                `GET /v1/pos/schedule/prices/4?system=15&dt=${encoded}`;
+        }
+
+        window.onload = () => {
+            updateCurrentDateExample();
+            console.log('📅 Тестовая страница различных дат загружена');
+            console.log('🔍 Основная проблема: API возвращает пустой массив данных');
+        };
+    </script>
+</body>
+</html>
