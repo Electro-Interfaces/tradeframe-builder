@@ -13,13 +13,39 @@ type PdfMakeInstance = {
 
 let cachedPdfMake: PdfMakeInstance | null = null;
 
+// Mock implementation for environments without pdfmake
+const createMockPdfMake = (): PdfMakeInstance => ({
+  vfs: {},
+  fonts: {},
+  createPdf: () => ({
+    download: () => {
+      console.warn('PDF download not available - pdfmake not installed');
+      alert('PDF экспорт недоступен в данном окружении');
+    },
+    open: () => {
+      console.warn('PDF open not available - pdfmake not installed');
+      alert('PDF экспорт недоступен в данном окружении');
+    },
+    getBuffer: () => {
+      console.warn('PDF getBuffer not available - pdfmake not installed');
+    },
+  }),
+});
+
 export async function loadPdfMake(): Promise<PdfMakeInstance> {
   if (cachedPdfMake) {
     return cachedPdfMake;
   }
 
+  // Check if PDF export is disabled
+  if (import.meta.env.VITE_DISABLE_PDF_EXPORT === 'true') {
+    console.info('PDF export disabled via environment variable');
+    cachedPdfMake = createMockPdfMake();
+    return cachedPdfMake;
+  }
+
   try {
-    // Try to dynamically import pdfmake - will fail gracefully if not available
+    // Try to dynamically import pdfmake - only if not disabled
     const [pdfMakeModule, pdfFontsModule] = await Promise.all([
       import('pdfmake/build/pdfmake'),
       import('pdfmake/build/vfs_fonts'),
@@ -43,27 +69,7 @@ export async function loadPdfMake(): Promise<PdfMakeInstance> {
     return pdfMakeInstance;
   } catch (error) {
     console.warn('pdfmake not available in this environment:', error);
-
-    // Return a mock implementation when pdfmake is not available
-    const mockPdfMake: PdfMakeInstance = {
-      vfs: {},
-      fonts: {},
-      createPdf: () => ({
-        download: () => {
-          console.warn('PDF download not available - pdfmake not installed');
-          alert('PDF экспорт недоступен в данном окружении');
-        },
-        open: () => {
-          console.warn('PDF open not available - pdfmake not installed');
-          alert('PDF экспорт недоступен в данном окружении');
-        },
-        getBuffer: () => {
-          console.warn('PDF getBuffer not available - pdfmake not installed');
-        },
-      }),
-    };
-
-    cachedPdfMake = mockPdfMake;
-    return mockPdfMake;
+    cachedPdfMake = createMockPdfMake();
+    return cachedPdfMake;
   }
 }
