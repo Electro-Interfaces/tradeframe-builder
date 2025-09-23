@@ -641,16 +641,7 @@ export default function Prices() {
     }
 
     // Подготавливаем список цен для изменения на основе текущих цен
-    console.log('🔍 Анализ currentPrices:', currentPrices);
-
     const pricesData = currentPrices.map((price, index) => {
-      console.log(`🔍 Цена ${index + 1}:`, {
-        fuelType: price.fuelType,
-        priceGross: price.priceGross,
-        priceWithVAT: price.priceWithVAT,
-        price: price.price,
-        fullObject: price
-      });
 
       // Получаем цену в рублях с учетом источника данных
       let currentPriceValue = 0;
@@ -660,17 +651,13 @@ export default function Prices() {
         // Если другой источник, цена в копейках
         if (price.source === 'sts-api') {
           currentPriceValue = price.priceGross;
-          console.log(`💰 STS API - используем priceGross как рубли: ${currentPriceValue} руб`);
         } else {
           currentPriceValue = price.priceGross / 100;
-          console.log(`💰 Другой источник - priceGross: ${price.priceGross} коп = ${currentPriceValue} руб`);
         }
       } else if (price.priceWithVAT && typeof price.priceWithVAT === 'number') {
         currentPriceValue = price.priceWithVAT;
-        console.log(`💰 Используем priceWithVAT: ${currentPriceValue} руб`);
       } else if (price.price && typeof price.price === 'number') {
         currentPriceValue = price.price;
-        console.log(`💰 Используем price: ${currentPriceValue} руб`);
       }
 
       const result = {

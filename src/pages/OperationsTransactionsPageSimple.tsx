@@ -63,6 +63,36 @@ export default function OperationsTransactionsPageSimple() {
   const rafId = useRef(null);
   const scrollContainerRef = useRef(null);
 
+  // Универсальная функция для нормализации способов оплаты
+  const normalizePaymentMethod = (paymentMethod: string): string => {
+    if (!paymentMethod) return '-';
+
+    const method = paymentMethod.toLowerCase();
+
+    // Наличные
+    if (['cash', 'наличные'].includes(method)) {
+      return 'Наличные';
+    }
+
+    // Банковские карты
+    if (['bank_card', 'карта', 'сбербанк', 'card', 'credit_card', 'debit_card'].includes(method)) {
+      return 'Банк. карты';
+    }
+
+    // Топливные карты
+    if (['fuel_card', 'топливная_карта', 'fleet_card', 'нкт'].includes(method)) {
+      return 'Топл. карты';
+    }
+
+    // Онлайн заказы и мобильные платежи
+    if (['online_order', 'мобил.п', 'мобильная', 'мобильная оплата', 'mobile', 'qr'].includes(method)) {
+      return 'Онлайн';
+    }
+
+    // Если не найдено соответствие, возвращаем исходное значение
+    return paymentMethod;
+  };
+
   // Функции экспорта
   const exportToExcel = () => {
     try {
@@ -81,12 +111,7 @@ export default function OperationsTransactionsPageSimple() {
         'Факт.(литры)': Number(record.actualQuantity || record.quantity || 0),
         'Цена за литр (₽)': Number(record.price || 0),
         'Факт.(сумма ₽)': Number(record.actualAmount || record.totalCost || 0),
-        'Вид оплаты': {
-          'cash': 'Наличные',
-          'bank_card': 'Банк. карты',
-          'fuel_card': 'Топл. карты',
-          'online_order': 'Онлайн'
-        }[record.paymentMethod] || record.paymentMethod || '-',
+        'Вид оплаты': normalizePaymentMethod(record.paymentMethod),
         'POS': record.posNumber || '-',
         'Смена': record.shiftNumber || '-',
         'Карта': record.cardNumber || '-',
@@ -286,12 +311,7 @@ export default function OperationsTransactionsPageSimple() {
         cancelled: 'Отменено',
       };
 
-      const paymentMethodMap: Record<string, string> = {
-        cash: 'Наличные',
-        bank_card: 'Банк. карты',
-        fuel_card: 'Топл. карты',
-        online_order: 'Онлайн',
-      };
+      // Используем универсальную функцию нормализации
 
       const totals = filteredOperations.reduce(
         (acc, record) => {
@@ -324,7 +344,7 @@ export default function OperationsTransactionsPageSimple() {
 
       const paymentTotals = Array.from(
         filteredOperations.reduce((acc, record) => {
-          const key = paymentMethodMap[record.paymentMethod] || record.paymentMethod || '—';
+          const key = normalizePaymentMethod(record.paymentMethod);
           const entry = acc.get(key) ?? { liters: 0, amount: 0 };
           const liters = Number(record.actualQuantity ?? record.quantity ?? 0) || 0;
           const amount = Number(record.actualAmount ?? record.totalCost ?? 0) || 0;
@@ -376,7 +396,7 @@ export default function OperationsTransactionsPageSimple() {
             { text: liters ? formatNumber(liters) : '-', style: 'tableCell', alignment: 'right' },
             { text: price ? formatNumber(price) : '-', style: 'tableCell', alignment: 'right' },
             { text: amount ? formatNumber(amount) : '-', style: 'tableCell', alignment: 'right' },
-            { text: paymentMethodMap[record.paymentMethod] || record.paymentMethod || '-', style: 'tableCell' },
+            { text: normalizePaymentMethod(record.paymentMethod), style: 'tableCell' },
             { text: record.posNumber ? String(record.posNumber) : '-', style: 'tableCell', alignment: 'center' },
             { text: record.shiftNumber ? String(record.shiftNumber) : '-', style: 'tableCell', alignment: 'center' },
             { text: orderedLiters ? formatNumber(orderedLiters) : '-', style: 'tableCell', alignment: 'right' },
@@ -829,8 +849,12 @@ export default function OperationsTransactionsPageSimple() {
       // Фильтр по виду топлива
       if (selectedFuelType !== "Все" && record.fuelType !== selectedFuelType) return false;
       
-      // Фильтр по виду оплаты
-      if (selectedPaymentMethod !== "Все" && record.paymentMethod !== selectedPaymentMethod) return false;
+      // Фильтр по виду оплаты (обычный селектор - не используется, так как фильтрация через KPI карточки)
+      if (selectedPaymentMethod !== "Все") {
+        const recordNormalized = normalizePaymentMethod(record.paymentMethod);
+        const selectedNormalized = normalizePaymentMethod(selectedPaymentMethod);
+        if (recordNormalized !== selectedNormalized) return false;
+      }
       
       // Фильтр по статусу
       if (selectedStatus !== "Все" && record.status !== selectedStatus) return false;
@@ -858,8 +882,19 @@ export default function OperationsTransactionsPageSimple() {
       }
       
       // KPI фильтры по способу оплаты
-      if (selectedKpiPayments.size > 0 && !selectedKpiPayments.has(record.paymentMethod)) {
-        return false;
+      if (selectedKpiPayments.size > 0) {
+        const paymentKeyMapping = {
+          'cash': ['cash', 'наличные'],
+          'bank_card': ['bank_card', 'карта', 'сбербанк'],
+          'fuel_card': ['fuel_card', 'топливная_карта', 'нкт'],
+          'online_order': ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата']
+        };
+
+        const matchesKpiPayment = Array.from(selectedKpiPayments).some(selectedKey => {
+          return paymentKeyMapping[selectedKey]?.includes(record.paymentMethod?.toLowerCase());
+        });
+
+        if (!matchesKpiPayment) return false;
       }
       
       // Поиск
@@ -1046,9 +1081,15 @@ export default function OperationsTransactionsPageSimple() {
   }, [operations]);
 
   const paymentMethods = useMemo(() => {
-    const allowedMethods = ['cash', 'bank_card', 'fuel_card', 'online_order'];
-    const methods = new Set(operations.filter(op => op.paymentMethod && allowedMethods.includes(op.paymentMethod)).map(op => op.paymentMethod));
-    return ["Все", ...allowedMethods.filter(method => methods.has(method))];
+    // Получаем все уникальные нормализованные способы оплаты из операций
+    const normalizedMethods = new Set(
+      operations
+        .filter(op => op.paymentMethod)
+        .map(op => normalizePaymentMethod(op.paymentMethod))
+        .filter(method => method !== '-')
+    );
+
+    return ["Все", ...Array.from(normalizedMethods).sort()];
   }, [operations]);
 
   const statusTypes = useMemo(() => {
@@ -1374,12 +1415,8 @@ export default function OperationsTransactionsPageSimple() {
                   <span className="text-xs">
                     {(() => {
                       const selectedFuels = Array.from(selectedKpiFuels);
-                      const selectedPayments = Array.from(selectedKpiPayments).map(method => ({
-                        'cash': 'Наличные',
-                        'bank_card': 'Банк. карты',
-                        'fuel_card': 'Топл. карты',
-                        'online_order': 'Онлайн'
-                      }[method] || method));
+                      const selectedPayments = Array.from(selectedKpiPayments).map(method =>
+                        normalizePaymentMethod(method));
 
                       const allSelected = [...selectedFuels, ...selectedPayments];
 
@@ -1487,18 +1524,6 @@ export default function OperationsTransactionsPageSimple() {
                     const allPaymentOps = operations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
                     const filteredPaymentOps = filteredOperations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
 
-                    // Отладочный вывод для диагностики
-                    if (key === 'cash') {
-                      console.log('🔍 Отладка способов оплаты:', {
-                        paymentType: key,
-                        values,
-                        totalOps: operations.length,
-                        completedOps: operations.filter(op => op.status === 'completed').length,
-                        allPaymentOps: allPaymentOps.length,
-                        samplePaymentMethods: operations.slice(0, 5).map(op => ({id: op.id, paymentMethod: op.paymentMethod, status: op.status}))
-                      });
-                    }
-
                     // Рассчитываем метрики на основе отфильтрованных данных
                     const filteredRevenue = filteredPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
                     const filteredVolume = filteredPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
@@ -1576,12 +1601,8 @@ export default function OperationsTransactionsPageSimple() {
                   <span className="text-sm">
                     {(() => {
                       const selectedFuels = Array.from(selectedKpiFuels);
-                      const selectedPayments = Array.from(selectedKpiPayments).map(method => ({
-                        'cash': 'Наличные',
-                        'bank_card': 'Банк. карты',
-                        'fuel_card': 'Топл. карты',
-                        'online_order': 'Онлайн'
-                      }[method] || method));
+                      const selectedPayments = Array.from(selectedKpiPayments).map(method =>
+                        normalizePaymentMethod(method));
 
                       const allSelected = [...selectedFuels, ...selectedPayments];
 
@@ -1855,12 +1876,7 @@ export default function OperationsTransactionsPageSimple() {
                          record.totalCost ? record.totalCost.toFixed(2) : '-'}
                       </TableCell>
                       <TableCell className="text-slate-300 text-sm w-28 py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
-                        {{
-                          'cash': 'Наличные',
-                          'bank_card': 'Банк. карты',
-                          'fuel_card': 'Топл. карты',
-                          'online_order': 'Онлайн'
-                        }[record.paymentMethod] || record.paymentMethod || '-'}
+                        {normalizePaymentMethod(record.paymentMethod)}
                       </TableCell>
                       <TableCell className="text-slate-300 text-sm w-16 text-center py-2">
                         {record.posNumber || '-'}
@@ -2015,12 +2031,7 @@ export default function OperationsTransactionsPageSimple() {
                 <div className="flex justify-between py-2 border-b border-slate-700">
                   <span className="text-slate-400">Способ оплаты:</span>
                   <span className="text-white font-medium">
-                    {{
-                      'cash': 'Наличные',
-                      'bank_card': 'Банковская карта',
-                      'fuel_card': 'Топливная карта',
-                      'online_order': 'Онлайн заказ'
-                    }[selectedOperation.paymentMethod] || selectedOperation.paymentMethod || '-'}
+                    {normalizePaymentMethod(selectedOperation.paymentMethod)}
                   </span>
                 </div>
 
