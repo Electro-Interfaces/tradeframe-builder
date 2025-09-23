@@ -1476,29 +1476,39 @@ export default function OperationsTransactionsPageSimple() {
             <div className="space-y-2">
               <h3 className={`text-slate-300 font-medium px-2 ${isMobileForced ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
               <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-3 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
-                {['cash', 'bank_card', 'fuel_card', 'online_order']
-                  .map(paymentMethod => {
-                    // Используем отфильтрованные данные для этого способа оплаты
-                    const allPaymentOps = operations.filter(op => op.paymentMethod === paymentMethod && op.status === 'completed');
-                    const filteredPaymentOps = filteredOperations.filter(op => op.paymentMethod === paymentMethod && op.status === 'completed');
+                {[
+                  { key: 'cash', values: ['cash', 'наличные'], display: 'Наличные' },
+                  { key: 'bank_card', values: ['bank_card', 'карта', 'сбербанк'], display: 'Банк. карты' },
+                  { key: 'fuel_card', values: ['fuel_card', 'топливная_карта'], display: 'Топл. карты' },
+                  { key: 'online_order', values: ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата'], display: 'Онлайн' }
+                ]
+                  .map(({ key, values, display }) => {
+                    // Используем отфильтрованные данные для этого способа оплаты (ищем по всем возможным значениям)
+                    const allPaymentOps = operations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
+                    const filteredPaymentOps = filteredOperations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
+
+                    // Отладочный вывод для диагностики
+                    if (key === 'cash') {
+                      console.log('🔍 Отладка способов оплаты:', {
+                        paymentType: key,
+                        values,
+                        totalOps: operations.length,
+                        completedOps: operations.filter(op => op.status === 'completed').length,
+                        allPaymentOps: allPaymentOps.length,
+                        samplePaymentMethods: operations.slice(0, 5).map(op => ({id: op.id, paymentMethod: op.paymentMethod, status: op.status}))
+                      });
+                    }
 
                     // Рассчитываем метрики на основе отфильтрованных данных
                     const filteredRevenue = filteredPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
                     const filteredVolume = filteredPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
                     const hasFilteredData = filteredPaymentOps.length > 0;
 
-                    return { paymentMethod, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, hasFilteredData };
+                    return { key, values, display, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, hasFilteredData };
                   })
                   .filter(item => item.allPaymentOps.length > 0)
-                  .map(({ paymentMethod, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, hasFilteredData }) => {
-                    const displayName = {
-                      'cash': 'Наличные',
-                      'bank_card': 'Банк. карты',
-                      'fuel_card': 'Топл. карты',
-                      'online_order': 'Онлайн'
-                    }[paymentMethod];
-                    
-                    const isSelected = selectedKpiPayments.has(paymentMethod);
+                  .map(({ key, values, display, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, hasFilteredData }) => {
+                    const isSelected = selectedKpiPayments.has(key);
                     
                     // Определяем стиль карточки
                     let cardStyle = '';
@@ -1509,16 +1519,16 @@ export default function OperationsTransactionsPageSimple() {
                     }
                     
                     return (
-                    <Card 
-                      key={paymentMethod} 
+                    <Card
+                      key={key}
                       className={`${cardStyle} cursor-pointer transition-all duration-200`}
-                      onClick={() => handleKpiPaymentClick(paymentMethod)}
+                      onClick={() => handleKpiPaymentClick(key)}
                     >
                       <CardContent className={`${isMobileForced ? 'p-3' : 'p-4'}`}>
                         {isMobileForced ? (
                           <div className="relative">
                             <div className="mb-1">
-                              <p className="text-white font-semibold text-xs truncate">{displayName}</p>
+                              <p className="text-white font-semibold text-xs truncate">{display}</p>
                             </div>
                             <p className="font-bold text-white text-sm mb-1">
                               {filteredRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
@@ -1535,7 +1545,7 @@ export default function OperationsTransactionsPageSimple() {
                           <div className="relative">
                             <div className="flex justify-between items-start mb-2">
                               <div>
-                                <p className="font-bold text-white text-lg leading-tight truncate">{displayName}</p>
+                                <p className="font-bold text-white text-lg leading-tight truncate">{display}</p>
                                 <p className="text-base text-slate-400 flex items-center gap-1">
                                   <Activity className="w-3 h-3" />
                                   {filteredPaymentOps.length}
