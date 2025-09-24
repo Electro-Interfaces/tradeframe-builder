@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useSelection } from "@/contexts/SelectionContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,9 @@ import * as XLSX from 'xlsx';
 // PDF export removed - jsPDF and html2canvas imports disabled
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, TimeScale } from 'chart.js';
 import { loadPdfMake } from "@/utils/pdfMake";
+import KPIFuelCard from "@/components/operations/KPIFuelCard";
+import KPIPaymentCard from "@/components/operations/KPIPaymentCard";
+import MobileOperationsTable from "@/components/operations/MobileOperationsTable";
 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
@@ -44,9 +48,18 @@ export default function OperationsTransactionsPageSimple() {
   const [selectedFuelType, setSelectedFuelType] = useState("Все");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Все");
   const [selectedStatus, setSelectedStatus] = useState("Все");
-  const [dateFrom, setDateFrom] = useState("2025-08-01");
+  const [dateFrom, setDateFrom] = useState(() => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toISOString().split('T')[0];
+  });
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Debounced версии фильтров для оптимизации производительности
+  const debouncedDateFrom = useDebounce(dateFrom, 400);
+  const debouncedDateTo = useDebounce(dateTo, 400);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // KPI карточки фильтры
   const [selectedKpiFuels, setSelectedKpiFuels] = useState(new Set());
@@ -837,50 +850,66 @@ export default function OperationsTransactionsPageSimple() {
   }, [selectedTradingPoint, selectedNetwork]);
 
 
-  // Фильтрация №
-  const filteredOperations = useMemo(() => {
-    const filtered = operations.filter(record => {
+  // Базовая фильтрация (исключения и базовые фильтры)
+  const baseFilteredOperations = useMemo(() => {
+    return operations.filter(record => {
       // Исключаем нежелательные способы оплаты
       const excludedPaymentMethods = ['supplier_delivery', 'corporate_card', 'mobile_payment'];
       if (record.paymentMethod && excludedPaymentMethods.includes(record.paymentMethod)) {
         return false;
       }
-      
+
       // Фильтр по виду топлива
       if (selectedFuelType !== "Все" && record.fuelType !== selectedFuelType) return false;
-      
+
       // Фильтр по виду оплаты (обычный селектор - не используется, так как фильтрация через KPI карточки)
       if (selectedPaymentMethod !== "Все") {
         const recordNormalized = normalizePaymentMethod(record.paymentMethod);
         const selectedNormalized = normalizePaymentMethod(selectedPaymentMethod);
         if (recordNormalized !== selectedNormalized) return false;
       }
-      
+
       // Фильтр по статусу
       if (selectedStatus !== "Все" && record.status !== selectedStatus) return false;
+
+      return true;
+    });
+  }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus]);
+
+  // Фильтрация по датам (отдельный useMemo с debounced значениями)
+  const dateFilteredOperations = useMemo(() => {
+    return baseFilteredOperations.filter(record => {
       
-      // Фильтр по датам
-      if (dateFrom || dateTo) {
+      // Фильтр по датам (используем debounced версии)
+      if (debouncedDateFrom || debouncedDateTo) {
         const recordDate = new Date(record.startTime);
         // Используем локальную дату вместо UTC для корректной фильтрации
-        const recordDateStr = recordDate.getFullYear() + '-' + 
-          String(recordDate.getMonth() + 1).padStart(2, '0') + '-' + 
+        const recordDateStr = recordDate.getFullYear() + '-' +
+          String(recordDate.getMonth() + 1).padStart(2, '0') + '-' +
           String(recordDate.getDate()).padStart(2, '0');
-        
-        if (dateFrom && recordDateStr < dateFrom) {
+
+        if (debouncedDateFrom && recordDateStr < debouncedDateFrom) {
           return false;
         }
-        
-        if (dateTo && recordDateStr > dateTo) {
+
+        if (debouncedDateTo && recordDateStr > debouncedDateTo) {
           return false;
         }
       }
+
+      return true;
+    });
+  }, [baseFilteredOperations, debouncedDateFrom, debouncedDateTo]);
+
+  // KPI фильтрация (отдельный useMemo для KPI карточек)
+  const kpiFilteredOperations = useMemo(() => {
+    return dateFilteredOperations.filter(record => {
       
       // KPI фильтры по топливу
       if (selectedKpiFuels.size > 0 && !selectedKpiFuels.has(record.fuelType)) {
         return false;
       }
-      
+
       // KPI фильтры по способу оплаты
       if (selectedKpiPayments.size > 0) {
         const paymentKeyMapping = {
@@ -896,27 +925,32 @@ export default function OperationsTransactionsPageSimple() {
 
         if (!matchesKpiPayment) return false;
       }
-      
-      // Поиск
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        return (
-          record.id.toLowerCase().includes(query) ||
-          (record.details && record.details.toLowerCase().includes(query)) ||
-          (record.tradingPointName && record.tradingPointName.toLowerCase().includes(query))
-        );
-      }
-      
+
       return true;
     });
-    
+  }, [dateFilteredOperations, selectedKpiFuels, selectedKpiPayments]);
+
+  // Финальная фильтрация с поиском и сортировкой
+  const filteredOperations = useMemo(() => {
+    let filtered = kpiFilteredOperations;
+
+    // Применяем поиск если есть запрос
+    if (debouncedSearchQuery) {
+      const query = debouncedSearchQuery.toLowerCase();
+      filtered = filtered.filter(record => (
+        record.id.toLowerCase().includes(query) ||
+        (record.details && record.details.toLowerCase().includes(query)) ||
+        (record.tradingPointName && record.tradingPointName.toLowerCase().includes(query))
+      ));
+    }
+
     // Сортировка по дате (свежие сверху)
     return filtered.sort((a, b) => {
       const dateA = new Date(a.startTime).getTime();
       const dateB = new Date(b.startTime).getTime();
       return dateB - dateA; // Убывающий порядок (свежие сверху)
     });
-  }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus, dateFrom, dateTo, searchQuery, selectedKpiFuels, selectedKpiPayments]);
+  }, [kpiFilteredOperations, debouncedSearchQuery]);
   
   // Пагинация №
   const paginatedOperations = useMemo(() => {
@@ -969,6 +1003,21 @@ export default function OperationsTransactionsPageSimple() {
   const handleTouchStart = (e) => {
     if (!isMobileForced || pullState === 'refreshing') return;
 
+    // Игнорируем touch события от input элементов (датапикеры, поиск)
+    const target = e.target;
+    if (target && (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'SELECT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.closest('input') ||
+      target.closest('select') ||
+      target.closest('[role="combobox"]') ||
+      target.closest('.date-input') ||
+      target.closest('.search-input')
+    )) {
+      return;
+    }
+
     const container = scrollContainerRef.current;
     if (!container || container.scrollTop > 0) return;
 
@@ -981,6 +1030,18 @@ export default function OperationsTransactionsPageSimple() {
 
   const handleTouchMove = (e) => {
     if (!isMobileForced || !startTouchRef.current || pullState === 'refreshing') return;
+
+    // Дополнительная проверка для input элементов
+    const target = e.target;
+    if (target && (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'SELECT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.closest('input') ||
+      target.closest('select')
+    )) {
+      return;
+    }
 
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -1072,7 +1133,7 @@ export default function OperationsTransactionsPageSimple() {
   // Сброс страницы при изменении фильтров
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedFuelType, selectedPaymentMethod, selectedStatus, dateFrom, dateTo, searchQuery, selectedKpiFuels, selectedKpiPayments]);
+  }, [selectedFuelType, selectedPaymentMethod, selectedStatus, debouncedDateFrom, debouncedDateTo, debouncedSearchQuery, selectedKpiFuels, selectedKpiPayments]);
 
   // Списки для селекторов
   const fuelTypes = useMemo(() => {
@@ -1130,6 +1191,7 @@ export default function OperationsTransactionsPageSimple() {
         return <Badge variant="secondary" className="text-xs px-1 py-0">{status}</Badge>;
     }
   };
+
 
   return (
     <MainLayout fullWidth={true}>
@@ -1434,76 +1496,25 @@ export default function OperationsTransactionsPageSimple() {
                   </span>
                 )}
               </div>
-              <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-3 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+              <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {[...new Set(operations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
-                  // Всегда показываем все карточки - данные берем из полного набора
-                  const allFuelOps = operations.filter(op => op.fuelType === fuel && op.status === 'completed');
-                  const allVolume = allFuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                  const allRevenue = allFuelOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
-                  
-                  // Используем отфильтрованные данные для этого топлива
-                  const filteredFuelOps = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
-                  const hasFilteredData = filteredFuelOps.length > 0;
-
                   // Рассчитываем метрики на основе отфильтрованных данных
+                  const filteredFuelOps = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
                   const filteredVolume = filteredFuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
                   const filteredRevenue = filteredFuelOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
-                  
                   const isSelected = selectedKpiFuels.has(fuel);
-                  
-                  // Определяем стиль карточки
-                  let cardStyle = '';
-                  if (isSelected) {
-                    cardStyle = 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)]';
-                  } else {
-                    cardStyle = 'bg-slate-800 border-slate-600 hover:bg-slate-700';
-                  }
-                  
+
                   return (
-                    <Card 
-                      key={fuel} 
-                      className={`${cardStyle} cursor-pointer transition-all duration-200`}
-                      onClick={() => handleKpiFuelClick(fuel)}
-                    >
-                      <CardContent className={`${isMobileForced ? 'p-3' : 'p-4'}`}>
-                        {isMobileForced ? (
-                          <div className="relative">
-                            <div className="mb-1">
-                              <p className="text-white font-semibold text-xs truncate">{fuel}</p>
-                            </div>
-                            <p className="font-bold text-white text-sm mb-1">
-                              {filteredRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
-                            </p>
-                            <div className="text-xs text-slate-400 space-y-0.5">
-                              <div>{Math.round(filteredVolume).toLocaleString('ru-RU')} л</div>
-                              <div>{filteredFuelOps.length} оп.</div>
-                            </div>
-                            {isSelected && (
-                              <Pin className="w-4 h-4 text-yellow-400 absolute bottom-0 right-0 drop-shadow-lg" />
-                            )}
-                          </div>
-                        ) : (
-                          <div className="relative">
-                            <div className="flex justify-between items-start mb-2">
-                              <div>
-                                <p className="font-bold text-white text-lg leading-tight truncate">{fuel}</p>
-                                <p className="text-base text-slate-400 flex items-center gap-1">
-                                  <Activity className="w-3 h-3" />
-                                  {filteredFuelOps.length}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-white text-lg leading-tight">
-                                  {filteredRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
-                                </p>
-                                <p className="text-base text-slate-400">{Math.round(filteredVolume).toLocaleString('ru-RU')} л</p>
-                              </div>
-                            </div>
-                            {/* Синяя полоса теперь через box-shadow */}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <KPIFuelCard
+                      key={fuel}
+                      fuel={fuel}
+                      isSelected={isSelected}
+                      isMobile={isMobileForced}
+                      volume={filteredVolume}
+                      cost={filteredRevenue}
+                      transactionCount={filteredFuelOps.length}
+                      onClick={handleKpiFuelClick}
+                    />
                   );
                 })}
               </div>
@@ -1512,7 +1523,7 @@ export default function OperationsTransactionsPageSimple() {
             {/* Карточки по способам оплаты */}
             <div className="space-y-2">
               <h3 className={`text-slate-300 font-medium px-2 ${isMobileForced ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
-              <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-3 gap-2' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+              <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {[
                   { key: 'cash', values: ['cash', 'наличные'], display: 'Наличные' },
                   { key: 'bank_card', values: ['bank_card', 'карта', 'сбербанк'], display: 'Банк. карты' },
@@ -1520,76 +1531,28 @@ export default function OperationsTransactionsPageSimple() {
                   { key: 'online_order', values: ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата'], display: 'Онлайн' }
                 ]
                   .map(({ key, values, display }) => {
-                    // Используем отфильтрованные данные для этого способа оплаты (ищем по всем возможным значениям)
                     const allPaymentOps = operations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
                     const filteredPaymentOps = filteredOperations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
-
-                    // Рассчитываем метрики на основе отфильтрованных данных
                     const filteredRevenue = filteredPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
                     const filteredVolume = filteredPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                    const hasFilteredData = filteredPaymentOps.length > 0;
+                    const isSelected = selectedKpiPayments.has(key);
 
-                    return { key, values, display, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, hasFilteredData };
+                    return { key, values, display, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected };
                   })
                   .filter(item => item.allPaymentOps.length > 0)
-                  .map(({ key, values, display, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, hasFilteredData }) => {
-                    const isSelected = selectedKpiPayments.has(key);
-                    
-                    // Определяем стиль карточки
-                    let cardStyle = '';
-                    if (isSelected) {
-                      cardStyle = 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)]';
-                    } else {
-                      cardStyle = 'bg-slate-800 border-slate-600 hover:bg-slate-700';
-                    }
-                    
-                    return (
-                    <Card
+                  .map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected }) => (
+                    <KPIPaymentCard
                       key={key}
-                      className={`${cardStyle} cursor-pointer transition-all duration-200`}
-                      onClick={() => handleKpiPaymentClick(key)}
-                    >
-                      <CardContent className={`${isMobileForced ? 'p-3' : 'p-4'}`}>
-                        {isMobileForced ? (
-                          <div className="relative">
-                            <div className="mb-1">
-                              <p className="text-white font-semibold text-xs truncate">{display}</p>
-                            </div>
-                            <p className="font-bold text-white text-sm mb-1">
-                              {filteredRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
-                            </p>
-                            <div className="text-xs text-slate-400 space-y-0.5">
-                              <div>{Math.round(filteredVolume).toLocaleString('ru-RU')} л</div>
-                              <div>{filteredPaymentOps.length} оп.</div>
-                            </div>
-                            {isSelected && (
-                              <Pin className="w-4 h-4 text-yellow-400 absolute bottom-0 right-0 drop-shadow-lg" />
-                            )}
-                          </div>
-                        ) : (
-                          <div className="relative">
-                            <div className="flex justify-between items-start mb-2">
-                              <div>
-                                <p className="font-bold text-white text-lg leading-tight truncate">{display}</p>
-                                <p className="text-base text-slate-400 flex items-center gap-1">
-                                  <Activity className="w-3 h-3" />
-                                  {filteredPaymentOps.length}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-white text-lg leading-tight">
-                                  {filteredRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
-                                </p>
-                                <p className="text-base text-slate-400">{Math.round(filteredVolume).toLocaleString('ru-RU')} л</p>
-                              </div>
-                            </div>
-                            {/* Синяя полоса теперь через box-shadow */}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                      paymentKey={key}
+                      display={display}
+                      isSelected={isSelected}
+                      isMobile={isMobileForced}
+                      volume={filteredVolume}
+                      cost={filteredRevenue}
+                      transactionCount={filteredPaymentOps.length}
+                      onClick={handleKpiPaymentClick}
+                    />
+                  ))}
               </div>
             </div>
 
@@ -1629,43 +1592,42 @@ export default function OperationsTransactionsPageSimple() {
                     const hasActiveFilters = selectedKpiFuels.size > 0 || selectedKpiPayments.size > 0;
                     return (
                       <Card
-                        className={`${
+                        className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
                           hasActiveFilters
-                            ? 'bg-blue-700 border-blue-300 border-2 cursor-pointer hover:bg-blue-600'
-                            : 'bg-slate-700 border-slate-500 border-2'
-                        } transition-all duration-200`}
+                            ? 'bg-slate-700 border-slate-500 border-2 shadow-[inset_0_-16px_0_0_rgb(37_99_235)]'
+                            : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+                        }`}
                         onClick={hasActiveFilters ? handleKpiResetAll : undefined}
                       >
                         <CardContent className={`${isMobileForced ? 'p-3' : 'p-4'}`}>
                           {isMobileForced ? (
-                            <div>
-                              <div className="flex justify-between items-start mb-1">
-                                <p className="text-blue-300 font-semibold text-sm">Итого</p>
-                              </div>
-                              <p className="font-bold text-white text-lg mb-1">
-                                {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
-                              </p>
-                              <div className="flex justify-between text-xs text-slate-400">
-                                <span>{Math.round(totalVolume).toLocaleString('ru-RU')} л</span>
-                                <span>{totalOps.length} оп.</span>
+                            <div className="relative">
+                              <div className="flex items-start justify-between mb-1">
+                                <div className="flex-1">
+                                  <p className="text-slate-100 font-semibold text-xs truncate">Итого</p>
+                                  <div className="flex items-center gap-1">
+                                    <Activity className="w-3 h-3 text-slate-400" />
+                                    <span className="text-slate-200 text-xs font-medium">{totalOps.length}</span>
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0 ml-2">
+                                  <div className="text-slate-200 text-xs font-semibold">{Math.round(totalVolume).toLocaleString('ru-RU')} л</div>
+                                  <div className="text-slate-200 text-xs font-semibold">{Math.round(totalRevenue).toLocaleString('ru-RU')} ₽</div>
+                                </div>
                               </div>
                             </div>
                           ) : (
-                            <div className="relative">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <p className="font-bold text-white text-lg leading-tight">Итого</p>
-                                  <p className="text-base text-slate-400 flex items-center gap-1">
-                                    <Activity className="w-3 h-3" />
-                                    {totalOps.length}
-                                  </p>
+                            <div className="flex items-start justify-between">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-slate-100 font-semibold text-base truncate pr-2">Итого</p>
+                                <div className="flex items-center gap-1">
+                                  <Activity className="w-3 h-3 text-slate-400" />
+                                  <span className="text-slate-300 text-sm">{totalOps.length}</span>
                                 </div>
-                                <div className="text-right">
-                                  <p className="font-bold text-white text-lg leading-tight">
-                                    {totalRevenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
-                                  </p>
-                                  <p className="text-sm text-slate-400">{Math.round(totalVolume).toLocaleString('ru-RU')} л</p>
-                                </div>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="text-slate-200 text-sm font-semibold">{Math.round(totalVolume).toLocaleString('ru-RU')} л</div>
+                                <div className="text-slate-200 text-sm font-semibold">{Math.round(totalRevenue).toLocaleString('ru-RU')} ₽</div>
                               </div>
                             </div>
                           )}
@@ -1733,7 +1695,7 @@ export default function OperationsTransactionsPageSimple() {
                         <th className="px-2 py-2 text-left font-medium">Топливо</th>
                         <th className="px-2 py-2 text-right font-medium">Кол-во</th>
                         <th className="px-2 py-2 text-right font-medium">Сумма</th>
-                        <th className="px-2 py-2 text-center font-medium">Пист.</th>
+                        <th className="px-2 py-2 text-center font-medium">Дата</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1768,7 +1730,20 @@ export default function OperationsTransactionsPageSimple() {
                              record.totalCost ? `${record.totalCost.toFixed(2)}₽` : '-'}
                           </td>
                           <td className="px-2 py-2 text-center text-white text-xs">
-                            {record.nozzleNumber || '-'}
+                            {(() => {
+                              try {
+                                const dateStr = record.timestamp || record.createdAt || record.startTime || record.date;
+                                if (!dateStr) return '--';
+                                const date = new Date(dateStr);
+                                if (isNaN(date.getTime())) return '--';
+                                return date.toLocaleDateString('ru-RU', {
+                                  day: '2-digit',
+                                  month: '2-digit'
+                                });
+                              } catch (error) {
+                                return '--';
+                              }
+                            })()}
                           </td>
                         </tr>
                       ))}

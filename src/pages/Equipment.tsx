@@ -601,7 +601,7 @@ export default function Equipment() {
                           <RefreshCw className="w-4 h-4" />
                         )}
                       </div>
-                      {loading ? 'Загрузка...' : 'Обновить STS данные'}
+                      {loading ? 'Загрузка...' : 'Обновить'}
                     </Button>
 
                     {/* Кнопка перезагрузки терминала */}
@@ -619,7 +619,7 @@ export default function Equipment() {
                               <Power className="w-4 h-4" />
                             )}
                           </div>
-                          {restartingTerminal ? 'Перезагрузка...' : 'Перезагрузить терминал'}
+                          {restartingTerminal ? 'Перезагрузка...' : 'Перезагрузить'}
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-slate-800 border border-slate-600">
