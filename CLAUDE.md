@@ -108,11 +108,24 @@ TradeFrame Builder v1.5.16 - платформа управления торго�
 #### 🌐 Внешний API торговой сети (STS)
 - **Назначение**: Получение данных по работе торговой сети и POS-системы
 - **Аутентификация**: HTTP Basic Auth
+- **Swagger документация**: https://pos.autooplata.ru/tms/docs (OpenAPI 3.1.0)
 - **Конфигурация**: `src/services/apiConfigService.ts` (строки 124, 136-137)
 - **Переменные окружения**:
   - `VITE_STS_API_URL` - URL API
   - `VITE_STS_API_USERNAME` - логин для доступа
   - `VITE_STS_API_PASSWORD` - пароль для доступа
+
+**Доступные endpoints**:
+- `/v1/transactions`, `/v2/transactions` - Транзакции
+- `/v1/info` - Статусы ТО
+- `/v1/tanks` - Резервуары
+- `/v1/shifts` - **НОВОЕ**: Список смен
+- `/v1/report/receipts` - **НОВОЕ**: Поступления нефтепродуктов
+- `/v1/report/shift_report` - **НОВОЕ**: Сменный отчет (ПСМ, резервуары, продажи, наличные)
+- `/v1/prices`, `/v1/schedule/prices/{station_number}` - Управление ценами
+- `/v1/control/*` - Управление терминалами и сменами
+
+> См. полную документацию в `API_INTEGRATION.md`
 
 #### 🛠️ Управление учетными данными
 - **Конфигурация подключений**: UI настройки `/settings/external-database`

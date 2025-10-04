@@ -48,6 +48,22 @@ node tools/sql-direct.js select equipment_templates
 
 **Полная документация**: См. `tools/README.md`
 
+## 🌐 STS API Integration
+
+### Swagger документация
+- **URL**: https://pos.autooplata.ru/tms/docs
+- **Формат**: OpenAPI 3.1.0
+
+### Новые endpoints для отчетности
+- **`/v1/shifts`** - Список смен с информацией по ПСМ
+- **`/v1/report/receipts`** - Поступления нефтепродуктов
+- **`/v1/report/shift_report`** - Полный сменный отчет (ПСМ, резервуары, продажи, наличные)
+
+**Реализация**:
+- TypeScript типы: `src/types/shifts.ts`
+- Сервис: `src/services/shiftsService.ts`
+- Документация: `API_INTEGRATION.md`
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/a07dc2aa-b36e-4a02-8c1d-c7c0906efdc5

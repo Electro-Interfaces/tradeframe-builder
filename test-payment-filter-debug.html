@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Отладка фильтра способов оплаты</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #0f172a; color: white; }
+        .test-case { background: #1e293b; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #3b82f6; }
+        .header { color: #60a5fa; margin-bottom: 10px; font-weight: bold; }
+        .error { border-left-color: #ef4444; }
+        .warning { border-left-color: #f59e0b; }
+        .info { border-left-color: #16a34a; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        .code { background: #1e293b; color: #f1f5f9; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 14px; white-space: pre-wrap; }
+        .result { margin: 10px 0; padding: 10px; background: #374151; border-radius: 4px; }
+        .debug-output { background: #1f2937; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Отладка фильтра способов оплаты</h1>
+
+    <div class="test-case error">
+        <div class="header">❌ Проблема</div>
+        <p>Фильтры способов оплаты не работают - при выборе любого способа оплаты не отображаются транзакции.</p>
+    </div>
+
+    <div class="test-case warning">
+        <div class="header">🔍 План диагностики</div>
+        <ol>
+            <li>Проверить консоль браузера на странице операций</li>
+            <li>Найти отладочную информацию фильтра оплаты</li>
+            <li>Сравнить нормализованные значения</li>
+            <li>Проверить логику сравнения в коде</li>
+        </ol>
+    </div>
+
+    <div class="test-case">
+        <div class="header">🧪 Тестовые действия</div>
+
+        <p><strong>1. Открыть страницу операций с консолью:</strong></p>
+        <button onclick="openOperationsWithConsole()">Открыть операции + консоль</button>
+
+        <p><strong>2. Инструкции по проверке:</strong></p>
+        <div class="code">1. На странице операций выберите любой способ оплаты в фильтре
+2. В консоли найдите сообщения "🔍 Отладка фильтра оплаты:"
+3. Проверьте значения:
+   - Исходный способ оплаты записи
+   - Нормализованный способ записи
+   - Выбранный способ в фильтре
+   - Нормализованный выбранный
+   - Совпадение (true/false)</div>
+
+        <div id="analysisResult" class="debug-output" style="display: none;">
+            <h4>📊 Результат анализа:</h4>
+            <div id="analysisContent"></div>
+        </div>
+    </div>
+
+    <div class="test-case info">
+        <div class="header">🛠️ Возможные причины</div>
+        <ol>
+            <li><strong>Проблема нормализации</strong> - функция normalizePaymentMethod возвращает разные значения</li>
+            <li><strong>Проблема с регистром</strong> - разные варианты написания</li>
+            <li><strong>Логическая ошибка</strong> - неправильное условие в фильтре</li>
+            <li><strong>Проблема с данными</strong> - пустые или неожиданные значения</li>
+        </ol>
+    </div>
+
+    <div class="test-case">
+        <div class="header">💡 Предварительный анализ кода</div>
+
+        <p><strong>Текущая логика фильтрации:</strong></p>
+        <div class="code">// Фильтр по виду оплаты
+if (selectedPaymentMethod !== "Все") {
+  const recordNormalized = normalizePaymentMethod(record.paymentMethod);
+  const selectedNormalized = normalizePaymentMethod(selectedPaymentMethod);
+
+  if (recordNormalized !== selectedNormalized) return false;
+}</div>
+
+        <p><strong>Функция нормализации включает:</strong></p>
+        <div class="code">const normalizePaymentMethod = (paymentMethod: string): string => {
+  if (!paymentMethod) return '-';
+  const method = paymentMethod.toLowerCase();
+
+  // Наличные
+  if (['cash', 'наличные'].includes(method)) return 'Наличные';
+
+  // Банковские карты
+  if (['bank_card', 'карта', 'сбербанк', 'card', 'credit_card', 'debit_card'].includes(method)) return 'Банк. карты';
+
+  // Топливные карты
+  if (['fuel_card', 'топливная_карта', 'fleet_card', 'нкт'].includes(method)) return 'Топл. карты';
+
+  // Онлайн заказы и мобильные платежи
+  if (['online_order', 'мобил.п', 'мобильная', 'мобильная оплата', 'mobile', 'qr'].includes(method)) return 'Онлайн';
+
+  return paymentMethod; // Возвращаем исходное значение
+};</div>
+    </div>
+
+    <script>
+        function openOperationsWithConsole() {
+            // Открываем страницу операций
+            const newWindow = window.open('http://localhost:3002/network/operations-transactions', '_blank');
+
+            // Показываем инструкции
+            document.getElementById('analysisResult').style.display = 'block';
+            document.getElementById('analysisContent').innerHTML = `
+                <div style="color: #fbbf24;">
+                    <strong>⚠️ Инструкция:</strong><br>
+                    1. Откройте консоль разработчика (F12)<br>
+                    2. Выберите любой способ оплаты в фильтре<br>
+                    3. Найдите в консоли сообщения "🔍 Отладка фильтра оплаты:"<br>
+                    4. Скопируйте и вставьте сюда результат для анализа
+                </div>
+                <textarea id="consoleOutput" placeholder="Вставьте сюда вывод консоли..." style="width: 100%; height: 150px; margin: 10px 0; background: #374151; color: white; border: 1px solid #6b7280; border-radius: 4px; padding: 10px;"></textarea>
+                <button onclick="analyzeConsoleOutput()">Проанализировать вывод</button>
+            `;
+        }
+
+        function analyzeConsoleOutput() {
+            const output = document.getElementById('consoleOutput').value;
+
+            if (!output.trim()) {
+                alert('Пожалуйста, вставьте вывод консоли');
+                return;
+            }
+
+            // Простой анализ
+            const lines = output.split('\n');
+            const analysis = {
+                originalMethods: [],
+                normalizedRecord: [],
+                selectedFilter: [],
+                normalizedSelected: [],
+                matches: []
+            };
+
+            lines.forEach(line => {
+                if (line.includes('Исходный способ оплаты записи:')) {
+                    analysis.originalMethods.push(line.split(':')[1]?.trim());
+                }
+                if (line.includes('Нормализованный способ записи:')) {
+                    analysis.normalizedRecord.push(line.split(':')[1]?.trim());
+                }
+                if (line.includes('Выбранный способ в фильтре:')) {
+                    analysis.selectedFilter.push(line.split(':')[1]?.trim());
+                }
+                if (line.includes('Нормализованный выбранный:')) {
+                    analysis.normalizedSelected.push(line.split(':')[1]?.trim());
+                }
+                if (line.includes('Совпадение:')) {
+                    analysis.matches.push(line.split(':')[1]?.trim());
+                }
+            });
+
+            let analysisHtml = '<h4>📊 Анализ результата:</h4>';
+
+            if (analysis.matches.length > 0) {
+                const hasMatches = analysis.matches.some(match => match === 'true');
+                if (!hasMatches) {
+                    analysisHtml += '<div style="color: #ef4444;">❌ Проблема: Ни одна запись не прошла фильтр (все совпадения false)</div>';
+                } else {
+                    analysisHtml += '<div style="color: #16a34a;">✅ Есть совпадения в фильтре</div>';
+                }
+            }
+
+            if (analysis.originalMethods.length > 0) {
+                analysisHtml += '<div><strong>Исходные способы оплаты:</strong> ' + [...new Set(analysis.originalMethods)].join(', ') + '</div>';
+            }
+
+            if (analysis.normalizedRecord.length > 0) {
+                analysisHtml += '<div><strong>Нормализованные способы записей:</strong> ' + [...new Set(analysis.normalizedRecord)].join(', ') + '</div>';
+            }
+
+            if (analysis.selectedFilter.length > 0) {
+                analysisHtml += '<div><strong>Выбранный фильтр:</strong> ' + [...new Set(analysis.selectedFilter)].join(', ') + '</div>';
+            }
+
+            if (analysis.normalizedSelected.length > 0) {
+                analysisHtml += '<div><strong>Нормализованный фильтр:</strong> ' + [...new Set(analysis.normalizedSelected)].join(', ') + '</div>';
+            }
+
+            document.getElementById('analysisContent').innerHTML = analysisHtml;
+        }
+
+        window.onload = () => {
+            console.log('🔍 Страница отладки фильтра способов оплаты загружена');
+            console.log('💡 Основная проблема: фильтры способов оплаты не работают');
+        };
+    </script>
+</body>
+</html>

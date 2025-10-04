@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Обновление дизайна KPI карточек</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #0f172a;
+            color: white;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            background-color: #1e293b;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .card {
+            padding: 16px;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .card:hover {
+            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .card.selected {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .card-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            margin: 0;
+            flex: 1;
+            margin-right: 8px;
+        }
+        .card-subtitle {
+            font-size: 12px;
+            color: #cbd5e1;
+            margin: 2px 0 0 0;
+        }
+        .card-values {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .volume {
+            font-size: 12px;
+            font-weight: 600;
+            color: #93c5fd;
+        }
+        .cost {
+            font-size: 12px;
+            font-weight: 600;
+            color: #86efac;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .before-after {
+            padding: 15px;
+            border: 1px solid #475569;
+            border-radius: 8px;
+        }
+        .before {
+            background-color: #7f1d1d;
+        }
+        .after {
+            background-color: #166534;
+        }
+        .btn {
+            padding: 8px 16px;
+            margin: 5px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background-color: #2563eb;
+        }
+        .mobile-demo {
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        .mobile-demo .grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .mobile-demo .card {
+            padding: 12px;
+            font-size: 11px;
+        }
+        .mobile-demo .card-title {
+            font-size: 11px;
+        }
+        .mobile-demo .volume,
+        .mobile-demo .cost {
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Обновление дизайна KPI карточек</h1>
+
+    <div class="section">
+        <h2>✅ Выполненные изменения</h2>
+        <ul>
+            <li>❌ <strong>Убраны иконки</strong> Fuel и CreditCard из всех карточек</li>
+            <li>❌ <strong>Удалены надписи</strong> "Объем:" и "Сумма:" из карточек</li>
+            <li>📍 <strong>Значения перемещены</strong> в правый верхний угол карточки</li>
+            <li>📱 <strong>Улучшена компактность</strong> для мобильной версии</li>
+            <li>🎯 <strong>Оставлены только две строки</strong> данных как требовалось</li>
+        </ul>
+    </div>
+
+    <div class="comparison">
+        <div class="before-after before">
+            <h3>❌ До (старый дизайн)</h3>
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">АИ-95</div>
+                        <div class="card-subtitle">156 операций</div>
+                    </div>
+                    <div style="color: #fb923c;">⛽</div>
+                </div>
+                <div style="margin-top: 12px; font-size: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="color: #93c5fd;">Объем:</span>
+                        <span style="color: #93c5fd; font-weight: 600;">1250 л</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #86efac;">Сумма:</span>
+                        <span style="color: #86efac; font-weight: 600;">67,500 ₽</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="before-after after">
+            <h3>✅ После (новый дизайн)</h3>
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">АИ-95</div>
+                        <div class="card-subtitle">156 операций</div>
+                    </div>
+                    <div class="card-values">
+                        <div class="volume">1250 л</div>
+                        <div class="cost">67,500 ₽</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🖥️ Десктопная версия - Виды топлива</h2>
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">АИ-95</div>
+                        <div class="card-subtitle">156 операций</div>
+                    </div>
+                    <div class="card-values">
+                        <div class="volume">1250 л</div>
+                        <div class="cost">67,500 ₽</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card selected">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">ДТ</div>
+                        <div class="card-subtitle">89 операций</div>
+                    </div>
+                    <div class="card-values">
+                        <div class="volume">945 л</div>
+                        <div class="cost">52,300 ₽</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">АИ-92</div>
+                        <div class="card-subtitle">72 операции</div>
+                    </div>
+                    <div class="card-values">
+                        <div class="volume">834 л</div>
+                        <div class="cost">41,200 ₽</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🖥️ Десктопная версия - Способы оплаты</h2>
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Наличные</div>
+                        <div class="card-subtitle">45 операций</div>
+                    </div>
+                    <div class="card-values">
+                        <div class="volume">423 л</div>
+                        <div class="cost">23,100 ₽</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Банк. карты</div>
+                        <div class="card-subtitle">178 операций</div>
+                    </div>
+                    <div class="card-values">
+                        <div class="volume">1456 л</div>
+                        <div class="cost">78,900 ₽</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card selected">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Топл. карты</div>
+                        <div class="card-subtitle">23 операции</div>
+                    </div>
+                    <div class="card-values">
+                        <div class="volume">234 л</div>
+                        <div class="cost">12,800 ₽</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📱 Мобильная версия (компактная)</h2>
+        <div class="mobile-demo">
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">АИ-95</div>
+                            <div class="card-subtitle">156</div>
+                        </div>
+                        <div class="card-values">
+                            <div class="volume">1250 л</div>
+                            <div class="cost">67,500 ₽</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card selected">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">ДТ</div>
+                            <div class="card-subtitle">89</div>
+                        </div>
+                        <div class="card-values">
+                            <div class="volume">945 л</div>
+                            <div class="cost">52,300 ₽</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">АИ-92</div>
+                            <div class="card-subtitle">72</div>
+                        </div>
+                        <div class="card-values">
+                            <div class="volume">834 л</div>
+                            <div class="cost">41,200 ₽</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>✨ Преимущества нового дизайна</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            <div style="padding: 15px; background-color: #166534; border-radius: 8px;">
+                <h4>🚀 Быстрое восприятие</h4>
+                <p>Значения объема и суммы сразу видны в правом углу</p>
+            </div>
+            <div style="padding: 15px; background-color: #166534; border-radius: 8px;">
+                <h4>📱 Экономия места</h4>
+                <p>Убраны лишние элементы - только важная информация</p>
+            </div>
+            <div style="padding: 15px; background-color: #166534; border-radius: 8px;">
+                <h4>🎯 Фокус на данных</h4>
+                <p>Внимание пользователя сосредоточено на цифрах</p>
+            </div>
+            <div style="padding: 15px; background-color: #166534; border-radius: 8px;">
+                <h4>🔧 Упрощенный код</h4>
+                <p>Меньше элементов = лучшая производительность</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🧪 Тестирование</h2>
+        <p>Для проверки обновленного дизайна карточек:</p>
+        <ol>
+            <li>Откройте страницу операций в приложении</li>
+            <li>Проверьте, что у карточек топлива и оплаты:</li>
+            <ul>
+                <li>❌ Отсутствуют иконки</li>
+                <li>❌ Нет надписей "Объем:" и "Сумма:"</li>
+                <li>📍 Значения находятся в правом верхнем углу</li>
+                <li>📱 Мобильная версия компактная и читаемая</li>
+            </ul>
+            <li>Убедитесь, что функциональность карточек сохранена</li>
+        </ol>
+
+        <a href="http://localhost:3006/network/operations-transactions" target="_blank" class="btn">
+            🚀 Открыть страницу операций
+        </a>
+    </div>
+
+    <script>
+        // Интерактивность для демонстрации
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card:not(.before-after .card)');
+
+            cards.forEach(card => {
+                card.addEventListener('click', function() {
+                    // Убираем выделение с других карточек в той же группе
+                    const parent = this.closest('.section');
+                    if (parent) {
+                        parent.querySelectorAll('.card.selected').forEach(selected => {
+                            if (selected !== this) {
+                                selected.classList.remove('selected');
+                            }
+                        });
+                    }
+
+                    // Переключаем выделение текущей карточки
+                    this.classList.toggle('selected');
+                });
+            });
+
+            console.log('🎨 Демонстрация обновленного дизайна KPI карточек загружена');
+            console.log('✅ Изменения:');
+            console.log('- Убраны иконки Fuel и CreditCard');
+            console.log('- Удалены надписи "Объем:" и "Сумма:"');
+            console.log('- Значения перемещены в правый верхний угол');
+            console.log('- Улучшена компактность для мобильных устройств');
+        });
+    </script>
+</body>
+</html>
