@@ -159,7 +159,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const miscMenuItems = [
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell }, // 🚫 НЕ РЕАЛИЗОВАНО
     { title: "Сообщения", url: "/network/messages", icon: MessageSquare }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Сменные отчеты", url: "/point/shift-reports", icon: Clock }, // 🚫 НЕ РЕАЛИЗОВАНО
   ];
 
   function renderMenuContent() {
