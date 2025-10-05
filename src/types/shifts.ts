@@ -17,13 +17,11 @@
  */
 export interface Shift {
   /** Номер смены */
-  number: number;
-  /** Состояние смены (0 - закрыта, 1 - открыта) */
-  state: number;
+  shift: number;
   /** Дата и время открытия смены */
-  dt_open?: string;
+  dt_open: string;
   /** Дата и время закрытия смены */
-  dt_close?: string;
+  dt_close?: string | null;
 }
 
 /**
@@ -33,7 +31,12 @@ export interface PosInfo {
   /** Номер рабочего места */
   number: number;
   /** Информация о смене */
-  shift: Shift;
+  shift: {
+    /** Номер смены */
+    shift: number;
+    /** Состояние (0 - закрыта, 1 - открыта) */
+    state: number;
+  };
   /** Список устройств */
   devices?: Device[];
   /** Дата последнего обновления информации */
@@ -248,7 +251,16 @@ export interface ShiftReport {
   /** Идентификатор торговой точки */
   station: number;
   /** Информация о смене */
-  shift: Shift;
+  shift: {
+    /** Номер смены */
+    shift: number;
+    /** Состояние (0 - закрыта, 1 - открыта) */
+    state: number;
+    /** Дата открытия */
+    dt_open?: string;
+    /** Дата закрытия */
+    dt_close?: string | null;
+  };
   /** Информация по рабочим местам (ПСМ) */
   pos_info: PosInfo[];
   /** Данные по резервуарам на конец смены */
@@ -319,5 +331,5 @@ export interface ShiftReportRequestParams {
   /** Идентификатор торговой точки */
   station: number;
   /** Номер смены */
-  shift_number: number;
+  shift: number;
 }

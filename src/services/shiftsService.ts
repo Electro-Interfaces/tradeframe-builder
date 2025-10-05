@@ -25,8 +25,19 @@ const API_BASE_URL = import.meta.env.VITE_STS_API_URL || 'https://pos.autooplata
  * Получить JWT токен для авторизации
  */
 async function getAuthToken(): Promise<string> {
-  const username = import.meta.env.VITE_STS_API_USERNAME;
-  const password = import.meta.env.VITE_STS_API_PASSWORD;
+  // Пытаемся получить настройки из apiConfigService
+  const allConnections = apiConfigService.getAllConnections();
+  const stsConnection = allConnections.find(conn => conn.id === 'trading-network-api');
+
+  let username = import.meta.env.VITE_STS_API_USERNAME;
+  let password = import.meta.env.VITE_STS_API_PASSWORD;
+
+  // Если есть настройки в apiConfigService - используем их
+  if (stsConnection?.settings?.username && stsConnection?.settings?.password) {
+    username = stsConnection.settings.username;
+    password = stsConnection.settings.password;
+    console.log('🔐 ShiftsService: Используем учетные данные из apiConfigService');
+  }
 
   if (!username || !password) {
     throw new Error('STS API credentials not configured');
@@ -34,6 +45,8 @@ async function getAuthToken(): Promise<string> {
 
   // Авторизация через Basic Auth для получения JWT
   const basicAuth = btoa(`${username}:${password}`);
+
+  console.log('🔑 ShiftsService: Запрос токена...', { username, url: `${API_BASE_URL}/v1/login` });
 
   const response = await fetch(`${API_BASE_URL}/v1/login`, {
     method: 'POST',
@@ -44,10 +57,12 @@ async function getAuthToken(): Promise<string> {
   });
 
   if (!response.ok) {
+    console.error('❌ ShiftsService: Ошибка авторизации', response.status, response.statusText);
     throw new Error(`Authentication failed: ${response.statusText}`);
   }
 
   const token = await response.text();
+  console.log('✅ ShiftsService: Токен получен');
   return token.replace(/"/g, ''); // Убираем кавычки из ответа
 }
 
@@ -68,6 +83,8 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, any>): Pr
     });
   }
 
+  console.log('📡 ShiftsService: API запрос', url.toString());
+
   const response = await fetch(url.toString(), {
     method: 'GET',
     headers: {
@@ -77,10 +94,21 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, any>): Pr
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.statusText}`);
+    // Пытаемся получить детали ошибки из тела ответа
+    let errorDetails = response.statusText;
+    try {
+      const errorBody = await response.json();
+      errorDetails = JSON.stringify(errorBody);
+      console.error('❌ ShiftsService: API ошибка', response.status, errorBody);
+    } catch (e) {
+      console.error('❌ ShiftsService: API ошибка', response.status, response.statusText);
+    }
+    throw new Error(`API request failed (${response.status}): ${errorDetails}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('✅ ShiftsService: Ответ получен', data);
+  return data;
 }
 
 /**
@@ -92,11 +120,11 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, any>): Pr
  * @example
  * const shifts = await getShifts({ system: 15, station: 1 });
  */
-export async function getShifts(params: ShiftsRequestParams): Promise<ShiftsListResponse> {
+export async function getShifts(params: ShiftsRequestParams): Promise<Shift[]> {
   console.log('📊 ShiftsService: Получение списка смен', params);
 
   try {
-    const response = await apiRequest<ShiftsListResponse>('/v1/shifts', params);
+    const response = await apiRequest<Shift[]>('/v1/shifts', params);
     console.log('✅ ShiftsService: Смены получены', response);
     return response;
   } catch (error) {
@@ -142,14 +170,14 @@ export async function getFuelReceipts(params: ReceiptsRequestParams): Promise<Re
  * - Продажи за смену
  * - Движение наличных денежных средств
  *
- * @param params - Параметры запроса (system, station, shift_number)
+ * @param params - Параметры запроса (system, station, shift)
  * @returns Полный сменный отчет
  *
  * @example
  * const report = await getShiftReport({
  *   system: 15,
  *   station: 1,
- *   shift_number: 123
+ *   shift: 123
  * });
  */
 export async function getShiftReport(params: ShiftReportRequestParams): Promise<ShiftReport> {

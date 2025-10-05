@@ -132,6 +132,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Цены", url: "/point/prices", icon: DollarSign },
     { title: "Резервуары", url: "/point/tanks", icon: Gauge },
     { title: "Оборудование", url: "/point/equipment", icon: Settings },
+    { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },
   ];
 
   const adminMenuItems = [
