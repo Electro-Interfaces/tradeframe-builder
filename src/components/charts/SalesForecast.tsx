@@ -49,25 +49,7 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
 
   // Основная логика расчета прогноза
   const { chartData, summary } = useMemo(() => {
-    console.log('🔮 SalesForecast: Начинаем расчет с транзакциями:', transactions?.length || 0);
-    
-    // Показываем первые несколько транзакций для отладки
-    if (transactions && transactions.length > 0) {
-      console.log('🔍 SalesForecast: Примеры транзакций:', transactions.slice(0, 3).map((tx, i) => ({
-        index: i,
-        id: tx.id,
-        startTime: tx.startTime,
-        timestamp: tx.timestamp,
-        date: tx.date,
-        total: tx.total,
-        actualAmount: tx.actualAmount,
-        volume: tx.volume,
-        fuelType: tx.fuelType
-      })));
-    }
-    
     if (!transactions || transactions.length === 0) {
-      console.log('⚠️ SalesForecast: Нет транзакций, создаем базовый прогноз');
       
       // Создаем базовый прогноз без исторических данных
       const today = new Date();
@@ -118,9 +100,6 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       return { chartData, summary };
     }
 
-    // Анализируем исторические данные
-    console.log('📊 SalesForecast: Анализируем исторические данные');
-    
     // Группируем транзакции по дням
     const dailyRevenue = new Map<string, number>();
     const dailyVolume = new Map<string, number>();
@@ -157,15 +136,6 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       }
     });
 
-    console.log('📅 SalesForecast: Данные по дням:', {
-      daysWithData: dailyRevenue.size,
-      totalDays: Array.from(dailyRevenue.keys()),
-      dailyTotals: Array.from(dailyRevenue.entries()).map(([date, revenue]) => ({
-        date, 
-        revenue: Math.round(revenue)
-      }))
-    });
-
     // Создаем полный набор данных для графика (последние 7 дней + прогноз на 7 дней)
     const today = new Date();
     const chartData: ChartDataPoint[] = [];
@@ -190,8 +160,6 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       });
     }
 
-    console.log('📈 SalesForecast: Исторические доходы для тренда:', historicalRevenues);
-
     // Расчет тренда и прогноза
     let avgRevenue = 50000; // Базовое значение
     let trend: 'up' | 'down' | 'stable' = 'stable';
@@ -213,15 +181,6 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       trendPercentage = ((secondAvg - firstAvg) / firstAvg) * 100;
       trend = trendPercentage > 5 ? 'up' : trendPercentage < -5 ? 'down' : 'stable';
       confidence = Math.min(90, Math.max(50, 70 + historicalRevenues.length * 3));
-      
-      console.log('📊 SalesForecast: Расчет тренда:', {
-        avgRevenue: Math.round(avgRevenue),
-        firstAvg: Math.round(firstAvg),
-        secondAvg: Math.round(secondAvg),
-        trend,
-        trendPercentage: Math.round(trendPercentage),
-        confidence
-      });
     } else if (historicalRevenues.length === 1) {
       avgRevenue = historicalRevenues[0];
       confidence = 60;
@@ -273,24 +232,6 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       trendPercentage: Math.round(trendPercentage),
       recommendations
     };
-
-    console.log('✅ SalesForecast: Готовые данные для графика:', {
-      chartDataLength: chartData.length,
-      historicalPoints: chartData.filter(d => d.historical !== undefined).length,
-      forecastPoints: chartData.filter(d => d.forecast !== undefined).length,
-      summary
-    });
-
-    // Дополнительная отладка данных
-    console.log('🔍 SalesForecast: Детальный анализ chartData:');
-    chartData.forEach((point, index) => {
-      if (point.historical !== undefined) {
-        console.log(`  📈 История [${index}]: ${point.displayDate} = ${Math.round(point.historical)}₽`);
-      }
-      if (point.forecast !== undefined) {
-        console.log(`  🔮 Прогноз [${index}]: ${point.displayDate} = ${Math.round(point.forecast)}₽`);
-      }
-    });
 
     return { chartData, summary };
   }, [transactions]);

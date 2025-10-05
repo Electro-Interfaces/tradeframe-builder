@@ -68,26 +68,16 @@ class AuthService {
    */
   async getUserByEmail(email: string): Promise<DatabaseUser | null> {
     try {
-      console.log('🔍 AuthService: Searching for user with roles:', email);
-
       // НОВАЯ СХЕМА: получаем пользователя с ролями через джойн
       const users = await this.makeRequest(
         `users?select=*,user_roles(role:roles(*))&email=ilike.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
       );
 
       if (users.length === 0) {
-        console.log('❌ AuthService: User not found');
         return null;
       }
 
       const user = users[0];
-      console.log('✅ AuthService: User found');
-      console.log('🔍 DEBUG: User roles from new schema:', user.user_roles);
-
-      // Логируем роли из новой схемы БД
-      const userRoles = user.user_roles || [];
-      console.log('🎭 AuthService: User roles from database:', userRoles);
-
       return user;
     } catch (error) {
       console.error('❌ AuthService: Error finding user:', error);
@@ -100,16 +90,12 @@ class AuthService {
    */
   async verifyPassword(user: DatabaseUser, password: string): Promise<boolean> {
     if (!password || password.length < 1) {
-      console.log('❌ AuthService: Empty password');
       return false;
     }
 
     if (!user.pwd_salt || !user.pwd_hash) {
-      console.log('❌ AuthService: User has no password data');
       return false;
     }
-
-    console.log('🔐 AuthService: Verifying password with SHA-256...');
 
     try {
       // Простое хеширование: пароль + соль
@@ -130,12 +116,6 @@ class AuthService {
       }
 
       const isValid = computedHash === user.pwd_hash;
-
-      console.log(`🔍 Password check result: ${isValid ? '✅ Valid' : '❌ Invalid'}`);
-      console.log(`📝 Input: "${password}" + "${user.pwd_salt}"`);
-      console.log(`🔑 Computed: ${computedHash.substring(0, 20)}...`);
-      console.log(`🗃️ Stored:   ${user.pwd_hash.substring(0, 20)}...`);
-
       return isValid;
     } catch (error) {
       console.error('❌ AuthService: Password verification error:', error);
@@ -148,8 +128,6 @@ class AuthService {
    */
   async authenticate(email: string, password: string): Promise<AppUser | null> {
     try {
-      console.log('🔐 AuthService: Authenticating user:', email);
-
       const dbUser = await this.getUserByEmail(email);
       if (!dbUser) {
         return null;
@@ -162,8 +140,6 @@ class AuthService {
 
       // Трансформируем пользователя из БД в формат приложения
       const appUser = this.transformUser(dbUser);
-      console.log('✅ AuthService: Authentication successful for:', appUser.email);
-
       return appUser;
     } catch (error) {
       console.error('❌ AuthService: Authentication error:', error);
@@ -175,9 +151,6 @@ class AuthService {
    * Трансформирует пользователя из БД в формат приложения (НОВАЯ СХЕМА)
    */
   private transformUser(dbUser: DatabaseUser): AppUser {
-    console.log('🔄 AuthService: Transforming user with new DB schema');
-    console.log('🔍 DEBUG: dbUser.user_roles =', dbUser.user_roles);
-
     // Получаем первую (основную) роль пользователя из новой схемы БД
     const userRoles = dbUser.user_roles || [];
     const primaryRole = userRoles[0]?.role;
@@ -187,8 +160,6 @@ class AuthService {
     let permissions: string[] = [];
 
     if (primaryRole) {
-      console.log('🎭 AuthService: Found primary role:', primaryRole);
-
       // Используем код роли напрямую из БД или имя роли для маппинга
       userRole = primaryRole.code || primaryRole.name;
       roleId = primaryRole.id;
@@ -205,12 +176,9 @@ class AuthService {
         };
 
         if (roleNameToCode[primaryRole.name]) {
-          console.log('🎭 РОЛЬ МАППИНГ:', primaryRole.name, '->', roleNameToCode[primaryRole.name]);
           userRole = roleNameToCode[primaryRole.name];
         }
       }
-    } else {
-      console.log('⚠️ AuthService: No roles found, using default role "user"');
     }
 
     const appUser = {
@@ -224,7 +192,6 @@ class AuthService {
       permissions: permissions
     };
 
-    console.log('✅ AuthService: Transformed user role:', userRole);
     return appUser;
   }
 
@@ -257,8 +224,6 @@ class AuthService {
    */
   async updateUserName(userId: string, newName: string): Promise<void> {
     try {
-      console.log('🔄 AuthService: Updating user name for:', userId);
-
       await this.makeRequest(`users?id=eq.${userId}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -266,8 +231,6 @@ class AuthService {
           updated_at: new Date().toISOString()
         })
       });
-
-      console.log('✅ AuthService: User name updated successfully');
     } catch (error) {
       console.error('❌ AuthService: Error updating user name:', error);
       throw error;

@@ -6,12 +6,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { CheckCircle, Clock, AlertTriangle, FileDown } from "lucide-react";
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { ShiftDetails } from '@/types/shift-reports-v2';
 import { shiftReportsV2Service } from '@/services/shiftReportsV2Service';
+import { ExportDialog } from './ExportDialog';
+import { exportShiftReport, type ExportFormat, type ExportMode } from '@/services/shiftReportExportService';
+import { useToast } from '@/hooks/use-toast';
 
 interface ShiftDetailsModalProps {
   isOpen: boolean;
@@ -33,6 +37,9 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
   const [details, setDetails] = useState<ShiftDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen && shiftNumber !== null) {
@@ -42,13 +49,6 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
 
   const loadShiftDetails = async () => {
     if (shiftNumber === null) return;
-
-    console.log('🔍 ShiftDetailsModal: Загрузка деталей смены', {
-      shiftNumber,
-      system,
-      station,
-      stationName
-    });
 
     try {
       setLoading(true);
@@ -63,10 +63,9 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
         stationName
       );
 
-      console.log('✅ ShiftDetailsModal: Детали загружены', data);
       setDetails(data);
     } catch (err) {
-      console.error('❌ Ошибка загрузки деталей смены', err);
+      console.error('Ошибка загрузки деталей смены:', err);
       setError('Не удалось загрузить детали смены');
     } finally {
       setLoading(false);
@@ -86,6 +85,54 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
 
   const formatDateTime = (dateString: string) => {
     return format(new Date(dateString), 'dd.MM.yyyy HH:mm', { locale: ru });
+  };
+
+  const handleExport = async (format: ExportFormat, mode: ExportMode, folderHandle?: any) => {
+    if (!details) {
+      toast({
+        title: "Ошибка",
+        description: "Нет данных для экспорта",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      const result = await exportShiftReport(details, { format, mode, folderHandle });
+
+      if (result.success) {
+        if (result.skipped) {
+          toast({
+            title: "Файл уже существует",
+            description: `Файл ${result.fileName} уже был экспортирован ранее`,
+          });
+        } else {
+          toast({
+            title: "Экспорт завершен",
+            description: `Файл ${result.fileName} успешно сохранен`,
+          });
+        }
+      } else {
+        toast({
+          title: "Ошибка экспорта",
+          description: result.error || "Неизвестная ошибка",
+          variant: "destructive",
+        });
+      }
+
+      setExportDialogOpen(false);
+    } catch (error) {
+      console.error('❌ Ошибка экспорта:', error);
+      toast({
+        title: "Ошибка экспорта",
+        description: error instanceof Error ? error.message : "Неизвестная ошибка",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -120,13 +167,29 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] bg-slate-800 border-slate-700 flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
-            <span>Детали смены #{shiftNumber}</span>
-            {details && getStatusBadge(details.status)}
-          </DialogTitle>
-          {stationName && (
-            <p className="text-slate-400 text-sm">{stationName}</p>
-          )}
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                <span>Детали смены #{shiftNumber}</span>
+                {details && getStatusBadge(details.status)}
+              </DialogTitle>
+              {stationName && (
+                <p className="text-slate-400 text-sm mt-1">{stationName}</p>
+              )}
+            </div>
+            {details && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setExportDialogOpen(true)}
+                disabled={isExporting}
+                className="ml-4"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Экспорт
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         {loading && (
@@ -457,7 +520,6 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                           // Обрабатываем каждую запись
                           (details as any).salesRaw?.forEach((sale: any) => {
                             const paymentName = sale.pay_type?.name?.toLowerCase() || '';
-                            console.log('💳 Способ оплаты:', sale.pay_type?.name);
 
                             // Проверяем каждый вид топлива в записи
                             sale.fuel?.forEach((fuelItem: any) => {
@@ -465,8 +527,6 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                               const fuelName = fuelItem.service?.service_name || 'Неизвестно';
                               const volume = parseFloat(fuelItem.release?.volume || '0');
                               const cost = parseFloat(fuelItem.release?.cost || '0');
-
-                              console.log(`⛽ Топливо ${fuelName} (${fuelCode}): ${volume}л, ${cost}₽, способ: ${paymentName}`);
 
                               if (!fuelGroups.has(fuelCode)) {
                                 fuelGroups.set(fuelCode, {
@@ -683,7 +743,6 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
 
                 {(() => {
                   // Вычисляем суммы по типам операций
-                  console.log('💵 Движение наличных - все cashMovements:', details.cashMovements);
 
                   // "Выручка за смену" (НАЛИЧНЫЕ) - берем из paymentSales
                   const revenue = details.paymentSales
@@ -700,13 +759,6 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
 
                   // "Передано по смене" = Принято + Внесено + Выручка
                   const closingAmount = openingAmount + incomeAmount + revenue;
-
-                  console.log('💵 Расчёты:', {
-                    revenue,
-                    openingAmount,
-                    closingAmount,
-                    totalIncome: openingAmount + incomeAmount + revenue
-                  });
 
                   const totalIncome = openingAmount + incomeAmount + revenue;
 
@@ -763,6 +815,14 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
             </Tabs>
           </div>
         )}
+
+        {/* Диалог экспорта */}
+        <ExportDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          onExport={handleExport}
+          isExporting={isExporting}
+        />
       </DialogContent>
     </Dialog>
   );

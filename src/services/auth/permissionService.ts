@@ -151,9 +151,6 @@ class PermissionService {
 
     // Получаем разрешения на основе роли
     const rolePermissions = ROLE_PERMISSIONS[user.role] || ROLE_PERMISSIONS[ROLES.USER];
-
-    console.log(`🔑 PermissionService: User ${user.email} role "${user.role}" has permissions:`, rolePermissions);
-
     return rolePermissions;
   }
 
@@ -188,12 +185,6 @@ class PermissionService {
       };
     }
 
-    console.log('🔍 PermissionService: Calculating menu visibility for user:', {
-      email: user.email,
-      role: user.role,
-      permissions: user.permissions
-    });
-
     const permissions = this.getPermissionsForUser(user);
 
     const visibility: MenuVisibility = {
@@ -204,8 +195,6 @@ class PermissionService {
       settings: this.isAdmin(user),
       reports: permissions.includes(PERMISSIONS.REPORTS_VIEW)
     };
-
-    console.log('📊 PermissionService: Menu visibility result:', visibility);
 
     return visibility;
   }

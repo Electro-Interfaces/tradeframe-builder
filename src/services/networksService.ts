@@ -12,20 +12,16 @@ export const networksService = {
   // Получить все сети с подсчетом торговых точек (используем mock данные)
   async getAll(userRole?: string): Promise<Network[]> {
     try {
-      console.log('🔄 Loading networks from mock store...', userRole ? `(role: ${userRole})` : '');
-      
       // Используем mock данные для демо
       let networks = networksStore.getAll();
-      
+
       // Фильтрация для МенеджерБТО - только сеть БТО
       if (userRole === 'bto_manager') {
         networks = networks.filter(network => network.id === '15'); // Только БТО сеть
-        console.log('🔒 Filtered networks for BTO manager:', networks.map(n => n.name));
       }
-      
-      console.log('✅ Loaded networks from mock store:', networks.length, 'networks');
+
       return networks;
-      
+
     } catch (error) {
       console.error('💥 Critical error loading networks:', error);
       throw error;
@@ -35,16 +31,12 @@ export const networksService = {
   // Получить сеть по ID (используем mock данные)
   async getById(id: NetworkId): Promise<Network | null> {
     try {
-      console.log('🔄 Loading network by ID from mock store:', id);
-      
       const network = networksStore.getById(id);
-      
+
       if (!network) {
-        console.warn('⚠️ Network not found:', id);
         return null;
       }
-      
-      console.log('✅ Found network:', network.name);
+
       return network;
     } catch (error) {
       console.error('💥 Critical error loading network by ID:', error);
@@ -55,8 +47,6 @@ export const networksService = {
   // Создать новую сеть (только в Supabase)
   async create(input: NetworkInput): Promise<Network> {
     try {
-      console.log('🔄 Creating network in Supabase:', input);
-      
       const { data, error } = await supabase
         .from('networks')
         .insert({
@@ -68,7 +58,7 @@ export const networksService = {
         })
         .select()
         .single();
-      
+
       if (error) {
         console.error('❌ Supabase error creating network:', error);
         throw new Error(`Ошибка создания сети: ${error.message}`);
@@ -78,8 +68,6 @@ export const networksService = {
         throw new Error('Нет данных после создания сети');
       }
 
-      console.log('✅ Network created in Supabase:', data);
-      
       return {
         id: data.id,
         external_id: data.external_id,
@@ -102,8 +90,6 @@ export const networksService = {
   // Обновить сеть (только в Supabase)
   async update(id: NetworkId, input: NetworkInput): Promise<Network | null> {
     try {
-      console.log('🔄 Updating network in Supabase:', id, input);
-      
       const { data, error } = await supabase
         .from('networks')
         .update({
@@ -117,19 +103,16 @@ export const networksService = {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) {
         console.error('❌ Supabase error updating network:', error);
         throw new Error(`Ошибка обновления сети: ${error.message}`);
       }
 
       if (!data) {
-        console.warn('⚠️ No data returned after network update');
         return null;
       }
 
-      console.log('✅ Network updated in Supabase:', data);
-      
       return {
         id: data.id,
         external_id: data.external_id,
@@ -152,19 +135,16 @@ export const networksService = {
   // Удалить сеть (только в Supabase)
   async remove(id: NetworkId): Promise<boolean> {
     try {
-      console.log('🔄 Deleting network in Supabase:', id);
-      
       const { error } = await supabase
         .from('networks')
         .delete()
         .eq('id', id);
-      
+
       if (error) {
         console.error('❌ Supabase error deleting network:', error);
         throw new Error(`Ошибка удаления сети: ${error.message}`);
       }
 
-      console.log('✅ Network deleted from Supabase:', id);
       return true;
     } catch (error) {
       console.error('💥 Critical error deleting network:', error);
@@ -182,16 +162,14 @@ export const networksService = {
     if (!query.trim()) {
       return this.getAll();
     }
-    
+
     try {
-      console.log('🔍 Searching networks in Supabase:', query);
-      
       const { data, error } = await supabase
         .from('networks')
         .select('id, name, description, code, status, external_id, settings, created_at, updated_at')
         .or(`name.ilike.%${query}%,description.ilike.%${query}%,code.ilike.%${query}%`)
         .order('name');
-      
+
       if (error) {
         console.error('❌ Supabase error searching networks:', error);
         throw new Error(`Ошибка поиска сетей: ${error.message}`);

@@ -22,11 +22,8 @@ export class ShiftReportAdapterV2 {
    * Преобразовать ответ API в детали смены
    */
   static toDetails(apiResponse: any, shiftNumber: number, system: number, station: number, stationName?: string, shiftInfo?: any): ShiftDetails {
-    console.log('🔄 ShiftReportAdapterV2: Начало преобразования', { shiftNumber, apiResponse, shiftInfo });
-
     // Извлекаем информацию о ПСМ
     const posInfo = this.extractPosInfo(apiResponse.psm, shiftNumber);
-    console.log('🏢 ПСМ информация:', posInfo);
 
     // Извлекаем показания счетных механизмов (ТРК)
     const nozzleReadings = this.extractNozzleReadings(apiResponse.psm);

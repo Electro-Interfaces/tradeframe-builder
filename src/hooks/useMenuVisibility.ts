@@ -5,8 +5,6 @@
 import { useMemo } from 'react'
 import { useNewAuth } from '@/contexts/NewAuthContext'
 
-console.log('📁 useMenuVisibility.ts: Module loaded!');
-
 export interface MenuVisibilityConfig {
   networks: boolean
   tradingPoint: boolean
@@ -24,10 +22,7 @@ export function useMenuVisibility(): MenuVisibilityConfig {
   const { user } = useNewAuth()
 
   return useMemo(() => {
-    console.log('🔍 useMenuVisibility called with user:', user);
-    
     if (!user) {
-      console.log('❌ No user found - hiding all menu items');
       // Неавторизованные пользователи не видят меню
       return {
         networks: false,
@@ -42,18 +37,10 @@ export function useMenuVisibility(): MenuVisibilityConfig {
         misc: false
       }
     }
-    
-    console.log('👤 User role:', user.role);
-    console.log('🔑 User permissions (raw):', user.permissions);
-    console.log('🔑 User permissions (parsed):', user.permissions?.map(p => typeof p === 'string' ? p : JSON.stringify(p)));
 
     // Функция для проверки разрешения на видимость меню
     const hasMenuPermission = (menuResource: string): boolean => {
-      console.log(`🔍 Checking permission for: ${menuResource}`);
-      console.log('👤 User permissions:', user.permissions);
-      
       if (!user.permissions) {
-        console.log(`❌ No permissions found for ${menuResource}`);
         return false;
       }
 
@@ -61,36 +48,26 @@ export function useMenuVisibility(): MenuVisibilityConfig {
       const result = user.permissions.some(permission => {
         // Обрабатываем объектный формат разрешений
         if (typeof permission === 'object' && permission !== null && 'section' in permission) {
-          const match = permission.section === 'menu_visibility' && 
+          const match = permission.section === 'menu_visibility' &&
                  permission.resource === menuResource &&
                  permission.actions?.includes('view_menu');
-          console.log(`🔍 Object permission ${JSON.stringify(permission)} -> ${menuResource}: ${match}`);
           return match;
         }
-        
+
         // Обрабатываем строковый формат разрешений (старый формат)
         if (typeof permission === 'string') {
           const match = permission === `menu_visibility.${menuResource}.view_menu`;
-          if (permission.includes('menu_visibility') || match) {
-            console.log(`🔍 String permission "${permission}" -> ${menuResource}: ${match}`);
-          }
           return match;
         }
-        
+
         return false;
       });
-      
-      console.log(`📊 Final result for ${menuResource}: ${result}`);
+
       return result;
     };
 
     // Системный администратор (супер админ) имеет доступ ко всем разделам
-    console.log(`🔍 ВАЖНАЯ ПРОВЕРКА: user.role = "${user.role}"`);
-    console.log(`🔍 super_admin проверка: user.role === 'super_admin' = ${user.role === 'super_admin'}`);
-    console.log(`🔍 system_admin проверка: user.role === 'system_admin' = ${user.role === 'system_admin'}`);
-
     if (user.role === 'super_admin' || user.role === 'system_admin') {
-      console.log('🎯 User is super_admin/system_admin - showing all menus');
       return {
         networks: true,
         tradingPoint: true,
@@ -131,7 +108,6 @@ export function useMenuVisibility(): MenuVisibilityConfig {
     });
     
     if (hasAllPermission) {
-      console.log('🎯 User has "all" permission - showing all menus');
       return {
         networks: true,
         tradingPoint: true,
@@ -176,7 +152,6 @@ export function useMenuVisibility(): MenuVisibilityConfig {
       });
 
       if (hasAdminPermissions) {
-        console.log('🎯 Пользователь с админ разрешениями - показываем админ разделы');
         return {
           networks: true,
           tradingPoint: true,
@@ -192,17 +167,12 @@ export function useMenuVisibility(): MenuVisibilityConfig {
       }
     }
 
-    console.log('✅ useMenuVisibility final result:', menuConfig);
     const visibleCount = Object.values(menuConfig).filter(v => v).length;
-    console.log(`📊 Menu sections visible: ${visibleCount}/10`);
-    
+
     // ВРЕМЕННЫЙ FALLBACK: если ни одного меню не видно, показываем разделы в зависимости от роли
     if (visibleCount === 0) {
-      console.log('⚠️ FALLBACK: ни одного меню не видно, используем роль для определения доступа');
-      
       // Для БТО менеджера показываем ограниченный набор
       if (user.role === 'network_admin' || user.role === 'manager' || user.role_name === 'Менеджер БТО') {
-        console.log('🎯 FALLBACK: БТО manager - показываем ограниченные разделы');
         return {
           networks: true,      // ТОРГОВЫЕ СЕТИ: Обзор, Операции  
           tradingPoint: true,  // ТОРГОВАЯ ТОЧКА: Цены, Резервуары, Оборудование
@@ -216,9 +186,8 @@ export function useMenuVisibility(): MenuVisibilityConfig {
           misc: false
         };
       }
-      
+
       // Для всех остальных пользователей без ролей - МИНИМАЛЬНЫЙ доступ
-      console.log('⚠️ FALLBACK: пользователь без разрешений - минимальный доступ для роли:', user.role);
       return {
         networks: true,      // Базовый доступ к просмотру сетей
         tradingPoint: true,  // Базовый доступ к торговой точке

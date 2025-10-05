@@ -89,7 +89,6 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
           // Если сеть не найдена, сбрасываем выбор на первую доступную
           networksService.getAll().then(networks => {
             if (networks.length > 0) {
-              console.log('🔄 Переключаем на первую доступную сеть:', networks[0]);
               setSelectedNetworkId(networks[0].id);
             }
           });
@@ -137,7 +136,6 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
         
         // Если есть сохраненная сеть, используем её
         if (savedNetwork && savedNetwork.trim()) {
-          console.log('🔄 Восстанавливаем сеть из localStorage:', savedNetwork);
           setSelectedNetworkId(savedNetwork);
         }
         

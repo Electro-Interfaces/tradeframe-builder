@@ -57,11 +57,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const [openGroups, setOpenGroups] = useState<string[]>(getInitialOpenGroups);
   const menuVisibility = useMenuVisibility();
   
-  // Логирование в AppSidebar
-  console.log('🗂️ AppSidebar: menuVisibility result:', menuVisibility);
-  const visibleSections = Object.entries(menuVisibility).filter(([key, value]) => value);
-  console.log('🗂️ AppSidebar: visible sections:', visibleSections.map(([key]) => key));
-  
   // Сохраняем состояние в localStorage при изменении
   useEffect(() => {
     localStorage.setItem('appSidebar_openGroups', JSON.stringify(openGroups));
@@ -107,12 +102,10 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   // console.log("AppSidebar render:", { isMobile, collapsed, openGroups });
 
   const toggleGroup = (groupId: string) => {
-    console.log('🔄 AppSidebar: toggleGroup called for', groupId);
     setOpenGroups(prev => {
-      const newGroups = prev.includes(groupId) 
+      const newGroups = prev.includes(groupId)
         ? prev.filter(id => id !== groupId)
         : [...prev, groupId];
-      console.log('🔄 AppSidebar: openGroups changed from', prev, 'to', newGroups);
       return newGroups;
     });
   };

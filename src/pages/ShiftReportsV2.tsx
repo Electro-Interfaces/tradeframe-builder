@@ -3,9 +3,11 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { DollarSign, Fuel, Receipt, TrendingUp, Clock } from "lucide-react";
+import { DollarSign, Fuel, Receipt, TrendingUp, Clock, FileDown } from "lucide-react";
 import { shiftReportsV2Service } from "@/services/shiftReportsV2Service";
-import type { ShiftListItem, ShiftFilters as ShiftFiltersType } from "@/types/shift-reports-v2";
+import type { ShiftListItem, ShiftFilters as ShiftFiltersType, ShiftDetails } from "@/types/shift-reports-v2";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 // Компоненты
 import KPIShiftCard from "@/components/shift-reports/KPIShiftCard";
@@ -13,16 +15,24 @@ import ShiftFilters from "@/components/shift-reports/ShiftFilters";
 import ShiftsTable from "@/components/shift-reports/ShiftsTable";
 import MobileShiftsTable from "@/components/shift-reports/MobileShiftsTable";
 import ShiftDetailsModal from "@/components/shift-reports/ShiftDetailsModal";
+import { ExportDialog } from "@/components/shift-reports/ExportDialog";
+
+// Сервис экспорта
+import { exportMultipleShifts, type ExportFormat, type ExportMode } from "@/services/shiftReportExportService";
 
 export default function ShiftReportsV2() {
   const { selectedNetwork, selectedTradingPoint: selectedTradingPointId } = useSelection();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   // Состояния
   const [shifts, setShifts] = useState<ShiftListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedShiftNumber, setSelectedShiftNumber] = useState<number | null>(null);
   const [selectedTradingPoint, setSelectedTradingPoint] = useState<any>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [selectedShiftIds, setSelectedShiftIds] = useState<string[]>([]);
 
   // Фильтры
   const [filters, setFilters] = useState<ShiftFiltersType>(() => {
@@ -70,8 +80,6 @@ export default function ShiftReportsV2() {
       try {
         setLoading(true);
 
-        console.log('🔍 ShiftReportsV2: Выбранная ТТ', selectedTradingPoint);
-
         // Извлекаем номер станции из торговой точки
         let stationNumber: number | undefined;
 
@@ -99,7 +107,7 @@ export default function ShiftReportsV2() {
 
         // Если номер станции не найден - показываем ошибку пользователю
         if (!stationNumber) {
-          console.error('❌ ShiftReportsV2: Не настроен номер станции STS API для торговой точки', selectedTradingPoint);
+          console.error('Не настроен номер станции STS API для торговой точки:', selectedTradingPoint);
           alert(`Ошибка: Для торговой точки "${selectedTradingPoint.name}" не настроен номер станции в STS API.\n\nНеобходимо добавить:\n- external_id с номером станции\n- или код в externalCodes с system='sts'`);
           setShifts([]);
           setLoading(false);
@@ -114,22 +122,14 @@ export default function ShiftReportsV2() {
           // dt_end: filters.dateTo,
         };
 
-        console.log('🔄 ShiftReportsV2: Загрузка смен', {
-          filters,
-          requestParams,
-          tradingPoint: selectedTradingPoint,
-          stationNumber
-        });
-
         const data = await shiftReportsV2Service.getShifts(
           requestParams,
           selectedTradingPoint.name
         );
 
-        console.log('✅ ShiftReportsV2: Смены загружены', data.length);
         setShifts(data);
       } catch (error) {
-        console.error('❌ ShiftReportsV2: Ошибка загрузки смен', error);
+        console.error('Ошибка загрузки смен:', error);
         // Сервис уже возвращает mock данные при ошибке, но на всякий случай
         setShifts([]);
       } finally {
@@ -195,6 +195,108 @@ export default function ShiftReportsV2() {
     setFilters({ ...filters });
   };
 
+  // Обработка выбора смен
+  const handleToggleShiftSelection = (shiftId: string) => {
+    setSelectedShiftIds(prev =>
+      prev.includes(shiftId)
+        ? prev.filter(id => id !== shiftId)
+        : [...prev, shiftId]
+    );
+  };
+
+  const handleToggleAllShifts = (selected: boolean) => {
+    if (selected) {
+      setSelectedShiftIds(filteredShifts.map(shift => shift.id));
+    } else {
+      setSelectedShiftIds([]);
+    }
+  };
+
+  // Обработка экспорта
+  const handleExport = async (format: ExportFormat, mode: ExportMode, folderHandle?: any) => {
+    // Проверка: должны быть выбраны конкретные смены
+    if (selectedShiftIds.length === 0) {
+      toast({
+        title: "Не выбраны сменные отчеты",
+        description: "Выберите один или несколько сменных отчетов для экспорта с помощью чекбоксов",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Определяем смены для экспорта
+    const shiftsToExport = filteredShifts.filter(shift => selectedShiftIds.includes(shift.id));
+
+    if (shiftsToExport.length === 0) {
+      toast({
+        title: "Ошибка",
+        description: "Выбранные смены не найдены",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      // Получаем полные данные для каждой смены
+      const shiftDetails: ShiftDetails[] = [];
+
+      for (const shift of shiftsToExport) {
+        const details = await shiftReportsV2Service.getShiftDetails({
+          system: 15,
+          station: shift.stationCode,
+          shift: shift.shiftNumber,
+        });
+
+        if (details) {
+          shiftDetails.push(details);
+        }
+      }
+
+      // Экспортируем смены
+      const results = await exportMultipleShifts(
+        shiftDetails,
+        { format, mode, folderHandle }
+      );
+
+      // Подсчет результатов
+      const successCount = results.filter(r => r.success && !r.skipped).length;
+      const skippedCount = results.filter(r => r.skipped).length;
+      const errorCount = results.filter(r => !r.success).length;
+
+      // Уведомление
+      if (successCount > 0) {
+        toast({
+          title: "Экспорт завершен",
+          description: `Экспортировано: ${successCount}, пропущено: ${skippedCount}, ошибок: ${errorCount}`,
+        });
+      } else if (skippedCount > 0) {
+        toast({
+          title: "Все файлы уже экспортированы",
+          description: `Пропущено файлов: ${skippedCount}`,
+        });
+      } else {
+        toast({
+          title: "Ошибка экспорта",
+          description: "Не удалось экспортировать файлы",
+          variant: "destructive",
+        });
+      }
+
+      setExportDialogOpen(false);
+    } catch (error) {
+      console.error('❌ Ошибка экспорта:', error);
+      toast({
+        title: "Ошибка экспорта",
+        description: error instanceof Error ? error.message : "Неизвестная ошибка",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Форматирование
   const formatCurrency = (value: number) => {
     return value.toLocaleString('ru-RU', {
@@ -253,13 +355,28 @@ export default function ShiftReportsV2() {
 
         {/* Журнал смен */}
         <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 md:p-6">
-          <div className="mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">
               Журнал смен
               <span className="text-slate-400 ml-2 font-normal text-sm">
                 ({filteredShifts.length} из {shifts.length})
               </span>
+              {selectedShiftIds.length > 0 && (
+                <span className="text-trade-blue ml-2 font-normal text-sm">
+                  • Выбрано: {selectedShiftIds.length}
+                </span>
+              )}
             </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExportDialogOpen(true)}
+              disabled={selectedShiftIds.length === 0 || loading}
+              title={selectedShiftIds.length === 0 ? "Выберите смены для экспорта" : `Экспортировать ${selectedShiftIds.length} смен(у/ы)`}
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              Экспорт {selectedShiftIds.length > 0 ? `(${selectedShiftIds.length})` : ''}
+            </Button>
           </div>
 
           {/* Таблица или карточки */}
@@ -274,6 +391,9 @@ export default function ShiftReportsV2() {
               shifts={filteredShifts}
               onSelectShift={handleSelectShift}
               loading={loading}
+              selectedShiftIds={selectedShiftIds}
+              onToggleShiftSelection={handleToggleShiftSelection}
+              onToggleAllShifts={handleToggleAllShifts}
             />
           )}
         </div>
@@ -307,6 +427,14 @@ export default function ShiftReportsV2() {
             stationName={selectedTradingPoint.name}
           />
         )}
+
+        {/* Диалог экспорта */}
+        <ExportDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          onExport={handleExport}
+          isExporting={isExporting}
+        />
       </div>
     </MainLayout>
   );

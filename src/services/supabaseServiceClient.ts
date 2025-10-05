@@ -8,10 +8,6 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = 'https://ssvazdgnmatbdynkhkqo.supabase.co';
 const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
 
-console.log('🔧 Supabase Service Client Configuration:');
-console.log('URL:', supabaseUrl);
-console.log('Service key configured:', serviceRoleKey.substring(0, 50) + '...');
-
 // Создание service role клиента для админских операций
 export const supabaseService: SupabaseClient = createClient(
   supabaseUrl,
@@ -57,8 +53,6 @@ export const testServiceConnection = async () => {
 };
 
 // Автотест при загрузке
-testServiceConnection().then(result => {
-  console.log('🧪 Service connection test:', result);
-});
+testServiceConnection();
 
 export default supabaseService;

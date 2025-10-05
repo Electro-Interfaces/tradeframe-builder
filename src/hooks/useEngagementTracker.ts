@@ -38,8 +38,6 @@ export const useEngagementTracker = () => {
   };
 
   useEffect(() => {
-    console.log('🎯 Engagement Tracker: Начинаем отслеживание активности пользователя...');
-
     // Обновляем время каждую секунду
     const timeTracker = setInterval(() => {
       const currentTime = Date.now();
@@ -47,13 +45,7 @@ export const useEngagementTracker = () => {
 
       setMetrics(prev => {
         const newMetrics = { ...prev, timeSpent };
-        const wasEngaged = prev.isEngaged;
         const nowEngaged = isEngagementSufficient(newMetrics);
-
-        if (!wasEngaged && nowEngaged) {
-          console.log('✅ Engagement достигнут!', newMetrics);
-        }
-
         return { ...newMetrics, isEngaged: nowEngaged };
       });
     }, 1000);
@@ -66,11 +58,6 @@ export const useEngagementTracker = () => {
         ...prev,
         interactions: prev.interactions + 1
       }));
-
-      console.log(`🎯 Interaction detected: ${event.type}`, {
-        target: (event.target as Element)?.tagName,
-        total: metrics.interactions + 1
-      });
     };
 
     // Отслеживаем скролл
@@ -120,15 +107,11 @@ export const useEngagementTracker = () => {
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('mousemove', handleMouseMove);
-
-      console.log('🧹 Engagement Tracker: Очистка завершена');
     };
   }, []);
 
   // Метод для принудительного увеличения engagement (для тестирования)
   const boostEngagement = () => {
-    console.log('🚀 Engagement Boost: Принудительно увеличиваем активность...');
-
     setMetrics(prev => ({
       timeSpent: Math.max(prev.timeSpent, 31),
       interactions: Math.max(prev.interactions, 6),

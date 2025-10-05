@@ -63,7 +63,7 @@ export default function NetworkOverview() {
   
 
   // Функция загрузки транзакций
-  const loadTransactions = async () => {
+  const loadTransactions = async (signal?: AbortSignal) => {
     if (!selectedNetwork?.external_id) {
       toast({
         title: "Ошибка",
@@ -127,15 +127,15 @@ export default function NetworkOverview() {
         } catch (error) {
         }
       }
-      
-      
+
+
       const stsTransactions = await stsApiService.getTransactions(
         dateFrom,
         dateTo,
         200,
         contextParams
       );
-      
+
       setTransactions(stsTransactions);
 
       // Загружаем дополнительные данные для более полного обзора
@@ -176,6 +176,11 @@ export default function NetworkOverview() {
       const additionalText = additionalDataLoaded.length > 0 ? `, ${additionalDataLoaded.join(', ')}` : '';
       
     } catch (error) {
+      // Игнорируем ошибки отмены запроса (происходят при быстрой смене фильтров/страниц)
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        return;
+      }
+
       console.error('❌ Ошибка загрузки транзакций:', error);
       toast({
         title: "Ошибка загрузки",

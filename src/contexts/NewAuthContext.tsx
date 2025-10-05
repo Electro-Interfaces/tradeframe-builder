@@ -111,16 +111,10 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
    */
   const loadFreshUserData = async (email: string): Promise<AppUser | null> => {
     try {
-      console.log('🔄 Loading fresh user data from database for:', email);
-
       const dbUser = await authService.getUserByEmail(email);
       if (!dbUser) {
-        console.log('❌ User not found in database');
         return null;
       }
-
-      // ОТЛАДКА: Что именно пришло из базы данных (НОВАЯ СХЕМА)
-      console.log('🔍 DEBUG: dbUser.user_roles =', dbUser.user_roles);
 
       // Получаем роль из новой схемы БД
       const userRoles = (dbUser as any).user_roles || [];
@@ -131,8 +125,6 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       let permissions: string[] = [];
 
       if (primaryRole) {
-        console.log('🎭 NewAuthContext: Found role from DB:', primaryRole);
-
         // Используем код роли или имя для маппинга
         userRole = primaryRole.code || primaryRole.name;
         roleId = primaryRole.id;
@@ -149,12 +141,9 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
           };
 
           if (roleNameToCode[primaryRole.name]) {
-            console.log('🎭 NewAuthContext FRESH РОЛЬ МАППИНГ:', primaryRole.name, '->', roleNameToCode[primaryRole.name]);
             userRole = roleNameToCode[primaryRole.name];
           }
         }
-      } else {
-        console.log('⚠️ NewAuthContext: No roles found in DB, using default "user"');
       }
 
       const userData: AppUser = {
@@ -168,7 +157,6 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
         permissions: permissions
       };
 
-      console.log('✅ Fresh user data loaded, role:', userData.role);
       return userData;
     } catch (error) {
       console.error('❌ NewAuthContext: Error loading fresh user data:', error);
@@ -182,36 +170,19 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        console.log('🔄 NewAuthContext: Initializing authentication...');
-        console.log('🔄 NewAuthContext: Device info:', {
-          userAgent: navigator.userAgent,
-          isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-          url: window.location.href,
-          host: window.location.host,
-          protocol: window.location.protocol
-        });
-
         const sessionEmail = getSessionEmail();
         if (sessionEmail) {
-          console.log('🔄 NewAuthContext: Active session found, loading fresh data for:', sessionEmail);
-
           const freshUser = await loadFreshUserData(sessionEmail);
           if (freshUser) {
             setUser(freshUser);
-            console.log('✅ NewAuthContext: Fresh user data loaded from database, role:', freshUser.role);
           } else {
-            console.log('⚠️ NewAuthContext: Failed to load fresh data, clearing session');
             clearAuthData();
           }
-        } else {
-          console.log('ℹ️ NewAuthContext: No active session found');
         }
       } catch (error) {
         console.error('❌ NewAuthContext: Initialization error:', error);
-        console.error('❌ NewAuthContext: Error stack:', error.stack);
         clearAuthData();
       } finally {
-        console.log('🔄 NewAuthContext: Setting loading to false');
         setLoading(false);
       }
     };
@@ -226,8 +197,6 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     setLoading(true);
 
     try {
-      console.log('🔐 NewAuthContext: Attempting login for:', email);
-
       const authenticatedUser = await authService.authenticate(email, password);
 
       if (!authenticatedUser) {

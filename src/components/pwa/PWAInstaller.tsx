@@ -151,31 +151,11 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
           userEngagement: document.visibilityState === 'visible'
         };
 
-        console.log('🔍 Chrome PWA Диагностика - почему beforeinstallprompt НЕ срабатывает:', diagnose);
-
-        // Дополнительные проверки
-        const additionalChecks = {
-          alreadyInstalled: window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone,
-          hasMinimalUI: window.matchMedia('(display-mode: minimal-ui)').matches,
-          browserUI: window.matchMedia('(display-mode: browser)').matches,
-          relatedApplications: navigator.getInstalledRelatedApps ? 'supported' : 'not supported'
-        };
-
-        console.log('🔍 Chrome PWA Дополнительные проверки:', additionalChecks);
-
         // Проверим manifest содержимое
         fetch('/tradeframe-builder/manifest.json')
           .then(r => r.json())
           .then(manifest => {
-            console.log('📋 Manifest анализ для Chrome PWA:', {
-              name: manifest.name,
-              shortName: manifest.short_name,
-              display: manifest.display,
-              startUrl: manifest.start_url,
-              themeColor: manifest.theme_color,
-              backgroundColor: manifest.background_color,
-              icons: manifest.icons?.length || 0
-            });
+            // manifest loaded
           })
           .catch(e => console.error('❌ Ошибка анализа manifest:', e));
 
@@ -183,68 +163,34 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
     }
 
     // Отключаем агрессивный fallback - только естественные PWA события
-    console.log('⏰ PWA Installer: Ждем естественное beforeinstallprompt событие от браузера');
     const fallbackTimer = setTimeout(() => {
-      console.log('🔍 PWA Installer: Проверяем состояние без агрессивного показа:', {
-        canInstall,
-        isInstalled,
-        detectedMobile,
-        detectedIOS,
-        isChrome,
-        isFirefox,
-        hasDeferredPrompt: !!deferredPrompt
-      });
-
       if (isChrome && !deferredPrompt) {
-        console.log('💡 Chrome PWA: beforeinstallprompt не сработал, возможные причины:');
-        console.log('- PWA уже установлено (проверьте chrome://apps)');
-        console.log('- Недостаточно user engagement (нужно больше взаимодействий)');
-        console.log('- Проблемы с manifest или Service Worker');
-        console.log('- Chrome требует больше времени для анализа PWA критериев');
-        console.log('- Используйте DevTools > Application > Manifest для диагностики');
-
         // Добавим кнопку для разработчиков
         if (process.env.NODE_ENV === 'development') {
-          console.log('🛠️ DEV: Для тестирования выполните в консоли: window.boostEngagement()');
           (window as any).boostEngagement = boostEngagement;
         }
       }
-
-      // НЕ показываем принудительный PWA installer
-      console.log('✅ PWA Installer: Режим "только естественные события" - промпт появится только при beforeinstallprompt');
     }, 5000);
 
     // iOS особенность: ВСЕ браузеры на iOS используют WebKit Safari движок
     // Только Safari может устанавливать PWA, остальные браузеры показывают предложение открыть в Safari
     if (detectedIOS && !isInstalled) {
-      console.log('📱 PWA Installer: iOS обнаружена - ждем естественные события Safari');
-      console.log('🍎 iOS PWA может быть установлено только через Safari "Поделиться" → "На экран Домой"');
-      console.log('🔧 iOS PWA не показывает beforeinstallprompt - установка только вручную пользователем');
-
       // НЕ показываем принудительный iOS промпт
       // Пользователь сам может добавить через Safari Share menu
     }
 
     // Слушаем событие appinstalled
     const handleAppInstalled = () => {
-      console.log('🎉 PWA Installer: Приложение успешно установлено!', {
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent
-      });
       setIsInstalled(true);
       setShowPrompt(false);
       setCanInstall(false);
       onInstalled?.();
     };
 
-    console.log('👂 PWA Installer: Добавляем event listeners...');
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    console.log('✅ PWA Installer: Event listeners добавлены, ожидаем события...');
-
     return () => {
-      console.log('🧹 PWA Installer: Очистка event listeners (обычная версия)');
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
       clearTimeout(fallbackTimer);

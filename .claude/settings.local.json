@@ -141,7 +141,10 @@
       "Bash(git push:*)",
       "Bash(start tools/test-pwa-browsers.html)",
       "Bash(npm run type-check:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npm outdated)",
+      "Bash(npm:*)",
+      "Bash(start http://localhost:3000/network/shift-reports-v2)"
     ],
     "deny": [
       "Bash(rm -rf /*)",

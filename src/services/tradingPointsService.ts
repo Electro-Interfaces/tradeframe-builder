@@ -13,13 +13,9 @@ export const tradingPointsService = {
   // Получить все торговые точки (используем mock данные)
   async getAll(): Promise<TradingPoint[]> {
     try {
-      console.log('🔄 Loading trading points from mock store...');
-      
       const points = tradingPointsStore.getAll();
-      
-      console.log('✅ Loaded mock trading points:', points.length);
       return points;
-      
+
     } catch (error) {
       console.error('💥 Critical error loading trading points:', error);
       throw error;
@@ -29,13 +25,9 @@ export const tradingPointsService = {
   // Получить торговые точки по ID сети (используем mock данные)
   async getByNetworkId(networkId: NetworkId): Promise<TradingPoint[]> {
     try {
-      console.log('🔄 Loading trading points for network:', networkId);
-      
       const points = tradingPointsStore.getByNetworkId(networkId);
-      
-      console.log(`✅ Loaded ${points.length} trading points for network ${networkId}`);
       return points;
-      
+
     } catch (error) {
       console.error('💥 Critical error loading trading points by network:', error);
       throw error;
@@ -45,16 +37,12 @@ export const tradingPointsService = {
   // Получить торговую точку по ID (используем mock данные)
   async getById(id: TradingPointId): Promise<TradingPoint | null> {
     try {
-      console.log('🔄 Loading trading point by ID from mock store:', id);
-      
       const point = tradingPointsStore.getById(id);
-      
+
       if (!point) {
-        console.warn('⚠️ Trading point not found:', id);
         return null;
       }
-      
-      console.log('✅ Found trading point:', point.name);
+
       return point;
     } catch (error) {
       console.error('💥 Critical error loading trading point by ID:', error);
@@ -65,8 +53,6 @@ export const tradingPointsService = {
   // Создать новую торговую точку (только в Supabase)
   async create(input: TradingPointInput): Promise<TradingPoint> {
     try {
-      console.log('🔄 Creating trading point in Supabase:', input);
-      
       const { data, error } = await supabase
         .from('trading_points')
         .insert({
@@ -95,8 +81,6 @@ export const tradingPointsService = {
         throw new Error('Нет данных после создания торговой точки');
       }
 
-      console.log('✅ Trading point created in Supabase:', data);
-      
       return {
         id: data.id,
         networkId: data.network_id,
@@ -123,8 +107,6 @@ export const tradingPointsService = {
   // Обновить торговую точку (только в Supabase)
   async update(id: TradingPointId, input: TradingPointInput): Promise<TradingPoint | null> {
     try {
-      console.log('🔄 Updating trading point in Supabase:', id, input);
-      
       const { data, error } = await supabase
         .from('trading_points')
         .update({
@@ -150,12 +132,9 @@ export const tradingPointsService = {
       }
 
       if (!data) {
-        console.warn('⚠️ No data returned after trading point update');
         return null;
       }
 
-      console.log('✅ Trading point updated in Supabase:', data);
-      
       return {
         id: data.id,
         networkId: data.network_id,
@@ -182,19 +161,16 @@ export const tradingPointsService = {
   // Удалить торговую точку (только в Supabase)
   async remove(id: TradingPointId): Promise<boolean> {
     try {
-      console.log('🔄 Deleting trading point in Supabase:', id);
-      
       const { error } = await supabase
         .from('trading_points')
         .delete()
         .eq('id', id);
-      
+
       if (error) {
         console.error('❌ Supabase error deleting trading point:', error);
         throw new Error(`Ошибка удаления торговой точки: ${error.message}`);
       }
 
-      console.log('✅ Trading point deleted from Supabase:', id);
       return true;
     } catch (error) {
       console.error('💥 Critical error deleting trading point:', error);
@@ -212,10 +188,8 @@ export const tradingPointsService = {
     if (!query.trim()) {
       return this.getAll();
     }
-    
+
     try {
-      console.log('🔍 Searching trading points in Supabase:', query);
-      
       const { data, error } = await supabase
         .from('trading_points')
         .select('*')
@@ -256,8 +230,6 @@ export const tradingPointsService = {
   // Получить торговые точки с информацией о сети (JOIN)
   async getAllWithNetworks(): Promise<(TradingPoint & { networkName: string })[]> {
     try {
-      console.log('🔄 Loading trading points with networks from Supabase...');
-      
       const { data, error } = await supabase
         .from('trading_points')
         .select(`
@@ -269,7 +241,7 @@ export const tradingPointsService = {
           )
         `)
         .order('name');
-      
+
       if (error) {
         console.error('❌ Supabase error loading trading points with networks:', error);
         throw new Error(`Ошибка загрузки торговых точек с сетями: ${error.message}`);
@@ -277,8 +249,6 @@ export const tradingPointsService = {
 
       if (!data) return [];
 
-      console.log('✅ Loaded trading points with networks:', data.length);
-      
       return data.map(row => ({
         id: row.id,
         external_id: row.external_id, // ID для синхронизации с торговым API
