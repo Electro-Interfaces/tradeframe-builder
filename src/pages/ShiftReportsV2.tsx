@@ -268,6 +268,9 @@ export default function ShiftReportsV2() {
               shifts={filteredShifts}
               onSelectShift={handleSelectShift}
               loading={loading}
+              selectedShiftIds={selectedShiftIds}
+              onToggleShiftSelection={handleToggleShiftSelection}
+              onToggleAllShifts={handleToggleAllShifts}
             />
           ) : (
             <ShiftsTable
