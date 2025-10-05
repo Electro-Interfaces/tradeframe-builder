@@ -144,7 +144,8 @@
       "Bash(git add:*)",
       "Bash(npm outdated)",
       "Bash(npm:*)",
-      "Bash(start http://localhost:3000/network/shift-reports-v2)"
+      "Bash(start http://localhost:3000/network/shift-reports-v2)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: улучшена страница \"Сменные отчеты 2\" и мобильная версия\n\n- Удалён старый маршрут /point/shift-reports и компонент ShiftReports\n- Убран пункт \"Сменные отчеты\" из секции \"РАЗНОЕ\" в боковом меню\n- Добавлена поддержка множественного выбора смен в мобильной таблице\n- Реализован чекбокс \"Выбрать все\" для мобильной версии\n- Улучшен дизайн карточек смен с визуальным выделением выбранных\n- Передача props для работы с выбором смен в мобильной версии\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [
       "Bash(rm -rf /*)",
