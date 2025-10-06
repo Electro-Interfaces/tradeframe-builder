@@ -33,8 +33,7 @@ import {
   FileText as FuelIcon,
   Database,
   Box,
-  Wrench as Tool,
-  Loader2
+  Wrench as Tool
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -45,7 +44,6 @@ interface AppSidebarProps {
 
 const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobileMenuOpen }: AppSidebarProps) => {
   const { state } = useSidebar();
-  const { operationsLoading } = useSelection();
   
   // Загружаем состояние открытых групп из localStorage
   const getInitialOpenGroups = (): string[] => {
@@ -190,9 +188,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
                   >
                     <item.icon className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate">{item.title}</span>
-                    {item.title === "Операции" && operationsLoading && (
-                      <Loader2 className="w-4 h-4 ml-auto animate-spin text-blue-400" />
-                    )}
                   </NavLink>
                 </div>
               ))}

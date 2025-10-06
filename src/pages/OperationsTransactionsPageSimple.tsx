@@ -1243,6 +1243,16 @@ export default function OperationsTransactionsPageSimple() {
           </div>
         )}
 
+        {/* Индикатор загрузки */}
+        {(loading || loadingFromSTS) && (
+          <div className="flex items-center justify-center gap-3 p-4 bg-blue-900/20 border border-blue-600/30 rounded-lg backdrop-blur-sm">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+            <span className="text-sm text-blue-300">
+              {loadingFromSTS ? 'Загрузка данных из STS API...' : 'Загрузка операций...'}
+            </span>
+          </div>
+        )}
+
         {/* Заголовок страницы */}
         <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm overflow-hidden">
           <CardHeader className={`${isMobileForced ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
