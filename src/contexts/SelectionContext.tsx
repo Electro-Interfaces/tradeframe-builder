@@ -10,8 +10,6 @@ type SelectionContextValue = {
   selectedTradingPoint: string;
   setSelectedTradingPoint: (v: string) => void;
   isAllTradingPoints: boolean;
-  operationsLoading: boolean;
-  setOperationsLoading: (loading: boolean) => void;
 };
 
 const SelectionContext = createContext<SelectionContextValue | undefined>(undefined);
@@ -19,7 +17,6 @@ const SelectionContext = createContext<SelectionContextValue | undefined>(undefi
 export function SelectionProvider({ children }: { children: React.ReactNode }) {
   const [selectedNetworkId, setSelectedNetworkId] = useState<string>("");
   const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>("");
-  const [operationsLoading, setOperationsLoading] = useState<boolean>(false);
   const { user } = useNewAuth();
 
   // Получаем объект сети по ID
@@ -181,8 +178,6 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     selectedTradingPoint,
     setSelectedTradingPoint,
     isAllTradingPoints,
-    operationsLoading,
-    setOperationsLoading,
   };
 
   return (

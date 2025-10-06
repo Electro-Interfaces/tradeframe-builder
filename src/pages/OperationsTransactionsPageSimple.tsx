@@ -26,7 +26,7 @@ import KPIPaymentCard from "@/components/operations/KPIPaymentCard";
 import MobileOperationsTable from "@/components/operations/MobileOperationsTable";
 
 export default function OperationsTransactionsPageSimple() {
-  const { selectedNetwork, selectedTradingPoint, setOperationsLoading } = useSelection();
+  const { selectedNetwork, selectedTradingPoint } = useSelection();
   const isMobile = useIsMobile();
   
   
@@ -655,7 +655,6 @@ export default function OperationsTransactionsPageSimple() {
     }
 
     setLoadingFromSTS(true);
-    setOperationsLoading(true); // Уведомляем меню о начале загрузки
     try {
       
       // ОЧИСТКА КЭША И ПРЕДЫДУЩИХ ДАННЫХ
@@ -770,7 +769,6 @@ export default function OperationsTransactionsPageSimple() {
       if (!isMobile) alert(`Ошибка STS API: ${error.message}`);
     } finally {
       setLoadingFromSTS(false);
-      setOperationsLoading(false); // Уведомляем меню о завершении загрузки
     }
   };
 
@@ -1456,8 +1454,21 @@ export default function OperationsTransactionsPageSimple() {
           </CardContent>
         </Card>
 
+        {/* Индикатор загрузки данных */}
+        {(loading || loadingFromSTS) && (
+          <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center">
+            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Загрузка данных</h3>
+            <p className="text-slate-400">
+              {loadingFromSTS ? 'Получаем информацию из STS API...' : 'Загружаем операции...'}
+            </p>
+          </div>
+        )}
+
         {/* Заголовок фильтров */}
-        {operations.length > 0 && (
+        {!loading && !loadingFromSTS && operations.length > 0 && (
           <div className="mb-4">
             <div className="space-y-1">
               {!isMobileForced && (
@@ -1469,7 +1480,7 @@ export default function OperationsTransactionsPageSimple() {
         )}
 
         {/* KPI карточки */}
-        {operations.length > 0 && (
+        {!loading && !loadingFromSTS && operations.length > 0 && (
           <div className="space-y-4">
             {/* Карточки по видам топлива */}
             <div className="space-y-2">
@@ -1643,19 +1654,20 @@ export default function OperationsTransactionsPageSimple() {
         )}
 
         {/* Таблица № */}
-        <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobileForced ? 'mx-0 mt-1' : ''}`}>
-          <CardHeader className={`${isMobileForced ? 'px-3 py-1.5' : 'pb-4'}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobileForced ? 'text-base' : 'text-xl'}`}>
-                  <FileText className={`${isMobileForced ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                  Операции
-                </CardTitle>
-                <p className={`text-slate-400 ${isMobileForced ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
-                  Показано {paginatedOperations.length} из {filteredOperations.length}
-                  {totalPages > 1 && ` • Страница ${currentPage} из ${totalPages}`}
-                </p>
-              </div>
+        {!loading && !loadingFromSTS && (
+          <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobileForced ? 'mx-0 mt-1' : ''}`}>
+            <CardHeader className={`${isMobileForced ? 'px-3 py-1.5' : 'pb-4'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobileForced ? 'text-base' : 'text-xl'}`}>
+                    <FileText className={`${isMobileForced ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                    Операции
+                  </CardTitle>
+                  <p className={`text-slate-400 ${isMobileForced ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
+                    Показано {paginatedOperations.length} из {filteredOperations.length}
+                    {totalPages > 1 && ` • Страница ${currentPage} из ${totalPages}`}
+                  </p>
+                </div>
               
               
               {!isMobile && totalPages > 1 && (
@@ -1949,6 +1961,7 @@ export default function OperationsTransactionsPageSimple() {
             )}
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Модальное окно с деталями операции */}

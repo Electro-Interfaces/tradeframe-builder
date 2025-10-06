@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, memo } from "react";
 import { NavLink } from "react-router-dom";
 import { useMenuVisibility } from "@/hooks/useMenuVisibility";
-import { useSelection } from "@/contexts/SelectionContext";
 import {
   Sidebar,
   SidebarContent,
@@ -33,8 +32,7 @@ import {
   FileText as FuelIcon,
   Database,
   Box,
-  Wrench as Tool,
-  Loader2
+  Wrench as Tool
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -45,7 +43,6 @@ interface AppSidebarProps {
 
 const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobileMenuOpen }: AppSidebarProps) => {
   const { state } = useSidebar();
-  const { operationsLoading } = useSelection();
   
   // Загружаем состояние открытых групп из localStorage
   const getInitialOpenGroups = (): string[] => {
@@ -183,16 +180,13 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
             <div className="space-y-1">
               {networkMenuItems.map((item) => (
                 <div key={item.title}>
-                  <NavLink
-                    to={item.url}
+                  <NavLink 
+                    to={item.url} 
                     className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
                     onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                   >
                     <item.icon className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate">{item.title}</span>
-                    {item.title === "Операции" && operationsLoading && (
-                      <Loader2 className="w-4 h-4 ml-auto animate-spin text-blue-400" />
-                    )}
                   </NavLink>
                 </div>
               ))}
