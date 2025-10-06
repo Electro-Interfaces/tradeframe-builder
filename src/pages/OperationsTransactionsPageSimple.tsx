@@ -26,7 +26,7 @@ import KPIPaymentCard from "@/components/operations/KPIPaymentCard";
 import MobileOperationsTable from "@/components/operations/MobileOperationsTable";
 
 export default function OperationsTransactionsPageSimple() {
-  const { selectedNetwork, selectedTradingPoint } = useSelection();
+  const { selectedNetwork, selectedTradingPoint, setOperationsLoading } = useSelection();
   const isMobile = useIsMobile();
   
   
@@ -655,6 +655,7 @@ export default function OperationsTransactionsPageSimple() {
     }
 
     setLoadingFromSTS(true);
+    setOperationsLoading(true); // Уведомляем меню о начале загрузки
     try {
       
       // ОЧИСТКА КЭША И ПРЕДЫДУЩИХ ДАННЫХ
@@ -769,6 +770,7 @@ export default function OperationsTransactionsPageSimple() {
       if (!isMobile) alert(`Ошибка STS API: ${error.message}`);
     } finally {
       setLoadingFromSTS(false);
+      setOperationsLoading(false); // Уведомляем меню о завершении загрузки
     }
   };
 
