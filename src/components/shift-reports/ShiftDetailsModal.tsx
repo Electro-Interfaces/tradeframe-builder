@@ -211,12 +211,12 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
         )}
 
         {details && !loading && !error && (
-          <div className={`${isMobile ? 'space-y-3' : 'space-y-6'} flex-1 overflow-y-auto`}>
+          <div className={`${isMobile ? 'space-y-2' : 'space-y-4'} flex-1 overflow-y-auto`}>
             {/* Основная информация */}
-            <div className={`grid grid-cols-1 md:grid-cols-4 ${isMobile ? 'gap-2' : 'gap-4'}`}>
-              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-4'}`}>
-                <div className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'} mb-1`}>Статус</div>
-                <div className={isMobile ? 'mt-1' : 'mt-2'}>
+            <div className={`grid grid-cols-1 md:grid-cols-4 ${isMobile ? 'gap-1.5' : 'gap-2'}`}>
+              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-1.5' : 'p-2.5'}`}>
+                <div className={`text-slate-400 ${isMobile ? 'text-[10px]' : 'text-xs'} mb-0.5`}>Статус</div>
+                <div className={isMobile ? 'mt-0.5' : 'mt-1'}>
                   {details.status === 'open' ? (
                     <Badge className={`bg-green-500/10 text-green-400 border-green-500 flex items-center gap-1 w-fit ${isMobile ? 'text-xs' : ''}`}>
                       <Clock className={isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
@@ -235,38 +235,38 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                   )}
                 </div>
               </div>
-              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-4'}`}>
-                <div className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'} mb-1`}>Открыта</div>
-                <div className={`text-white font-semibold ${isMobile ? 'text-sm' : ''}`}>{formatDateTime(details.openedAt)}</div>
+              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-1.5' : 'p-2.5'}`}>
+                <div className={`text-slate-400 ${isMobile ? 'text-[10px]' : 'text-xs'} mb-0.5`}>Открыта</div>
+                <div className={`text-white font-semibold ${isMobile ? 'text-xs' : 'text-sm'}`}>{formatDateTime(details.openedAt)}</div>
               </div>
-              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-4'}`}>
-                <div className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'} mb-1`}>Закрыта</div>
-                <div className={`text-white font-semibold ${isMobile ? 'text-sm' : ''}`}>
+              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-1.5' : 'p-2.5'}`}>
+                <div className={`text-slate-400 ${isMobile ? 'text-[10px]' : 'text-xs'} mb-0.5`}>Закрыта</div>
+                <div className={`text-white font-semibold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                   {details.closedAt ? formatDateTime(details.closedAt) : '—'}
                 </div>
               </div>
-              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-4'}`}>
-                <div className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'} mb-1`}>Оператор</div>
-                <div className={`text-white font-semibold ${isMobile ? 'text-sm' : ''}`}>{details.operator}</div>
+              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-1.5' : 'p-2.5'}`}>
+                <div className={`text-slate-400 ${isMobile ? 'text-[10px]' : 'text-xs'} mb-0.5`}>Оператор</div>
+                <div className={`text-white font-semibold ${isMobile ? 'text-xs' : 'text-sm'}`}>{details.operator}</div>
               </div>
             </div>
 
             {/* Вкладки с детальной информацией */}
             <Tabs defaultValue="composition" className="w-full">
               <TabsList className={`bg-slate-700 w-full justify-start overflow-x-auto ${isMobile ? 'h-auto' : ''}`}>
-                <TabsTrigger value="composition" className={`data-[state=active]:bg-slate-600 ${isMobile ? 'text-xs px-2 py-1.5' : ''}`}>
+                <TabsTrigger value="composition" className={`font-medium data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-sm ${isMobile ? 'text-xs px-2 py-1.5' : 'px-4 py-2'}`}>
                   {isMobile ? 'Состав' : 'Состав смены'}
                 </TabsTrigger>
-                <TabsTrigger value="tanks" className={`data-[state=active]:bg-slate-600 ${isMobile ? 'text-xs px-2 py-1.5' : ''}`}>
+                <TabsTrigger value="tanks" className={`font-medium data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-sm ${isMobile ? 'text-xs px-2 py-1.5' : 'px-4 py-2'}`}>
                   {isMobile ? 'Резервуары' : 'Состояние резервуаров'}
                 </TabsTrigger>
-                <TabsTrigger value="receipts" className={`data-[state=active]:bg-slate-600 ${isMobile ? 'text-xs px-2 py-1.5' : ''}`}>
+                <TabsTrigger value="receipts" className={`font-medium data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-sm ${isMobile ? 'text-xs px-2 py-1.5' : 'px-4 py-2'}`}>
                   Поступления
                 </TabsTrigger>
-                <TabsTrigger value="sales" className={`data-[state=active]:bg-slate-600 ${isMobile ? 'text-xs px-2 py-1.5' : ''}`}>
+                <TabsTrigger value="sales" className={`font-medium data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-sm ${isMobile ? 'text-xs px-2 py-1.5' : 'px-4 py-2'}`}>
                   {isMobile ? 'Реализация' : 'Расшифровка реализации'}
                 </TabsTrigger>
-                <TabsTrigger value="cash" className={`data-[state=active]:bg-slate-600 ${isMobile ? 'text-xs px-2 py-1.5' : ''}`}>
+                <TabsTrigger value="cash" className={`font-medium data-[state=active]:bg-slate-600 data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-sm ${isMobile ? 'text-xs px-2 py-1.5' : 'px-4 py-2'}`}>
                   {isMobile ? 'Наличные' : 'Движение наличных'}
                 </TabsTrigger>
               </TabsList>

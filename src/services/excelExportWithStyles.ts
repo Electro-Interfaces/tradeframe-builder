@@ -211,7 +211,7 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
           idx === 0 ? nozzle.fuelName : '',
           idx === 0 ? (tank?.tankNumber || '—') : '',
           idx === 0 ? (tank?.density?.toFixed(3) || '—') : '',
-          nozzle.pumpNumber,
+          nozzle.nozzle, // Номер пистолета в формате "1-2"
           nozzle.endCounter.toFixed(2),
           nozzle.startCounter.toFixed(2),
           nozzle.volume.toFixed(2),
@@ -253,6 +253,31 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       });
       currentRow++;
     });
+
+    // Финальная строка "ИТОГО:" для всей таблицы
+    const grandTotalVolume = details.nozzleReadings.reduce((sum, n) => sum + n.volume, 0);
+    const grandTotalAmount = details.nozzleReadings.reduce((sum, n) => sum + n.amount, 0);
+    const grandTotalCost = details.nozzleReadings.reduce((sum, n) => sum + n.cost, 0);
+
+    const grandTotalsRow = [
+      'ИТОГО:',
+      '',
+      '',
+      '',
+      '',
+      '',
+      grandTotalVolume.toFixed(2),
+      grandTotalAmount.toFixed(2),
+      '',
+      grandTotalCost.toFixed(2)
+    ];
+
+    grandTotalsRow.forEach((value, colIdx) => {
+      const cell = worksheet.getCell(currentRow, colIdx + 1);
+      cell.value = value;
+      cell.style = totalsStyle; // Такой же стиль, как у промежуточных итогов "Всего:"
+    });
+    currentRow++;
   }
   currentRow += 2;
 
