@@ -253,7 +253,6 @@ const LoginPageWithLegal = () => {
           setLegalDocuments(docs);
         } else {
           // Fallback к шаблонам
-          console.log('📝 Using default legal document templates');
           setLegalDocuments(getDefaultLegalDocuments());
         }
 

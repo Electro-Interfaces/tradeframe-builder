@@ -4,21 +4,16 @@ import { useNewAuth } from '../contexts/NewAuthContext';
 import { Loader2 } from 'lucide-react';
 import '../types/window';
 
-console.log('📁 ProtectedRoute.tsx: Module loaded!');
-
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  console.log('🛡️ ProtectedRoute: component rendered');
   const { user, loading } = useNewAuth();
-  console.log('🛡️ ProtectedRoute: user =', user, 'loading =', loading);
   const location = useLocation();
 
   // Показываем загрузку пока проверяем аутентификацию
   if (loading) {
-    console.log('🔄 ProtectedRoute: loading=true, показываем лоадер');
     // Обновляем статус в index.html если возможно
     if (typeof window !== 'undefined' && window.updateLoadingStatus) {
       window.updateLoadingStatus('Проверка авторизации...');

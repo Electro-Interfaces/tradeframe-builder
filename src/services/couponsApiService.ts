@@ -56,7 +56,6 @@ class CouponsApiService {
           token: parsedConfig.token,
           tokenExpiry: parsedConfig.tokenExpiry
         };
-        console.log('🔧 Coupons API: Конфигурация загружена из STS API');
       } else {
         console.warn('⚠️ Coupons API: Конфигурация STS API не найдена');
         this.config = {
@@ -93,7 +92,6 @@ class CouponsApiService {
       }
 
       this.refreshAttempts++;
-      console.log(`🔄 Coupons API: Обновляем токен (попытка ${this.refreshAttempts})...`);
 
       try {
         const response = await fetch(`${this.config.url}/v1/login`, {
@@ -118,7 +116,6 @@ class CouponsApiService {
 
           // Сбрасываем счетчик при успешном обновлении
           this.refreshAttempts = 0;
-          console.log('✅ Coupons API: Токен успешно обновлен');
 
           return true;
         } else {
@@ -171,9 +168,6 @@ class CouponsApiService {
         url.searchParams.append('dt_end', dtEnd);
       }
 
-      console.log('🔄 Загружаем купоны с API:', url.toString());
-      console.log('🔧 Config URL:', this.config!.url);
-      console.log('🔧 Full URL constructed:', url.href);
 
       const headers: Record<string, string> = {
         'Authorization': `Bearer ${this.config!.token}`,
@@ -198,7 +192,6 @@ class CouponsApiService {
 
         // Если токен истек, попробуем обновить его и повторить запрос
         if (response.status === 401 && this.refreshAttempts < this.MAX_REFRESH_ATTEMPTS) {
-          console.log('🔄 Coupons API: Токен истек, пробуем обновить...');
           const tokenRefreshed = await this.refreshTokenIfNeeded(true);
           if (tokenRefreshed) {
             // Повторяем запрос с новым токеном

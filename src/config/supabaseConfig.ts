@@ -44,9 +44,7 @@ if (isDevelopment && import.meta.env.VITE_DEBUG_MODE === 'true') {
   });
   
   if (supabaseConfig.keyType === 'SERVICE_ROLE') {
-    console.log('⚡ Using SERVICE ROLE KEY - Full database access!');
   } else {
-    console.log('🔑 Using ANON KEY - Normal user access');
   }
 }
 
@@ -54,13 +52,11 @@ if (isDevelopment && import.meta.env.VITE_DEBUG_MODE === 'true') {
  * Тестирование соединения с Supabase
  */
 export async function testSupabaseConnection() {
-  console.log('🔍 Testing Supabase connection...');
   
   try {
     const result = await supabase.testConnection();
     
     if (result.success) {
-      console.log('✅ Supabase connection successful!', result.info);
       
       // Дополнительная проверка доступности таблиц
       const tablesResult = await supabase.select('equipment_templates', { limit: 1 });
@@ -68,7 +64,6 @@ export async function testSupabaseConnection() {
         console.warn('⚠️ Table access limited:', tablesResult.error);
         return { success: true, warning: 'Limited table access', details: result.info };
       } else {
-        console.log('✅ Table access confirmed');
         return { success: true, details: result.info };
       }
       
@@ -97,7 +92,6 @@ export async function getAvailableTables() {
     }
     
     const tables = result.data?.map(t => t.table_name) || [];
-    console.log(`📋 Available tables (${tables.length}):`, tables);
     
     return { success: true, tables };
     
@@ -120,7 +114,6 @@ export async function checkTableAccess(tableName: string) {
       return { accessible: false, error: result.error };
     }
     
-    console.log(`✅ Table '${tableName}' is accessible`);
     return { accessible: true, sampleData: result.data?.[0] };
     
   } catch (error) {

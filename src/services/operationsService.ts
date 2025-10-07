@@ -70,18 +70,14 @@ class OperationsServiceUpdated {
       });
       
       if (isMockMode) {
-        console.log('📦 Using mock operations data');
         return this.getMockOperations(filters, pagination);
       }
       
       
       // Используем реальный API
-      console.log('🌐 Using API operations data');
       const queryParams = this.buildQueryParams(filters, pagination);
-      console.log('📊 API request:', `/operations?${queryParams}`);
       const response = await httpClient.get(`/operations?${queryParams}`);
       
-      console.log('✅ API response received:', { dataCount: response?.data?.length });
       return this.transformOperationsResponse(response);
       
     } catch (error) {
@@ -98,9 +94,7 @@ class OperationsServiceUpdated {
    */
   async getAll(): Promise<Operation[]> {
     try {
-      console.log('🔄 OperationsService.getAll() called');
       const result = await this.getOperations({}, { limit: 10000 });
-      console.log('✅ getAll() успешно загрузил', result.data.length, 'операций');
       return result.data;
     } catch (error) {
       console.error('❌ OperationsService.getAll() error:', error);
@@ -112,7 +106,6 @@ class OperationsServiceUpdated {
    * Принудительная перезагрузка данных
    */
   async forceReload(): Promise<void> {
-    console.log('🔄 OperationsService.forceReload() called');
     // Очищаем кэш если есть
     localStorage.removeItem('tradeframe_operations');
     localStorage.removeItem('operations');
@@ -335,7 +328,6 @@ class OperationsServiceUpdated {
       summary: apiResponse.summary
     };
     
-    console.log('✅ Transformed operations:', result.data.length, 'операций');
     return result;
   }
   
@@ -374,7 +366,6 @@ class OperationsServiceUpdated {
   // ============================================
   
   private async getMockOperations(filters: OperationFilters, pagination: PaginationParams): Promise<PaginatedOperations> {
-    console.log('📦 Using fallback mock operations data');
 
     // Простые mock данные без БД зависимостей
     const mockOperations: Operation[] = [
@@ -442,7 +433,6 @@ class OperationsServiceUpdated {
   }
   
   private async getMockOperationById(id: string): Promise<Operation | null> {
-    console.log('📦 Getting mock operation by ID:', id);
 
     // Простая mock реализация
     if (id === 'OP-001') {
@@ -488,7 +478,6 @@ class OperationsServiceUpdated {
   }
   
   private async getMockOperationsStats(): Promise<any> {
-    console.log('📦 Generating mock operations statistics');
 
     // Простые mock данные без БД зависимостей
     return {

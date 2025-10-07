@@ -12,62 +12,77 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, Calendar, Fuel, CreditCard, Pin, HelpCircle, RefreshCw } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, Calendar, Fuel, CreditCard, Pin, HelpCircle, RefreshCw, Filter, ChevronDown, ChevronRight } from "lucide-react";
 import { operationsService } from "@/services/operationsService";
 import { stsApiService, Transaction } from "@/services/stsApi";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { TradingPoint } from "@/types/tradingpoint";
-import * as XLSX from 'xlsx';
-// PDF export removed - jsPDF and html2canvas imports disabled
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, TimeScale } from 'chart.js';
-import { loadPdfMake } from "@/utils/pdfMake";
 import KPIFuelCard from "@/components/operations/KPIFuelCard";
 import KPIPaymentCard from "@/components/operations/KPIPaymentCard";
 import MobileOperationsTable from "@/components/operations/MobileOperationsTable";
+import { exportToExcel, exportToPdf } from "@/services/operationsExportService";
+import { normalizePaymentMethod } from "@/utils/paymentUtils";
+import { useOperationsFilters } from "@/hooks/useOperationsFilters";
 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
   const isMobile = useIsMobile();
-  
-  
+
+  // Управление фильтрами через кастомный хук
+  const {
+    filters,
+    debouncedFilters,
+    setSelectedFuelType,
+    setSelectedPaymentMethod,
+    setSelectedStatus,
+    setDateFrom,
+    setDateTo,
+    setSearchQuery,
+    setSelectedKpiFuels,
+    setSelectedKpiPayments,
+    clearFilters,
+    handleKpiFuelClick,
+    handleKpiPaymentClick
+  } = useOperationsFilters();
+
+  const {
+    selectedFuelType,
+    selectedPaymentMethod,
+    selectedStatus,
+    dateFrom,
+    dateTo,
+    searchQuery,
+    selectedKpiFuels,
+    selectedKpiPayments
+  } = filters;
+
+  const {
+    dateFrom: debouncedDateFrom,
+    dateTo: debouncedDateTo,
+    searchQuery: debouncedSearchQuery
+  } = debouncedFilters;
+
   // Определяем режим отображения на основе размера экрана
   const isMobileForced = isMobile;
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Пагинация
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = isMobile ? 20 : 50;
   const [totalPages, setTotalPages] = useState(0);
-  
+
   // STS API состояние
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
   const [loadingFromSTS, setLoadingFromSTS] = useState(false);
-  
-  // Фильтры
-  const [selectedFuelType, setSelectedFuelType] = useState("Все");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Все");
-  const [selectedStatus, setSelectedStatus] = useState("Все");
-  const [dateFrom, setDateFrom] = useState(() => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
-  });
-  const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Debounced версии фильтров для оптимизации производительности
-  const debouncedDateFrom = useDebounce(dateFrom, 400);
-  const debouncedDateTo = useDebounce(dateTo, 400);
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
-
-  // KPI карточки фильтры
-  const [selectedKpiFuels, setSelectedKpiFuels] = useState(new Set());
-  const [selectedKpiPayments, setSelectedKpiPayments] = useState(new Set());
 
   // Модальное окно деталей операции
   const [selectedOperation, setSelectedOperation] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  // Состояние раскрытия фильтров
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   // Pull-to-refresh состояния
   const [pullState, setPullState] = useState('idle');
@@ -76,565 +91,32 @@ export default function OperationsTransactionsPageSimple() {
   const rafId = useRef(null);
   const scrollContainerRef = useRef(null);
 
-  // Универсальная функция для нормализации способов оплаты
-  const normalizePaymentMethod = (paymentMethod: string): string => {
-    if (!paymentMethod) return '-';
 
-    const method = paymentMethod.toLowerCase();
-
-    // Наличные
-    if (['cash', 'наличные'].includes(method)) {
-      return 'Наличные';
-    }
-
-    // Банковские карты
-    if (['bank_card', 'карта', 'сбербанк', 'card', 'credit_card', 'debit_card'].includes(method)) {
-      return 'Банк. карты';
-    }
-
-    // Топливные карты
-    if (['fuel_card', 'топливная_карта', 'fleet_card', 'нкт'].includes(method)) {
-      return 'Топл. карты';
-    }
-
-    // Онлайн заказы и мобильные платежи
-    if (['online_order', 'мобил.п', 'мобильная', 'мобильная оплата', 'mobile', 'qr'].includes(method)) {
-      return 'Онлайн';
-    }
-
-    // Если не найдено соответствие, возвращаем исходное значение
-    return paymentMethod;
-  };
-
-  // Функции экспорта
-  const exportToExcel = () => {
-    try {
-      // Подготавливаем данные для экспорта
-      const exportData = filteredOperations.map(record => ({
-        'ID операции': record.id,
-        'Статус': record.status === 'completed' ? 'Завершено' : 
-                  record.status === 'in_progress' ? 'Выполняется' : 
-                  record.status === 'failed' ? 'Ошибка' : 
-                  record.status === 'pending' ? 'Ожидание' : 
-                  record.status === 'cancelled' ? 'Отменено' : record.status,
-        'Время начала': new Date(record.startTime).toLocaleString('ru-RU'),
-        'Вид топлива': record.fuelType || '-',
-        'Номер пистолета': record.nozzleNumber || '-',
-        'Номер резервуара': record.tankNumber || '-',
-        'Факт.(литры)': Number(record.actualQuantity || record.quantity || 0),
-        'Цена за литр (₽)': Number(record.price || 0),
-        'Факт.(сумма ₽)': Number(record.actualAmount || record.totalCost || 0),
-        'Вид оплаты': normalizePaymentMethod(record.paymentMethod),
-        'POS': record.posNumber || '-',
-        'Смена': record.shiftNumber || '-',
-        'Карта': record.cardNumber || '-',
-        'Номер чека': record.receiptNumber || '-',
-        'Тип операции': record.operationType || '-',
-        'Заказ (литры)': Number(record.orderedQuantity || 0),
-        'Заказ (сумма ₽)': Number(record.orderedAmount || 0),
-        'Источник данных': record.isFromStsApi ? 'STS API' : 'Локальные данные'
-      }));
-
-      // Создаем рабочую книгу
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      
-      // Устанавливаем ширину колонок
-      const colWidths = [
-        { wch: 20 }, // ID операции
-        { wch: 12 }, // Статус
-        { wch: 18 }, // Время начала
-        { wch: 15 }, // Вид топлива
-        { wch: 12 }, // Номер пистолета
-        { wch: 15 }, // Номер резервуара
-        { wch: 18 }, // Факт.(литры)
-        { wch: 15 }, // Цена за литр
-        { wch: 20 }, // Фактич. отпуск (сумма)
-        { wch: 15 }, // Вид оплаты
-        { wch: 12 }, // Номер POS
-        { wch: 8 },  // Смена
-        { wch: 15 }, // Номер карты
-        { wch: 15 }, // Номер чека
-        { wch: 15 }, // Тип операции
-        { wch: 15 }, // Заказ (литры)
-        { wch: 18 }, // Заказ (сумма)
-        { wch: 15 }  // Источник данных
-      ];
-      ws['!cols'] = colWidths;
-
-      // Настраиваем форматы для числовых столбцов
-      const range = XLSX.utils.decode_range(ws['!ref']);
-      for (let row = range.s.r + 1; row <= range.e.r; row++) {
-        // Столбец I - Факт.(литры) - формат чисел с 2 знаками
-        const literCell = XLSX.utils.encode_cell({ r: row, c: 8 });
-        if (ws[literCell] && typeof ws[literCell].v === 'number') {
-          ws[literCell].z = '0.00';
-          ws[literCell].t = 'n';
-        }
-
-        // Столбец J - Цена за литр - формат чисел с 2 знаками
-        const priceCell = XLSX.utils.encode_cell({ r: row, c: 9 });
-        if (ws[priceCell] && typeof ws[priceCell].v === 'number') {
-          ws[priceCell].z = '0.00';
-          ws[priceCell].t = 'n';
-        }
-
-        // Столбец K - Фактич. отпуск (сумма) - формат чисел с 2 знаками
-        const amountCell = XLSX.utils.encode_cell({ r: row, c: 10 });
-        if (ws[amountCell] && typeof ws[amountCell].v === 'number') {
-          ws[amountCell].z = '0.00';
-          ws[amountCell].t = 'n';
-        }
-
-        // Столбец S - Заказ (литры) - формат чисел с 2 знаками
-        const orderedLiterCell = XLSX.utils.encode_cell({ r: row, c: 18 });
-        if (ws[orderedLiterCell] && typeof ws[orderedLiterCell].v === 'number') {
-          ws[orderedLiterCell].z = '0.00';
-          ws[orderedLiterCell].t = 'n';
-        }
-
-        // Столбец T - Заказ (сумма) - формат чисел с 2 знаками
-        const orderedAmountCell = XLSX.utils.encode_cell({ r: row, c: 19 });
-        if (ws[orderedAmountCell] && typeof ws[orderedAmountCell].v === 'number') {
-          ws[orderedAmountCell].z = '0.00';
-          ws[orderedAmountCell].t = 'n';
-        }
-      }
-
-      XLSX.utils.book_append_sheet(wb, ws, 'Операции');
-      
-      // Генерируем имя файла с текущей датой
-      const fileName = `operations_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      XLSX.writeFile(wb, fileName);
-      
-      
-      // Показываем уведомление об успешном экспорте для всех устройств
-      const notification = document.createElement('div');
-      notification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
-      notification.textContent = `Excel файл создан: ${exportData.length} записей`;
-      document.body.appendChild(notification);
-      setTimeout(() => {
-        if (document.body.contains(notification)) {
-          document.body.removeChild(notification);
-        }
-      }, 3000);
-    } catch (error) {
-      console.error('❌ Ошибка экспорта в Excel:', error);
-      
-      // Показываем ошибку для всех устройств
-      const errorNotification = document.createElement('div');
-      errorNotification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
-      errorNotification.textContent = 'Ошибка при создании Excel файла';
-      document.body.appendChild(errorNotification);
-      setTimeout(() => {
-        if (document.body.contains(errorNotification)) {
-          document.body.removeChild(errorNotification);
-        }
-      }, 3000);
-    }
-  };
-
-  const createChartCanvas = (type, data, options) => {
-    return new Promise((resolve) => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 300;
-        
-        ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, TimeScale);
-        
-        const chart = new ChartJS(canvas.getContext('2d'), {
-          type,
-          data,
-          options: {
-            ...options,
-            animation: false,
-            responsive: false,
-            maintainAspectRatio: false,
-            plugins: {
-              ...options.plugins,
-              legend: {
-                ...options.plugins?.legend,
-                labels: {
-                  color: '#ffffff',
-                  font: { size: 12 }
-                }
-              }
-            },
-            scales: options.scales ? {
-              ...options.scales,
-              x: options.scales.x ? {
-                ...options.scales.x,
-                ticks: { color: '#ffffff', font: { size: 10 } },
-                grid: { color: '#374151' }
-              } : undefined,
-              y: options.scales.y ? {
-                ...options.scales.y,
-                ticks: { color: '#ffffff', font: { size: 10 } },
-                grid: { color: '#374151' }
-              } : undefined
-            } : undefined
-          }
-        });
-        
-        setTimeout(() => {
-          try {
-            const dataUrl = canvas.toDataURL('image/png');
-            chart.destroy();
-            resolve(dataUrl);
-          } catch (error) {
-            chart.destroy();
-            resolve('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
-          }
-        }, 200);
-      } catch (error) {
-        resolve('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
-      }
+  // Обработчики экспорта
+  const handleExportToExcel = () => {
+    exportToExcel({
+      operations: filteredOperations,
+      dateFrom,
+      dateTo,
+      networkName: selectedNetwork?.name,
+      tradingPointName: typeof selectedTradingPoint === 'string'
+        ? (selectedTradingPoint === 'all' ? 'Все торговые точки' : selectedTradingPoint)
+        : selectedTradingPoint?.name,
+      isMobile
     });
   };
 
-  const exportToPdf = async () => {
-    if (!filteredOperations.length) {
-      const emptyNotification = document.createElement('div');
-      emptyNotification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
-      emptyNotification.textContent = 'Нет данных для экспорта';
-      document.body.appendChild(emptyNotification);
-      setTimeout(() => {
-        if (document.body.contains(emptyNotification)) {
-          document.body.removeChild(emptyNotification);
-        }
-      }, 2500);
-      return;
-    }
-
-    try {
-      const pdfMake = await loadPdfMake();
-
-      const formatNumber = (value: number) =>
-        value.toLocaleString('ru-RU', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        });
-
-      const statusMap: Record<string, string> = {
-        completed: 'Завершено',
-        in_progress: 'Выполняется',
-        failed: 'Ошибка',
-        pending: 'Ожидание',
-        cancelled: 'Отменено',
-      };
-
-      // Используем универсальную функцию нормализации
-
-      const totals = filteredOperations.reduce(
-        (acc, record) => {
-          const liters = Number(record.actualQuantity ?? record.quantity ?? 0) || 0;
-          const amount = Number(record.actualAmount ?? record.totalCost ?? 0) || 0;
-          const orderedLiters = Number(record.orderedQuantity ?? 0) || 0;
-          const orderedAmount = Number(record.orderedAmount ?? 0) || 0;
-          return {
-            liters: acc.liters + liters,
-            amount: acc.amount + amount,
-            orderedLiters: acc.orderedLiters + orderedLiters,
-            orderedAmount: acc.orderedAmount + orderedAmount,
-          };
-        },
-        { liters: 0, amount: 0, orderedLiters: 0, orderedAmount: 0 }
-      );
-
-      const fuelTotals = Array.from(
-        filteredOperations.reduce((acc, record) => {
-          const key = record.fuelType || '—';
-          const entry = acc.get(key) ?? { liters: 0, amount: 0 };
-          const liters = Number(record.actualQuantity ?? record.quantity ?? 0) || 0;
-          const amount = Number(record.actualAmount ?? record.totalCost ?? 0) || 0;
-          entry.liters += liters;
-          entry.amount += amount;
-          acc.set(key, entry);
-          return acc;
-        }, new Map<string, { liters: number; amount: number }>()),
-      ).sort((a, b) => b[1].amount - a[1].amount);
-
-      const paymentTotals = Array.from(
-        filteredOperations.reduce((acc, record) => {
-          const key = normalizePaymentMethod(record.paymentMethod);
-          const entry = acc.get(key) ?? { liters: 0, amount: 0 };
-          const liters = Number(record.actualQuantity ?? record.quantity ?? 0) || 0;
-          const amount = Number(record.actualAmount ?? record.totalCost ?? 0) || 0;
-          entry.liters += liters;
-          entry.amount += amount;
-          acc.set(key, entry);
-          return acc;
-        }, new Map<string, { liters: number; amount: number }>()),
-      ).sort((a, b) => b[1].amount - a[1].amount);
-
-      const tableBody = [
-        [
-          { text: 'Чек', style: 'tableHeader' },
-          { text: 'ID', style: 'tableHeader' },
-          { text: 'Дата и время', style: 'tableHeader' },
-          { text: 'Пист.', style: 'tableHeader', alignment: 'center' },
-          { text: 'Топливо', style: 'tableHeader' },
-          { text: 'Кол-во, л', style: 'tableHeader', alignment: 'right' },
-          { text: 'Цена, ₽/л', style: 'tableHeader', alignment: 'right' },
-          { text: 'Сумма, ₽', style: 'tableHeader', alignment: 'right' },
-          { text: 'Оплата', style: 'tableHeader' },
-          { text: 'POS', style: 'tableHeader', alignment: 'center' },
-          { text: 'Смена', style: 'tableHeader', alignment: 'center' },
-          { text: 'Заказ, л', style: 'tableHeader', alignment: 'right' },
-          { text: 'Статус', style: 'tableHeader' },
-        ],
-        ...filteredOperations.map((record) => {
-          const liters = Number(record.actualQuantity ?? record.quantity ?? 0) || 0;
-          const amount = Number(record.actualAmount ?? record.totalCost ?? 0) || 0;
-          const price = Number(record.price ?? 0) || 0;
-          const orderedLiters = Number(record.orderedQuantity ?? 0) || 0;
-          const orderedAmount = Number(record.orderedAmount ?? 0) || 0;
-
-          return [
-            { text: record.receiptNumber || '-', style: 'tableCellMono' },
-            { text: record.id ?? '-', style: 'tableCellMono' },
-            {
-              text: new Date(record.startTime).toLocaleString('ru-RU', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
-              style: 'tableCell',
-            },
-            { text: record.nozzleNumber ? String(record.nozzleNumber) : '-', style: 'tableCell', alignment: 'center' },
-            { text: record.fuelType || '-', style: 'tableCell' },
-            { text: liters ? formatNumber(liters) : '-', style: 'tableCell', alignment: 'right' },
-            { text: price ? formatNumber(price) : '-', style: 'tableCell', alignment: 'right' },
-            { text: amount ? formatNumber(amount) : '-', style: 'tableCell', alignment: 'right' },
-            { text: normalizePaymentMethod(record.paymentMethod), style: 'tableCell' },
-            { text: record.posNumber ? String(record.posNumber) : '-', style: 'tableCell', alignment: 'center' },
-            { text: record.shiftNumber ? String(record.shiftNumber) : '-', style: 'tableCell', alignment: 'center' },
-            { text: orderedLiters ? formatNumber(orderedLiters) : '-', style: 'tableCell', alignment: 'right' },
-            { text: statusMap[record.status] || record.status || '-', style: 'tableCell' },
-          ];
-        }),
-      ];
-
-      const selectedPointName = (() => {
-        if (typeof selectedTradingPoint === 'string') {
-          return selectedTradingPoint === 'all' ? 'Все торговые точки' : selectedTradingPoint;
-        }
-        return selectedTradingPoint?.name ?? '—';
-      })();
-
-      const content: Array<Record<string, unknown>> = [
-          { text: 'Отчёт по операциям', style: 'title' },
-          {
-            columns: [
-              {
-                text: [
-                  { text: 'Сеть: ', bold: true },
-                  selectedNetwork?.name || '—',
-                  '\n',
-                  { text: 'Точка: ', bold: true },
-                  selectedPointName || '—',
-                ],
-                style: 'infoBlock',
-              },
-              {
-                text: [
-                  { text: 'Период: ', bold: true },
-                  `${dateFrom || '—'} – ${dateTo || '—'}`,
-                  '\n',
-                  { text: 'Сформировано: ', bold: true },
-                  new Date().toLocaleString('ru-RU'),
-                ],
-                style: 'infoBlock',
-                alignment: 'right',
-              },
-            ],
-            columnGap: 12,
-            margin: [0, 0, 0, 12],
-          },
-          {
-            columns: [
-              {
-                text: [
-                  { text: 'Количество операций: ', bold: true },
-                  String(filteredOperations.length),
-                ],
-                style: 'summaryBlock',
-              },
-              {
-                text: [
-                  { text: 'Отпуск, л: ', bold: true },
-                  formatNumber(totals.liters),
-                ],
-                style: 'summaryBlock',
-                alignment: 'center',
-              },
-              {
-                text: [
-                  { text: 'Сумма, ₽: ', bold: true },
-                  formatNumber(totals.amount),
-                ],
-                style: 'summaryBlock',
-                alignment: 'center',
-              },
-              {
-                text: [
-                  { text: 'Заказ, л: ', bold: true },
-                  formatNumber(totals.orderedLiters),
-                  '\n',
-                  { text: 'Заказ, ₽: ', bold: true },
-                  formatNumber(totals.orderedAmount),
-                ],
-                style: 'summaryBlock',
-                alignment: 'right',
-              },
-            ],
-            columnGap: 12,
-            margin: [0, 0, 0, 16],
-          },
-      ];
-
-      const breakdownColumns: Array<Record<string, unknown>> = [];
-      if (fuelTotals.length > 0) {
-        breakdownColumns.push({
-          width: '*',
-          stack: [
-            { text: 'Итоги по топливу', style: 'sectionLabel' },
-            ...fuelTotals.map(([fuel, data]) => ({
-              text: `${fuel}: ${formatNumber(data.liters)} л / ${formatNumber(data.amount)} ₽`,
-              style: 'summaryDetail',
-            })),
-          ],
-        });
-      }
-      if (paymentTotals.length > 0) {
-        breakdownColumns.push({
-          width: '*',
-          stack: [
-            { text: 'Итоги по оплатам', style: 'sectionLabel' },
-            ...paymentTotals.map(([method, data]) => ({
-              text: `${method}: ${formatNumber(data.liters)} л / ${formatNumber(data.amount)} ₽`,
-              style: 'summaryDetail',
-            })),
-          ],
-        });
-      }
-
-      if (breakdownColumns.length > 0) {
-        content.push({
-          columns: breakdownColumns,
-          columnGap: 18,
-          margin: [0, 0, 0, 16],
-        });
-      }
-
-      content.push({
-        table: {
-          headerRows: 1,
-          widths: [40, 45, 75, 26, 60, 38, 38, 45, 50, 24, 24, 65, 50],
-          body: tableBody,
-        },
-        layout: {
-          fillColor: (rowIndex: number) => {
-            if (rowIndex === 0) {
-              return '#1f2937';
-            }
-            return rowIndex % 2 === 0 ? '#f3f4f6' : '#ffffff';
-          },
-          hLineColor: () => '#d1d5db',
-          vLineColor: () => '#d1d5db',
-          paddingLeft: () => 8,
-          paddingRight: () => 8,
-          paddingTop: () => 6,
-          paddingBottom: () => 6,
-        },
-      });
-
-      const docDefinition = {
-        info: {
-          title: 'Отчёт по операциям',
-          author: 'TradeFrame Builder',
-          subject: 'Экспорт операций',
-        },
-        pageOrientation: 'landscape',
-        pageMargins: [24, 24, 24, 32],
-        content,
-        styles: {
-          title: {
-            fontSize: 18,
-            bold: true,
-            margin: [0, 0, 0, 12],
-            color: '#111827',
-          },
-          infoBlock: {
-            fontSize: 10,
-            color: '#111827',
-          },
-          summaryBlock: {
-            fontSize: 11,
-            color: '#111827',
-          },
-          sectionLabel: {
-            fontSize: 11,
-            color: '#111827',
-            bold: true,
-            margin: [0, 0, 0, 4],
-          },
-          summaryDetail: {
-            fontSize: 10,
-            color: '#374151',
-            margin: [0, 0, 0, 2],
-          },
-          tableHeader: {
-            bold: true,
-            color: '#f9fafb',
-            fontSize: 10,
-          },
-          tableCell: {
-            fontSize: 9,
-            color: '#111827',
-            noWrap: false,
-            lineHeight: 1.2,
-          },
-          tableCellMono: {
-            fontSize: 8,
-            color: '#111827',
-            font: 'Roboto',
-            noWrap: false,
-            lineHeight: 1.2,
-          },
-        },
-        defaultStyle: {
-          font: 'Roboto',
-        },
-      } as const;
-
-      const fileName = `operations_${dateFrom || 'start'}_${dateTo || 'end'}.pdf`;
-      pdfMake.createPdf(docDefinition).download(fileName);
-
-      const successNotification = document.createElement('div');
-      successNotification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
-      successNotification.textContent = `PDF файл создан: ${filteredOperations.length} записей`;
-      document.body.appendChild(successNotification);
-      setTimeout(() => {
-        if (document.body.contains(successNotification)) {
-          document.body.removeChild(successNotification);
-        }
-      }, 3000);
-    } catch (error) {
-      console.error('❌ Ошибка экспорта в PDF:', error);
-      const errorNotification = document.createElement('div');
-      errorNotification.className = `fixed ${isMobile ? 'top-16 left-4 right-4' : 'top-4 right-4'} bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50`;
-      errorNotification.textContent = 'Ошибка при создании PDF файла';
-      document.body.appendChild(errorNotification);
-      setTimeout(() => {
-        if (document.body.contains(errorNotification)) {
-          document.body.removeChild(errorNotification);
-        }
-      }, 3000);
-    }
+  const handleExportToPdf = () => {
+    exportToPdf({
+      operations: filteredOperations,
+      dateFrom,
+      dateTo,
+      networkName: selectedNetwork?.name,
+      tradingPointName: typeof selectedTradingPoint === 'string'
+        ? (selectedTradingPoint === 'all' ? 'Все торговые точки' : selectedTradingPoint)
+        : selectedTradingPoint?.name,
+      isMobile
+    });
   };
 
   // Функция загрузки из STS API
@@ -765,7 +247,6 @@ export default function OperationsTransactionsPageSimple() {
       setOperations(stsTransactionsWithSource);
       
     } catch (error) {
-      console.error('❌ Ошибка загрузки из STS API:', error);
       if (!isMobile) alert(`Ошибка STS API: ${error.message}`);
     } finally {
       setLoadingFromSTS(false);
@@ -786,8 +267,7 @@ export default function OperationsTransactionsPageSimple() {
       setOperations(data);
       
     } catch (error) {
-      console.error('❌ Ошибка в loadData():', error);
-      console.error('Стек ошибки:', error.stack);
+      // Ошибка обработана
     } finally {
       setLoading(false);
     }
@@ -1104,30 +584,9 @@ export default function OperationsTransactionsPageSimple() {
     };
   }, []);
 
-  // Функции управления KPI фильтрами
-  const handleKpiFuelClick = (fuel) => {
-    const newSelected = new Set(selectedKpiFuels);
-    if (newSelected.has(fuel)) {
-      newSelected.delete(fuel);
-    } else {
-      newSelected.add(fuel);
-    }
-    setSelectedKpiFuels(newSelected);
-  };
-
-  const handleKpiPaymentClick = (payment) => {
-    const newSelected = new Set(selectedKpiPayments);
-    if (newSelected.has(payment)) {
-      newSelected.delete(payment);
-    } else {
-      newSelected.add(payment);
-    }
-    setSelectedKpiPayments(newSelected);
-  };
-
+  // Сброс всех фильтров (включая KPI)
   const handleKpiResetAll = () => {
-    setSelectedKpiFuels(new Set());
-    setSelectedKpiPayments(new Set());
+    clearFilters();
   };
 
   // Сброс страницы при изменении фильтров
@@ -1241,79 +700,152 @@ export default function OperationsTransactionsPageSimple() {
           </div>
         )}
 
-        {/* Индикатор загрузки */}
-        {(loading || loadingFromSTS) && (
-          <div className="flex items-center justify-center gap-3 p-4 bg-blue-900/20 border border-blue-600/30 rounded-lg backdrop-blur-sm">
-            <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-            <span className="text-sm text-blue-300">
-              {loadingFromSTS ? 'Загрузка данных из STS API...' : 'Загрузка операций...'}
-            </span>
-          </div>
-        )}
 
         {/* Заголовок страницы */}
-        <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm overflow-hidden">
-          <CardHeader className={`${isMobileForced ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
-            <CardTitle className="text-slate-100 flex items-center justify-between min-w-0">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg flex-shrink-0"></div>
-                <span className={`${isMobileForced ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight truncate`}>Операции</span>
-              </div>
-
-              <div className={`flex ${isMobileForced ? 'gap-1' : 'gap-2'} items-center flex-shrink-0`}>
-                {/* Кнопка инструкции скрыта
-                <Button
-                  onClick={() => window.open('/help/operations-transactions', '_blank')}
-                  variant="outline"
-                  size="sm"
-                  className={`border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 transition-all duration-200 rounded-lg bg-slate-700/30 ${isMobileForced ? 'px-2 py-1.5 text-xs' : 'px-3 py-2'}`}
-                >
-                  <HelpCircle className={`${isMobileForced ? 'w-3 h-3' : 'w-4 h-4'} ${isMobileForced ? '' : 'mr-2'}`} />
-                  {!isMobileForced && 'Инструкция'}
-                </Button>
-                */}
-                
-                {/* Кнопка экспорта */}
-                {filteredOperations.length > 0 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        className={`bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg font-medium ${isMobileForced ? 'px-3 py-1.5 text-xs' : 'px-3 py-2'}`}
-                        size="sm"
-                      >
-                        <Download className={`${isMobileForced ? 'w-3 h-3' : 'w-4 h-4'} mr-2`} />
-                        Экспорт
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44 bg-slate-800 border-slate-600 shadow-xl rounded-lg">
-                      <DropdownMenuItem onClick={exportToExcel} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
-                        <FileSpreadsheet className="w-4 h-4 text-green-400" />
-                        <span className="text-sm font-medium">Экспорт в Excel</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={exportToPdf} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
-                        <FileText className="w-4 h-4 text-red-400" />
-                        <span className="text-sm font-medium">Экспорт в PDF</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-                
-                {/* STS API кнопка - скрыта */}
-              </div>
-            </CardTitle>
-          </CardHeader>
-        </Card>
+        <div className="mb-6 pt-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-white">Операции</h1>
+            {filteredOperations.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Экспорт
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44 bg-slate-800 border-slate-600 shadow-xl rounded-lg">
+                  <DropdownMenuItem onClick={handleExportToExcel} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
+                    <FileSpreadsheet className="w-4 h-4 text-green-400" />
+                    <span className="text-sm font-medium">Экспорт в Excel</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportToPdf} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
+                    <FileText className="w-4 h-4 text-red-400" />
+                    <span className="text-sm font-medium">Экспорт в PDF</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </div>
 
         {/* Компактные фильтры */}
-        <Card className="bg-slate-800 border-slate-600 mb-4">
-          <CardContent className={`${isMobileForced ? 'p-4' : 'p-6'}`}>
-            <div className={`flex items-center gap-3 ${isMobileForced ? 'mb-3' : 'mb-4'}`}>
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
-                <span className="text-white text-sm">⚙️</span>
+        <Card className="bg-slate-800 border-slate-700 mb-4">
+          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-700/50 transition-colors">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-slate-400" />
+                  <span className="font-medium text-white">Фильтры</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedStatus("Все");
+                      setSearchQuery("");
+                      setDateFrom(() => {
+                        const yesterday = new Date();
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        return yesterday.toISOString().split('T')[0];
+                      });
+                      setDateTo(new Date().toISOString().split('T')[0]);
+                    }}
+                  >
+                    Очистить фильтры
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadData();
+                    }}
+                    disabled={loading || loadingFromSTS}
+                    className="border-slate-600 text-white hover:bg-slate-700"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${(loading || loadingFromSTS) ? 'animate-spin' : ''}`} />
+                  </Button>
+                  {filtersOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                </div>
               </div>
-              <h2 className={`${isMobileForced ? 'text-lg' : 'text-xl'} font-semibold text-white`}>Фильтры</h2>
-            </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="p-4 border-t border-slate-700">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Дата от */}
+                  <div>
+                    <Label htmlFor="date-from" className="text-xs text-slate-400">Дата от</Label>
+                    <Input
+                      id="date-from"
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                  </div>
 
+                  {/* Дата до */}
+                  <div>
+                    <Label htmlFor="date-to" className="text-xs text-slate-400">Дата до</Label>
+                    <Input
+                      id="date-to"
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Статус */}
+                  <div>
+                    <Label htmlFor="status" className="text-xs text-slate-400">Статус</Label>
+                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                      <SelectTrigger id="status" className="mt-1">
+                        <SelectValue placeholder="Все" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusTypes.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status === "Все" ? status : ({
+                              'completed': 'Завершено',
+                              'in_progress': 'Выполняется',
+                              'failed': 'Ошибка',
+                              'pending': 'Ожидание',
+                              'cancelled': 'Отменено'
+                            }[status] || status)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Поиск */}
+                  <div>
+                    <Label htmlFor="search" className="text-xs text-slate-400">Поиск</Label>
+                    <Input
+                      id="search"
+                      type="text"
+                      placeholder="ID, устройство..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+
+        {/* СТАРЫЙ КОД ФИЛЬТРОВ - УДАЛИТЬ */}
+        <div style={{ display: 'none' }}>
+          <CardContent className={`${isMobileForced ? 'p-4' : 'p-6'}`}>
             {/* Верхняя строка - Статус и Поиск */}
             <div className={`${isMobileForced ? 'space-y-3 mb-4' : 'grid grid-cols-2 gap-6 mb-4'}`}>
               {/* Статус */}
@@ -1462,49 +994,18 @@ export default function OperationsTransactionsPageSimple() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </div>
+        {/* КОНЕЦ СТАРОГО КОДА ФИЛЬТРОВ */}
 
-        {/* Заголовок фильтров */}
-        {operations.length > 0 && (
-          <div className="mb-4">
-            <div className="space-y-1">
-              {!isMobileForced && (
-                <h3 className="text-xl font-semibold text-white">Фильтр</h3>
-              )}
-              <p className="text-xs text-slate-500">выберите один или несколько элементов</p>
-            </div>
-          </div>
-        )}
 
         {/* KPI карточки */}
         {operations.length > 0 && (
           <div className="space-y-4">
             {/* Карточки по видам топлива */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center px-2">
+              <div className="flex items-center gap-2 px-2">
                 <h3 className={`text-slate-300 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
-                {isMobileForced && (
-                  <span className="text-xs">
-                    {(() => {
-                      const selectedFuels = Array.from(selectedKpiFuels);
-                      const selectedPayments = Array.from(selectedKpiPayments).map(method =>
-                        normalizePaymentMethod(method));
-
-                      const allSelected = [...selectedFuels, ...selectedPayments];
-
-                      if (allSelected.length === 0) {
-                        return <span className="text-slate-400">не выбрано</span>;
-                      } else {
-                        return (
-                          <span>
-                            <span className="text-slate-400">выбрано: </span>
-                            <span className="text-blue-400 font-bold">{allSelected.join(', ')}</span>
-                          </span>
-                        );
-                      }
-                    })()}
-                  </span>
-                )}
+                <span className="text-xs text-slate-500">выберите один или несколько элементов</span>
               </div>
               <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {[...new Set(operations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
@@ -1532,7 +1033,10 @@ export default function OperationsTransactionsPageSimple() {
 
             {/* Карточки по способам оплаты */}
             <div className="space-y-2">
-              <h3 className={`text-slate-300 font-medium px-2 ${isMobileForced ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
+              <div className="flex items-center gap-2 px-2">
+                <h3 className={`text-slate-300 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
+                <span className="text-xs text-slate-500">выберите один или несколько элементов</span>
+              </div>
               <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {[
                   { key: 'cash', values: ['cash', 'наличные'], display: 'Наличные' },
@@ -1728,8 +1232,12 @@ export default function OperationsTransactionsPageSimple() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-2 py-2 text-white">
-                            {record.fuelType || '-'}
+                          <td className="px-2 py-2">
+                            {record.fuelType ? (
+                              <Badge variant="outline" className="bg-slate-700 text-white border-slate-600">
+                                {record.fuelType}
+                              </Badge>
+                            ) : '-'}
                           </td>
                           <td className="px-2 py-2 text-white text-right font-mono">
                             {record.actualQuantity ? `${record.actualQuantity.toFixed(2)}л` :
@@ -1846,8 +1354,12 @@ export default function OperationsTransactionsPageSimple() {
                       <TableCell className="text-slate-300 text-sm w-20 text-center py-2">
                         {record.nozzleNumber || '-'}
                       </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-28 py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
-                        {record.fuelType || '-'}
+                      <TableCell className="text-sm w-28 py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
+                        {record.fuelType ? (
+                          <Badge variant="outline" className="bg-slate-700 text-white border-slate-600">
+                            {record.fuelType}
+                          </Badge>
+                        ) : '-'}
                       </TableCell>
                       <TableCell className="text-slate-300 text-sm w-28 text-right py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
                         {record.actualQuantity ? record.actualQuantity.toFixed(2) :

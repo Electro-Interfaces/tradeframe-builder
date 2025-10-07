@@ -184,3 +184,69 @@ export interface EquipmentEvent {
   details: Record<string, any>;
   correlation_id?: string;
 }
+
+// ==============================================
+// ТИПЫ ДЛЯ ТЕРМИНАЛЬНОГО ОБОРУДОВАНИЯ (STS API)
+// ==============================================
+
+/**
+ * Элемент терминального оборудования для отображения
+ */
+export interface TerminalEquipmentItem {
+  id: string;
+  name: string;
+  code: string;
+  location: string;
+  status: 'online' | 'offline' | 'error';
+  statusText: string;
+  // Дополнительные поля для купюроприемника
+  billCount?: number;
+  billAmount?: number;
+}
+
+/**
+ * Информация о терминале из STS API
+ */
+export interface TerminalInfo {
+  terminal: {
+    name: string;
+    status: 'online' | 'offline';
+  };
+  pos: {
+    version: string;
+    status: 'online' | 'offline';
+  };
+  shift: {
+    number: number;
+    state: string;
+  } | null;
+  devices?: {
+    billAcceptor?: TerminalDevice & BillAcceptorDetails;
+    cardReader?: TerminalDevice;
+    mpsReader?: TerminalDevice;
+  };
+}
+
+/**
+ * Информация об устройстве терминала
+ */
+export interface TerminalDevice {
+  name: string;
+  status: 'online' | 'offline' | 'error';
+}
+
+/**
+ * Детали купюроприемника
+ */
+export interface BillAcceptorDetails {
+  billCount: number;
+  billAmount: number;
+}
+
+/**
+ * Результат перезагрузки терминала
+ */
+export interface RestartTerminalResult {
+  success: boolean;
+  message: string;
+}

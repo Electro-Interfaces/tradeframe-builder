@@ -1,10 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { PriceCard } from "@/components/prices/PriceCard";
+import { PriceHistoryTable } from "@/components/prices/PriceHistoryTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
@@ -106,114 +109,6 @@ interface PriceJournalEntry {
   tradingPoint: string;
 }
 
-// Mock data
-const mockFuelTypes = [
-  { id: "ai95", name: "АИ-95", code: "AI95" },
-  { id: "ai92", name: "АИ-92", code: "AI92" },
-  { id: "ai98", name: "АИ-98", code: "AI98" },
-  { id: "dt", name: "ДТ", code: "DT" },
-  { id: "gas", name: "Газ", code: "GAS" }
-];
-
-const mockCurrentPrices: FuelPrice[] = [
-  {
-    id: "1",
-    fuelType: "АИ-95",
-    fuelCode: "AI95",
-    priceNet: 5000, // 50.00 руб
-    vatRate: 20,
-    priceGross: 6000, // 60.00 руб
-    unit: "Л",
-    appliedFrom: "15.12.2024 08:00",
-    status: "active",
-    tradingPoint: "АЗС-1 на Московской",
-    networkId: "net1"
-  },
-  {
-    id: "2",
-    fuelType: "АИ-92",
-    fuelCode: "AI92",
-    priceNet: 4750,
-    vatRate: 20,
-    priceGross: 5700,
-    unit: "Л",
-    appliedFrom: "16.12.2024 12:00",
-    status: "scheduled",
-    tradingPoint: "АЗС-1 на Московской",
-    networkId: "net1"
-  },
-  {
-    id: "3",
-    fuelType: "ДТ",
-    fuelCode: "DT",
-    priceNet: 5200,
-    vatRate: 20,
-    priceGross: 6240,
-    unit: "Л",
-    appliedFrom: "14.12.2024 06:00",
-    status: "expired",
-    tradingPoint: "АЗС-1 на Московской",
-    networkId: "net1"
-  },
-  {
-    id: "4",
-    fuelType: "АИ-98",
-    fuelCode: "AI98",
-    priceNet: 5500,
-    vatRate: 20,
-    priceGross: 6600,
-    unit: "Л",
-    appliedFrom: "15.12.2024 08:00",
-    status: "active",
-    tradingPoint: "АЗС-1 на Московской",
-    networkId: "net1"
-  }
-];
-
-const mockJournalEntries: PriceJournalEntry[] = [
-  {
-    id: "j1",
-    timestamp: "15.12.2024 08:00",
-    fuelType: "АИ-95",
-    fuelCode: "AI95",
-    priceNet: 5000,
-    priceGross: 6000,
-    vatRate: 20,
-    source: "manual",
-    packageId: "pkg1",
-    status: "applied",
-    authorName: "Иванов А.И.",
-    tradingPoint: "АЗС-1 на Московской"
-  },
-  {
-    id: "j2",
-    timestamp: "15.12.2024 08:00",
-    fuelType: "АИ-98",
-    fuelCode: "AI98",
-    priceNet: 5500,
-    priceGross: 6600,
-    vatRate: 20,
-    source: "manual",
-    packageId: "pkg1",
-    status: "applied",
-    authorName: "Иванов А.И.",
-    tradingPoint: "АЗС-1 на Московской"
-  },
-  {
-    id: "j3",
-    timestamp: "16.12.2024 12:00",
-    fuelType: "АИ-92",
-    fuelCode: "AI92",
-    priceNet: 4750,
-    priceGross: 5700,
-    vatRate: 20,
-    source: "import",
-    packageId: "pkg2",
-    status: "scheduled",
-    authorName: "Система",
-    tradingPoint: "АЗС-1 на Московской"
-  }
-];
 
 // Validation schemas
 const priceFormSchema = z.object({
@@ -278,16 +173,6 @@ export default function Prices() {
   const [initialLoadTriggered, setInitialLoadTriggered] = useState(false);
   const [pageReady, setPageReady] = useState(true);
 
-  // Состояния для pull-to-refresh (стандартный мобильный подход)
-  const [pullState, setPullState] = useState<'idle' | 'pulling' | 'canRefresh' | 'refreshing'>('idle');
-  const [pullDistance, setPullDistance] = useState(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const startTouchRef = useRef<{ y: number; time: number } | null>(null);
-  const rafId = useRef<number | null>(null);
-
-  const PULL_THRESHOLD = 80; // Порог для активации обновления
-  const MAX_PULL_DISTANCE = 120; // Максимальное расстояние растягивания
-  const INDICATOR_APPEAR_THRESHOLD = 30; // Порог появления индикатора
 
   const form = useForm<PriceFormData>({
     resolver: zodResolver(priceFormSchema),
@@ -303,15 +188,26 @@ export default function Prices() {
   // Упрощенная автоматическая загрузка цен при выборе торговой точки
   useEffect(() => {
     // Обеспечиваем правильную настройку STS API
-    ensureSTSApiConfigured();
-    setStsApiConfigured(true);
+    const config = ensureSTSApiConfigured();
+
+    // Проверяем, что API действительно настроен
+    const isConfigured = !!(config && config.enabled && config.url && config.username && config.password);
+    setStsApiConfigured(isConfigured);
 
     // Автоматически загружаем данные цен при выборе торговой точки
     if (selectedTradingPoint && selectedTradingPoint !== 'all') {
       loadPricesFromSTSAPI();
+
+      // Загружаем историю цен только если API настроен, передаем isConfigured как параметр
+      if (isConfigured) {
+        loadPriceSchedule(isConfigured);
+      } else {
+        setPriceSchedule([]);
+      }
     } else {
       // Если торговая точка не выбрана, сбрасываем состояние
       setCurrentPrices([]);
+      setPriceSchedule([]);
       setIsInitialLoading(false);
     }
     setPageReady(true);
@@ -320,11 +216,6 @@ export default function Prices() {
   // Проверяем настройку внешнего API при инициализации
   useEffect(() => {
     setExternalPricesConfigured(externalPricesService.isConfigured());
-    
-    // Проверяем настройки STS API
-    const stsConfig = localStorage.getItem('sts-api-config');
-    const isConfigured = !!(stsConfig && JSON.parse(stsConfig).enabled);
-    setStsApiConfigured(isConfigured);
   }, [hasExternalDatabase]);
 
   // Номенклатура топлива не используется - удалена загрузка из БД
@@ -390,95 +281,6 @@ export default function Prices() {
     }
   };
 
-  // Новые функции для работы с кэшем
-  const loadPricesFromCache = async (tradingPointId: string) => {
-    setIsInitialLoading(true);
-    try {
-      const prices = await pricesCacheService.getPricesForTradingPoint(tradingPointId);
-      setCurrentPrices(prices);
-    } catch (error) {
-      console.error('Ошибка при загрузке цен:', error);
-      toast({
-        title: "Ошибка загрузки",
-        description: error instanceof Error ? error.message : "Не удалось загрузить цены",
-        variant: "destructive"
-      });
-    } finally {
-      setIsInitialLoading(false);
-    }
-  };
-
-  // Загрузка цен из внешнего API (по аналогии с резервуарами)
-  const loadPricesFromExternalAPI = async () => {
-    if (!externalPricesService.isConfigured()) {
-      return;
-    }
-
-    setLoadingFromExternalAPI(true);
-    try {
-      
-      // Получаем параметры из селекторов приложения
-      const contextParams = {
-        networkId: selectedNetwork?.external_id || selectedNetwork?.code,
-        tradingPointId: selectedTradingPoint && selectedTradingPoint !== 'all' ? 
-          (typeof selectedTradingPoint === 'string' ? selectedTradingPoint : selectedTradingPoint.id) : 
-          undefined,
-        status: ['active', 'scheduled'] // загружаем активные и запланированные цены
-      };
-      
-      
-      const externalPrices = await externalPricesService.getPrices(contextParams);
-      
-      if (externalPrices && externalPrices.length > 0) {
-        // Преобразуем внешние цены в формат страницы
-        const transformedPrices: FuelPrice[] = externalPrices.map(price => ({
-          id: price.id,
-          fuelType: price.fuel_type,
-          fuelCode: price.fuel_code,
-          priceNet: price.price_net,
-          vatRate: price.vat_rate,
-          priceGross: price.price_gross,
-          unit: price.unit,
-          appliedFrom: price.valid_from,
-          validTo: price.valid_to,
-          status: price.status as any,
-          tradingPoint: price.trading_point_name || 'Неизвестно',
-          networkId: price.network_id || '',
-          source: 'external-api' // помечаем источник
-        }));
-
-        setCurrentPrices(transformedPrices);
-        setDataSourceType('external-api');
-        
-        // Цены загружены - уведомление убрано
-      } else {
-        setDataSourceType('cache');
-        // Fallback к кэшу
-        if (selectedTradingPoint) {
-          const tradingPointId = typeof selectedTradingPoint === 'string' ? 
-            selectedTradingPoint : selectedTradingPoint.id;
-          await loadPricesFromCache(tradingPointId);
-        }
-      }
-    } catch (error: any) {
-      console.error('Ошибка при загрузке цен из внешнего API:', error);
-      toast({
-        title: "Ошибка внешнего API",
-        description: `Не удалось загрузить цены из внешнего API: ${error.message}. Используются кешированные данные.`,
-        variant: "destructive"
-      });
-      
-      setDataSourceType('cache');
-      // Fallback к кэшу при ошибке
-      if (selectedTradingPoint) {
-        const tradingPointId = typeof selectedTradingPoint === 'string' ? 
-          selectedTradingPoint : selectedTradingPoint.id;
-        await loadPricesFromCache(tradingPointId);
-      }
-    } finally {
-      setLoadingFromExternalAPI(false);
-    }
-  };
 
   // Функция для настройки STS API с правильными параметрами
   const ensureSTSApiConfigured = () => {
@@ -599,7 +401,6 @@ export default function Prices() {
         }
       }
     } catch (error: any) {
-      console.error('❌ Ошибка загрузки цен из STS API:', error);
       setIsInitialLoading(false);
       setStsApiConfigured(true); // Синхронизируем состояние
       
@@ -666,7 +467,6 @@ export default function Prices() {
         currentPrice: currentPriceValue
       };
 
-      console.log(`✅ Результат для ${result.fuel_type}:`, result);
       return result;
     });
 
@@ -716,7 +516,6 @@ export default function Prices() {
         price: item.price // Цены в рублях, не конвертируем в копейки
       }));
 
-      console.log('💰 Цены для отправки (в рублях):', prices);
 
       // Формируем ISO дату в локальном времени (без преобразования в UTC)
       // Это сохранит выбранную пользователем дату как есть
@@ -729,8 +528,6 @@ export default function Prices() {
 
       const effectiveDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 
-      console.log('🕐 Выбранная дата:', effectiveDateTime.toLocaleString('ru-RU'));
-      console.log('🕐 Дата для API (локальное время):', effectiveDate);
 
       const result = await stsApiService.setPrices(prices, effectiveDate, contextParams);
 
@@ -754,7 +551,6 @@ export default function Prices() {
       }
 
     } catch (error: any) {
-      console.error('❌ Ошибка установки цен:', error);
       toast({
         title: "Ошибка установки цен",
         description: error.message || "Произошла ошибка при установке цен",
@@ -766,12 +562,14 @@ export default function Prices() {
   };
 
   // Функция загрузки журнала изменения цен
-  const loadPriceSchedule = async () => {
+  const loadPriceSchedule = async (apiConfigured: boolean = stsApiConfigured) => {
     if (!selectedNetwork || !selectedTradingPoint || selectedTradingPoint === 'all') {
+      setPriceSchedule([]);
       return;
     }
 
-    if (!stsApiConfigured) {
+    if (!apiConfigured) {
+      setPriceSchedule([]);
       return;
     }
 
@@ -780,18 +578,11 @@ export default function Prices() {
       // Получаем полный объект торговой точки для получения external_id
       const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
       if (!tradingPoint?.external_id) {
-        console.warn('Не удается получить external_id торговой точки для журнала цен');
         return;
       }
 
       // Загружаем изменения цен с 01.09.2025
       const startDate = '2025-09-01T00:00:00';
-
-      console.log('📅 Загрузка журнала цен', {
-        networkId: selectedNetwork.external_id,
-        stationId: tradingPoint.external_id,
-        startDate
-      });
 
       const schedule = await stsApiService.getPriceSchedule(
         selectedNetwork.external_id,
@@ -801,13 +592,7 @@ export default function Prices() {
 
       setPriceSchedule(schedule);
 
-      console.log('✅ Журнал цен загружен:', {
-        count: schedule.length,
-        dateRange: `${startDate} - сегодня`
-      });
-
     } catch (error: any) {
-      console.error('❌ Ошибка загрузки журнала цен:', error);
       toast({
         title: "Ошибка загрузки журнала",
         description: error.message || "Не удалось загрузить историю изменения цен",
@@ -821,7 +606,7 @@ export default function Prices() {
   // Функция открытия диалога истории цен
   const handleShowPriceHistory = async () => {
     setIsPriceHistoryDialogOpen(true);
-    await loadPriceSchedule();
+    await loadPriceSchedule(true); // Явно передаем true, т.к. диалог доступен только при настроенном API
   };
 
   const refreshPricesFromNetwork = async () => {
@@ -845,7 +630,6 @@ export default function Prices() {
 
       // Цены обновлены - уведомление убрано (только на мобильных и так не показывалось)
     } catch (error) {
-      console.error('Ошибка при обновлении цен:', error);
       if (!isMobile) {
         toast({
           title: "Ошибка обновления",
@@ -858,124 +642,27 @@ export default function Prices() {
     }
   };
 
-  // Стандартный мобильный pull-to-refresh
-  const triggerHapticFeedback = () => {
-    if ('vibrate' in navigator && isMobile) {
-      navigator.vibrate(50);
-    }
-  };
-
+  // Pull-to-refresh с использованием хука
   const handleRefreshData = async () => {
     if (!selectedTradingPoint || selectedTradingPoint === 'all') return;
-
-    setPullState('refreshing');
-
-    try {
-      if (stsApiConfigured) {
-        await loadPricesFromSTSAPI();
-      } else {
-        const tradingPointId = typeof selectedTradingPoint === 'string' ?
-          selectedTradingPoint : selectedTradingPoint.id;
-        await loadPricesFromCache(tradingPointId);
-      }
-
-      triggerHapticFeedback();
-    } catch (error) {
-      console.error('Ошибка обновления:', error);
-    }
-
-    // Анимация завершения
-    setTimeout(() => {
-      setPullState('idle');
-      setPullDistance(0);
-    }, 500);
+    await loadPricesFromSTSAPI();
+    await loadPriceSchedule(stsApiConfigured); // Передаем текущее состояние API
   };
 
-  const updatePullDistance = (distance: number) => {
-    if (rafId.current) {
-      cancelAnimationFrame(rafId.current);
-    }
-
-    rafId.current = requestAnimationFrame(() => {
-      const clampedDistance = Math.min(distance, MAX_PULL_DISTANCE);
-      setPullDistance(clampedDistance);
-
-      // Обновляем состояние на основе расстояния
-      if (clampedDistance >= PULL_THRESHOLD && pullState !== 'canRefresh' && pullState !== 'refreshing') {
-        setPullState('canRefresh');
-        triggerHapticFeedback();
-      } else if (clampedDistance < PULL_THRESHOLD && pullState === 'canRefresh') {
-        setPullState('pulling');
-      }
-    });
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isMobile || !scrollContainerRef.current || pullState === 'refreshing') return;
-
-    const container = scrollContainerRef.current;
-    if (container.scrollTop > 0) return;
-
-    startTouchRef.current = {
-      y: e.touches[0].clientY,
-      time: Date.now()
-    };
-    setPullState('pulling');
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isMobile || !startTouchRef.current || !scrollContainerRef.current || pullState === 'refreshing') return;
-
-    const container = scrollContainerRef.current;
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - startTouchRef.current.y;
-
-    // Только если движение вниз и мы в верху страницы
-    if (deltaY > 0 && container.scrollTop === 0) {
-      e.preventDefault();
-
-      // Применяем эластичность (чем больше тянем, тем медленнее)
-      const elasticity = Math.max(0.5, 1 - (deltaY / MAX_PULL_DISTANCE) * 0.5);
-      const adjustedDistance = deltaY * elasticity;
-
-      updatePullDistance(adjustedDistance);
-    } else if (deltaY <= 0 || container.scrollTop > 0) {
-      // Сбрасываем если движение вверх или начался скролл
-      setPullState('idle');
-      setPullDistance(0);
-      startTouchRef.current = null;
-    }
-  };
-
-  const handleTouchEnd = async () => {
-    if (!isMobile || !startTouchRef.current) return;
-
-    startTouchRef.current = null;
-
-    if (pullState === 'canRefresh') {
-      await handleRefreshData();
-    } else {
-      // Плавная анимация возврата
-      setPullState('idle');
-      setPullDistance(0);
-    }
-  };
-
-  // Подключаем обработчики touch событий
-  useEffect(() => {
-    return () => {
-      if (rafId.current) {
-        cancelAnimationFrame(rafId.current);
-      }
-    };
-  }, []);
-
-  // Очищаем состояние при смене торговой точки
-  useEffect(() => {
-    setPullState('idle');
-    setPullDistance(0);
-    startTouchRef.current = null;
-  }, [selectedTradingPoint]);
+  const {
+    pullState,
+    pullDistance,
+    scrollContainerRef,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd
+  } = usePullToRefresh({
+    onRefresh: handleRefreshData,
+    enabled: isMobile,
+    pullThreshold: 80,
+    maxPullDistance: 120,
+    indicatorAppearThreshold: 30
+  });
 
   // Handlers
   const handleCreatePrice = () => {
@@ -1160,7 +847,6 @@ export default function Prices() {
 
       handleCancelInlineEdit();
     } catch (error) {
-      console.error('Ошибка сохранения цены:', error);
       if (!isMobile) {
         toast({
           title: "Ошибка сохранения",
@@ -1201,7 +887,7 @@ export default function Prices() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
-        className="w-full h-full px-4 relative"
+        className="w-full h-full px-4 md:px-6 lg:px-8 relative"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -1211,12 +897,12 @@ export default function Prices() {
         }}
       >
         {/* Стандартный мобильный pull-to-refresh индикатор */}
-        {isMobile && pullState !== 'idle' && pullDistance >= INDICATOR_APPEAR_THRESHOLD && (
+        {isMobile && pullState !== 'idle' && pullDistance >= 30 && (
           <div
             className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
             style={{
               transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`,
-              opacity: Math.min(1, (pullDistance - INDICATOR_APPEAR_THRESHOLD) / 40)
+              opacity: Math.min(1, (pullDistance - 30) / 40)
             }}
           >
             <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
@@ -1244,70 +930,38 @@ export default function Prices() {
             </div>
           </div>
         )}
-        {/* Premium Header */}
-        <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm mb-6 mt-4">
-          <CardHeader className="pb-6">
-            <CardTitle className={`text-slate-100 flex items-center justify-between`}>
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
-                <div className="flex flex-col">
-                  <span className={`${isMobile ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Цены</span>
-                  {!isMobile && (
-                    <span className="text-slate-400 text-sm font-medium">Управление ценами на топливо с отложенным применением и журналом изменений</span>
-                  )}
-                </div>
-              </div>
 
-              <div className={`flex ${isMobile ? 'gap-2' : 'gap-4'} items-center`}>
-                {/* Кнопка инструкции скрыта
+        {/* Заголовок страницы */}
+        <div className="mb-6 pt-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-white">Цены</h1>
+            <div className={`flex ${isMobile ? 'gap-2' : 'gap-3'} items-center`}>
+              {!isMobile && (
                 <Button
-                  onClick={() => window.open('/help/point-prices', '_blank')}
+                  onClick={loadPricesFromSTSAPI}
                   variant="outline"
                   size="sm"
-                  className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-3 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
+                  disabled={loadingFromSTSAPI}
+                  className="border-slate-600 text-white hover:bg-slate-700"
                 >
-                  <HelpCircle className="w-4 h-4" />
+                  <RefreshCw className={`w-4 h-4 ${loadingFromSTSAPI ? 'animate-spin' : ''}`} />
                 </Button>
-                */}
-                {!isMobile && (
-                  <Button
-                    onClick={loadPricesFromSTSAPI}
-                    variant="outline"
-                    size="sm"
-                    disabled={loadingFromSTSAPI}
-                    className="border-slate-500/60 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-400 hover:shadow-md transition-all duration-300 px-3 py-2.5 rounded-lg bg-slate-700/30 backdrop-blur-sm"
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-1 ${loadingFromSTSAPI ? 'animate-spin' : ''}`} />
-                    Обновить
-                  </Button>
-                )}
-                {stsApiConfigured && currentPrices.length > 0 && (
-                  <>
-                    <Button
-                      onClick={handleSetPrices}
-                      size="sm"
-                      disabled={isSettingPrices || !selectedTradingPoint || selectedTradingPoint === 'all'}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg font-medium px-3 py-2"
-                    >
-                      <Edit className={`w-4 h-4 ${isMobile ? '' : 'mr-1'} ${isSettingPrices ? 'animate-pulse' : ''}`} />
-                      {!isMobile && "Изменить цены"}
-                    </Button>
-                    <Button
-                      onClick={handleShowPriceHistory}
-                      size="sm"
-                      variant="outline"
-                      disabled={isLoadingSchedule || !selectedTradingPoint || selectedTradingPoint === 'all'}
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200"
-                    >
-                      <History className={`w-4 h-4 ${isMobile ? '' : 'mr-1'} ${isLoadingSchedule ? 'animate-pulse' : ''}`} />
-                      {!isMobile && "История цен"}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </CardTitle>
-          </CardHeader>
-        </Card>
+              )}
+              {stsApiConfigured && currentPrices.length > 0 && (
+                <Button
+                  onClick={handleSetPrices}
+                  variant="outline"
+                  size="sm"
+                  disabled={isSettingPrices || !selectedTradingPoint || selectedTradingPoint === 'all'}
+                  className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                >
+                  <Edit className={`h-4 w-4 ${isMobile ? '' : 'mr-2'}`} />
+                  {!isMobile && "Изменить цены"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
 
 
         {/* Плитки цен */}
@@ -1385,107 +1039,38 @@ export default function Prices() {
             </div>
           </div>
         ) : (
-          <div className="pb-6">
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'}`}>
+          <div className="mb-6">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
               {filteredPrices.map((price) => (
-                <div key={price.id} className={`bg-slate-800 border border-slate-700 rounded-lg hover:shadow-xl transition-all duration-200 ${isMobile ? 'p-4' : 'p-6'}`}>
-                  {/* Header с видом топлива и статусом */}
-                  <div className={`${isMobile ? 'space-y-3' : 'flex items-start justify-between'} mb-4`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-lg flex items-center justify-center border border-blue-500/20 flex-shrink-0`}>
-                        <Fuel className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-blue-400`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className={`font-semibold text-white ${isMobile ? 'text-base truncate' : 'text-lg'}`}>{price.fuelType || 'Неизвестно'}</div>
-                      </div>
-                    </div>
-                    <Badge variant="secondary" className={`text-xs ${getStatusColor(price.status)} ${isMobile ? 'self-start flex-shrink-0' : ''}`}>
-                      <div className="flex items-center gap-1">
-                        {getStatusIcon(price.status)}
-                        {getStatusText(price.status)}
-                      </div>
-                    </Badge>
-                  </div>
-
-                  {/* Цены */}
-                  <div className="space-y-3 mb-4">
-                    <div className={`flex items-center justify-between border-t border-slate-600 pt-2 ${isMobile ? 'gap-2' : ''}`}>
-                      <span className={`text-slate-400 ${isMobile ? 'text-xs flex-shrink-0' : 'text-sm'}`}>Цена:</span>
-                      {editingPriceId === price.id ? (
-                        <div className={`flex items-center gap-2 ${isMobile ? 'min-w-0' : ''}`}>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={editingValue}
-                            onChange={(e) => handleEditingValueChange(e.target.value)}
-                            className={`${isMobile ? 'w-20 h-7' : 'w-24 h-8'} text-right bg-slate-700 border-slate-600 text-white font-bold text-sm`}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleSaveInlinePrice();
-                              } else if (e.key === 'Escape') {
-                                handleCancelInlineEdit();
-                              }
-                            }}
-                            autoFocus
-                          />
-                          <span className={`text-slate-400 ${isMobile ? 'text-xs flex-shrink-0' : 'text-sm'}`}>₽</span>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleInlineEdit(price.id, price.priceGross)}
-                          className={`text-white font-bold hover:text-blue-400 hover:underline transition-colors cursor-pointer ${isMobile ? 'text-base min-w-0 truncate' : 'text-lg'}`}
-                          title="Нажмите для редактирования цены"
-                        >
-                          {formatPrice(price.priceGross, price.source !== 'sts-api')}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Дополнительная информация */}
-                  <div className={`space-y-2 mb-4 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    <div className={`flex items-center justify-between ${isMobile ? 'gap-2' : ''}`}>
-                      <span className="text-slate-400">Единица:</span>
-                      <span className={`text-white text-right ${isMobile ? 'min-w-0 truncate' : ''}`}>{price.unit}</span>
-                    </div>
-                  </div>
-
-                  {/* Действия */}
-                  <div className={`flex gap-2 pt-3 border-t border-slate-700 ${isMobile ? 'flex-col' : 'flex-row'}`}>
-                    {editingPriceId === price.id ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size={isMobile ? "default" : "sm"}
-                          onClick={handleSaveInlinePrice}
-                          disabled={!hasChanges}
-                          className="flex-1 text-green-400 hover:text-green-300 hover:bg-green-500/10 disabled:text-slate-500 disabled:hover:text-slate-500"
-                        >
-                          <Save className="w-4 h-4" />
-                          <span className={isMobile ? "ml-2" : "ml-1"}>Сохранить</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleCancelInlineEdit}
-                          className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
+                <PriceCard
+                  key={price.id}
+                  price={price}
+                  isMobile={isMobile}
+                  editingPriceId={editingPriceId}
+                  editingValue={editingValue}
+                  hasChanges={hasChanges}
+                  onInlineEdit={handleInlineEdit}
+                  onSaveInlinePrice={handleSaveInlinePrice}
+                  onCancelInlineEdit={handleCancelInlineEdit}
+                  onEditingValueChange={handleEditingValueChange}
+                  formatPrice={formatPrice}
+                  getStatusColor={getStatusColor}
+                  getStatusText={getStatusText}
+                  getStatusIcon={getStatusIcon}
+                />
               ))}
             </div>
           </div>
         )}
 
-        {/* Панель управления ценами для розничной компании */}
-        <div className="mt-8">
-          <RetailPricingDashboard />
-        </div>
+        {/* История изменения цен */}
+        {selectedTradingPoint && selectedTradingPoint !== 'all' && (
+          <PriceHistoryTable
+            priceSchedule={priceSchedule}
+            isLoadingSchedule={isLoadingSchedule}
+            isMobile={isMobile}
+          />
+        )}
 
         {/* Диалог создания/редактирования цены */}
         <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
@@ -1831,105 +1416,6 @@ export default function Prices() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* AlertDialog для истории цен */}
-        <AlertDialog open={isPriceHistoryDialogOpen} onOpenChange={setIsPriceHistoryDialogOpen}>
-          <AlertDialogContent className="max-w-6xl max-h-[90vh] bg-slate-900 border-slate-700 overflow-y-auto">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-semibold text-white flex items-center gap-2">
-                <History className="w-5 h-5 text-blue-400" />
-                История изменения цен
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-slate-300 text-base">
-                Журнал изменения цен с 01.09.2025 для торговой точки: {selectedTradingPoint}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-
-            <div className="my-6">
-              {isLoadingSchedule ? (
-                <div className="flex items-center justify-center py-8">
-                  <RefreshCw className="w-6 h-6 animate-spin text-blue-400 mr-2" />
-                  <span className="text-slate-300">Загрузка истории цен...</span>
-                </div>
-              ) : priceSchedule.length === 0 ? (
-                <div className="text-center py-8">
-                  <AlertCircle className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                  <p className="text-slate-400 text-lg">История цен не найдена</p>
-                  <p className="text-slate-500 text-sm mt-2">
-                    За последние 30 дней изменений цен не было
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-700">
-                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Дата создания</th>
-                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Дата применения</th>
-                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Топливо</th>
-                        <th className="text-right py-3 px-4 text-slate-300 font-medium">Цена (руб/л)</th>
-                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Статус</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {priceSchedule.map((entry, index) => (
-                        <tr
-                          key={`${entry.service_code}-${entry.effective_date}-${index}`}
-                          className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
-                        >
-                          <td className="py-3 px-4 text-slate-300 text-sm">
-                            {entry.created_at ? new Date(entry.created_at).toLocaleString('ru-RU', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }) : '—'}
-                          </td>
-                          <td className="py-3 px-4 text-slate-300 text-sm">
-                            {entry.effective_date ? new Date(entry.effective_date).toLocaleString('ru-RU', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }) : '—'}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <Fuel className="w-4 h-4 text-blue-400" />
-                              <span className="text-slate-300 font-medium">
-                                {entry.fuel_type || `Код: ${entry.service_code}`}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <span className="text-green-400 font-semibold text-lg">
-                              {Number(entry.price).toFixed(2)}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <Badge
-                              variant="outline"
-                              className="border-blue-600 text-blue-400 bg-blue-900/20"
-                            >
-                              Применена
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            <AlertDialogFooter>
-              <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600">
-                Закрыть
-              </AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
       </div>
     </MainLayout>

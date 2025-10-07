@@ -130,10 +130,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
   // Обработчики разрешений
   const togglePermission = (section: string, resource: string, action: PermissionAction) => {
-    console.log('🔄 Toggling permission:', section, resource, action);
-    console.log('🔍 Current permissions:', permissions);
     setPermissions(current => {
-      console.log('📝 Updating permissions state...');
       const existing = current.find(p => p.section === section && p.resource === resource)
       
       if (existing) {

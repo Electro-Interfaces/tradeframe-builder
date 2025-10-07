@@ -119,7 +119,6 @@ class PricesService {
   // Получить типы топлива
   async getFuelTypes(): Promise<FuelType[]> {
     if (this.isSupabaseMode()) {
-      console.log('🔄 Loading fuel types from Supabase...');
       try {
         const supabaseFuelTypes = await pricesSupabaseService.getFuelTypes();
         return supabaseFuelTypes.map(ft => this.transformSupabaseFuelType(ft));
@@ -130,7 +129,6 @@ class PricesService {
     }
 
     // Fallback или mock режим
-    console.log('🔄 Loading fuel types from localStorage...');
     return this.getFuelTypesFromLocalStorage();
   }
 
@@ -180,7 +178,6 @@ class PricesService {
   // Получить текущие цены
   async getCurrentPrices(tradingPointId?: string, networkId?: string): Promise<FuelPrice[]> {
     if (this.isSupabaseMode()) {
-      console.log('🔄 Loading current prices from Supabase...');
       try {
         const supabasePrices = await pricesSupabaseService.getCurrentPrices({
           tradingPointId,
@@ -195,7 +192,6 @@ class PricesService {
     }
 
     // Fallback или mock режим
-    console.log('🔄 Loading current prices from localStorage...');
     return this.getCurrentPricesFromLocalStorage(tradingPointId, networkId);
   }
 
@@ -249,7 +245,6 @@ class PricesService {
     packageId?: string;
   }): Promise<FuelPrice> {
     if (this.isSupabaseMode()) {
-      console.log('🔄 Creating/updating price in Supabase...');
       try {
         // Получаем fuel_type_id по коду
         const fuelTypes = await pricesSupabaseService.getFuelTypes();
@@ -295,7 +290,6 @@ class PricesService {
     }
 
     // Fallback или mock режим
-    console.log('🔄 Creating/updating price in localStorage...');
     return this.upsertPriceInLocalStorage(price);
   }
 
@@ -332,7 +326,6 @@ class PricesService {
   // Удалить цену
   async deletePrice(id: string): Promise<void> {
     if (this.isSupabaseMode()) {
-      console.log('🔄 Deleting price in Supabase...');
       try {
         // В Supabase обычно деактивируем, а не удаляем
         // Пока оставим заглушку
@@ -344,7 +337,6 @@ class PricesService {
     }
 
     // Fallback или mock режим
-    console.log('🔄 Deleting price in localStorage...');
     const currentPrices = PersistentStorage.load<FuelPrice>('currentPrices', []);
     const updatedPrices = currentPrices.filter(price => price.id !== id);
     PersistentStorage.save('currentPrices', updatedPrices);
@@ -353,7 +345,6 @@ class PricesService {
   // Получить историю изменений цен
   async getPriceJournal(tradingPointId?: string, fuelCode?: string, limit = 50): Promise<PriceJournalEntry[]> {
     if (this.isSupabaseMode()) {
-      console.log('🔄 Loading price history from Supabase...');
       try {
         const fuelTypeId = fuelCode ? await this.getFuelTypeIdByCode(fuelCode) : undefined;
         
@@ -388,7 +379,6 @@ class PricesService {
     }
 
     // Fallback или mock режим
-    console.log('🔄 Loading price history from localStorage...');
     
     const initialJournal: PriceJournalEntry[] = [];
     let journal = PersistentStorage.load<PriceJournalEntry>('priceJournal', initialJournal);

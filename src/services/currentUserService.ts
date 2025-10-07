@@ -90,12 +90,10 @@ class CurrentUserService {
    */
   async getUserByEmail(email: string): Promise<User | null> {
     try {
-      console.log('🔍 Searching for user by email in database:', email);
 
       // Ищем пользователя напрямую в таблице users
       const user = await externalUsersService.getUserByEmail(email);
       if (user) {
-        console.log('✅ Пользователь найден:', user);
         return user;
       }
 
@@ -121,7 +119,6 @@ class CurrentUserService {
 
       // Проверка пароля с использованием реальных хешей из БД
       if (await this.isValidPassword(user, password)) {
-        console.log('✅ Authentication successful for:', email);
         return user;
       }
 
@@ -155,7 +152,6 @@ class CurrentUserService {
 
     // Для мобильных устройств или старых браузеров используем упрощенную проверку
     if (isMobile || isOldBrowser) {
-      console.log('🔧 Using simplified password verification for mobile/legacy browser');
       return await this.simplePasswordCheck(user, password);
     }
 

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Очистка PWA кэша</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #1e293b;
+      color: #f1f5f9;
+    }
+    h1 {
+      color: #60a5fa;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    .success {
+      color: #10b981;
+      padding: 10px;
+      margin: 10px 0;
+      border-left: 3px solid #10b981;
+      background: #064e3b;
+    }
+    .error {
+      color: #ef4444;
+      padding: 10px;
+      margin: 10px 0;
+      border-left: 3px solid #ef4444;
+      background: #7f1d1d;
+    }
+    .info {
+      color: #60a5fa;
+      padding: 10px;
+      margin: 10px 0;
+      border-left: 3px solid #60a5fa;
+      background: #1e3a8a;
+    }
+    #log {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧹 Очистка PWA кэша и Service Worker</h1>
+
+  <div class="info">
+    <strong>Эта утилита поможет:</strong>
+    <ul>
+      <li>Удалить Service Worker</li>
+      <li>Очистить все кэши приложения</li>
+      <li>Удалить localStorage данные PWA</li>
+      <li>Сбросить manifest кэш</li>
+    </ul>
+  </div>
+
+  <button onclick="clearEverything()">🗑️ Очистить ВСЁ</button>
+  <button onclick="unregisterServiceWorker()">🔧 Удалить Service Worker</button>
+  <button onclick="clearCaches()">💾 Очистить кэши</button>
+  <button onclick="clearStorage()">📦 Очистить Storage</button>
+  <button onclick="location.reload(true)">🔄 Hard Reload</button>
+
+  <div id="log"></div>
+
+  <script>
+    const log = document.getElementById('log');
+
+    function addLog(message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = type;
+      div.textContent = message;
+      log.appendChild(div);
+    }
+
+    async function unregisterServiceWorker() {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        if (registrations.length === 0) {
+          addLog('❌ Service Worker не зарегистрирован', 'info');
+          return;
+        }
+
+        for (let registration of registrations) {
+          await registration.unregister();
+          addLog(`✅ Service Worker удален: ${registration.scope}`, 'success');
+        }
+      } catch (error) {
+        addLog(`❌ Ошибка удаления Service Worker: ${error.message}`, 'error');
+      }
+    }
+
+    async function clearCaches() {
+      try {
+        const cacheNames = await caches.keys();
+        if (cacheNames.length === 0) {
+          addLog('❌ Кэши не найдены', 'info');
+          return;
+        }
+
+        for (let cacheName of cacheNames) {
+          await caches.delete(cacheName);
+          addLog(`✅ Кэш удален: ${cacheName}`, 'success');
+        }
+      } catch (error) {
+        addLog(`❌ Ошибка очистки кэшей: ${error.message}`, 'error');
+      }
+    }
+
+    function clearStorage() {
+      try {
+        // Очищаем localStorage (кроме важных данных)
+        const keysToKeep = ['auth_token', 'user_data']; // Сохраняем токены аутентификации
+        const allKeys = Object.keys(localStorage);
+
+        allKeys.forEach(key => {
+          if (!keysToKeep.includes(key)) {
+            localStorage.removeItem(key);
+            addLog(`✅ localStorage удален: ${key}`, 'success');
+          }
+        });
+
+        // Очищаем sessionStorage полностью
+        sessionStorage.clear();
+        addLog('✅ sessionStorage очищен', 'success');
+
+        // Очищаем IndexedDB если есть
+        if (window.indexedDB) {
+          indexedDB.databases().then(databases => {
+            databases.forEach(db => {
+              indexedDB.deleteDatabase(db.name);
+              addLog(`✅ IndexedDB удалена: ${db.name}`, 'success');
+            });
+          }).catch(() => {
+            addLog('⚠️ Не удалось получить список IndexedDB', 'info');
+          });
+        }
+      } catch (error) {
+        addLog(`❌ Ошибка очистки Storage: ${error.message}`, 'error');
+      }
+    }
+
+    async function clearEverything() {
+      log.innerHTML = '';
+      addLog('🚀 Начинаем полную очистку...', 'info');
+
+      await unregisterServiceWorker();
+      await clearCaches();
+      clearStorage();
+
+      addLog('', 'info');
+      addLog('✅ ГОТОВО! Теперь нажмите "Hard Reload" или закройте все вкладки приложения и откройте заново', 'success');
+    }
+
+    // Проверка при загрузке
+    window.addEventListener('load', async () => {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      const cacheNames = await caches.keys();
+
+      addLog(`ℹ️ Найдено Service Workers: ${registrations.length}`, 'info');
+      addLog(`ℹ️ Найдено кэшей: ${cacheNames.length}`, 'info');
+
+      if (registrations.length > 0) {
+        registrations.forEach(reg => {
+          addLog(`   - SW: ${reg.scope}`, 'info');
+        });
+      }
+
+      if (cacheNames.length > 0) {
+        cacheNames.forEach(name => {
+          addLog(`   - Cache: ${name}`, 'info');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

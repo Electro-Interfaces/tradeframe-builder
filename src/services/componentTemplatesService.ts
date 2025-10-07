@@ -33,7 +33,6 @@ const mapToSupabase = (data: Partial<ComponentTemplate>) => ({
 export const componentTemplatesAPI = {
   // Получить все шаблоны
   async list(): Promise<ComponentTemplate[]> {
-    console.log('🔄 Loading component templates from Supabase...');
     await delay(300);
     
     try {
@@ -48,7 +47,6 @@ export const componentTemplatesAPI = {
       }
 
       const mappedData = (data || []).map(mapFromSupabase);
-      console.log('✅ Loaded component templates from Supabase:', mappedData.length, 'items');
       return mappedData;
 
     } catch (error) {
@@ -59,7 +57,6 @@ export const componentTemplatesAPI = {
 
   // Получить шаблон по ID
   async get(id: ComponentTemplateId): Promise<ComponentTemplate | null> {
-    console.log('🔍 Getting component template by ID:', id);
     await delay(200);
     
     try {
@@ -77,7 +74,6 @@ export const componentTemplatesAPI = {
       }
 
       const mappedData = mapFromSupabase(data);
-      console.log('✅ Component template found:', mappedData.name);
       return mappedData;
 
     } catch (error) {
@@ -115,7 +111,6 @@ export const componentTemplatesAPI = {
       }
 
       const mappedData = mapFromSupabase(insertedData);
-      console.log('✅ Component template created:', mappedData.name);
       return mappedData;
 
     } catch (error) {
@@ -126,7 +121,6 @@ export const componentTemplatesAPI = {
 
   // Обновить шаблон
   async update(id: ComponentTemplateId, data: Partial<Omit<ComponentTemplate, 'id' | 'created_at'>>): Promise<ComponentTemplate | null> {
-    console.log('✏️ Updating component template:', id);
     await delay(250);
     
     try {
@@ -157,7 +151,6 @@ export const componentTemplatesAPI = {
       }
 
       const mappedData = mapFromSupabase(updatedData);
-      console.log('✅ Component template updated:', mappedData.name);
       return mappedData;
 
     } catch (error) {
@@ -168,7 +161,6 @@ export const componentTemplatesAPI = {
 
   // Удалить шаблон
   async delete(id: ComponentTemplateId): Promise<boolean> {
-    console.log('🗑️ Deleting component template:', id);
     await delay(200);
     
     try {
@@ -181,7 +173,6 @@ export const componentTemplatesAPI = {
         throw error;
       }
 
-      console.log('✅ Component template deleted');
       return true;
 
     } catch (error) {
@@ -192,7 +183,6 @@ export const componentTemplatesAPI = {
 
   // Получить активные шаблоны
   async getActive(): Promise<ComponentTemplate[]> {
-    console.log('🔄 Loading active component templates...');
     await delay(150);
     
     try {
@@ -207,7 +197,6 @@ export const componentTemplatesAPI = {
       }
 
       const mappedData = (data || []).map(mapFromSupabase);
-      console.log('✅ Loaded active component templates:', mappedData.length, 'items');
       return mappedData;
 
     } catch (error) {
@@ -218,7 +207,6 @@ export const componentTemplatesAPI = {
 
   // Поиск шаблонов
   async search(query: string): Promise<ComponentTemplate[]> {
-    console.log('🔍 Searching component templates:', query);
     await delay(200);
     
     if (!query.trim()) {
@@ -238,7 +226,6 @@ export const componentTemplatesAPI = {
       }
 
       const mappedData = (data || []).map(mapFromSupabase);
-      console.log('✅ Found component templates:', mappedData.length, 'items');
       return mappedData;
 
     } catch (error) {

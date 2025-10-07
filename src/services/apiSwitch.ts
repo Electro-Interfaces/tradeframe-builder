@@ -38,7 +38,6 @@ const API_CONFIG = {
 // 📊 Логирование переключений
 const logApiUsage = (service: string, mode: 'MOCK' | 'HTTP') => {
   if (API_CONFIG.DEBUG_MODE) {
-    console.log(`🔄 ${service}: Используется ${mode} API`);
   }
 };
 
@@ -168,6 +167,4 @@ if (API_CONFIG.DEBUG_MODE) {
     forceMock: forceMockMode
   };
   
-  console.log('🧪 API тестирование доступно через window.apiTest');
-  console.log('📊 Текущий режим:', getApiStatus().mode);
 }

@@ -303,7 +303,6 @@ function detectCapabilities(): BrowserCapabilities {
 export const browserUtils = {
   // Применить фиксы для конкретного браузера
   applyBrowserFixes: (browserInfo: BrowserInfo) => {
-    console.log(`🔧 Применяем фиксы для ${browserInfo.name} ${browserInfo.version} на ${browserInfo.platform}`);
     
     // iOS Safari фиксы
     if (browserInfo.platform === 'ios' && browserInfo.name === 'Safari') {
@@ -431,7 +430,6 @@ function applyUCBrowserFixes() {
 
 function applyWebViewFixes() {
   // Общие фиксы для WebView
-  console.log('🔧 Применяем WebView оптимизации');
   
   // Отключаем выделение текста
   document.onselectstart = () => false;

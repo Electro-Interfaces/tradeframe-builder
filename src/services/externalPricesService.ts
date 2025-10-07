@@ -85,8 +85,6 @@ class ExternalPricesService {
         throw new Error('Сервис внешних цен не настроен');
       }
 
-      console.log('🔄 externalPricesService: Загружаем цены из внешнего API...');
-      console.log('🔍 Параметры запроса:', params);
 
       // Используем улучшенный Supabase клиент
       if (!supabaseClient.isInitialized()) {
@@ -137,11 +135,9 @@ class ExternalPricesService {
       }
 
       if (!prices || prices.length === 0) {
-        console.log('ℹ️ Цены не найдены для заданных параметров');
         return [];
       }
 
-      console.log(`✅ Загружено ${prices.length} цен из внешнего API`);
       return prices;
 
     } catch (error: any) {
@@ -207,7 +203,6 @@ class ExternalPricesService {
         throw new Error('Не удалось создать цену');
       }
 
-      console.log('✅ Цена создана:', prices[0].id);
       return prices[0];
     } catch (error: any) {
       console.error('❌ Ошибка в createPrice:', error);
@@ -243,7 +238,6 @@ class ExternalPricesService {
         throw new Error('Цена не найдена');
       }
 
-      console.log('✅ Цена обновлена:', id);
       return prices[0];
     } catch (error: any) {
       console.error('❌ Ошибка в updatePrice:', error);

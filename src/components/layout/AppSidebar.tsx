@@ -57,11 +57,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const [openGroups, setOpenGroups] = useState<string[]>(getInitialOpenGroups);
   const menuVisibility = useMenuVisibility();
   
-  // Логирование в AppSidebar
-  console.log('🗂️ AppSidebar: menuVisibility result:', menuVisibility);
-  const visibleSections = Object.entries(menuVisibility).filter(([key, value]) => value);
-  console.log('🗂️ AppSidebar: visible sections:', visibleSections.map(([key]) => key));
-  
   // Сохраняем состояние в localStorage при изменении
   useEffect(() => {
     localStorage.setItem('appSidebar_openGroups', JSON.stringify(openGroups));
@@ -104,15 +99,12 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   // В мобильном режиме никогда не сворачиваем меню
   const collapsed = isMobile ? false : state === "collapsed";
   
-  // console.log("AppSidebar render:", { isMobile, collapsed, openGroups });
 
   const toggleGroup = (groupId: string) => {
-    console.log('🔄 AppSidebar: toggleGroup called for', groupId);
     setOpenGroups(prev => {
-      const newGroups = prev.includes(groupId) 
+      const newGroups = prev.includes(groupId)
         ? prev.filter(id => id !== groupId)
         : [...prev, groupId];
-      console.log('🔄 AppSidebar: openGroups changed from', prev, 'to', newGroups);
       return newGroups;
     });
   };
@@ -125,6 +117,8 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const networkMenuItems = [
     { title: "Обзор", url: "/network/overview", icon: Network },
     { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
+    { title: "Поступления", url: "/network/receipts", icon: Fuel },
+    { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },
     { title: "Купоны", url: "/network/coupons", icon: Component },
   ];
 
@@ -132,14 +126,12 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Цены", url: "/point/prices", icon: DollarSign },
     { title: "Резервуары", url: "/point/tanks", icon: Gauge },
     { title: "Оборудование", url: "/point/equipment", icon: Settings },
-    { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },
   ];
 
   const adminMenuItems = [
     { title: "Сети и ТТ", url: "/admin/networks", icon: Network },
     { title: "Пользователи", url: "/admin/users-and-roles", icon: Users },
     { title: "Роли", url: "/admin/roles", icon: Shield },
-    { title: "Инструкции", url: "/admin/instructions", icon: Book },
     { title: "Правовые документы", url: "/admin/legal-documents", icon: FileText },
     { title: "Журнал аудита", url: "/admin/audit", icon: FileText },
   ];

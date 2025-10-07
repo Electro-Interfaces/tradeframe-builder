@@ -31,7 +31,6 @@ class EnhancedUsersService {
         throw new Error('Сервис не инициализирован');
       }
 
-      console.log('🔄 Загружаем всех пользователей...');
       
       const { data: users, error } = await supabaseClient.select<any>(
         'users',
@@ -53,12 +52,10 @@ class EnhancedUsersService {
       }
 
       if (!users) {
-        console.log('ℹ️ Пользователи не найдены');
         return [];
       }
 
       const transformedUsers = users.map(user => this.transformUserFromDB(user));
-      console.log(`✅ Загружено ${transformedUsers.length} пользователей`);
       
       return transformedUsers;
     } catch (error: any) {
@@ -187,7 +184,6 @@ class EnhancedUsersService {
         await this.assignRolesToUser(createdUser.id, input.roles);
       }
 
-      console.log('✅ Пользователь создан:', createdUser.email);
       return createdUser;
     } catch (error: any) {
       console.error('❌ Ошибка в createUser:', error);
@@ -228,7 +224,6 @@ class EnhancedUsersService {
         throw new Error('Пользователь не найден');
       }
 
-      console.log('✅ Пользователь обновлен:', id);
       return this.transformUserFromDB(users[0]);
     } catch (error: any) {
       console.error('❌ Ошибка в updateUser:', error);
@@ -259,7 +254,6 @@ class EnhancedUsersService {
         throw new Error(SupabaseErrorHandler.getHumanReadableError(error));
       }
 
-      console.log('✅ Пользователь удален:', id);
     } catch (error: any) {
       console.error('❌ Ошибка в deleteUser:', error);
       throw error;
@@ -291,7 +285,6 @@ class EnhancedUsersService {
         throw new Error(SupabaseErrorHandler.getHumanReadableError(error));
       }
 
-      console.log(`✅ Обновлено ${updates.length} пользователей`);
       return (data as any[]).map(users => users[0]).map(user => this.transformUserFromDB(user));
     } catch (error: any) {
       console.error('❌ Ошибка в batchUpdateUsers:', error);
@@ -394,7 +387,6 @@ class EnhancedUsersService {
         throw new Error(SupabaseErrorHandler.getHumanReadableError(error));
       }
 
-      console.log(`✅ Назначено ${roleIds.length} ролей пользователю ${userId}`);
     } catch (error: any) {
       console.error('❌ Ошибка в assignRolesToUser:', error);
       throw error;

@@ -979,7 +979,6 @@ const saveEquipment = () => {
 const checkAndUpdateData = () => {
   if (!mockEquipment.length || mockEquipment.length < initialEquipment.length || 
       !mockEquipment[0].availableCommandIds || !mockEquipment[0].name) {
-    console.log('🔄 Обновляем данные оборудования до актуальной версии с командами...');
     mockEquipment = [...initialEquipment];
     saveEquipment();
   }
@@ -992,11 +991,9 @@ checkAndUpdateData();
 const resetEquipmentData = () => {
   mockEquipment = [...initialEquipment];
   saveEquipment();
-  console.log('🔄 Equipment data reset to initial state');
 };
 
 // Принудительная очистка localStorage для синхронизации
-console.log('🧹 Очищаю localStorage для equipment...');
 PersistentStorage.remove('equipment');
 
 // Дополнительная очистка для полной синхронизации
@@ -1006,9 +1003,7 @@ if (typeof window !== 'undefined') {
     localStorage.removeItem('currentPrices');
     localStorage.removeItem('fuelTypes');
     localStorage.removeItem('tanks');
-    console.log('🧹 localStorage полностью очищен');
   } catch (e) {
-    console.log('⚠️ Ошибка очистки localStorage:', e);
   }
 }
 

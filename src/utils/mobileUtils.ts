@@ -27,12 +27,10 @@ class MobileUtils {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       this.installPromptEvent = e;
-      console.log('📱 PWA install prompt готов');
     });
 
     // Отслеживаем установку PWA
     window.addEventListener('appinstalled', () => {
-      console.log('🎉 PWA успешно установлен');
       this.installPromptEvent = null;
     });
   }
@@ -109,7 +107,6 @@ class MobileUtils {
                            connection.saveData;
     
     if (isSlowConnection) {
-      console.log('🐌 Медленное соединение обнаружено, включаем оптимизации');
       
       // Отключаем тяжелые анимации
       document.documentElement.classList.add('slow-connection');
@@ -285,7 +282,6 @@ class MobileUtils {
   // Виброотклик с проверкой поддержки
   vibrate(pattern: number | number[] = [50]) {
     if (!navigator.vibrate) {
-      console.log('📳 Вибрация не поддерживается');
       return false;
     }
     
@@ -313,13 +309,11 @@ class MobileUtils {
   // Проверка и показ install prompt для PWA
   async showInstallPrompt(): Promise<boolean> {
     if (!this.installPromptEvent) {
-      console.log('📱 Install prompt не готов');
       return false;
     }
     
     try {
       const result = await this.installPromptEvent.prompt();
-      console.log('📱 Install prompt результат:', result.outcome);
       
       if (result.outcome === 'accepted') {
         this.installPromptEvent = null;

@@ -285,7 +285,6 @@ class STSApiService {
 
     // Проверяем, нужно ли обновить токен
     if (!tokenExists || tokenExpired || forceRefresh) {
-      console.log('🔍 STS API: Обновляем токен...');
 
       try {
         const response = await fetch(`${this.config.url}/v1/login`, {
@@ -314,7 +313,6 @@ class STSApiService {
 
           // Сбрасываем счетчик при успешном обновлении
           this.refreshAttempts = 0;
-          console.log('🔍 STS API: Токен успешно обновлен');
 
           return true;
         } else {
@@ -841,14 +839,6 @@ class STSApiService {
       // Извлекаем значение статуса из разных источников
       const statusValue = stateParam?.value || directValue || directStatus;
       
-      console.log('🔍 Анализ статуса устройства:', {
-        deviceName: device?.name,
-        stateParam: stateParam,
-        directValue: directValue,
-        directStatus: directStatus,
-        finalStatusValue: statusValue
-      });
-      
       // Проверяем различные варианты положительного статуса
       if (statusValue === 'OK' || statusValue === 'ok' || 
           statusValue === 'online' || statusValue === 'active' ||
@@ -1086,7 +1076,6 @@ class STSApiService {
   }
 
   private mapApiPriceToPrice(apiPrice: any): Price {
-    console.log('🔍 Маппинг цены API -> Price:', apiPrice);
     
     // Словарь для маппинга кодов/номеров топлива в читаемые названия
     // Основано на правильном маппинге service_code -> service_name
@@ -1129,25 +1118,10 @@ class STSApiService {
     rawFuelType = String(rawFuelType || '').trim();
     
     // Пытаемся найти в словаре маппинга или используем как есть
-    const fuelType = fuelTypeMap[rawFuelType] || 
-                    fuelTypeMap[rawFuelType.toLowerCase()] || 
-                    fuelTypeMap[rawFuelType.toUpperCase()] || 
+    const fuelType = fuelTypeMap[rawFuelType] ||
+                    fuelTypeMap[rawFuelType.toLowerCase()] ||
+                    fuelTypeMap[rawFuelType.toUpperCase()] ||
                     (rawFuelType !== '' && rawFuelType !== 'undefined' ? rawFuelType : 'Неизвестно');
-    
-    console.log('🔍 Определили вид топлива:', fuelType, 'из исходных данных:', {
-      rawFuelType: rawFuelType,
-      service_name: apiPrice.service_name,      // НОВОЕ: прямое название
-      service_code: apiPrice.service_code,      // НОВОЕ: код для маппинга
-      fuelType: apiPrice.fuelType,
-      fuel_type: apiPrice.fuel_type,
-      type: apiPrice.type,
-      fuel: apiPrice.fuel,
-      name: apiPrice.name,
-      product: apiPrice.product,
-      fuel_name: apiPrice.fuel_name,
-      fuel_id: apiPrice.fuel_id,
-      id: apiPrice.id
-    });
                     
     const mapped = {
       id: parseInt(apiPrice.id || Math.random() * 1000),
@@ -1158,7 +1132,6 @@ class STSApiService {
       status: apiPrice.status || 'active'
     };
     
-    console.log('🔍 Результат маппинга:', mapped);
     return mapped;
   }
 
@@ -1470,7 +1443,6 @@ class STSApiService {
         method: 'POST'
       }, contextParams);
 
-      console.log('🔄 STS API: Ответ от сервера на команду перезагрузки:', data);
 
       // Проверяем успешность операции
       if (data && (data.success === true || data.status === 'success' || data.result === 'ok')) {
@@ -1583,7 +1555,6 @@ class STSApiService {
         body: JSON.stringify(requestBody)
       }, contextParams);
 
-      console.log('✅ STS API: Цены установлены успешно', data);
 
       return {
         success: true,
@@ -1617,12 +1588,6 @@ class STSApiService {
     stationNumber: string | number,
     startDate?: string
   ): Promise<PriceScheduleEntry[]> {
-    console.log('🗂️ STS API: getPriceSchedule called', {
-      networkNumber,
-      stationNumber,
-      startDate
-    });
-
     if (!this.isConfigured()) {
       throw new Error('STS API не настроен');
     }
@@ -1642,22 +1607,8 @@ class STSApiService {
 
       const endpoint = `/v1/schedule/prices/${stationNumber}?${params.toString()}`;
 
-      console.log('📅 STS API: Запрос журнала цен', {
-        networkNumber,
-        stationNumber,
-        dateFrom,
-        fullEndpoint: endpoint
-      });
-
       const data = await this.apiRequest<any>(endpoint, {
         method: 'GET'
-      });
-
-      console.log('✅ STS API: Журнал цен получен', {
-        type: typeof data,
-        isArray: Array.isArray(data),
-        dataKeys: data && typeof data === 'object' ? Object.keys(data) : 'не объект',
-        fullResponse: data
       });
 
       // Проверяем структуру ответа и извлекаем массив
@@ -1673,24 +1624,10 @@ class STSApiService {
         }
       }
 
-      console.log('📊 STS API: Обрабатываем данные', {
-        count: priceData.length,
-        sample: priceData.slice(0, 2),
-        firstItemFields: priceData[0] ? Object.keys(priceData[0]) : [],
-        firstItemData: priceData[0] || null
-      });
-
       // Преобразуем данные в удобный формат
       const priceEntries: PriceScheduleEntry[] = priceData.map(item => {
         const serviceCode = String(item.service_code || item.code || '');
         const fuelType = SERVICE_CODE_TO_FUEL_TYPE[serviceCode] || `Услуга ${serviceCode}`;
-
-        console.log('🔍 Отладка даты из API:', {
-          service_name: item.service_name,
-          dt: item.dt,
-          dtType: typeof item.dt,
-          rawItem: item
-        });
 
         return {
           id: item.id || Math.floor(Math.random() * 10000),

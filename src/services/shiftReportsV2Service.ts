@@ -31,13 +31,11 @@ class ShiftReportsV2Service {
     params: GetShiftsParams,
     stationName?: string
   ): Promise<ShiftListItem[]> {
-    console.log('📊 ShiftReportsV2Service: Получение списка смен', params);
 
     try {
       // Получаем данные из API
       const response = await shiftsService.getShifts(params);
 
-      console.log(`✅ ShiftReportsV2Service: Получено ${response?.length || 0} смен`);
 
       // Если нет смен - возвращаем пустой массив
       if (!response || response.length === 0) {
@@ -109,7 +107,6 @@ class ShiftReportsV2Service {
     params: GetShiftDetailsParams,
     stationName?: string
   ): Promise<ShiftDetails> {
-    console.log('🔍 ShiftReportsV2Service: Получение деталей смены', params);
 
     try {
       // Сначала получаем базовую информацию о смене из /v1/shifts
@@ -118,12 +115,10 @@ class ShiftReportsV2Service {
         station: params.station
       });
       const shiftInfo = shifts.find(s => s.shift === params.shift);
-      console.log('📅 ShiftReportsV2Service: Информация о смене из /v1/shifts:', shiftInfo);
 
       // Получаем детальные данные из API
       const response = await shiftsService.getShiftReport(params);
 
-      console.log('✅ ShiftReportsV2Service: Детали смены получены', response);
       console.log('🔍 ShiftReportsV2Service: Структура ответа', {
         hasShift: !!response.shift,
         hasPosInfo: !!response.pos_info,
@@ -134,12 +129,10 @@ class ShiftReportsV2Service {
 
       // Выводим все ключи верхнего уровня с их типами
       Object.keys(response).forEach(key => {
-        console.log(`  📋 ${key}:`, typeof response[key], Array.isArray(response[key]) ? `(массив ${response[key].length} элементов)` : '');
       });
 
       // Выводим структуру psm
       if (response.psm) {
-        console.log('🏢 PSM структура:', response.psm);
       }
 
       // Выводим первый элемент массивов для примера
@@ -147,15 +140,10 @@ class ShiftReportsV2Service {
         console.log('⛽ Release[0]:', response.release[0]);
       }
       if (response.sales && response.sales.length > 0) {
-        console.log('💰 Sales[0]:', response.sales[0]);
-        console.log('💰 ПОЛНЫЙ массив sales:', response.sales);
-        console.log('💰 Sales[0].fuel:', response.sales[0].fuel);
       }
       if (response.receipt && response.receipt.length > 0) {
-        console.log('📦 Receipt[0]:', response.receipt[0]);
       }
       if (response.money && response.money.length > 0) {
-        console.log('💵 Money[0]:', response.money[0]);
       }
 
       // Преобразуем в UI формат используя новый адаптер (V2)

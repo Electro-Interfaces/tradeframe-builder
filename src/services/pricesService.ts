@@ -1553,7 +1553,6 @@ class PricesService {
   async createDemoPrices(): Promise<void> {
     if (!this.isSupabaseMode()) return;
     
-    console.log('🎭 Создаем демо-цены в БД...');
     try {
       // Получаем существующие торговые точки и типы топлива
       const [tpResult, ftResult] = await Promise.all([
@@ -1570,7 +1569,6 @@ class PricesService {
       const fuelTypes = ftResult.data || [];
       
       if (tradingPoints.length === 0 || fuelTypes.length === 0) {
-        console.log('⚠️ Нет торговых точек или типов топлива для создания демо-цен');
         return;
       }
       
@@ -1628,7 +1626,6 @@ class PricesService {
   // Получить типы топлива
   async getFuelTypes(): Promise<FuelType[]> {
     if (this.isSupabaseMode()) {
-      console.log('🔄 Loading fuel types from Supabase...');
       try {
         const { data, error } = await this.client
           .from('fuel_types')
@@ -1646,7 +1643,6 @@ class PricesService {
     }
 
     // Fallback или mock режим
-    console.log('🔄 Loading fuel types from localStorage...');
     return this.getFuelTypesFromLocalStorage();
   }
 
@@ -1674,7 +1670,6 @@ class PricesService {
   // Получить текущие цены
   async getCurrentPrices(tradingPointId?: string, networkId?: string): Promise<FuelPrice[]> {
     if (this.isSupabaseMode()) {
-      console.log('🔄 Loading prices from Supabase...');
       try {
         let query = this.client.from('prices');
         
@@ -1713,7 +1708,6 @@ class PricesService {
     }
     
     // Fallback или mock режим
-    console.log('🔄 Loading prices from localStorage...');
     await new Promise(resolve => setTimeout(resolve, 200));
     
     let prices = [...mockCurrentPrices];
@@ -1740,7 +1734,6 @@ class PricesService {
     createdBy: string;
   }): Promise<FuelPrice | null> {
     if (this.isSupabaseMode()) {
-      console.log('🔄 Upserting price to Supabase...');
       try {
         const vatRate = priceData.vatRate || 20;
         const priceGross = Math.round(priceData.priceNet * (1 + vatRate / 100));
@@ -1787,7 +1780,6 @@ class PricesService {
     }
     
     // Fallback или mock режим
-    console.log('🔄 Upserting price to localStorage...');
     await new Promise(resolve => setTimeout(resolve, 300));
     
     const priceGross = calculateGrossPrice(priceData.priceNet, priceData.vatRate || 20);
@@ -1978,7 +1970,6 @@ class PricesService {
   // Получить историю изменений цен
   async getPriceJournal(tradingPointId?: string, fuelCode?: string, limit = 50): Promise<PriceJournalEntry[]> {
     if (this.isSupabaseMode()) {
-      console.log('🔄 Loading price history from Supabase...');
       try {
         let query = this.client.from('price_history');
         
@@ -2029,7 +2020,6 @@ class PricesService {
     }
     
     // Fallback или mock режим
-    console.log('🔄 Loading price history from localStorage...');
     await new Promise(resolve => setTimeout(resolve, 200));
     
     let journal = [...mockPriceJournal];
@@ -2077,12 +2067,10 @@ const resetPricesData = () => {
   savePricePackages();
   savePriceJournal();
   
-  console.log('🔄 Prices data reset to new connected schema (Equipment → Tanks → Prices)');
 };
 
 // Данные только для fallback режима - в продакшене используется Supabase
 if (apiConfigService.isMockMode()) {
-  console.log('🧹 Инициализация mock данных цен для демо режима...');
   resetPricesData();
 }
 

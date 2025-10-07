@@ -41,7 +41,6 @@ export class SupabaseAuthService {
   static async login(email: string, password: string): Promise<AuthUser> {
     try {
       // Используем service клиент для авторизации
-      console.log('🔐 Attempting login with email:', email);
       
       // Получаем пользователя из базы данных (новая схема)
       const { data: users, error: userError } = await supabaseService
@@ -52,7 +51,6 @@ export class SupabaseAuthService {
         .is('deleted_at', null)
         .limit(1);
 
-      console.log('✅ Query result:', { users, userError });
 
       if (userError) {
         console.error('❌ Supabase user query error:', userError);
@@ -84,7 +82,6 @@ export class SupabaseAuthService {
       let userRole = user.preferences?.role || 'operator';
       const userRoleId = user.preferences?.role_id;
 
-      console.log('🎭 РОЛЬ ДО МАППИНГА:', userRole);
 
       // Маппинг имен ролей на коды для совместимости
       const roleNameToCode: Record<string, string> = {
@@ -97,11 +94,9 @@ export class SupabaseAuthService {
 
       // Если роль - это имя, конвертируем в код
       if (roleNameToCode[userRole]) {
-        console.log('🎭 НАЙДЕНО СООТВЕТСТВИЕ:', userRole, '->', roleNameToCode[userRole]);
         userRole = roleNameToCode[userRole];
       }
 
-      console.log('🎭 РОЛЬ ПОСЛЕ МАППИНГА:', userRole);
       
       // Получаем разрешения на основе роли
       const permissions = this.getRolePermissions(userRole);

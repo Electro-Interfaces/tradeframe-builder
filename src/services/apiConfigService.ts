@@ -234,16 +234,7 @@ export const apiConfigService = {
   isMockMode(): boolean {
     const connection = this.getCurrentConnection();
     const result = connection?.type === 'mock' || !connection;
-    
-    console.log('🔍 ApiConfigService.isMockMode() debug:', {
-      hasConnection: !!connection,
-      connectionId: connection?.id,
-      connectionType: connection?.type,
-      connectionUrl: connection?.url,
-      result: result,
-      currentConnectionId: currentConfig.currentConnectionId
-    });
-    
+
     return result;
   },
 
@@ -663,5 +654,4 @@ export const isApiMockMode = (): boolean => {
 if (import.meta.env.DEV) {
   // @ts-ignore
   window.apiConfigService = apiConfigService;
-  console.log('🛠️ API Config Service доступен через window.apiConfigService');
 }
