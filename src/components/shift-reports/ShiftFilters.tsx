@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Filter, RefreshCw } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Calendar as CalendarIcon, Filter, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse, isValid } from "date-fns";
@@ -26,6 +28,7 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
 }) => {
   const [dateFromInput, setDateFromInput] = useState('');
   const [dateToInput, setDateToInput] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   const handleDateFromChange = (value: string) => {
     onFiltersChange({ ...filters, dateFrom: value });
@@ -82,149 +85,109 @@ const ShiftFilters: React.FC<ShiftFiltersProps> = ({
   };
 
   return (
-    <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 md:p-6 space-y-4">
-      {/* Заголовок */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <Filter className="w-4 h-4 text-white" />
+    <Card className="bg-slate-800 border-slate-700">
+      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-700/50 transition-colors">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-slate-400" />
+              <span className="font-medium text-white">Фильтры</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleReset();
+                }}
+              >
+                Очистить фильтры
+              </Button>
+              {onRefresh && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRefresh();
+                  }}
+                  disabled={loading}
+                  className="border-slate-600 text-white hover:bg-slate-700"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+              )}
+              {filtersOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+            </div>
           </div>
-          <h2 className="text-lg font-semibold text-white">Фильтры</h2>
-        </div>
-        <div className="flex gap-2">
-          {onRefresh && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRefresh}
-              disabled={loading}
-              className="border-slate-600 text-white hover:bg-slate-700"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Обновить
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Фильтры */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Дата начала */}
-        <div>
-          <Label className="text-sm text-slate-300">
-            Дата начала
-          </Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none z-10" />
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="p-4 border-t border-slate-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Дата начала */}
+              <div>
+                <Label className="text-xs text-slate-400">
+                  Дата от
+                </Label>
                 <Input
-                  placeholder="ДД.ММ.ГГГГ"
-                  value={dateFromInput || (filters.dateFrom ? format(new Date(filters.dateFrom), "dd.MM.yyyy") : '')}
-                  onChange={handleDateFromInputChange}
-                  className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => handleDateFromChange(e.target.value)}
+                  className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 />
               </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={filters.dateFrom ? new Date(filters.dateFrom) : undefined}
-                onSelect={(date) => {
-                  if (date) {
-                    const isoDate = date.toISOString().split('T')[0];
-                    handleDateFromChange(isoDate);
-                    setDateFromInput('');
-                  }
-                }}
-                initialFocus
-                locale={ru}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
 
-        {/* Дата окончания */}
-        <div>
-          <Label className="text-sm text-slate-300">
-            Дата окончания
-          </Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none z-10" />
+              {/* Дата до */}
+              <div>
+                <Label className="text-xs text-slate-400">
+                  Дата до
+                </Label>
                 <Input
-                  placeholder="ДД.ММ.ГГГГ"
-                  value={dateToInput || (filters.dateTo ? format(new Date(filters.dateTo), "dd.MM.yyyy") : '')}
-                  onChange={handleDateToInputChange}
-                  className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => handleDateToChange(e.target.value)}
+                  className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 />
               </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={filters.dateTo ? new Date(filters.dateTo) : undefined}
-                onSelect={(date) => {
-                  if (date) {
-                    const isoDate = date.toISOString().split('T')[0];
-                    handleDateToChange(isoDate);
-                    setDateToInput('');
-                  }
-                }}
-                initialFocus
-                locale={ru}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
 
-        {/* Статус смены */}
-        <div>
-          <Label htmlFor="status" className="text-sm text-slate-300">
-            Статус смены
-          </Label>
-          <Select value={filters.status} onValueChange={handleStatusChange}>
-            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все статусы</SelectItem>
-              <SelectItem value="open">Открыта</SelectItem>
-              <SelectItem value="closed">Закрыта</SelectItem>
-              <SelectItem value="synchronized">Синхронизирована</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+              {/* Статус смены */}
+              <div>
+                <Label htmlFor="status" className="text-xs text-slate-400">
+                  Статус
+                </Label>
+                <Select value={filters.status} onValueChange={handleStatusChange}>
+                  <SelectTrigger id="status" className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все статусы</SelectItem>
+                    <SelectItem value="open">Открыта</SelectItem>
+                    <SelectItem value="closed">Закрыта</SelectItem>
+                    <SelectItem value="synchronized">Синхронизирована</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-        {/* Номер смены */}
-        <div>
-          <Label htmlFor="shiftNumber" className="text-sm text-slate-300">
-            Номер смены
-          </Label>
-          <Input
-            id="shiftNumber"
-            type="number"
-            placeholder="№ смены"
-            value={filters.shiftNumber || ''}
-            onChange={(e) => handleShiftNumberChange(e.target.value)}
-            className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
-          />
-        </div>
-      </div>
-
-      {/* Кнопка сброса */}
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          onClick={handleReset}
-          className="border-slate-600 text-white hover:bg-slate-700"
-        >
-          <Filter className="w-4 h-4 mr-2" />
-          Сбросить фильтры
-        </Button>
-      </div>
-    </div>
+              {/* Номер смены */}
+              <div>
+                <Label htmlFor="shiftNumber" className="text-xs text-slate-400">
+                  Номер смены
+                </Label>
+                <Input
+                  id="shiftNumber"
+                  type="number"
+                  placeholder="Введите номер"
+                  value={filters.shiftNumber || ''}
+                  onChange={(e) => handleShiftNumberChange(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 };
 

@@ -42,7 +42,6 @@ class PersistentStorageClass {
         }
         return value;
       }));
-      console.log(`✅ Данные сохранены в localStorage: ${key}`);
     } catch (error) {
       console.error(`❌ Ошибка сохранения в localStorage: ${key}`, error);
       // Если localStorage переполнен, попробуем очистить старые данные
@@ -70,10 +69,8 @@ class PersistentStorageClass {
     try {
       const stored = localStorage.getItem(storageKey);
       if (!stored) {
-        console.log(`ℹ️ Нет сохраненных данных для: ${key}, используем значение по умолчанию`);
         // Сохраняем начальные данные в localStorage
         if (defaultValue.length > 0) {
-          console.log(`💾 Сохраняем начальные данные в localStorage: ${key}`);
           await this.setItem(key, defaultValue);
         }
         return defaultValue;
@@ -89,7 +86,6 @@ class PersistentStorageClass {
         return value;
       });
       
-      console.log(`✅ Данные загружены из localStorage: ${key}`);
       
       // Проверка версии для совместимости
       if (storageData.metadata.version !== PersistentStorageClass.VERSION) {
@@ -121,17 +117,14 @@ class PersistentStorageClass {
     try {
       const stored = localStorage.getItem(storageKey);
       if (!stored) {
-        console.log(`ℹ️ Нет сохраненных данных для: ${key}, используем значение по умолчанию`);
         // Сохраняем начальные данные в localStorage
         if (defaultValue.length > 0) {
-          console.log(`💾 Сохраняем начальные данные в localStorage: ${key}`);
           this.save(key, defaultValue);
         }
         return defaultValue;
       }
 
       const storageData: StorageData<T> = JSON.parse(stored);
-      console.log(`✅ Данные загружены из localStorage: ${key}`, storageData.data);
       
       // Проверка версии для совместимости
       if (storageData.metadata.version !== this.VERSION) {
@@ -151,7 +144,6 @@ class PersistentStorageClass {
   static remove(key: string): void {
     const storageKey = this.PREFIX + key;
     localStorage.removeItem(storageKey);
-    console.log(`🗑️ Данные удалены из localStorage: ${key}`);
   }
 
   /**
@@ -191,7 +183,6 @@ class PersistentStorageClass {
       }
     }
 
-    console.log('📤 Экспортированы все данные:', exportData);
     return exportData;
   }
 
@@ -211,7 +202,6 @@ class PersistentStorageClass {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    console.log('💾 Данные экспортированы в файл');
   }
 
   /**
@@ -226,13 +216,11 @@ class PersistentStorageClass {
       const storageKey = this.PREFIX + key;
       try {
         localStorage.setItem(storageKey, JSON.stringify(value));
-        console.log(`✅ Импортированы данные для: ${key}`);
       } catch (error) {
         console.error(`❌ Ошибка импорта ${key}:`, error);
       }
     });
 
-    console.log('📥 Импорт завершен');
   }
 
   /**
@@ -275,7 +263,6 @@ class PersistentStorageClass {
             
             if (lastModified < cutoffDate) {
               localStorage.removeItem(key);
-              console.log(`🧹 Удалены старые данные: ${key}`);
             }
           }
         } catch (error) {
@@ -321,7 +308,6 @@ class PersistentStorageClass {
     }
 
     keys.forEach(key => localStorage.removeItem(key));
-    console.log('🗑️ Все данные приложения очищены');
   }
   /**
    * Очистить старые данные для освобождения места
@@ -341,7 +327,6 @@ class PersistentStorageClass {
             
             if (lastModified < cutoffDate) {
               localStorage.removeItem(key);
-              console.log(`🧹 Удалены старые данные: ${key}`);
             }
           }
         } catch (error) {
@@ -1247,6 +1232,5 @@ export class PersistentStorage extends PersistentStorageClass {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    console.log('📄 SQL миграция экспортирована в файл');
   }
 }

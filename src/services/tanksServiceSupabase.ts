@@ -132,7 +132,6 @@ const mapToSupabase = (data: Partial<Tank>) => ({
 export const supabaseTanksService = {
   // Получить все резервуары
   async getTanks(tradingPointId?: string): Promise<Tank[]> {
-    console.log('🔄 Loading tanks from Supabase...');
     await delay(300);
     
     try {
@@ -150,7 +149,6 @@ export const supabaseTanksService = {
       }
       
       const mappedData = (data || []).map(mapFromSupabase);
-      console.log('✅ Loaded tanks from Supabase:', mappedData.length, 'items');
       return mappedData;
       
     } catch (error) {
@@ -161,7 +159,6 @@ export const supabaseTanksService = {
 
   // Получить резервуар по ID
   async getTank(id: string): Promise<Tank | null> {
-    console.log('🔍 Getting tank by ID:', id);
     await delay(200);
     
     try {
@@ -179,7 +176,6 @@ export const supabaseTanksService = {
       }
 
       const mappedData = mapFromSupabase(data);
-      console.log('✅ Tank found:', mappedData.name);
       return mappedData;
 
     } catch (error) {
@@ -206,7 +202,6 @@ export const supabaseTanksService = {
       }
 
       const mappedData = mapFromSupabase(insertedData);
-      console.log('✅ Tank created:', mappedData.name);
       return mappedData;
 
     } catch (error) {
@@ -217,7 +212,6 @@ export const supabaseTanksService = {
 
   // Обновить резервуар
   async updateTank(id: string, updates: Partial<Tank>): Promise<Tank> {
-    console.log('✏️ Updating tank:', id);
     await delay(250);
     
     try {
@@ -234,7 +228,6 @@ export const supabaseTanksService = {
       }
 
       const mappedData = mapFromSupabase(updatedData);
-      console.log('✅ Tank updated:', mappedData.name);
       
       return mappedData;
 
@@ -246,7 +239,6 @@ export const supabaseTanksService = {
 
   // Удалить резервуар
   async deleteTank(id: string): Promise<boolean> {
-    console.log('🗑️ Deleting tank:', id);
     await delay(200);
     
     try {
@@ -259,7 +251,6 @@ export const supabaseTanksService = {
         throw error;
       }
 
-      console.log('✅ Tank deleted');
       return true;
 
     } catch (error) {
@@ -285,7 +276,6 @@ export const supabaseTanksService = {
       timestamp: new Date().toISOString(),
       ...event
     };
-    console.log('📝 Tank event added (mock):', newEvent.title);
     return newEvent;
   }
 };

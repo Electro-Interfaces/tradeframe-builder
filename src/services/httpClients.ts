@@ -60,7 +60,6 @@ class HttpApiClient {
 
     // Если получили 401, пробуем обновить токен и повторить запрос
     if (response.status === 401) {
-      console.log('🔄 Token expired, attempting refresh...');
       token = await this.refreshToken();
       
       if (token) {
@@ -117,7 +116,6 @@ class HttpApiClient {
     
     // Проверяем срок действия токена
     if (tokenExpiry && new Date(tokenExpiry) <= new Date()) {
-      console.log('🕐 Token expired, attempting refresh...');
       return await this.refreshToken();
     }
     
@@ -140,7 +138,6 @@ class HttpApiClient {
         return null;
       }
 
-      console.log('🔐 Refreshing token with saved credentials...');
       
       // Импортируем сервис аутентификации динамически чтобы избежать циклических зависимостей
       const { SupabaseAuthService } = await import('./supabaseAuthService');
@@ -157,7 +154,6 @@ class HttpApiClient {
       storage.setItem('auth_token_expiry', expiryTime.toISOString());
       storage.setItem('auth_user', JSON.stringify(user));
       
-      console.log('✅ Token refreshed successfully');
       return newToken;
       
     } catch (error) {

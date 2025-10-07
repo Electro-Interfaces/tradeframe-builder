@@ -561,5 +561,4 @@ export const partialMigrationService = {
 if (import.meta.env.DEV) {
   // @ts-ignore
   window.partialMigrationService = partialMigrationService;
-  console.log('🔄 Partial Migration Service доступен через window.partialMigrationService');
 }

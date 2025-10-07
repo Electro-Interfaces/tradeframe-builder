@@ -38,14 +38,11 @@ export function NetworksDebugSimple() {
       setApiMode(currentApiMode);
       setConnectionName(currentConnection?.name || 'НЕ НАЙДЕНО');
       
-      console.log('🔍 Debug - API Mode:', currentApiMode);
-      console.log('🔍 Debug - Connection:', currentConnection?.name);
       
       // Загружаем сети
       const networksData = await networksService.getAll();
       setNetworks(networksData);
       
-      console.log('🔍 Debug - Networks loaded:', networksData.length, 'networks');
       setLastAction(`Загружено ${networksData.length} сетей`);
       
     } catch (err) {
@@ -64,10 +61,8 @@ export function NetworksDebugSimple() {
       setError(null);
       setLastAction('Запуск миграции...');
       
-      console.log('🚀 Debug - Running migration...');
       const result = await networksService.migrateToSupabase();
       
-      console.log('🚀 Debug - Migration result:', result);
       
       if (result.success) {
         setLastAction(`Миграция успешна! Перенесено: ${result.migrated}, пропущено: ${result.skipped}`);
@@ -100,9 +95,7 @@ export function NetworksDebugSimple() {
         type: 'АЗС'
       };
       
-      console.log('🏗️ Debug - Creating test network:', testData);
       const newNetwork = await networksService.create(testData);
-      console.log('✅ Debug - Test network created:', newNetwork);
       
       setLastAction(`Создана сеть: ${newNetwork.name} (ID: ${newNetwork.id})`);
       

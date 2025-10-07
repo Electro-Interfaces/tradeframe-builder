@@ -26,7 +26,6 @@ let demoDataOperations: Operation[] = [];
 try {
   // В production это будет заменено на вызов API
   demoDataOperations = require('../data/operationsDemoData.json');
-  console.log('✅ Загружены демо-данные операций:', demoDataOperations.length);
 } catch (error) {
   console.warn('⚠️ Не удалось загрузить демо-данные операций:', error);
   demoDataOperations = [];
@@ -36,13 +35,11 @@ try {
 let operationsData: Operation[] = [];
 
 // Очистка кэша операций для загрузки новых демо-данных
-console.log('🧹 Очищаем кэш операций для загрузки новых демо транзакций...');
 PersistentStorage.remove('operations');
 
 // Загружаем операции из localStorage или используем демо-данные
 try {
   operationsData = PersistentStorage.load<Operation>('operations', demoDataOperations);
-  console.log('✅ Загружено операций из PersistentStorage:', operationsData.length);
 } catch (error) {
   console.error('❌ Ошибка загрузки операций из localStorage:', error);
   operationsData = demoDataOperations;
@@ -218,7 +215,6 @@ export const operationsService = {
    * Принудительная перезагрузка данных
    */
   async forceReload(): Promise<void> {
-    console.log('🔄 Принудительная перезагрузка операций...');
     operationsData = [...demoDataOperations];
     saveOperations();
   },
@@ -268,7 +264,6 @@ export const operationsService = {
     try {
       operationsData = operations;
       saveOperations();
-      console.log(`✅ Импортировано ${operations.length} операций после миграции`);
       return true;
     } catch (error) {
       console.error('❌ Ошибка импорта операций:', error);
@@ -282,6 +277,5 @@ export const operationsService = {
   async clearLocalData(): Promise<void> {
     operationsData = [];
     PersistentStorage.remove('operations');
-    console.log('🧹 Локальные данные операций очищены');
   }
 };

@@ -60,7 +60,6 @@ export const legalDocumentsService = {
   
   async getDocumentTypes(): Promise<DocumentTypeInfo[]> {
     try {
-      console.log('🔍 Загружаем типы документов из Supabase...');
       return await LegalDocumentsSupabaseService.getDocumentTypes();
     } catch (error) {
       console.error('❌ Supabase error, using fallback:', error);
@@ -90,7 +89,6 @@ export const legalDocumentsService = {
 
   async getDocumentVersions(docTypeCode?: DocumentType): Promise<DocumentVersion[]> {
     try {
-      console.log('🔍 Загружаем версии документов из Supabase...');
       return await LegalDocumentsSupabaseService.getDocumentVersions(docTypeCode);
     } catch (error) {
       console.error('❌ Supabase error, returning empty array:', error);
@@ -130,7 +128,6 @@ export const legalDocumentsService = {
       const actualUserId = userId || getCurrentUser().id;
       const actualUserEmail = getCurrentUser().email;
       
-      console.log('📝 Принимаем согласие на документ:', { versionId, actualUserId, source });
       
       return await LegalDocumentsSupabaseService.acceptDocument(
         versionId, 

@@ -46,7 +46,6 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleRetry = () => {
-    console.log('🔄 ErrorBoundary: Пользователь пытается восстановить приложение');
 
     if (this.state.retryCount < 2) {
       // Простая попытка сброса состояния
@@ -58,7 +57,6 @@ class ErrorBoundary extends Component<Props, State> {
       });
     } else {
       // После 2 попыток предлагаем полную перезагрузку
-      console.log('🔄 ErrorBoundary: Максимум попыток достигнут, перезагружаем страницу');
       window.location.reload();
     }
   };
@@ -111,7 +109,6 @@ class ErrorBoundary extends Component<Props, State> {
                 {/* Кнопка возврата к авторизации */}
                 <button
                   onClick={() => {
-                    console.log('🔄 ErrorBoundary: Переход к авторизации после ошибки');
                     localStorage.removeItem('tradeframe_user');
                     localStorage.removeItem('authToken');
                     window.location.href = '/login';
@@ -124,7 +121,6 @@ class ErrorBoundary extends Component<Props, State> {
                 {/* Кнопка очистки данных и перезагрузки */}
                 <button
                   onClick={() => {
-                    console.log('🔄 ErrorBoundary: Полная очистка данных пользователем');
                     localStorage.clear();
                     sessionStorage.clear();
                     window.location.reload();

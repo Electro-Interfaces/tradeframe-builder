@@ -486,7 +486,6 @@ export const fuelStocksHistoryService = {
     
     // Если данных нет, генерируем их
     if (snapshots.length === 0) {
-      console.log('📊 Генерируем исторические данные остатков топлива...');
       snapshots = await historyGenerator.generateAugustHistory();
       PersistentStorage.save(cacheKey, snapshots);
     }
@@ -592,7 +591,6 @@ export const fuelStocksHistoryService = {
    */
   clearCache(): void {
     PersistentStorage.remove('fuelStocksHistory_august2025');
-    console.log('🗑️ Кеш исторических данных остатков топлива очищен');
   },
 
   /**

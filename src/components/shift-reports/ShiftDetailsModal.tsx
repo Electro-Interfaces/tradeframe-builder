@@ -173,26 +173,40 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] bg-slate-800 border-slate-700 flex flex-col">
         <DialogHeader>
-          <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
-            <div className="flex-1">
-              <DialogTitle className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold text-white flex ${isMobile ? 'flex-col gap-2' : 'items-center gap-3'}`}>
-                <span>Детали смены #{shiftNumber}</span>
-                {details && getStatusBadge(details.status)}
-              </DialogTitle>
+          <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-start justify-between'}`}>
+            <div className="flex-1 mr-10">
+              <div className="flex items-center justify-between">
+                <DialogTitle className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold text-white flex ${isMobile ? 'flex-col gap-2' : 'items-center gap-3'}`}>
+                  <span>Детали смены #{shiftNumber}</span>
+                  {details && getStatusBadge(details.status)}
+                </DialogTitle>
+                {details && !isMobile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExportDialogOpen(true)}
+                    disabled={isExporting}
+                    className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white mr-2"
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Экспорт
+                  </Button>
+                )}
+              </div>
               {stationName && (
                 <p className={`text-slate-400 ${isMobile ? 'text-xs' : 'text-sm'} mt-1`}>{stationName}</p>
               )}
             </div>
-            {details && (
+            {details && isMobile && (
               <Button
                 variant="outline"
-                size={isMobile ? "sm" : "sm"}
+                size="sm"
                 onClick={() => setExportDialogOpen(true)}
                 disabled={isExporting}
-                className={isMobile ? 'w-full' : 'ml-4'}
+                className="w-full border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
               >
                 <FileDown className="h-4 w-4 mr-2" />
-                {isMobile ? 'Экспорт' : 'Экспорт'}
+                Экспорт
               </Button>
             )}
           </div>
@@ -511,7 +525,6 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                       <tbody className="bg-slate-800">
                         {(() => {
                           // Получаем данные из sales для безналичных способов оплаты
-                          console.log('🔍 Безналичная реализация - salesRaw:', (details as any).salesRaw);
 
                           // Группируем по видам топлива
                           const fuelGroups = new Map<number, {

@@ -26,7 +26,6 @@ class ExternalUsersService {
       return this.config;
     }
 
-    console.log('🔧 ExternalUsersService: Используем фиксированную конфигурацию Supabase');
     
     this.config = fixedConfig;
     this.lastConfigUpdate = now;
@@ -41,7 +40,6 @@ class ExternalUsersService {
 
   // Публичный метод для принудительного сброса кэша
   public clearConfigCache(): void {
-    console.log('🔄 ExternalUsersService: Принудительный сброс кэша конфигурации');
     this.config = null;
     this.lastConfigUpdate = 0;
   }
@@ -64,7 +62,6 @@ class ExternalUsersService {
         }
       });
 
-      console.log(`📊 ExternalUsersService: Ответ ${response.status} для ${endpoint}`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -72,7 +69,6 @@ class ExternalUsersService {
         
         // Если 401/403 - проблема с авторизацией, сбрасываем кэш
         if (response.status === 401 || response.status === 403) {
-          console.log('🔄 ExternalUsersService: Сброс кэша из-за ошибки авторизации');
           this.clearConfigCache();
         }
         
@@ -82,12 +78,10 @@ class ExternalUsersService {
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         const data = await response.json();
-        console.log(`✅ ExternalUsersService: Успешно получены данные для ${endpoint}:`, Array.isArray(data) ? `массив из ${data.length} элементов` : typeof data);
         return data;
       }
       
       const textData = await response.text();
-      console.log(`✅ ExternalUsersService: Получен текст для ${endpoint}:`, textData.length, 'символов');
       return textData;
       
     } catch (error) {
@@ -95,7 +89,6 @@ class ExternalUsersService {
       
       // При сетевых ошибках сбрасываем кэш - возможно изменился URL
       if (error instanceof TypeError || error.message.includes('fetch')) {
-        console.log('🔄 ExternalUsersService: Сброс кэша из-за сетевой ошибки');
         this.clearConfigCache();
       }
       
@@ -189,7 +182,6 @@ class ExternalUsersService {
 
   async getUserByEmailWithRoles(email: string): Promise<User | null> {
     try {
-      console.log('🔍 ExternalUsersService: Ищем пользователя с ролями по email:', email);
 
       // Получаем базовые данные пользователя
       const response = await this.makeRequest(
@@ -203,17 +195,14 @@ class ExternalUsersService {
       }
 
       const user = this.transformUserFromDB(response[0]);
-      console.log('✅ ExternalUsersService: Найден пользователь:', user.email);
 
       // Получаем назначения ролей для этого пользователя
       const userRolesData = await this.makeRequest(
         `user_roles?user_id=eq.${user.id}&is_active=eq.true&deleted_at=is.null`,
         { method: 'GET' }
       );
-      console.log('📋 ExternalUsersService: Найдено назначений ролей:', userRolesData.length);
 
       if (userRolesData.length === 0) {
-        console.log('⚠️ ExternalUsersService: У пользователя нет активных ролей');
         return { ...user, roles: [] };
       }
 
@@ -223,7 +212,6 @@ class ExternalUsersService {
         `roles?id=in.(${roleIds.join(',')})&deleted_at=is.null&is_active=eq.true`,
         { method: 'GET' }
       );
-      console.log('🎭 ExternalUsersService: Найдено активных ролей:', rolesResponse.length);
 
       // Создаем карту ролей
       const rolesMap = new Map();
@@ -251,7 +239,6 @@ class ExternalUsersService {
         .filter(role => role !== null);
 
       const userWithRoles = { ...user, roles: userRoles };
-      console.log('✅ ExternalUsersService: Пользователь с ролями готов:', userWithRoles.email, 'ролей:', userRoles.length);
 
       return userWithRoles;
     } catch (error) {
@@ -377,7 +364,6 @@ class ExternalUsersService {
 
   async permanentlyDeleteAllSoftDeletedUsers(): Promise<{ deletedCount: number }> {
     try {
-      console.log('🗑️ Начинаем физическое удаление всех помеченных как удаленные пользователей...');
       
       // Сначала получаем список всех удаленных пользователей
       const deletedUsers = await this.makeRequest(
@@ -385,7 +371,6 @@ class ExternalUsersService {
         { method: 'GET' }
       );
 
-      console.log(`📊 Найдено удаленных пользователей: ${deletedUsers.length}`);
 
       if (deletedUsers.length === 0) {
         return { deletedCount: 0 };
@@ -398,28 +383,23 @@ class ExternalUsersService {
 
       // Получаем IDs удаленных пользователей для очистки связанных данных
       const deletedUserIds = deletedUsers.map((user: any) => user.id);
-      console.log(`🔗 IDs удаленных пользователей:`, deletedUserIds);
 
       // Сначала удаляем все назначения ролей для удаленных пользователей
       for (const userId of deletedUserIds) {
-        console.log(`🧹 Удаляем назначения ролей для пользователя ${userId}...`);
         try {
           await this.makeRequest(`user_roles?user_id=eq.${userId}`, {
             method: 'DELETE'
           });
-          console.log(`✅ Назначения ролей удалены для пользователя ${userId}`);
         } catch (roleError) {
           console.warn(`⚠️ Ошибка при удалении ролей для пользователя ${userId}:`, roleError);
         }
       }
 
       // Теперь можем безопасно удалить пользователей
-      console.log('🗑️ Удаляем пользователей после очистки связанных данных...');
       await this.makeRequest('users?deleted_at=not.is.null', {
         method: 'DELETE'
       });
 
-      console.log(`✅ Успешно физически удалено пользователей: ${deletedUsers.length}`);
       
       return { deletedCount: deletedUsers.length };
     } catch (error) {

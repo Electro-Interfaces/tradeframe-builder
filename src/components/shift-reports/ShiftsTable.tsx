@@ -102,7 +102,6 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
               key={shift.id}
               className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors cursor-pointer"
               onClick={() => {
-                console.log('🖱️ ShiftsTable: Клик на смену', { shift, shiftNumber: shift.shiftNumber });
                 onSelectShift(shift.shiftNumber);
               }}
             >

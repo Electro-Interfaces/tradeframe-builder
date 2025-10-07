@@ -98,12 +98,6 @@ function formatCurrency(value: number): string {
  * Экспорт в Excel с полным форматированием
  */
 export async function exportToExcel(details: ShiftDetails): Promise<Blob> {
-  console.log('📊 ЭКСПОРТ В EXCEL - nozzleReadings:', details.nozzleReadings);
-  console.log('📊 ЭКСПОРТ В EXCEL - tanks:', details.tanks);
-  console.log('📊 ЭКСПОРТ В EXCEL - receipts:', details.receipts);
-  console.log('📊 ЭКСПОРТ В EXCEL - salesBreakdown:', details.salesBreakdown);
-  console.log('📊 ЭКСПОРТ В EXCEL - salesRaw:', details.salesRaw);
-  console.log('📊 ЭКСПОРТ В EXCEL - cashMovements:', details.cashMovements);
 
   // Используем новую функцию с ExcelJS для полного форматирования
   return exportToExcelWithStyles(details);

@@ -29,7 +29,6 @@ const CouponsPage = lazy(() => import("./pages/CouponsPage"));
 // Admin страницы - ленивая загрузка (приоритет 2)
 const Users = lazy(() => import("./pages/admin/Users"));
 const Roles = lazy(() => import("./pages/admin/Roles"));
-const Instructions = lazy(() => import("./pages/admin/Instructions"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
 const DataMigration = lazy(() => import("./pages/DataMigration"));
 
@@ -40,6 +39,7 @@ const ExternalDatabaseSettings = lazy(() => import("./pages/ExternalDatabaseSett
 const SalesAnalysisPage = lazy(() => import("./pages/SalesAnalysisPage"));
 const NotificationRules = lazy(() => import("./pages/NotificationRules"));
 const Messages = lazy(() => import("./pages/Messages"));
+const Receipts = lazy(() => import("./pages/network/Receipts"));
 
 // Equipment и остальные страницы - ленивая загрузка (приоритет 3)
 
@@ -60,7 +60,6 @@ const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances")
 // Используем предварительно настроенный queryClient из lib/supabase/queryClient
 
 const App = () => {
-  console.log('🚀 App: component rendering');
   const [showPWAInstaller, setShowPWAInstaller] = useState(false);
 
   // Обработка перенаправления с GitHub Pages 404 с улучшенной защитой
@@ -68,7 +67,6 @@ const App = () => {
     try {
       const redirectPath = sessionStorage.getItem('redirectPath');
       if (redirectPath) {
-        console.log('🔄 App: Found redirect path, processing:', redirectPath);
 
         // Валидация redirect path для предотвращения падений
         const validPaths = [
@@ -87,7 +85,6 @@ const App = () => {
         );
 
         if (!isValidPath) {
-          console.warn('⚠️ App: Invalid redirect path detected, redirecting to home:', targetPath);
           targetPath = '/';
         }
 
@@ -98,11 +95,9 @@ const App = () => {
           (localStorage.getItem('tradeframe_user_v2') && localStorage.getItem('tradeframe_token_v2'))
         );
         if (targetPath === '/login' && isUserLoggedIn) {
-          console.log('🔄 App: User is already logged in, redirecting to home instead of login');
           targetPath = '/';
         }
 
-        console.log('✅ App: Safe redirect to:', targetPath);
         sessionStorage.removeItem('redirectPath');
 
         // Безопасное обновление истории
@@ -114,13 +109,11 @@ const App = () => {
         }
       }
     } catch (error) {
-      console.error('🚫 App: Critical redirect error, falling back to home:', error);
       // В случае критической ошибки просто перенаправляем на главную
       try {
         sessionStorage.removeItem('redirectPath');
         window.history.replaceState(null, '', '/');
       } catch (fallbackError) {
-        console.error('🚫 App: Fallback also failed:', fallbackError);
         window.location.href = '/';
       }
     }
@@ -128,69 +121,11 @@ const App = () => {
 
   // Показываем PWA инсталлер через 3 секунды после загрузки приложения
   useEffect(() => {
-    console.log('🚀 App.tsx: Настройка PWA installer таймера...');
-
-    // Проверяем PWA критерии
-    const checkPWACriteria = () => {
-      const criteria = {
-        isHTTPS: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
-        hasManifest: !!document.querySelector('link[rel="manifest"]'),
-        hasServiceWorker: 'serviceWorker' in navigator,
-        hasIcons: !!document.querySelector('link[rel="icon"]'),
-        isStandalone: window.matchMedia('(display-mode: standalone)').matches,
-        hasInstallPrompt: false // Будет обновлено при получении beforeinstallprompt
-      };
-
-      console.log('🔍 App.tsx: PWA критерии проверены:', criteria);
-
-      // Проверяем manifest (разные пути для dev и prod)
-      const manifestPath = import.meta.env.PROD ? '/tradeframe-builder/manifest.json' : '/manifest.json';
-      console.log('🔍 App.tsx: Проверяем manifest по пути:', manifestPath);
-
-      fetch(manifestPath)
-        .then(response => {
-          console.log('📋 App.tsx: Manifest ответ:', {
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries())
-          });
-          return response.json();
-        })
-        .then(manifest => {
-          console.log('📋 App.tsx: Manifest загружен:', {
-            name: manifest.name,
-            shortName: manifest.short_name,
-            display: manifest.display,
-            startUrl: manifest.start_url,
-            iconCount: manifest.icons?.length
-          });
-        })
-        .catch(error => {
-          console.error('❌ App.tsx: Ошибка загрузки manifest:', error);
-          console.log('🔍 App.tsx: Попробуем альтернативный путь...');
-
-          // Fallback для разных путей
-          const altPath = import.meta.env.PROD ? '/manifest.json' : '/tradeframe-builder/manifest.json';
-          fetch(altPath)
-            .then(response => response.json())
-            .then(manifest => {
-              console.log('✅ App.tsx: Manifest загружен через альтернативный путь:', manifest.name);
-            })
-            .catch(altError => {
-              console.error('❌ App.tsx: Альтернативный путь тоже не работает:', altError);
-            });
-        });
-    };
-
-    checkPWACriteria();
-
     const timer = setTimeout(() => {
-      console.log('⏰ App.tsx: 3 секунды прошли, показываем PWA installer');
       setShowPWAInstaller(true);
     }, 3000);
 
     return () => {
-      console.log('🧹 App.tsx: Очистка PWA installer таймера');
       clearTimeout(timer);
     };
   }, []);
@@ -225,7 +160,6 @@ const App = () => {
           {/* Admin страницы - приоритет 2 */}
           <Route path="/admin/users-and-roles" element={<ProtectedRoute><LazyLoader><Users /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/roles" element={<ProtectedRoute><LazyLoader><Roles /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/instructions" element={<ProtectedRoute><LazyLoader><Instructions /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/audit" element={<ProtectedRoute><LazyLoader><AuditLog /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/data-migration" element={<ProtectedRoute><LazyLoader><DataMigration /></LazyLoader></ProtectedRoute>} />
           
@@ -236,6 +170,7 @@ const App = () => {
           <Route path="/network/sales-analysis" element={<ProtectedRoute><LazyLoader><SalesAnalysisPage /></LazyLoader></ProtectedRoute>} />
           <Route path="/network/notifications" element={<ProtectedRoute><LazyLoader><NotificationRules /></LazyLoader></ProtectedRoute>} />
           <Route path="/network/messages" element={<ProtectedRoute><LazyLoader><Messages /></LazyLoader></ProtectedRoute>} />
+          <Route path="/network/receipts" element={<ProtectedRoute><LazyLoader><Receipts /></LazyLoader></ProtectedRoute>} />
           
           {/* Equipment страницы - приоритет 3 */}
           <Route path="/point/equipment" element={<ProtectedRoute><Equipment /></ProtectedRoute>} />

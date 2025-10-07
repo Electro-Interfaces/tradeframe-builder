@@ -43,7 +43,6 @@ class ExternalInstructionsService {
       return this.config;
     }
 
-    console.log('🔧 ExternalInstructionsService: Обновляем конфигурацию из localStorage');
     
     const savedSettings = localStorage.getItem('externalDatabase');
     if (!savedSettings) {
@@ -64,7 +63,6 @@ class ExternalInstructionsService {
       };
       this.lastConfigUpdate = now;
       
-      console.log('✅ ExternalInstructionsService: Конфигурация обновлена');
       return this.config;
     } catch (error) {
       console.error('❌ ExternalInstructionsService: Ошибка парсинга настроек:', error);
@@ -81,7 +79,6 @@ class ExternalInstructionsService {
     const config = this.getConfig();
     const fullUrl = `${config.url}/rest/v1/${endpoint}`;
     
-    console.log(`🌐 ExternalInstructionsService: Запрос к ${fullUrl}`);
 
     try {
       const response = await fetch(fullUrl, {
@@ -218,7 +215,6 @@ class ExternalInstructionsService {
 
   async getInstructionForUser(routeOrKey: string): Promise<InstructionForUser | null> {
     try {
-      console.log('🔍 Ищем инструкцию для:', routeOrKey);
       
       const route = routeOrKey.startsWith('/') ? routeOrKey : `/${routeOrKey}`;
       const response = await this.makeRequest(
@@ -234,7 +230,6 @@ class ExternalInstructionsService {
       const topic = this.transformToTopic(record);
       const version = this.transformToVersion(record);
 
-      console.log('✅ Найдена инструкция:', topic.title);
       
       return {
         topic,
@@ -357,7 +352,6 @@ class ExternalInstructionsService {
 
   async logView(topicId: string, versionId: string, userId: string = 'anonymous'): Promise<void> {
     // В упрощенной версии не логируем просмотры в БД
-    console.log('📊 Просмотр инструкции:', { topicId, versionId, userId });
   }
 
   async getStats(): Promise<InstructionStats> {
@@ -403,7 +397,6 @@ class ExternalInstructionsService {
   // Метод для миграции данных из mock-сервиса
   async migrateMockData(mockTopics: InstructionTopic[], mockVersions: InstructionVersion[]): Promise<void> {
     try {
-      console.log('🚀 Начинаем миграцию данных из mock-сервиса');
       
       for (const topic of mockTopics) {
         const version = mockVersions.find(v => v.topic_id === topic.id && v.status === 'published');
@@ -425,14 +418,12 @@ class ExternalInstructionsService {
               })
             });
             
-            console.log('✅ Мигрирована тема:', topic.title);
           } catch (error) {
             console.error('❌ Ошибка миграции темы:', topic.title, error);
           }
         }
       }
       
-      console.log('🎉 Миграция завершена');
     } catch (error) {
       console.error('💥 Ошибка миграции:', error);
       throw error;

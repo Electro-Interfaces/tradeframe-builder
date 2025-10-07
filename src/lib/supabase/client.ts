@@ -67,7 +67,6 @@ class EnhancedSupabaseClient {
         }
       });
 
-      console.log('✅ Supabase client инициализирован');
       return true;
     } catch (error) {
       console.error('❌ Ошибка инициализации Supabase client:', error);
@@ -115,7 +114,6 @@ class EnhancedSupabaseClient {
         
         if (!result.error) {
           if (attempt > 0) {
-            console.log(`✅ Запрос успешен после ${attempt} повторов`);
           }
           return result;
         }
@@ -362,7 +360,6 @@ class EnhancedSupabaseClient {
         filter: options.filter
       }, callback)
       .subscribe((status) => {
-        console.log(`📡 Подписка на ${table}:`, status);
       });
 
     return channel;

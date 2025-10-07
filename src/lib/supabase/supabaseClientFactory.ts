@@ -53,7 +53,6 @@ export function createSupabaseFromSettings(settings?: DatabaseSettings): Supabas
       }
     });
 
-    console.log('✅ Supabase клиент создан через factory');
     return client;
     
   } catch (error) {

@@ -28,7 +28,6 @@ class PageHelpService {
         url: 'https://ssvazdgnmatbdynkhkqo.supabase.co',
         apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0'
       };
-      console.log('✅ PageHelpService: Используем встроенные настройки подключения');
     }
     
     return this.config;
@@ -36,7 +35,6 @@ class PageHelpService {
 
   // Публичный метод для принудительного сброса кэша
   public clearConfigCache(): void {
-    console.log('🔄 PageHelpService: Принудительный сброс кэша конфигурации');
     this.config = null;
     this.lastConfigUpdate = 0;
   }
@@ -62,7 +60,6 @@ class PageHelpService {
         }
       });
 
-      console.log(`📊 PageHelpService: Ответ ${response.status} для ${endpoint}`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -70,7 +67,6 @@ class PageHelpService {
         
         // Если 401/403 - проблема с авторизацией, сбрасываем кэш
         if (response.status === 401 || response.status === 403) {
-          console.log('🔄 PageHelpService: Сброс кэша из-за ошибки авторизации');
           this.clearConfigCache();
         }
         
@@ -80,12 +76,10 @@ class PageHelpService {
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         const data = await response.json();
-        console.log(`✅ PageHelpService: Успешно получены данные для ${endpoint}:`, Array.isArray(data) ? `массив из ${data.length} элементов` : typeof data);
         return data;
       }
       
       const textData = await response.text();
-      console.log(`✅ PageHelpService: Получен текст для ${endpoint}:`, textData.length, 'символов');
       return textData;
       
     } catch (error) {
@@ -93,7 +87,6 @@ class PageHelpService {
       
       // При сетевых ошибках сбрасываем кэш - возможно изменился URL
       if (error instanceof TypeError || error.message.includes('fetch')) {
-        console.log('🔄 PageHelpService: Сброс кэша из-за сетевой ошибки');
         this.clearConfigCache();
       }
       

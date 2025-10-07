@@ -65,9 +65,7 @@ async function getEquipmentTemplatesFromSupabase(): Promise<EquipmentTemplate[]>
 // API для получения типов оборудования (теперь из Supabase equipment_templates)
 export const equipmentTypesAPI = {
   async list(): Promise<EquipmentType[]> {
-    console.log('🔄 equipmentTypesAPI.list() called - starting...')
     try {
-      console.log('📡 Calling getEquipmentTemplatesFromSupabase()...')
       const templates = await getEquipmentTemplatesFromSupabase()
       console.log('equipmentTypesAPI.list() - templates from Supabase:', templates)
       
@@ -80,7 +78,6 @@ export const equipmentTypesAPI = {
       const activeTemplates = templates // templates.filter(template => template.status)
       console.log('equipmentTypesAPI.list() - active templates (показываем все):', activeTemplates)
       const convertedTypes = activeTemplates.map(convertFromEquipmentTemplate)
-      console.log('📋 Returning converted types:', convertedTypes)
       return convertedTypes
     } catch (error) {
       console.error('❌ Error in equipmentTypesAPI.list():', error)

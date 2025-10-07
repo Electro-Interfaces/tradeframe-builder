@@ -94,7 +94,6 @@ export const supabaseEquipmentTemplatesAPI = {
       allow_component_template_ids: item.allow_component_template_ids || []
     };
 
-    console.log(`✅ Loaded equipment template: ${template.name}`);
     return template;
   },
 
@@ -118,7 +117,6 @@ export const supabaseEquipmentTemplatesAPI = {
       updated_at: now
     };
 
-    console.log('🔧 Creating equipment template:', payload);
 
     const result = await supabase.insert('equipment_templates', payload);
 
@@ -132,7 +130,6 @@ export const supabaseEquipmentTemplatesAPI = {
       throw new Error('Equipment template creation failed - no data returned');
     }
 
-    console.log('✅ Equipment template created:', created.name);
     return this.get(id);
   },
 
@@ -155,7 +152,6 @@ export const supabaseEquipmentTemplatesAPI = {
       payload.allow_component_template_ids = data.allow_component_template_ids;
     }
 
-    console.log('🔧 Updating equipment template:', id, payload);
 
     const result = await supabase.update('equipment_templates', payload, { id });
 
@@ -164,7 +160,6 @@ export const supabaseEquipmentTemplatesAPI = {
       throw new Error(`Failed to update equipment template: ${result.error}`);
     }
 
-    console.log('✅ Equipment template updated:', id);
     return this.get(id);
   },
 
@@ -172,7 +167,6 @@ export const supabaseEquipmentTemplatesAPI = {
    * Удалить шаблон оборудования
    */
   async delete(id: string): Promise<void> {
-    console.log('🗑️ Deleting equipment template:', id);
 
     const result = await supabase.delete('equipment_templates', { id });
 
@@ -181,7 +175,6 @@ export const supabaseEquipmentTemplatesAPI = {
       throw new Error(`Failed to delete equipment template: ${result.error}`);
     }
 
-    console.log('✅ Equipment template deleted:', id);
   }
 };
 
@@ -193,7 +186,6 @@ export const supabaseEquipmentAPI = {
    * Получить список оборудования
    */
   async list(params: ListEquipmentParams): Promise<ListEquipmentResponse> {
-    console.log('🔍 Fetching equipment list with params:', params);
 
     const options: any = {
       select: '*'
@@ -263,7 +255,6 @@ export const supabaseEquipmentAPI = {
       );
     }
 
-    console.log(`✅ Loaded ${filteredItems.length} equipment items`);
 
     return {
       items: filteredItems,
@@ -304,7 +295,6 @@ export const supabaseEquipmentAPI = {
       description: item.description || ''
     };
 
-    console.log(`✅ Loaded equipment: ${equipment.name}`);
     return equipment;
   },
 
@@ -327,7 +317,6 @@ export const supabaseEquipmentAPI = {
       updated_at: now
     };
 
-    console.log('🔧 Creating equipment:', payload);
 
     const result = await supabase.insert('equipment', payload);
 
@@ -336,7 +325,6 @@ export const supabaseEquipmentAPI = {
       throw new Error(`Failed to create equipment: ${result.error}`);
     }
 
-    console.log('✅ Equipment created:', data.name);
     return this.get(id);
   },
 
@@ -353,7 +341,6 @@ export const supabaseEquipmentAPI = {
     if (data.config) payload.config = data.config;
     if (data.description !== undefined) payload.description = data.description;
 
-    console.log('🔧 Updating equipment:', id, payload);
 
     const result = await supabase.update('equipment', payload, { id });
 
@@ -362,7 +349,6 @@ export const supabaseEquipmentAPI = {
       throw new Error(`Failed to update equipment: ${result.error}`);
     }
 
-    console.log('✅ Equipment updated:', id);
     return this.get(id);
   },
 
@@ -372,7 +358,6 @@ export const supabaseEquipmentAPI = {
   async setStatus(id: string, action: EquipmentStatusAction): Promise<void> {
     const is_active = action === 'enable';
 
-    console.log(`🔧 Setting equipment status: ${id} -> ${action}`);
 
     const result = await supabase.update('equipment', 
       { 
@@ -387,14 +372,12 @@ export const supabaseEquipmentAPI = {
       throw new Error(`Failed to update equipment status: ${result.error}`);
     }
 
-    console.log(`✅ Equipment status updated: ${id} -> ${action}`);
   },
 
   /**
    * Получить события оборудования (заглушка)
    */
   async getEvents(id: string): Promise<EquipmentEvent[]> {
-    console.log(`📋 Getting events for equipment: ${id}`);
     
     // В будущем здесь будет реальная логика получения событий
     // Пока возвращаем пустой массив
