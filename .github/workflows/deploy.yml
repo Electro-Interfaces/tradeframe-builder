@@ -43,6 +43,6 @@ jobs:
             port: ${{env.PROD_PORT}}
             script: |
                   cd /var/www/www-root/data/www/prod.dataworker.ru
-                  git pull
+                  git pull --rebase
                   npm ci
                   pm2 restart "npm run dev"
