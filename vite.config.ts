@@ -7,7 +7,7 @@ import { manifestPlugin } from "./vite-plugin-manifest";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/tradeframe-builder/' : '/',
+  base: '/',
   server: {
     host: "127.0.0.1",
     port: 3000,
