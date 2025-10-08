@@ -6,7 +6,8 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/tradeframe-builder/' : '/',
+  // GitHub Pages (demo) использует /tradeframe-builder/, production (prod.dataworker.ru) использует /
+  base: mode === 'github-pages' ? '/tradeframe-builder/' : '/',
   server: {
     host: "127.0.0.1",
     port: 3000,
