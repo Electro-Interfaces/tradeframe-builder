@@ -15,6 +15,11 @@ import { stsApiService, Transaction } from "@/services/stsApi";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { useToast } from "@/hooks/use-toast";
 import { SalesForecast } from "@/components/charts/SalesForecast";
+import { ChartSkeleton, HeatmapSkeleton } from "@/components/ui/chart-skeleton";
+import { DailySalesChart } from "@/components/charts/DailySalesChart";
+import { FuelPerformanceChart } from "@/components/charts/FuelPerformanceChart";
+import { PaymentDistributionChart } from "@/components/charts/PaymentDistributionChart";
+import { HourlyActivityChart } from "@/components/charts/HourlyActivityChart";
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 import { loadPdfMake } from "@/utils/pdfMake";
@@ -1932,273 +1937,68 @@ export default function NetworkOverview() {
 
 
 
-        {/* График реализации по дням с разбивкой по топливу */}
+        {/* График реализации по дням с разбивкой по топливу - Оптимизированный */}
         {!initializing && selectedNetwork && transactions.length > 0 && (
           <div ref={dailySalesCardRef} className="w-full">
-            <Card className="bg-slate-800 border-slate-600">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-lg flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-green-400" />
-                  Реализация по дням ({dailySalesData.data.length} дней)
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
-              {dailySalesData.data.length > 0 ? (
-                <div className={`w-full ${isMobile ? 'h-64' : 'h-80'}`}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={dailySalesData.data} 
-                      margin={isMobile ? { top: 10, right: 10, left: 30, bottom: 40 } : { top: 10, right: 30, left: 60, bottom: 20 }}
-                    >
-                      <XAxis 
-                        dataKey="displayDate" 
-                        stroke="#94a3b8"
-                        fontSize={isMobile ? 10 : 11}
-                        tick={{ fill: '#94a3b8' }}
-                        angle={isMobile ? -90 : -45}
-                        textAnchor="end"
-                        height={isMobile ? 40 : 60}
-                        interval={isMobile ? "preserveStartEnd" : 0}
-                      />
-                      <YAxis 
-                        stroke="#94a3b8" 
-                        fontSize={isMobile ? 10 : 11}
-                        tick={{ fill: '#94a3b8' }}
-                        tickFormatter={(value) => isMobile ? `${Math.round(value / 1000)}к` : `${Math.round(value / 1000)}к ₽`}
-                        width={isMobile ? 25 : 60}
-                      />
-                      <ChartTooltip 
-                        content={({ active, payload, label }) => {
-                          if (!active || !payload || !payload.length) {
-                            return <div style={{ display: 'none' }} />;
-                          }
-                          
-                          const data = payload[0].payload;
-                          return (
-                            <div className="bg-slate-900/95 border border-slate-600 rounded-lg p-3 shadow-xl backdrop-blur-sm">
-                              <p className="text-white font-medium mb-2">{label}</p>
-                              <div className="space-y-1">
-                                <p className="text-slate-300 flex justify-between">
-                                  <span>Общая выручка:</span>
-                                  <span className="font-medium">{Math.round(data.revenue).toLocaleString('ru-RU')} ₽</span>
-                                </p>
-                                {dailySalesData.fuelTypes
-                                  .map((fuelType, index) => ({ fuelType, index, revenue: data[fuelType] || 0 }))
-                                  .filter(item => item.revenue > 0)
-                                  .map(({ fuelType, index, revenue }) => {
-                                    const colors = ['#3b82f6', '#1d4ed8', '#1e40af', '#1e3a8a', '#312e81'];
-                                    return (
-                                      <p key={fuelType} className="flex justify-between" style={{ color: colors[index % colors.length] }}>
-                                        <span>{fuelType}:</span>
-                                        <span className="font-medium">{Math.round(revenue).toLocaleString('ru-RU')} ₽</span>
-                                      </p>
-                                    );
-                                  })}
-                                <p className="text-blue-400 flex justify-between">
-                                  <span>Операции:</span>
-                                  <span className="font-medium">{data.operations}</span>
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        }}
-                      />
-                      {/* Стековые бары для каждого вида топлива с приглушенными цветами */}
-                      {dailySalesData.fuelTypes.map((fuelType, index) => {
-                        const colors = ['#3b82f6', '#1d4ed8', '#1e40af', '#1e3a8a', '#312e81'];
-                        return (
-                          <Bar 
-                            key={fuelType}
-                            dataKey={fuelType} 
-                            stackId="fuel"
-                            fill={colors[index % colors.length]}
-                            radius={index === dailySalesData.fuelTypes.length - 1 ? [2, 2, 0, 0] : [0, 0, 0, 0]}
-                          />
-                        );
-                      })}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-80 text-slate-400">
-                  <p>Нет данных за выбранный период</p>
-                </div>
-              )}
-            </CardContent>
-            </Card>
+            <DailySalesChart
+              data={dailySalesData.data}
+              fuelTypes={dailySalesData.fuelTypes}
+              isMobile={isMobile}
+            />
           </div>
         )}
 
-        {/* Активность операций и суточная активность */}
+        {/* Производительность по топливу, Распределение оплат и Суточная активность */}
         {!initializing && selectedNetwork && transactions.length > 0 && (
-          <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-2'}`}>
-            {/* Тепловая карта активности */}
-            <div ref={heatmapCardRef} className="w-full">
-              <Card className="bg-slate-800 border-slate-600">
-                <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
-                      <Activity className="h-5 w-5 text-blue-400" />
-                      {isMobile ? 'Активность операций' : 'Активность операций'}
-                    </CardTitle>
-                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400`}>
-                      {isMobile ? '7 дней' : 'Последние 7 дней'}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
-                  {heatmapData && heatmapData.length > 0 ? (
-                    <div className="space-y-3">
-                    {/* Заголовок с часами */}
-                    <div className="flex items-center">
-                      <div className={`${isMobile ? 'w-8' : 'w-12'} shrink-0`}></div>
-                      <div className={`flex-1 flex gap-0.5 text-xs text-slate-400`}>
-                        {Array.from({ length: 24 }, (_, hour) => (
-                          <div key={hour} className={`flex-1 text-center ${isMobile ? 'text-[8px]' : 'text-[10px]'}`}>
-                            {hour % (isMobile ? 4 : 6) === 0 ? hour : ''}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* Сетка тепловой карты */}
-                    {heatmapData.map((day) => (
-                      <div key={day.date} className="flex items-center">
-                        {/* День недели */}
-                        <div className={`${isMobile ? 'w-8' : 'w-12'} shrink-0 ${isMobile ? 'text-[10px]' : 'text-xs'} text-slate-300 font-medium`}>
-                          {day.dayName}
-                        </div>
-                        
-                        {/* Часы */}
-                        <div className="flex-1 flex gap-0.5">
-                          {day.hours.map((hourData) => {
-                            const intensity = hourData.intensity;
-                            let bgColor = 'bg-slate-700'; // Нет активности
-                            
-                            if (intensity > 0) {
-                              if (intensity <= 0.2) bgColor = 'bg-green-900/40';
-                              else if (intensity <= 0.4) bgColor = 'bg-green-700/60';
-                              else if (intensity <= 0.6) bgColor = 'bg-green-600/70';
-                              else if (intensity <= 0.8) bgColor = 'bg-green-500/80';
-                              else bgColor = 'bg-green-400';
-                            }
-                            
-                            return (
-                              <div
-                                key={hourData.hour}
-                                className={`flex-1 aspect-square ${bgColor} ${isMobile ? 'rounded-[1px]' : 'rounded-sm'} cursor-pointer hover:ring-1 hover:ring-green-400 ${isMobile ? '' : 'hover:scale-110'} transition-all duration-200`}
-                                title={`${day.dayName}, ${hourData.displayTime}
-Операций: ${hourData.transactions}
-Выручка: ${hourData.revenue.toLocaleString('ru-RU')} ₽`}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 w-full">
+              {/* График производительности по видам топлива */}
+              <div className="w-full lg:col-span-1 lg:h-full">
+                <FuelPerformanceChart
+                  data={fuelTypeStats.map(fuel => ({
+                    type: fuel.type,
+                    operations: fuel.operations,
+                    revenue: fuel.revenue,
+                    volume: fuel.volume,
+                    avgCheck: fuel.operations > 0 ? fuel.revenue / fuel.operations : 0,
+                    share: totalRevenue > 0 ? (fuel.revenue / totalRevenue) * 100 : 0
+                  }))}
+                  isMobile={isMobile}
+                />
+              </div>
 
-                    {/* Легенда */}
-                    <div className="flex items-center justify-between text-xs text-slate-400 mt-4 pt-2 border-t border-slate-600">
-                      <span>Меньше</span>
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-slate-700 rounded-sm"></div>
-                        <div className="w-3 h-3 bg-green-900/40 rounded-sm"></div>
-                        <div className="w-3 h-3 bg-green-700/60 rounded-sm"></div>
-                        <div className="w-3 h-3 bg-green-600/70 rounded-sm"></div>
-                        <div className="w-3 h-3 bg-green-500/80 rounded-sm"></div>
-                        <div className="w-3 h-3 bg-green-400 rounded-sm"></div>
-                      </div>
-                      <span>Больше</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-64 text-slate-400">
-                    <div className="text-center">
-                      <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Нет данных для отображения</p>
-                      <p className="text-sm">Выберите сеть и период</p>
-                    </div>
-                  </div>
-                )}
-                </CardContent>
-              </Card>
-            </div>
+              {/* График распределения способов оплаты */}
+              <div className="w-full lg:col-span-1 lg:h-full">
+                <PaymentDistributionChart
+                  data={paymentTypeStats.map(payment => {
+                    // Определяем тип на основе русского названия
+                    const typeLower = payment.type.toLowerCase();
+                    let paymentType = 'other';
+                    if (typeLower.includes('наличн')) paymentType = 'cash';
+                    else if (typeLower.includes('карт') || typeLower.includes('банк')) paymentType = 'bank_card';
+                    else if (typeLower.includes('онлайн') || typeLower.includes('мобильн')) paymentType = 'online_order';
+                    else if (typeLower.includes('топливн')) paymentType = 'fuel_card';
 
-            {/* График суточной активности */}
-            <div ref={activityCardRef} className="w-full">
-              <Card className="bg-slate-800 border-slate-600">
-                <CardHeader className={`${isMobile ? 'pb-2' : 'pb-4'}`}>
-                  <CardTitle className={`text-white ${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
-                    <Activity className="h-5 w-5 text-blue-400" />
-                    {isMobile ? 'Активность по часам' : 'Суточная активность по часам'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className={`pt-0 pb-2 ${isMobile ? 'px-1' : 'px-2'}`}>
-                <div className={`w-full ${isMobile ? 'h-64' : 'h-80'}`}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={dailyActivityData} 
-                      margin={isMobile ? { top: 10, right: 5, left: 25, bottom: 40 } : { top: 10, right: 15, left: 40, bottom: 50 }}
-                    >
-                      <XAxis 
-                        dataKey="hour" 
-                        stroke="#94a3b8"
-                        fontSize={isMobile ? 9 : 11}
-                        interval={isMobile ? 1 : 0}
-                        angle={isMobile ? -90 : -45}
-                        textAnchor="end"
-                        height={isMobile ? 40 : 50}
-                        tick={{ fill: '#94a3b8' }}
-                      />
-                      <YAxis 
-                        stroke="#94a3b8" 
-                        fontSize={isMobile ? 9 : 11}
-                        tick={{ fill: '#94a3b8' }}
-                        width={isMobile ? 25 : 35}
-                      />
-                      <ChartTooltip 
-                        content={({ active, payload, label }) => {
-                          if (!active || !payload || !payload.length) {
-                            return <div style={{ display: 'none' }} />;
-                          }
-                          
-                          const data = payload[0].payload;
-                          const hourStart = parseInt(label.split(':')[0]);
-                          const hourEnd = hourStart + 1;
-                          return (
-                            <div className="bg-slate-900/95 border border-slate-600 rounded-lg p-3 shadow-xl backdrop-blur-sm">
-                              <p className="text-white font-medium mb-2">
-                                {`${hourStart.toString().padStart(2, '0')}:00 - ${hourEnd.toString().padStart(2, '0')}:00`}
-                              </p>
-                              <div className="space-y-1">
-                                <p className="text-blue-400 flex justify-between">
-                                  <span>Операции:</span>
-                                  <span className="font-medium">{data.operations}</span>
-                                </p>
-                                <p className="text-green-400 flex justify-between">
-                                  <span>Выручка:</span>
-                                  <span className="font-medium">{Math.round(data.revenue).toLocaleString('ru-RU')} ₽</span>
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        }}
-                      />
-                      <Bar 
-                        dataKey="operations" 
-                        fill="#3b82f6"
-                        stroke="#2563eb"
-                        strokeWidth={1}
-                        radius={[3, 3, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                </CardContent>
-              </Card>
-            </div>
+                    return {
+                      type: paymentType,
+                      displayName: payment.type, // Уже русское название
+                      operations: payment.operations,
+                      revenue: payment.revenue,
+                      volume: payment.volume,
+                      avgCheck: payment.operations > 0 ? payment.revenue / payment.operations : 0,
+                      share: totalRevenue > 0 ? (payment.revenue / totalRevenue) * 100 : 0
+                    };
+                  })}
+                  isMobile={isMobile}
+                />
+              </div>
+
+              {/* График суточной активности по часам */}
+              <div ref={activityCardRef} className="w-full lg:col-span-2 lg:h-full">
+                <HourlyActivityChart
+                  data={dailyActivityData}
+                  isMobile={isMobile}
+                />
+              </div>
           </div>
         )}
 
@@ -2236,14 +2036,15 @@ export default function NetworkOverview() {
           </div>
         )}
 
-        {/* Состояние загрузки */}
+        {/* Состояние загрузки с skeleton loaders */}
         {!initializing && selectedNetwork && stsApiConfigured && loading && (
-          <div className="bg-slate-800 border border-slate-600 rounded-lg p-8 text-center">
-            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          <div className="space-y-6">
+            <ChartSkeleton height="h-80" isMobile={isMobile} showLegend={true} />
+            <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-2'}`}>
+              <HeatmapSkeleton isMobile={isMobile} />
+              <ChartSkeleton height="h-80" isMobile={isMobile} />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Загрузка данных</h3>
-            <p className="text-slate-400">Получаем информацию из STS API...</p>
+            <ChartSkeleton height={isMobile ? "h-64" : "h-80"} isMobile={isMobile} showLegend={true} />
           </div>
         )}
 
