@@ -25,14 +25,16 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
   onToggleShiftSelection,
   onToggleAllShifts,
 }) => {
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value == null) return '0.00 ₽';
     return value.toLocaleString('ru-RU', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }) + ' ₽';
   };
 
-  const formatVolume = (value: number) => {
+  const formatVolume = (value: number | null | undefined) => {
+    if (value == null) return '0 л';
     return value.toFixed(0) + ' л';
   };
 
@@ -146,7 +148,7 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
                   </div>
 
                   {/* Даты - компактный вид */}
-                  <div className="space-y-1 text-sm">
+                  <div className="space-y-1 text-sm mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-slate-400 text-xs">Открыта:</span>
                       <span className="text-slate-200">{formatDateTime(shift.openedAt)}</span>
@@ -157,6 +159,18 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
                         <span className="text-slate-200">{formatDateTime(shift.closedAt)}</span>
                       </div>
                     )}
+                  </div>
+
+                  {/* Метрики - компактный вид */}
+                  <div className="grid grid-cols-2 gap-2 text-sm bg-slate-800/50 rounded-md p-2">
+                    <div>
+                      <div className="text-slate-400 text-xs">Выручка</div>
+                      <div className="text-white font-semibold">{formatCurrency(shift.totalRevenue)}</div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400 text-xs">Объем</div>
+                      <div className="text-white font-semibold">{formatVolume(shift.totalVolume)}</div>
+                    </div>
                   </div>
 
                   {/* Кнопка просмотра */}

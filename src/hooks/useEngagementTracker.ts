@@ -46,6 +46,7 @@ export const useEngagementTracker = () => {
 
       setMetrics(prev => {
         const newMetrics = { ...prev, timeSpent };
+        const wasEngaged = prev.isEngaged;
         const nowEngaged = isEngagementSufficient(newMetrics);
 
         if (!wasEngaged && nowEngaged) {
