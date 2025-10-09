@@ -1,13 +1,13 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { manifestPlugin } from "./vite-plugin-manifest";
 // Temporarily disable lovable-tagger to fix ESM import issue
 // import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // GitHub Pages (demo) использует /tradeframe-builder/, production (prod.dataworker.ru) использует /
-  base: mode === 'github-pages' ? '/tradeframe-builder/' : '/',
+  base: '/',
   server: {
     host: "127.0.0.1",
     port: 3000,
@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    manifestPlugin(),
     // Temporarily disabled: mode === 'development' && componentTagger(),
   ].filter(Boolean),
   build: {

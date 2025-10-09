@@ -27,7 +27,6 @@ export function useNewMenuVisibility(): NewMenuVisibilityConfig {
   const { user, getMenuVisibility, hasPermission } = useNewAuth();
 
   return useMemo(() => {
-    console.log('🔍 useNewMenuVisibility: Calculating visibility for user:', user?.email);
 
     if (!user) {
       // Неавторизованный пользователь не видит ничего
@@ -44,7 +43,6 @@ export function useNewMenuVisibility(): NewMenuVisibilityConfig {
         misc: false
       };
 
-      console.log('❌ useNewMenuVisibility: No user, all sections hidden');
       return emptyConfig;
     }
 
@@ -70,10 +68,8 @@ export function useNewMenuVisibility(): NewMenuVisibilityConfig {
       misc: baseVisibility.admin // Разное показываем только админам
     };
 
-    console.log('✅ useNewMenuVisibility: Final configuration:', config);
 
     const visibleCount = Object.values(config).filter(visible => visible).length;
-    console.log(`📊 useNewMenuVisibility: ${visibleCount}/10 sections visible`);
 
     return config;
   }, [user, getMenuVisibility, hasPermission]);

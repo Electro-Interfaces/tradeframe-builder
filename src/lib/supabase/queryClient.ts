@@ -37,7 +37,6 @@ export const queryClient = new QueryClient({
     onSuccess: (data, query) => {
       // Логирование успешных запросов в dev режиме
       if (process.env.NODE_ENV === 'development') {
-        console.log(`✅ Query success for ${query.queryKey}:`, data);
       }
     }
   }),

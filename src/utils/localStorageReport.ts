@@ -7,21 +7,17 @@ export class LocalStorageReport {
    * Генерировать полный отчет о состоянии localStorage
    */
   static generateReport(): void {
-    console.log('🔍 ДЕТАЛЬНЫЙ ОТЧЕТ О ДАННЫХ В LOCALSTORAGE');
     console.log('=' .repeat(60));
 
     // 1. Общая статистика
     const stats = this.getStorageStatistics();
-    console.log('\n📊 ОБЩАЯ СТАТИСТИКА:');
     console.log(`- Всего ключей: ${stats.totalKeys}`);
     console.log(`- TradeFrame ключей: ${stats.tradeframeKeys}`);
     console.log(`- Размер данных: ${(stats.totalSize / 1024).toFixed(2)} KB`);
     console.log(`- Использование: ${stats.usagePercent.toFixed(1)}%`);
 
     // 2. Анализ каждого ключа
-    console.log('\n🗂️ СОДЕРЖИМОЕ ХРАНИЛИЩА:');
     stats.keys.forEach(keyInfo => {
-      console.log(`\n📁 ${keyInfo.key}`);
       console.log(`   Размер: ${(keyInfo.size / 1024).toFixed(2)} KB`);
       console.log(`   Записей: ${keyInfo.count}`);
       console.log(`   Последнее изменение: ${keyInfo.lastModified}`);
@@ -34,7 +30,6 @@ export class LocalStorageReport {
     // 3. Детальный анализ пользователей
     const users = this.analyzeUsers();
     if (users.length > 0) {
-      console.log('\n👥 ПОЛЬЗОВАТЕЛИ В СИСТЕМЕ:');
       console.log('=' .repeat(60));
       users.forEach((user, index) => {
         console.log(`\n${index + 1}. ${user.name} (${user.email})`);
@@ -48,7 +43,6 @@ export class LocalStorageReport {
     // 4. Детальный анализ ролей
     const roles = this.analyzeRoles();
     if (roles.length > 0) {
-      console.log('\n🎭 РОЛИ В СИСТЕМЕ:');
       console.log('=' .repeat(60));
       roles.forEach((role, index) => {
         console.log(`\n${index + 1}. ${role.name} (${role.code})`);
@@ -72,7 +66,6 @@ export class LocalStorageReport {
     // 5. Анализ сессий
     const sessions = this.analyzeSessions();
     if (sessions.length > 0) {
-      console.log('\n🔐 АКТИВНЫЕ СЕССИИ:');
       console.log('=' .repeat(60));
       sessions.forEach((session, index) => {
         console.log(`\n${index + 1}. Сессия ${session.id}`);
@@ -84,7 +77,6 @@ export class LocalStorageReport {
     }
 
     // 6. Проверка целостности данных
-    console.log('\n✅ ПРОВЕРКА ЦЕЛОСТНОСТИ:');
     console.log('=' .repeat(60));
     const integrity = this.checkDataIntegrity();
     integrity.forEach(check => {
@@ -93,7 +85,6 @@ export class LocalStorageReport {
     });
 
     console.log('\n' + '=' .repeat(60));
-    console.log('📋 ОТЧЕТ ЗАВЕРШЕН');
   }
 
   /**
@@ -313,7 +304,6 @@ export class LocalStorageReport {
       localStorage.removeItem(key);
     });
 
-    console.log('🧹 Данные auth системы очищены');
   }
 }
 
@@ -323,7 +313,6 @@ if (import.meta.env.DEV) {
   (window as any).authReport = () => LocalStorageReport.generateReport();
   (window as any).clearAuth = () => LocalStorageReport.clearAuthData();
   
-  console.log('💡 Доступные команды в консоли:');
   console.log('   authReport() - полный отчет о данных auth системы');
   console.log('   clearAuth() - очистить все данные auth системы');
 }

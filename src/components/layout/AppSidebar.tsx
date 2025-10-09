@@ -99,7 +99,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   // В мобильном режиме никогда не сворачиваем меню
   const collapsed = isMobile ? false : state === "collapsed";
   
-  // console.log("AppSidebar render:", { isMobile, collapsed, openGroups });
 
   const toggleGroup = (groupId: string) => {
     setOpenGroups(prev => {
@@ -118,6 +117,8 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const networkMenuItems = [
     { title: "Обзор", url: "/network/overview", icon: Network },
     { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
+    { title: "Поступления", url: "/network/receipts", icon: Fuel },
+    { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },
     { title: "Купоны", url: "/network/coupons", icon: Component },
   ];
 
@@ -132,7 +133,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Сети и ТТ", url: "/admin/networks", icon: Network },
     { title: "Пользователи", url: "/admin/users-and-roles", icon: Users },
     { title: "Роли", url: "/admin/roles", icon: Shield },
-    { title: "Инструкции", url: "/admin/instructions", icon: Book },
     { title: "Правовые документы", url: "/admin/legal-documents", icon: FileText },
     { title: "Журнал аудита", url: "/admin/audit", icon: FileText },
   ];

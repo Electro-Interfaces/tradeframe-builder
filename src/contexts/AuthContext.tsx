@@ -352,7 +352,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             localStorage.setItem('tradeframe_user', userJson);
             localStorage.setItem('authToken', 'database_session');
           } catch (error) {
-            console.error('❌ Error saving user to localStorage:', error);
           }
         }
       } else {
@@ -377,7 +376,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null);
       clearAllAuthData();
     } catch (error: any) {
-      console.error('❌ Logout error:', error);
       // Даже если ошибка, очищаем локальные данные
       setUser(null);
       clearAllAuthData();

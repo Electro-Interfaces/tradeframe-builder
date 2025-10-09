@@ -151,6 +151,8 @@ class PermissionService {
 
     // Получаем разрешения на основе роли
     const rolePermissions = ROLE_PERMISSIONS[user.role] || ROLE_PERMISSIONS[ROLES.USER];
+
+
     return rolePermissions;
   }
 
@@ -195,6 +197,7 @@ class PermissionService {
       settings: this.isAdmin(user),
       reports: permissions.includes(PERMISSIONS.REPORTS_VIEW)
     };
+
 
     return visibility;
   }

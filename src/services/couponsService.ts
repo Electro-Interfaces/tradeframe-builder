@@ -95,7 +95,6 @@ class CouponsApiService {
 
       // Проверяем, нужно ли обновить токен
       if (!tokenExists || tokenExpired || forceRefresh) {
-        console.log('🎫 Coupons API: Обновляем JWT токен...');
 
         const response = await fetch(`${config.url || this.baseUrl}/v1/login`, {
           method: 'POST',
@@ -120,7 +119,6 @@ class CouponsApiService {
           // Сохраняем обновленную конфигурацию
           localStorage.setItem('sts-api-config', JSON.stringify(config));
 
-          console.log('🎫 Coupons API: JWT токен успешно обновлен');
           return true;
         } else {
           const errorText = await response.text();
@@ -188,7 +186,6 @@ class CouponsApiService {
       if (!response.ok) {
         // Если получили 401, пробуем обновить токен и повторить запрос
         if (response.status === 401) {
-          console.log('🎫 Coupons API: Получен 401, обновляем токен и повторяем запрос...');
 
           const tokenRefreshed = await this.refreshTokenIfNeeded(true);
           if (tokenRefreshed) {
@@ -208,7 +205,6 @@ class CouponsApiService {
 
               if (retryResponse.ok) {
                 const data = await retryResponse.json();
-                console.log('🎫 Coupons API: Повторный запрос успешен после обновления токена');
                 return data;
               }
             }
@@ -259,7 +255,6 @@ class CouponsApiService {
     //   apiParams.dt_end = `${apiParams.dt_end} 23:59:59`;
     // }
 
-    console.log('🎫 Получение купонов с параметрами:', apiParams);
 
     const data = await this.makeRequest<CouponsApiResponse>('/v1/coupons', apiParams);
 
@@ -350,7 +345,6 @@ class CouponsApiService {
     error?: string;
   }> {
     try {
-      console.log('🧪 Тестирование API купонов...');
 
       const startTime = Date.now();
       const data = await this.getCoupons({ system: systemId });

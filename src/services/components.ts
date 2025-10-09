@@ -658,7 +658,6 @@ let mockComponents: Component[] = PersistentStorage.load<Component>('components_
 // Проверяем и обновляем данные при необходимости
 const checkAndUpdateData = () => {
   if (!mockComponents.length || mockComponents.length < initialComponents.length) {
-    console.log('🔄 Обновляем данные компонентов до актуальной версии...');
     mockComponents = [...initialComponents];
     saveComponents();
   }
@@ -674,7 +673,6 @@ checkAndUpdateData();
 
 // Принудительное обновление для добавления новых компонентов платежных систем
 const forceUpdateComponents = () => {
-  console.log('🔄 Принудительное обновление компонентов - добавляем платежные системы...');
   mockComponents = [...initialComponents];
   saveComponents();
 };

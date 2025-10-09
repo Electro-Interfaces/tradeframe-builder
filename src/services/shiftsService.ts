@@ -36,7 +36,6 @@ async function getAuthToken(): Promise<string> {
   if (stsConnection?.settings?.username && stsConnection?.settings?.password) {
     username = stsConnection.settings.username;
     password = stsConnection.settings.password;
-    console.log('🔐 ShiftsService: Используем учетные данные из apiConfigService');
   }
 
   if (!username || !password) {
@@ -46,7 +45,6 @@ async function getAuthToken(): Promise<string> {
   // Авторизация через Basic Auth для получения JWT
   const basicAuth = btoa(`${username}:${password}`);
 
-  console.log('🔑 ShiftsService: Запрос токена...', { username, url: `${API_BASE_URL}/v1/login` });
 
   const response = await fetch(`${API_BASE_URL}/v1/login`, {
     method: 'POST',
@@ -62,7 +60,6 @@ async function getAuthToken(): Promise<string> {
   }
 
   const token = await response.text();
-  console.log('✅ ShiftsService: Токен получен');
   return token.replace(/"/g, ''); // Убираем кавычки из ответа
 }
 
@@ -83,7 +80,6 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, any>): Pr
     });
   }
 
-  console.log('📡 ShiftsService: API запрос', url.toString());
 
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -107,7 +103,6 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, any>): Pr
   }
 
   const data = await response.json();
-  console.log('✅ ShiftsService: Ответ получен', data);
   return data;
 }
 
@@ -121,11 +116,9 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, any>): Pr
  * const shifts = await getShifts({ system: 15, station: 1 });
  */
 export async function getShifts(params: ShiftsRequestParams): Promise<Shift[]> {
-  console.log('📊 ShiftsService: Получение списка смен', params);
 
   try {
     const response = await apiRequest<Shift[]>('/v1/shifts', params);
-    console.log('✅ ShiftsService: Смены получены', response);
     return response;
   } catch (error) {
     console.error('❌ ShiftsService: Ошибка получения смен', error);
@@ -148,11 +141,9 @@ export async function getShifts(params: ShiftsRequestParams): Promise<Shift[]> {
  * });
  */
 export async function getFuelReceipts(params: ReceiptsRequestParams): Promise<ReceiptsResponse> {
-  console.log('📦 ShiftsService: Получение поступлений н/п', params);
 
   try {
     const response = await apiRequest<ReceiptsResponse>('/v1/report/receipts', params);
-    console.log('✅ ShiftsService: Поступления получены', response);
     return response;
   } catch (error) {
     console.error('❌ ShiftsService: Ошибка получения поступлений', error);
@@ -181,11 +172,9 @@ export async function getFuelReceipts(params: ReceiptsRequestParams): Promise<Re
  * });
  */
 export async function getShiftReport(params: ShiftReportRequestParams): Promise<ShiftReport> {
-  console.log('📋 ShiftsService: Получение сменного отчета', params);
 
   try {
     const response = await apiRequest<ShiftReport>('/v1/report/shift_report', params);
-    console.log('✅ ShiftsService: Сменный отчет получен', response);
     return response;
   } catch (error) {
     console.error('❌ ShiftsService: Ошибка получения сменного отчета', error);

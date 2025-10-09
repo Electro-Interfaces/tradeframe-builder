@@ -38,6 +38,7 @@ export const useEngagementTracker = () => {
   };
 
   useEffect(() => {
+
     // Обновляем время каждую секунду
     const timeTracker = setInterval(() => {
       const currentTime = Date.now();
@@ -46,6 +47,10 @@ export const useEngagementTracker = () => {
       setMetrics(prev => {
         const newMetrics = { ...prev, timeSpent };
         const nowEngaged = isEngagementSufficient(newMetrics);
+
+        if (!wasEngaged && nowEngaged) {
+        }
+
         return { ...newMetrics, isEngaged: nowEngaged };
       });
     }, 1000);
@@ -107,11 +112,13 @@ export const useEngagementTracker = () => {
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('mousemove', handleMouseMove);
+
     };
   }, []);
 
   // Метод для принудительного увеличения engagement (для тестирования)
   const boostEngagement = () => {
+
     setMetrics(prev => ({
       timeSpent: Math.max(prev.timeSpent, 31),
       interactions: Math.max(prev.interactions, 6),

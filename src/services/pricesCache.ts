@@ -32,24 +32,20 @@ class PricesCacheService {
 
   // Получить цены для торговой точки (сначала из кэша)
   async getPricesForTradingPoint(tradingPointId: string): Promise<CachedFuelPrice[]> {
-    console.log(`💰 Получение цен для торговой точки: ${tradingPointId}`);
     
     // Сначала пытаемся загрузить из кэша
     const cached = this.getCachedPrices(tradingPointId);
     
     if (cached && this.isCacheValid(cached)) {
-      console.log(`💰 Найдены валидные цены в кэше (${cached.prices.length} цен)`);
       return cached.prices.map(price => ({ ...price, source: 'cache' as const }));
     }
 
-    console.log(`💰 Кэш пуст или устарел, загружаем из сети...`);
     // Если кэша нет или он устарел, загружаем из сети
     return this.fetchAndCachePrices(tradingPointId);
   }
 
   // Принудительное обновление цен из сети
   async refreshPricesFromNetwork(tradingPointId: string): Promise<CachedFuelPrice[]> {
-    console.log(`🔄 Принудительное обновление цен для торговой точки: ${tradingPointId}`);
     return this.fetchAndCachePrices(tradingPointId);
   }
 
@@ -63,7 +59,6 @@ class PricesCacheService {
       const networkResponse = await tradingNetworkAPI.getPrices(stationNumber);
       
       if (!networkResponse.prices || networkResponse.prices.length === 0) {
-        console.log(`⚠️ Нет цен для станции ${stationNumber}`);
         return [];
       }
 
@@ -90,7 +85,6 @@ class PricesCacheService {
       // Сохраняем в кэш
       this.savePricesToCache(tradingPointId, cachedPrices);
 
-      console.log(`💰 Загружено и закэшировано ${cachedPrices.length} цен`);
       return cachedPrices;
 
     } catch (error) {
@@ -99,7 +93,6 @@ class PricesCacheService {
       // Возвращаем устаревшие данные из кэша, если есть
       const cached = this.getCachedPrices(tradingPointId);
       if (cached) {
-        console.log(`⚠️ Возвращаем устаревшие данные из кэша`);
         return cached.prices.map(price => ({ ...price, source: 'cache' as const }));
       }
       
@@ -132,7 +125,6 @@ class PricesCacheService {
       };
 
       PersistentStorage.save(this.CACHE_KEY, allCache);
-      console.log(`💾 Цены сохранены в кэш для ${tradingPointId}`);
     } catch (error) {
       console.error('Ошибка при сохранении в кэш:', error);
     }
@@ -179,10 +171,8 @@ class PricesCacheService {
       const allCache = PersistentStorage.load<Record<string, PricesCacheEntry>>(this.CACHE_KEY, {});
       delete allCache[tradingPointId];
       PersistentStorage.save(this.CACHE_KEY, allCache);
-      console.log(`🗑️ Кэш очищен для ${tradingPointId}`);
     } else {
       PersistentStorage.remove(this.CACHE_KEY);
-      console.log(`🗑️ Весь кэш цен очищен`);
     }
   }
 
@@ -207,6 +197,5 @@ export const pricesCacheService = new PricesCacheService();
 
 // Очищаем кэш при изменении конфигурации резервуаров
 if (typeof window !== 'undefined') {
-  console.log('🧹 Очищаем кэш цен при загрузке модуля...');
   pricesCacheService.clearCache();
 }

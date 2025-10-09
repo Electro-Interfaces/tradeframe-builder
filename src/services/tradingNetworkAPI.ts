@@ -63,21 +63,16 @@ async function getFuelTypesFromTanks(stationNumber: number): Promise<string[]> {
       .map(eq => eq.params.fuelType)
       .filter((fuelType, index, array) => array.indexOf(fuelType) === index); // убираем дубликаты
 
-    console.log(`🔍 Station ${stationNumber} (${tradingPointId}): найдено ${equipmentResponse.data.length} единиц оборудования`);
-    console.log(`🔍 Station ${stationNumber} (${tradingPointId}): найдено ${fuelTypes.length} видов топлива:`, fuelTypes);
 
     return fuelTypes;
   } catch (error) {
     console.error('Ошибка получения типов топлива из резервуаров:', error);
-    console.log('⚠️ Используется fallback для станции', stationNumber);
     
     // Специальный fallback для АЗС №002 (Северная) - только АИ-92
     if (stationNumber === 78) {
-      console.log('⚠️ Fallback для АЗС №002: [АИ-92]');
       return ['АИ-92'];
     }
     
-    console.log('⚠️ Используется общий fallback: [АИ-92, АИ-95, ДТ]');
     return ['АИ-92', 'АИ-95', 'ДТ']; // Общий fallback
   }
 }

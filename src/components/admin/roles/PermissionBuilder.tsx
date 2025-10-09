@@ -69,7 +69,6 @@ export function PermissionBuilder() {
   }
 
   const togglePermission = (section: string, resource: string, action: PermissionAction) => {
-    console.log('🔄 PermissionBuilder - Toggling permission:', section, resource, action);
     if (!selectedRole) {
       console.log('❌ No selected role');
       return;
@@ -301,7 +300,6 @@ export function PermissionBuilder() {
                                     ${colorClasses[action]}
                                   `}
                                   onClick={() => {
-                                    console.log('🖱️ Label clicked:', section.code, resource.code, action);
                                     togglePermission(section.code, resource.code, action);
                                   }}
                                 >

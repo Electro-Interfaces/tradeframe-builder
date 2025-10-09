@@ -5,7 +5,6 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const nomenclatureService = {
   async getNomenclature(filters?: FuelNomenclatureFilters): Promise<FuelNomenclature[]> {
-    console.log('🔄 Loading nomenclature from Supabase with filters:', filters);
     await delay(300);
     
     try {
@@ -109,7 +108,6 @@ export const nomenclatureService = {
         updatedBy: item.updated_by || undefined
       }));
 
-      console.log('✅ Loaded nomenclature from Supabase:', result.length, 'items');
       return result;
 
     } catch (error) {

@@ -5,6 +5,7 @@
 import { useMemo } from 'react'
 import { useNewAuth } from '@/contexts/NewAuthContext'
 
+
 export interface MenuVisibilityConfig {
   networks: boolean
   tradingPoint: boolean
@@ -22,6 +23,7 @@ export function useMenuVisibility(): MenuVisibilityConfig {
   const { user } = useNewAuth()
 
   return useMemo(() => {
+    
     if (!user) {
       // Неавторизованные пользователи не видят меню
       return {
@@ -37,9 +39,11 @@ export function useMenuVisibility(): MenuVisibilityConfig {
         misc: false
       }
     }
+    
 
     // Функция для проверки разрешения на видимость меню
     const hasMenuPermission = (menuResource: string): boolean => {
+      
       if (!user.permissions) {
         return false;
       }
@@ -57,16 +61,19 @@ export function useMenuVisibility(): MenuVisibilityConfig {
         // Обрабатываем строковый формат разрешений (старый формат)
         if (typeof permission === 'string') {
           const match = permission === `menu_visibility.${menuResource}.view_menu`;
+          if (permission.includes('menu_visibility') || match) {
+          }
           return match;
         }
 
         return false;
       });
-
+      
       return result;
     };
 
     // Системный администратор (супер админ) имеет доступ ко всем разделам
+
     if (user.role === 'super_admin' || user.role === 'system_admin') {
       return {
         networks: true,
@@ -84,7 +91,6 @@ export function useMenuVisibility(): MenuVisibilityConfig {
 
     // БТО менеджер - показываем только определенные разделы
     if (user.role === 'network_admin' || user.role === 'manager' || user.role_name === 'Менеджер БТО') {
-      console.log('🎯 User is БТО manager - showing limited menus');
       return {
         networks: true,      // ТОРГОВЫЕ СЕТИ: Обзор, Операции
         tradingPoint: true,  // ТОРГОВАЯ ТОЧКА: Цены, Резервуары, Оборудование
@@ -168,9 +174,10 @@ export function useMenuVisibility(): MenuVisibilityConfig {
     }
 
     const visibleCount = Object.values(menuConfig).filter(v => v).length;
-
+    
     // ВРЕМЕННЫЙ FALLBACK: если ни одного меню не видно, показываем разделы в зависимости от роли
     if (visibleCount === 0) {
+      
       // Для БТО менеджера показываем ограниченный набор
       if (user.role === 'network_admin' || user.role === 'manager' || user.role_name === 'Менеджер БТО') {
         return {

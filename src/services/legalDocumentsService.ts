@@ -127,7 +127,8 @@ export const legalDocumentsService = {
     try {
       const actualUserId = userId || getCurrentUser().id;
       const actualUserEmail = getCurrentUser().email;
-
+      
+      
       return await LegalDocumentsSupabaseService.acceptDocument(
         versionId,
         actualUserId,

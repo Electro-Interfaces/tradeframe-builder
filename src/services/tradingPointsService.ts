@@ -13,7 +13,9 @@ export const tradingPointsService = {
   // Получить все торговые точки (используем mock данные)
   async getAll(): Promise<TradingPoint[]> {
     try {
+      
       const points = tradingPointsStore.getAll();
+      
       return points;
 
     } catch (error) {
@@ -25,7 +27,9 @@ export const tradingPointsService = {
   // Получить торговые точки по ID сети (используем mock данные)
   async getByNetworkId(networkId: NetworkId): Promise<TradingPoint[]> {
     try {
+      
       const points = tradingPointsStore.getByNetworkId(networkId);
+      
       return points;
 
     } catch (error) {
@@ -37,12 +41,13 @@ export const tradingPointsService = {
   // Получить торговую точку по ID (используем mock данные)
   async getById(id: TradingPointId): Promise<TradingPoint | null> {
     try {
+      
       const point = tradingPointsStore.getById(id);
 
       if (!point) {
         return null;
       }
-
+      
       return point;
     } catch (error) {
       console.error('💥 Critical error loading trading point by ID:', error);
@@ -53,6 +58,7 @@ export const tradingPointsService = {
   // Создать новую торговую точку (только в Supabase)
   async create(input: TradingPointInput): Promise<TradingPoint> {
     try {
+      
       const { data, error } = await supabase
         .from('trading_points')
         .insert({
@@ -81,6 +87,7 @@ export const tradingPointsService = {
         throw new Error('Нет данных после создания торговой точки');
       }
 
+      
       return {
         id: data.id,
         networkId: data.network_id,
@@ -107,6 +114,7 @@ export const tradingPointsService = {
   // Обновить торговую точку (только в Supabase)
   async update(id: TradingPointId, input: TradingPointInput): Promise<TradingPoint | null> {
     try {
+      
       const { data, error } = await supabase
         .from('trading_points')
         .update({
@@ -135,6 +143,7 @@ export const tradingPointsService = {
         return null;
       }
 
+      
       return {
         id: data.id,
         networkId: data.network_id,
@@ -161,6 +170,7 @@ export const tradingPointsService = {
   // Удалить торговую точку (только в Supabase)
   async remove(id: TradingPointId): Promise<boolean> {
     try {
+      
       const { error } = await supabase
         .from('trading_points')
         .delete()
@@ -190,6 +200,7 @@ export const tradingPointsService = {
     }
 
     try {
+      
       const { data, error } = await supabase
         .from('trading_points')
         .select('*')
@@ -230,6 +241,7 @@ export const tradingPointsService = {
   // Получить торговые точки с информацией о сети (JOIN)
   async getAllWithNetworks(): Promise<(TradingPoint & { networkName: string })[]> {
     try {
+      
       const { data, error } = await supabase
         .from('trading_points')
         .select(`
@@ -249,6 +261,7 @@ export const tradingPointsService = {
 
       if (!data) return [];
 
+      
       return data.map(row => ({
         id: row.id,
         external_id: row.external_id, // ID для синхронизации с торговым API

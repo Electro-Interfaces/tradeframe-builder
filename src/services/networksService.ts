@@ -12,7 +12,6 @@ export const networksService = {
   // Получить все сети с подсчетом торговых точек (используем mock данные)
   async getAll(userRole?: string): Promise<Network[]> {
     try {
-      // Используем mock данные для демо
       let networks = networksStore.getAll();
 
       // Фильтрация для МенеджерБТО - только сеть БТО
@@ -21,9 +20,7 @@ export const networksService = {
       }
 
       return networks;
-
     } catch (error) {
-      console.error('💥 Critical error loading networks:', error);
       throw error;
     }
   },
@@ -31,12 +28,13 @@ export const networksService = {
   // Получить сеть по ID (используем mock данные)
   async getById(id: NetworkId): Promise<Network | null> {
     try {
+      
       const network = networksStore.getById(id);
 
       if (!network) {
         return null;
       }
-
+      
       return network;
     } catch (error) {
       console.error('💥 Critical error loading network by ID:', error);
@@ -47,6 +45,7 @@ export const networksService = {
   // Создать новую сеть (только в Supabase)
   async create(input: NetworkInput): Promise<Network> {
     try {
+      
       const { data, error } = await supabase
         .from('networks')
         .insert({
@@ -68,6 +67,7 @@ export const networksService = {
         throw new Error('Нет данных после создания сети');
       }
 
+      
       return {
         id: data.id,
         external_id: data.external_id,
@@ -90,6 +90,7 @@ export const networksService = {
   // Обновить сеть (только в Supabase)
   async update(id: NetworkId, input: NetworkInput): Promise<Network | null> {
     try {
+      
       const { data, error } = await supabase
         .from('networks')
         .update({
@@ -113,6 +114,7 @@ export const networksService = {
         return null;
       }
 
+      
       return {
         id: data.id,
         external_id: data.external_id,
@@ -135,6 +137,7 @@ export const networksService = {
   // Удалить сеть (только в Supabase)
   async remove(id: NetworkId): Promise<boolean> {
     try {
+      
       const { error } = await supabase
         .from('networks')
         .delete()
@@ -164,6 +167,7 @@ export const networksService = {
     }
 
     try {
+      
       const { data, error } = await supabase
         .from('networks')
         .select('id, name, description, code, status, external_id, settings, created_at, updated_at')

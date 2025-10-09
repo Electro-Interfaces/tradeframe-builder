@@ -30,7 +30,6 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
   const checkForUpdates = async () => {
     if (isChecking) return;
 
-    console.log('🔄 UpdateChecker: Начинаем проверку обновлений...');
     setIsChecking(true);
     setLastChecked(new Date());
     setUpdateStatus(null); // Сбрасываем предыдущий статус
@@ -38,20 +37,16 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
     try {
       // Проверяем Service Worker на наличие обновлений
       if ('serviceWorker' in navigator) {
-        console.log('🔄 UpdateChecker: Service Worker поддерживается');
 
         // Проверяем, есть ли зарегистрированные Service Workers
         const registrations = await navigator.serviceWorker.getRegistrations();
-        console.log('🔄 UpdateChecker: Найдено Service Worker регистраций:', registrations.length);
 
         if (registrations.length === 0) {
           console.log('❌ UpdateChecker: Service Worker не зарегистрирован, попробуем зарегистрировать...');
 
           try {
             const swPath = import.meta.env.PROD ? '/tradeframe-builder/sw.js' : '/sw.js';
-            console.log('🔄 UpdateChecker: Регистрируем Service Worker:', swPath);
             const registration = await navigator.serviceWorker.register(swPath);
-            console.log('✅ UpdateChecker: Service Worker успешно зарегистрирован:', registration);
 
             // После регистрации ждем немного и проверяем обновления
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -70,7 +65,6 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
         );
 
         const registration = await Promise.race([readyPromise, timeoutPromise]) as ServiceWorkerRegistration;
-        console.log('🔄 UpdateChecker: Service Worker готов:', registration);
 
         // Дополнительные проверки состояния
         console.log('🔄 UpdateChecker: Registration state:', {
@@ -81,7 +75,6 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
         });
 
         // Принудительно проверяем обновления
-        console.log('🔄 UpdateChecker: Запускаем принудительное обновление...');
         await registration.update();
 
         // Ждем немного для обработки
@@ -89,7 +82,6 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
 
         // Проверяем есть ли ожидающий SW
         if (registration.waiting) {
-          console.log('🔄 UpdateChecker: Найден ожидающий Service Worker - есть обновления!');
           setHasUpdate(true);
           setUpdateStatus('found-updates');
 
@@ -110,16 +102,13 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
 
           // Показываем уведомление и перезагружаем через 3 сек
           setTimeout(() => {
-            console.log('🔄 UpdateChecker: Перезагружаем страницу...');
             window.location.reload();
           }, 3000);
         } else {
-          console.log('🔄 UpdateChecker: Ожидающий Service Worker не найден - обновлений нет');
           setHasUpdate(false);
           setUpdateStatus('no-updates');
 
           // Вызываем callback для показа информационного окна
-          console.log('🔄 UpdateChecker: Показываем информационное окно (нет обновлений)');
           onShowUpdateInfo?.({
             version: currentVersion,
             buildNumber,
@@ -145,7 +134,6 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
         setUpdateStatus(null);
       }, 3000);
     } finally {
-      console.log('🔄 UpdateChecker: Проверка завершена');
       setIsChecking(false);
     }
   };

@@ -62,7 +62,6 @@ export function Header({
     swScope: string;
     lastCheck: string;
   }) => {
-    console.log('🔄 Header: Получили данные для диалога обновлений:', details);
     setUpdateDetails(details);
     setShowUpdateDialog(true);
   };

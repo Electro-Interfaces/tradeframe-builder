@@ -1,7 +1,6 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, AlertTriangle, CheckCircle, Clock as ClockIcon } from "lucide-react";
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -11,18 +10,12 @@ interface ShiftsTableProps {
   shifts: ShiftListItem[];
   onSelectShift: (shiftNumber: number) => void;
   loading?: boolean;
-  selectedShiftIds?: string[];
-  onToggleShiftSelection?: (shiftId: string) => void;
-  onToggleAllShifts?: (selected: boolean) => void;
 }
 
 const ShiftsTable: React.FC<ShiftsTableProps> = ({
   shifts,
   onSelectShift,
   loading = false,
-  selectedShiftIds = [],
-  onToggleShiftSelection,
-  onToggleAllShifts,
 }) => {
   const formatCurrency = (value: number) => {
     return value.toLocaleString('ru-RU', {
@@ -92,24 +85,11 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
     );
   }
 
-  const allSelected = shifts.length > 0 && shifts.every(shift => selectedShiftIds.includes(shift.id));
-  const someSelected = selectedShiftIds.length > 0 && !allSelected;
-
   return (
     <div className="overflow-x-auto rounded-lg border border-slate-600">
       <table className="w-full text-sm">
         <thead className="bg-slate-700/80">
           <tr>
-            {onToggleShiftSelection && onToggleAllShifts && (
-              <th className="px-4 py-4 text-left">
-                <Checkbox
-                  checked={allSelected}
-                  onCheckedChange={(checked) => onToggleAllShifts(!!checked)}
-                  aria-label="Выбрать все смены"
-                  className={someSelected ? 'data-[state=checked]:bg-slate-500' : ''}
-                />
-              </th>
-            )}
             <th className="px-6 py-4 text-left text-slate-100 font-medium">СМЕНА №</th>
             <th className="px-6 py-4 text-left text-slate-100 font-medium">ОТКРЫТА</th>
             <th className="px-6 py-4 text-left text-slate-100 font-medium">ЗАКРЫТА</th>
@@ -120,55 +100,32 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
           {shifts.map((shift) => (
             <tr
               key={shift.id}
-              className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors"
+              className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors cursor-pointer"
+              onClick={() => {
+                onSelectShift(shift.shiftNumber);
+              }}
             >
-              {onToggleShiftSelection && (
-                <td className="px-4 py-4">
-                  <Checkbox
-                    checked={selectedShiftIds.includes(shift.id)}
-                    onCheckedChange={() => onToggleShiftSelection(shift.id)}
-                    aria-label={`Выбрать смену ${shift.shiftNumber}`}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </td>
-              )}
-
               {/* Номер смены */}
-              <td
-                className="px-6 py-4 cursor-pointer"
-                onClick={() => {
-                  console.log('🖱️ ShiftsTable: Клик на смену', { shift, shiftNumber: shift.shiftNumber });
-                  onSelectShift(shift.shiftNumber);
-                }}
-              >
+              <td className="px-6 py-4">
                 <span className="text-white font-semibold text-base">
                   #{shift.shiftNumber}
                 </span>
               </td>
 
               {/* Дата открытия */}
-              <td
-                className="px-6 py-4 cursor-pointer"
-                onClick={() => onSelectShift(shift.shiftNumber)}
-              >
+              <td className="px-6 py-4">
                 <div className="text-white">{formatDateTime(shift.openedAt)}</div>
               </td>
 
               {/* Дата закрытия */}
-              <td
-                className="px-6 py-4 cursor-pointer"
-                onClick={() => onSelectShift(shift.shiftNumber)}
-              >
+              <td className="px-6 py-4">
                 <div className="text-white">
                   {shift.closedAt ? formatDateTime(shift.closedAt) : '—'}
                 </div>
               </td>
 
               {/* Статус */}
-              <td
-                className="px-6 py-4 text-center cursor-pointer"
-                onClick={() => onSelectShift(shift.shiftNumber)}
-              >
+              <td className="px-6 py-4 text-center">
                 {getStatusBadge(shift.status)}
               </td>
             </tr>

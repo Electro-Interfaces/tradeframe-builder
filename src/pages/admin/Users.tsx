@@ -118,11 +118,8 @@ export default function Users() {
     if (!confirmed) return
     
     try {
-      console.log('🧹 Начинаем очистку soft-deleted пользователей...')
-      console.log('🔧 Проверяем сервис:', externalUsersService)
       
       const result = await externalUsersService.permanentlyDeleteAllSoftDeletedUsers()
-      console.log('📊 Результат очистки:', result)
       
       if (result && result.deletedCount > 0) {
         alert(`✅ Успешно удалено ${result.deletedCount} пользователей из базы данных.`)

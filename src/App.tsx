@@ -29,7 +29,6 @@ const CouponsPage = lazy(() => import("./pages/CouponsPage"));
 // Admin страницы - ленивая загрузка (приоритет 2)
 const Users = lazy(() => import("./pages/admin/Users"));
 const Roles = lazy(() => import("./pages/admin/Roles"));
-const Instructions = lazy(() => import("./pages/admin/Instructions"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
 const DataMigration = lazy(() => import("./pages/DataMigration"));
 
@@ -40,6 +39,7 @@ const ExternalDatabaseSettings = lazy(() => import("./pages/ExternalDatabaseSett
 const SalesAnalysisPage = lazy(() => import("./pages/SalesAnalysisPage"));
 const NotificationRules = lazy(() => import("./pages/NotificationRules"));
 const Messages = lazy(() => import("./pages/Messages"));
+const Receipts = lazy(() => import("./pages/network/Receipts"));
 
 // Equipment и остальные страницы - ленивая загрузка (приоритет 3)
 
@@ -85,7 +85,6 @@ const App = () => {
         );
 
         if (!isValidPath) {
-          console.warn('⚠️ App: Invalid redirect path detected, redirecting to home:', targetPath);
           targetPath = '/';
         }
 
@@ -110,13 +109,11 @@ const App = () => {
         }
       }
     } catch (error) {
-      console.error('🚫 App: Critical redirect error, falling back to home:', error);
       // В случае критической ошибки просто перенаправляем на главную
       try {
         sessionStorage.removeItem('redirectPath');
         window.history.replaceState(null, '', '/');
       } catch (fallbackError) {
-        console.error('🚫 App: Fallback also failed:', fallbackError);
         window.location.href = '/';
       }
     }
@@ -163,7 +160,6 @@ const App = () => {
           {/* Admin страницы - приоритет 2 */}
           <Route path="/admin/users-and-roles" element={<ProtectedRoute><LazyLoader><Users /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/roles" element={<ProtectedRoute><LazyLoader><Roles /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/instructions" element={<ProtectedRoute><LazyLoader><Instructions /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/audit" element={<ProtectedRoute><LazyLoader><AuditLog /></LazyLoader></ProtectedRoute>} />
           <Route path="/admin/data-migration" element={<ProtectedRoute><LazyLoader><DataMigration /></LazyLoader></ProtectedRoute>} />
           
@@ -174,6 +170,7 @@ const App = () => {
           <Route path="/network/sales-analysis" element={<ProtectedRoute><LazyLoader><SalesAnalysisPage /></LazyLoader></ProtectedRoute>} />
           <Route path="/network/notifications" element={<ProtectedRoute><LazyLoader><NotificationRules /></LazyLoader></ProtectedRoute>} />
           <Route path="/network/messages" element={<ProtectedRoute><LazyLoader><Messages /></LazyLoader></ProtectedRoute>} />
+          <Route path="/network/receipts" element={<ProtectedRoute><LazyLoader><Receipts /></LazyLoader></ProtectedRoute>} />
           
           {/* Equipment страницы - приоритет 3 */}
           <Route path="/point/equipment" element={<ProtectedRoute><Equipment /></ProtectedRoute>} />

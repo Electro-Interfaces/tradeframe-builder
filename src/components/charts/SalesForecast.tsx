@@ -49,6 +49,7 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
 
   // Основная логика расчета прогноза
   const { chartData, summary } = useMemo(() => {
+    
     if (!transactions || transactions.length === 0) {
       
       // Создаем базовый прогноз без исторических данных
@@ -100,6 +101,8 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       return { chartData, summary };
     }
 
+    // Анализируем исторические данные
+    
     // Группируем транзакции по дням
     const dailyRevenue = new Map<string, number>();
     const dailyVolume = new Map<string, number>();
@@ -136,6 +139,7 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       }
     });
 
+
     // Создаем полный набор данных для графика (последние 7 дней + прогноз на 7 дней)
     const today = new Date();
     const chartData: ChartDataPoint[] = [];
@@ -159,6 +163,7 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
         historical: revenue > 0 ? revenue : undefined, // Показываем только дни с данными
       });
     }
+
 
     // Расчет тренда и прогноза
     let avgRevenue = 50000; // Базовое значение
@@ -232,6 +237,15 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       trendPercentage: Math.round(trendPercentage),
       recommendations
     };
+
+
+    // Дополнительная отладка данных
+    chartData.forEach((point, index) => {
+      if (point.historical !== undefined) {
+      }
+      if (point.forecast !== undefined) {
+      }
+    });
 
     return { chartData, summary };
   }, [transactions]);

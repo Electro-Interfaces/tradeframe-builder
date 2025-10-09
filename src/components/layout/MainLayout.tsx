@@ -37,7 +37,6 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
   // Логирование для мобильных устройств
   useEffect(() => {
     if (isMobile) {
-      console.log('📱 MainLayout: мобильное устройство обнаружено');
     }
   }, [isMobile]);
 

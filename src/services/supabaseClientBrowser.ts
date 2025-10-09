@@ -11,7 +11,6 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ssvazdgnmatbdy
 // В продакшне нужно настроить правильные RLS политики и использовать anon key
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
 
-console.log('🔧 Supabase Browser Client Configuration:');
 console.log('URL:', supabaseUrl);
 console.log('Key (first 50 chars):', supabaseKey.substring(0, 50) + '...');
 console.log('Key type:', supabaseKey.includes('anon') ? 'anon' : supabaseKey.includes('service_role') ? 'service_role' : 'unknown');
@@ -71,13 +70,9 @@ export async function setUserSession(userEmail: string, userId: string) {
       throw error;
     }
 
-    console.log('✅ User session set in Supabase client');
-    console.log('🔍 Session data:', data);
-    console.log('🔍 Generated JWT:', session.access_token);
     
     // Проверяем что сессия действительно установлена
     const { data: currentSession } = await supabase.auth.getSession();
-    console.log('🔍 Current session:', currentSession);
     
     return session;
   } catch (error) {

@@ -101,7 +101,6 @@ class PricesSupabaseService {
   
   constructor() {
     // Используем готовый service клиент
-    console.log('🔧 PricesSupabaseService initialized with service client');
   }
 
   /**

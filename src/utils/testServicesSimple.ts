@@ -196,7 +196,6 @@ export function logTestResults(results: TestResult[]) {
   const successCount = results.filter(r => r.status === 'success').length;
   const errorCount = results.filter(r => r.status === 'error').length;
   
-  console.log(`✅ Успешно: ${successCount} | ❌ Ошибки: ${errorCount}`);
   
   results.forEach(result => {
     const icon = result.status === 'success' ? '✅' : '❌';

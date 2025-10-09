@@ -144,7 +144,6 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
           setSelectedTradingPoint(savedTradingPoint);
         }
       } catch (e) {
-        console.warn('⚠️ LocalStorage не доступен:', e);
       }
     }
   }, []); // Убираем зависимость selectedNetworkId

@@ -285,6 +285,7 @@ class STSApiService {
 
     // Проверяем, нужно ли обновить токен
     if (!tokenExists || tokenExpired || forceRefresh) {
+
       try {
         const response = await fetch(`${this.config.url}/v1/login`, {
           method: 'POST',
@@ -312,6 +313,7 @@ class STSApiService {
 
           // Сбрасываем счетчик при успешном обновлении
           this.refreshAttempts = 0;
+
           return true;
         } else {
           const errorText = await response.text();
@@ -1074,6 +1076,7 @@ class STSApiService {
   }
 
   private mapApiPriceToPrice(apiPrice: any): Price {
+    
     // Словарь для маппинга кодов/номеров топлива в читаемые названия
     // Основано на правильном маппинге service_code -> service_name
     const fuelTypeMap: Record<string, string> = {
@@ -1119,8 +1122,8 @@ class STSApiService {
                     fuelTypeMap[rawFuelType.toLowerCase()] ||
                     fuelTypeMap[rawFuelType.toUpperCase()] ||
                     (rawFuelType !== '' && rawFuelType !== 'undefined' ? rawFuelType : 'Неизвестно');
-
-    return {
+                    
+    const mapped = {
       id: parseInt(apiPrice.id || Math.random() * 1000),
       fuelType: fuelType,
       price: parseFloat(apiPrice.price || apiPrice.amount || '0'),
@@ -1128,6 +1131,8 @@ class STSApiService {
       createdBy: apiPrice.createdBy || apiPrice.created_by || 'Система',
       status: apiPrice.status || 'active'
     };
+    
+    return mapped;
   }
 
   private mapApiTransactionToTransaction(apiTransaction: any): Transaction {
@@ -1432,6 +1437,7 @@ class STSApiService {
         method: 'POST'
       }, contextParams);
 
+
       // Проверяем успешность операции
       if (data && (data.success === true || data.status === 'success' || data.result === 'ok')) {
         return {
@@ -1531,6 +1537,7 @@ class STSApiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
       }, contextParams);
+
 
       return {
         success: true,

@@ -22,6 +22,7 @@ export class ShiftReportAdapterV2 {
    * Преобразовать ответ API в детали смены
    */
   static toDetails(apiResponse: any, shiftNumber: number, system: number, station: number, stationName?: string, shiftInfo?: any): ShiftDetails {
+
     // Извлекаем информацию о ПСМ
     const posInfo = this.extractPosInfo(apiResponse.psm, shiftNumber);
 
@@ -60,7 +61,6 @@ export class ShiftReportAdapterV2 {
       closedAt = shiftInfo.dt_close || null;
       status = closedAt ? 'closed' : 'open';
       operator = shiftInfo.operator || 'Не указан';
-      console.log('📅 Даты из /v1/shifts:', { openedAt, closedAt, status, operator });
     } else {
       // Fallback: пытаемся определить из posInfo (хотя там нет данных)
       if (posInfo.length > 0) {
@@ -85,7 +85,6 @@ export class ShiftReportAdapterV2 {
         operator = posInfo[0].operator || 'Не указан';
         status = allClosed && closedAt ? 'closed' : 'open';
       }
-      console.log('📅 Даты из posInfo (fallback):', { openedAt, closedAt, status });
     }
 
     return {
@@ -142,21 +141,8 @@ export class ShiftReportAdapterV2 {
     // ПСМ данные находятся в psm.total, а не в psm.data!
     // psm.data содержит показания ТРК (пистолеты)
     if (!psm || !psm.total || !Array.isArray(psm.total)) {
-      console.warn('⚠️ psm.total отсутствует или не массив');
       return [];
     }
-
-    console.log('🔍 ПОЛНЫЙ объект psm:', psm);
-    console.log('🔍 ПОЛНЫЙ psm.total[0]:', psm.total[0]);
-
-    console.log('🔍 Исходные данные psm.total:', psm.total.map((p: any) => ({
-      pos: p.pos,
-      shift: p.shift,
-      state: p.state,
-      dt_open: p.dt_open,
-      dt_close: p.dt_close,
-      operator: p.operator
-    })));
 
     return psm.total.map((pos: any) => ({
       posNumber: pos.pos || 0,
@@ -301,7 +287,6 @@ export class ShiftReportAdapterV2 {
       return [];
     }
 
-    console.log('📊 extractSalesBreakdown: ПОЛНЫЙ массив sales:', sales);
 
     // Создаем карту: fuelCode -> { fuelName, по способам оплаты }
     const breakdownMap = new Map<number, any>();
@@ -310,12 +295,6 @@ export class ShiftReportAdapterV2 {
       const paymentTypeName = (sale.pay_type?.name || '').toLowerCase();
       const paymentTypeId = sale.pay_type?.id || 0;
 
-      console.log(`📊 Sale[${index}]:`, {
-        paymentTypeId,
-        paymentTypeName,
-        fuelCount: sale.fuel?.length || 0
-      });
-
       if (sale.fuel && Array.isArray(sale.fuel)) {
         sale.fuel.forEach((fuelItem: any, fuelIndex: number) => {
           const fuelCode = fuelItem.service?.service_code || 0;
@@ -323,17 +302,6 @@ export class ShiftReportAdapterV2 {
           const volume = parseFloat(fuelItem.release?.volume || '0');
           const cost = parseFloat(fuelItem.release?.cost || '0');
           const discount = parseFloat(fuelItem.release?.discount || '0');
-
-          console.log(`📊   Fuel[${fuelIndex}] ПОЛНАЯ СТРУКТУРА:`, fuelItem);
-          console.log(`📊   Fuel[${fuelIndex}]:`, {
-            fuelCode,
-            fuelName,
-            volume,
-            cost,
-            discount,
-            paymentType: paymentTypeName,
-            allKeys: Object.keys(fuelItem)
-          });
 
           if (!breakdownMap.has(fuelCode)) {
             breakdownMap.set(fuelCode, {
@@ -359,7 +327,6 @@ export class ShiftReportAdapterV2 {
             // Скидку из купонов НЕ учитываем
             breakdown.nonCashVolume += volume;
             breakdown.totalVolume += volume;
-            console.log(`    ⏩ Купон: объём ${volume}л добавлен в "Безнал." и "Всего", discount=${discount} игнорируется`);
           }
           // "По картам" = сбербанк, карты, и т.д.
           else if (paymentTypeName.includes('карт') ||
@@ -370,7 +337,6 @@ export class ShiftReportAdapterV2 {
             breakdown.cardCost += cost;
             breakdown.discountCost += discount; // Скидка из карт
             breakdown.totalVolume += volume;
-            console.log(`    ✓ Добавлено в "По картам": ${volume}л, ${cost}₽, скидка: ${discount}₽`);
           }
           // "За наличные"
           else if (paymentTypeName.includes('наличн')) {
@@ -378,7 +344,6 @@ export class ShiftReportAdapterV2 {
             breakdown.cashCost += cost;
             breakdown.discountCost += discount; // Скидка из наличных
             breakdown.totalVolume += volume;
-            console.log(`    ✓ Добавлено в "За наличные": ${volume}л, ${cost}₽, скидка: ${discount}₽`);
           }
           // "Безнал." = топливные карты, мобильные приложения
           else if (paymentTypeName.includes('безнал') ||
@@ -387,11 +352,9 @@ export class ShiftReportAdapterV2 {
             breakdown.nonCashVolume += volume;
             breakdown.discountCost += discount; // Скидка из безнала
             breakdown.totalVolume += volume;
-            console.log(`    ✓ Добавлено в "Безнал.": ${volume}л, скидка: ${discount}₽`);
           }
           // Неизвестный тип - записываем в лог
           else {
-            console.warn(`    ⚠️ Неизвестный тип оплаты: "${paymentTypeName}"`);
             breakdown.totalVolume += volume;
           }
         });
@@ -399,7 +362,6 @@ export class ShiftReportAdapterV2 {
     });
 
     const result = Array.from(breakdownMap.values());
-    console.log('📊 extractSalesBreakdown: РЕЗУЛЬТАТ:', result);
     return result;
   }
 
@@ -411,10 +373,8 @@ export class ShiftReportAdapterV2 {
       return [];
     }
 
-    console.log('📦 Extracting receipts:', receipts);
 
     return receipts.map((receipt: any, index: number) => {
-      console.log(`📦 Receipt[${index}] полная структура:`, receipt);
 
       return {
         id: `receipt-${receipt.shift}-${receipt.tank}-${index}`,
@@ -449,28 +409,16 @@ export class ShiftReportAdapterV2 {
       return [];
     }
 
-    console.log('💰 ShiftReportAdapterV2: Данные по наличным (money)', money);
-    console.log('💰 Фильтруем по смене:', shiftNumber);
 
     const filtered = money.filter((item: any) => item.shift === shiftNumber);
-    console.log('💰 После фильтрации:', filtered);
 
     return filtered
       .map((item: any, index: number) => {
         const operationId = item.operation?.id || 0;
         const operationType = this.mapOperationType(operationId);
 
-        console.log('💰 Операция:', {
-          operationId,
-          operationType,
-          volume: item.volume,
-          operation: item.operation,
-          fullItem: item
-        });
-
         // Пропускаем записи показаний ККТ (id: 5, 6) - это не движение денег
         if (operationType === null) {
-          console.log('💰 Пропускаем операцию (не движение денег):', item.operation?.name);
           return null;
         }
 

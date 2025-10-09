@@ -65,7 +65,6 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
   }, [isEngagementSufficient, isChrome, canInstall, isInstalled, showPrompt, metrics]);
 
   useEffect(() => {
-
     // Проверяем, не отклонил ли уже пользователь установку
     const dismissedTime = localStorage.getItem('pwa-install-dismissed');
     if (dismissedTime) {
@@ -99,8 +98,6 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
     setIsChrome(isChrome);
     setIsSafari(detectedSafari);
     setIsIOS(detectedIOS);
-
-    // Browser and device detection completed
 
     // Проверяем, установлено ли уже приложение
     const checkInstalled = () => {
@@ -139,45 +136,13 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
       }, 1000);
     };
 
-    // ДИАГНОСТИКА: Проверяем PWA критерии для Chrome
-    if (isChrome) {
-      setTimeout(() => {
-        const diagnose = {
-          hasManifest: !!document.querySelector('link[rel="manifest"]'),
-          hasServiceWorker: 'serviceWorker' in navigator,
-          isHTTPS: location.protocol === 'https:',
-          hasValidIcons: true, // предполагаем что есть
-          isStandalone: window.matchMedia('(display-mode: standalone)').matches,
-          userEngagement: document.visibilityState === 'visible'
-        };
-
-        // Проверим manifest содержимое
-        fetch('/tradeframe-builder/manifest.json')
-          .then(r => r.json())
-          .then(manifest => {
-            // manifest loaded
-          })
-          .catch(e => console.error('❌ Ошибка анализа manifest:', e));
-
-      }, 500);
-    }
-
-    // Отключаем агрессивный fallback - только естественные PWA события
     const fallbackTimer = setTimeout(() => {
       if (isChrome && !deferredPrompt) {
-        // Добавим кнопку для разработчиков
         if (process.env.NODE_ENV === 'development') {
           (window as any).boostEngagement = boostEngagement;
         }
       }
     }, 5000);
-
-    // iOS особенность: ВСЕ браузеры на iOS используют WebKit Safari движок
-    // Только Safari может устанавливать PWA, остальные браузеры показывают предложение открыть в Safari
-    if (detectedIOS && !isInstalled) {
-      // НЕ показываем принудительный iOS промпт
-      // Пользователь сам может добавить через Safari Share menu
-    }
 
     // Слушаем событие appinstalled
     const handleAppInstalled = () => {
@@ -198,7 +163,6 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
   }, [isInstalled, onInstalled]);
 
   const handleInstallClick = async () => {
-
     // КРИТИЧЕСКИЙ ФИК ДЛЯ iOS PWA: Создаем резервную копию auth данных
     if (isIOS) {
       const currentUser = localStorage.getItem('tradeframe_user');
@@ -270,7 +234,6 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
         'После установки через Safari приложение будет работать как нативное!'
       );
     } else {
-
       if (isChrome) {
         alert(
           '🌐 Chrome PWA установка:\n\n' +

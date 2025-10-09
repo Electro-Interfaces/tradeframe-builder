@@ -68,6 +68,7 @@ class AuthService {
    */
   async getUserByEmail(email: string): Promise<DatabaseUser | null> {
     try {
+
       // НОВАЯ СХЕМА: получаем пользователя с ролями через джойн
       const users = await this.makeRequest(
         `users?select=*,user_roles(role:roles(*))&email=ilike.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
@@ -78,9 +79,12 @@ class AuthService {
       }
 
       const user = users[0];
+
+      // Логируем роли из новой схемы БД
+      const userRoles = user.user_roles || [];
+
       return user;
     } catch (error) {
-      console.error('❌ AuthService: Error finding user:', error);
       throw error;
     }
   }
@@ -96,6 +100,7 @@ class AuthService {
     if (!user.pwd_salt || !user.pwd_hash) {
       return false;
     }
+
 
     try {
       // Простое хеширование: пароль + соль
@@ -116,9 +121,10 @@ class AuthService {
       }
 
       const isValid = computedHash === user.pwd_hash;
+
+
       return isValid;
     } catch (error) {
-      console.error('❌ AuthService: Password verification error:', error);
       return false;
     }
   }
@@ -128,6 +134,7 @@ class AuthService {
    */
   async authenticate(email: string, password: string): Promise<AppUser | null> {
     try {
+
       const dbUser = await this.getUserByEmail(email);
       if (!dbUser) {
         return null;
@@ -140,9 +147,9 @@ class AuthService {
 
       // Трансформируем пользователя из БД в формат приложения
       const appUser = this.transformUser(dbUser);
+
       return appUser;
     } catch (error) {
-      console.error('❌ AuthService: Authentication error:', error);
       throw error;
     }
   }
@@ -151,6 +158,7 @@ class AuthService {
    * Трансформирует пользователя из БД в формат приложения (НОВАЯ СХЕМА)
    */
   private transformUser(dbUser: DatabaseUser): AppUser {
+
     // Получаем первую (основную) роль пользователя из новой схемы БД
     const userRoles = dbUser.user_roles || [];
     const primaryRole = userRoles[0]?.role;
@@ -160,6 +168,7 @@ class AuthService {
     let permissions: string[] = [];
 
     if (primaryRole) {
+
       // Используем код роли напрямую из БД или имя роли для маппинга
       userRole = primaryRole.code || primaryRole.name;
       roleId = primaryRole.id;
@@ -179,6 +188,7 @@ class AuthService {
           userRole = roleNameToCode[primaryRole.name];
         }
       }
+    } else {
     }
 
     const appUser = {
@@ -224,6 +234,7 @@ class AuthService {
    */
   async updateUserName(userId: string, newName: string): Promise<void> {
     try {
+
       await this.makeRequest(`users?id=eq.${userId}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -231,8 +242,8 @@ class AuthService {
           updated_at: new Date().toISOString()
         })
       });
+
     } catch (error) {
-      console.error('❌ AuthService: Error updating user name:', error);
       throw error;
     }
   }

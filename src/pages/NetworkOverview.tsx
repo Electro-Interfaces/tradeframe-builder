@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { DollarSign, Users, Fuel, Monitor, CreditCard, Loader2, RefreshCw, Activity, Calendar, Download, HelpCircle, FileText } from "lucide-react";
+import { DollarSign, Users, Fuel, Monitor, CreditCard, Loader2, RefreshCw, Activity, Calendar, Download, HelpCircle, FileText, FileSpreadsheet, Filter, ChevronDown, ChevronRight } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +33,7 @@ export default function NetworkOverview() {
   // Состояния фильтров
   const [dateFrom, setDateFrom] = useState(monthAgo.toISOString().split('T')[0]);
   const [dateTo, setDateTo] = useState(today.toISOString().split('T')[0]);
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   // Состояния данных
   const [transactions, setTransactions] = useState([]);
@@ -100,7 +103,6 @@ export default function NetworkOverview() {
         }
         
       } catch (authError) {
-        console.error('❌ Ошибка авторизации STS API:', authError);
         toast({
           title: "Ошибка авторизации",
           description: "Не удалось авторизоваться в STS API. Проверьте логин/пароль в настройках.",
@@ -176,12 +178,6 @@ export default function NetworkOverview() {
       const additionalText = additionalDataLoaded.length > 0 ? `, ${additionalDataLoaded.join(', ')}` : '';
       
     } catch (error) {
-      // Игнорируем ошибки отмены запроса (происходят при быстрой смене фильтров/страниц)
-      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-        return;
-      }
-
-      console.error('❌ Ошибка загрузки транзакций:', error);
       toast({
         title: "Ошибка загрузки",
         description: error.message || "Не удалось загрузить данные",
@@ -761,7 +757,6 @@ export default function NetworkOverview() {
       });
       
     } catch (error) {
-      console.error('❌ Ошибка экспорта в Excel:', error);
       toast({
         title: "Ошибка экспорта",
         description: "Не удалось создать Excel файл. Попробуйте еще раз.",
@@ -980,7 +975,6 @@ export default function NetworkOverview() {
         description: `Файл ${fileName} сформирован и загружен`,
       });
     } catch (error) {
-      console.error('❌ Ошибка экспорта в PDF:', error);
       toast({
         title: "Ошибка экспорта",
         description: error instanceof Error ? error.message : 'Не удалось сформировать PDF',
@@ -1009,7 +1003,6 @@ export default function NetworkOverview() {
           // Не показываем toast сразу, даем пользователю время
         }
       } catch (error) {
-        console.error('❌ Ошибка при проверке конфигурации:', error);
         setInitializing(false);
       }
     };
@@ -1607,168 +1600,110 @@ export default function NetworkOverview() {
           </div>
         )}
         {/* Заголовок страницы */}
-        <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-2xl backdrop-blur-sm ${isMobile ? 'mx-0' : ''} overflow-hidden`}>
-          <CardHeader className={`${isMobile ? 'px-4 py-4' : 'px-8 py-6'} bg-gradient-to-r from-slate-800/90 via-slate-750/90 to-slate-800/90 border-b border-slate-600/30`}>
-            <CardTitle className={`text-slate-100 flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
-              <div className="flex items-center justify-between flex-1">
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-lg"></div>
-                  <div className="flex flex-col">
-                    <span className={`${isMobile ? 'text-xl font-bold' : 'text-3xl font-bold'} text-white leading-tight`}>Обзор сети</span>
-                    {!isMobile && (
-                      <span className="text-slate-400 text-sm font-medium">Общая информация и аналитика по торговой сети</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Кнопки в заголовке */}
-                <div className="flex items-center gap-2">
-                  {/* Кнопка помощи скрыта
-                  <Button
-                    onClick={() => window.open('/help/network-overview.html', '_blank')}
-                    variant="outline"
-                    size="sm"
-                    className="bg-slate-700/50 border-slate-600/50 text-slate-300 hover:text-white hover:bg-slate-600/80 hover:border-slate-500 shadow-lg transition-all duration-300 px-3 py-2 rounded-lg"
-                    title="Инструкция"
-                  >
-                    <HelpCircle className="w-4 h-4" />
-                  </Button>
-                  */}
-
-                  {/* Кнопка обновления данных */}
-                  {!isMobile && !initializing && selectedNetwork && (
+        <div className="mb-6 pt-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
+            <div className="flex items-center gap-2">
+              {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button
-                      onClick={loadTransactions}
-                      disabled={loading}
+                      variant="outline"
                       size="sm"
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-2 rounded-lg font-medium disabled:opacity-50"
-                      title="Обновить данные"
+                      className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
                     >
-                      <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                        {loading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4" />
-                        )}
-                      </div>
-                      {loading ? 'Загрузка...' : 'Обновить'}
+                      <Download className="h-4 w-4 mr-2" />
+                      Экспорт
                     </Button>
-                  )}
-
-                  {/* Кнопка экспорта */}
-                  {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
-                    <Button
-                      onClick={exportToExcel}
-                      disabled={loading}
-                      size="sm"
-                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-2 rounded-lg font-medium"
-                      title="Экспортировать данные в Excel"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Excel
-                    </Button>
-                  )}
-                  {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
-                    <Button
-                      onClick={exportDashboardToPdf}
-                      disabled={loading || exportingPdf}
-                      size="sm"
-                      className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-2 rounded-lg font-medium"
-                      title="Экспортировать обзор в PDF"
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      {exportingPdf ? 'PDF…' : 'PDF'}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-        </Card>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44 bg-slate-800 border-slate-600 shadow-xl rounded-lg">
+                    <DropdownMenuItem onClick={exportToExcel} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
+                      <FileSpreadsheet className="w-4 h-4 text-green-400" />
+                      <span className="text-sm font-medium">Экспорт в Excel</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={exportDashboardToPdf} disabled={loading || exportingPdf} className="flex items-center gap-2 hover:bg-slate-700 cursor-pointer py-2.5">
+                      <FileText className="w-4 h-4 text-red-400" />
+                      <span className="text-sm font-medium">{exportingPdf ? 'PDF…' : 'Экспорт в PDF'}</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </div>
+        </div>
 
         <div className="space-y-6">
 
         {/* Фильтры - только если выбрана сеть */}
         {!initializing && selectedNetwork && (
-          <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobile ? 'mx-0' : ''}`}>
-            <CardContent className={`${isMobile ? 'px-4 py-4' : 'px-6 py-4'}`}>
-              <div className={`flex items-center gap-3 ${isMobile ? 'mb-3' : 'mb-6'}`}>
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
-                  <span className="text-white text-sm">⚙️</span>
+          <Card className="bg-slate-800 border-slate-700 mb-6">
+            <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-700/50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-slate-400" />
+                    <span className="font-medium text-white">Фильтры</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const monthAgo = new Date();
+                        monthAgo.setMonth(monthAgo.getMonth() - 1);
+                        setDateFrom(monthAgo.toISOString().split('T')[0]);
+                        setDateTo(new Date().toISOString().split('T')[0]);
+                      }}
+                    >
+                      Очистить фильтры
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        loadTransactions();
+                      }}
+                      disabled={loading}
+                      className="border-slate-600 text-white hover:bg-slate-700"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </Button>
+                    {filtersOpen ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                  </div>
                 </div>
-                <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold text-white`}>Фильтры анализа</h2>
-              </div>
-              
-              <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-2 gap-6'}`}>
-                {/* Дата начала */}
-                <div className={`${isMobile ? 'flex items-center gap-3' : ''}`}>
-                  {isMobile ? (
-                    <>
-                      <Label htmlFor="dateFrom" className="text-slate-300 text-xs font-medium w-6 flex-shrink-0">С:</Label>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="p-4 border-t border-slate-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Дата начала */}
+                    <div>
+                      <Label htmlFor="dateFrom" className="text-xs text-slate-400">Дата от</Label>
                       <Input
                         id="dateFrom"
                         type="date"
                         value={dateFrom}
                         onChange={(e) => setDateFrom(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm flex-1 min-w-0 focus:border-blue-500 focus:ring-blue-500"
+                        className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                       />
-                    </>
-                  ) : (
-                    <Card className="bg-slate-800 border-slate-600">
-                      <CardContent className="p-4">
-                        <Label htmlFor="dateFrom" className="text-slate-300 text-sm font-medium mb-2 block">Дата с</Label>
-                        <div className="relative">
-                          <Input
-                            id="dateFrom"
-                            type="date"
-                            value={dateFrom}
-                            onChange={(e) => setDateFrom(e.target.value)}
-                            className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 focus:border-blue-500 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                          />
-                          <Calendar
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+                    </div>
 
-                {/* Дата окончания */}
-                <div className={`${isMobile ? 'flex items-center gap-3' : ''}`}>
-                  {isMobile ? (
-                    <>
-                      <Label htmlFor="dateTo" className="text-slate-300 text-xs font-medium w-6 flex-shrink-0">По:</Label>
+                    {/* Дата окончания */}
+                    <div>
+                      <Label htmlFor="dateTo" className="text-xs text-slate-400">Дата до</Label>
                       <Input
                         id="dateTo"
                         type="date"
                         value={dateTo}
                         onChange={(e) => setDateTo(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-slate-200 h-8 text-sm flex-1 min-w-0 focus:border-blue-500 focus:ring-blue-500"
+                        className="mt-1 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                       />
-                    </>
-                  ) : (
-                    <Card className="bg-slate-800 border-slate-600">
-                      <CardContent className="p-4">
-                        <Label htmlFor="dateTo" className="text-slate-300 text-sm font-medium mb-2 block">Дата по</Label>
-                        <div className="relative">
-                          <Input
-                            id="dateTo"
-                            type="date"
-                            value={dateTo}
-                            onChange={(e) => setDateTo(e.target.value)}
-                            className="bg-slate-700 border-slate-600 text-slate-200 h-10 text-base pr-10 focus:border-blue-500 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                          />
-                          <Calendar
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 hover:text-blue-400 transition-colors pointer-events-none"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
           </Card>
         )}
 
@@ -1782,7 +1717,7 @@ export default function NetworkOverview() {
               </div>
               <div className={`grid gap-4 ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-6'}`}>
                 {/* Средний чек */}
-                <Card className="bg-slate-800 border-slate-600">
+                <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
                   <CardContent className="p-4 text-center">
                     <p className="text-slate-400 text-sm mb-2">Средний чек</p>
                     <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
@@ -1792,7 +1727,7 @@ export default function NetworkOverview() {
                 </Card>
 
                 {/* Средний объем общий */}
-                <Card className="bg-slate-800 border-slate-600">
+                <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
                   <CardContent className="p-4 text-center">
                     <p className="text-slate-400 text-sm mb-2">Средний объем</p>
                     <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
@@ -1802,7 +1737,7 @@ export default function NetworkOverview() {
                 </Card>
 
                 {/* Операций в день */}
-                <Card className="bg-slate-800 border-slate-600">
+                <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
                   <CardContent className="p-4 text-center">
                     <p className="text-slate-400 text-sm mb-2">Операций/день</p>
                     <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
@@ -1818,7 +1753,7 @@ export default function NetworkOverview() {
 
                 {/* Средний объем АИ-92 */}
                 {fuelTypeStats.find(f => f.type.includes('АИ-92')) ? (
-                  <Card className="bg-slate-800 border-slate-600">
+                  <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
                     <CardContent className="p-4 text-center">
                       <p className="text-slate-400 text-sm mb-2">АИ-92 сред.</p>
                       <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
@@ -1835,7 +1770,7 @@ export default function NetworkOverview() {
 
                 {/* Средний объем АИ-95 */}
                 {fuelTypeStats.find(f => f.type.includes('АИ-95')) ? (
-                  <Card className="bg-slate-800 border-slate-600">
+                  <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
                     <CardContent className="p-4 text-center">
                       <p className="text-slate-400 text-sm mb-2">АИ-95 сред.</p>
                       <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
@@ -1852,7 +1787,7 @@ export default function NetworkOverview() {
 
                 {/* Средний объем ДТ */}
                 {fuelTypeStats.find(f => f.type.includes('ДТ') || f.type.includes('Дизель')) ? (
-                  <Card className="bg-slate-800 border-slate-600">
+                  <Card className="bg-slate-800 border-slate-600 transition-all duration-300 hover:shadow-lg hover:bg-slate-700">
                     <CardContent className="p-4 text-center">
                       <p className="text-slate-400 text-sm mb-2">ДТ средний</p>
                       <p className="font-bold text-white text-2xl min-h-[2.5rem] flex items-center justify-center">
@@ -1876,7 +1811,7 @@ export default function NetworkOverview() {
         {!initializing && selectedNetwork && fuelTypeStats.length > 0 && (
           <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-6'}`}>
             {/* Таблица по видам топлива */}
-            <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+            <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
               <CardHeader className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
                 <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
                   <Fuel className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-purple-400`} />
@@ -1930,7 +1865,7 @@ export default function NetworkOverview() {
 
             {/* Таблица по способам оплаты */}
             {paymentTypeStats.length > 0 && (
-              <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+              <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
                 <CardHeader className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
                   <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
                     <CreditCard className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-400`} />

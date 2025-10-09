@@ -73,7 +73,6 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       sessionStorage.setItem('current_user_email', email);
       sessionStorage.setItem('auth_timestamp', Date.now().toString());
     } catch (error) {
-      console.error('❌ NewAuthContext: Failed to save auth session:', error);
     }
   };
 
@@ -94,14 +93,12 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       const maxAge = 8 * 60 * 60 * 1000; // 8 часов
 
       if (sessionAge > maxAge) {
-        console.log('⏰ Session expired, clearing');
         clearAuthData();
         return null;
       }
 
       return email;
     } catch (error) {
-      console.error('❌ NewAuthContext: Failed to get session email:', error);
       return null;
     }
   };
@@ -111,6 +108,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
    */
   const loadFreshUserData = async (email: string): Promise<AppUser | null> => {
     try {
+
       const dbUser = await authService.getUserByEmail(email);
       if (!dbUser) {
         return null;
@@ -125,6 +123,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       let permissions: string[] = [];
 
       if (primaryRole) {
+
         // Используем код роли или имя для маппинга
         userRole = primaryRole.code || primaryRole.name;
         roleId = primaryRole.id;
@@ -144,6 +143,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
             userRole = roleNameToCode[primaryRole.name];
           }
         }
+      } else {
       }
 
       const userData: AppUser = {
@@ -159,7 +159,6 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
 
       return userData;
     } catch (error) {
-      console.error('❌ NewAuthContext: Error loading fresh user data:', error);
       return null;
     }
   };
@@ -172,15 +171,16 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       try {
         const sessionEmail = getSessionEmail();
         if (sessionEmail) {
+
           const freshUser = await loadFreshUserData(sessionEmail);
           if (freshUser) {
             setUser(freshUser);
           } else {
             clearAuthData();
           }
+        } else {
         }
       } catch (error) {
-        console.error('❌ NewAuthContext: Initialization error:', error);
         clearAuthData();
       } finally {
         setLoading(false);
@@ -197,6 +197,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     setLoading(true);
 
     try {
+
       const authenticatedUser = await authService.authenticate(email, password);
 
       if (!authenticatedUser) {
@@ -206,9 +207,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       setUser(authenticatedUser);
       saveAuthSession(email); // Сохраняем только email в сессии
 
-      console.log('✅ NewAuthContext: Login successful for:', authenticatedUser.email, 'role:', authenticatedUser.role);
     } catch (error: any) {
-      console.error('❌ NewAuthContext: Login failed:', error);
       throw new Error(error.message || 'Ошибка входа в систему');
     } finally {
       setLoading(false);
@@ -219,7 +218,6 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
    * Выход из системы
    */
   const logout = () => {
-    console.log('🔐 NewAuthContext: Logging out user');
     setUser(null);
     clearAuthData();
     // Очищаем также сессионные данные
@@ -236,7 +234,6 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     }
 
     try {
-      console.log('🔄 NewAuthContext: Updating user name to:', newName);
 
       // Обновляем в базе данных
       await authService.updateUserName(user.id, newName);
@@ -250,9 +247,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
         };
       });
 
-      console.log('✅ NewAuthContext: User name updated successfully');
     } catch (error: any) {
-      console.error('❌ NewAuthContext: Failed to update user name:', error);
       throw new Error(error.message || 'Не удалось обновить имя пользователя');
     }
   };
