@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogProps,
@@ -13,13 +14,15 @@ import { X } from 'lucide-react';
 interface MobileDialogProps extends DialogProps {
   children: React.ReactNode;
   title?: string;
+  description?: string;
   className?: string;
   fullScreen?: boolean;
 }
 
 export const MobileDialog: React.FC<MobileDialogProps> = ({
   children,
-  title,
+  title = "Диалоговое окно",
+  description,
   className,
   fullScreen = false,
   onOpenChange,
@@ -59,10 +62,13 @@ export const MobileDialog: React.FC<MobileDialogProps> = ({
             {/* Индикатор перетаскивания */}
             <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-slate-500 rounded-full" />
             
-            {title && (
-              <DialogTitle className="text-lg font-semibold text-white pr-8">
-                {title}
-              </DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-white pr-8">
+              {title}
+            </DialogTitle>
+            {description && (
+              <DialogDescription className="text-sm text-slate-400 pr-8 mt-1">
+                {description}
+              </DialogDescription>
             )}
             
             <button
@@ -80,11 +86,16 @@ export const MobileDialog: React.FC<MobileDialogProps> = ({
           "flex-1 overflow-y-auto",
           isMobile ? "p-4" : "p-6"
         )}>
-          {!isMobile && title && (
+          {!isMobile && (
             <DialogHeader className="mb-4">
               <DialogTitle className="text-lg font-semibold">
                 {title}
               </DialogTitle>
+              {description && (
+                <DialogDescription className="text-sm text-slate-500 mt-1">
+                  {description}
+                </DialogDescription>
+              )}
             </DialogHeader>
           )}
           {children}

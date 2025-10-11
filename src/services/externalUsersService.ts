@@ -26,15 +26,10 @@ class ExternalUsersService {
       return this.config;
     }
 
-    
+
     this.config = fixedConfig;
     this.lastConfigUpdate = now;
-    
-    console.log('✅ ExternalUsersService: Конфигурация установлена:', {
-      url: fixedConfig.url,
-      hasApiKey: !!fixedConfig.apiKey
-    });
-    
+
     return this.config;
   }
 
@@ -132,15 +127,12 @@ class ExternalUsersService {
 
   async getAllUsers(): Promise<User[]> {
     try {
-      console.log('externalUsersService: Загружаем всех пользователей из таблицы users...');
       const response = await this.makeRequest(
         'users?deleted_at=is.null&order=created_at.desc',
         { method: 'GET' }
       );
 
-      console.log('externalUsersService: Получен ответ от таблицы users:', response);
       const users = response.map((user: any) => this.transformUserFromDB(user));
-      console.log('externalUsersService: Обработанные пользователи:', users);
       return users;
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -190,7 +182,6 @@ class ExternalUsersService {
       );
 
       if (response.length === 0) {
-        console.log('❌ ExternalUsersService: Пользователь не найден:', email);
         return null;
       }
 
@@ -429,25 +420,20 @@ class ExternalUsersService {
 
   async getUsersWithRoles(): Promise<User[]> {
     try {
-      console.log('externalUsersService: Загружаем пользователей с ролями...');
-      
       // Получаем всех пользователей
       const users = await this.getAllUsers();
-      console.log('externalUsersService: Получено пользователей:', users.length);
 
       // Получаем все назначения ролей
       const userRolesData = await this.makeRequest(
         'user_roles?is_active=eq.true&deleted_at=is.null',
         { method: 'GET' }
       );
-      console.log('externalUsersService: Получено назначений ролей:', userRolesData.length);
 
       // Получаем все роли
       const rolesData = await this.makeRequest(
         'roles?deleted_at=is.null&is_active=eq.true',
         { method: 'GET' }
       );
-      console.log('externalUsersService: Получено ролей:', rolesData.length);
 
       // Создаем карту ролей для быстрого поиска
       const rolesMap = new Map();
@@ -482,7 +468,6 @@ class ExternalUsersService {
         };
       });
 
-      console.log('externalUsersService: Пользователи с назначенными ролями:', usersWithRoles);
       return usersWithRoles;
     } catch (error) {
       console.error('Error fetching users with roles:', error);

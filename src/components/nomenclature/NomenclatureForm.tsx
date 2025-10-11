@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -175,6 +175,12 @@ export const NomenclatureForm: React.FC<NomenclatureFormProps> = ({
           <DialogTitle>
             {isEdit ? 'Редактирование номенклатуры' : 'Добавление номенклатуры'}
           </DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? 'Измените параметры номенклатуры топлива'
+              : 'Добавьте новую номенклатуру топлива с кодами интеграции'
+            }
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

@@ -66,11 +66,17 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Простое инициальное восстановление позиции скролла
+  // Оптимизированное инициальное восстановление позиции скролла через requestAnimationFrame
   useEffect(() => {
     const savedScrollPos = localStorage.getItem('appSidebar_scrollPosition');
     if (savedScrollPos && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = parseFloat(savedScrollPos);
+      // Используем requestAnimationFrame для избежания forced reflow
+      const rafId = requestAnimationFrame(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = parseFloat(savedScrollPos);
+        }
+      });
+      return () => cancelAnimationFrame(rafId);
     }
   }, []);
   

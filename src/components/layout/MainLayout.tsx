@@ -1,6 +1,6 @@
 import { useState, useEffect, memo } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { tradingPointsService } from "@/services/tradingPointsService";
@@ -66,6 +66,10 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
           <>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetContent side="left" className="p-0 w-80">
+                <SheetTitle className="sr-only">Меню навигации</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Навигационное меню с разделами торговых сетей, точек и администрирования
+                </SheetDescription>
                 <AppSidebar selectedTradingPoint={selectedTradingPoint} isMobile={true} setMobileMenuOpen={setMobileMenuOpen} />
               </SheetContent>
             </Sheet>

@@ -291,27 +291,42 @@ const LoginPageWithLegal = () => {
 
     try {
       // Login first to get authentication
-      const loginResult = await login(email, password);
-      
+      await login(email, password);
+
+      // Ждем 100ms чтобы данные пользователя сохранились в localStorage
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Пропускаем юридические документы для мобильных, МенеджерБТО и системных ролей
       const skipLegalDocs = isMobile ||
-                           email.includes('bto.manager') || 
-                           email.includes('admin@') ||
-                           (loginResult && loginResult.role === 'bto_manager');
-      
-      if (!skipLegalDocs && email) {
-        
+                           email.includes('bto.manager') ||
+                           email.includes('admin@');
+
+      if (!skipLegalDocs) {
         try {
-          await legalDocumentsService.acceptDocumentByType('tos', email, 'web');
+          // Используем Promise.allSettled для параллельного выполнения, игнорируя ошибки
+          const acceptanceResults = await Promise.allSettled([
+            legalDocumentsService.acceptDocumentByType('tos', undefined, 'web'),
+            legalDocumentsService.acceptDocumentByType('privacy', undefined, 'web'),
+            legalDocumentsService.acceptDocumentByType('pdn', undefined, 'web')
+          ]);
 
-          await legalDocumentsService.acceptDocumentByType('privacy', email, 'web');
-
-          await legalDocumentsService.acceptDocumentByType('pdn', email, 'web');
-          
+          // Проверяем результаты
+          const failedCount = acceptanceResults.filter(r => r.status === 'rejected').length;
+          if (failedCount > 0) {
+            console.warn(`⚠️ ${failedCount}/3 правовых документов не удалось принять, но логин продолжается`);
+          } else {
+            console.log('✅ Все правовые документы успешно приняты');
+          }
         } catch (legalError) {
+          // ВАЖНО: Выводим полную ошибку в консоль для диагностики
+          console.error('❌ ОШИБКА при принятии правовых документов:', legalError);
+          console.error('Детали ошибки:', {
+            message: (legalError as Error).message,
+            stack: (legalError as Error).stack
+          });
           // Не блокируем логин если юридические документы недоступны
+          console.warn('⚠️ Legal documents acceptance failed, but login continues');
         }
-      } else {
       }
       
       // Сохраняем email если выбрано "Запомнить меня"

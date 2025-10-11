@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -230,6 +230,9 @@ export const CommandParametersEditor: React.FC<CommandParametersEditorProps> = (
             <Settings className="w-5 h-5" />
             Настройка команды
           </DialogTitle>
+          <DialogDescription>
+            Настройте параметры команды перед выполнением
+          </DialogDescription>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Badge variant="outline">{template.method}</Badge>

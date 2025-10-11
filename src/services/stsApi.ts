@@ -256,6 +256,7 @@ interface Transaction {
 
 class STSApiService {
   private config: STSApiConfig | null = null;
+  private tokenRefreshPromise: Promise<boolean> | null = null; // Кэш промиса обновления токена
 
   constructor() {
     this.loadConfig();
@@ -275,7 +276,21 @@ class STSApiService {
   }
 
   private async refreshTokenIfNeeded(forceRefresh = false): Promise<boolean> {
-    if (!this.config?.enabled) {
+    // Перезагружаем конфигурацию перед проверкой токена
+    this.loadConfig();
+
+    // Если обновление токена уже выполняется, ждем его завершения
+    if (this.tokenRefreshPromise && !forceRefresh) {
+      return this.tokenRefreshPromise;
+    }
+
+    // Проверяем, что конфигурация загружена
+    if (!this.config) {
+      return false;
+    }
+
+    // Проверяем, что есть обязательные параметры для авторизации
+    if (!this.config.username || !this.config.password) {
       return false;
     }
 
@@ -285,66 +300,80 @@ class STSApiService {
 
     // Проверяем, нужно ли обновить токен
     if (!tokenExists || tokenExpired || forceRefresh) {
+      // Создаем и кэшируем промис обновления токена
+      this.tokenRefreshPromise = this.performTokenRefresh();
 
       try {
-        const response = await fetch(`${this.config.url}/v1/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: this.config.username,
-            password: this.config.password
-          }),
-          signal: AbortSignal.timeout(this.config.timeout || 30000),
-        });
-
-        if (response.ok) {
-          const tokenResponse = await response.text();
-          const cleanToken = tokenResponse.replace(/"/g, '');
-          // Уменьшаем время жизни токена до 20 минут для более частого обновления
-          const newExpiry = Date.now() + (20 * 60 * 1000); // 20 минут вместо 24 часов
-
-          this.config.token = cleanToken;
-          this.config.tokenExpiry = newExpiry;
-
-          // Сохраняем обновленную конфигурацию
-          localStorage.setItem('sts-api-config', JSON.stringify(this.config));
-
-          // Сбрасываем счетчик при успешном обновлении
-          this.refreshAttempts = 0;
-
-          return true;
-        } else {
-          const errorText = await response.text();
-          console.error(`🔍 STS API: Ошибка авторизации HTTP ${response.status}:`, errorText);
-          return false;
-        }
-      } catch (error) {
-        console.error('🔍 STS API: Исключение при обновлении токена:', error);
-
-        // Проверяем, является ли это ошибкой исчерпания ресурсов
-        if (error.name === 'TypeError' && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
-          console.error('🔍 STS API: Критическая ошибка - исчерпаны ресурсы. Прекращаем попытки на 5 минут.');
-          // Блокируем попытки на 5 минут при критической ошибке
-          this.refreshAttempts = this.MAX_REFRESH_ATTEMPTS;
-          this.lastRefreshAttempt = now;
-        }
-
-        return false;
+        const result = await this.tokenRefreshPromise;
+        return result;
+      } finally {
+        // Очищаем кэш после завершения (успешного или нет)
+        this.tokenRefreshPromise = null;
       }
     }
 
     return !!this.config.token;
   }
 
+  /**
+   * Выполняет фактическое обновление токена через /v1/login
+   */
+  private async performTokenRefresh(): Promise<boolean> {
+    if (!this.config) {
+      return false;
+    }
+
+    // Проверяем обязательные параметры
+    if (!this.config.username || !this.config.password) {
+      return false;
+    }
+
+    const now = Date.now();
+
+    try {
+      const response = await fetch(`${this.config.url}/v1/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: this.config.username,
+          password: this.config.password
+        }),
+        signal: AbortSignal.timeout(this.config.timeout || 30000),
+      });
+
+      if (response.ok) {
+        const tokenResponse = await response.text();
+        const cleanToken = tokenResponse.replace(/"/g, '');
+        // Уменьшаем время жизни токена до 20 минут для более частого обновления
+        const newExpiry = Date.now() + (20 * 60 * 1000); // 20 минут вместо 24 часов
+
+        this.config.token = cleanToken;
+        this.config.tokenExpiry = newExpiry;
+
+        // Сохраняем обновленную конфигурацию
+        localStorage.setItem('sts-api-config', JSON.stringify(this.config));
+
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error(`🔍 STS API: Ошибка авторизации HTTP ${response.status}:`, errorText);
+        return false;
+      }
+    } catch (error) {
+      console.error('🔍 STS API: Исключение при обновлении токена:', error);
+      return false;
+    }
+  }
+
   private async apiRequest<T>(endpoint: string, options: RequestInit = {}, contextParams?: {networkId?: string; tradingPointId?: string}): Promise<T> {
-    
+
     this.loadConfig(); // Обновляем конфигурацию перед запросом
-    
-    if (!this.config?.enabled) {
-      console.error('🔍 STS API: API отключен в настройках');
-      throw new Error('API СТС отключен в настройках');
+
+    // Проверяем, настроен ли API СТС
+    if (!this.config || !this.config.url || !this.config.username || !this.config.password) {
+      throw new Error('API СТС не настроен. Пожалуйста, настройте API в разделе "Настройки"');
     }
 
     // Используем параметры из контекста (селекторы приложения)
@@ -358,13 +387,13 @@ class STSApiService {
         console.error('🔍 STS API: Отсутствует номер сети для запроса', endpoint);
         throw new Error(`Ошибка 422: Для запроса ${endpoint} требуется указать номер сети. Проверьте, что у выбранной сети заполнено поле "external_id" в настройках сетей.`);
       }
-      
+
       // Проверяем, что network ID является числом или строкой, которая может быть числом
       if (isNaN(Number(networkId))) {
         console.error('🔍 STS API: Номер сети должен быть числом:', networkId);
         throw new Error(`Ошибка 422: Номер сети "${networkId}" должен быть числом. Проверьте поле "external_id" для выбранной сети.`);
       }
-      
+
       // Для запросов транзакций обязательно требуется торговая точка
       if (endpoint.includes('/v1/transactions')) {
         if (!tradingPointId) {
@@ -376,7 +405,7 @@ class STSApiService {
           throw new Error(`Ошибка 422: Номер торговой точки "${tradingPointId}" должен быть числом. Проверьте поле "external_id" для выбранной торговой точки.`);
         }
       }
-      
+
       // Для некоторых запросов также требуется торговая точка
       if (endpoint.includes('/v1/tanks') && tradingPointId) {
         if (isNaN(Number(tradingPointId))) {
@@ -389,8 +418,7 @@ class STSApiService {
     // Обновляем токен если нужно
     const tokenValid = await this.refreshTokenIfNeeded();
     if (!tokenValid) {
-      console.error('🔍 STS API: Не удалось получить действительный токен');
-      throw new Error('Не удалось получить действительный токен');
+      throw new Error('API СТС не настроен. Пожалуйста, настройте API в разделе "Настройки"');
     }
 
     const url = new URL(`${this.config.url}${endpoint}`);
@@ -548,27 +576,16 @@ class STSApiService {
    * Получить список резервуаров
    */
   async getTanks(contextParams?: {networkId?: string; tradingPointId?: string}): Promise<Tank[]> {
-    
-    try {
-      const data = await this.apiRequest<any>('/v1/tanks', {}, contextParams);
-      
-      
-      // Преобразуем данные из API в формат приложения
-      if (Array.isArray(data)) {
-        const mappedTanks = data.map(this.mapApiTankToTank);
-        return mappedTanks;
-      } else if (data && typeof data === 'object' && data.tanks) {
-        const mappedTanks = data.tanks.map(this.mapApiTankToTank);
-        return mappedTanks;
-      } else {
-        console.warn('🔍 STS API: Неожиданный формат ответа API для резервуаров:', data);
-        console.warn('🔍 STS API: Возвращаем пустой массив');
-        return [];
-      }
-    } catch (error) {
-      console.error('🔍 STS API: Ошибка получения резервуаров из API СТС:', error);
-      throw error;
+    const data = await this.apiRequest<any>('/v1/tanks', {}, contextParams);
+
+    // Преобразуем данные из API в формат приложения
+    if (Array.isArray(data)) {
+      return data.map(this.mapApiTankToTank);
+    } else if (data && typeof data === 'object' && data.tanks) {
+      return data.tanks.map(this.mapApiTankToTank);
     }
+
+    return [];
   }
 
   /**
@@ -711,10 +728,12 @@ class STSApiService {
   }
 
   /**
-   * Проверяет, настроен ли и включен ли API СТС
+   * Проверяет, настроен ли API СТС (есть ли URL, username и password)
    */
   isConfigured(): boolean {
-    return !!(this.config?.enabled && this.config?.url && this.config?.username && this.config?.password);
+    // Всегда перезагружаем конфигурацию перед проверкой
+    this.loadConfig();
+    return !!(this.config?.url && this.config?.username && this.config?.password);
   }
 
   /**
@@ -793,22 +812,13 @@ class STSApiService {
    * Получить информацию о статусах АЗС и терминального оборудования
    */
   async getTerminalInfo(contextParams?: {networkId?: string; tradingPointId?: string}): Promise<TerminalInfo> {
-    
     if (!contextParams?.tradingPointId) {
       throw new Error('Для получения информации о терминале требуется номер торговой точки');
     }
-    
-    try {
-      const endpoint = `/v2/info`;
-      
-      const data = await this.apiRequest<any>(endpoint, {}, contextParams);
-      
-      return this.mapApiTerminalInfo(data);
-    } catch (error) {
-      console.error('🔍 STS API: Ошибка получения информации о терминале:', error);
-      // Возвращаем заглушку при ошибке
-      return this.createMockTerminalInfo();
-    }
+
+    const endpoint = `/v2/info`;
+    const data = await this.apiRequest<any>(endpoint, {}, contextParams);
+    return this.mapApiTerminalInfo(data);
   }
 
   /**

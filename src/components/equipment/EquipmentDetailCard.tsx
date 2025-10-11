@@ -29,7 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
@@ -275,6 +275,9 @@ export function EquipmentDetailCard({
             </div>
             <div className="flex-1">
               <DialogTitle className="text-xl">{equipment.display_name}</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Полная информация об оборудовании, параметры и управление
+              </DialogDescription>
               <div className="flex items-center gap-4 mt-2">
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <div className={`w-2 h-2 rounded-full ${getStatusColor(equipment.status)}`} />

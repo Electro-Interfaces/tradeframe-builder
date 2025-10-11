@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { TradingPoint, TradingPointUpdateInput } from "@/types/tradingpoint";
 import { ExternalCodesManager } from "@/components/external-codes/ExternalCodesManager";
 
@@ -230,6 +230,9 @@ export function TradingPointEditDialog({
       <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} bg-slate-800 border-slate-700 overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="text-white">Редактировать торговую точку</DialogTitle>
+          <DialogDescription className="text-slate-400">
+            Измените параметры торговой точки, включая геолокацию, контакты и услуги
+          </DialogDescription>
         </DialogHeader>
         
         {/* Tabs */}

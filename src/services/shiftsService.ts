@@ -17,59 +17,21 @@ import {
   ShiftReport,
   ShiftReportRequestParams,
 } from '@/types/shifts';
-import { apiConfigService } from './apiConfigService';
-
-const API_BASE_URL = import.meta.env.VITE_STS_API_URL || 'https://pos.autooplata.ru/tms';
-
-/**
- * Получить JWT токен для авторизации
- */
-async function getAuthToken(): Promise<string> {
-  // Пытаемся получить настройки из apiConfigService
-  const allConnections = apiConfigService.getAllConnections();
-  const stsConnection = allConnections.find(conn => conn.id === 'trading-network-api');
-
-  let username = import.meta.env.VITE_STS_API_USERNAME;
-  let password = import.meta.env.VITE_STS_API_PASSWORD;
-
-  // Если есть настройки в apiConfigService - используем их
-  if (stsConnection?.settings?.username && stsConnection?.settings?.password) {
-    username = stsConnection.settings.username;
-    password = stsConnection.settings.password;
-  }
-
-  if (!username || !password) {
-    throw new Error('STS API credentials not configured');
-  }
-
-  // Авторизация через Basic Auth для получения JWT
-  const basicAuth = btoa(`${username}:${password}`);
-
-
-  const response = await fetch(`${API_BASE_URL}/v1/login`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${basicAuth}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    console.error('❌ ShiftsService: Ошибка авторизации', response.status, response.statusText);
-    throw new Error(`Authentication failed: ${response.statusText}`);
-  }
-
-  const token = await response.text();
-  return token.replace(/"/g, ''); // Убираем кавычки из ответа
-}
+import { stsApiService } from './stsApi';
 
 /**
  * Выполнить запрос к API с автоматической авторизацией
  */
 async function apiRequest<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-  const token = await getAuthToken();
+  // Используем централизованный токен из stsApiService
+  await stsApiService.refreshTokenIfNeeded();
+  const config = stsApiService.getConfig();
 
-  const url = new URL(`${API_BASE_URL}${endpoint}`);
+  if (!config?.token) {
+    throw new Error('STS API authentication failed');
+  }
+
+  const url = new URL(`${config.url}${endpoint}`);
 
   // Добавляем параметры запроса
   if (params) {
@@ -84,7 +46,7 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, any>): Pr
   const response = await fetch(url.toString(), {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${config.token}`,
       'Content-Type': 'application/json',
     },
   });

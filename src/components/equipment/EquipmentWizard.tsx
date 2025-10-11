@@ -14,7 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
@@ -919,6 +919,9 @@ export function EquipmentWizard({
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Добавить оборудование из шаблона</DialogTitle>
+          <DialogDescription>
+            Мастер создания нового оборудования на основе выбранного шаблона
+          </DialogDescription>
         </DialogHeader>
         
         {renderStepIndicator()}

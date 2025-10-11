@@ -5,6 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService, type AppUser } from '../services/auth/authService';
 import { permissionService, type MenuVisibility } from '../services/auth/permissionService';
+import { auditLogService } from '../services/auditLogService';
 
 interface AuthContextType {
   // Состояние
@@ -217,7 +218,16 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   /**
    * Выход из системы
    */
-  const logout = () => {
+  const logout = async () => {
+    // Логируем выход перед очисткой данных
+    if (user) {
+      await auditLogService.logAuthentication('logout', user.email, {
+        user_id: user.id,
+        user_name: user.name,
+        success: true
+      });
+    }
+
     setUser(null);
     clearAuthData();
     // Очищаем также сессионные данные

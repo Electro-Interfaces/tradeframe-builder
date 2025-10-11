@@ -55,8 +55,14 @@ export default function LegalDocumentEditor() {
   const [success, setSuccess] = useState<string | null>(null);
   
   // Определяем режим работы
-  const mode = searchParams.get('mode') || 'edit'; // edit | create | view
   const versionId = searchParams.get('version');
+  const modeParam = searchParams.get('mode');
+
+  // Определяем режим: из URL path (/create) или из query параметра (?mode=view)
+  const pathname = window.location.pathname;
+  const isCreateFromPath = pathname.includes('/create');
+
+  const mode = modeParam || (isCreateFromPath ? 'create' : 'edit');
   const isCreateMode = mode === 'create';
   const isViewMode = mode === 'view';
   const isEditMode = mode === 'edit';
@@ -109,10 +115,15 @@ export default function LegalDocumentEditor() {
         if (targetVersionId) {
           const version = await legalDocumentsService.getDocumentVersion(targetVersionId);
           if (version) {
+            // Если пытаются редактировать опубликованный документ - показываем предупреждение
+            if (version.status === 'published' && !isViewMode) {
+              setError('Опубликованные документы нельзя редактировать. Создайте новую версию через кнопку "Новая версия".');
+            }
+
             setCurrentVersion(version);
             setFormData({
               version: version.version,
-              title: docInfo.title, // title не хранится в версии, берем из типа документа
+              title: docInfo.title,
               content: version.content_md || '',
               changelog: version.changelog || ''
             });
@@ -205,12 +216,18 @@ export default function LegalDocumentEditor() {
   const handleSaveDraft = async () => {
     if (!docType) return;
 
+    // Проверяем, не пытаемся ли мы редактировать опубликованный документ
+    if (currentVersion && currentVersion.status === 'published') {
+      setError('Опубликованные документы нельзя редактировать. Создайте новую версию.');
+      return;
+    }
+
     try {
       setIsSaving(true);
       setError(null);
-      
+
       const currentUser = getCurrentUser();
-      
+
       if (isCreateMode || !currentVersion) {
         // Создание нового черновика
         const newVersion = await legalDocumentsService.createDocumentDraft({
@@ -219,25 +236,27 @@ export default function LegalDocumentEditor() {
           content_md: formData.content,
           changelog: formData.changelog
         });
-        
+
         setCurrentVersion(newVersion);
         setSuccess('Черновик успешно создан');
-        
+
         // Обновляем URL для редактирования созданного черновика
         navigate(`/admin/legal-documents/${docType}/edit?version=${newVersion.id}`, { replace: true });
-        
-      } else {
-        // Обновление существующего черновика
+
+      } else if (currentVersion.status === 'draft') {
+        // Обновление существующего черновика (только если это черновик!)
         const updatedVersion = await legalDocumentsService.updateDocumentVersion(currentVersion.id, {
           version: formData.version,
           content_md: formData.content,
           changelog: formData.changelog
         });
-        
+
         setCurrentVersion(updatedVersion);
         setSuccess('Черновик успешно обновлен');
+      } else {
+        setError('Можно редактировать только черновики');
       }
-      
+
     } catch (err) {
       console.error('Ошибка сохранения:', err);
       setError('Не удалось сохранить черновик');

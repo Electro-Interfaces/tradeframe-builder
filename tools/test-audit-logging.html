@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Тест логирования аудита</title>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <h1>Тест логирования аудита</h1>
+  <div id="output"></div>
+
+  <script type="module">
+    const SUPABASE_URL = 'https://ssvazdgnmatbdynkhkqo.supabase.co';
+    const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
+
+    const output = document.getElementById('output');
+
+    function log(message, type = 'info') {
+      const p = document.createElement('p');
+      p.textContent = message;
+      p.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+      output.appendChild(p);
+      console.log(message);
+    }
+
+    async function testAuditLogging() {
+      log('🚀 Начинаю тест логирования аудита...');
+
+      try {
+        // Тестовая запись
+        const testData = {
+          timestamp: new Date().toISOString(),
+          user_id: null,
+          user_email: 'test@example.com',
+          user_name: 'Test User',
+          action: 'Тестовый вход в систему',
+          action_type: 'authentication',
+          object: 'test@example.com',
+          object_type: 'user',
+          ip_address: null,
+          user_agent: navigator.userAgent,
+          details: { success: true, test: true },
+          metadata: { source: 'test-script', device_info: { type: 'desktop' } },
+          created_at: new Date().toISOString()
+        };
+
+        log(`📦 Данные для отправки: ${JSON.stringify(testData, null, 2)}`);
+
+        const url = `${SUPABASE_URL}/rest/v1/audit_log`;
+        log(`🌐 URL: ${url}`);
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SERVICE_KEY,
+            'Authorization': `Bearer ${SERVICE_KEY}`,
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(testData)
+        });
+
+        log(`📡 Response status: ${response.status} ${response.statusText}`);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          log(`❌ Ошибка: ${errorText}`, 'error');
+          log(`❌ Возможные причины:`, 'error');
+          log(`   1. Таблица audit_log не существует`, 'error');
+          log(`   2. RLS политики блокируют INSERT`, 'error');
+          log(`   3. Неверный формат данных`, 'error');
+          return;
+        }
+
+        const result = await response.json();
+        log(`✅ Успешно! Создана запись:`, 'success');
+        log(`   ID: ${result[0].id}`, 'success');
+        log(`   Email: ${result[0].user_email}`, 'success');
+        log(`   Action: ${result[0].action}`, 'success');
+        log(`   Timestamp: ${result[0].timestamp}`, 'success');
+
+        // Проверяем, что запись действительно появилась в БД
+        log('🔍 Проверяю, что запись появилась в БД...');
+        const checkResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/audit_log?select=*&id=eq.${result[0].id}`,
+          {
+            headers: {
+              'apikey': SERVICE_KEY,
+              'Authorization': `Bearer ${SERVICE_KEY}`
+            }
+          }
+        );
+
+        if (checkResponse.ok) {
+          const checkData = await checkResponse.json();
+          if (checkData.length > 0) {
+            log(`✅ Запись найдена в БД!`, 'success');
+          } else {
+            log(`❌ Запись НЕ найдена в БД после вставки!`, 'error');
+          }
+        }
+
+      } catch (error) {
+        log(`❌ Исключение: ${error.message}`, 'error');
+        log(`❌ Stack: ${error.stack}`, 'error');
+      }
+    }
+
+    // Запускаем тест
+    testAuditLogging();
+  </script>
+</body>
+</html>

@@ -59,7 +59,12 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
       // Получаем торговую точку для external_id
       const tradingPoint = await tradingPointsService.getById(tradingPointId);
       if (!tradingPoint?.external_id) {
-        throw new Error('У торговой точки не указан external_id для API');
+        // Тихо игнорируем - не критично
+        setTerminalInfo(null);
+        setEquipment([]);
+        setTanks([]);
+        setLoading(false);
+        return;
       }
 
       const contextParams = {
@@ -83,6 +88,17 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
       setError(null);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Неизвестная ошибка при загрузке оборудования');
+
+      // Если API не настроен - тихо игнорируем
+      if (error.message.includes('API СТС не настроен')) {
+        setTerminalInfo(null);
+        setEquipment([]);
+        setTanks([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
       setError(error);
 
       if (showToasts) {

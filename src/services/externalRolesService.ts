@@ -26,15 +26,10 @@ class ExternalRolesService {
       return this.config;
     }
 
-    
+
     this.config = fixedConfig;
     this.lastConfigUpdate = now;
-    
-    console.log('✅ ExternalRolesService: Конфигурация установлена:', {
-      url: fixedConfig.url,
-      hasApiKey: !!fixedConfig.apiKey
-    });
-    
+
     return this.config;
   }
 
@@ -47,11 +42,6 @@ class ExternalRolesService {
   private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
     const config = this.getConfig();
     const fullUrl = `${config.url}/rest/v1/${endpoint}`;
-    
-    console.log(`🌐 ExternalRolesService: Запрос к ${fullUrl}`, {
-      method: options.method || 'GET',
-      hasBody: !!options.body
-    });
 
     try {
       const response = await fetch(fullUrl, {
@@ -143,17 +133,13 @@ class ExternalRolesService {
 
   async getAllRoles(): Promise<Role[]> {
     try {
-      console.log('externalRolesService: Загружаем роли из БД...');
       const response = await this.makeRequest(
         'roles?deleted_at=is.null&order=created_at.desc',
         { method: 'GET' }
       );
 
-      console.log('externalRolesService: Получен ответ от БД:', response);
-
       const roles = response.map((role: any) => this.transformRoleFromDB(role));
 
-      console.log('externalRolesService: Обработанные роли:', roles);
       return roles;
     } catch (error) {
       console.error('Error fetching roles:', error);

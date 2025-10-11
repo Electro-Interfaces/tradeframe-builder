@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Network, NetworkInput } from "@/types/network";
 
 interface NetworkEditDialogProps {
@@ -88,6 +88,9 @@ export function NetworkEditDialog({ open, onOpenChange, network, onSubmit }: Net
       <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-2xl'} bg-slate-800 border-slate-700 overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="text-white">Редактировать сеть</DialogTitle>
+          <DialogDescription className="text-slate-400">
+            Измените параметры торговой сети
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">

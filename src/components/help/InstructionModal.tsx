@@ -79,6 +79,22 @@ export function InstructionModal({ isOpen, onClose, instructionKey }: Instructio
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="bg-slate-800 border-slate-600 text-white max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="pb-4 border-b border-slate-600">
+          <DialogTitle className="text-xl font-semibold text-white mb-2">
+            {loading ? 'Загрузка...' :
+             error ? 'Ошибка загрузки' :
+             !instruction ? 'Инструкция не найдена' :
+             instruction.topic.title}
+          </DialogTitle>
+
+          <DialogDescription className="text-slate-300">
+            {loading ? 'Загрузка инструкции...' :
+             error ? error :
+             !instruction ? `Инструкция для ${instructionKey} не найдена` :
+             instruction.topic.description || 'Инструкция по работе с системой'}
+          </DialogDescription>
+        </DialogHeader>
+
         {loading && (
           <div className="flex items-center justify-center p-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -104,7 +120,7 @@ export function InstructionModal({ isOpen, onClose, instructionKey }: Instructio
               Инструкция не найдена
             </h3>
             <p className="text-slate-400 mb-4 max-w-md mx-auto">
-              Для этой страницы пока не создана инструкция. Если у вас есть права администратора, 
+              Для этой страницы пока не создана инструкция. Если у вас есть права администратора,
               вы можете создать её в разделе управления инструкциями.
             </p>
             <div className="text-sm text-slate-500 bg-slate-900 rounded px-3 py-2 inline-block font-mono">
@@ -115,37 +131,25 @@ export function InstructionModal({ isOpen, onClose, instructionKey }: Instructio
 
         {instruction && (
           <>
-            <DialogHeader className="pb-4 border-b border-slate-600">
-              <DialogTitle className="text-xl font-semibold text-white mb-2">
-                {instruction.topic.title}
-              </DialogTitle>
-              
-              {instruction.topic.description && (
-                <DialogDescription className="text-slate-300">
-                  {instruction.topic.description}
-                </DialogDescription>
-              )}
-            </DialogHeader>
-
             <div className="flex-1 overflow-y-auto py-6">
-              <div 
+              <div
                 className="instruction-content"
-                dangerouslySetInnerHTML={{ 
-                  __html: instruction.version.content_html 
+                dangerouslySetInnerHTML={{
+                  __html: instruction.version.content_html
                 }}
               />
             </div>
 
             <div className="pt-4 border-t border-slate-600 flex items-center justify-between">
               <div className="text-xs text-slate-400">
-                Обновлено: {instruction.version.published_at 
+                Обновлено: {instruction.version.published_at
                   ? formatDate(instruction.version.published_at)
                   : formatDate(instruction.version.created_at)
                 } · Версия {instruction.version.version}
               </div>
-              
-              <Button 
-                onClick={handleClose} 
+
+              <Button
+                onClick={handleClose}
                 variant="outline"
                 className="text-white border-slate-600 hover:bg-slate-700"
               >

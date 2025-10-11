@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { PriceCard } from "@/components/prices/PriceCard";
 import { PriceHistoryTable } from "@/components/prices/PriceHistoryTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,6 +70,7 @@ import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from "@/compon
 import { externalPricesService, ExternalPrice } from "@/services/externalPricesService";
 import { stsApiService, Price as STSPrice, PriceScheduleEntry } from "@/services/stsApi";
 import { RetailPricingDashboard } from "@/components/pricing/RetailPricingDashboard";
+import { auditLogService } from "@/services/auditLogService";
 
 // Types - теперь используем CachedFuelPrice как основной тип
 type FuelPrice = CachedFuelPrice;
@@ -532,6 +533,18 @@ export default function Prices() {
       const result = await stsApiService.setPrices(prices, effectiveDate, contextParams);
 
       if (result.success) {
+        // Логируем изменение цен для каждого вида топлива
+        for (const priceItem of pricesForUpdate) {
+          await auditLogService.logPriceChange(
+            tradingPoint.name || 'Неизвестно',
+            tradingPoint.id,
+            priceItem.fuel_type,
+            priceItem.currentPrice || 0,
+            priceItem.price,
+            `Установка цены с датой ${effectiveDate}`
+          );
+        }
+
         toast({
           title: "Цены установлены",
           description: result.message || "Новые цены успешно установлены",
@@ -1079,6 +1092,12 @@ export default function Prices() {
               <DialogTitle>
                 {selectedPrice ? 'Редактировать цену' : 'Новая цена на топливо'}
               </DialogTitle>
+              <DialogDescription>
+                {selectedPrice
+                  ? 'Измените параметры цены на выбранный вид топлива'
+                  : 'Создайте новую цену для конкретного вида топлива'
+                }
+              </DialogDescription>
             </DialogHeader>
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -1204,6 +1223,9 @@ export default function Prices() {
               <DialogTitle className="text-xl font-semibold text-white">
                 Журнал изменения цен ({journalEntries.length} записей)
               </DialogTitle>
+              <DialogDescription className="text-slate-400">
+                История всех изменений цен с указанием времени, источника и автора
+              </DialogDescription>
             </DialogHeader>
             
             {/* Таблица журнала */}

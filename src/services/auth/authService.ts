@@ -3,6 +3,8 @@
  * Работает напрямую с Supabase без лишних абстракций
  */
 
+import { auditLogService } from '../auditLogService';
+
 interface DatabaseUser {
   id: string;
   email: string;
@@ -142,11 +144,24 @@ class AuthService {
 
       const isValidPassword = await this.verifyPassword(dbUser, password);
       if (!isValidPassword) {
+        // Логируем неудачную попытку входа
+        await auditLogService.logAuthentication('failed_login', email, {
+          reason: 'Неверный пароль',
+          success: false
+        });
         return null;
       }
 
       // Трансформируем пользователя из БД в формат приложения
       const appUser = this.transformUser(dbUser);
+
+      // Логируем успешный вход
+      await auditLogService.logAuthentication('login', email, {
+        user_id: appUser.id,
+        user_name: appUser.name,
+        role: appUser.role,
+        success: true
+      });
 
       return appUser;
     } catch (error) {

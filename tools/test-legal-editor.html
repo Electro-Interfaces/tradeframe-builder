@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест редактора правовых документов</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        h1 { color: #60a5fa; margin-bottom: 30px; }
+        .test-section {
+            background: #334155;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #475569;
+        }
+        .test-section h2 {
+            color: #94a3b8;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            font-weight: 500;
+        }
+        button:hover { background: #2563eb; }
+        button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+        .result {
+            background: #1e293b;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .success { border-left: 4px solid #10b981; }
+        .error { border-left: 4px solid #ef4444; }
+        .info { border-left: 4px solid #3b82f6; }
+        pre {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        .link-button {
+            display: inline-block;
+            background: #8b5cf6;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: white;
+            font-weight: 500;
+            margin: 5px;
+        }
+        .link-button:hover { background: #7c3aed; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест редактора правовых документов</h1>
+
+    <div class="test-section">
+        <h2>1. Навигация к странице правовых документов</h2>
+        <a href="http://localhost:3000/admin/legal-documents" class="link-button" target="_blank">
+            Открыть страницу правовых документов
+        </a>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Создание новой версии (через UI)</h2>
+        <p>Нажмите кнопку "Новая версия" на одной из карточек документов</p>
+        <a href="http://localhost:3000/admin/legal-documents/tos/create" class="link-button" target="_blank">
+            Создать версию ТОС (Terms of Service)
+        </a>
+        <a href="http://localhost:3000/admin/legal-documents/privacy/create" class="link-button" target="_blank">
+            Создать версию Privacy Policy
+        </a>
+        <a href="http://localhost:3000/admin/legal-documents/pdn/create" class="link-button" target="_blank">
+            Создать версию PDN
+        </a>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Редактирование существующего документа</h2>
+        <p>Нажмите кнопку "Редактировать" на одной из карточек документов</p>
+        <a href="http://localhost:3000/admin/legal-documents/tos/edit" class="link-button" target="_blank">
+            Редактировать ТОС
+        </a>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Проверка API напрямую</h2>
+        <button onclick="testGetDocumentTypes()">Получить типы документов</button>
+        <button onclick="testGetDocumentVersions()">Получить версии</button>
+        <button onclick="testCreateDraft()">Создать черновик</button>
+        <div id="api-result" class="result info" style="display: none;">
+            <strong>Результат:</strong>
+            <pre id="api-output"></pre>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Информация для тестирования</h2>
+        <div class="result info">
+            <strong>Типы документов:</strong>
+            <ul>
+                <li><code>tos</code> - Пользовательское соглашение</li>
+                <li><code>privacy</code> - Политика конфиденциальности</li>
+                <li><code>pdn</code> - Политика защиты персональных данных</li>
+            </ul>
+            <strong>Что проверять:</strong>
+            <ul>
+                <li>✅ Загрузка списка документов</li>
+                <li>✅ Открытие редактора (кнопки "Редактировать" и "Новая версия")</li>
+                <li>✅ Сохранение черновика</li>
+                <li>✅ Публикация версии</li>
+                <li>✅ Отображение статистики</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+
+        function showResult(data, isError = false) {
+            const resultDiv = document.getElementById('api-result');
+            const outputPre = document.getElementById('api-output');
+
+            resultDiv.style.display = 'block';
+            resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+            outputPre.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function testGetDocumentTypes() {
+            try {
+                console.log('Testing getDocumentTypes...');
+                // В реальном приложении это вызов через сервис
+                showResult({
+                    message: 'Проверьте консоль браузера и Network tab',
+                    note: 'API вызовы делаются через Supabase, проверьте страницу правовых документов'
+                });
+            } catch (error) {
+                console.error(error);
+                showResult({ error: error.message }, true);
+            }
+        }
+
+        async function testGetDocumentVersions() {
+            try {
+                console.log('Testing getDocumentVersions...');
+                showResult({
+                    message: 'Откройте /admin/legal-documents и проверьте консоль',
+                    note: 'Версии загружаются при открытии страницы документов'
+                });
+            } catch (error) {
+                console.error(error);
+                showResult({ error: error.message }, true);
+            }
+        }
+
+        async function testCreateDraft() {
+            showResult({
+                message: 'Для создания черновика используйте UI',
+                steps: [
+                    '1. Откройте /admin/legal-documents',
+                    '2. Нажмите "Новая версия" на любой карточке',
+                    '3. Введите содержание документа в Markdown редакторе',
+                    '4. Нажмите "Сохранить черновик"',
+                    '5. После сохранения появится кнопка "Опубликовать"'
+                ]
+            });
+        }
+
+        console.log('🧪 Тест редактора правовых документов загружен');
+        console.log('Используйте кнопки выше для тестирования функционала');
+    </script>
+</body>
+</html>

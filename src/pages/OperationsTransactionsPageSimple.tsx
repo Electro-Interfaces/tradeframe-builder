@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, Calendar, Fuel, CreditCard, Pin, HelpCircle, RefreshCw, Filter, ChevronDown, ChevronRight } from "lucide-react";
 import { operationsService } from "@/services/operationsService";
@@ -21,6 +21,7 @@ import { TradingPoint } from "@/types/tradingpoint";
 import KPIFuelCard from "@/components/operations/KPIFuelCard";
 import KPIPaymentCard from "@/components/operations/KPIPaymentCard";
 import MobileOperationsTable from "@/components/operations/MobileOperationsTable";
+import { VirtualizedOperationsTable } from "@/components/operations/VirtualizedOperationsTable";
 import { exportToExcel, exportToPdf } from "@/services/operationsExportService";
 import { normalizePaymentMethod } from "@/utils/paymentUtils";
 import { useOperationsFilters } from "@/hooks/useOperationsFilters";
@@ -121,11 +122,6 @@ export default function OperationsTransactionsPageSimple() {
 
   // Функция загрузки из STS API
   const loadFromStsApi = async () => {
-    if (!stsApiService.isConfigured()) {
-      if (!isMobile) alert('STS API не настроен. Перейдите в Настройки → API СТС');
-      return;
-    }
-
     if (!selectedNetwork?.external_id) {
       if (!isMobile) alert('Выберите сеть с настроенным external_id для загрузки из STS API');
       return;
@@ -138,36 +134,15 @@ export default function OperationsTransactionsPageSimple() {
 
     setLoadingFromSTS(true);
     try {
-      
-      // ОЧИСТКА КЭША И ПРЕДЫДУЩИХ ДАННЫХ
-      
-      // Очищаем localStorage кэш
-      localStorage.removeItem('tradeframe_operations');
-      localStorage.removeItem('operations');
-      localStorage.removeItem('stsApiCache');
-      
-      // Очищаем текущие операции из состояния
-      setOperations([]);
-      
-      // Принудительно очищаем кэш в сервисах
-      await operationsService.forceReload();
-      
-      
-      
       // Получаем объект торговой точки для получения external_id
       const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
       if (!tradingPoint) {
         throw new Error(`Торговая точка с ID ${selectedTradingPoint} не найдена`);
       }
 
-
       if (tradingPoint.external_id === null || tradingPoint.external_id === undefined || tradingPoint.external_id === '') {
         throw new Error(`У торговой точки "${tradingPoint.name}" отсутствует external_id. Настройте его в разделе администрирования.`);
       }
-
-      
-      // Обеспечиваем правильную настройку STS API
-      ensureSTSApiConfigured();
       
       const transactions = await stsApiService.getTransactions(
         dateFrom,
@@ -1310,161 +1285,27 @@ export default function OperationsTransactionsPageSimple() {
                 )}
               </div>
             ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-slate-700 hover:bg-slate-800">
-                    <TableHead className="text-slate-300 w-24">Статус</TableHead>
-                    <TableHead className="text-slate-300 w-32">ID</TableHead>
-                    <TableHead className="text-slate-300 w-36">Время начала</TableHead>
-                    <TableHead className="text-slate-300 w-20">Пист.</TableHead>
-                    <TableHead className="text-slate-300 w-28" style={{backgroundColor: 'rgba(30, 58, 138, 0.3)'}}>Вид топлива</TableHead>
-                    <TableHead className="text-slate-300 w-28" style={{backgroundColor: 'rgba(30, 58, 138, 0.3)'}}>Факт.(литры)</TableHead>
-                    <TableHead className="text-slate-300 w-24" style={{backgroundColor: 'rgba(30, 58, 138, 0.3)'}}>Цена за л</TableHead>
-                    <TableHead className="text-slate-300 w-28" style={{backgroundColor: 'rgba(30, 58, 138, 0.3)'}}>Факт.(сумма)</TableHead>
-                    <TableHead className="text-slate-300 w-28" style={{backgroundColor: 'rgba(30, 58, 138, 0.3)'}}>Вид оплаты</TableHead>
-                    <TableHead className="text-slate-300 w-16">POS</TableHead>
-                    <TableHead className="text-slate-300 w-20">Смена</TableHead>
-                    <TableHead className="text-slate-300 w-32">Карта</TableHead>
-                    <TableHead className="text-slate-300 w-24">№ чека</TableHead>
-                    <TableHead className="text-slate-300 w-24">Тип оп.</TableHead>
-                    <TableHead className="text-slate-300 w-28">Заказ (литры)</TableHead>
-                    <TableHead className="text-slate-300 w-28">Заказ (сумма)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedOperations.map((record) => (
-                    <TableRow 
-                      key={record.id} 
-                      className={`border-slate-700 hover:bg-slate-800 ${
-                        record.isFromStsApi ? 'bg-blue-950/20 border-blue-800/30' : ''
-                      }`}
-                    >
-                      <TableCell className="w-24 py-2">{getStatusBadge(record.status)}</TableCell>
-                      <TableCell className="text-slate-300 font-mono text-xs w-32 py-2">
-                        {record.id}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-36 py-2">
-                        {new Date(record.startTime).toLocaleString('ru-RU', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-20 text-center py-2">
-                        {record.nozzleNumber || '-'}
-                      </TableCell>
-                      <TableCell className="text-sm w-28 py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
-                        {record.fuelType ? (
-                          <Badge variant="outline" className="bg-slate-700 text-white border-slate-600">
-                            {record.fuelType}
-                          </Badge>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-28 text-right py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
-                        {record.actualQuantity ? record.actualQuantity.toFixed(2) :
-                         record.quantity ? record.quantity.toFixed(2) : '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-24 text-right py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
-                        {record.price ? record.price.toFixed(2) : '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-28 text-right py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
-                        {record.actualAmount ? record.actualAmount.toFixed(2) :
-                         record.totalCost ? record.totalCost.toFixed(2) : '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-28 py-2" style={{backgroundColor: 'rgba(30, 58, 138, 0.15)'}}>
-                        {normalizePaymentMethod(record.paymentMethod)}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-16 text-center py-2">
-                        {record.posNumber || '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-20 text-center py-2">
-                        {record.shiftNumber || '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-32 font-mono py-2">
-                        {record.cardNumber || '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-24 font-mono py-2">
-                        {record.receiptNumber || '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-24 py-2">
-                        {record.operationType || '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-28 text-right py-2">
-                        {record.orderedQuantity ? record.orderedQuantity.toFixed(2) : '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-300 text-sm w-28 text-right py-2">
-                        {record.orderedAmount ? record.orderedAmount.toFixed(2) : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              
-              {paginatedOperations.length === 0 && (
+            // Desktop: Виртуализированная таблица для оптимальной производительности
+            <div className="space-y-4">
+              {filteredOperations.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Загрузка №...</span>
+                      <span>Загрузка операций...</span>
                     </div>
                   ) : (
-                    'Нет № по выбранным фильтрам'
+                    'Нет операций по выбранным фильтрам'
                   )}
                 </div>
-              )}
-              
-              {!isMobile && totalPages > 1 && (
-                <div className="flex items-center justify-center gap-4 py-6 border-t border-slate-700 mt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    ← Предыдущая страница
-                  </Button>
-                  
-                  <div className="flex items-center gap-2">
-                    {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={currentPage === pageNum 
-                            ? "bg-blue-600 text-white hover:bg-blue-700" 
-                            : "border-slate-600 text-slate-300 hover:bg-slate-700"
-                          }
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    Следующая страница →
-                  </Button>
-                </div>
+              ) : (
+                <VirtualizedOperationsTable
+                  operations={filteredOperations}
+                  onRowClick={(operation) => {
+                    setSelectedOperation(operation);
+                    setIsDetailsOpen(true);
+                  }}
+                />
               )}
             </div>
             )}
@@ -1480,6 +1321,9 @@ export default function OperationsTransactionsPageSimple() {
             <DialogTitle className="text-base font-semibold text-white">
               Операция #{selectedOperation?.id?.slice(-8)}
             </DialogTitle>
+            <DialogDescription className="text-slate-400 text-sm">
+              Подробная информация о транзакции
+            </DialogDescription>
           </DialogHeader>
 
           {selectedOperation && (

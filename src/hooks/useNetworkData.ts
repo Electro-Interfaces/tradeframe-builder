@@ -39,15 +39,6 @@ export function useNetworkData({
       return;
     }
 
-    if (!stsApiService.isConfigured()) {
-      toast({
-        title: "Ошибка",
-        description: "STS API не настроен. Перейдите в Настройки → API СТС",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
       // Очищаем предыдущие данные
@@ -55,22 +46,6 @@ export function useNetworkData({
       setTanks([]);
       setTerminalInfo(null);
       setPrices([]);
-
-      // Обновление токена перед запросом
-      try {
-        const tokenRefreshed = await stsApiService.forceRefreshToken();
-
-        if (!tokenRefreshed) {
-          throw new Error('Ошибка авторизации в STS API. Проверьте настройки логина/пароля.');
-        }
-      } catch (authError) {
-        toast({
-          title: "Ошибка авторизации",
-          description: "Не удалось авторизоваться в STS API. Проверьте логин/пароль в настройках.",
-          variant: "destructive",
-        });
-        throw authError;
-      }
 
       // Формируем параметры контекста
       let contextParams = {

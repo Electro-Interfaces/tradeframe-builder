@@ -3,17 +3,7 @@ import { Network, NetworkId, NetworkInput } from '@/types/network';
 // In-memory storage for networks
 const networksData: Network[] = [
   {
-    id: "1",
-    name: "Демо сеть АЗС",
-    description: "Демонстрационная сеть заправочных станций",
-    type: "АЗС",
-    pointsCount: 5,
-    external_id: "1",
-    code: "demo",
-    status: "active"
-  },
-  {
-    id: "15", 
+    id: "15",
     name: "БТО",
     description: "БТО - сеть АЗС",
     type: "АЗС",

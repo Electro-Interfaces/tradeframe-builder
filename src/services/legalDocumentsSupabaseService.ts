@@ -73,38 +73,49 @@ interface DatabaseUserAcceptance {
 export class LegalDocumentsSupabaseService {
   /**
    * Получить все типы документов
+   * ОПТИМИЗИРОВАНО: Один запрос вместо N+1
    */
   static async getDocumentTypes(): Promise<DocumentTypeInfo[]> {
     try {
-      const { data, error } = await supabase
+      // Получаем типы документов
+      const { data: typesData, error: typesError } = await supabase
         .from('document_types')
         .select('*')
         .eq('is_active', true)
         .order('code');
 
-      if (error) {
-        console.error('Error fetching document types:', error);
-        throw error;
+      if (typesError) {
+        console.error('Error fetching document types:', typesError);
+        throw typesError;
       }
 
-      const types: DocumentTypeInfo[] = [];
-      
-      for (const type of data || []) {
-        // Получаем текущую версию для каждого типа
-        const { data: versionData } = await supabase
-          .from('document_versions')
-          .select('*')
-          .eq('doc_type_code', type.code)
-          .eq('is_current', true)
-          .eq('status', 'published')
-          .single();
+      // Получаем ВСЕ текущие версии ОДНИМ запросом
+      const { data: versionsData, error: versionsError } = await supabase
+        .from('document_versions')
+        .select('*')
+        .eq('is_current', true)
+        .eq('status', 'published');
 
-        types.push({
+      if (versionsError) {
+        console.error('Error fetching current versions:', versionsError);
+        // Продолжаем без версий
+      }
+
+      // Создаем Map для быстрого поиска версий по типу документа
+      const versionsByType = new Map<string, DatabaseDocumentVersion>();
+      (versionsData || []).forEach(v => {
+        versionsByType.set(v.doc_type_code, v);
+      });
+
+      // Собираем результат
+      const types: DocumentTypeInfo[] = (typesData || []).map(type => {
+        const versionData = versionsByType.get(type.code);
+        return {
           code: type.code as DocumentType,
           title: type.title,
           current_version: versionData ? this.mapDatabaseToDocumentVersion(versionData) : undefined
-        });
-      }
+        };
+      });
 
       return types;
     } catch (error) {
@@ -456,38 +467,60 @@ export class LegalDocumentsSupabaseService {
 
   /**
    * Получить статистику документов
+   * ОПТИМИЗИРОВАНО: Минимум запросов вместо N*2
    */
   static async getDocumentStatistics(): Promise<DocumentStatistics[]> {
     try {
-      // Получаем текущие версии
-      const versions = await this.getDocumentVersions();
-      const currentVersions = versions.filter(v => v.is_current && v.status === 'published');
-      
-      const statistics: DocumentStatistics[] = [];
+      // Получаем текущие версии ОДНИМ запросом
+      const { data: currentVersions, error: versionsError } = await supabase
+        .from('document_versions')
+        .select('*')
+        .eq('is_current', true)
+        .eq('status', 'published');
 
-      for (const version of currentVersions) {
-        // Подсчитываем согласия для этой версии
-        const { data: acceptances, error } = await supabase
-          .from('user_document_acceptances')
-          .select('user_id')
-          .eq('doc_version_id', version.id)
-          .eq('is_revoked', false);
+      if (versionsError) {
+        console.error('Error fetching current versions:', versionsError);
+        throw versionsError;
+      }
 
-        if (error) {
-          console.error('Error counting acceptances:', error);
-          continue;
+      if (!currentVersions || currentVersions.length === 0) {
+        return [];
+      }
+
+      // Получаем общее количество пользователей ОДНИМ запросом
+      const { count: totalUsers } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      const total = totalUsers || 0;
+
+      // Получаем ВСЕ согласия для текущих версий ОДНИМ запросом
+      const versionIds = currentVersions.map(v => v.id);
+      const { data: allAcceptances, error: acceptancesError } = await supabase
+        .from('user_document_acceptances')
+        .select('doc_version_id, user_id')
+        .in('doc_version_id', versionIds)
+        .eq('is_revoked', false);
+
+      if (acceptancesError) {
+        console.error('Error fetching acceptances:', acceptancesError);
+        // Продолжаем со статистикой без согласий
+      }
+
+      // Группируем согласия по версиям
+      const acceptancesByVersion = new Map<string, Set<string>>();
+      (allAcceptances || []).forEach(acc => {
+        if (!acceptancesByVersion.has(acc.doc_version_id)) {
+          acceptancesByVersion.set(acc.doc_version_id, new Set());
         }
+        acceptancesByVersion.get(acc.doc_version_id)!.add(acc.user_id);
+      });
 
-        // Получаем общее количество пользователей из таблицы users
-        const { count: totalUsers } = await supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true });
+      // Собираем статистику
+      const statistics: DocumentStatistics[] = currentVersions.map(version => {
+        const acceptedUsers = acceptancesByVersion.get(version.id)?.size || 0;
 
-        const acceptedUsers = acceptances?.length || 0;
-
-        const total = totalUsers || 0;
-
-        statistics.push({
+        return {
           doc_type_code: version.doc_type_code as DocumentType,
           current_version: version.version,
           published_at: version.published_at!,
@@ -495,13 +528,167 @@ export class LegalDocumentsSupabaseService {
           accepted_users: acceptedUsers,
           pending_users: total - acceptedUsers,
           acceptance_percentage: total > 0 ? Math.round((acceptedUsers / total) * 100) : 0
-        });
-      }
+        };
+      });
 
       return statistics;
     } catch (error) {
       console.error('Failed to get document statistics:', error);
       return [];
+    }
+  }
+
+  /**
+   * Создать черновик новой версии документа
+   */
+  static async createDocumentDraft(
+    docTypeCode: DocumentType,
+    version: string,
+    contentMd: string,
+    changelog: string,
+    editorId: string,
+    editorName: string
+  ): Promise<DocumentVersion> {
+    try {
+      // Получаем ID типа документа
+      const { data: docTypeData, error: docTypeError } = await supabase
+        .from('document_types')
+        .select('id')
+        .eq('code', docTypeCode)
+        .single();
+
+      if (docTypeError || !docTypeData) {
+        throw new Error(`Document type ${docTypeCode} not found`);
+      }
+
+      // Создаём черновик версии
+      const draftData = {
+        doc_type_id: docTypeData.id,
+        doc_type_code: docTypeCode,
+        version: version,
+        status: 'draft',
+        content_md: contentMd,
+        changelog: changelog,
+        locale: 'ru',
+        is_current: false,
+        editor_id: editorId,
+        editor_name: editorName,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('document_versions')
+        .insert(draftData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error creating document draft:', {
+          error,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          draftData
+        });
+        throw new Error(`Failed to create draft: ${error.message}${error.hint ? ` (${error.hint})` : ''}`);
+      }
+
+      if (!data) {
+        throw new Error('No data returned from insert');
+      }
+
+      console.log('✅ Document draft created successfully:', data.id);
+      return this.mapDatabaseToDocumentVersion(data);
+    } catch (error) {
+      console.error('Failed to create document draft:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Обновить черновик версии документа
+   */
+  static async updateDocumentVersion(
+    versionId: string,
+    version: string,
+    contentMd: string,
+    changelog: string
+  ): Promise<DocumentVersion> {
+    try {
+      const { data, error } = await supabase
+        .from('document_versions')
+        .update({
+          version: version,
+          content_md: contentMd,
+          changelog: changelog,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', versionId)
+        .eq('status', 'draft') // Обновлять можно только черновики
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating document version:', error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('Document version not found or not a draft');
+      }
+
+      return this.mapDatabaseToDocumentVersion(data);
+    } catch (error) {
+      console.error('Failed to update document version:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Опубликовать версию документа
+   */
+  static async publishDocumentVersion(versionId: string): Promise<DocumentVersion> {
+    try {
+      // Получаем информацию о версии
+      const version = await this.getDocumentVersion(versionId);
+      if (!version) {
+        throw new Error('Document version not found');
+      }
+
+      if (version.status !== 'draft') {
+        throw new Error('Only draft versions can be published');
+      }
+
+      // Снимаем флаг is_current со всех версий этого типа документа
+      await supabase
+        .from('document_versions')
+        .update({ is_current: false })
+        .eq('doc_type_code', version.doc_type_code);
+
+      // Публикуем версию
+      const { data, error } = await supabase
+        .from('document_versions')
+        .update({
+          status: 'published',
+          is_current: true,
+          published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', versionId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error publishing document version:', error);
+        throw error;
+      }
+
+      return this.mapDatabaseToDocumentVersion(data);
+    } catch (error) {
+      console.error('Failed to publish document version:', error);
+      throw error;
     }
   }
 

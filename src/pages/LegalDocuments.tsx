@@ -77,115 +77,114 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
 
   return (
     <Card className="bg-slate-800 border-slate-700 h-full">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <FileText className="w-5 h-5 text-white" />
             </div>
-            <div className="min-w-0">
-              <CardTitle className="text-white text-lg leading-tight">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-white text-base leading-tight mb-1 h-10 flex items-center">
                 {docType.title}
               </CardTitle>
-              <div className="flex items-center gap-2 mt-1">
-                {getStatusIcon()}
+              <div className="flex items-center gap-2 flex-wrap">
                 {getStatusBadge()}
               </div>
             </div>
           </div>
         </div>
       </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {/* Информация о текущей версии */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <span className="text-slate-400">Дата публикации:</span>
-            <span className="text-slate-300">
-              {formatDate(docType.current_version?.published_at)}
+
+      <CardContent className="space-y-3">
+        {/* Информация о текущей версии - компактно */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+            <span className="text-slate-300 truncate">
+              {formatDate(docType.current_version?.published_at).split(',')[0]}
             </span>
           </div>
-          
+
           {docType.current_version?.editor_name && (
-            <div className="flex items-center gap-2 text-sm">
-              <Users className="w-4 h-4 text-slate-400" />
-              <span className="text-slate-400">Автор:</span>
-              <span className="text-slate-300">{docType.current_version.editor_name}</span>
+            <div className="flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <span className="text-slate-300 truncate">{docType.current_version.editor_name}</span>
             </div>
           )}
         </div>
 
-        {/* Статистика согласий */}
+        {/* Статистика согласий - компактно */}
         {statistics && (
-          <div className="bg-slate-700/50 rounded-lg p-3">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <div className="text-slate-400">Подписали</div>
-                <div className="text-slate-200 font-medium">
-                  {statistics.accepted_users} / {statistics.total_users}
+          <div className="bg-slate-700/50 rounded-lg p-2.5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div>
+                  <div className="text-xs text-slate-400">Подписали</div>
+                  <div className="text-sm text-slate-200 font-semibold">
+                    {statistics.accepted_users} / {statistics.total_users}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-400">Процент</div>
+                  <div className="text-sm text-slate-200 font-semibold">
+                    {statistics.acceptance_percentage}%
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="text-slate-400">Процент</div>
-                <div className="text-slate-200 font-medium">
-                  {statistics.acceptance_percentage}%
+
+              {statistics.pending_users > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                  <span className="text-xs text-slate-300">
+                    {statistics.pending_users}
+                  </span>
                 </div>
-              </div>
+              )}
             </div>
-            
-            {statistics.pending_users > 0 && (
-              <div className="mt-2 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-400" />
-                <span className="text-sm text-slate-300">
-                  {statistics.pending_users} пользователей требуют согласия
-                </span>
-              </div>
-            )}
           </div>
         )}
 
-        {/* Действия */}
-        <div className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-2'} mt-4`}>
+        {/* Действия - сетка 2x2 */}
+        <div className="grid grid-cols-2 gap-2">
           <Button
             onClick={() => onEdit(docType.code)}
-            variant="outline" 
+            variant="outline"
             size="sm"
-            className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+            className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 h-8 text-xs"
           >
-            <Edit3 className="w-4 h-4 mr-2" />
+            <Edit3 className="w-3.5 h-3.5 mr-1.5" />
             Редактировать
           </Button>
-          
+
           <Button
             onClick={() => onHistory(docType.code)}
             variant="outline"
-            size="sm" 
-            className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+            size="sm"
+            className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 h-8 text-xs"
           >
-            <History className="w-4 h-4 mr-2" />
+            <History className="w-3.5 h-3.5 mr-1.5" />
             История
           </Button>
-          
+
           {docType.current_version && (
             <>
               <Button
                 onClick={() => onViewAcceptances(docType.code)}
                 variant="outline"
                 size="sm"
-                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 h-8 text-xs"
               >
-                <Users className="w-4 h-4 mr-2" />
+                <Users className="w-3.5 h-3.5 mr-1.5" />
                 Согласия
               </Button>
-              
+
               <Button
                 onClick={() => onPublishDraft(docType.code)}
                 variant="outline"
                 size="sm"
-                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
+                className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600 h-8 text-xs"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
                 Новая версия
               </Button>
             </>
@@ -231,8 +230,7 @@ export default function LegalDocuments() {
   };
 
   const handleHistory = (docType: DocumentType) => {
-    console.log('View history:', docType);
-    // TODO: Навигация к истории версий
+    navigate(`/admin/legal-documents/${docType}/history`);
   };
 
   const handlePublishDraft = (docType: DocumentType) => {
@@ -245,13 +243,68 @@ export default function LegalDocuments() {
   };
 
   const handleViewAuditLog = () => {
-    console.log('View audit log');
-    // TODO: Навигация к журналу действий
+    navigate('/admin/audit');
   };
 
-  const handleExportAcceptances = () => {
-    console.log('Export acceptances');
-    // TODO: Экспорт журнала согласий в CSV
+  const handleExportAcceptances = async () => {
+    try {
+      // Динамический импорт xlsx для уменьшения размера бандла
+      const XLSX = await import('xlsx');
+
+      // Получаем все согласия
+      const acceptances = await legalDocumentsService.getAcceptanceJournal();
+
+      if (acceptances.length === 0) {
+        alert('Нет данных для экспорта');
+        return;
+      }
+
+      // Подготавливаем данные для Excel
+      const data = acceptances.map((acc, index) => ({
+        '№': index + 1,
+        'Пользователь': acc.user_name,
+        'Email': acc.user_email,
+        'Тип документа': DOCUMENT_TYPES[acc.doc_type_code],
+        'Версия': acc.doc_version,
+        'Дата согласия': new Date(acc.accepted_at).toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        'Источник': acc.source === 'web' ? 'Веб' : acc.source === 'mobile' ? 'Мобильное приложение' : acc.source,
+        'IP адрес': acc.ip_address || '-'
+      }));
+
+      // Создаем книгу и лист
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data);
+
+      // Настраиваем ширину столбцов
+      ws['!cols'] = [
+        { wch: 5 },  // №
+        { wch: 25 }, // Пользователь
+        { wch: 30 }, // Email
+        { wch: 35 }, // Тип документа
+        { wch: 10 }, // Версия
+        { wch: 20 }, // Дата согласия
+        { wch: 20 }, // Источник
+        { wch: 15 }  // IP адрес
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Согласия пользователей');
+
+      // Формируем имя файла с датой
+      const fileName = `Согласия_пользователей_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.xlsx`;
+
+      // Скачиваем файл
+      XLSX.writeFile(wb, fileName);
+
+    } catch (error) {
+      console.error('Ошибка экспорта:', error);
+      alert('Ошибка при экспорте данных');
+    }
   };
 
   if (loading) {
@@ -346,7 +399,7 @@ export default function LegalDocuments() {
                 
                 <div className="text-center">
                   <div className="text-xl font-bold text-white">
-                    {statistics.reduce((sum, s) => sum + s.total_users, 0)}
+                    {statistics.length > 0 ? statistics[0].total_users : 0}
                   </div>
                   <div className="text-sm text-slate-400">Всего пользователей</div>
                 </div>

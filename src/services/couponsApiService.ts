@@ -33,6 +33,7 @@ class CouponsApiService {
   private config: CouponsApiConfig | null = null;
   private refreshAttempts = 0;
   private readonly MAX_REFRESH_ATTEMPTS = 3;
+  private tokenRefreshPromise: Promise<boolean> | null = null; // Кэш промиса обновления токена
 
   constructor() {
     this.loadConfig();
@@ -51,7 +52,7 @@ class CouponsApiService {
           url: parsedConfig.url || API_BASE_URL,
           username: parsedConfig.username || '',
           password: parsedConfig.password || '',
-          enabled: parsedConfig.enabled || false,
+          enabled: true, // API всегда включен
           timeout: parsedConfig.timeout || 30000,
           token: parsedConfig.token,
           tokenExpiry: parsedConfig.tokenExpiry
@@ -62,7 +63,7 @@ class CouponsApiService {
           url: API_BASE_URL,
           username: '',
           password: '',
-          enabled: false,
+          enabled: true, // API всегда включен
           timeout: 30000
         };
       }
@@ -72,11 +73,27 @@ class CouponsApiService {
   }
 
   /**
+   * Проверяет, настроен ли API купонов (есть ли URL, username и password)
+   */
+  isConfigured(): boolean {
+    // Всегда перезагружаем конфигурацию перед проверкой
+    this.loadConfig();
+    return !!(this.config?.url && this.config?.username && this.config?.password);
+  }
+
+  /**
    * Обновление токена при необходимости
    */
   private async refreshTokenIfNeeded(forceRefresh = false): Promise<boolean> {
-    if (!this.config?.enabled || !this.config.username || !this.config.password) {
-      console.warn('⚠️ Coupons API: Конфигурация не настроена');
+    // Перезагружаем конфигурацию перед проверкой токена
+    this.loadConfig();
+
+    // Если обновление токена уже выполняется, ждем его завершения
+    if (this.tokenRefreshPromise && !forceRefresh) {
+      return this.tokenRefreshPromise;
+    }
+
+    if (!this.config?.username || !this.config.password) {
       return false;
     }
 
@@ -91,45 +108,70 @@ class CouponsApiService {
         return false;
       }
 
-      this.refreshAttempts++;
+      // Создаем и кэшируем промис обновления токена
+      this.tokenRefreshPromise = this.performTokenRefresh();
 
       try {
-        const response = await fetch(`${this.config.url}/v1/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: this.config.username,
-            password: this.config.password
-          }),
-          signal: AbortSignal.timeout(this.config.timeout),
-        });
-
-        if (response.ok) {
-          const tokenResponse = await response.text();
-          const cleanToken = tokenResponse.replace(/"/g, '');
-          const newExpiry = Date.now() + (20 * 60 * 1000); // 20 минут
-
-          this.config.token = cleanToken;
-          this.config.tokenExpiry = newExpiry;
-
-          // Сбрасываем счетчик при успешном обновлении
-          this.refreshAttempts = 0;
-
-          return true;
-        } else {
-          const errorText = await response.text();
-          console.error(`❌ Coupons API: Ошибка авторизации ${response.status}:`, errorText);
-          return false;
-        }
-      } catch (error) {
-        console.error('❌ Coupons API: Ошибка при обновлении токена:', error);
-        return false;
+        const result = await this.tokenRefreshPromise;
+        return result;
+      } finally {
+        // Очищаем кэш после завершения (успешного или нет)
+        this.tokenRefreshPromise = null;
       }
     }
 
     return true;
+  }
+
+  /**
+   * Выполняет фактическое обновление токена через /v1/login
+   */
+  private async performTokenRefresh(): Promise<boolean> {
+    if (!this.config) {
+      return false;
+    }
+
+    // Проверяем обязательные параметры
+    if (!this.config.username || !this.config.password) {
+      return false;
+    }
+
+    this.refreshAttempts++;
+
+    try {
+      const response = await fetch(`${this.config.url}/v1/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: this.config.username,
+          password: this.config.password
+        }),
+        signal: AbortSignal.timeout(this.config.timeout),
+      });
+
+      if (response.ok) {
+        const tokenResponse = await response.text();
+        const cleanToken = tokenResponse.replace(/"/g, '');
+        const newExpiry = Date.now() + (20 * 60 * 1000); // 20 минут
+
+        this.config.token = cleanToken;
+        this.config.tokenExpiry = newExpiry;
+
+        // Сбрасываем счетчик при успешном обновлении
+        this.refreshAttempts = 0;
+
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error(`❌ Coupons API: Ошибка авторизации ${response.status}:`, errorText);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Coupons API: Ошибка при обновлении токена:', error);
+      return false;
+    }
   }
 
   /**

@@ -46,7 +46,7 @@ export function PermissionBuilder() {
       if (rolesData.length > 0) {
         const firstRole = rolesData[0]
         setSelectedRole(firstRole)
-        setEditedPermissions([...firstRole.permissions])
+        setEditedPermissions(firstRole.permissions ? [...firstRole.permissions] : [])
       }
     } catch (error) {
       console.error('Ошибка загрузки ролей:', error)
@@ -59,7 +59,7 @@ export function PermissionBuilder() {
     const role = roles.find(r => r.id === roleId)
     if (role) {
       setSelectedRole(role)
-      setEditedPermissions([...role.permissions])
+      setEditedPermissions(role.permissions ? [...role.permissions] : [])
     }
   }
 
@@ -143,21 +143,30 @@ export function PermissionBuilder() {
 
   const resetPermissions = () => {
     if (selectedRole) {
-      setEditedPermissions([...selectedRole.permissions])
+      setEditedPermissions(selectedRole.permissions ? [...selectedRole.permissions] : [])
     }
   }
 
   const getRolePermissionCount = (role: Role): number => {
-    return role.permissions.reduce((sum, p) => sum + p.actions.length, 0)
+    if (!role.permissions || !Array.isArray(role.permissions)) return 0
+    return role.permissions.reduce((sum, p) => {
+      if (!p || !p.actions || !Array.isArray(p.actions)) return sum
+      return sum + p.actions.length
+    }, 0)
   }
 
   const getEditedPermissionCount = (): number => {
-    return editedPermissions.reduce((sum, p) => sum + p.actions.length, 0)
+    if (!editedPermissions || !Array.isArray(editedPermissions)) return 0
+    return editedPermissions.reduce((sum, p) => {
+      if (!p || !p.actions || !Array.isArray(p.actions)) return sum
+      return sum + p.actions.length
+    }, 0)
   }
 
   const hasChanges = (): boolean => {
     if (!selectedRole) return false
-    return JSON.stringify(editedPermissions) !== JSON.stringify(selectedRole.permissions)
+    const rolePerms = selectedRole.permissions || []
+    return JSON.stringify(editedPermissions) !== JSON.stringify(rolePerms)
   }
 
   if (loading) {
@@ -279,37 +288,38 @@ export function PermissionBuilder() {
                             </div>
                           </div>
                           <div className={`grid gap-2 ${section.code === 'menu_visibility' ? 'grid-cols-1' : 'grid-cols-4'}`}>
-                            {(section.code === 'menu_visibility' ? 
-                              ['view_menu'] : 
-                              ['read', 'write', 'delete', 'manage']
+                            {(section.code === 'menu_visibility' ?
+                              ['view_menu'] as const :
+                              ['read', 'write', 'delete', 'manage'] as const
                             ).map(action => {
-                              const isChecked = hasPermission(section.code, resource.code, action)
-                              const colorClasses = {
+                              const typedAction = action as PermissionAction
+                              const isChecked = hasPermission(section.code, resource.code, typedAction)
+                              const colorClasses: Record<PermissionAction, string> = {
                                 read: isChecked ? 'border-green-500 bg-green-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-green-400',
                                 write: isChecked ? 'border-blue-500 bg-blue-900 text-blue-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-blue-400',
                                 delete: isChecked ? 'border-red-500 bg-red-900 text-red-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-red-400',
                                 manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-purple-400',
                                 view_menu: isChecked ? 'border-yellow-500 bg-yellow-900 text-yellow-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-yellow-400'
                               }
-                              
+
                               return (
-                                <label 
-                                  key={action} 
+                                <label
+                                  key={action}
                                   className={`
                                     flex items-center justify-center space-x-2 cursor-pointer p-2 rounded border-2 transition-all hover:shadow-sm
-                                    ${colorClasses[action]}
+                                    ${colorClasses[typedAction]}
                                   `}
                                   onClick={() => {
-                                    togglePermission(section.code, resource.code, action);
+                                    togglePermission(section.code, resource.code, typedAction);
                                   }}
                                 >
                                   <Checkbox
                                     checked={isChecked}
-                                    onCheckedChange={() => togglePermission(section.code, resource.code, action)}
+                                    onCheckedChange={() => togglePermission(section.code, resource.code, typedAction)}
                                     disabled={false}
                                     className="data-[state=checked]:bg-current data-[state=checked]:border-current border-2 border-current"
                                   />
-                                  <span className="text-sm font-medium">{ACTION_LABELS[action]}</span>
+                                  <span className="text-sm font-medium">{ACTION_LABELS[typedAction]}</span>
                                 </label>
                               )
                             })}

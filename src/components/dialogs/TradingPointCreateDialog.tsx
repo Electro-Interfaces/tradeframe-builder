@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { TradingPointInput, NetworkId } from "@/types/tradingpoint";
 
 interface TradingPointCreateDialogProps {
@@ -193,6 +193,9 @@ export function TradingPointCreateDialog({
       <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'} bg-slate-800 border-slate-700 overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="text-white">Создать торговую точку</DialogTitle>
+          <DialogDescription className="text-slate-400">
+            Добавьте новую торговую точку с геолокацией и контактными данными
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">

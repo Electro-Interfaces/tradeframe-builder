@@ -81,15 +81,6 @@ export default function NetworkOverview() {
       return;
     }
 
-    if (!stsApiService.isConfigured()) {
-      toast({
-        title: "Ошибка",
-        description: "STS API не настроен. Перейдите в Настройки → API СТС",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
       // Очищаем предыдущие данные
@@ -97,24 +88,6 @@ export default function NetworkOverview() {
       setTanks([]);
       setTerminalInfo(null);
       setPrices([]);
-
-      // ЯВНОЕ ОБНОВЛЕНИЕ ТОКЕНА ПЕРЕД ЗАПРОСОМ
-      try {
-        // Принудительно обновляем токен через логин/пароль
-        const tokenRefreshed = await stsApiService.forceRefreshToken();
-        
-        if (!tokenRefreshed) {
-          throw new Error('Ошибка авторизации в STS API. Проверьте настройки логина/пароля.');
-        }
-        
-      } catch (authError) {
-        toast({
-          title: "Ошибка авторизации",
-          description: "Не удалось авторизоваться в STS API. Проверьте логин/пароль в настройках.",
-          variant: "destructive",
-        });
-        throw authError;
-      }
 
       // Загружаем данные из STS API
       // Используем правильную логику получения contextParams как в Tanks.tsx
@@ -1828,37 +1801,37 @@ export default function NetworkOverview() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-slate-600">
-                        <th className={`text-left py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Топливо</th>
-                        <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Выручка</th>
-                        <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Объем</th>
-                        <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}><Activity className="w-4 h-4 mx-auto" /></th>
+                        <th className={`text-left py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Топливо</th>
+                        <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Выручка</th>
+                        <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Объем</th>
+                        <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}><Activity className="w-4 h-4 mx-auto" /></th>
                       </tr>
                     </thead>
                     <tbody>
                       {fuelTypeStats.map((fuel) => (
                         <tr key={fuel.type} className="border-b border-slate-700 hover:bg-slate-700 transition-colors duration-200">
-                          <td className={`py-4 text-white font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>{fuel.type}</td>
-                          <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                          <td className={`py-3 text-white font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{fuel.type}</td>
+                          <td className={`py-3 text-right text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {fuel.revenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                           </td>
-                          <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                          <td className={`py-3 text-right text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {fuel.volume.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л
                           </td>
-                          <td className={`py-4 text-right text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                          <td className={`py-3 text-right text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {fuel.operations}
                           </td>
                         </tr>
                       ))}
                       {/* Итоговая строка для топлива */}
                       <tr className="border-t-2 border-blue-400 bg-blue-900/30">
-                        <td className={`py-4 text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>Итого</td>
-                        <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                        <td className={`py-3 text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>Итого</td>
+                        <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
                         </td>
-                        <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                        <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {Math.round(totalVolume).toLocaleString('ru-RU')} л
                         </td>
-                        <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                        <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {filteredTransactions.length}
                         </td>
                       </tr>
@@ -1882,10 +1855,10 @@ export default function NetworkOverview() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-slate-600">
-                          <th className={`text-left py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Вид</th>
-                          <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Выручка</th>
-                          <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}>Объем</th>
-                          <th className={`text-right py-4 text-slate-200 font-semibold ${isMobile ? 'text-xs' : 'text-xl'}`}><Activity className="w-4 h-4 mx-auto" /></th>
+                          <th className={`text-left py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Вид</th>
+                          <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Выручка</th>
+                          <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>Объем</th>
+                          <th className={`text-right py-3 text-slate-200 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}><Activity className="w-4 h-4 mx-auto" /></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1899,14 +1872,14 @@ export default function NetworkOverview() {
 
                           return (
                           <tr key={payment.type} className="border-b border-slate-700 hover:bg-slate-700 transition-colors duration-200">
-                            <td className={`py-4 text-white font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>{shortName}</td>
-                            <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                            <td className={`py-3 text-white font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{shortName}</td>
+                            <td className={`py-3 text-right text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
                               {payment.revenue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                             </td>
-                            <td className={`py-4 text-right text-white font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                            <td className={`py-3 text-right text-white ${isMobile ? 'text-xs' : 'text-sm'}`}>
                               {payment.volume.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} л
                             </td>
-                            <td className={`py-4 text-right text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                            <td className={`py-3 text-right text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
                               {payment.operations}
                             </td>
                           </tr>
@@ -1914,14 +1887,14 @@ export default function NetworkOverview() {
                         })}
                         {/* Итоговая строка для способов оплаты */}
                         <tr className="border-t-2 border-blue-400 bg-blue-900/30">
-                          <td className={`py-4 text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>Итого</td>
-                          <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                          <td className={`py-3 text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>Итого</td>
+                          <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {Math.round(totalRevenue).toLocaleString('ru-RU')} ₽
                           </td>
-                          <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                          <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {Math.round(totalVolume).toLocaleString('ru-RU')} л
                           </td>
-                          <td className={`py-4 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-xl'}`}>
+                          <td className={`py-3 text-right text-blue-200 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
                             {filteredTransactions.length}
                           </td>
                         </tr>

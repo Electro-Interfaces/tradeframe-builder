@@ -89,35 +89,7 @@ export default function LegalUsersAcceptances() {
         user.acceptances.push(acceptance);
       });
 
-      // Добавляем тестовых пользователей без согласий для демонстрации
-      const testUsers = [
-        {
-          user_id: 'current_user',
-          user_name: 'Тестовый пользователь',
-          user_email: 'test@tradecontrol.ru',
-          acceptances: [],
-          last_acceptance_date: null,
-          total_documents: 3,
-          accepted_documents: 0,
-          completion_percentage: 0
-        },
-        {
-          user_id: 'user_operator1',
-          user_name: 'Оператор АЗС #1',
-          user_email: 'operator1@tradecontrol.ru',
-          acceptances: [],
-          last_acceptance_date: null,
-          total_documents: 3,
-          accepted_documents: 0,
-          completion_percentage: 0
-        }
-      ];
-
-      testUsers.forEach(user => {
-        if (!userMap.has(user.user_id)) {
-          userMap.set(user.user_id, user);
-        }
-      });
+      // РЕАЛЬНЫЕ ПОЛЬЗОВАТЕЛИ - загружаем из базы данных, НЕТ MOCK данных!
 
       // Вычисляем статистику для каждого пользователя
       const usersArray = Array.from(userMap.values()).map(user => {
@@ -206,9 +178,61 @@ export default function LegalUsersAcceptances() {
     setSelectedUser(user);
   };
 
-  const handleExportAcceptances = () => {
-    console.log('Экспорт согласий пользователей');
-    // TODO: Реализовать экспорт в CSV
+  const handleExportAcceptances = async () => {
+    try {
+      // Динамический импорт xlsx для уменьшения размера бандла
+      const XLSX = await import('xlsx');
+
+      if (users.length === 0) {
+        alert('Нет данных для экспорта');
+        return;
+      }
+
+      // Подготавливаем данные для Excel
+      const data = users.map((user, index) => ({
+        '№': index + 1,
+        'Пользователь': user.user_name,
+        'Email': user.user_email,
+        'Подписано документов': `${user.accepted_documents} из ${user.total_documents}`,
+        'Процент завершения': `${user.completion_percentage}%`,
+        'Последнее согласие': formatDate(user.last_acceptance_date),
+        'Пользовательское соглашение': user.acceptances.some(a => a.doc_type_code === 'tos') ? 'Да' : 'Нет',
+        'Политика конфиденциальности': user.acceptances.some(a => a.doc_type_code === 'privacy') ? 'Да' : 'Нет',
+        'Защита ПДн': user.acceptances.some(a => a.doc_type_code === 'pdn') ? 'Да' : 'Нет',
+        'Статус': user.completion_percentage === 100 ? 'Завершено' :
+                  user.completion_percentage > 0 ? 'Частично' : 'Не подписано'
+      }));
+
+      // Создаем книгу и лист
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data);
+
+      // Настраиваем ширину столбцов
+      ws['!cols'] = [
+        { wch: 5 },  // №
+        { wch: 25 }, // Пользователь
+        { wch: 30 }, // Email
+        { wch: 20 }, // Подписано документов
+        { wch: 18 }, // Процент завершения
+        { wch: 20 }, // Последнее согласие
+        { wch: 25 }, // Пользовательское соглашение
+        { wch: 30 }, // Политика конфиденциальности
+        { wch: 15 }, // Защита ПДн
+        { wch: 15 }  // Статус
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Согласия пользователей');
+
+      // Формируем имя файла с датой
+      const fileName = `Согласия_пользователей_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.xlsx`;
+
+      // Скачиваем файл
+      XLSX.writeFile(wb, fileName);
+
+    } catch (error) {
+      console.error('Ошибка экспорта:', error);
+      alert('Ошибка при экспорте данных');
+    }
   };
 
   if (loading) {
@@ -259,7 +283,7 @@ export default function LegalUsersAcceptances() {
                 className="bg-slate-700 border-slate-600 text-slate-200 hover:bg-slate-600"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Экспорт в CSV
+                Экспорт в Excel
               </Button>
             )}
           </div>
