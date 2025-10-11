@@ -109,13 +109,15 @@ function generateTemporaryJWT(email: string, userId: string): string {
   return `${encodedHeader}.${encodedPayload}.demo-signature`;
 }
 
-// Простая функция для тестирования подключения
+// Функция для тестирования подключения к Supabase
+// ПРИМЕЧАНИЕ: Используйте существующую таблицу (например, users) вместо networks
 export const testSupabaseConnection = async () => {
   try {
+    // Используем таблицу users вместо несуществующей networks
     const { data, error, count } = await supabase
-      .from('networks')
+      .from('users')
       .select('*', { count: 'exact', head: true });
-    
+
     if (error) {
       return {
         success: false,
@@ -123,7 +125,7 @@ export const testSupabaseConnection = async () => {
         details: error
       };
     }
-    
+
     return {
       success: true,
       message: 'Supabase connection successful',

@@ -115,21 +115,40 @@ self.addEventListener('fetch', event => {
     );
   }
   // Обрабатываем навигационные запросы для SPA
+  // Используем Stale-While-Revalidate для мгновенной загрузки на мобильных
   else if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
-        .catch((error) => {
-          console.log('[SW] Navigation failed, returning cached index.html', { error: error.message, isIOS });
-          if (isIOS) {
-            console.log('[SW] 🍎 iOS PWA navigation error, applying iOS-specific handling');
-          }
-          return caches.match(BASE_PATH + 'index.html')
-            .then(cachedResponse => {
-              if (cachedResponse) {
-                return cachedResponse;
+      caches.match(BASE_PATH + 'index.html')
+        .then(cachedResponse => {
+          // Параллельно обновляем кеш в фоне
+          const fetchPromise = fetch(event.request)
+            .then(networkResponse => {
+              if (networkResponse.ok) {
+                const responseClone = networkResponse.clone();
+                caches.open(CACHE_NAME).then(cache => {
+                  cache.put(BASE_PATH + 'index.html', responseClone);
+                });
               }
-              // Fallback offline страница
-              return new Response(`
+              return networkResponse;
+            })
+            .catch(error => {
+              console.log('[SW] Network fetch failed, using cache', { error: error.message, isIOS });
+              if (isIOS) {
+                console.log('[SW] 🍎 iOS PWA navigation error, using cached version');
+              }
+              return cachedResponse;
+            });
+
+          // Возвращаем кеш СРАЗУ если есть, иначе ждём сеть
+          if (cachedResponse) {
+            console.log('[SW] Returning cached index.html immediately for fast mobile load');
+            return cachedResponse;
+          }
+
+          // Если кеша нет (первая загрузка), ждём сеть
+          return fetchPromise.catch(() => {
+            // Fallback offline страница только если совсем ничего нет
+            return new Response(`
 <!DOCTYPE html>
 <html>
 <head>

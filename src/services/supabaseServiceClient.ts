@@ -27,12 +27,14 @@ export const supabaseService: SupabaseClient = createClient(
 );
 
 // Тест подключения с service role
+// ПРИМЕЧАНИЕ: Используйте существующую таблицу (например, users) вместо networks
 export const testServiceConnection = async () => {
   try {
+    // Используем таблицу users вместо несуществующей networks
     const { data, error, count } = await supabaseService
-      .from('networks')
+      .from('users')
       .select('*', { count: 'exact', head: true });
-    
+
     if (error) {
       return {
         success: false,
@@ -40,7 +42,7 @@ export const testServiceConnection = async () => {
         details: error
       };
     }
-    
+
     return {
       success: true,
       message: 'Service role connection successful',
@@ -55,8 +57,10 @@ export const testServiceConnection = async () => {
   }
 };
 
-// Автотест при загрузке
-testServiceConnection().then(result => {
-});
+// ПРИМЕЧАНИЕ: Автотест отключен, так как таблица networks не существует в Supabase
+// Используйте testServiceConnection() вручную при необходимости
+// testServiceConnection().then(result => {
+//   console.log('🔍 Service connection test:', result);
+// });
 
 export default supabaseService;
