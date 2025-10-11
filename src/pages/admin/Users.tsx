@@ -71,7 +71,7 @@ export default function Users() {
       await externalUsersService.deleteUser(userId)
       await refetch()
     } catch (error) {
-      console.error('Failed to delete user:', error)
+      // Ошибка обработана в сервисе
     }
   }
 
@@ -82,19 +82,19 @@ export default function Users() {
 
   const handleResetPasswordConfirm = async () => {
     if (!userToResetPassword) return
-    
+
     try {
       // Генерируем временный пароль
       const tempPassword = generateTemporaryPassword()
       await externalUsersService.changePassword(userToResetPassword.id, tempPassword)
-      
+
       // Показываем пароль администратору
       alert(`Пароль для пользователя ${userToResetPassword.name} сброшен.\n\nНовый временный пароль: ${tempPassword}\n\nПожалуйста, передайте этот пароль пользователю безопасным способом.`)
-      
+
       setIsResetPasswordOpen(false)
       setUserToResetPassword(null)
     } catch (error) {
-      console.error('Failed to reset password:', error)
+      // Ошибка обработана в сервисе
       alert('Ошибка при сбросе пароля. Попробуйте еще раз.')
     }
   }
