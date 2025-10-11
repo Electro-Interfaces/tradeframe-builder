@@ -478,18 +478,23 @@ export class LegalDocumentsSupabaseService {
           continue;
         }
 
-        // TODO: Получить общее количество пользователей из таблицы users
-        const totalUsers = 10; // Заглушка
+        // Получаем общее количество пользователей из таблицы users
+        const { count: totalUsers } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true });
+
         const acceptedUsers = acceptances?.length || 0;
+
+        const total = totalUsers || 0;
 
         statistics.push({
           doc_type_code: version.doc_type_code as DocumentType,
           current_version: version.version,
           published_at: version.published_at!,
-          total_users: totalUsers,
+          total_users: total,
           accepted_users: acceptedUsers,
-          pending_users: totalUsers - acceptedUsers,
-          acceptance_percentage: totalUsers > 0 ? Math.round((acceptedUsers / totalUsers) * 100) : 0
+          pending_users: total - acceptedUsers,
+          acceptance_percentage: total > 0 ? Math.round((acceptedUsers / total) * 100) : 0
         });
       }
 

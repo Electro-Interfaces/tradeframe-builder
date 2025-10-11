@@ -114,12 +114,6 @@ export const legalDocumentsService = {
     }
   },
 
-  getLatestVersion(docTypeCode: DocumentType): DocumentVersion | null {
-    // Синхронный метод для совместимости - возвращает null
-    // В новой версии нужно использовать getCurrentDocumentVersion
-    console.warn('⚠️ getLatestVersion is deprecated, use getCurrentDocumentVersion instead');
-    return null;
-  },
 
   // === РАБОТА С СОГЛАСИЯМИ ПОЛЬЗОВАТЕЛЕЙ ===
 

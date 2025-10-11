@@ -215,9 +215,9 @@ const LoginPageWithLegal = () => {
 
         // Пробуем загрузить из сервиса, но используем fallback если не получается
         try {
-          const tosVersion = await legalDocumentsService.getLatestVersion('tos');
-          const privacyVersion = await legalDocumentsService.getLatestVersion('privacy');
-          const pdnVersion = await legalDocumentsService.getLatestVersion('pdn');
+          const tosVersion = await legalDocumentsService.getCurrentDocumentVersion('tos');
+          const privacyVersion = await legalDocumentsService.getCurrentDocumentVersion('privacy');
+          const pdnVersion = await legalDocumentsService.getCurrentDocumentVersion('pdn');
         
         const docs: LegalDocument[] = [];
         
@@ -302,11 +302,11 @@ const LoginPageWithLegal = () => {
       if (!skipLegalDocs && email) {
         
         try {
-          await legalDocumentsService.acceptDocument('tos', email, 'login');
-          
-          await legalDocumentsService.acceptDocument('privacy', email, 'login');
-          
-          await legalDocumentsService.acceptDocument('pdn', email, 'login');
+          await legalDocumentsService.acceptDocumentByType('tos', email, 'web');
+
+          await legalDocumentsService.acceptDocumentByType('privacy', email, 'web');
+
+          await legalDocumentsService.acceptDocumentByType('pdn', email, 'web');
           
         } catch (legalError) {
           // Не блокируем логин если юридические документы недоступны
