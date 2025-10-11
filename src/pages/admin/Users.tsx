@@ -6,22 +6,21 @@ import React, { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Users as UsersIcon, Search, Edit, Trash2, User, KeyRound } from 'lucide-react'
+import { Plus, Users as UsersIcon, Search, Trash2 } from 'lucide-react'
 import { User as UserType, UserStatus } from '@/types/auth'
 import { externalUsersService } from '@/services/externalUsersService'
 import { externalRolesService } from '@/services/externalRolesService'
 import { UserFormDialog } from '@/components/admin/users/UserFormDialog'
 import { useDeleteConfirmDialog } from '@/hooks/useDeleteConfirmDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { EmptyState } from '@/components/ui/empty-state'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { useIsMobile } from "@/hooks/use-mobile";
 import { HelpButton } from "@/components/help/HelpButton"
 import { DataSourceIndicator, DataSourceInfo, useDataSourceInfo } from '@/components/data-source/DataSourceIndicator'
 import { useNewAuth } from "@/contexts/NewAuthContext";
+import { UsersTable } from './Users/components/UsersTable';
+import { UsersCards } from './Users/components/UsersCards';
 
 export default function Users() {
   const { hasExternalDatabase } = useDataSourceInfo()
@@ -114,34 +113,22 @@ export default function Users() {
       'Вы уверены, что хотите физически удалить всех помеченных к удалению пользователей?\n\n' +
       'Это действие нельзя отменить. Пользователи будут удалены из базы данных навсегда.'
     )
-    
+
     if (!confirmed) return
-    
+
     try {
-      
       const result = await externalUsersService.permanentlyDeleteAllSoftDeletedUsers()
-      
+
       if (result && result.deletedCount > 0) {
         alert(`✅ Успешно удалено ${result.deletedCount} пользователей из базы данных.`)
-        await refetch() // Обновляем список пользователей
+        await refetch()
       } else {
         alert('ℹ️ Помеченные к удалению пользователи не найдены.')
       }
     } catch (error) {
-      console.error('❌ Детальная ошибка при очистке удаленных пользователей:', error)
-      console.error('❌ Стек ошибки:', error?.stack)
-      console.error('❌ Сообщение ошибки:', error?.message)
-      
-      // Показываем более детальную ошибку
       const errorMessage = error?.message || 'Неизвестная ошибка'
-      alert(`❌ Ошибка при очистке удаленных пользователей:\n\n${errorMessage}\n\nПроверьте консоль для подробностей.`)
+      alert(`❌ Ошибка при очистке удаленных пользователей:\n\n${errorMessage}`)
     }
-  }
-
-  const formatDate = (date: string | Date | null | undefined): string => {
-    if (!date) return 'Никогда'
-    const d = new Date(date)
-    return d.toLocaleDateString('ru-RU')
   }
 
   const confirmDelete = useDeleteConfirmDialog(handleDelete)
@@ -153,7 +140,7 @@ export default function Users() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout fullWidth={true}>
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
@@ -184,34 +171,40 @@ export default function Users() {
         {/* Панель управления */}
         <div className="bg-slate-800 mb-6 rounded-lg border border-slate-700">
           <div className="px-4 md:px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                   <UsersIcon className="w-4 h-4 text-white" />
                 </div>
-                <h2 className="text-lg font-semibold text-white">Пользователи</h2>
-                <div className="text-sm text-slate-400">
-                  Всего: {filteredUsers.length} из {users.length}
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Пользователи</h2>
+                  <div className="text-sm text-slate-400">
+                    Всего: {filteredUsers.length} из {users.length}
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button 
+              <div className="flex flex-wrap gap-2">
+                <Button
                   onClick={handleCreate}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-initial"
+                  size="sm"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Новый пользователь
+                  <span className="hidden sm:inline">Новый пользователь</span>
+                  <span className="sm:hidden">Новый</span>
                 </Button>
                 {/* Кнопка очистки удаленных пользователей - только для администраторов */}
                 {(user?.role === 'super_admin' || user?.role === 'system_admin' || user?.role === 'network_admin' || user?.email?.includes('admin')) && (
-                  <Button 
+                  <Button
                     onClick={handleCleanupDeletedUsers}
                     variant="outline"
-                    className="bg-red-600/10 border-red-500 text-red-400 hover:bg-red-600/20 hover:text-red-300"
+                    size="sm"
+                    className="bg-red-600/10 border-red-500 text-red-400 hover:bg-red-600/20 hover:text-red-300 flex-1 sm:flex-initial"
                     title="Физически удалить всех помеченных к удалению пользователей"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Очистить удаленных
+                    <span className="hidden sm:inline">Очистить удаленных</span>
+                    <span className="sm:hidden">Очистить</span>
                   </Button>
                 )}
               </div>
@@ -242,7 +235,7 @@ export default function Users() {
           </div>
         </div>
 
-        {/* Таблица пользователей */}
+        {/* Список пользователей */}
         {filteredUsers.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -259,119 +252,32 @@ export default function Users() {
             </p>
           </div>
         ) : (
-          <div className="w-full">
-            <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
-              <table className="w-full text-sm min-w-full table-fixed">
-                <thead className="bg-slate-700/80">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '23%'}}>ПОЛЬЗОВАТЕЛЬ</th>
-                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '20%'}}>EMAIL</th>
-                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '10%'}}>СТАТУС</th>
-                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '19%'}}>РОЛИ</th>
-                    <th className="px-6 py-4 text-left text-slate-100 font-medium" style={{width: '15%'}}>ПОСЛЕДНИЙ ВХОД</th>
-                    <th className="px-6 py-4 text-right text-slate-100 font-medium" style={{width: '13%'}}>ДЕЙСТВИЯ</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-slate-800">
-                  {isLoading ? (
-                    [...Array(5)].map((_, i) => (
-                      <tr key={i} className="border-b border-slate-600">
-                        <td className="px-4 md:px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <Skeleton className="w-8 h-8 rounded-full bg-slate-700" />
-                            <Skeleton className="h-4 w-32 bg-slate-700" />
-                          </div>
-                        </td>
-                        <td className="px-4 md:px-6 py-4"><Skeleton className="h-4 w-40 bg-slate-700" /></td>
-                        <td className="px-4 md:px-6 py-4"><Skeleton className="h-6 w-16 bg-slate-700" /></td>
-                        <td className="px-4 md:px-6 py-4"><Skeleton className="h-6 w-20 bg-slate-700" /></td>
-                        <td className="px-4 md:px-6 py-4"><Skeleton className="h-4 w-24 bg-slate-700" /></td>
-                        <td className="px-4 md:px-6 py-4"><Skeleton className="h-8 w-16 bg-slate-700" /></td>
-                      </tr>
-                    ))
-                  ) : (
-                    filteredUsers.map((user) => (
-                      <tr
-                        key={user.id}
-                        className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors"
-                      >
-                        <td className="px-4 md:px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-600">
-                              <User className="w-4 h-4 text-slate-300" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="font-medium text-white text-base truncate">
-                                {user.name}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 md:px-6 py-4">
-                          <div className="text-slate-300 truncate">
-                            {user.email}
-                          </div>
-                        </td>
-                        <td className="px-4 md:px-6 py-4">
-                          <Badge 
-                            variant={user.status === 'active' ? 'default' : 'secondary'}
-                            className={user.status === 'active' ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-600 hover:bg-slate-700'}
-                          >
-                            {user.status === 'active' ? 'Активен' : 'Неактивен'}
-                          </Badge>
-                        </td>
-                        <td className="px-4 md:px-6 py-4">
-                          <div className="flex flex-wrap gap-1">
-                            {user.roles?.map(role => (
-                              <Badge key={role.role_id} variant="outline" className="text-xs border-slate-500 text-slate-300">
-                                {role.role_name}
-                              </Badge>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-4 md:px-6 py-4">
-                          <div className="text-slate-300">
-                            {user.last_login ? formatDate(user.last_login) : 'Никогда'}
-                          </div>
-                        </td>
-                        <td className="px-4 md:px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(user)}
-                              className="text-slate-400 hover:text-white hover:bg-slate-700"
-                              title="Редактировать пользователя"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleResetPassword(user)}
-                              className="text-slate-400 hover:text-yellow-400 hover:bg-slate-700"
-                              title="Сбросить пароль"
-                            >
-                              <KeyRound className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => confirmDelete.openDialog(user.id, `пользователя "${user.name}"`)}
-                              className="text-slate-400 hover:text-red-400 hover:bg-slate-700"
-                              title="Удалить пользователя"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+          <>
+            {/* Desktop таблица */}
+            <div className="hidden md:block">
+              <UsersTable
+                users={filteredUsers}
+                isLoading={isLoading}
+                onEdit={handleEdit}
+                onDelete={(user) => confirmDelete.openDialog(user.id, `пользователя "${user.name}"`)}
+                onResetPassword={handleResetPassword}
+              />
             </div>
-          </div>
+
+            {/* Mobile карточки */}
+            <div className="md:hidden">
+              {isLoading ? (
+                <div className="text-center py-8 text-slate-400">Загрузка...</div>
+              ) : (
+                <UsersCards
+                  users={filteredUsers}
+                  onEdit={handleEdit}
+                  onDelete={(user) => confirmDelete.openDialog(user.id, `пользователя "${user.name}"`)}
+                  onResetPassword={handleResetPassword}
+                />
+              )}
+            </div>
+          </>
         )}
 
       <UserFormDialog

@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import SafeRender from "@/components/common/SafeRender";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/supabase/queryClient";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -44,7 +45,6 @@ const Receipts = lazy(() => import("./pages/network/Receipts"));
 // Equipment и остальные страницы - ленивая загрузка (приоритет 3)
 
 // Остальные страницы - ленивая загрузка (приоритет 4)
-const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const NewUsersAndRoles = lazy(() => import("./pages/admin/UsersAndRoles"));
 const NetworksPage = lazy(() => import("./pages/NetworksPage"));
 const ShiftReportsV2 = lazy(() => import("./pages/ShiftReportsV2"));
@@ -55,6 +55,7 @@ const TestDebug = lazy(() => import("./pages/TestDebug"));
 const MobileBrowserTest = lazy(() => import("./pages/MobileBrowserTest"));
 const LegalDocuments = lazy(() => import("./pages/LegalDocuments"));
 const LegalDocumentEditor = lazy(() => import("./pages/LegalDocumentEditor"));
+const LegalDocumentHistory = lazy(() => import("./pages/LegalDocumentHistory"));
 const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances"));
 
 // Используем предварительно настроенный queryClient из lib/supabase/queryClient
@@ -71,7 +72,7 @@ const App = () => {
         // Валидация redirect path для предотвращения падений
         const validPaths = [
           '/', '/login', '/network/overview', '/network/operations-transactions',
-          '/point/equipment', '/point/prices', '/point/tanks', '/admin/users'
+          '/point/equipment', '/point/prices', '/point/tanks', '/admin/users-and-roles'
         ];
 
         let targetPath = redirectPath;
@@ -131,78 +132,77 @@ const App = () => {
   }, []);
   
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <SafeRender>
-          <Toaster />
-        </SafeRender>
-        <NewAuthProvider>
-          <SelectionProvider>
-            <BrowserRouter basename={import.meta.env.PROD ? "/tradeframe-builder" : "/"}>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <SafeRender>
+            <Toaster />
+          </SafeRender>
+          <NewAuthProvider>
+            <SelectionProvider>
+              <BrowserRouter basename={import.meta.env.PROD ? "/tradeframe-builder" : "/"}>
                 <div data-testid="router-ready" style={{ display: 'none' }}></div>
-            <Routes>
-            {/* Критически важные страницы - без lazy loading */}
-            <Route path="/login" element={<LoginPageWithLegal />} />
-            <Route
-              path="/"
-              element={<ProtectedRoute><Equipment /></ProtectedRoute>}
-            />
-          <Route path="/network/overview" element={<ProtectedRoute><NetworkOverview /></ProtectedRoute>} />
-          
-          {/* Самые тяжелые страницы - приоритет 1 */}
-          <Route path="/point/prices" element={<ProtectedRoute><LazyLoader><Prices /></LazyLoader></ProtectedRoute>} />
-          <Route path="/settings/sts-api" element={<ProtectedRoute><LazyLoader><STSApiSettings /></LazyLoader></ProtectedRoute>} />
-          <Route path="/settings/api-cts" element={<ProtectedRoute><LazyLoader><STSApiSettings /></LazyLoader></ProtectedRoute>} />
-          <Route path="/point/tanks" element={<ProtectedRoute><LazyLoader><Tanks /></LazyLoader></ProtectedRoute>} />
-          <Route path="/network/operations-transactions" element={<ProtectedRoute><LazyLoader><OperationsTransactionsPageSimple /></LazyLoader></ProtectedRoute>} />
-          <Route path="/network/coupons" element={<ProtectedRoute><LazyLoader><CouponsPage /></LazyLoader></ProtectedRoute>} />
+                <Routes>
+                  {/* Критически важные страницы - без lazy loading */}
+                  <Route path="/login" element={<LoginPageWithLegal />} />
+                  <Route path="/" element={<ProtectedRoute><Equipment /></ProtectedRoute>} />
+                  <Route path="/network/overview" element={<ProtectedRoute><NetworkOverview /></ProtectedRoute>} />
 
-          {/* Admin страницы - приоритет 2 */}
-          <Route path="/admin/users-and-roles" element={<ProtectedRoute><LazyLoader><Users /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/roles" element={<ProtectedRoute><LazyLoader><Roles /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/audit" element={<ProtectedRoute><LazyLoader><AuditLog /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/data-migration" element={<ProtectedRoute><LazyLoader><DataMigration /></LazyLoader></ProtectedRoute>} />
-          
-          {/* Settings страницы - приоритет 2 */}
-          <Route path="/settings/external-database" element={<ProtectedRoute><LazyLoader><ExternalDatabaseSettings /></LazyLoader></ProtectedRoute>} />
-          
-          {/* Network страницы - приоритет 3 */}
-          <Route path="/network/sales-analysis" element={<ProtectedRoute><LazyLoader><SalesAnalysisPage /></LazyLoader></ProtectedRoute>} />
-          <Route path="/network/notifications" element={<ProtectedRoute><LazyLoader><NotificationRules /></LazyLoader></ProtectedRoute>} />
-          <Route path="/network/messages" element={<ProtectedRoute><LazyLoader><Messages /></LazyLoader></ProtectedRoute>} />
-          <Route path="/network/receipts" element={<ProtectedRoute><LazyLoader><Receipts /></LazyLoader></ProtectedRoute>} />
-          
-          {/* Equipment страницы - приоритет 3 */}
-          <Route path="/point/equipment" element={<ProtectedRoute><Equipment /></ProtectedRoute>} />
-          
-          {/* Остальные страницы - приоритет 4 */}
-          <Route path="/admin/users-and-roles-new" element={<ProtectedRoute><LazyLoader><NewUsersAndRoles /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/users" element={<ProtectedRoute><LazyLoader><AdminUsers /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/networks" element={<ProtectedRoute><LazyLoader><NetworksPage /></LazyLoader></ProtectedRoute>} />
-          <Route path="/point/shift-reports-v2" element={<ProtectedRoute><LazyLoader><ShiftReportsV2 /></LazyLoader></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><LazyLoader><SimpleProfile /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/test-services" element={<ProtectedRoute><LazyLoader><TestServices /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/test-simple" element={<ProtectedRoute><LazyLoader><TestServicesSimple /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/test-debug" element={<ProtectedRoute><LazyLoader><TestDebug /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/mobile-browser-test" element={<ProtectedRoute><LazyLoader><MobileBrowserTest /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/legal-documents" element={<ProtectedRoute><LazyLoader><LegalDocuments /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/legal-documents/users-acceptances" element={<ProtectedRoute><LazyLoader><LegalUsersAcceptances /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/legal-documents/:docType/edit" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/legal-documents/:docType/create" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
-          <Route path="/admin/legal-documents/:docType/view" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
-          
-          {/* Fallback routes */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-          </BrowserRouter>
+                  {/* Самые тяжелые страницы - приоритет 1 */}
+                  <Route path="/point/prices" element={<ProtectedRoute><LazyLoader><Prices /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/settings/sts-api" element={<ProtectedRoute><LazyLoader><STSApiSettings /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/settings/api-cts" element={<ProtectedRoute><LazyLoader><STSApiSettings /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/point/tanks" element={<ProtectedRoute><LazyLoader><Tanks /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/operations-transactions" element={<ProtectedRoute><LazyLoader><OperationsTransactionsPageSimple /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/coupons" element={<ProtectedRoute><LazyLoader><CouponsPage /></LazyLoader></ProtectedRoute>} />
 
-          {showPWAInstaller && <PWAInstaller />}
-          <UpdateNotification />
-        </SelectionProvider>
-      </NewAuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+                  {/* Admin страницы - приоритет 2 */}
+                  <Route path="/admin/users-and-roles" element={<ProtectedRoute><LazyLoader><Users /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/roles" element={<ProtectedRoute><LazyLoader><Roles /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/audit" element={<ProtectedRoute><LazyLoader><AuditLog /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/data-migration" element={<ProtectedRoute><LazyLoader><DataMigration /></LazyLoader></ProtectedRoute>} />
+
+                  {/* Settings страницы - приоритет 2 */}
+                  <Route path="/settings/external-database" element={<ProtectedRoute><LazyLoader><ExternalDatabaseSettings /></LazyLoader></ProtectedRoute>} />
+
+                  {/* Network страницы - приоритет 3 */}
+                  <Route path="/network/sales-analysis" element={<ProtectedRoute><LazyLoader><SalesAnalysisPage /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/notifications" element={<ProtectedRoute><LazyLoader><NotificationRules /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/messages" element={<ProtectedRoute><LazyLoader><Messages /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/receipts" element={<ProtectedRoute><LazyLoader><Receipts /></LazyLoader></ProtectedRoute>} />
+
+                  {/* Equipment страницы - приоритет 3 */}
+                  <Route path="/point/equipment" element={<ProtectedRoute><Equipment /></ProtectedRoute>} />
+
+                  {/* Остальные страницы - приоритет 4 */}
+                  <Route path="/admin/users-and-roles-new" element={<ProtectedRoute><LazyLoader><NewUsersAndRoles /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/networks" element={<ProtectedRoute><LazyLoader><NetworksPage /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/point/shift-reports-v2" element={<ProtectedRoute><LazyLoader><ShiftReportsV2 /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><LazyLoader><SimpleProfile /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/test-services" element={<ProtectedRoute><LazyLoader><TestServices /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/test-simple" element={<ProtectedRoute><LazyLoader><TestServicesSimple /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/test-debug" element={<ProtectedRoute><LazyLoader><TestDebug /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/mobile-browser-test" element={<ProtectedRoute><LazyLoader><MobileBrowserTest /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents" element={<ProtectedRoute><LazyLoader><LegalDocuments /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents/users-acceptances" element={<ProtectedRoute><LazyLoader><LegalUsersAcceptances /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents/:docType/history" element={<ProtectedRoute><LazyLoader><LegalDocumentHistory /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents/:docType/edit" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents/:docType/create" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/admin/legal-documents/:docType/view" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
+
+                  {/* Fallback routes */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+
+              {showPWAInstaller && <PWAInstaller />}
+              <UpdateNotification />
+            </SelectionProvider>
+        </NewAuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+    </ErrorBoundary>
+  );
 };
 
 export default App;

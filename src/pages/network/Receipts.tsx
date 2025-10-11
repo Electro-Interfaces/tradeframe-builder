@@ -478,7 +478,7 @@ export default function Receipts() {
               {/* Итоговая карточка */}
               <ReceiptFuelCard
                 fuel="Итого"
-                isSelected={selectedKpiFuels.size === 0}
+                isSelected={false}
                 isMobile={isMobile}
                 volume={baseFilteredReceipts.reduce((sum, r) => sum + parseFloat(r.doc.volume), 0)}
                 amount={baseFilteredReceipts.reduce((sum, r) => sum + parseFloat(r.doc.amount), 0)}

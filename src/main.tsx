@@ -55,7 +55,6 @@ if (typeof window !== 'undefined') {
         e.message.includes('removeChild') ||
         e.message.includes('Node')
       )) {
-        console.warn('⚠️ DOM error intercepted:', e.message);
         e.preventDefault();
         return true;
       }
@@ -73,7 +72,6 @@ if (typeof window !== 'undefined') {
         e.reason.message.includes('removeChild') ||
         e.reason.message.includes('Node')
       )) {
-        console.warn('⚠️ React DOM error intercepted:', e.reason.message);
         e.preventDefault();
         return true;
       }
@@ -86,16 +84,13 @@ if (typeof window !== 'undefined') {
         try {
           // Проверяем что referenceNode действительно дочерний элемент
           if (referenceNode && referenceNode.parentNode !== this) {
-            console.warn('⚠️ insertBefore: referenceNode is not a child, appending instead');
             return this.appendChild(newNode);
           }
           return originalInsertBefore.call(this, newNode, referenceNode);
         } catch (error) {
-          console.warn('⚠️ insertBefore error caught, falling back to appendChild:', error.message);
           try {
             return this.appendChild(newNode);
           } catch (appendError) {
-            console.warn('⚠️ appendChild also failed:', appendError.message);
             return newNode;
           }
         }
@@ -151,5 +146,21 @@ try {
   }, 50);
   
 } catch (error) {
-  console.error('React rendering failed:', error);
+  // Показываем пользователю сообщение об ошибке
+  const root = document.getElementById('root');
+  if (root) {
+    root.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: #1e293b; color: white; font-family: system-ui;">
+        <div style="text-align: center; padding: 20px;">
+          <h1 style="margin-bottom: 20px;">⚠️ Ошибка загрузки</h1>
+          <p style="margin-bottom: 20px; color: #94a3b8;">Приложение не может быть загружено</p>
+          <button
+            onclick="localStorage.clear(); sessionStorage.clear(); location.reload();"
+            style="background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px;">
+            Очистить данные и перезагрузить
+          </button>
+        </div>
+      </div>
+    `;
+  }
 }

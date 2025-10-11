@@ -1,25 +1,10 @@
 // Service Worker для TradeFrame PWA - Full PWA Version
-console.log('[SW] 🚀 TradeFrame Service Worker starting...', {
-  timestamp: new Date().toISOString(),
-  scope: self.registration.scope,
-  location: self.location.href,
-  userAgent: self.navigator.userAgent.substring(0, 50)
-});
 
 // Детекция iOS для специальной обработки
 const isIOS = /iPad|iPhone|iPod/.test(self.navigator.userAgent);
-if (isIOS) {
-  console.log('[SW] 🍎 iOS detected, applying iOS-specific PWA fixes');
-}
 
 const CACHE_NAME = `tradeframe-v${Date.now()}`; // Уникальная версия для каждой сборки
 const BASE_PATH = new URL(self.registration.scope).pathname;
-
-console.log('[SW] 🔧 Configuration:', {
-  CACHE_NAME,
-  BASE_PATH,
-  scope: self.registration.scope
-});
 
 // Критические ресурсы для кэширования
 const CORE_CACHE_URLS = [
@@ -34,19 +19,15 @@ const CORE_CACHE_URLS = [
 
 // Полная установка SW с кэшированием
 self.addEventListener('install', event => {
-  console.log('[SW] Installing service worker version:', CACHE_NAME);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('[SW] Caching core app resources');
         return cache.addAll(CORE_CACHE_URLS);
       })
       .then(() => {
-        console.log('[SW] Core resources cached successfully');
         return self.skipWaiting(); // Активируем новый SW сразу
       })
-      .catch(error => {
-        console.error('[SW] Install failed:', error);
+      .catch(() => {
         // Продолжаем установку даже при ошибке кэширования
         return Promise.resolve();
       })
@@ -55,7 +36,6 @@ self.addEventListener('install', event => {
 
 // Активация SW
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating service worker');
   event.waitUntil(
     caches.keys()
       .then(cacheNames => {
@@ -63,18 +43,13 @@ self.addEventListener('activate', event => {
         return Promise.all(
           cacheNames.map(cacheName => {
             if (cacheName !== CACHE_NAME) {
-              console.log('[SW] Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
       })
       .then(() => {
-        console.log('[SW] Activation complete, claiming clients');
         return self.clients.claim();
-      })
-      .catch(error => {
-        console.error('[SW] Activation failed:', error);
       })
   );
 });
@@ -131,17 +106,12 @@ self.addEventListener('fetch', event => {
               }
               return networkResponse;
             })
-            .catch(error => {
-              console.log('[SW] Network fetch failed, using cache', { error: error.message, isIOS });
-              if (isIOS) {
-                console.log('[SW] 🍎 iOS PWA navigation error, using cached version');
-              }
+            .catch(() => {
               return cachedResponse;
             });
 
           // Возвращаем кеш СРАЗУ если есть, иначе ждём сеть
           if (cachedResponse) {
-            console.log('[SW] Returning cached index.html immediately for fast mobile load');
             return cachedResponse;
           }
 
@@ -184,7 +154,6 @@ self.addEventListener('fetch', event => {
 // Обработка сообщений от клиента
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[SW] Received SKIP_WAITING message, activating new version');
     self.skipWaiting();
   }
 });

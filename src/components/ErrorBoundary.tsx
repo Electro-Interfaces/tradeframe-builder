@@ -18,35 +18,15 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    console.error('🚨 ErrorBoundary: React error caught:', error);
     return { hasError: true, error, retryCount: 0 };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('🚨 ErrorBoundary: Detailed error info:', {
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      },
-      errorInfo: {
-        componentStack: errorInfo.componentStack
-      },
-      location: window.location.href,
-      userAgent: navigator.userAgent.substring(0, 50) + '...',
-      timestamp: new Date().toISOString(),
-      localStorage: {
-        hasUser: !!localStorage.getItem('tradeframe_user'),
-        hasToken: !!localStorage.getItem('authToken')
-      }
-    });
-
     // Сохраняем детали ошибки в состоянии
     this.setState({ errorInfo });
   }
 
   private handleRetry = () => {
-
     if (this.state.retryCount < 2) {
       // Простая попытка сброса состояния
       this.setState({
