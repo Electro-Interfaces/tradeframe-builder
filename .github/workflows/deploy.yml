@@ -37,7 +37,7 @@ jobs:
 
     env:
         PROD_ADDRESS: ${{secrets.PROD_ADDRESS}}
-        PROD_ROOT_USER: root
+        PROD_USER: ${{secrets.PROD_USER}}
         PROD_PASS: ${{secrets.PROD_PASS}}
         PROD_PORT: ${{secrets.PROD_PORT}}
 
@@ -51,63 +51,66 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Clean old files on server (as root)
+      - name: Deploy files via rsync over SSH
         uses: appleboy/ssh-action@v1.1.0
         with:
             host: ${{env.PROD_ADDRESS}}
-            username: ${{env.PROD_ROOT_USER}}
+            username: ${{env.PROD_USER}}
             password: ${{env.PROD_PASS}}
             port: ${{env.PROD_PORT}}
             script: |
-                  cd /var/www/www-root/data/www/prod.dataworker.ru
+                  TARGET_DIR="/var/www/www-root/data/www/prod.dataworker.ru"
+                  cd $TARGET_DIR
 
-                  # Удаляем старую сборку полностью
-                  rm -rf dist
+                  # Останавливаем PM2 процессы перед обновлением
+                  pm2 stop tradeframe-prod || true
+                  pm2 stop tradeframe-backend-proxy || true
 
-                  # Удаляем старые package файлы
-                  rm -f package.json package-lock.json
-
-                  # Создаем пустую директорию dist с правильным владельцем
-                  mkdir -p dist
-                  chown -R www-root:www-root dist
-
-      - name: Deploy via SCP (as root)
+      - name: Copy files via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{env.PROD_ADDRESS}}
-          username: ${{env.PROD_ROOT_USER}}
+          username: ${{env.PROD_USER}}
           password: ${{env.PROD_PASS}}
           port: ${{env.PROD_PORT}}
           source: "dist/,server/,ecosystem.config.cjs,package.json,package-lock.json"
-          target: "/var/www/www-root/data/www/prod.dataworker.ru"
+          target: "/tmp/tradeframe-deploy"
           strip_components: 0
           overwrite: true
+          rm: true
 
-      - name: Fix permissions and restart services (as root)
+      - name: Move files and restart services
         uses: appleboy/ssh-action@v1.1.0
         with:
             host: ${{env.PROD_ADDRESS}}
-            username: ${{env.PROD_ROOT_USER}}
+            username: ${{env.PROD_USER}}
             password: ${{env.PROD_PASS}}
             port: ${{env.PROD_PORT}}
             script: |
-                  cd /var/www/www-root/data/www/prod.dataworker.ru
+                  TARGET_DIR="/var/www/www-root/data/www/prod.dataworker.ru"
+                  TEMP_DIR="/tmp/tradeframe-deploy"
 
-                  # Исправляем владельца всех файлов
-                  chown -R www-root:www-root .
+                  # Удаляем старый dist
+                  rm -rf $TARGET_DIR/dist
+
+                  # Копируем новые файлы из временной директории
+                  cp -rf $TEMP_DIR/* $TARGET_DIR/
+
+                  # Удаляем временную директорию
+                  rm -rf $TEMP_DIR
+
+                  cd $TARGET_DIR
 
                   # Backend Proxy - устанавливаем зависимости
                   if [ -d "server" ] && [ -f "server/package.json" ]; then
                     cd server
                     npm ci --no-fund --no-audit
                     cd ..
-                  else
-                    echo "Warning: server directory not found or invalid"
                   fi
 
-                  # Перезапуск PM2 процессов от пользователя www-root
-                  su - www-root -c "cd /var/www/www-root/data/www/prod.dataworker.ru && pm2 restart tradeframe-prod || pm2 start ecosystem.config.cjs --only tradeframe-prod"
-                  su - www-root -c "cd /var/www/www-root/data/www/prod.dataworker.ru && pm2 restart tradeframe-backend-proxy || pm2 start ecosystem.config.cjs --only tradeframe-backend-proxy"
+                  # Перезапуск PM2 процессов
+                  pm2 restart tradeframe-prod || pm2 start ecosystem.config.cjs --only tradeframe-prod
+                  pm2 restart tradeframe-backend-proxy || pm2 start ecosystem.config.cjs --only tradeframe-backend-proxy
 
                   # Показываем статус PM2
-                  su - www-root -c "pm2 list"
+                  pm2 list
