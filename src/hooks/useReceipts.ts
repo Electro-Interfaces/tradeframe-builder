@@ -14,7 +14,7 @@ export function useReceipts(params: ReceiptsQueryParams) {
     queryKey: ['receipts', params],
     queryFn: () => fetchReceipts(params),
     enabled: !!params.system, // Запрос выполняется только если указан system
-    staleTime: 5 * 60 * 1000, // 5 минут
+    staleTime: 0, // Всегда перезагружать при изменении параметров
     gcTime: 10 * 60 * 1000, // 10 минут (раньше cacheTime)
   });
 }

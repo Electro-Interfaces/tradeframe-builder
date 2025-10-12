@@ -65,7 +65,11 @@ export default function Receipts() {
   const [stationIds, setStationIds] = useState<number[]>([]);
   const [selectedKpiFuels, setSelectedKpiFuels] = useState<Set<string>>(new Set());
   const [dateFrom, setDateFrom] = useState<string>('');
-  const [dateTo, setDateTo] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>(() => {
+    // Устанавливаем текущую дату как дефолт для "дата до"
+    const today = new Date();
+    return today.toISOString().split('T')[0]; // Формат YYYY-MM-DD
+  });
   const [shiftNumber, setShiftNumber] = useState<string>('');
   const [baseId, setBaseId] = useState<string>('');
   const [ttnNumber, setTtnNumber] = useState<string>('');
@@ -164,8 +168,32 @@ export default function Receipts() {
       );
     }
 
+    // Клиентская фильтрация по датам (т.к. API не фильтрует корректно)
+    if (dateFrom || dateTo) {
+      filtered = filtered.filter(r => {
+        const receiptDate = new Date(r.dt);
+
+        if (dateFrom && dateTo) {
+          // Оба фильтра заданы
+          const fromDate = new Date(dateFrom + 'T00:00:00');
+          const toDate = new Date(dateTo + 'T23:59:59');
+          return receiptDate >= fromDate && receiptDate <= toDate;
+        } else if (dateFrom) {
+          // Только дата "от"
+          const fromDate = new Date(dateFrom + 'T00:00:00');
+          return receiptDate >= fromDate;
+        } else if (dateTo) {
+          // Только дата "до"
+          const toDate = new Date(dateTo + 'T23:59:59');
+          return receiptDate <= toDate;
+        }
+
+        return true;
+      });
+    }
+
     return filtered;
-  }, [flatReceipts, stationIds, shiftNumber, baseId, debouncedTtn]);
+  }, [flatReceipts, stationIds, shiftNumber, baseId, debouncedTtn, dateFrom, dateTo]);
 
   // Фильтрация и сортировка данных на клиенте (для таблицы)
   const filteredReceipts = useMemo(() => {
@@ -212,7 +240,9 @@ export default function Receipts() {
     setStationIds([]);
     setSelectedKpiFuels(new Set());
     setDateFrom('');
-    setDateTo('');
+    // Возвращаем текущую дату в "дата до"
+    const today = new Date();
+    setDateTo(today.toISOString().split('T')[0]);
     setShiftNumber('');
     setBaseId('');
     setTtnNumber('');
