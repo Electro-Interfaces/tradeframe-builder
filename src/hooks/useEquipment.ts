@@ -72,18 +72,32 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
         tradingPointId: tradingPoint.external_id
       };
 
-      // Загружаем данные параллельно
-      const [terminalInfoData, tanksData] = await Promise.all([
-        stsApiService.getTerminalInfo(contextParams),
-        stsApiService.getTanks(contextParams)
-      ]);
+      // Загружаем данные по отдельности, чтобы ошибка в одном не ломала другой
+      let terminalInfoData: TerminalInfo | null = null;
+      let tanksData: Tank[] = [];
 
-      setTerminalInfo(terminalInfoData);
-      setTanks(tanksData);
+      // Пытаемся загрузить информацию о терминале
+      try {
+        terminalInfoData = await stsApiService.getTerminalInfo(contextParams);
+        setTerminalInfo(terminalInfoData);
 
-      // Преобразуем данные терминала в формат для отображения
-      const equipmentItems = equipmentService.mapTerminalInfoToEquipment(terminalInfoData);
-      setEquipment(equipmentItems);
+        // Преобразуем данные терминала в формат для отображения
+        const equipmentItems = equipmentService.mapTerminalInfoToEquipment(terminalInfoData);
+        setEquipment(equipmentItems);
+      } catch (terminalError) {
+        console.warn('Не удалось загрузить информацию о терминале:', terminalError);
+        setTerminalInfo(null);
+        setEquipment([]);
+      }
+
+      // Пытаемся загрузить резервуары
+      try {
+        tanksData = await stsApiService.getTanks(contextParams);
+        setTanks(tanksData);
+      } catch (tanksError) {
+        console.warn('Не удалось загрузить резервуары:', tanksError);
+        setTanks([]);
+      }
 
       setError(null);
     } catch (err) {
