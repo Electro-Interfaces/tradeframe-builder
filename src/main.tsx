@@ -23,6 +23,27 @@ window.resetDemoData = () => {
   location.reload();
 };
 
+// Глобальный патч insertBefore для предотвращения ошибок React
+// Применяется всегда, не только в PWA режиме
+if (typeof window !== 'undefined' && typeof Node !== 'undefined' && Node.prototype.insertBefore) {
+  const originalInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function(newNode, referenceNode) {
+    try {
+      // Проверяем что referenceNode действительно дочерний элемент
+      if (referenceNode && referenceNode.parentNode !== this) {
+        return this.appendChild(newNode);
+      }
+      return originalInsertBefore.call(this, newNode, referenceNode);
+    } catch (error) {
+      try {
+        return this.appendChild(newNode);
+      } catch (appendError) {
+        return newNode;
+      }
+    }
+  };
+}
+
 // Минимальная детекция для необходимых фиксов
 if (typeof window !== 'undefined') {
   const userAgent = navigator.userAgent;
@@ -76,26 +97,6 @@ if (typeof window !== 'undefined') {
         return true;
       }
     });
-
-    // Перехват ошибок React на более низком уровне
-    if (typeof Node !== 'undefined' && Node.prototype.insertBefore) {
-      const originalInsertBefore = Node.prototype.insertBefore;
-      Node.prototype.insertBefore = function(newNode, referenceNode) {
-        try {
-          // Проверяем что referenceNode действительно дочерний элемент
-          if (referenceNode && referenceNode.parentNode !== this) {
-            return this.appendChild(newNode);
-          }
-          return originalInsertBefore.call(this, newNode, referenceNode);
-        } catch (error) {
-          try {
-            return this.appendChild(newNode);
-          } catch (appendError) {
-            return newNode;
-          }
-        }
-      };
-    }
   }
 }
 
@@ -131,13 +132,36 @@ if (typeof window !== 'undefined') {
   }, { passive: false });
 }
 
+// Глобальная обработка ошибок insertBefore для всех браузеров
+window.addEventListener('error', (e) => {
+  // Предотвращаем показ ошибки insertBefore пользователю
+  if (e.message && (
+    e.message.includes('insertBefore') ||
+    e.message.includes('appendChild') ||
+    e.message.includes('removeChild') ||
+    e.message.includes('Node')
+  )) {
+    e.preventDefault();
+    return true;
+  }
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  // Предотвращаем показ ошибки insertBefore в промисах
+  if (e.reason && e.reason.message && (
+    e.reason.message.includes('insertBefore') ||
+    e.reason.message.includes('appendChild') ||
+    e.reason.message.includes('removeChild') ||
+    e.reason.message.includes('Node')
+  )) {
+    e.preventDefault();
+    return true;
+  }
+});
+
 // React root creation
 try {
   const root = createRoot(document.getElementById("root")!);
-
-  // Global error handling
-  window.addEventListener('error', (e) => e.preventDefault());
-  window.addEventListener('unhandledrejection', (e) => e.preventDefault());
 
   root.render(<App />);
 
