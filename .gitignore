@@ -79,7 +79,10 @@ redis-dump.rdb
 ngrok.exe
 ngrok.zip
 
-# Binaries
-ngrok.exe
-ngrok.zip
+# Archives
+*.tar.gz
+*.zip
+
+# Claude settings (local)
+.claude/settings.local.json
 
