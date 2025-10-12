@@ -45,4 +45,8 @@ jobs:
                   cd /var/www/www-root/data/www/prod.dataworker.ru
                   git pull --rebase
                   npm ci
-                  pm2 restart tradeframe-dev
+                  npm run build
+                  cd server
+                  npm ci
+                  cd ..
+                  pm2 restart ecosystem.config.cjs
