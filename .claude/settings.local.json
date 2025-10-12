@@ -180,7 +180,9 @@
       "Bash(elif [ -f .env ])",
       "Bash(then cat .env)",
       "Bash(else echo \"No .env files found\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(ssh root@194.135.36.195 \"pm2 status\")",
+      "Bash(ssh:*)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
