@@ -19,9 +19,6 @@ interface UsePullToRefreshReturn {
   pullState: PullState;
   pullDistance: number;
   scrollContainerRef: React.RefObject<HTMLDivElement>;
-  handleTouchStart: (e: React.TouchEvent) => void;
-  handleTouchMove: (e: React.TouchEvent) => void;
-  handleTouchEnd: () => void;
 }
 
 /**
@@ -89,7 +86,7 @@ export function usePullToRefresh(options: UsePullToRefreshOptions): UsePullToRef
   /**
    * Начало касания
    */
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = (e: TouchEvent) => {
     if (!enabled || pullState === 'refreshing') return;
 
     const container = scrollContainerRef.current;
@@ -105,7 +102,7 @@ export function usePullToRefresh(options: UsePullToRefreshOptions): UsePullToRef
   /**
    * Движение пальца
    */
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = (e: TouchEvent) => {
     if (!enabled || !startTouchRef.current || pullState === 'refreshing') return;
 
     const container = scrollContainerRef.current;
@@ -153,14 +150,28 @@ export function usePullToRefresh(options: UsePullToRefreshOptions): UsePullToRef
     }
   };
 
-  // Cleanup RAF при размонтировании компонента
+  // Подключение нативных обработчиков с {passive: false}
   useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !enabled) return;
+
+    // Опции с passive: false для возможности preventDefault
+    const options = { passive: false };
+
+    container.addEventListener('touchstart', handleTouchStart, options);
+    container.addEventListener('touchmove', handleTouchMove, options);
+    container.addEventListener('touchend', handleTouchEnd);
+
     return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+
       if (rafId.current) {
         cancelAnimationFrame(rafId.current);
       }
     };
-  }, []);
+  }, [enabled, pullState]);
 
   return {
     pullState,

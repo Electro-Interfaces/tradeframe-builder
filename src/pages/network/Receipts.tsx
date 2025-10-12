@@ -108,10 +108,7 @@ export default function Receipts() {
   const {
     pullState,
     pullDistance,
-    scrollContainerRef,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd
+    scrollContainerRef
   } = usePullToRefresh({
     onRefresh: refetch,
     enabled: isMobile,
@@ -286,9 +283,6 @@ export default function Receipts() {
       <div
         ref={scrollContainerRef}
         className={`w-full h-full px-4 md:px-6 lg:px-8 relative ${isMobile ? 'overflow-y-auto' : ''}`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
         {/* Pull-to-refresh индикатор */}
         {isMobile && pullDistance > INDICATOR_APPEAR_THRESHOLD && (

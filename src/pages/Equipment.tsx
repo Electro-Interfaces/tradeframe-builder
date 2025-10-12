@@ -74,10 +74,7 @@ export default function Equipment() {
   const {
     pullState,
     pullDistance,
-    scrollContainerRef,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd
+    scrollContainerRef
   } = usePullToRefresh({
     onRefresh: refreshEquipment,
     enabled: isMobile,
@@ -130,9 +127,6 @@ export default function Equipment() {
       <div
         ref={scrollContainerRef}
         className={`w-full space-y-6 ${isMobile ? 'px-2 py-4' : 'px-4 md:px-6 lg:px-8 py-6'} relative overflow-hidden`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         style={{
           transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
           transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'

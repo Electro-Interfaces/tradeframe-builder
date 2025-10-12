@@ -665,10 +665,7 @@ export default function Prices() {
   const {
     pullState,
     pullDistance,
-    scrollContainerRef,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd
+    scrollContainerRef
   } = usePullToRefresh({
     onRefresh: handleRefreshData,
     enabled: isMobile,
@@ -901,9 +898,6 @@ export default function Prices() {
       <div
         ref={scrollContainerRef}
         className="w-full h-full px-4 md:px-6 lg:px-8 relative"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         style={{
           transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
           transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
