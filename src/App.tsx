@@ -198,9 +198,9 @@ const App = () => {
               {showPWAInstaller && <PWAInstaller />}
               <UpdateNotification />
             </SelectionProvider>
-        </NewAuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+          </NewAuthProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 };
