@@ -10,6 +10,7 @@ type SelectionContextValue = {
   selectedTradingPoint: string;
   setSelectedTradingPoint: (v: string) => void;
   isAllTradingPoints: boolean;
+  isInitialized: boolean;
 };
 
 const SelectionContext = createContext<SelectionContextValue | undefined>(undefined);
@@ -17,6 +18,7 @@ const SelectionContext = createContext<SelectionContextValue | undefined>(undefi
 export function SelectionProvider({ children }: { children: React.ReactNode }) {
   const [selectedNetworkId, setSelectedNetworkId] = useState<string>("");
   const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>("");
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const { user } = useNewAuth();
 
   // Получаем объект сети по ID
@@ -54,7 +56,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       networksService.getById(selectedNetworkId)
         .then(network => {
           setSelectedNetworkState(network);
-          
+
           // Автоматически выбираем торговую точку "АЗС 4" если её нет и если localStorage пуст
           if (!selectedTradingPoint && typeof window !== 'undefined') {
             const savedTradingPoint = localStorage.getItem("tc:selectedTradingPoint");
@@ -62,25 +64,36 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
               tradingPointsService.getByNetworkId(selectedNetworkId)
                 .then(tradingPoints => {
                   // Ищем торговую точку "АЗС 4" или с похожим названием
-                  const azs4Point = tradingPoints.find(p => 
+                  const azs4Point = tradingPoints.find(p =>
                     p.name && (
-                      p.name.toLowerCase().includes('азс 4') || 
+                      p.name.toLowerCase().includes('азс 4') ||
                       p.name.toLowerCase().includes('азс4') ||
                       p.name.toLowerCase() === 'азс 4'
                     )
                   );
-                  
+
                   if (azs4Point) {
                     setSelectedTradingPoint(azs4Point.id);
                   } else if (tradingPoints.length > 0) {
                     // Если АЗС 4 не найдена, выбираем первую доступную
                     setSelectedTradingPoint(tradingPoints[0].id);
                   }
+
+                  // Отмечаем инициализацию как завершенную
+                  setIsInitialized(true);
                 })
                 .catch(error => {
                   console.error('Failed to load trading points:', error);
+                  // Даже при ошибке отмечаем инициализацию как завершенную
+                  setIsInitialized(true);
                 });
+            } else {
+              // Если торговая точка уже выбрана из localStorage
+              setIsInitialized(true);
             }
+          } else {
+            // Если торговая точка уже выбрана
+            setIsInitialized(true);
           }
         })
         .catch(error => {
@@ -91,10 +104,17 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
             if (networks.length > 0) {
               setSelectedNetworkId(networks[0].id);
             }
+            // Отмечаем инициализацию как завершенную даже при ошибке
+            setIsInitialized(true);
+          }).catch(() => {
+            // Даже при полном провале отмечаем инициализацию
+            setIsInitialized(true);
           });
         });
     } else {
       setSelectedNetworkState(null);
+      // Если нет выбранной сети, всё равно отмечаем инициализацию
+      setIsInitialized(true);
     }
   }, [selectedNetworkId]);
 
@@ -177,6 +197,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     selectedTradingPoint,
     setSelectedTradingPoint,
     isAllTradingPoints,
+    isInitialized,
   };
 
   return (
