@@ -111,13 +111,16 @@ export function usePullToRefresh(options: UsePullToRefreshOptions): UsePullToRef
     const currentY = e.touches[0].clientY;
     const deltaY = currentY - startTouchRef.current.y;
 
-    // Только если движение вниз и мы в верху страницы
-    if (deltaY > 0 && container.scrollTop === 0) {
+    // Минимальный порог для активации pull-to-refresh (20px)
+    const MIN_PULL_START = 20;
+
+    // Только если движение вниз больше порога и мы в верху страницы
+    if (deltaY > MIN_PULL_START && container.scrollTop === 0) {
       e.preventDefault();
 
       // Применяем эластичность (чем больше тянем, тем медленнее)
       const elasticity = Math.max(0.5, 1 - (deltaY / maxPullDistance) * 0.5);
-      const adjustedDistance = deltaY * elasticity;
+      const adjustedDistance = (deltaY - MIN_PULL_START) * elasticity;
 
       updatePullDistance(adjustedDistance);
     } else if (deltaY <= 0 || container.scrollTop > 0) {

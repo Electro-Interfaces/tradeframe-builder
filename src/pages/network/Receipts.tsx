@@ -312,6 +312,7 @@ export default function Receipts() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
+        data-pull-to-refresh="true"
         className={`w-full h-full px-4 md:px-6 lg:px-8 relative ${isMobile ? 'overflow-y-auto' : ''}`}
       >
         {/* Pull-to-refresh индикатор */}

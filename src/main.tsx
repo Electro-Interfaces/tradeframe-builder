@@ -101,9 +101,10 @@ if (typeof window !== 'undefined') {
 
 // GitHub Pages routing - обработается в App.tsx
 
-// Pull-to-refresh protection
+// Pull-to-refresh protection - предотвращает случайное обновление браузера
 if (typeof window !== 'undefined') {
   let startY = 0;
+  const MIN_PULL_THRESHOLD = 30; // Минимальное расстояние для блокировки (30px)
 
   document.addEventListener('touchstart', (e) => {
     startY = e.touches[0].clientY;
@@ -111,14 +112,19 @@ if (typeof window !== 'undefined') {
 
   document.addEventListener('touchmove', (e) => {
     const currentY = e.touches[0].clientY;
+    const deltaY = currentY - startY;
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const target = e.target as Element;
+
+    // Исключаем элементы с собственным скроллом или pull-to-refresh
     const isInSidebar = target.closest('[role="dialog"]') ||
                        target.closest('.mobile-sidebar') ||
                        target.closest('[data-radix-dialog-content]') ||
-                       target.closest('.overflow-y-scroll');
+                       target.closest('.overflow-y-scroll') ||
+                       target.closest('[data-pull-to-refresh]'); // Новое: не блокируем контейнеры с PTR
 
-    if (scrollTop === 0 && currentY > startY && !isInSidebar) {
+    // Блокируем только если движение вниз превышает порог
+    if (scrollTop === 0 && deltaY > MIN_PULL_THRESHOLD && !isInSidebar) {
       e.preventDefault();
       e.stopPropagation();
     }

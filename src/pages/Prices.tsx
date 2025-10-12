@@ -897,6 +897,7 @@ export default function Prices() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
+        data-pull-to-refresh="true"
         className="w-full h-full px-4 md:px-6 lg:px-8 relative"
         style={{
           transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
