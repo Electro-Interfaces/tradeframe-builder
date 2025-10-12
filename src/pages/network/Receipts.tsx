@@ -318,7 +318,9 @@ export default function Receipts() {
           overscrollBehavior: 'none',
           overscrollBehaviorY: 'none',
           WebkitOverscrollBehavior: 'none',
-          WebkitOverscrollBehaviorY: 'none'
+          WebkitOverscrollBehaviorY: 'none',
+          touchAction: 'pan-y',
+          WebkitOverflowScrolling: 'touch'
         } : undefined}
       >
         {/* Pull-to-refresh индикатор */}

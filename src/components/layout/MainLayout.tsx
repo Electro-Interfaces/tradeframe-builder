@@ -112,7 +112,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
               )}
             </div>
 
-            <main className="flex-1 min-w-0 w-full max-w-none">
+            <main className="flex-1 min-w-0 w-full max-w-none overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
               <div className={fullWidth ? "w-full max-w-none pt-4" : "px-0 md:px-6 lg:px-8 w-full max-w-none pt-4"}>
                 {children}
               </div>
