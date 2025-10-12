@@ -92,7 +92,7 @@ async function proxyRequest(req, res) {
     };
 
     // Выполняем запрос к STS API
-    const client = getStsClient();
+    const client = await getStsClient();
     const response = await client.request(requestConfig);
 
     // Возвращаем ответ клиенту
