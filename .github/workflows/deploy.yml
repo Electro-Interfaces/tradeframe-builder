@@ -11,19 +11,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
-      - name: Build
+
+      - name: Build for production
         run: npm run build
-        
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -35,7 +42,28 @@ jobs:
         PROD_PORT: ${{secrets.PROD_PORT}}
 
     steps:
-      - name: connect to server and deploy
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Deploy via SCP and SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{env.PROD_ADDRESS}}
+          username: ${{env.PROD_USER}}
+          password: ${{env.PROD_PASS}}
+          port: ${{env.PROD_PORT}}
+          source: "dist/,server/,ecosystem.config.cjs,package.json,package-lock.json"
+          target: "/var/www/www-root/data/www/prod.dataworker.ru"
+          strip_components: 0
+          overwrite: true
+
+      - name: Setup and restart services
         uses: appleboy/ssh-action@v1.1.0
         with:
             host: ${{env.PROD_ADDRESS}}
@@ -45,43 +73,7 @@ jobs:
             script: |
                   cd /var/www/www-root/data/www/prod.dataworker.ru
 
-                  # Проверка текущего пользователя и прав
-                  echo "Current user: $(whoami)"
-                  echo "Directory owner: $(stat -c '%U' .)"
-
-                  # Проверяем есть ли права на запись
-                  if [ ! -w . ]; then
-                    echo "No write permissions in current directory"
-                    echo "Attempting to fix permissions..."
-
-                    # Пробуем через sudo с NOPASSWD (если настроено в sudoers)
-                    if sudo -n chown -R $(whoami):$(whoami) . 2>/dev/null; then
-                      echo "Permissions fixed successfully"
-                    else
-                      echo "Cannot fix permissions. Please run on server:"
-                      echo "sudo chown -R $(whoami):$(whoami) /var/www/www-root/data/www/prod.dataworker.ru"
-                      exit 1
-                    fi
-                  fi
-
-                  # Сброс локальных изменений (кроме важных файлов)
-                  git reset --hard HEAD
-
-                  # Удаляем только untracked файлы, НЕ директории
-                  git clean -f
-
-                  # Обновляем код через fetch + reset (безопаснее чем pull --rebase)
-                  git fetch origin main
-                  git reset --hard origin/main
-
-                  # Удаляем старую сборку если есть
-                  rm -rf dist
-
-                  # Установка зависимостей и сборка
-                  npm ci --no-fund --no-audit
-                  npm run build
-
-                  # Backend Proxy - проверяем что директория существует
+                  # Backend Proxy - устанавливаем зависимости
                   if [ -d "server" ] && [ -f "server/package.json" ]; then
                     cd server
                     npm ci --no-fund --no-audit
