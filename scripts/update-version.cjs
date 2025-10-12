@@ -44,6 +44,51 @@ function updateManifestJson(version) {
   }
 }
 
+// Обновляем index.html
+function updateIndexHtml(version) {
+  try {
+    const indexPath = path.join(__dirname, '../index.html');
+    let content = fs.readFileSync(indexPath, 'utf8');
+
+    // Генерируем cache-buster с датой
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+
+    // Список замен
+    const replacements = [
+      {
+        pattern: /<title>TradeFrame - Управление торговыми сетями v[\d.]+<\/title>/,
+        replacement: `<title>TradeFrame - Управление торговыми сетями v${version}</title>`
+      },
+      {
+        pattern: /<meta name="cache-buster" content="v[\d.]+-\d+" \/>/,
+        replacement: `<meta name="cache-buster" content="v${version}-${today}" />`
+      },
+      {
+        pattern: /const APP_VERSION = 'v[\d.]+';/,
+        replacement: `const APP_VERSION = 'v${version}';`
+      },
+      {
+        pattern: /<link rel="manifest" href="\/manifest\.json\?v=[\d.]+" \/>/,
+        replacement: `<link rel="manifest" href="/manifest.json?v=${version}" />`
+      },
+      {
+        pattern: />v[\d.]+<\/p>/,
+        replacement: `>v${version}</p>`
+      }
+    ];
+
+    // Применяем все замены
+    replacements.forEach(({ pattern, replacement }) => {
+      content = content.replace(pattern, replacement);
+    });
+
+    fs.writeFileSync(indexPath, content, 'utf8');
+    console.log(`✅ index.html обновлен до версии ${version}`);
+  } catch (error) {
+    console.error('❌ Ошибка обновления index.html:', error.message);
+  }
+}
+
 // Основная функция
 function main() {
   console.log('🔄 Синхронизация версии из конфигурации...');
@@ -58,6 +103,7 @@ function main() {
 
   updatePackageJson(version);
   updateManifestJson(version);
+  updateIndexHtml(version);
 
   console.log('✅ Синхронизация версии завершена!');
 }

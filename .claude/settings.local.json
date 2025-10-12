@@ -173,7 +173,14 @@
       "Bash(find:*)",
       "Bash(xargs:*)",
       "Bash(if exist nul del nul)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "mcp__chrome-devtools__fill",
+      "Bash(if [ -f .env.production ])",
+      "Bash(then cat .env.production)",
+      "Bash(elif [ -f .env ])",
+      "Bash(then cat .env)",
+      "Bash(else echo \"No .env files found\")",
+      "Bash(fi)"
     ],
     "deny": [
       "Bash(rm -rf /*)",

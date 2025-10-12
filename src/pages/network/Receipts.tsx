@@ -314,6 +314,12 @@ export default function Receipts() {
         ref={scrollContainerRef}
         data-pull-to-refresh="true"
         className={`w-full h-full px-4 md:px-6 lg:px-8 relative ${isMobile ? 'overflow-y-auto' : ''}`}
+        style={isMobile ? {
+          overscrollBehavior: 'none',
+          overscrollBehaviorY: 'none',
+          WebkitOverscrollBehavior: 'none',
+          WebkitOverscrollBehaviorY: 'none'
+        } : undefined}
       >
         {/* Pull-to-refresh индикатор */}
         {isMobile && pullDistance > INDICATOR_APPEAR_THRESHOLD && (
