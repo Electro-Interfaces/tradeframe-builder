@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Полный тест версионирования с кэшами</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #e2e8f0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #3b82f6;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .section {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section h2 {
+      color: #60a5fa;
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .info-card {
+      background: #0f172a;
+      border-radius: 6px;
+      padding: 15px;
+      border: 1px solid #334155;
+    }
+
+    .info-label {
+      color: #94a3b8;
+      font-size: 12px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-value {
+      color: #e2e8f0;
+      font-size: 20px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 5px;
+    }
+
+    .status.success {
+      background: #10b981;
+      color: white;
+    }
+
+    .status.warning {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .status.error {
+      background: #ef4444;
+      color: white;
+    }
+
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      width: 100%;
+      max-width: 280px;
+    }
+
+    button:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: #64748b;
+    }
+
+    button.success {
+      background: #10b981;
+    }
+
+    button.danger {
+      background: #ef4444;
+    }
+
+    .scenario {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .scenario h3 {
+      color: #3b82f6;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .scenario p {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 15px;
+      line-height: 1.6;
+    }
+
+    .log-container {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    .log-entry {
+      margin-bottom: 6px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      display: flex;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .log-entry.info {
+      background: rgba(59, 130, 246, 0.1);
+      border-left: 3px solid #3b82f6;
+    }
+
+    .log-entry.success {
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 3px solid #10b981;
+    }
+
+    .log-entry.warning {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 3px solid #f59e0b;
+    }
+
+    .log-entry.error {
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 3px solid #ef4444;
+    }
+
+    .log-time {
+      color: #64748b;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .log-message {
+      color: #e2e8f0;
+      flex: 1;
+    }
+
+    .cache-list {
+      margin-top: 10px;
+      padding: 10px;
+      background: #0f172a;
+      border-radius: 6px;
+    }
+
+    .cache-item {
+      padding: 8px;
+      background: #1e293b;
+      border-radius: 4px;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cache-name {
+      font-family: 'Courier New', monospace;
+      color: #93c5fd;
+      font-size: 13px;
+    }
+
+    .cache-size {
+      color: #64748b;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔬 Полный тест механизма версионирования</h1>
+    <p class="subtitle">Комплексная проверка работы системы управления версиями, кэшами и обновлениями</p>
+
+    <!-- Текущее состояние -->
+    <div class="section">
+      <h2>📊 Текущее состояние системы</h2>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="info-label">Версия в localStorage</div>
+          <div class="info-value" id="stored-version">—</div>
+          <div class="status warning" id="version-status">Проверка...</div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-label">Текущая версия</div>
+          <div class="info-value">v1.5.25</div>
+          <div class="status success">Production</div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-label">Активных кэшей</div>
+          <div class="info-value" id="cache-count">0</div>
+          <div class="status info" id="cache-status">Готов</div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-label">Записей в кэше</div>
+          <div class="info-value" id="cache-entries">0</div>
+          <div class="status info">Всего</div>
+        </div>
+      </div>
+
+      <div id="cache-list" class="cache-list" style="display: none;">
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 8px; font-weight: 600;">
+          📦 Список активных кэшей:
+        </div>
+        <div id="cache-items"></div>
+      </div>
+
+      <button onclick="refreshState()" class="success" style="max-width: 200px;">🔄 Обновить состояние</button>
+    </div>
+
+    <!-- Тестовые сценарии -->
+    <div class="section">
+      <h2>🎯 Тестовые сценарии</h2>
+
+      <div class="scenario">
+        <h3>1️⃣ Первый запуск приложения</h3>
+        <p>Имитирует первую загрузку приложения пользователем. Должна сохраниться текущая версия.</p>
+        <button onclick="runScenario1()">▶️ Запустить сценарий 1</button>
+      </div>
+
+      <div class="scenario">
+        <h3>2️⃣ Обновление версии с очисткой кэша</h3>
+        <p>Создает тестовые кэши, затем имитирует обновление с v1.5.24 до v1.5.25. Кэши должны быть удалены.</p>
+        <button onclick="runScenario2()">▶️ Запустить сценарий 2</button>
+      </div>
+
+      <div class="scenario">
+        <h3>3️⃣ Обновление без изменения версии</h3>
+        <p>Проверяет, что кэш НЕ очищается, если версия не изменилась.</p>
+        <button onclick="runScenario3()">▶️ Запустить сценарий 3</button>
+      </div>
+
+      <div class="scenario">
+        <h3>4️⃣ Реальный сценарий: v1.5.25 → v1.5.26</h3>
+        <p>Полная симуляция производственного обновления с созданием реальных кэшей.</p>
+        <button onclick="runScenario4()">▶️ Запустить сценарий 4</button>
+      </div>
+
+      <button onclick="clearAllData()" class="danger" style="margin-top: 10px;">🗑️ Очистить все данные</button>
+    </div>
+
+    <!-- Журнал -->
+    <div class="section">
+      <h2>📝 Журнал событий</h2>
+      <div class="log-container" id="log-container"></div>
+      <button onclick="clearLogs()" class="secondary" style="margin-top: 10px; max-width: 200px;">🧹 Очистить журнал</button>
+    </div>
+  </div>
+
+  <script>
+    const CACHE_VERSION_KEY = 'tf_cache_version';
+    const CURRENT_VERSION = 'v1.5.25';
+
+    function log(message, type = 'info') {
+      const container = document.getElementById('log-container');
+      const time = new Date().toLocaleTimeString('ru-RU');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.innerHTML = `
+        <span class="log-time">[${time}]</span>
+        <span class="log-message">${message}</span>
+      `;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('log-container').innerHTML = '';
+      log('📋 Журнал очищен', 'info');
+    }
+
+    async function refreshState() {
+      const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+      document.getElementById('stored-version').textContent = storedVersion || '—';
+
+      const versionStatusEl = document.getElementById('version-status');
+      if (!storedVersion) {
+        versionStatusEl.textContent = 'Не установлена';
+        versionStatusEl.className = 'status warning';
+      } else if (storedVersion === CURRENT_VERSION) {
+        versionStatusEl.textContent = 'Актуальная ✓';
+        versionStatusEl.className = 'status success';
+      } else {
+        versionStatusEl.textContent = 'Устарела';
+        versionStatusEl.className = 'status error';
+      }
+
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        document.getElementById('cache-count').textContent = cacheNames.length;
+
+        let totalEntries = 0;
+        const cacheItems = document.getElementById('cache-items');
+        cacheItems.innerHTML = '';
+
+        for (const cacheName of cacheNames) {
+          const cache = await caches.open(cacheName);
+          const keys = await cache.keys();
+          totalEntries += keys.length;
+
+          const item = document.createElement('div');
+          item.className = 'cache-item';
+          item.innerHTML = `
+            <span class="cache-name">${cacheName}</span>
+            <span class="cache-size">${keys.length} записей</span>
+          `;
+          cacheItems.appendChild(item);
+        }
+
+        document.getElementById('cache-entries').textContent = totalEntries;
+        document.getElementById('cache-list').style.display = cacheNames.length > 0 ? 'block' : 'none';
+      }
+    }
+
+    async function createTestCaches(count = 3, prefix = 'tradeframe') {
+      log(`📦 Создание ${count} тестовых кэшей...`, 'info');
+
+      for (let i = 1; i <= count; i++) {
+        const cacheName = `${prefix}-v${i}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const cache = await caches.open(cacheName);
+
+        // Добавляем тестовые записи
+        await cache.put(`/test-${i}.js`, new Response('test content'));
+        await cache.put(`/test-${i}.css`, new Response('test styles'));
+
+        log(`✅ Создан кэш: ${cacheName} (2 записи)`, 'success');
+        await new Promise(r => setTimeout(r, 100)); // Задержка между созданием кэшей
+      }
+
+      await refreshState();
+    }
+
+    async function versionUpdateLogic(newVersion) {
+      if ('caches' in window) {
+        const savedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+
+        if (savedVersion !== newVersion) {
+          log(`🔄 Версия изменилась: ${savedVersion || 'нет'} → ${newVersion}`, 'warning');
+
+          const cacheNames = await caches.keys();
+          log(`🧹 Начало очистки кэша (найдено: ${cacheNames.length})...`, 'info');
+
+          for (const cacheName of cacheNames) {
+            await caches.delete(cacheName);
+            log(`✅ Удален кэш: ${cacheName}`, 'success');
+          }
+
+          localStorage.setItem(CACHE_VERSION_KEY, newVersion);
+          log(`✅ Версия обновлена до ${newVersion}`, 'success');
+        } else {
+          log(`ℹ️ Версия не изменилась (${newVersion}), кэш сохранен`, 'info');
+        }
+      }
+
+      await refreshState();
+    }
+
+    // Сценарий 1: Первый запуск
+    async function runScenario1() {
+      if (isRunningScenario) {
+        log('⚠️ Сценарий уже выполняется, подождите...', 'warning');
+        return;
+      }
+
+      isRunningScenario = true;
+      log('🎯 === СЦЕНАРИЙ 1: Первый запуск ===', 'info');
+
+      try {
+        // Очищаем все
+        localStorage.removeItem(CACHE_VERSION_KEY);
+        const cacheNames = await caches.keys();
+        for (const name of cacheNames) {
+          await caches.delete(name);
+        }
+        log('✅ Очищены все данные', 'success');
+
+        await refreshState();
+
+        // Имитируем первый запуск
+        log('📱 Пользователь открывает приложение первый раз...', 'info');
+        await new Promise(r => setTimeout(r, 500));
+
+        localStorage.setItem(CACHE_VERSION_KEY, CURRENT_VERSION);
+        log(`✅ Версия ${CURRENT_VERSION} сохранена при первом запуске`, 'success');
+
+        await refreshState();
+        log('🎉 Сценарий 1 завершен успешно!', 'success');
+      } finally {
+        isRunningScenario = false;
+      }
+    }
+
+    // Защита от повторных запусков
+    let isRunningScenario = false;
+
+    // Сценарий 2: Обновление с очисткой
+    async function runScenario2() {
+      if (isRunningScenario) {
+        log('⚠️ Сценарий уже выполняется, подождите...', 'warning');
+        return;
+      }
+
+      isRunningScenario = true;
+      log('🎯 === СЦЕНАРИЙ 2: Обновление с очисткой кэша ===', 'info');
+
+      try {
+        // Устанавливаем старую версию
+        localStorage.setItem(CACHE_VERSION_KEY, 'v1.5.24');
+        log('📌 Установлена версия v1.5.24', 'info');
+        await refreshState();
+
+        // Создаем кэши
+        await createTestCaches(5, 'test-cache');
+
+        const cachesBefore = await caches.keys();
+        log(`✅ Создано ${cachesBefore.length} кэшей с тестовыми данными`, 'success');
+
+        await new Promise(r => setTimeout(r, 1000));
+
+        // Имитируем обновление
+        log('🚀 Пользователь получает обновление до v1.5.25...', 'warning');
+        await new Promise(r => setTimeout(r, 500));
+
+        await versionUpdateLogic('v1.5.25');
+
+        const cachesAfter = await caches.keys();
+        log(`📊 Результат: ${cachesBefore.length} → ${cachesAfter.length} кэшей`, 'info');
+        log('🎉 Сценарий 2 завершен! Все кэши очищены при обновлении', 'success');
+      } finally {
+        isRunningScenario = false;
+      }
+    }
+
+    // Сценарий 3: Без изменения версии
+    async function runScenario3() {
+      if (isRunningScenario) {
+        log('⚠️ Сценарий уже выполняется, подождите...', 'warning');
+        return;
+      }
+
+      isRunningScenario = true;
+      log('🎯 === СЦЕНАРИЙ 3: Перезагрузка без обновления ===', 'info');
+
+      try {
+        localStorage.setItem(CACHE_VERSION_KEY, CURRENT_VERSION);
+        log(`📌 Установлена текущая версия ${CURRENT_VERSION}`, 'info');
+        await refreshState();
+
+        await createTestCaches(3, 'persistent-cache');
+        const cachesBefore = await caches.keys();
+        log(`✅ Создано ${cachesBefore.length} кэшей`, 'success');
+
+        await new Promise(r => setTimeout(r, 1000));
+
+        log('🔄 Пользователь перезагружает страницу...', 'info');
+        await new Promise(r => setTimeout(r, 500));
+
+        await versionUpdateLogic(CURRENT_VERSION);
+
+        const cachesAfter = await caches.keys();
+        log(`📊 Результат: ${cachesBefore.length} → ${cachesAfter.length} кэшей`, 'info');
+
+        if (cachesAfter.length === cachesBefore.length) {
+          log('✅ Кэши НЕ были удалены (версия не изменилась)', 'success');
+          log('🎉 Сценарий 3 завершен! Поведение корректное', 'success');
+        } else {
+          log('❌ ОШИБКА: Кэши были удалены, хотя версия не изменилась!', 'error');
+        }
+      } finally {
+        isRunningScenario = false;
+      }
+    }
+
+    // Сценарий 4: Реальное обновление
+    async function runScenario4() {
+      if (isRunningScenario) {
+        log('⚠️ Сценарий уже выполняется, подождите...', 'warning');
+        return;
+      }
+
+      isRunningScenario = true;
+      log('🎯 === СЦЕНАРИЙ 4: Production обновление v1.5.25 → v1.5.26 ===', 'info');
+
+      try {
+        // Текущее состояние
+        localStorage.setItem(CACHE_VERSION_KEY, 'v1.5.25');
+        log('📌 Текущая версия: v1.5.25', 'info');
+        await refreshState();
+
+        // Создаем реалистичные кэши
+        log('📦 Создание производственных кэшей...', 'info');
+        const prodCaches = [
+          'tradeframe-assets-v1.5.25',
+          'tradeframe-api-cache-v1.5.25',
+          'workbox-precache-v1.5.25'
+        ];
+
+        for (const cacheName of prodCaches) {
+          const cache = await caches.open(cacheName);
+          await cache.put('/index.js', new Response('app code'));
+          await cache.put('/styles.css', new Response('app styles'));
+          await cache.put('/api/data', new Response('{"data": "cached"}'));
+          log(`✅ Создан кэш: ${cacheName} (3 записи)`, 'success');
+          await new Promise(r => setTimeout(r, 100));
+        }
+
+        const cachesBefore = await caches.keys();
+        log(`✅ Всего создано ${cachesBefore.length} production кэшей`, 'success');
+        await refreshState();
+        await new Promise(r => setTimeout(r, 1000));
+
+        log('🚀 Развертывание новой версии v1.5.26...', 'warning');
+        await new Promise(r => setTimeout(r, 500));
+
+        log('📥 Пользователь обновляет страницу...', 'info');
+        await new Promise(r => setTimeout(r, 500));
+
+        await versionUpdateLogic('v1.5.26');
+
+        const cachesAfter = await caches.keys();
+        log(`📊 Результат: ${cachesBefore.length} → ${cachesAfter.length} кэшей`, 'info');
+        log('🎉 Сценарий 4 завершен! Production обновление выполнено успешно', 'success');
+      } finally {
+        isRunningScenario = false;
+      }
+    }
+
+    async function clearAllData() {
+      if (!confirm('Очистить ВСЕ данные (версию, кэши)?')) return;
+
+      log('🗑️ Полная очистка данных...', 'warning');
+
+      localStorage.removeItem(CACHE_VERSION_KEY);
+      log('✅ Версия удалена из localStorage', 'success');
+
+      const cacheNames = await caches.keys();
+      for (const name of cacheNames) {
+        await caches.delete(name);
+        log(`✅ Удален кэш: ${name}`, 'success');
+      }
+
+      await refreshState();
+      log('✅ Все данные очищены', 'success');
+    }
+
+    // Инициализация
+    window.addEventListener('load', async () => {
+      log('🚀 Тестовая страница загружена', 'info');
+      await refreshState();
+
+      const storedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+      if (storedVersion && storedVersion !== CURRENT_VERSION) {
+        log(`⚠️ Обнаружена устаревшая версия: ${storedVersion}`, 'warning');
+      }
+    });
+  </script>
+</body>
+</html>

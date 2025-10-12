@@ -11,14 +11,6 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ssvazdgnmatbdy
 // В продакшне нужно настроить правильные RLS политики и использовать anon key
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
 
-console.log('URL:', supabaseUrl);
-console.log('Key (first 50 chars):', supabaseKey.substring(0, 50) + '...');
-console.log('Key type:', supabaseKey.includes('anon') ? 'anon' : supabaseKey.includes('service_role') ? 'service_role' : 'unknown');
-console.log('Environment variables:');
-console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
-console.log('VITE_SUPABASE_ANON_KEY present:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
-console.log('VITE_USE_HTTP_API:', import.meta.env.VITE_USE_HTTP_API);
-
 // Создание клиента для браузера
 export const supabase: SupabaseClient = createClient(
   supabaseUrl,
