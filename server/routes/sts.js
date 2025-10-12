@@ -130,6 +130,7 @@ router.get('/v2/transactions', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для информации о ТО ===
 router.get('/v1/info', (req, res) => proxyRequest(req, res));
+router.get('/v2/info', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для резервуаров ===
 router.get('/v1/tanks', (req, res) => proxyRequest(req, res));
@@ -157,7 +158,8 @@ router.post('/v1/control/shift/close', (req, res) => proxyRequest(req, res));
 
 // === Универсальный fallback для всех остальных endpoints ===
 router.all('*', (req, res) => {
-  req.path = req.originalUrl.replace('/api/sts', '');
+  // req.path - это read-only свойство, используем req.originalUrl напрямую
+  // proxyRequest использует req.path, который уже правильно установлен роутером
   proxyRequest(req, res);
 });
 
