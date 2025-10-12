@@ -269,6 +269,24 @@ class STSApiService {
         const parsedConfig = JSON.parse(savedConfig);
         // Всегда обновляем конфигурацию из localStorage
         this.config = parsedConfig;
+      } else {
+        // Если нет конфигурации в localStorage, пробуем загрузить из переменных окружения
+        const envUrl = import.meta.env.VITE_STS_API_URL;
+        const envUsername = import.meta.env.VITE_STS_API_USERNAME;
+        const envPassword = import.meta.env.VITE_STS_API_PASSWORD;
+
+        if (envUrl && envUsername && envPassword) {
+          this.config = {
+            url: envUrl,
+            username: envUsername,
+            password: envPassword,
+            enabled: true,
+            timeout: 30000,
+            retryAttempts: 3
+          };
+          // Сохраняем конфигурацию из env в localStorage для будущего использования
+          localStorage.setItem('sts-api-config', JSON.stringify(this.config));
+        }
       }
     } catch (error) {
       console.error('Ошибка загрузки конфигурации СТС API:', error);
