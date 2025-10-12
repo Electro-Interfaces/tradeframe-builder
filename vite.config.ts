@@ -7,8 +7,8 @@ import { manifestPlugin } from "./vite-plugin-manifest";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // GitHub Pages всегда использует /tradeframe-builder/ как base
-  base: process.env.GITHUB_ACTIONS ? '/tradeframe-builder/' : '/',
+  // GitHub Pages использует /tradeframe-builder/, production использует /
+  base: mode === 'github-pages' ? '/tradeframe-builder/' : '/',
   // Явное определение переменных окружения
   define: {
     'import.meta.env.VITE_STS_API_URL': JSON.stringify(process.env.VITE_STS_API_URL),
