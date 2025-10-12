@@ -33,7 +33,7 @@ jobs:
 
       - name: Create production environment file
         run: |
-          cat > .env.production << 'EOF'
+          cat > .env.production << EOF
           # Production environment variables
           VITE_DISABLE_PDF_EXPORT=true
 
@@ -47,6 +47,10 @@ jobs:
           VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
           EOF
+          echo "Created .env.production file"
+          echo "Checking if secrets are loaded:"
+          if [ -z "${{ secrets.VITE_STS_API_URL }}" ]; then echo "WARNING: VITE_STS_API_URL is empty"; fi
+          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ]; then echo "WARNING: VITE_SUPABASE_URL is empty"; fi
 
       - name: Build project
         run: npm run build
