@@ -49,4 +49,5 @@ jobs:
                   cd server
                   npm ci
                   cd ..
-                  pm2 restart ecosystem.config.cjs
+                  pm2 restart tradeframe-prod
+                  pm2 restart tradeframe-backend-proxy
