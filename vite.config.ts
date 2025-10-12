@@ -7,7 +7,17 @@ import { manifestPlugin } from "./vite-plugin-manifest";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/' : (mode === 'github-pages' ? '/tradeframe-builder/' : '/'),
+  // GitHub Pages всегда использует /tradeframe-builder/ как base
+  base: process.env.GITHUB_ACTIONS ? '/tradeframe-builder/' : '/',
+  // Явное определение переменных окружения
+  define: {
+    'import.meta.env.VITE_STS_API_URL': JSON.stringify(process.env.VITE_STS_API_URL),
+    'import.meta.env.VITE_STS_API_USERNAME': JSON.stringify(process.env.VITE_STS_API_USERNAME),
+    'import.meta.env.VITE_STS_API_PASSWORD': JSON.stringify(process.env.VITE_STS_API_PASSWORD),
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY),
+    'import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY': JSON.stringify(process.env.VITE_SUPABASE_SERVICE_ROLE_KEY),
+  },
   server: {
     host: "127.0.0.1",
     port: 3000,
