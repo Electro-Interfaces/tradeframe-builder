@@ -313,8 +313,9 @@ export default function Receipts() {
       <div
         ref={scrollContainerRef}
         data-pull-to-refresh="true"
-        className={`w-full h-full px-4 md:px-6 lg:px-8 relative ${isMobile ? 'overflow-y-auto' : ''}`}
+        className={`w-full px-4 md:px-6 lg:px-8 relative ${isMobile ? 'overflow-y-scroll' : ''}`}
         style={isMobile ? {
+          height: 'calc(100vh - 120px)',
           overscrollBehavior: 'none',
           overscrollBehaviorY: 'none',
           WebkitOverscrollBehavior: 'none',
