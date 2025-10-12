@@ -67,11 +67,33 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   };
 
   /**
-   * Сохраняет только email для повторной аутентификации
+   * Генерирует простой токен авторизации
    */
-  const saveAuthSession = (email: string) => {
+  const generateAuthToken = (user: AppUser): string => {
+    const tokenData = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      timestamp: Date.now()
+    };
+    return btoa(JSON.stringify(tokenData));
+  };
+
+  /**
+   * Сохраняет данные авторизации в localStorage и sessionStorage
+   */
+  const saveAuthSession = (user: AppUser, token: string) => {
     try {
-      sessionStorage.setItem('current_user_email', email);
+      // Сохраняем в localStorage для постоянного хранения
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+
+      // Также сохраняем в старые ключи для обратной совместимости
+      localStorage.setItem('tradeframe_user', JSON.stringify(user));
+      localStorage.setItem('authToken', token);
+
+      // Сохраняем email в sessionStorage для повторной аутентификации
+      sessionStorage.setItem('current_user_email', user.email);
       sessionStorage.setItem('auth_timestamp', Date.now().toString());
     } catch (error) {
     }
@@ -205,8 +227,12 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
         throw new Error('Неверный email или пароль');
       }
 
+      // Генерируем токен
+      const token = generateAuthToken(authenticatedUser);
+
+      // Сохраняем пользователя и токен
       setUser(authenticatedUser);
-      saveAuthSession(email); // Сохраняем только email в сессии
+      saveAuthSession(authenticatedUser, token);
 
     } catch (error: any) {
       throw new Error(error.message || 'Ошибка входа в систему');
