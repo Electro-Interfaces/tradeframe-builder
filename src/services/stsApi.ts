@@ -294,43 +294,9 @@ class STSApiService {
   }
 
   private async refreshTokenIfNeeded(forceRefresh = false): Promise<boolean> {
-    // Перезагружаем конфигурацию перед проверкой токена
-    this.loadConfig();
-
-    // Если обновление токена уже выполняется, ждем его завершения
-    if (this.tokenRefreshPromise && !forceRefresh) {
-      return this.tokenRefreshPromise;
-    }
-
-    // Проверяем, что конфигурация загружена
-    if (!this.config) {
-      return false;
-    }
-
-    // Проверяем, что есть обязательные параметры для авторизации
-    if (!this.config.username || !this.config.password) {
-      return false;
-    }
-
-    const now = Date.now();
-    const tokenExists = !!this.config.token;
-    const tokenExpired = this.config.tokenExpiry ? this.config.tokenExpiry < now : true;
-
-    // Проверяем, нужно ли обновить токен
-    if (!tokenExists || tokenExpired || forceRefresh) {
-      // Создаем и кэшируем промис обновления токена
-      this.tokenRefreshPromise = this.performTokenRefresh();
-
-      try {
-        const result = await this.tokenRefreshPromise;
-        return result;
-      } finally {
-        // Очищаем кэш после завершения (успешного или нет)
-        this.tokenRefreshPromise = null;
-      }
-    }
-
-    return !!this.config.token;
+    // При использовании Backend Proxy токены не нужны - прокси сам авторизуется
+    // Всегда возвращаем true чтобы не блокировать запросы
+    return true;
   }
 
   /**
@@ -386,13 +352,8 @@ class STSApiService {
   }
 
   private async apiRequest<T>(endpoint: string, options: RequestInit = {}, contextParams?: {networkId?: string; tradingPointId?: string}): Promise<T> {
-
-    this.loadConfig(); // Обновляем конфигурацию перед запросом
-
-    // Проверяем, настроен ли API СТС
-    if (!this.config || !this.config.url || !this.config.username || !this.config.password) {
-      throw new Error('API СТС не настроен. Пожалуйста, настройте API в разделе "Настройки"');
-    }
+    // Backend Proxy не требует конфигурации на frontend - все настройки на сервере
+    // Просто используем относительные пути /api/sts/*
 
     // Используем параметры из контекста (селекторы приложения)
     const networkId = contextParams?.networkId?.trim();
@@ -433,13 +394,16 @@ class STSApiService {
       }
     }
 
-    // Обновляем токен если нужно
+    // Обновляем токен если нужно (для прокси всегда true)
     const tokenValid = await this.refreshTokenIfNeeded();
     if (!tokenValid) {
       throw new Error('API СТС не настроен. Пожалуйста, настройте API в разделе "Настройки"');
     }
 
-    const url = new URL(`${this.config.url}${endpoint}`);
+    // Используем Backend Proxy вместо прямого обращения к STS API
+    // Формат: /api/sts/v1/tanks вместо https://pos.autooplata.ru/tms/v1/tanks
+    const baseUrl = import.meta.env.PROD ? window.location.origin : 'http://localhost:3001';
+    const url = new URL(`${baseUrl}/api/sts${endpoint}`);
 
     // Добавляем параметры сети и торговой точки если они заданы
     if (networkId) {
@@ -459,9 +423,9 @@ class STSApiService {
       url.searchParams.set('station', stationParam);
     }
 
-
+    // Backend Proxy сам добавляет авторизацию, не нужно отправлять токен с frontend
     const headers = {
-      'Authorization': `Bearer ${this.config.token}`,
+      'Content-Type': 'application/json',
       ...options.headers,
     };
 
@@ -469,7 +433,7 @@ class STSApiService {
     const response = await fetch(url.toString(), {
       ...options,
       headers,
-      signal: AbortSignal.timeout(this.config.timeout || 30000),
+      signal: AbortSignal.timeout(30000), // 30 секунд timeout
     });
 
 
@@ -531,49 +495,10 @@ class STSApiService {
         }
       }
       
-      // Если получили 401 - токен недействителен, пытаемся обновить его
+      // Если получили 401 - ошибка авторизации на Backend Proxy
+      // Backend Proxy сам управляет токенами, повторные запросы не нужны
       if (response.status === 401) {
-        
-        // Сбрасываем текущий токен
-        if (this.config) {
-          this.config.token = undefined;
-          this.config.tokenExpiry = undefined;
-          localStorage.setItem('sts-api-config', JSON.stringify(this.config));
-        }
-        
-        // Принудительно получаем новый токен
-        const tokenRefreshed = await this.refreshTokenIfNeeded(true);
-        
-        if (tokenRefreshed) {
-          
-          // Повторяем запрос с новым токеном
-          const retryHeaders = {
-            'Authorization': `Bearer ${this.config?.token}`,
-            ...options.headers,
-          };
-          
-          const retryResponse = await fetch(url.toString(), {
-            ...options,
-            headers: retryHeaders,
-            signal: AbortSignal.timeout(this.config?.timeout || 30000),
-          });
-          
-          
-          if (retryResponse.ok) {
-            const retryContentType = retryResponse.headers.get('content-type');
-            if (retryContentType?.includes('application/json')) {
-              const retryJsonData = await retryResponse.json();
-              return retryJsonData;
-            } else {
-              const retryTextData = await retryResponse.text();
-              return retryTextData as T;
-            }
-          } else {
-            const retryErrorText = await retryResponse.text();
-            console.error(`🔍 STS API: Повторный запрос также неуспешен ${retryResponse.status}:`, retryErrorText);
-            throw new Error(`HTTP ${retryResponse.status}: ${retryResponse.statusText}`);
-          }
-        }
+        throw new Error('Ошибка авторизации Backend Proxy. Проверьте настройки сервера.');
       }
       
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
