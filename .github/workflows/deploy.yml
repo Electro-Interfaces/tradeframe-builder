@@ -51,7 +51,23 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Deploy via SCP and SSH
+      - name: Clean old files on server
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+            host: ${{env.PROD_ADDRESS}}
+            username: ${{env.PROD_USER}}
+            password: ${{env.PROD_PASS}}
+            port: ${{env.PROD_PORT}}
+            script: |
+                  cd /var/www/www-root/data/www/prod.dataworker.ru
+
+                  # Удаляем старую сборку
+                  rm -rf dist
+
+                  # Удаляем старые package файлы
+                  rm -f package.json package-lock.json
+
+      - name: Deploy via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{env.PROD_ADDRESS}}
