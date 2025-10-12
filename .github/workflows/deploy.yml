@@ -64,19 +64,31 @@ jobs:
                     fi
                   fi
 
-                  # Сброс локальных изменений и обновление из git
+                  # Сброс локальных изменений (кроме важных файлов)
                   git reset --hard HEAD
-                  git clean -fd
-                  git pull --rebase
+
+                  # Удаляем только untracked файлы, НЕ директории
+                  git clean -f
+
+                  # Обновляем код через fetch + reset (безопаснее чем pull --rebase)
+                  git fetch origin main
+                  git reset --hard origin/main
+
+                  # Удаляем старую сборку если есть
+                  rm -rf dist
 
                   # Установка зависимостей и сборка
                   npm ci --no-fund --no-audit
                   npm run build
 
-                  # Backend Proxy
-                  cd server
-                  npm ci --no-fund --no-audit
-                  cd ..
+                  # Backend Proxy - проверяем что директория существует
+                  if [ -d "server" ] && [ -f "server/package.json" ]; then
+                    cd server
+                    npm ci --no-fund --no-audit
+                    cd ..
+                  else
+                    echo "Warning: server directory not found or invalid"
+                  fi
 
                   # Перезапуск PM2 процессов
                   pm2 restart tradeframe-prod || pm2 start ecosystem.config.cjs --only tradeframe-prod
