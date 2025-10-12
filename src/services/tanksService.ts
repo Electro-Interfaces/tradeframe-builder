@@ -1,9 +1,9 @@
 /**
- * Сервис для работы с резервуарами
- * Только реальные данные из STS API, без mock
+ * Сервис для работы с резервуарами через Backend Proxy
+ * Только реальные данные из STS API через proxy, без mock
  */
 
-import { stsApiService } from './stsApi';
+import { stsProxyClient } from './stsProxyClient';
 import { tradingPointsService } from './tradingPointsService';
 import type {
   Tank,
@@ -17,7 +17,7 @@ import type {
  */
 class TanksService {
   /**
-   * Получить резервуары из STS API
+   * Получить резервуары через Backend Proxy
    * ЕДИНСТВЕННЫЙ реальный источник данных для резервуаров
    */
   async getTanks(networkId: string, tradingPointId: string): Promise<Tank[]> {
@@ -41,12 +41,11 @@ class TanksService {
         throw new Error('У торговой точки отсутствует внешний идентификатор для связи с STS API');
       }
 
-      const contextParams = {
-        networkId: networkId,
-        tradingPointId: tradingPoint.external_id
-      };
-
-      const tanks = await stsApiService.getTanks(contextParams);
+      // Запрос через Backend Proxy
+      const tanks = await stsProxyClient.get<Tank[]>('/v1/tanks', {
+        system: networkId,
+        station: tradingPoint.external_id
+      });
 
       if (!tanks || tanks.length === 0) {
         throw new Error('STS API не вернул данных о резервуарах для данной торговой точки');

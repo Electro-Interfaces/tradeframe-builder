@@ -3,7 +3,7 @@
  * API: /v1/report/receipts
  */
 
-import { stsApiService } from './stsApi';
+import { stsProxyClient } from './stsProxyClient';
 import type {
   ReceiptsResponse,
   ReceiptsQueryParams,
@@ -15,53 +15,23 @@ import type {
  * Получение данных о поступлениях топлива
  */
 export async function fetchReceipts(params: ReceiptsQueryParams): Promise<ReceiptsResponse> {
-  // Используем централизованный токен из stsApiService
-  await stsApiService.refreshTokenIfNeeded();
-  const config = stsApiService.getConfig();
+  // Формируем параметры для Backend Proxy
+  const queryParams: Record<string, any> = {
+    system: params.system.toString(),
+  };
 
-  if (!config?.token) {
-    throw new Error('STS API authentication failed');
-  }
-
-  const API_BASE_URL = config.url;
-
-  const url = new URL(`${API_BASE_URL}/v1/report/receipts`);
-
-  // Добавляем параметры запроса
-  url.searchParams.append('system', params.system.toString());
-  if (params.station) url.searchParams.append('station', params.station.toString());
-  if (params.shift) url.searchParams.append('shift', params.shift.toString());
+  if (params.station) queryParams.station = params.station.toString();
+  if (params.shift) queryParams.shift = params.shift.toString();
 
   // Преобразуем дату в ISO формат с временем (YYYY-MM-DDTHH:MM:SS)
   if (params.dt_beg) {
-    const dtBeg = params.dt_beg.includes('T') ? params.dt_beg : `${params.dt_beg}T00:00:00`;
-    url.searchParams.append('dt_beg', dtBeg);
+    queryParams.dt_beg = params.dt_beg.includes('T') ? params.dt_beg : `${params.dt_beg}T00:00:00`;
   }
   if (params.dt_end) {
-    const dtEnd = params.dt_end.includes('T') ? params.dt_end : `${params.dt_end}T23:59:59`;
-    url.searchParams.append('dt_end', dtEnd);
+    queryParams.dt_end = params.dt_end.includes('T') ? params.dt_end : `${params.dt_end}T23:59:59`;
   }
 
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${config.token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    let errorDetails = response.statusText;
-    try {
-      const errorBody = await response.json();
-      errorDetails = JSON.stringify(errorBody);
-    } catch {
-      // Игнорируем ошибку парсинга
-    }
-    throw new Error(`API request failed: ${response.status} ${errorDetails}`);
-  }
-
-  return response.json();
+  return stsProxyClient.get<ReceiptsResponse>('/v1/report/receipts', queryParams);
 }
 
 /**

@@ -1,5 +1,9 @@
-// Сервис для работы с API торговой сети (pos.autooplata.ru/tms)
-const BASE_URL = 'https://pos.autooplata.ru/tms';
+/**
+ * Сервис для работы с API торговой сети через Backend Proxy
+ * Все запросы идут через /api/sts/*
+ */
+
+import { stsProxyClient } from './stsProxyClient';
 
 // Импорт для получения данных о резервуарах
 import { mockEquipmentAPI } from './equipment';
@@ -98,45 +102,9 @@ export interface SetPricesRequest {
   effective_date: string; // ISO 8601 format
 }
 
-// Класс для работы с API торговой сети
+// Класс для работы с API торговой сети через Backend Proxy
 class TradingNetworkAPIService {
-  private token: string | null = null;
-
-  // Авторизация в системе
-  async login(): Promise<string> {
-    try {
-      const response = await fetch(`${BASE_URL}/v1/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: 'UserTest',
-          password: 'sys5tem6'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ошибка авторизации: ${response.status} ${response.statusText}`);
-      }
-
-      const token = await response.text();
-      this.token = token;
-      return token;
-    } catch (error) {
-      console.error('Ошибка при авторизации в API торговой сети:', error);
-      throw new Error('Не удалось авторизоваться в API торговой сети');
-    }
-  }
-
-  // Проверка токена и повторная авторизация при необходимости
-  private async ensureAuth(): Promise<void> {
-    if (!this.token) {
-      await this.login();
-    }
-  }
-
-  // Получение цен с АЗС
+  // Получение цен с АЗС через Backend Proxy
   async getPrices(
     stationNumber: number,
     systemId: number = 15,
@@ -145,65 +113,43 @@ class TradingNetworkAPIService {
     // В демо режиме возвращаем данные на основе резервуаров
     if (USE_MOCK_MODE) {
       await new Promise(resolve => setTimeout(resolve, 300)); // Имитация задержки сети
-      
+
       // Получаем виды топлива из резервуаров
       const fuelTypes = await getFuelTypesFromTanks(stationNumber);
-      
+
       // Формируем цены на основе резервуаров
       const prices: TradingNetworkPrice[] = fuelTypes.map(fuelType => {
         const serviceCode = FUEL_SERVICE_CODES[fuelType] || 1;
         const stationKey = `station_${stationNumber}`;
         const storedPrice = STORED_PRICES[stationKey]?.[fuelType];
         const price = storedPrice || DEFAULT_FUEL_PRICES[fuelType] || 50.0;
-        
+
         return {
           service_code: serviceCode,
           service_name: fuelType,
           price
         };
       });
-      
+
       return { prices };
     }
 
-    await this.ensureAuth();
-
     try {
       const dateParam = date || new Date().toISOString();
-      const url = `${BASE_URL}/v1/pos/prices/${stationNumber}?system=${systemId}&date=${encodeURIComponent(dateParam)}`;
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`
+      return await stsProxyClient.get<TradingNetworkPricesResponse>(
+        `/v1/pos/prices/${stationNumber}`,
+        {
+          system: systemId,
+          date: dateParam
         }
-      });
-
-      if (!response.ok) {
-        // Попробуем повторно авторизоваться и повторить запрос
-        if (response.status === 401) {
-          await this.login();
-          const retryResponse = await fetch(url, {
-            headers: {
-              'Authorization': `Bearer ${this.token}`
-            }
-          });
-          
-          if (!retryResponse.ok) {
-            throw new Error(`Ошибка получения цен: ${retryResponse.status} ${retryResponse.statusText}`);
-          }
-          return await retryResponse.json();
-        }
-        throw new Error(`Ошибка получения цен: ${response.status} ${response.statusText}`);
-      }
-
-      return await response.json();
+      );
     } catch (error) {
       console.error('Ошибка при получении цен с АЗС:', error);
       throw new Error('Не удалось получить цены с торговой точки');
     }
   }
 
-  // Установка цен на АЗС
+  // Установка цен на АЗС через Backend Proxy
   async setPrices(
     stationNumber: number,
     prices: Record<string, number>,
@@ -213,80 +159,51 @@ class TradingNetworkAPIService {
     // В демо режиме имитируем успешную установку цен
     if (USE_MOCK_MODE) {
       await new Promise(resolve => setTimeout(resolve, 500)); // Имитация задержки сети
-      
+
       const stationKey = `station_${stationNumber}`;
       if (!STORED_PRICES[stationKey]) {
         STORED_PRICES[stationKey] = {};
       }
-      
+
       // Получаем виды топлива из резервуаров для валидации
       const availableFuelTypes = await getFuelTypesFromTanks(stationNumber);
-      
+
       // Сохраняем цены только для доступных видов топлива
       for (const [serviceCodeStr, price] of Object.entries(prices)) {
         const serviceCode = parseInt(serviceCodeStr);
         // Находим тип топлива по коду услуги
         const fuelType = Object.entries(FUEL_SERVICE_CODES).find(([fuel, code]) => code === serviceCode)?.[0];
-        
+
         if (fuelType && availableFuelTypes.includes(fuelType)) {
           STORED_PRICES[stationKey][fuelType] = price;
         }
       }
-      
-      console.log(`Mock: Цены установлены для АЗС ${stationNumber}:`, STORED_PRICES[stationKey]);
+
       return;
     }
 
-    await this.ensureAuth();
-
     try {
-      const url = `${BASE_URL}/v1/prices?system=${systemId}&station=${stationNumber}`;
       const body: SetPricesRequest = {
         prices,
         effective_date: effectiveDate
       };
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
+      await stsProxyClient.post<void>('/v1/prices', body, {
+        system: systemId,
+        station: stationNumber
       });
-
-      if (!response.ok) {
-        // Попробуем повторно авторизоваться и повторить запрос
-        if (response.status === 401) {
-          await this.login();
-          const retryResponse = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${this.token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-          });
-          
-          if (!retryResponse.ok) {
-            throw new Error(`Ошибка установки цен: ${retryResponse.status} ${retryResponse.statusText}`);
-          }
-          return;
-        }
-        throw new Error(`Ошибка установки цен: ${response.status} ${response.statusText}`);
-      }
     } catch (error) {
       console.error('Ошибка при установке цен на АЗС:', error);
       throw new Error('Не удалось установить цены на торговую точку');
     }
   }
 
-  // Получение справочника услуг
+  // Получение справочника услуг через Backend Proxy
   async getServices(systemId: number = 15, stationNumber?: number): Promise<TradingNetworkService[]> {
     // В демо режиме возвращаем данные на основе всех возможных видов топлива
     if (USE_MOCK_MODE) {
       await new Promise(resolve => setTimeout(resolve, 200)); // Имитация задержки сети
-      
+
       // Если указан номер станции, получаем топливо только для этой станции
       if (stationNumber) {
         const fuelTypes = await getFuelTypesFromTanks(stationNumber);
@@ -295,7 +212,7 @@ class TradingNetworkAPIService {
           service_name: fuelType
         }));
       }
-      
+
       // Иначе возвращаем все доступные виды топлива
       return Object.entries(FUEL_SERVICE_CODES).map(([fuelType, serviceCode]) => ({
         service_code: serviceCode,
@@ -303,36 +220,10 @@ class TradingNetworkAPIService {
       }));
     }
 
-    await this.ensureAuth();
-
     try {
-      const url = `${BASE_URL}/v1/services?system=${systemId}`;
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`
-        }
+      return await stsProxyClient.get<TradingNetworkService[]>('/v1/services', {
+        system: systemId
       });
-
-      if (!response.ok) {
-        // Попробуем повторно авторизоваться и повторить запрос
-        if (response.status === 401) {
-          await this.login();
-          const retryResponse = await fetch(url, {
-            headers: {
-              'Authorization': `Bearer ${this.token}`
-            }
-          });
-          
-          if (!retryResponse.ok) {
-            throw new Error(`Ошибка получения справочника услуг: ${retryResponse.status} ${retryResponse.statusText}`);
-          }
-          return await retryResponse.json();
-        }
-        throw new Error(`Ошибка получения справочника услуг: ${response.status} ${response.statusText}`);
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('Ошибка при получении справочника услуг:', error);
       throw new Error('Не удалось получить справочник услуг');
@@ -341,27 +232,10 @@ class TradingNetworkAPIService {
 
   // Получить доступные API методы (из документации Swagger)
   async getAvailableAPIMethods(): Promise<TradingNetworkAPIMethod[]> {
-    await this.ensureAuth();
-
     try {
-      // Получаем Swagger документацию
-      const url = `${BASE_URL}/docs/swagger.json`;
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        // Fallback - возвращаем известные методы из документации
-        return this.getKnownAPIMethods();
-      }
-
-      const swaggerDoc = await response.json();
+      // Получаем Swagger документацию через Backend Proxy
+      const swaggerDoc = await stsProxyClient.get<any>('/docs/swagger.json', {});
       return this.parseSwaggerMethods(swaggerDoc);
-      
     } catch (error) {
       console.warn('Не удалось получить Swagger документацию, используем известные методы:', error);
       return this.getKnownAPIMethods();

@@ -17,56 +17,7 @@ import {
   ShiftReport,
   ShiftReportRequestParams,
 } from '@/types/shifts';
-import { stsApiService } from './stsApi';
-
-/**
- * Выполнить запрос к API с автоматической авторизацией
- */
-async function apiRequest<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-  // Используем централизованный токен из stsApiService
-  await stsApiService.refreshTokenIfNeeded();
-  const config = stsApiService.getConfig();
-
-  if (!config?.token) {
-    throw new Error('STS API authentication failed');
-  }
-
-  const url = new URL(`${config.url}${endpoint}`);
-
-  // Добавляем параметры запроса
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        url.searchParams.append(key, String(value));
-      }
-    });
-  }
-
-
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${config.token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    // Пытаемся получить детали ошибки из тела ответа
-    let errorDetails = response.statusText;
-    try {
-      const errorBody = await response.json();
-      errorDetails = JSON.stringify(errorBody);
-      console.error('❌ ShiftsService: API ошибка', response.status, errorBody);
-    } catch (e) {
-      console.error('❌ ShiftsService: API ошибка', response.status, response.statusText);
-    }
-    throw new Error(`API request failed (${response.status}): ${errorDetails}`);
-  }
-
-  const data = await response.json();
-  return data;
-}
+import { stsProxyClient } from './stsProxyClient';
 
 /**
  * Получить список смен
@@ -78,9 +29,8 @@ async function apiRequest<T>(endpoint: string, params?: Record<string, any>): Pr
  * const shifts = await getShifts({ system: 15, station: 1 });
  */
 export async function getShifts(params: ShiftsRequestParams): Promise<Shift[]> {
-
   try {
-    const response = await apiRequest<Shift[]>('/v1/shifts', params);
+    const response = await stsProxyClient.get<Shift[]>('/v1/shifts', params);
     return response;
   } catch (error) {
     console.error('❌ ShiftsService: Ошибка получения смен', error);
@@ -103,9 +53,8 @@ export async function getShifts(params: ShiftsRequestParams): Promise<Shift[]> {
  * });
  */
 export async function getFuelReceipts(params: ReceiptsRequestParams): Promise<ReceiptsResponse> {
-
   try {
-    const response = await apiRequest<ReceiptsResponse>('/v1/report/receipts', params);
+    const response = await stsProxyClient.get<ReceiptsResponse>('/v1/report/receipts', params);
     return response;
   } catch (error) {
     console.error('❌ ShiftsService: Ошибка получения поступлений', error);
@@ -134,9 +83,8 @@ export async function getFuelReceipts(params: ReceiptsRequestParams): Promise<Re
  * });
  */
 export async function getShiftReport(params: ShiftReportRequestParams): Promise<ShiftReport> {
-
   try {
-    const response = await apiRequest<ShiftReport>('/v1/report/shift_report', params);
+    const response = await stsProxyClient.get<ShiftReport>('/v1/report/shift_report', params);
     return response;
   } catch (error) {
     console.error('❌ ShiftsService: Ошибка получения сменного отчета', error);

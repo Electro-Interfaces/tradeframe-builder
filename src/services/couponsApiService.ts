@@ -1,8 +1,9 @@
 /**
- * Сервис для работы с реальным API купонов
- * Endpoint: https://pos.autooplata.ru/tms/v1/coupons
+ * Сервис для работы с реальным API купонов через Backend Proxy
+ * Endpoint: /api/sts/v1/coupons
  */
 
+import { stsProxyClient } from './stsProxyClient';
 import {
   CouponsApiResponse,
   CouponsApiParams,
@@ -17,254 +18,38 @@ import {
   CouponPriority
 } from '../types/coupons';
 
-const API_BASE_URL = 'https://pos.autooplata.ru/tms';
-
-interface CouponsApiConfig {
-  url: string;
-  username: string;
-  password: string;
-  enabled: boolean;
-  timeout: number;
-  token?: string;
-  tokenExpiry?: number;
-}
-
 class CouponsApiService {
-  private config: CouponsApiConfig | null = null;
-  private refreshAttempts = 0;
-  private readonly MAX_REFRESH_ATTEMPTS = 3;
-  private tokenRefreshPromise: Promise<boolean> | null = null; // Кэш промиса обновления токена
-
-  constructor() {
-    this.loadConfig();
-  }
-
   /**
-   * Загрузка конфигурации API
-   */
-  private loadConfig() {
-    try {
-      // Попробуем загрузить конфигурацию STS API
-      const stsConfig = localStorage.getItem('sts-api-config');
-      if (stsConfig) {
-        const parsedConfig = JSON.parse(stsConfig);
-        this.config = {
-          url: parsedConfig.url || API_BASE_URL,
-          username: parsedConfig.username || '',
-          password: parsedConfig.password || '',
-          enabled: true, // API всегда включен
-          timeout: parsedConfig.timeout || 30000,
-          token: parsedConfig.token,
-          tokenExpiry: parsedConfig.tokenExpiry
-        };
-      } else {
-        console.warn('⚠️ Coupons API: Конфигурация STS API не найдена');
-        this.config = {
-          url: API_BASE_URL,
-          username: '',
-          password: '',
-          enabled: true, // API всегда включен
-          timeout: 30000
-        };
-      }
-    } catch (error) {
-      console.error('❌ Ошибка загрузки конфигурации Coupons API:', error);
-    }
-  }
-
-  /**
-   * Проверяет, настроен ли API купонов (есть ли URL, username и password)
-   */
-  isConfigured(): boolean {
-    // Всегда перезагружаем конфигурацию перед проверкой
-    this.loadConfig();
-    return !!(this.config?.url && this.config?.username && this.config?.password);
-  }
-
-  /**
-   * Обновление токена при необходимости
-   */
-  private async refreshTokenIfNeeded(forceRefresh = false): Promise<boolean> {
-    // Перезагружаем конфигурацию перед проверкой токена
-    this.loadConfig();
-
-    // Если обновление токена уже выполняется, ждем его завершения
-    if (this.tokenRefreshPromise && !forceRefresh) {
-      return this.tokenRefreshPromise;
-    }
-
-    if (!this.config?.username || !this.config.password) {
-      return false;
-    }
-
-    const now = Date.now();
-    const tokenExists = !!this.config.token;
-    const tokenExpired = this.config.tokenExpiry ? this.config.tokenExpiry < now : true;
-
-    // Проверяем, нужно ли обновить токен
-    if (!tokenExists || tokenExpired || forceRefresh) {
-      if (this.refreshAttempts >= this.MAX_REFRESH_ATTEMPTS) {
-        console.error('❌ Coupons API: Превышено максимальное количество попыток обновления токена');
-        return false;
-      }
-
-      // Создаем и кэшируем промис обновления токена
-      this.tokenRefreshPromise = this.performTokenRefresh();
-
-      try {
-        const result = await this.tokenRefreshPromise;
-        return result;
-      } finally {
-        // Очищаем кэш после завершения (успешного или нет)
-        this.tokenRefreshPromise = null;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Выполняет фактическое обновление токена через /v1/login
-   */
-  private async performTokenRefresh(): Promise<boolean> {
-    if (!this.config) {
-      return false;
-    }
-
-    // Проверяем обязательные параметры
-    if (!this.config.username || !this.config.password) {
-      return false;
-    }
-
-    this.refreshAttempts++;
-
-    try {
-      const response = await fetch(`${this.config.url}/v1/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: this.config.username,
-          password: this.config.password
-        }),
-        signal: AbortSignal.timeout(this.config.timeout),
-      });
-
-      if (response.ok) {
-        const tokenResponse = await response.text();
-        const cleanToken = tokenResponse.replace(/"/g, '');
-        const newExpiry = Date.now() + (20 * 60 * 1000); // 20 минут
-
-        this.config.token = cleanToken;
-        this.config.tokenExpiry = newExpiry;
-
-        // Сбрасываем счетчик при успешном обновлении
-        this.refreshAttempts = 0;
-
-        return true;
-      } else {
-        const errorText = await response.text();
-        console.error(`❌ Coupons API: Ошибка авторизации ${response.status}:`, errorText);
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Coupons API: Ошибка при обновлении токена:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Получение купонов с API
+   * Получение купонов с API через Backend Proxy
    */
   async getCoupons(params: CouponsApiParams): Promise<CouponsApiResponse> {
     try {
-      // Обновляем токен если нужно
-      const tokenValid = await this.refreshTokenIfNeeded();
-      if (!tokenValid) {
-        throw new Error('Не удалось получить действительный токен для API купонов');
-      }
+      // Формируем параметры для Backend Proxy
+      const queryParams: Record<string, any> = {
+        system: params.system.toString(),
+      };
 
-      const url = new URL(`${this.config!.url}/v1/coupons`);
-
-      // Добавляем обязательный параметр system
-      url.searchParams.append('system', params.system.toString());
-
-      // Добавляем опциональные параметры
       if (params.station) {
-        url.searchParams.append('station', params.station.toString());
+        queryParams.station = params.station.toString();
       }
+
       // Добавляем параметры дат для фильтрации
       if (params.dt_beg) {
         // Конвертируем дату в формат YYYY-MM-DD HH:MM:SS для API
         const dtBeg = params.dt_beg.includes('T')
           ? new Date(params.dt_beg).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '')
           : `${params.dt_beg} 00:00:00`;
-        url.searchParams.append('dt_beg', dtBeg);
+        queryParams.dt_beg = dtBeg;
       }
       if (params.dt_end) {
         // Конвертируем дату в формат YYYY-MM-DD HH:MM:SS для API
         const dtEnd = params.dt_end.includes('T')
           ? new Date(params.dt_end).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '')
           : `${params.dt_end} 23:59:59`;
-        url.searchParams.append('dt_end', dtEnd);
+        queryParams.dt_end = dtEnd;
       }
 
-
-      const headers: Record<string, string> = {
-        'Authorization': `Bearer ${this.config!.token}`,
-      };
-
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers,
-        signal: AbortSignal.timeout(this.config!.timeout),
-      });
-
-      if (!response.ok) {
-        // Логируем детали ошибки
-        const errorText = await response.text();
-        console.error(`❌ Coupons API Error ${response.status}:`, {
-          status: response.status,
-          statusText: response.statusText,
-          url: url.toString(),
-          headers: Object.fromEntries(response.headers.entries()),
-          body: errorText
-        });
-
-        // Если токен истек, попробуем обновить его и повторить запрос
-        if (response.status === 401 && this.refreshAttempts < this.MAX_REFRESH_ATTEMPTS) {
-          const tokenRefreshed = await this.refreshTokenIfNeeded(true);
-          if (tokenRefreshed) {
-            // Повторяем запрос с новым токеном
-            const retryHeaders = {
-              ...headers,
-              'Authorization': `Bearer ${this.config!.token}`,
-            };
-
-            const retryResponse = await fetch(url.toString(), {
-              method: 'GET',
-              headers: retryHeaders,
-              signal: AbortSignal.timeout(this.config!.timeout),
-            });
-
-            if (retryResponse.ok) {
-              const data: CouponsApiResponse = await retryResponse.json();
-              return data;
-            } else {
-              const retryErrorText = await retryResponse.text();
-              console.error(`❌ Coupons API Retry Error ${retryResponse.status}:`, retryErrorText);
-            }
-          }
-        }
-
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-      }
-
-      const data: CouponsApiResponse = await response.json();
-
-      return data;
-
+      return stsProxyClient.get<CouponsApiResponse>('/v1/coupons', queryParams);
     } catch (error) {
       console.error('❌ Ошибка загрузки купонов:', error);
       throw this.createApiError('FETCH_ERROR', 'Ошибка загрузки данных с сервера', error);

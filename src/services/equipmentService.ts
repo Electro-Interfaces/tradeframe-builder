@@ -1,9 +1,9 @@
 /**
- * Сервис для работы с терминальным оборудованием
- * Использует только STS API для получения реальных данных
+ * Сервис для работы с терминальным оборудованием через Backend Proxy
+ * Использует только STS API через proxy для получения реальных данных
  */
 
-import { stsApiService } from './stsApi';
+import { stsProxyClient } from './stsProxyClient';
 import { tradingPointsService } from './tradingPointsService';
 import type {
   TerminalInfo,
@@ -13,7 +13,7 @@ import type {
 
 class EquipmentService {
   /**
-   * Получение информации о терминальном оборудовании
+   * Получение информации о терминальном оборудовании через Backend Proxy
    */
   async getTerminalInfo(networkId: string, tradingPointId: string): Promise<TerminalInfo> {
     // Валидация параметров
@@ -31,10 +31,10 @@ class EquipmentService {
       throw new Error('У торговой точки не указан external_id для API');
     }
 
-    // Вызываем STS API
-    const terminalInfo = await stsApiService.getTerminalInfo({
-      networkId: networkId,
-      tradingPointId: tradingPoint.external_id
+    // Вызываем STS API через Backend Proxy
+    const terminalInfo = await stsProxyClient.get<TerminalInfo>('/v1/info', {
+      system: networkId,
+      station: tradingPoint.external_id
     });
 
     if (!terminalInfo) {
@@ -125,7 +125,7 @@ class EquipmentService {
   }
 
   /**
-   * Перезагрузка терминала
+   * Перезагрузка терминала через Backend Proxy
    */
   async restartTerminal(networkId: string, tradingPointId: string): Promise<RestartTerminalResult> {
     // Валидация параметров
@@ -143,10 +143,10 @@ class EquipmentService {
       throw new Error('У торговой точки не указан external_id для API');
     }
 
-    // Вызываем STS API
-    const result = await stsApiService.restartTerminal({
-      networkId: networkId,
-      tradingPointId: tradingPoint.external_id
+    // Вызываем STS API через Backend Proxy
+    const result = await stsProxyClient.post<RestartTerminalResult>('/v1/control/restart', {}, {
+      system: networkId,
+      station: tradingPoint.external_id
     });
 
     return result;
