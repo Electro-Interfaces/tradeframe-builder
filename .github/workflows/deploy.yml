@@ -49,27 +49,36 @@ jobs:
                   echo "Current user: $(whoami)"
                   echo "Directory owner: $(stat -c '%U' .)"
 
-                  # Если текущий пользователь - root, выполняем операции напрямую
-                  if [ "$(whoami)" = "root" ]; then
-                    # Сброс локальных изменений и обновление из git
-                    git reset --hard HEAD
-                    git clean -fd
-                    git pull --rebase
+                  # Проверяем есть ли права на запись
+                  if [ ! -w . ]; then
+                    echo "No write permissions in current directory"
+                    echo "Attempting to fix permissions..."
 
-                    # Установка зависимостей и сборка
-                    npm ci --no-fund --no-audit
-                    npm run build
-
-                    # Backend Proxy
-                    cd server
-                    npm ci --no-fund --no-audit
-                    cd ..
-                  else
-                    echo "Error: Not running as root, cannot modify files owned by root"
-                    exit 1
+                    # Пробуем через sudo с NOPASSWD (если настроено в sudoers)
+                    if sudo -n chown -R $(whoami):$(whoami) . 2>/dev/null; then
+                      echo "Permissions fixed successfully"
+                    else
+                      echo "Cannot fix permissions. Please run on server:"
+                      echo "sudo chown -R $(whoami):$(whoami) /var/www/www-root/data/www/prod.dataworker.ru"
+                      exit 1
+                    fi
                   fi
 
-                  # Перезапуск PM2 процессов (работает для любого пользователя у которого есть PM2)
+                  # Сброс локальных изменений и обновление из git
+                  git reset --hard HEAD
+                  git clean -fd
+                  git pull --rebase
+
+                  # Установка зависимостей и сборка
+                  npm ci --no-fund --no-audit
+                  npm run build
+
+                  # Backend Proxy
+                  cd server
+                  npm ci --no-fund --no-audit
+                  cd ..
+
+                  # Перезапуск PM2 процессов
                   pm2 restart tradeframe-prod || pm2 start ecosystem.config.cjs --only tradeframe-prod
                   pm2 restart tradeframe-backend-proxy || pm2 start ecosystem.config.cjs --only tradeframe-backend-proxy
 
