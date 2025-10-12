@@ -109,7 +109,7 @@ const initialConfig: ApiConfig = {
       createdAt: new Date(),
       updatedAt: new Date(),
       settings: {
-        timeout: 8000,
+        timeout: 30000, // Увеличено для мобильных: 30 секунд
         retryAttempts: 3,
         ssl: true,
         apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0',
@@ -129,7 +129,7 @@ const initialConfig: ApiConfig = {
       createdAt: new Date(),
       updatedAt: new Date(),
       settings: {
-        timeout: 10000,
+        timeout: 30000, // Увеличено для мобильных: 30 секунд
         retryAttempts: 3,
         ssl: true,
         authType: 'basic',

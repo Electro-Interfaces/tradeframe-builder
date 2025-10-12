@@ -29,39 +29,41 @@
       
       // Специальная обработка для мобильных на GitHub Pages
       if (isMobile && isGitHubPages) {
-        
-        // Агрессивная очистка кеша на мобильных
+        const APP_VERSION = 'v1.5.21';
+        const CACHE_VERSION_KEY = 'tf_cache_version';
+
+        // Умная очистка кэша - только при изменении версии
         if ('caches' in window) {
-          caches.keys().then(cacheNames => {
-            cacheNames.forEach(cacheName => {
-              caches.delete(cacheName);
+          const savedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+          if (savedVersion !== APP_VERSION) {
+            // Версия изменилась - очищаем старый кэш
+            caches.keys().then(cacheNames => {
+              cacheNames.forEach(cacheName => {
+                caches.delete(cacheName);
+              });
+              localStorage.setItem(CACHE_VERSION_KEY, APP_VERSION);
             });
-          });
+          }
         }
-        
-        // Принудительный no-cache для мобильных
+
+        // Увеличенные timeout'ы для API запросов на медленных соединениях
         if ('fetch' in window) {
           const originalFetch = window.fetch;
           window.fetch = function(input, init) {
             init = init || {};
-            init.cache = 'no-store';
-            init.headers = init.headers || {};
-            if (typeof init.headers.set === 'function') {
-              init.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-              init.headers.set('Pragma', 'no-cache');
+            // Разрешаем кэширование, но с ограниченным временем
+            init.cache = init.cache || 'default';
+
+            // Увеличенный timeout для мобильных - 30 секунд
+            if (!init.signal) {
+              const controller = new AbortController();
+              init.signal = controller.signal;
+              setTimeout(() => controller.abort(), 30000);
             }
+
             return originalFetch(input, init);
           };
         }
-        
-        // ОТКЛЮЧЕНО: Принудительная перезагрузка создавала цикл на мобильных
-        // setTimeout(function() {
-        //   if (!window.React) {
-        //     console.log('🔄 React not loaded, forcing reload for mobile');
-        //     window.location.reload(true);
-        //   }
-        // }, 3000);
-        
       }
 
       // Регистрация Service Worker для PWA с динамическим BASE_URL
