@@ -31,8 +31,16 @@ export async function fetchReceipts(params: ReceiptsQueryParams): Promise<Receip
   url.searchParams.append('system', params.system.toString());
   if (params.station) url.searchParams.append('station', params.station.toString());
   if (params.shift) url.searchParams.append('shift', params.shift.toString());
-  if (params.dt_beg) url.searchParams.append('dt_beg', params.dt_beg);
-  if (params.dt_end) url.searchParams.append('dt_end', params.dt_end);
+
+  // Преобразуем дату в ISO формат с временем (YYYY-MM-DDTHH:MM:SS)
+  if (params.dt_beg) {
+    const dtBeg = params.dt_beg.includes('T') ? params.dt_beg : `${params.dt_beg}T00:00:00`;
+    url.searchParams.append('dt_beg', dtBeg);
+  }
+  if (params.dt_end) {
+    const dtEnd = params.dt_end.includes('T') ? params.dt_end : `${params.dt_end}T23:59:59`;
+    url.searchParams.append('dt_end', dtEnd);
+  }
 
   const response = await fetch(url.toString(), {
     method: 'GET',
