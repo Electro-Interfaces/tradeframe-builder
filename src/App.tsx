@@ -140,7 +140,7 @@ const App = () => {
           </SafeRender>
           <NewAuthProvider>
             <SelectionProvider>
-              <BrowserRouter basename={import.meta.env.PROD ? "/tradeframe-builder" : "/"}>
+              <BrowserRouter basename={import.meta.env.BASE_URL}>
                 <div data-testid="router-ready" style={{ display: 'none' }}></div>
                 <Routes>
                   {/* Критически важные страницы - без lazy loading */}
