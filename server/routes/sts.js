@@ -47,18 +47,18 @@ async function refreshJwtToken() {
   console.log('[STS Proxy] Refreshing JWT token...');
 
   try {
-    // Получаем JWT токен через /v1/login с Basic Auth
-    const authHeader = 'Basic ' + Buffer.from(`${STS_API_USERNAME}:${STS_API_PASSWORD}`).toString('base64');
-
-    const response = await stsClient.post('/v1/login', {}, {
-      headers: {
-        'Authorization': authHeader
-      }
+    // Получаем JWT токен через /v1/login с JSON body (username и password)
+    const response = await stsClient.post('/v1/login', {
+      username: STS_API_USERNAME,
+      password: STS_API_PASSWORD
     });
 
-    jwtToken = response.data.token;
-    // Токен действителен 1 час, обновляем за 5 минут до истечения
-    tokenExpiry = Date.now() + (55 * 60 * 1000);
+    // STS API возвращает токен как строку в кавычках, убираем их
+    const rawToken = response.data;
+    jwtToken = typeof rawToken === 'string' ? rawToken.replace(/"/g, '') : rawToken;
+
+    // Токен действителен 20 минут, обновляем за 2 минуты до истечения
+    tokenExpiry = Date.now() + (18 * 60 * 1000);
 
     // Обновляем заголовок для всех будущих запросов
     stsClient.defaults.headers['Authorization'] = `Bearer ${jwtToken}`;
