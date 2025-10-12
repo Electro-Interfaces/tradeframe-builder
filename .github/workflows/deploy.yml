@@ -26,6 +26,7 @@ jobs:
         
   deploy:
     runs-on: ubuntu-latest
+    needs: build
 
     env:
         PROD_ADDRESS: ${{secrets.PROD_ADDRESS}}
@@ -43,11 +44,24 @@ jobs:
             port: ${{env.PROD_PORT}}
             script: |
                   cd /var/www/www-root/data/www/prod.dataworker.ru
-                  git pull --rebase
-                  npm ci
+
+                  # Сброс локальных изменений и обновление из git
+                  sudo git reset --hard HEAD
+                  sudo git clean -fd
+                  sudo git pull --rebase
+
+                  # Установка прав на файлы для текущего пользователя
+                  sudo chown -R $USER:$USER .
+
+                  # Установка зависимостей и сборка
+                  npm ci --no-fund --no-audit
                   npm run build
+
+                  # Backend Proxy
                   cd server
-                  npm ci
+                  npm ci --no-fund --no-audit
                   cd ..
-                  pm2 restart tradeframe-prod
-                  pm2 restart tradeframe-backend-proxy
+
+                  # Перезапуск PM2 процессов
+                  pm2 restart tradeframe-prod || pm2 start ecosystem.config.cjs --only tradeframe-prod
+                  pm2 restart tradeframe-backend-proxy || pm2 start ecosystem.config.cjs --only tradeframe-backend-proxy
