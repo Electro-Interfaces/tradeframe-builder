@@ -394,11 +394,8 @@ class STSApiService {
       }
     }
 
-    // Обновляем токен если нужно (для прокси всегда true)
-    const tokenValid = await this.refreshTokenIfNeeded();
-    if (!tokenValid) {
-      throw new Error('API СТС не настроен. Пожалуйста, настройте API в разделе "Настройки"');
-    }
+    // Backend Proxy управляет токенами сам, проверка не нужна
+    await this.refreshTokenIfNeeded();
 
     // Используем Backend Proxy вместо прямого обращения к STS API
     // Формат: /api/sts/v1/tanks вместо https://pos.autooplata.ru/tms/v1/tanks
@@ -672,11 +669,11 @@ class STSApiService {
 
   /**
    * Проверяет, настроен ли API СТС (есть ли URL, username и password)
+   * При использовании Backend Proxy всегда возвращает true
    */
   isConfigured(): boolean {
-    // Всегда перезагружаем конфигурацию перед проверкой
-    this.loadConfig();
-    return !!(this.config?.url && this.config?.username && this.config?.password);
+    // Backend Proxy не требует конфигурации на frontend - всегда доступен
+    return true;
   }
 
   /**
