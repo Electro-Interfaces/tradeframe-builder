@@ -46,12 +46,14 @@ router.use((req, res, next) => {
 // Универсальный обработчик для проксирования запросов
 async function proxyRequest(req, res) {
   try {
-    const { method, path, query, body } = req;
+    const { method, query, body } = req;
+    // Используем req.path (без query string) вместо req.originalUrl
+    const urlPath = req.path;
 
     // Формируем параметры запроса к STS API
     const requestConfig = {
       method: method,
-      url: path,
+      url: urlPath,
       params: query,
       ...(method !== 'GET' && method !== 'HEAD' && { data: body })
     };
@@ -102,16 +104,17 @@ router.get('/v1/tanks', (req, res) => proxyRequest(req, res));
 // === Endpoints для смен ===
 router.get('/v1/shifts', (req, res) => proxyRequest(req, res));
 
+// === Endpoints для купонов ===
+router.get('/v1/coupons', (req, res) => proxyRequest(req, res));
+
 // === Endpoints для отчетов ===
 router.get('/v1/report/receipts', (req, res) => proxyRequest(req, res));
 router.get('/v1/report/shift_report', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для цен ===
 router.get('/v1/prices', (req, res) => proxyRequest(req, res));
-router.get('/v1/schedule/prices/:station_number', (req, res) => {
-  req.path = `/v1/schedule/prices/${req.params.station_number}`;
-  proxyRequest(req, res);
-});
+router.get('/v1/schedule/prices/:station_number', (req, res) => proxyRequest(req, res));
+router.get('/v1/pos/prices/:station_number', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для управления ===
 router.post('/v1/control/terminal/open', (req, res) => proxyRequest(req, res));
