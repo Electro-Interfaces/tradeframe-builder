@@ -3,10 +3,12 @@ import axios from 'axios';
 
 const router = express.Router();
 
-// Lazy initialization для STS client - переменные окружения загружаются при первом использовании
+// Lazy initialization для STS client и JWT токена
 let stsClient = null;
+let jwtToken = null;
+let tokenExpiry = null;
 
-function getStsClient() {
+async function getStsClient() {
   if (!stsClient) {
     // Получаем конфигурацию STS API из переменных окружения
     const STS_API_URL = process.env.STS_API_URL;
@@ -18,14 +20,10 @@ function getStsClient() {
       throw new Error('Missing required STS API environment variables: STS_API_URL, STS_API_USERNAME, STS_API_PASSWORD');
     }
 
-    // Создаем Basic Auth заголовок
-    const authHeader = 'Basic ' + Buffer.from(`${STS_API_USERNAME}:${STS_API_PASSWORD}`).toString('base64');
-
     // Создаем axios клиент для STS API
     stsClient = axios.create({
       baseURL: STS_API_URL,
       headers: {
-        'Authorization': authHeader,
         'Content-Type': 'application/json'
       },
       timeout: 30000 // 30 секунд таймаут
@@ -34,7 +32,42 @@ function getStsClient() {
     console.log('[STS Proxy] Client initialized with URL:', STS_API_URL);
   }
 
+  // Проверяем JWT токен
+  if (!jwtToken || (tokenExpiry && Date.now() >= tokenExpiry)) {
+    await refreshJwtToken();
+  }
+
   return stsClient;
+}
+
+async function refreshJwtToken() {
+  const STS_API_USERNAME = process.env.STS_API_USERNAME;
+  const STS_API_PASSWORD = process.env.STS_API_PASSWORD;
+
+  console.log('[STS Proxy] Refreshing JWT token...');
+
+  try {
+    // Получаем JWT токен через /v1/login с Basic Auth
+    const authHeader = 'Basic ' + Buffer.from(`${STS_API_USERNAME}:${STS_API_PASSWORD}`).toString('base64');
+
+    const response = await stsClient.post('/v1/login', {}, {
+      headers: {
+        'Authorization': authHeader
+      }
+    });
+
+    jwtToken = response.data.token;
+    // Токен действителен 1 час, обновляем за 5 минут до истечения
+    tokenExpiry = Date.now() + (55 * 60 * 1000);
+
+    // Обновляем заголовок для всех будущих запросов
+    stsClient.defaults.headers['Authorization'] = `Bearer ${jwtToken}`;
+
+    console.log('[STS Proxy] JWT token refreshed successfully');
+  } catch (error) {
+    console.error('[STS Proxy] Failed to refresh JWT token:', error.message);
+    throw new Error('Failed to authenticate with STS API');
+  }
 }
 
 // Middleware для логирования запросов к STS API
