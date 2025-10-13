@@ -1,16 +1,11 @@
 import { useState, useEffect, memo } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { tradingPointsService } from "@/services/tradingPointsService";
-import { TradingPoint } from "@/types/tradingpoint";
-import { Menu, MapPin } from "lucide-react";
 import { Header } from "./Header";
 import { AppSidebar } from "./AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-// Мобильные утилиты временно отключены
 import { useSelection } from "@/contexts/SelectionContext";
+import { PointSelect } from "@/components/selects/PointSelect";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -20,19 +15,7 @@ interface MainLayoutProps {
 const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) => {
   const { selectedNetwork, setSelectedNetwork, selectedTradingPoint, setSelectedTradingPoint } = useSelection();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [tradingPoints, setTradingPoints] = useState<TradingPoint[]>([]);
   const isMobile = useIsMobile();
-  // Мобильные хуки временно отключены
-  
-  useEffect(() => {
-    if (selectedNetwork?.id) {
-      tradingPointsService.getByNetworkId(selectedNetwork.id).then(points => {
-        setTradingPoints(points);
-      });
-    } else {
-      setTradingPoints([]);
-    }
-  }, [selectedNetwork?.id]);
 
   // Логирование для мобильных устройств
   useEffect(() => {
@@ -78,37 +61,14 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
               {/* Mobile Trading Point Selector - отдельно от верхнего бара */}
               {selectedNetwork && (
                 <div className="mx-4 pt-3 pb-4 px-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg mt-3">
-                  <Select
+                  <PointSelect
                     value={selectedTradingPoint}
                     onValueChange={handleTradingPointChange}
                     disabled={!selectedNetwork}
-                  >
-                    <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white hover:bg-gray-600 focus:ring-blue-500">
-                      <MapPin className="h-4 w-4 mr-2 text-blue-400" />
-                      <SelectValue
-                        placeholder={selectedNetwork ? "Выберите торговую точку" : "Сначала выберите сеть"}
-                        className="text-white"
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600">
-                      <SelectItem
-                        value="all"
-                        className="text-white hover:bg-gray-600 focus:bg-blue-600 font-medium border-b border-gray-600"
-                      >
-                      Все торговые точки
-                    </SelectItem>
-                    {tradingPoints.map((point) => (
-                      <SelectItem
-                        key={point.id}
-                        value={point.id}
-                        className="text-white hover:bg-gray-600 focus:bg-blue-600"
-                      >
-                        {point.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                    networkId={selectedNetwork.id}
+                    className="w-full"
+                  />
+                </div>
               )}
             </div>
 

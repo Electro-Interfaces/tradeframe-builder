@@ -1,59 +1,113 @@
 /**
  * Сервис для работы с торговыми сетями
- * Использует только Supabase базу данных
+ * Использует таблицу tenants (type='network') в Supabase
  */
 
 import { Network, NetworkId, NetworkInput } from '@/types/network';
 import { supabaseService as supabase } from './supabaseServiceClient';
-import { networksStore } from '@/mock/networksStore';
 
-// API сервис только с Supabase - никакого localStorage!
+// API сервис только с Supabase - используем tenants с type='network'
 export const networksService = {
-  // Получить все сети с подсчетом торговых точек (используем mock данные)
+  // Получить все сети с подсчетом торговых точек
   async getAll(userRole?: string): Promise<Network[]> {
     try {
-      let networks = networksStore.getAll();
+      // Получаем tenants с type='network'
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('type', 'network')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) {
+        console.error('❌ Supabase error loading networks:', error);
+        throw new Error(`Ошибка загрузки сетей: ${error.message}`);
+      }
+
+      if (!data) return [];
+
+      // Преобразуем tenants в Network формат
+      let networks = data.map(tenant => ({
+        id: tenant.id,
+        external_id: tenant.settings?.external_id || tenant.code,
+        name: tenant.name,
+        description: tenant.settings?.description || '',
+        type: 'АЗС' as const,
+        pointsCount: Array.isArray(tenant.settings?.stations) ? tenant.settings.stations.length : 0,
+        code: tenant.code,
+        status: tenant.is_active ? 'active' as const : 'inactive' as const,
+        settings: tenant.settings,
+        created_at: tenant.created_at,
+        updated_at: tenant.updated_at
+      }));
 
       // Фильтрация для МенеджерБТО - только сеть БТО
       if (userRole === 'bto_manager') {
-        networks = networks.filter(network => network.id === '15'); // Только БТО сеть
+        networks = networks.filter(network => network.code === 'bto');
       }
 
       return networks;
     } catch (error) {
+      console.error('💥 Critical error loading networks:', error);
       throw error;
     }
   },
 
-  // Получить сеть по ID (используем mock данные)
+  // Получить сеть по ID
   async getById(id: NetworkId): Promise<Network | null> {
     try {
-      
-      const network = networksStore.getById(id);
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', id)
+        .eq('type', 'network')
+        .single();
 
-      if (!network) {
-        return null;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Запись не найдена
+          return null;
+        }
+        console.error('❌ Supabase error loading network by ID:', error);
+        throw new Error(`Ошибка загрузки сети: ${error.message}`);
       }
-      
-      return network;
+
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        external_id: data.settings?.external_id || data.code,
+        name: data.name,
+        description: data.settings?.description || '',
+        type: 'АЗС',
+        pointsCount: Array.isArray(data.settings?.stations) ? data.settings.stations.length : 0,
+        code: data.code,
+        status: data.is_active ? 'active' : 'inactive',
+        settings: data.settings,
+        created_at: data.created_at,
+        updated_at: data.updated_at
+      };
     } catch (error) {
       console.error('💥 Critical error loading network by ID:', error);
       return null;
     }
   },
 
-  // Создать новую сеть (только в Supabase)
+  // Создать новую сеть (создает tenant с type='network')
   async create(input: NetworkInput): Promise<Network> {
     try {
-      
       const { data, error } = await supabase
-        .from('networks')
+        .from('tenants')
         .insert({
           name: input.name,
           code: input.code || input.name.toLowerCase().replace(/\s+/g, '_'),
-          description: input.description,
-          status: input.status || 'active',
-          external_id: input.external_id
+          type: 'network',
+          is_active: input.status === 'active' || true,
+          settings: {
+            description: input.description || '',
+            external_id: input.external_id || '',
+            stations: [] // Пустой массив торговых точек при создании
+          }
         })
         .select()
         .single();
@@ -67,16 +121,15 @@ export const networksService = {
         throw new Error('Нет данных после создания сети');
       }
 
-      
       return {
         id: data.id,
-        external_id: data.external_id,
+        external_id: data.settings?.external_id || data.code,
         name: data.name,
-        description: data.description || '',
+        description: data.settings?.description || '',
         type: input.type || 'АЗС',
         pointsCount: 0,
         code: data.code,
-        status: data.status,
+        status: data.is_active ? 'active' : 'inactive',
         settings: data.settings,
         created_at: data.created_at,
         updated_at: data.updated_at
@@ -87,21 +140,30 @@ export const networksService = {
     }
   },
 
-  // Обновить сеть (только в Supabase)
+  // Обновить сеть (обновляет tenant)
   async update(id: NetworkId, input: NetworkInput): Promise<Network | null> {
     try {
-      
+      // Сначала получаем текущие данные для сохранения stations
+      const current = await this.getById(id);
+      if (!current) {
+        throw new Error('Сеть не найдена');
+      }
+
       const { data, error } = await supabase
-        .from('networks')
+        .from('tenants')
         .update({
           name: input.name,
           code: input.code,
-          description: input.description,
-          status: input.status,
-          external_id: input.external_id,
+          is_active: input.status === 'active',
+          settings: {
+            ...current.settings,
+            description: input.description || '',
+            external_id: input.external_id || current.settings?.external_id || ''
+          },
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
+        .eq('type', 'network')
         .select()
         .single();
 
@@ -114,16 +176,15 @@ export const networksService = {
         return null;
       }
 
-      
       return {
         id: data.id,
-        external_id: data.external_id,
+        external_id: data.settings?.external_id || data.code,
         name: data.name,
-        description: data.description || '',
+        description: data.settings?.description || '',
         type: input.type || 'АЗС',
-        pointsCount: 0, // Будет вычисляться отдельно
+        pointsCount: Array.isArray(data.settings?.stations) ? data.settings.stations.length : 0,
         code: data.code,
-        status: data.status,
+        status: data.is_active ? 'active' : 'inactive',
         settings: data.settings,
         created_at: data.created_at,
         updated_at: data.updated_at
@@ -134,14 +195,18 @@ export const networksService = {
     }
   },
 
-  // Удалить сеть (только в Supabase)
+  // Удалить сеть (удаляет tenant - soft delete через is_active)
   async remove(id: NetworkId): Promise<boolean> {
     try {
-      
+      // Используем soft delete через is_active вместо физического удаления
       const { error } = await supabase
-        .from('networks')
-        .delete()
-        .eq('id', id);
+        .from('tenants')
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('type', 'network');
 
       if (error) {
         console.error('❌ Supabase error deleting network:', error);
@@ -160,18 +225,19 @@ export const networksService = {
     return this.remove(id);
   },
 
-  // Поиск сетей (только в Supabase)
+  // Поиск сетей
   async search(query: string): Promise<Network[]> {
     if (!query.trim()) {
       return this.getAll();
     }
 
     try {
-      
       const { data, error } = await supabase
-        .from('networks')
-        .select('id, name, description, code, status, external_id, settings, created_at, updated_at')
-        .or(`name.ilike.%${query}%,description.ilike.%${query}%,code.ilike.%${query}%`)
+        .from('tenants')
+        .select('*')
+        .eq('type', 'network')
+        .eq('is_active', true)
+        .or(`name.ilike.%${query}%,code.ilike.%${query}%`)
         .order('name');
 
       if (error) {
@@ -181,18 +247,18 @@ export const networksService = {
 
       if (!data) return [];
 
-      return data.map(row => ({
-        id: row.id,
-        external_id: row.external_id,
-        name: row.name,
-        description: row.description || '',
-        type: 'АЗС',
-        pointsCount: 0,
-        code: row.code,
-        status: row.status,
-        settings: row.settings,
-        created_at: row.created_at,
-        updated_at: row.updated_at
+      return data.map(tenant => ({
+        id: tenant.id,
+        external_id: tenant.settings?.external_id || tenant.code,
+        name: tenant.name,
+        description: tenant.settings?.description || '',
+        type: 'АЗС' as const,
+        pointsCount: Array.isArray(tenant.settings?.stations) ? tenant.settings.stations.length : 0,
+        code: tenant.code,
+        status: tenant.is_active ? 'active' as const : 'inactive' as const,
+        settings: tenant.settings,
+        created_at: tenant.created_at,
+        updated_at: tenant.updated_at
       }));
     } catch (error) {
       console.error('💥 Critical error searching networks:', error);

@@ -5,6 +5,7 @@
 
 import { stsProxyClient } from './stsProxyClient';
 import { tradingPointsService } from './tradingPointsService';
+import { networksService } from './networksService';
 import type {
   Tank,
   TankEvent,
@@ -30,6 +31,17 @@ class TanksService {
     }
 
     try {
+      // Получаем полные данные сети для external_id
+      const network = await networksService.getById(networkId);
+
+      if (!network) {
+        throw new Error('Сеть не найдена в системе');
+      }
+
+      if (!network.external_id) {
+        throw new Error('У сети отсутствует внешний идентификатор для связи с STS API');
+      }
+
       // Получаем полные данные торговой точки для external_id
       const tradingPoint = await tradingPointsService.getById(tradingPointId);
 
@@ -41,15 +53,67 @@ class TanksService {
         throw new Error('У торговой точки отсутствует внешний идентификатор для связи с STS API');
       }
 
-      // Запрос через Backend Proxy
-      const tanks = await stsProxyClient.get<Tank[]>('/v1/tanks', {
-        system: networkId,
+      // Запрос через Backend Proxy с использованием external_id
+      const apiTanks = await stsProxyClient.get<any[]>('/v1/tanks', {
+        system: network.external_id,
         station: tradingPoint.external_id
       });
 
-      if (!tanks || tanks.length === 0) {
+      if (!apiTanks || apiTanks.length === 0) {
         throw new Error('STS API не вернул данных о резервуарах для данной торговой точки');
       }
+
+      // Преобразуем данные от API в формат Tank
+      const tanks: Tank[] = apiTanks.map(apiTank => ({
+        id: apiTank.number || apiTank.id,
+        name: `Резервуар №${apiTank.number}`,
+        fuelType: apiTank.fuel_name || 'Неизвестно',
+        currentLevelLiters: parseFloat(apiTank.volume_end || apiTank.volume || '0'),
+        capacityLiters: parseFloat(apiTank.volume_max || '0'),
+        minLevelPercent: 20,
+        criticalLevelPercent: 10,
+        temperature: parseFloat(apiTank.temperature || '0'),
+        waterLevelMm: parseFloat(apiTank.water?.level || '0'),
+        density: parseFloat(apiTank.density || '0'),
+        mass: parseFloat(apiTank.amount_end || '0'),
+        sensors: [],
+        lastCalibration: new Date().toISOString(),
+        linkedPumps: [],
+        notifications: {
+          enabled: true,
+          drainAlerts: true,
+          levelAlerts: true
+        },
+        thresholds: {
+          criticalTemp: { min: -40, max: 50 },
+          maxWaterLevel: 50,
+          notifications: {
+            critical: true,
+            minimum: true,
+            temperature: true,
+            water: true
+          }
+        },
+        apiData: {
+          temperature: parseFloat(apiTank.temperature || '0'),
+          level: parseFloat(apiTank.level || '0'),
+          water: {
+            level: parseFloat(apiTank.water?.level || '0')
+          },
+          density: parseFloat(apiTank.density || '0'),
+          amount_begin: parseFloat(apiTank.amount_begin || '0'),
+          amount_end: parseFloat(apiTank.amount_end || '0'),
+          volume_begin: parseFloat(apiTank.volume_begin || '0'),
+          volume_end: parseFloat(apiTank.volume_end || '0'),
+          release: {
+            volume: parseFloat(apiTank.release?.volume || '0'),
+            amount: parseFloat(apiTank.release?.amount || '0')
+          },
+          dt: apiTank.dt || new Date().toISOString(),
+          state: apiTank.state,
+          fuel: apiTank.fuel
+        }
+      }));
 
       return tanks;
     } catch (error) {

@@ -30,9 +30,11 @@ function getTankStatus(percentage: number, minLevel: number, criticalLevel: numb
 }
 
 export function TankCard({ tank, isMobile }: TankCardProps) {
-  const percentage = getPercentage(tank.currentLevelLiters, tank.capacityLiters);
-  const freeSpace = tank.capacityLiters - tank.currentLevelLiters;
-  const tankStatus = getTankStatus(percentage, tank.minLevelPercent, tank.criticalLevelPercent);
+  const currentLevel = tank.currentLevelLiters || 0;
+  const capacity = tank.capacityLiters || 0;
+  const percentage = getPercentage(currentLevel, capacity);
+  const freeSpace = capacity - currentLevel;
+  const tankStatus = getTankStatus(percentage, tank.minLevelPercent || 20, tank.criticalLevelPercent || 10);
 
   return (
     <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
@@ -67,12 +69,12 @@ export function TankCard({ tank, isMobile }: TankCardProps) {
           <div className="flex-1 space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-2xl font-bold text-white">
-                {tank.currentLevelLiters.toLocaleString()} л
+                {currentLevel.toLocaleString()} л
               </span>
               <span className="text-lg font-bold text-slate-300">({percentage}%)</span>
             </div>
             <div className="flex justify-between text-xs text-slate-400">
-              <span>Макс: {tank.capacityLiters.toLocaleString()} л</span>
+              <span>Макс: {capacity.toLocaleString()} л</span>
             </div>
           </div>
 

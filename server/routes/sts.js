@@ -91,14 +91,25 @@ async function proxyRequest(req, res) {
       ...(method !== 'GET' && method !== 'HEAD' && { data: body })
     };
 
+    console.log('[STS Proxy] Request params:', query);
+
     // Выполняем запрос к STS API
     const client = await getStsClient();
     const response = await client.request(requestConfig);
+
+    // Логируем ответ для отладки
+    if (urlPath === '/v1/tanks') {
+      console.log('[STS Proxy] Tanks response:', JSON.stringify(response.data).substring(0, 200));
+    }
 
     // Возвращаем ответ клиенту
     res.status(response.status).json(response.data);
   } catch (error) {
     console.error(`[STS Proxy Error] ${error.message}`);
+    if (error.response) {
+      console.error('[STS Proxy Error] Response data:', error.response.data);
+      console.error('[STS Proxy Error] Request params:', req.query);
+    }
 
     // Обработка ошибок от STS API
     if (error.response) {

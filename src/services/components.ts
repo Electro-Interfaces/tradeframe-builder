@@ -9,7 +9,6 @@ import {
   ComponentStatusAction,
   ComponentEvent
 } from '@/types/component';
-import { componentTemplatesStore } from '@/mock/componentTemplatesStore';
 import { PersistentStorage } from '@/utils/persistentStorage';
 
 // Базовый URL для API
@@ -783,12 +782,9 @@ export const mockComponentsAPI = {
 
   async create(data: CreateComponentRequest): Promise<Component> {
     await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Получаем шаблон для копирования данных
-    const template = componentTemplatesStore.getById(data.template_id);
-    if (!template) {
-      throw new ApiError(404, 'Component template not found');
-    }
+
+    // Архивный функционал - не используется в активных разделах
+    throw new ApiError(501, 'Component creation is not implemented - archived feature');
     
     // Создаем независимый экземпляр компонента
     const newComponent: Component = {
