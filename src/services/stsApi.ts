@@ -296,6 +296,16 @@ class STSApiService {
   private async refreshTokenIfNeeded(forceRefresh = false): Promise<boolean> {
     // При использовании Backend Proxy токены не нужны - прокси сам авторизуется
     // Всегда возвращаем true чтобы не блокировать запросы
+
+    // Если уже выполняется обновление токена, ждем его завершения
+    if (this.tokenRefreshPromise) {
+      try {
+        return await this.tokenRefreshPromise;
+      } catch (error) {
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -399,7 +409,21 @@ class STSApiService {
 
     // Используем Backend Proxy вместо прямого обращения к STS API
     // Формат: /api/sts/v1/tanks вместо https://pos.autooplata.ru/tms/v1/tanks
-    const baseUrl = import.meta.env.PROD ? window.location.origin : 'http://localhost:3001';
+    let baseUrl: string;
+    if (import.meta.env.PROD) {
+      const origin = window.location.origin;
+      // Проверка на корректность origin
+      if (!origin || origin === 'null' || origin === 'undefined') {
+        console.error('❌ window.location.origin некорректен:', origin);
+        // Fallback на production домен
+        baseUrl = 'https://prod.dataworker.ru';
+      } else {
+        baseUrl = origin;
+      }
+    } else {
+      baseUrl = 'https://prod.dataworker.ru';
+    }
+
     const url = new URL(`${baseUrl}/api/sts${endpoint}`);
 
     // Добавляем параметры сети и торговой точки если они заданы
@@ -427,10 +451,14 @@ class STSApiService {
     };
 
 
+    // Адаптивный timeout: 15 секунд - компромисс между скоростью и надежностью
+    // Это помогает быстро обнаружить проблемы с backend proxy
+    const timeout = 15000;
+
     const response = await fetch(url.toString(), {
       ...options,
       headers,
-      signal: AbortSignal.timeout(30000), // 30 секунд timeout
+      signal: AbortSignal.timeout(timeout),
     });
 
 
@@ -934,25 +962,29 @@ class STSApiService {
    * Получить список транзакций
    */
   async getTransactions(dateFrom?: string, dateTo?: string, limit?: number, contextParams?: {networkId?: string; tradingPointId?: string}): Promise<Transaction[]> {
-    
+
     try {
-      const url = new URL('/v1/transactions', this.config?.url || '');
-      
+      // Формируем endpoint с параметрами
+      let endpoint = '/v1/transactions';
+      const params = new URLSearchParams();
+
       // Добавляем дополнительные параметры фильтрации если они заданы
       if (dateFrom) {
-        url.searchParams.set('date_from', dateFrom);
+        params.set('date_from', dateFrom);
       }
       if (dateTo) {
-        url.searchParams.set('date_to', dateTo);
+        params.set('date_to', dateTo);
       }
       if (limit && limit > 0) {
-        url.searchParams.set('limit', limit.toString());
+        params.set('limit', limit.toString());
       }
 
-      const endpoint = url.pathname + url.search;
-      
+      if (params.toString()) {
+        endpoint += `?${params.toString()}`;
+      }
+
       const data = await this.apiRequest<any>(endpoint, {}, contextParams);
-      
+
       if (Array.isArray(data)) {
         const mappedTransactions = data.map(tx => this.mapApiTransactionToTransaction(tx));
         return mappedTransactions;
@@ -960,7 +992,7 @@ class STSApiService {
         const mappedTransactions = data.transactions.map(tx => this.mapApiTransactionToTransaction(tx));
         return mappedTransactions;
       }
-      
+
       console.warn('🔍 STS API: Неожиданный формат данных транзакций:', data);
       return [];
     } catch (error) {

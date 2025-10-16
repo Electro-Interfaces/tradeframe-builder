@@ -23,15 +23,24 @@ interface StsProxyRequestOptions {
 const getProxyBaseUrl = (): string => {
   // В production используем текущий домен
   if (import.meta.env.PROD) {
-    return window.location.origin;
+    const origin = window.location.origin;
+
+    // Проверка на корректность origin
+    if (!origin || origin === 'null' || origin === 'undefined') {
+      console.error('❌ window.location.origin некорректен:', origin);
+      // Fallback на production домен
+      return 'https://prod.dataworker.ru';
+    }
+
+    return origin;
   }
 
-  // В development можем использовать другой порт если нужно
-  return 'http://localhost:3001';
+  // В development используем production прокси
+  return 'https://prod.dataworker.ru';
 };
 
 /**
- * Выполнить запрос к STS API через Backend Proxy
+ * Выполнить запрос к STS API через Backend Proxy с retry механизмом
  *
  * @param endpoint - Endpoint STS API (например, /v1/shifts)
  * @param options - Опции запроса
@@ -47,43 +56,110 @@ export async function stsProxyRequest<T>(
   options: StsProxyRequestOptions = {}
 ): Promise<T> {
   const { method = 'GET', params, body } = options;
+  const maxRetries = 3;
+  const retryDelays = [1000, 2000, 4000]; // Exponential backoff в миллисекундах
 
-  // Формируем URL через наш Backend Proxy
-  const baseUrl = getProxyBaseUrl();
-  const url = new URL(`${baseUrl}/api/sts${endpoint}`);
+  let lastError: Error | null = null;
 
-  // Добавляем query параметры
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        url.searchParams.append(key, String(value));
-      }
-    });
-  }
-
-  // Выполняем запрос
-  const response = await fetch(url.toString(), {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    ...(body && { body: JSON.stringify(body) }),
-  });
-
-  if (!response.ok) {
-    // Пытаемся получить детали ошибки
-    let errorDetails = response.statusText;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const errorBody = await response.json();
-      errorDetails = errorBody.message || JSON.stringify(errorBody);
-      console.error('❌ STS Proxy Error:', response.status, errorBody);
-    } catch (e) {
-      console.error('❌ STS Proxy Error:', response.status, response.statusText);
+      // Формируем URL через наш Backend Proxy
+      const baseUrl = getProxyBaseUrl();
+      const fullPath = `${baseUrl}/api/sts${endpoint}`;
+
+      // Проверка корректности URL перед созданием
+      if (!baseUrl || !baseUrl.startsWith('http')) {
+        throw new Error(`Некорректный baseUrl для STS Proxy: ${baseUrl}`);
+      }
+
+      const url = new URL(fullPath);
+
+      // Добавляем query параметры
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            url.searchParams.append(key, String(value));
+          }
+        });
+      }
+
+      // Адаптивный timeout: первый запрос 10 сек, последующие 20 сек
+      const timeout = attempt === 0 ? 10000 : 20000;
+
+      // Выполняем запрос с timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      try {
+        const response = await fetch(url.toString(), {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+          ...(body && { body: JSON.stringify(body) }),
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          // Пытаемся получить детали ошибки
+          let errorDetails = response.statusText;
+          try {
+            const errorBody = await response.json();
+            errorDetails = errorBody.message || JSON.stringify(errorBody);
+          } catch (e) {
+            // Игнорируем ошибки парсинга
+          }
+
+          const error = new Error(`STS API request failed (${response.status}): ${errorDetails}`) as any;
+          error.status = response.status;
+
+          // Не повторяем для клиентских ошибок (кроме 401/408)
+          if (response.status >= 400 && response.status < 500 && response.status !== 401 && response.status !== 408) {
+            throw error;
+          }
+
+          throw error;
+        }
+
+        // Успешный запрос
+        return response.json();
+
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+
+        // Обработка timeout
+        if (fetchError.name === 'AbortError') {
+          const timeoutError = new Error(`Request timeout after ${timeout}ms`) as any;
+          timeoutError.isTimeout = true;
+          throw timeoutError;
+        }
+
+        throw fetchError;
+      }
+
+    } catch (error: any) {
+      lastError = error;
+
+      // Не повторяем для клиентских ошибок (кроме 401/408)
+      if (error.status >= 400 && error.status < 500 && error.status !== 401 && error.status !== 408) {
+        throw error;
+      }
+
+      // Если это последняя попытка, выбрасываем ошибку
+      if (attempt === maxRetries) {
+        break;
+      }
+
+      // Ждем перед следующей попыткой
+      const delay = retryDelays[attempt] || 4000;
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
-    throw new Error(`STS API request failed (${response.status}): ${errorDetails}`);
   }
 
-  return response.json();
+  // Все попытки исчерпаны
+  throw lastError || new Error('All retry attempts failed');
 }
 
 /**
