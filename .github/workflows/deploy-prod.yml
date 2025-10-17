@@ -1,0 +1,124 @@
+name: Deploy to PRODUCTION Environment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Позволяет запускать вручную через UI
+
+jobs:
+  deploy-production:
+    name: Deploy to prod.dataworker.ru
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://prod.dataworker.ru
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync version
+        run: npm run sync-version
+
+      - name: Build for PRODUCTION
+        run: npm run build:prod
+        env:
+          VITE_APP_ENV: production
+          VITE_API_URL: https://prod.dataworker.ru
+          VITE_BASE_URL: https://prod.dataworker.ru
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_STS_API_URL: ${{ secrets.VITE_STS_API_URL }}
+          VITE_STS_API_USERNAME: ${{ secrets.VITE_STS_API_USERNAME }}
+          VITE_STS_API_PASSWORD: ${{ secrets.VITE_STS_API_PASSWORD }}
+
+      - name: Deploy to PRODUCTION server
+        uses: easingthemes/ssh-deploy@v5
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          SOURCE: "dist/"
+          TARGET: "/var/www/www-root/data/www/prod.dataworker.ru/dist"
+          SCRIPT_BEFORE: |
+            echo "🚀 Starting PRODUCTION deployment..."
+            cd /var/www/www-root/data/www/prod.dataworker.ru
+
+            # Создаем бэкап текущей версии
+            timestamp=$(date +%Y%m%d_%H%M%S)
+            mkdir -p /tmp/backups
+            if [ -d "dist" ]; then
+              tar -czf /tmp/backups/prod-backup-${timestamp}.tar.gz dist server .env || true
+              echo "✅ Backup created: /tmp/backups/prod-backup-${timestamp}.tar.gz"
+            fi
+          SCRIPT_AFTER: |
+            echo "🔧 Post-deployment steps..."
+            cd /var/www/www-root/data/www/prod.dataworker.ru
+
+            # Обновляем код из git
+            git pull origin main
+
+            # Устанавливаем зависимости для backend
+            cd server
+            npm install --production
+
+            # Перезапускаем PM2 процессы
+            pm2 restart tradeframe-prod-frontend tradeframe-prod-backend
+
+            # Проверяем статус
+            pm2 list | grep tradeframe-prod
+
+            echo "✅ PRODUCTION deployment completed!"
+            echo "🌐 URL: https://prod.dataworker.ru"
+
+      - name: Verify deployment
+        run: |
+          echo "⏳ Waiting 10 seconds for services to start..."
+          sleep 10
+
+          # Проверяем доступность PROD сайта
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://prod.dataworker.ru)
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ PRODUCTION site is responding with HTTP 200"
+          else
+            echo "❌ PRODUCTION site returned HTTP $HTTP_STATUS"
+            exit 1
+          fi
+
+      - name: Create Release Tag
+        if: success()
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Creating release tag v${VERSION}"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "v${VERSION}" -m "Release v${VERSION} - deployed to production"
+          git push origin "v${VERSION}" || echo "Tag already exists"
+
+      - name: Notification
+        if: always()
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ PRODUCTION Deployment SUCCESSFUL"
+            echo "🌐 https://prod.dataworker.ru"
+            echo "📦 Version: v${VERSION}"
+          else
+            echo "❌ PRODUCTION Deployment FAILED"
+            echo "🔄 Rollback instructions:"
+            echo "   ssh root@194.135.36.195"
+            echo "   cd /var/www/www-root/data/www/prod.dataworker.ru"
+            echo "   # Find backup: ls /tmp/backups/"
+            echo "   # Restore: tar -xzf /tmp/backups/prod-backup-TIMESTAMP.tar.gz"
+            echo "   pm2 restart tradeframe-prod-frontend tradeframe-prod-backend"
+          fi
