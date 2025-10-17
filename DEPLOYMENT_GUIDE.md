@@ -174,12 +174,20 @@ git push origin feature/new-functionality
 3. ✅ Установка зависимостей (`npm ci`)
 4. ✅ Синхронизация версии (`npm run sync-version`)
 5. ✅ Сборка для TEST (`npm run build:prod`)
-6. ✅ Создание бэкапа на сервере
-7. ✅ Деплой dist/ на сервер
-8. ✅ git pull на сервере
-9. ✅ Установка backend зависимостей
-10. ✅ Перезапуск PM2 процессов
-11. ✅ Проверка доступности сайта (HTTP 200)
+6. ✅ Создание архива dist.tar.gz
+7. ✅ Загрузка архива на сервер (`appleboy/scp-action`)
+8. ✅ Создание бэкапа на сервере
+9. ✅ Распаковка новой версии
+10. ✅ git pull на сервере
+11. ✅ Установка backend зависимостей
+12. ✅ Перезапуск PM2 процессов
+13. ✅ Проверка доступности сайта (HTTP 200)
+
+**GitHub Actions используются:**
+- `actions/checkout@v4` - клонирование репозитория
+- `actions/setup-node@v4` - установка Node.js
+- `appleboy/scp-action@v0.1.7` - копирование файлов по SCP
+- `appleboy/ssh-action@v1.0.3` - выполнение команд по SSH
 
 ### `.github/workflows/deploy-prod.yml`
 
@@ -191,8 +199,9 @@ git push origin feature/new-functionality
 - Аналогично TEST, но с:
   - Отдельным SSH ключом (`SSH_PRIVATE_KEY_PROD`)
   - Environment protection (можно настроить manual approval)
-  - Автоматическое создание git tag с версией
+  - Автоматическое создание git tag с версией после успешного деплоя
   - Увеличенный timeout для проверки (10 сек вместо 5)
+  - Бэкап включает также server/ и .env файлы
 
 ---
 

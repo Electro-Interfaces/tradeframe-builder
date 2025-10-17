@@ -42,15 +42,28 @@ jobs:
           VITE_STS_API_USERNAME: ${{ secrets.VITE_STS_API_USERNAME }}
           VITE_STS_API_PASSWORD: ${{ secrets.VITE_STS_API_PASSWORD }}
 
+      - name: Create deployment archive
+        run: |
+          tar -czf dist.tar.gz dist/
+          ls -lh dist.tar.gz
+
       - name: Deploy to PRODUCTION server
-        uses: easingthemes/ssh-deploy@v5
+        uses: appleboy/scp-action@v0.1.7
         with:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
-          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-          REMOTE_USER: ${{ secrets.REMOTE_USER }}
-          SOURCE: "dist/"
-          TARGET: "/var/www/www-root/data/www/prod.dataworker.ru/dist"
-          SCRIPT_BEFORE: |
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+          source: "dist.tar.gz"
+          target: "/tmp/"
+
+      - name: Execute deployment on PRODUCTION server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+          script: |
+            set -e
             echo "🚀 Starting PRODUCTION deployment..."
             cd /var/www/www-root/data/www/prod.dataworker.ru
 
@@ -61,12 +74,15 @@ jobs:
               tar -czf /tmp/backups/prod-backup-${timestamp}.tar.gz dist server .env || true
               echo "✅ Backup created: /tmp/backups/prod-backup-${timestamp}.tar.gz"
             fi
-          SCRIPT_AFTER: |
-            echo "🔧 Post-deployment steps..."
-            cd /var/www/www-root/data/www/prod.dataworker.ru
+
+            # Распаковываем новую версию
+            rm -rf dist
+            tar -xzf /tmp/dist.tar.gz
+            rm /tmp/dist.tar.gz
+            echo "✅ New build extracted"
 
             # Обновляем код из git
-            git pull origin main
+            git pull origin main || echo "Git pull failed, continuing..."
 
             # Устанавливаем зависимости для backend
             cd server
