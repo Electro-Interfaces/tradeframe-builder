@@ -31,14 +31,20 @@ const API_BASE_URL = getApiBaseUrl();
 // Утилита для HTTP запросов с полной поддержкой заголовков
 class HttpApiClient {
   private async request<T>(
-    endpoint: string, 
+    endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    
-    // Получение и проверка токена авторизации
+
+    // ВАЖНО: Получаем токен ДО выполнения запроса
+    // Если токена нет, пытаемся получить его заранее
     let token = await this.getValidToken();
-    
+
+    // Если токена по-прежнему нет, пытаемся выполнить обновление
+    if (!token) {
+      token = await this.refreshToken();
+    }
+
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/problem+json',
@@ -58,16 +64,16 @@ class HttpApiClient {
       credentials: 'include', // Для работы с cookies
     });
 
-    // Если получили 401, пробуем обновить токен и повторить запрос
+    // Если получили 401, пробуем обновить токен и повторить запрос ОДИН раз
     if (response.status === 401) {
       token = await this.refreshToken();
-      
+
       if (token) {
         const newHeaders = {
           ...headers,
           'Authorization': `Bearer ${token}`,
         };
-        
+
         response = await fetch(url, {
           ...options,
           headers: newHeaders,
@@ -80,18 +86,18 @@ class HttpApiClient {
     if (!response.ok) {
       const errorBody = await response.text();
       let errorData;
-      
+
       try {
         errorData = JSON.parse(errorBody);
       } catch {
-        errorData = { 
+        errorData = {
           type: 'about:blank',
           title: 'HTTP Error',
           status: response.status,
           detail: errorBody || response.statusText
         };
       }
-      
+
       throw new HttpApiError(response.status, errorData);
     }
 

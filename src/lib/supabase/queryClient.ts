@@ -71,11 +71,22 @@ export const queryClient = new QueryClient({
       
       // Retry стратегии
       retry: (failureCount, error: any) => {
-        // Не повторяем для ошибок авторизации и валидации
-        if (error?.status === 401 || error?.status === 403) return false;
+        // Для 401 ошибок даем ОДИН шанс на повторную попытку
+        // (токен может обновиться автоматически на уровне HTTP клиента)
+        if (error?.status === 401) {
+          return failureCount < 1; // Один retry для 401
+        }
+
+        // Для 408 (Request Timeout) тоже даем шанс
+        if (error?.status === 408 || error?.isTimeout) {
+          return failureCount < 2; // Два retry для timeout
+        }
+
+        // Не повторяем для других клиентских ошибок (403, 404, 422 и т.д.)
+        if (error?.status === 403) return false;
         if (error?.status >= 400 && error?.status < 500) return false;
-        
-        // Повторяем до 3 раз для сетевых ошибок
+
+        // Повторяем до 3 раз для сетевых ошибок (5xx, network errors)
         return failureCount < 3;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

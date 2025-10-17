@@ -15,9 +15,9 @@ export function useCouponFilters() {
     search: '',
     state: undefined,
     ageFilter: 'all',
-    // Устанавливаем период по умолчанию - месяц от текущей даты
-    dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    dateTo: new Date().toISOString().split('T')[0]
+    // Устанавливаем период по умолчанию - 3 месяца назад и до завтра (включая сегодняшние купоны)
+    dateFrom: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    dateTo: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Завтра
   });
 
   const [filtersOpen, setFiltersOpen] = useState(true);

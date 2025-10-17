@@ -63,6 +63,41 @@ const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances")
 const App = () => {
   const [showPWAInstaller, setShowPWAInstaller] = useState(false);
 
+  // Глобальный обработчик ошибок динамического импорта
+  useEffect(() => {
+    const handleChunkError = (event: ErrorEvent) => {
+      const errorMessage = event.message || '';
+
+      // Проверяем, является ли это ошибкой динамического импорта
+      if (
+        errorMessage.includes('Failed to fetch dynamically imported module') ||
+        errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('Importing a module script failed')
+      ) {
+        console.warn('🔄 Обнаружена ошибка динамического импорта, перезагружаем страницу...');
+
+        // Предотвращаем бесконечную перезагрузку
+        const lastReload = sessionStorage.getItem('lastChunkErrorReload');
+        const now = Date.now();
+
+        if (!lastReload || now - parseInt(lastReload) > 10000) {
+          sessionStorage.setItem('lastChunkErrorReload', now.toString());
+          window.location.reload();
+        } else {
+          console.error('❌ Слишком частые перезагрузки, пропускаем');
+        }
+
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener('error', handleChunkError);
+
+    return () => {
+      window.removeEventListener('error', handleChunkError);
+    };
+  }, []);
+
   // Обработка перенаправления с GitHub Pages 404 с улучшенной защитой
   useEffect(() => {
     try {
