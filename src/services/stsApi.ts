@@ -409,20 +409,16 @@ class STSApiService {
 
     // Используем Backend Proxy вместо прямого обращения к STS API
     // Формат: /api/sts/v1/tanks вместо https://pos.autooplata.ru/tms/v1/tanks
-    let baseUrl: string;
-    if (import.meta.env.PROD) {
-      const origin = window.location.origin;
-      // Проверка на корректность origin
-      if (!origin || origin === 'null' || origin === 'undefined') {
-        console.error('❌ window.location.origin некорректен:', origin);
-        // Fallback на production домен
-        baseUrl = 'https://prod.dataworker.ru';
-      } else {
-        baseUrl = origin;
-      }
-    } else {
-      baseUrl = 'https://prod.dataworker.ru';
+    // Всегда используем текущий домен (откуда загружено приложение)
+    const origin = window.location.origin;
+
+    // Проверка на корректность origin
+    if (!origin || origin === 'null' || origin === 'undefined') {
+      console.error('❌ window.location.origin некорректен:', origin);
+      throw new Error('Cannot determine origin for STS API');
     }
+
+    const baseUrl = origin;
 
     const url = new URL(`${baseUrl}/api/sts${endpoint}`);
 
