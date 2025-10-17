@@ -21,22 +21,16 @@ interface StsProxyRequestOptions {
  * В development - localhost, в production - текущий домен
  */
 const getProxyBaseUrl = (): string => {
-  // В production используем текущий домен
-  if (import.meta.env.PROD) {
-    const origin = window.location.origin;
+  // Всегда используем текущий домен (откуда загружено приложение)
+  const origin = window.location.origin;
 
-    // Проверка на корректность origin
-    if (!origin || origin === 'null' || origin === 'undefined') {
-      console.error('❌ window.location.origin некорректен:', origin);
-      // Fallback на production домен
-      return 'https://prod.dataworker.ru';
-    }
-
-    return origin;
+  // Проверка на корректность origin
+  if (!origin || origin === 'null' || origin === 'undefined') {
+    console.error('❌ window.location.origin некорректен:', origin);
+    throw new Error('Cannot determine origin for STS Proxy');
   }
 
-  // В development используем production прокси
-  return 'https://prod.dataworker.ru';
+  return origin;
 };
 
 /**
