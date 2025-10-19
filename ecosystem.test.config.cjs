@@ -12,6 +12,7 @@ module.exports = {
         NODE_ENV: 'development',
         PORT: 3007
       },
+      exec_mode: 'fork',
       instances: 1,
       autorestart: true,
       watch: false,
@@ -30,6 +31,7 @@ module.exports = {
         NODE_ENV: 'development',
         PORT: 3002
       },
+      exec_mode: 'fork',
       instances: 1,
       autorestart: true,
       watch: false,
