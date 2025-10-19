@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/sidebar";
 import {
   Network,
-  BarChart3,
   Bell,
   DollarSign,
   Gauge,
@@ -16,23 +15,15 @@ import {
   Clock,
   Users,
   FileText,
-  Wifi,
-  Book,
-  Wrench,
   ChevronRight,
   MapPin,
   Shield,
   Cog,
   MessageSquare,
-  HardDrive,
   Component,
   Receipt,
-  TrendingUp,
   Fuel,
-  FileText as FuelIcon,
-  Database,
-  Box,
-  Wrench as Tool
+  Database
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -48,9 +39,9 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const getInitialOpenGroups = (): string[] => {
     try {
       const saved = localStorage.getItem('appSidebar_openGroups');
-      return saved ? JSON.parse(saved) : ["main", "networks", "trading-point", "admin", "settings", "service", "database", "misc"];
+      return saved ? JSON.parse(saved) : ["main", "networks", "trading-point", "admin", "settings", "service", "database"];
     } catch {
-      return ["main", "networks", "trading-point", "admin", "settings", "service", "database", "misc"];
+      return ["main", "networks", "trading-point", "admin", "settings", "service", "database"];
     }
   };
   
@@ -138,6 +129,8 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Сети и ТТ", url: "/admin/networks", icon: Network },
     { title: "Пользователи", url: "/admin/users-and-roles", icon: Users },
     { title: "Роли", url: "/admin/roles", icon: Shield },
+    { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
+    { title: "Рассылка сообщений", url: "/network/broadcast-messages", icon: MessageSquare },
     { title: "Правовые документы", url: "/admin/legal-documents", icon: FileText },
     { title: "Журнал аудита", url: "/admin/audit", icon: FileText },
   ];
@@ -149,14 +142,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
 
 
   const databaseMenuItems = [
-  ];
-
-  // 🚫 НЕИСПОЛЬЗУЕМЫЕ РАЗДЕЛЫ - НЕ РЕАЛИЗОВАНЫ В ТЕКУЩЕЙ ВЕРСИИ
-  // Эти разделы отображаются в меню, но не имеют функциональной реализации
-  // Запланированы для будущих версий приложения
-  const miscMenuItems = [
-    { title: "Оповещения сети", url: "/network/notifications", icon: Bell }, // 🚫 НЕ РЕАЛИЗОВАНО
-    { title: "Сообщения", url: "/network/messages", icon: MessageSquare }, // 🚫 НЕ РЕАЛИЗОВАНО
   ];
 
   function renderMenuContent() {
@@ -320,46 +305,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
               </div>
 
 
-            </div>
-          )}
-        </div>
-        )}
-
-
-        {/* РАЗНОЕ - 🚫 НЕИСПОЛЬЗУЕМЫЕ РАЗДЕЛЫ */}
-        {menuVisibility.misc && miscMenuItems.length > 0 && (
-        <div className="border-t border-slate-600 px-4 py-3">
-          <div 
-            className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggleGroup("misc");
-            }}
-            title="Эти разделы не реализованы в текущей версии"
-          >
-            <Box className="w-4 h-4 flex-shrink-0" />
-            РАЗНОЕ (НЕ ИСПОЛЬЗУЕТСЯ)
-            <ChevronRight 
-              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                openGroups.includes("misc") ? "rotate-90" : ""
-              }`} 
-            />
-          </div>
-          {openGroups.includes("misc") && (
-            <div className="space-y-1">
-              {miscMenuItems.map((item) => (
-                <div key={item.title}>
-                  <NavLink 
-                    to={item.url} 
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
-                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                  >
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">{item.title}</span>
-                  </NavLink>
-                </div>
-              ))}
             </div>
           )}
         </div>

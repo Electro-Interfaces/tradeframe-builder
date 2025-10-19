@@ -2,14 +2,67 @@
 
 Этот файл содержит инструкции для Claude Code (claude.ai/code) при работе с кодом данного репозитория.
 
+## ⚡ Быстрый старт
+
+```bash
+# 1️⃣ ПЕРВЫМ запускаем Backend Proxy (порт 3001)
+cd server
+node index.js
+
+# 2️⃣ ВТОРЫМ запускаем Frontend (порт 3000)
+# В новом терминале:
+npm run dev
+
+# ✅ Проверка работы:
+# Backend: http://localhost:3001/health
+# Frontend: http://127.0.0.1:3000/
+```
+
+**Почему два сервера?**
+- **Backend Proxy (3001)** - проксирует запросы к STS API с JWT авторизацией, управляет Telegram Bot и системой уведомлений
+- **Frontend (3000)** - React приложение, обращается к backend proxy для получения данных
+
 ## 🚀 Команды разработки
+
+### Запуск локальной среды разработки
+
+**ВАЖНО**: Для полноценной работы приложения необходимо запустить ДВА сервера:
+
+```bash
+# 1. Backend Proxy Server (порт 3001)
+# Обязательно запускается ПЕРВЫМ для проксирования STS API запросов
+cd server
+node index.js
+
+# 2. Frontend Dev Server (порт 3000)
+# Запускается после backend proxy
+npm run dev
+```
+
+**Порядок запуска критичен**:
+1. Сначала `server/index.js` (backend proxy на порту 3001)
+2. Затем `npm run dev` (frontend на порту 3000)
+
+**Проверка работы серверов**:
+```bash
+# Backend Proxy health check
+curl http://localhost:3001/health
+
+# Frontend доступен по адресу
+http://127.0.0.1:3000/
+```
+
+**Архитектура запросов**:
+- Frontend (3000) → Vite Proxy → Backend Proxy (3001) → STS API
+- Vite конфигурация: `vite.config.ts` (proxy `/api/sts` → `localhost:3001`)
+- Backend proxy: `server/index.js` + `server/routes/sts.js`
+- Backend использует JWT авторизацию (автоматическое обновление токена каждые 18 минут)
+
+### Другие команды
 
 ```bash
 # Установка зависимостей
 npm install
-
-# Запуск dev-сервера (порт 3000)
-npm run dev
 
 # Сборка для production
 npm run build
@@ -22,6 +75,62 @@ npm run lint
 
 # Предпросмотр production сборки
 npm run preview
+```
+
+## 🔧 Установка и настройка
+
+### Зависимости Backend Proxy Server
+
+Backend proxy сервер (`server/`) имеет собственные зависимости:
+
+```bash
+cd server
+npm install
+```
+
+**Необходимые пакеты** (из `server/package.json`):
+- `express` - Web сервер
+- `cors` - CORS middleware
+- `axios` - HTTP клиент для запросов к STS API
+- `dotenv` - Загрузка переменных окружения
+- `@supabase/supabase-js` - Supabase клиент для работы с БД
+- `node-telegram-bot-api` - Telegram Bot API
+- `node-cron` - Планировщик задач (проверки уведомлений)
+- `nodemailer` - Отправка email уведомлений
+
+### Файл server/.env
+
+Создайте файл `server/.env` со следующими переменными:
+
+```env
+# STS API Configuration
+STS_API_URL=https://pos.autooplata.ru/tms
+STS_API_USERNAME=your_username
+STS_API_PASSWORD=your_password
+
+# Server Configuration
+PORT=3001
+NODE_ENV=development
+
+# CORS Configuration
+ALLOWED_ORIGINS=https://prod.dataworker.ru,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
+
+# Telegram Bot Configuration
+TELEGRAM_BOT_TOKEN=your_bot_token_from_@BotFather
+TELEGRAM_BOT_NAME=TradeFrame Notifications
+TELEGRAM_BOT_USERNAME=TradeFrameDW_Bot
+
+# Supabase Configuration
+SUPABASE_URL=https://ssvazdgnmatbdynkhkqo.supabase.co
+SUPABASE_SERVICE_KEY=your_supabase_service_role_key
+
+# Email Configuration (опционально, для email уведомлений)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_app_password
+SMTP_FROM_NAME=TradeFrame Notifications
+SMTP_FROM_EMAIL=noreply@tradeframe.com
 ```
 
 ## 🗄️ Database Tools for Claude Code Agents
@@ -48,6 +157,252 @@ import { executeSelect, describeTable } from './tools/sql-direct.js';
 
 See `tools/README.md` for complete documentation.
 
+## 🔔 Система уведомлений и сообщений
+
+TradeFrame Builder имеет две системы коммуникации с пользователями:
+1. **Автоматические уведомления** - триггерные уведомления о событиях (пороги оборудования, офлайн, и т.д.)
+2. **Broadcast сообщения** - ручная рассылка новостей и объявлений администраторами
+
+### 📨 Система Broadcast Сообщений (NEW!)
+
+Позволяет администраторам отправлять новостные сообщения и объявления пользователям через Telegram Bot и Email.
+
+**Страница**: `/network/broadcast-messages`
+
+**Возможности:**
+- ✅ Создание и отправка сообщений через UI
+- ✅ Выбор каналов доставки (Telegram, Email, оба)
+- ✅ Выбор получателей (все, по ролям, конкретные пользователи)
+- ✅ Типы сообщений: новости, объявления, оповещения, техобслуживание
+- ✅ Приоритеты: низкий, средний, высокий, критический
+- ✅ Сохранение черновиков
+- ✅ История отправленных сообщений
+- ✅ Статистика доставки (отправлено/доставлено/ошибки)
+- ✅ Markdown форматирование
+
+**База данных:**
+- `broadcast_messages` - сообщения для рассылки
+- `message_recipients` - получатели с статусами доставки
+- `message_templates` - шаблоны сообщений
+- `message_attachments` - вложения
+
+**Backend API** (`/api/messages/*`):
+- `GET /api/messages` - список сообщений
+- `POST /api/messages` - создать сообщение
+- `POST /api/messages/:id/send` - отправить сообщение
+- `GET /api/messages/:id/stats` - статистика доставки
+
+**Frontend:**
+- `src/pages/BroadcastMessages.tsx` - страница отправки
+- `src/services/messageService.ts` - API клиент
+- `src/types/message.ts` - TypeScript типы
+
+📖 **Подробная инструкция**: `BROADCAST_MESSAGES_SETUP.md`
+
+### 🔔 Автоматические уведомления
+
+TradeFrame Builder имеет полнофункциональную систему автоматических уведомлений с проверками по расписанию и мгновенной доставкой через Telegram и Email.
+
+### Архитектура системы
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    FRONTEND (React)                      │
+│  - UserNotificationSettings.tsx                          │
+│  - NotificationRules.tsx                                 │
+│  - notificationService.ts                                │
+└────────────┬────────────────────────────────────────────┘
+             │ HTTP /api/telegram/*
+             ↓
+┌─────────────────────────────────────────────────────────┐
+│              BACKEND PROXY (Express :3001)               │
+│  - routes/telegram.js (API endpoints)                    │
+│  - telegram-bot.js (polling mode)                        │
+│  - services/notificationEngine.js (ядро проверок)        │
+│  - services/notificationScheduler.js (cron)              │
+│  - services/emailService.js (nodemailer)                 │
+│  - services/telegramService.js (Bot API)                 │
+└────────────┬───────────────────────────┬─────────────────┘
+             │                           │
+             ↓ Supabase Client           ↓ Telegram Bot API
+┌─────────────────────────┐   ┌─────────────────────────┐
+│   SUPABASE DATABASE     │   │    TELEGRAM BOT         │
+│  - user_notification_   │   │  @TradeFrameDW_Bot      │
+│    settings             │   │  - /start [code]        │
+│  - telegram_link_codes  │   │  - /help                │
+│  - notification_rules   │   │  - /status              │
+│  - notifications        │   │  - /unlink              │
+│  - *_subscriptions      │   └─────────────────────────┘
+└─────────────────────────┘
+```
+
+### Компоненты Backend (server/)
+
+**Основные файлы:**
+- `index.js` - Главный Express сервер, запускает Telegram Bot и планировщик
+- `routes/telegram.js` - API endpoints для управления уведомлениями
+- `telegram-bot.js` - Telegram Bot с командами (/start, /help, /status, /unlink)
+- `services/notificationEngine.js` - Ядро обработки правил и отправки
+- `services/notificationScheduler.js` - Автоматические проверки по расписанию (node-cron)
+- `services/emailService.js` - Отправка email через Nodemailer
+- `services/telegramService.js` - Отправка Telegram уведомлений
+
+**API Endpoints (`/api/telegram/*`):**
+- `POST /generate-link-code` - Генерация кода привязки (8 символов, срок 24 часа)
+- `POST /save-settings` - Сохранение настроек пользователя
+- `GET /get-settings/:userId` - Получение настроек
+- `POST /save-subscription` - Сохранение подписки на тип события
+- `GET /get-subscriptions/:userId` - Получение всех подписок
+- `POST /send-test-notification` - Отправка тестового уведомления
+
+### Компоненты Frontend (src/)
+
+**Страницы:**
+- `src/pages/UserNotificationSettings.tsx` - Настройки уведомлений пользователя
+  - Email настройки (адрес, вкл/выкл)
+  - Telegram настройки (привязка, отвязка, тест)
+  - Режим "Не беспокоить" (время начала/конца)
+  - Подписки на типы событий
+- `src/pages/NotificationRules.tsx` - Управление правилами уведомлений
+
+**Сервисы:**
+- `src/services/notificationService.ts` - API клиент для работы с уведомлениями
+- `src/types/notification.ts` - TypeScript типы и интерфейсы
+
+### Таблицы Supabase
+
+**user_notification_settings** - Настройки уведомлений пользователя
+- Email: `email_enabled`, `email_address`, `email_verified`
+- Telegram: `telegram_enabled`, `telegram_chat_id`, `telegram_username`, `telegram_verified`
+- DND: `dnd_enabled`, `dnd_start`, `dnd_end`, `dnd_allow_critical`
+
+**telegram_link_codes** - Временные коды привязки Telegram
+- `code` - 8-символьный код (A-Z0-9)
+- `expires_at` - срок действия 24 часа
+- `used` - флаг использования
+
+**notification_rules** - Правила автоматических проверок
+- `type` - тип проверки (bill_acceptor_threshold, equipment_offline и т.д.)
+- `schedule_type` - тип расписания (cron, interval, realtime)
+- `is_active` - активность правила
+
+**notifications** - История уведомлений
+- `type`, `title`, `message`, `priority`
+- `status` - pending, sent, read, archived, failed
+- `channels` - каналы доставки (email, telegram)
+
+**user_notification_subscriptions** - Подписки пользователей на типы событий
+**notification_delivery_log** - Журнал доставки уведомлений
+**role_notification_subscriptions** - Подписки на уровне ролей
+
+### Типы уведомлений
+
+- **bill_acceptor_threshold** - Пороги купюроприемника (заполнение)
+- **equipment_offline** - Оборудование недоступно
+- **low_fuel_level** - Критически низкий уровень топлива
+- **shift_not_closed** - Смена не закрыта в установленное время
+
+### Каналы доставки
+
+**Telegram:**
+- Бот: @TradeFrameDW_Bot
+- Режим: Polling (не webhook)
+- Команды:
+  - `/start [code]` - Привязка аккаунта по 8-символьному коду
+  - `/help` - Справка по использованию
+  - `/status` - Проверка статуса привязки и подписок
+  - `/unlink` - Отвязка Telegram аккаунта
+
+**Email:**
+- SMTP через Nodemailer
+- Требует настройки SMTP_* переменных в `server/.env`
+
+### Планировщик автоматических проверок
+
+Использует `node-cron` для периодических проверок:
+
+```javascript
+// Проверка купюроприемников - каждые 6 часов
+'0 */6 * * *' - 00:00, 06:00, 12:00, 18:00
+
+// Проверка offline оборудования - каждые 30 минут
+'*/30 * * * *' - каждые 30 минут
+
+// Проверка уровня топлива - каждые 4 часа
+'0 */4 * * *' - 00:00, 04:00, 08:00, 12:00, 16:00, 20:00
+```
+
+### Запуск системы уведомлений
+
+**Development:**
+```bash
+cd server
+npm run dev
+```
+
+**Production (PM2):**
+```bash
+cd server
+pm2 start ecosystem.config.cjs
+pm2 save
+pm2 logs tradeframe-backend-proxy
+```
+
+**Проверка работы:**
+```bash
+# Health check
+curl http://localhost:3001/health
+
+# Проверка Telegram Bot
+# Отправьте /start в @TradeFrameDW_Bot
+```
+
+### Процесс привязки Telegram
+
+1. Пользователь открывает `/settings/notifications` в UI
+2. Нажимает "Привязать Telegram"
+3. Frontend вызывает `POST /api/telegram/generate-link-code`
+4. Получает ссылку вида `https://t.me/TradeFrameDW_Bot?start=ABC12XYZ`
+5. Пользователь открывает ссылку и нажимает START
+6. Бот получает код, проверяет в таблице `telegram_link_codes`
+7. Сохраняет `telegram_chat_id` в `user_notification_settings`
+8. Помечает код как использованный
+9. Отправляет подтверждение в Telegram
+
+### Отправка уведомлений
+
+**Автоматическая отправка:**
+1. Планировщик запускает проверку по расписанию
+2. `notificationEngine.processAllRules()` проверяет активные правила
+3. Для каждого правила выполняется специфическая проверка (например, `checkBillAcceptorThresholds()`)
+4. При обнаружении события создается уведомление в БД
+5. `getRecipients()` находит пользователей с активными подписками
+6. `sendToChannel()` отправляет через email/telegram
+7. Результат логируется в `notification_delivery_log`
+
+**Ручная отправка:**
+```bash
+# Тест из UI
+Настройки → Уведомления → "Отправить тестовое уведомление"
+
+# Тест из консоли
+node server/test-telegram-notification.js
+```
+
+### Приоритеты уведомлений
+
+- **critical** 🔴 - Критические (требуют немедленного внимания)
+- **high** 🟠 - Высокие (важные события)
+- **medium** 🟡 - Средние (информационные)
+- **low** 🔵 - Низкие (общие уведомления)
+
+### Режим "Не беспокоить"
+
+- Настраивается через UI (время начала и конца)
+- По умолчанию блокирует все уведомления
+- `dnd_allow_critical` - разрешает критические уведомления
+- Проверяется перед отправкой в `notificationEngine.sendToChannel()`
+
 ## Обзор архитектуры
 
 TradeFrame Builder v1.5.16 - платформа управления торговыми сетями АЗС на базе React:
@@ -67,7 +422,8 @@ TradeFrame Builder v1.5.16 - платформа управления торго�
 - **Торговые сети**: Обзор (`/network/overview`), Операции (`/network/operations-transactions`) - **РЕАЛЬНЫЕ данные**
 - **Торговая точка**: Цены (`/point/prices`), Резервуары (`/point/tanks`), Оборудование (`/point/equipment`) - **РЕАЛЬНЫЕ данные**
 - **Администрирование**: Сети и ТТ, Пользователи, Роли, Инструкции, Правовые документы, Журнал аудита - **РЕАЛЬНЫЕ данные**
-- **Настройки**: API CTC настройки, Внешняя БД
+- **Настройки**: API CTC настройки, Внешняя БД, **Уведомления пользователя** (`/settings/notifications`) - **РЕАЛЬНЫЕ данные**
+- **Система уведомлений**: Telegram Bot (@TradeFrameDW_Bot), Email, автоматические проверки, правила уведомлений - **ПОЛНОСТЬЮ РАБОТАЕТ**
 
 **🚫 АРХИВНЫЕ РАЗДЕЛЫ (НЕ РЕАЛИЗОВАНЫ):**
 - Оповещения сети, Сообщения, Сменные отчеты (в группе "РАЗНОЕ")
@@ -79,13 +435,29 @@ TradeFrame Builder v1.5.16 - платформа управления торго�
 ## Структура проекта
 
 ### Ключевые директории
+
+**Frontend**:
 - `src/pages/` - Компоненты маршрутов, подключенные в App.tsx
 - `src/components/` - Переиспользуемые компоненты, организованные по функциям
 - `src/services/` - API клиенты и сервисный слой
+  - `src/services/stsProxyClient.ts` - Клиент для работы с backend proxy (используется вместо прямых запросов к STS API)
 - `src/contexts/` - React контексты (Auth, Selection)
 - `src/hooks/` - Кастомные React хуки
 - `src/types/` - Определения типов TypeScript
 - `src/config/` - Конфигурация (версия приложения в `version.ts`)
+
+**Backend Proxy Server**:
+- `server/index.js` - Главный файл Express сервера (порт 3001), запускает Telegram Bot и планировщик
+- `server/routes/sts.js` - Маршруты для проксирования STS API запросов (JWT авторизация)
+- `server/routes/telegram.js` - API endpoints для системы уведомлений
+- `server/telegram-bot.js` - Telegram Bot с командами (/start, /help, /status, /unlink)
+- `server/services/notificationEngine.js` - Ядро системы уведомлений
+- `server/services/notificationScheduler.js` - Планировщик автоматических проверок
+- `server/services/emailService.js` - Отправка email уведомлений
+- `server/services/telegramService.js` - Отправка Telegram уведомлений
+- `server/.env` - Переменные окружения (STS API, Telegram Bot, Supabase, SMTP)
+- `server/package.json` - Зависимости: express, cors, axios, dotenv, @supabase/supabase-js, node-telegram-bot-api, node-cron, nodemailer
+- `server/ecosystem.config.cjs` - PM2 конфигурация для production
 
 ### Паттерн маршрутизации
 Все маршруты определены в `src/App.tsx`:
@@ -107,13 +479,18 @@ TradeFrame Builder v1.5.16 - платформа управления торго�
 
 #### 🌐 Внешний API торговой сети (STS)
 - **Назначение**: Получение данных по работе торговой сети и POS-системы
-- **Аутентификация**: HTTP Basic Auth
+- **Аутентификация**: JWT Bearer Token (автоматическое получение через `/v1/login`)
 - **Swagger документация**: https://pos.autooplata.ru/tms/docs (OpenAPI 3.1.0)
-- **Конфигурация**: `src/services/apiConfigService.ts` (строки 124, 136-137)
-- **Переменные окружения**:
-  - `VITE_STS_API_URL` - URL API
-  - `VITE_STS_API_USERNAME` - логин для доступа
-  - `VITE_STS_API_PASSWORD` - пароль для доступа
+- **Backend Proxy**: `server/routes/sts.js` - автоматическое управление JWT токенами
+- **Переменные окружения** (в `server/.env`):
+  - `STS_API_URL` - URL API (https://pos.autooplata.ru/tms)
+  - `STS_API_USERNAME` - логин для получения JWT
+  - `STS_API_PASSWORD` - пароль для получения JWT
+  - `ALLOWED_ORIGINS` - разрешенные домены для CORS
+- **Особенности**:
+  - JWT токен обновляется автоматически каждые 18 минут (срок действия 20 минут)
+  - Все запросы от frontend идут через backend proxy на `http://localhost:3001/api/sts/*`
+  - Backend proxy добавляет JWT токен в заголовок `Authorization: Bearer {token}`
 
 **Доступные endpoints**:
 - `/v1/transactions`, `/v2/transactions` - Транзакции
@@ -186,8 +563,11 @@ TradeFrame Builder v1.5.16 - платформа управления торго�
 - Текущая версия: **v1.5.16** (управляется через `src/config/version.ts`)
 - Независимый проект (больше не связан с Lovable.dev)
 - Компонентный таггер активен в режиме разработки
-- Поддерживает PM2 деплой с `ecosystem.config.js`
+- Поддерживает PM2 деплой с `ecosystem.config.js` и `server/ecosystem.config.cjs`
 - Express сервер доступен для production развертывания
+- **Система уведомлений полностью работает**: Telegram Bot (@TradeFrameDW_Bot), Email, автоматические проверки
+- **Backend Proxy обязателен**: Для работы системы уведомлений и STS API необходим запущенный `server/index.js`
+- **RLS политики Supabase**: Backend использует SERVICE_KEY для обхода RLS, frontend использует ANON_KEY с JWT токенами пользователей
 
 ## Рабочий язык
 

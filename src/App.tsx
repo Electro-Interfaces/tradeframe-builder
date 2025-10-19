@@ -35,11 +35,13 @@ const DataMigration = lazy(() => import("./pages/DataMigration"));
 
 // Settings страницы - ленивая загрузка (приоритет 2)
 const ExternalDatabaseSettings = lazy(() => import("./pages/ExternalDatabaseSettings"));
+const UserNotificationSettings = lazy(() => import("./pages/UserNotificationSettings"));
 
 // Network страницы - ленивая загрузка (приоритет 3)
 const SalesAnalysisPage = lazy(() => import("./pages/SalesAnalysisPage"));
-const NotificationRules = lazy(() => import("./pages/NotificationRules"));
+const NetworkNotifications = lazy(() => import("./pages/NetworkNotifications"));
 const Messages = lazy(() => import("./pages/Messages"));
+const BroadcastMessages = lazy(() => import("./pages/BroadcastMessages"));
 const Receipts = lazy(() => import("./pages/network/Receipts"));
 
 // Equipment и остальные страницы - ленивая загрузка (приоритет 3)
@@ -199,11 +201,13 @@ const App = () => {
 
                   {/* Settings страницы - приоритет 2 */}
                   <Route path="/settings/external-database" element={<ProtectedRoute><LazyLoader><ExternalDatabaseSettings /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/settings/notifications" element={<ProtectedRoute><LazyLoader><UserNotificationSettings /></LazyLoader></ProtectedRoute>} />
 
                   {/* Network страницы - приоритет 3 */}
                   <Route path="/network/sales-analysis" element={<ProtectedRoute><LazyLoader><SalesAnalysisPage /></LazyLoader></ProtectedRoute>} />
-                  <Route path="/network/notifications" element={<ProtectedRoute><LazyLoader><NotificationRules /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/notifications" element={<ProtectedRoute><LazyLoader><NetworkNotifications /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/messages" element={<ProtectedRoute><LazyLoader><Messages /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/broadcast-messages" element={<ProtectedRoute><LazyLoader><BroadcastMessages /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/receipts" element={<ProtectedRoute><LazyLoader><Receipts /></LazyLoader></ProtectedRoute>} />
 
                   {/* Equipment страницы - приоритет 3 */}
