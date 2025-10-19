@@ -7,7 +7,7 @@ module.exports = {
       name: 'tradeframe-test-frontend',
       script: 'npm',
       args: 'run start',
-      cwd: '/var/www/www-root/data/www/test.dataworker.ru',
+      cwd: '/var/www/www-root/data/www/testTF.dataworker.ru',
       env: {
         NODE_ENV: 'development',
         PORT: 3007
@@ -25,7 +25,7 @@ module.exports = {
     {
       name: 'tradeframe-test-backend',
       script: 'server/index.js',
-      cwd: '/var/www/www-root/data/www/test.dataworker.ru',
+      cwd: '/var/www/www-root/data/www/testTF.dataworker.ru',
       env: {
         NODE_ENV: 'development',
         PORT: 3002
