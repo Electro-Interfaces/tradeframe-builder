@@ -20,7 +20,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
  * Получить список правил уведомлений для тенанта
  */
 export async function getNotificationRules(tenantId: string): Promise<NotificationRule[]> {
-  const response = await fetch(`http://localhost:3001/api/telegram/get-rules/${tenantId}`, {
+  const response = await fetch(`/api/telegram/get-rules/${tenantId}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
@@ -56,7 +56,7 @@ export async function getNotificationRule(ruleId: string): Promise<NotificationR
  * Создать новое правило
  */
 export async function createNotificationRule(rule: Partial<NotificationRule>): Promise<NotificationRule> {
-  const response = await fetch('http://localhost:3001/api/telegram/create-rule', {
+  const response = await fetch('/api/telegram/create-rule', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -79,7 +79,7 @@ export async function updateNotificationRule(
   ruleId: string,
   updates: Partial<NotificationRule>
 ): Promise<NotificationRule> {
-  const response = await fetch(`http://localhost:3001/api/telegram/update-rule/${ruleId}`, {
+  const response = await fetch(`/api/telegram/update-rule/${ruleId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
@@ -99,7 +99,7 @@ export async function updateNotificationRule(
  * Удалить правило
  */
 export async function deleteNotificationRule(ruleId: string): Promise<void> {
-  const response = await fetch(`http://localhost:3001/api/telegram/delete-rule/${ruleId}`, {
+  const response = await fetch(`/api/telegram/delete-rule/${ruleId}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json'
@@ -170,7 +170,7 @@ export async function markNotificationAsRead(notificationId: string): Promise<vo
  * Получить настройки уведомлений пользователя
  */
 export async function getUserNotificationSettings(userId: string): Promise<UserNotificationSettings | null> {
-  const response = await fetch(`http://localhost:3001/api/telegram/get-settings/${userId}`, {
+  const response = await fetch(`/api/telegram/get-settings/${userId}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
@@ -192,7 +192,7 @@ export async function updateUserNotificationSettings(
   userId: string,
   settings: Partial<UserNotificationSettings>
 ): Promise<UserNotificationSettings> {
-  const response = await fetch('http://localhost:3001/api/telegram/save-settings', {
+  const response = await fetch('/api/telegram/save-settings', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -216,7 +216,7 @@ export async function generateTelegramLinkCode(userId: string): Promise<{
   telegramLink: string;
   expiresAt: string;
 }> {
-  const response = await fetch('http://localhost:3001/api/telegram/generate-link-code', {
+  const response = await fetch('/api/telegram/generate-link-code', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -236,7 +236,7 @@ export async function generateTelegramLinkCode(userId: string): Promise<{
  * Получить подписки пользователя
  */
 export async function getUserNotificationSubscriptions(userId: string): Promise<UserNotificationSubscription[]> {
-  const response = await fetch(`http://localhost:3001/api/telegram/get-subscriptions/${userId}`, {
+  const response = await fetch(`/api/telegram/get-subscriptions/${userId}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
@@ -259,7 +259,7 @@ export async function updateUserNotificationSubscription(
   notificationType: string,
   subscription: Partial<UserNotificationSubscription>
 ): Promise<UserNotificationSubscription> {
-  const response = await fetch('http://localhost:3001/api/telegram/save-subscription', {
+  const response = await fetch('/api/telegram/save-subscription', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -295,7 +295,7 @@ export async function getRoleNotificationSubscriptions(roleId: string): Promise<
  * Отправить тестовое уведомление в Telegram
  */
 export async function sendTestNotification(userId: string): Promise<{ success: boolean; message: string }> {
-  const response = await fetch('http://localhost:3001/api/telegram/send-test-notification', {
+  const response = await fetch('/api/telegram/send-test-notification', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
