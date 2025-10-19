@@ -116,9 +116,9 @@ ${emoji} <b>${levelText}</b>
 
 <b>Превышен порог купюроприемника</b>
 
-📍 <b>Торговая точка:</b> ${stationName}
-💵 <b>Количество купюр:</b> ${billCount} (порог: ${threshold.billCountWarning || threshold.billCountCritical})
-💰 <b>Сумма денег:</b> ${billAmount.toLocaleString('ru-RU')} ₽
+<b>Торговая точка:</b> ${stationName}
+<b>Количество купюр:</b> ${billCount} (порог: ${threshold.billCountWarning || threshold.billCountCritical})
+<b>Сумма денег:</b> ${billAmount.toLocaleString('ru-RU')} ₽
 
 <b>Рекомендация:</b> Требуется инкассация купюроприемника.
 
@@ -130,6 +130,89 @@ ${emoji} <b>${levelText}</b>
       text,
       parseMode: 'HTML',
       disableNotification: level === 'warning' // Для критичных - со звуком
+    });
+  }
+
+  /**
+   * Отправка уведомления о низком уровне топлива
+   */
+  async sendLowFuelLevelAlert(options) {
+    const {
+      chatId,
+      stationName,
+      tankNumber,
+      fuelType,
+      currentPercent,
+      currentVolume,
+      maxVolume,
+      threshold,
+      level // 'warning' или 'critical'
+    } = options;
+
+    const isWarning = level === 'warning';
+    const emoji = isWarning ? '⚠️' : '🔴';
+    const levelText = isWarning ? 'ПРЕДУПРЕЖДЕНИЕ' : 'КРИТИЧНО';
+
+    const text = `
+${emoji} <b>${levelText}</b>
+
+<b>Низкий уровень топлива</b>
+
+<b>Торговая точка:</b> ${stationName}
+<b>Резервуар:</b> №${tankNumber} (${fuelType})
+<b>Текущий уровень:</b> ${currentPercent.toFixed(1)}% (${currentVolume.toLocaleString('ru-RU')} / ${maxVolume.toLocaleString('ru-RU')} л)
+<b>Порог ${isWarning ? 'предупреждения' : 'критический'}:</b> ${isWarning ? threshold.levelWarning : threshold.levelCritical}%
+
+<b>Рекомендация:</b> Требуется заправка резервуара.
+
+<i>Автоматическое уведомление TradeFrame Builder</i>
+    `.trim();
+
+    return this.sendMessage({
+      chatId,
+      text,
+      parseMode: 'HTML',
+      disableNotification: level === 'warning'
+    });
+  }
+
+  /**
+   * Отправить уведомление о проблемах с работой терминала
+   */
+  async sendTerminalOfflineAlert(options) {
+    const {
+      chatId,
+      stationName,
+      stationCode,
+      lastUpdate,
+      delayMinutes,
+      maxDelayMinutes
+    } = options;
+
+    const lastUpdateDate = new Date(lastUpdate);
+    const emoji = '🔴';
+    const levelText = 'КРИТИЧНО';
+
+    const text = `
+${emoji} <b>${levelText}</b>
+
+<b>Проблема с передачей данных</b>
+
+<b>Торговая точка:</b> ${stationName} (${stationCode})
+<b>Последнее обновление:</b> ${lastUpdateDate.toLocaleString('ru-RU')}
+<b>Прошло времени:</b> ${delayMinutes} мин
+<b>Максимально допустимо:</b> ${maxDelayMinutes} мин
+
+<b>Рекомендация:</b> Проверьте работу терминала и связь с облаком.
+
+<i>Автоматическое уведомление TradeFrame Builder</i>
+    `.trim();
+
+    return this.sendMessage({
+      chatId,
+      text,
+      parseMode: 'HTML',
+      disableNotification: false // Всегда со звуком для критических проблем
     });
   }
 

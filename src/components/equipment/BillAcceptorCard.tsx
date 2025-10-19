@@ -7,15 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Banknote, CheckCircle2, AlertCircle, AlertTriangle, Settings, Loader2, Save } from 'lucide-react';
+import { Banknote, CheckCircle2, AlertCircle, AlertTriangle, Settings, Loader2, Save, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { TerminalEquipmentItem } from '@/types/equipment';
 import type { BillAcceptorThresholds } from '@/types/tradingpoint';
 import {
-  checkBillAcceptorThresholds,
-  getThresholdColor,
-  getThresholdBgColor,
-  getThresholdBorderColor
+  checkBillAcceptorThresholds
 } from '@/utils/billAcceptorThresholds';
 
 interface BillAcceptorCardProps {
@@ -42,6 +39,7 @@ function getStatusIcon(status: string, className: string = 'w-5 h-5') {
 
 export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThresholds }: BillAcceptorCardProps) {
   const [saving, setSaving] = useState(false);
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
   const [thresholdForm, setThresholdForm] = useState({
     billCountWarning: thresholds?.billCountWarning?.toString() || '',
     billCountCritical: thresholds?.billCountCritical?.toString() || '',
@@ -55,10 +53,6 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
     billAcceptor.billAmount || 0,
     thresholds
   );
-
-  // Получаем цвета для индикаторов
-  const borderColor = getThresholdBorderColor(thresholdStatus.level);
-  const bgColor = getThresholdBgColor(thresholdStatus.level);
 
   // Синхронизация формы с thresholds при изменении
   useEffect(() => {
@@ -92,10 +86,10 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
 
   return (
     <div
-      className={`rounded-lg ${isMobile ? 'p-4' : 'p-6'} border-2 ${borderColor} ${bgColor} hover:border-slate-500 transition-colors`}
+      className={`rounded-lg ${isMobile ? 'p-4' : 'p-6'} border-2 border-slate-600 bg-slate-800/50 hover:border-slate-500 transition-colors`}
     >
-      <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'}`}>
-        {/* Название и ID */}
+      {/* Заголовок */}
+      <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between mb-4'}`}>
         <div className="flex items-center gap-3">
           <Banknote className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-400`} />
           <div>
@@ -108,43 +102,43 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
           </div>
         </div>
 
-        {/* Данные и статус */}
-        <div className={`flex items-center ${isMobile ? 'justify-between' : 'gap-8'}`}>
-          {/* Количество купюр */}
-          <div className="text-center">
-            <div className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold ${thresholdStatus.billCountExceeded ? getThresholdColor(thresholdStatus.level) : 'text-green-400'}`}>
-              {billAcceptor.billCount || 0}
-            </div>
-            <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-300`}>купюр</div>
-          </div>
+        {/* Статус и настройки */}
+        <div className="flex items-center gap-4">
+          {getStatusIcon(billAcceptor.status, isMobile ? 'w-4 h-4' : 'w-5 h-5')}
+          <Badge
+            className={`${
+              billAcceptor.status === 'online'
+                ? `bg-green-600 text-white hover:bg-green-700 ${isMobile ? 'text-xs px-2 py-1' : 'text-sm px-3 py-1'}`
+                : `bg-red-600 text-white hover:bg-red-700 ${isMobile ? 'text-xs px-2 py-1' : 'text-sm px-3 py-1'}`
+            }`}
+          >
+            {billAcceptor.statusText}
+          </Badge>
 
-          {/* Сумма */}
-          <div className="text-center">
-            <div className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold ${thresholdStatus.cashAmountExceeded ? getThresholdColor(thresholdStatus.level) : 'text-blue-400'}`}>
-              {(billAcceptor.billAmount || 0).toLocaleString()}
-            </div>
-            <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-300`}>₽</div>
-          </div>
-
-          {/* Статус */}
-          <div className="flex flex-col items-center gap-2">
-            {getStatusIcon(billAcceptor.status, isMobile ? 'w-4 h-4' : 'w-5 h-5')}
-            <Badge
-              className={`${
-                billAcceptor.status === 'online'
-                  ? `bg-green-600 text-white hover:bg-green-700 ${isMobile ? 'text-xs px-2 py-1' : 'text-base px-3 py-1'} font-semibold`
-                  : `bg-red-600 text-white hover:bg-red-700 ${isMobile ? 'text-xs px-2 py-1' : 'text-base px-3 py-1'} font-semibold`
-              }`}
-            >
-              {billAcceptor.statusText}
-            </Badge>
-          </div>
+          {/* Кнопка настройки порогов */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsSettingsExpanded(!isSettingsExpanded);
+            }}
+            className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"
+          >
+            <Settings className="w-4 h-4 mr-1.5" />
+            <span>{isSettingsExpanded ? 'Скрыть настройки' : 'Настроить пороги'}</span>
+            {isSettingsExpanded ? (
+              <ChevronUp className="w-4 h-4 ml-1.5" />
+            ) : (
+              <ChevronDown className="w-4 h-4 ml-1.5" />
+            )}
+          </Button>
         </div>
       </div>
 
       {/* Предупреждающее сообщение */}
       {thresholdStatus.message && (
-        <div className={`mt-4 p-3 rounded-lg border-l-4 ${
+        <div className={`mb-4 p-3 rounded-lg border-l-4 ${
           thresholdStatus.level === 'critical'
             ? 'bg-red-900/20 border-red-500'
             : 'bg-yellow-900/20 border-yellow-500'
@@ -162,80 +156,110 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
         </div>
       )}
 
-      {/* Настройка порогов в одну строку */}
-      <div className="mt-4 border-t border-slate-600 pt-3">
-        <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
-          <Settings className="w-3.5 h-3.5" />
-          <span>Настройка порогов</span>
-        </div>
+      {/* Таблица с данными */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-600">
+              <th className="text-left pb-2 px-2 text-slate-300 font-medium">Устройство</th>
+              <th className="text-center pb-2 px-2 text-slate-300 font-medium">Купюр (шт)</th>
+              <th className="text-center pb-2 px-2 text-slate-300 font-medium">Сумма (₽)</th>
+              <th className="text-center pb-2 px-2 text-slate-300 font-medium">Порог ⚠️ купюр</th>
+              <th className="text-center pb-2 px-2 text-slate-300 font-medium">Порог 🔴 купюр</th>
+              <th className="text-center pb-2 px-2 text-slate-300 font-medium">Порог ⚠️ сумма</th>
+              <th className="text-center pb-2 px-2 text-slate-300 font-medium">Порог 🔴 сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-slate-700 hover:bg-slate-700/30">
+              <td className="py-2 px-2">
+                <div className="flex items-center gap-2">
+                  <Banknote className="w-4 h-4 text-green-400" />
+                  <span className="text-white font-medium">{billAcceptor.name}</span>
+                </div>
+              </td>
+              <td className="py-2 px-2 text-center">
+                <span className="font-bold text-blue-400">
+                  {billAcceptor.billCount || 0}
+                </span>
+              </td>
+              <td className="py-2 px-2 text-center">
+                <span className="font-bold text-blue-400">
+                  {(billAcceptor.billAmount || 0).toLocaleString()}
+                </span>
+              </td>
+              <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                {isSettingsExpanded ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="100"
+                    value={thresholdForm.billCountWarning}
+                    onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountWarning: e.target.value }))}
+                    onFocus={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-slate-800 border-slate-600 text-white h-7 text-sm w-20 text-center"
+                  />
+                ) : (
+                  <span className="text-white font-medium">{thresholds?.billCountWarning || '—'}</span>
+                )}
+              </td>
+              <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                {isSettingsExpanded ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="150"
+                    value={thresholdForm.billCountCritical}
+                    onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountCritical: e.target.value }))}
+                    onFocus={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-slate-800 border-slate-600 text-white h-7 text-sm w-20 text-center"
+                  />
+                ) : (
+                  <span className="text-white font-medium">{thresholds?.billCountCritical || '—'}</span>
+                )}
+              </td>
+              <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                {isSettingsExpanded ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="50000"
+                    value={thresholdForm.cashAmountWarning}
+                    onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountWarning: e.target.value }))}
+                    onFocus={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-slate-800 border-slate-600 text-white h-7 text-sm w-24 text-center"
+                  />
+                ) : (
+                  <span className="text-white font-medium">{thresholds?.cashAmountWarning?.toLocaleString() || '—'}</span>
+                )}
+              </td>
+              <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                {isSettingsExpanded ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="100000"
+                    value={thresholdForm.cashAmountCritical}
+                    onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountCritical: e.target.value }))}
+                    onFocus={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-slate-800 border-slate-600 text-white h-7 text-sm w-24 text-center"
+                  />
+                ) : (
+                  <span className="text-white font-medium">{thresholds?.cashAmountCritical?.toLocaleString() || '—'}</span>
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-        {/* Inline форма в одну строку */}
-        <div className="grid grid-cols-5 gap-2 items-end">
-          {/* Купюры: Предупреждение */}
-          <div>
-            <Label htmlFor="billCountWarning" className="text-xs text-slate-400 block mb-1">
-              Купюр ⚠️
-            </Label>
-            <Input
-              id="billCountWarning"
-              type="number"
-              min="0"
-              placeholder="100"
-              value={thresholdForm.billCountWarning}
-              onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountWarning: e.target.value }))}
-              className="bg-slate-800 border-slate-600 text-white h-8 text-sm"
-            />
-          </div>
-
-          {/* Купюры: Критический */}
-          <div>
-            <Label htmlFor="billCountCritical" className="text-xs text-slate-400 block mb-1">
-              Купюр 🔴
-            </Label>
-            <Input
-              id="billCountCritical"
-              type="number"
-              min="0"
-              placeholder="150"
-              value={thresholdForm.billCountCritical}
-              onChange={(e) => setThresholdForm(prev => ({ ...prev, billCountCritical: e.target.value }))}
-              className="bg-slate-800 border-slate-600 text-white h-8 text-sm"
-            />
-          </div>
-
-          {/* Сумма: Предупреждение */}
-          <div>
-            <Label htmlFor="cashAmountWarning" className="text-xs text-slate-400 block mb-1">
-              Сумма ⚠️
-            </Label>
-            <Input
-              id="cashAmountWarning"
-              type="number"
-              min="0"
-              placeholder="50000"
-              value={thresholdForm.cashAmountWarning}
-              onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountWarning: e.target.value }))}
-              className="bg-slate-800 border-slate-600 text-white h-8 text-sm"
-            />
-          </div>
-
-          {/* Сумма: Критический */}
-          <div>
-            <Label htmlFor="cashAmountCritical" className="text-xs text-slate-400 block mb-1">
-              Сумма 🔴
-            </Label>
-            <Input
-              id="cashAmountCritical"
-              type="number"
-              min="0"
-              placeholder="100000"
-              value={thresholdForm.cashAmountCritical}
-              onChange={(e) => setThresholdForm(prev => ({ ...prev, cashAmountCritical: e.target.value }))}
-              className="bg-slate-800 border-slate-600 text-white h-8 text-sm"
-            />
-          </div>
-
-          {/* Кнопка сохранения */}
+      {/* Кнопка сохранения */}
+      {isSettingsExpanded && (
+        <div className="mt-4 flex justify-end border-t border-slate-600 pt-3">
           <Button
             size="sm"
             onClick={handleSave}
@@ -255,7 +279,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
             )}
           </Button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

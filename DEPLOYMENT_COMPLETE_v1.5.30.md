@@ -1,326 +1,249 @@
-# ✅ Деплой TradeFrame v1.5.30 - Отчет о завершении
+# ✅ Deployment Complete - Test Environment v1.5.30
 
-**Дата:** 2025-10-14 23:30
-**Версия:** 1.5.30
-**Сервер:** prod.dataworker.ru (194.135.36.195)
-**Статус:** ✅ УСПЕШНО
-
----
-
-## 📦 Что было задеплоено
-
-### Новые функции v1.5.30:
-
-1. **Safari Compatibility Improvements** (Критические улучшения)
-   - ✅ SafeStorage wrapper для localStorage (Private Mode protection)
-   - ✅ AbortSignal.timeout polyfill для Safari 14.x и ниже
-   - ✅ Улучшенная детекция версии Safari с определением iOS
-   - ✅ Исправлен устаревший reload(true) на reload()
-
-2. **Мобильная адаптация**
-   - ✅ Все существующие оптимизации сохранены
-   - ✅ Pull-to-refresh protection
-   - ✅ Touch events оптимизация
-   - ✅ Safe Area (iOS notch) поддержка
-   - ✅ PWA манифест и Service Worker
+**Дата деплоя:** 2025-10-19
+**Среда:** Test (https://testtf.dataworker.ru)
+**Статус:** 🟢 Online and Operational
 
 ---
 
-## 🚀 Процесс деплоя
+## 📦 Что было развернуто
 
-### Выполненные шаги:
+### 1. Frontend (React + Vite)
+**Расположение:** `/var/www/www-root/data/www/testTF.dataworker.ru/dist/`
 
-**1. Сборка production bundle** ✅
-```bash
-npm run build:prod
-```
-- Версия синхронизирована: 1.5.30
-- Bundle size: ~2.3 MB (compressed)
-- Build time: 13.26s
+**Основные файлы:**
+- `index.html` (23 KB) - точка входа
+- `assets/index-CMriL3E7.js` (1.1 MB) - основной бандл
+- `assets/Prices-g1JssnQR.js` (92 KB) - модуль цен
+- `assets/react-vendor-0G8fJFe6.js` (491 KB) - React библиотеки
+- `assets/ShiftReportsV2-iq2478L6.js` (495 KB) - отчеты смен
 
-**2. Создание архива** ✅
-```bash
-cd dist && tar -czf ../dist.tar.gz .
-```
-- Archive size: 2.3 MB
-- Compression: gzip
-
-**3. Загрузка на сервер** ✅
-```bash
-scp dist.tar.gz root@194.135.36.195:/tmp/
-```
-- Transfer: Успешно
-
-**4. Остановка PM2** ✅
-```bash
-ssh root@194.135.36.195 "pm2 stop tradeframe-prod"
-```
-- Status: Процесс остановлен
-
-**5. Развертывание файлов** ✅
-```bash
-ssh root@194.135.36.195 "cd /var/www/www-root/data/www/prod.dataworker.ru && rm -rf dist && mkdir dist && cd dist && tar -xzf /tmp/dist.tar.gz && rm /tmp/dist.tar.gz"
-```
-- Status: Файлы развернуты
-- Old dist: Удален
-- New dist: Установлен
-
-**6. Перезапуск PM2 процессов** ✅
-```bash
-ssh root@194.135.36.195 "pm2 restart tradeframe-prod tradeframe-backend-proxy"
-```
-- tradeframe-prod: online ✅
-- tradeframe-backend-proxy: online ✅
+**Общее количество файлов:** 70+ статических ресурсов
 
 ---
 
-## 📊 Статус PM2
+### 2. Backend (Express + Node.js)
+**PM2 процесс:** `tradeframe-test-backend` (ID: 6)
+**Порт:** 3002
+**Статус:** ✅ Online (7 минут работы)
+**Память:** 70.8 MB
+**Рестартов:** 8
 
+**Настройки (.env):**
+```bash
+STS_API_URL=https://pos.autooplata.ru/tms
+STS_API_USERNAME=UserApi
+STS_API_PASSWORD=lHQfLZHzB3tn
+PORT=3002
+NODE_ENV=production
+ALLOWED_ORIGINS=https://testtf.dataworker.ru
 ```
-┌────┬─────────────────────────────┬─────────┬────────┬───────────┬──────────┬──────────┐
-│ id │ name                        │ version │ pid    │ status    │ cpu      │ mem      │
-├────┼─────────────────────────────┼─────────┼────────┼───────────┼──────────┼──────────┤
-│ 2  │ tradeframe-backend-proxy    │ 1.0.0   │ 2808306│ online    │ 100%     │ 56.9mb   │
-│ 3  │ tradeframe-prod             │ N/A     │ 2807811│ online    │ 0%       │ 78.1mb   │
-└────┴─────────────────────────────┴─────────┴────────┴───────────┴──────────┴──────────┘
-```
-
-**Оба процесса запущены и работают стабильно!**
 
 ---
 
-## 🔍 Проверка деплоя
+### 3. Nginx Configuration
+**Конфигурация:** `/etc/nginx/sites-available/testtf.dataworker.ru`
 
-### Технические проверки:
+**Ключевые настройки:**
 
-✅ **Сервер доступен:** https://prod.dataworker.ru
-✅ **PM2 статус:** Оба процесса online
-✅ **Frontend порт:** 3006 (работает)
-✅ **Backend порт:** 3001 (работает)
+#### Cache Headers (работают корректно ✅)
+```nginx
+# index.html - NO CACHE
+location = /index.html {
+    cache-control: no-cache, no-store, must-revalidate
+    pragma: no-cache
+    expires: 0
+}
 
-### Функциональные проверки (необходимо выполнить):
-
-- [ ] Приложение загружается
-- [ ] Версия в футере показывает v1.5.30
-- [ ] Логин работает
-- [ ] Dashboard загружается
-- [ ] API запросы выполняются
-- [ ] Нет критических ошибок в Console (F12)
-- [ ] Safari iOS работает корректно
-- [ ] localStorage в Safari Private Mode работает
-- [ ] PWA устанавливается
-
----
-
-## 📝 Изменения в версии 1.5.30
-
-### Файлы изменены:
-
-1. **index.html** (строки 38-113)
-   - SafeStorage wrapper
-   - AbortSignal.timeout polyfill
-   - Safari version detection
-   - Исправлен reload(true)
-
-2. **src/config/version.ts**
-   - APP_VERSION: '1.5.30'
-   - VERSION_INFO.patch: 30
-
-3. **package.json**
-   - version: "1.5.30"
-
-4. **manifest.json** (через sync-version)
-   - version: "1.5.30"
-
-### Строки кода изменены:
-
-- **index.html:** +75 строк (Safari compatibility)
-- **version.ts:** 2 строки
-- **package.json:** 1 строка
-
-**Итого:** ~78 строк изменений
-
----
-
-## 🎯 Критические улучшения Safari
-
-### 1. localStorage Protection (index.html:38-62)
-
-```javascript
-const safeStorage = {
-  getItem: function(key) {
-    try {
-      return localStorage.getItem(key) || sessionStorage.getItem(key);
-    } catch(e) {
-      try {
-        return sessionStorage.getItem(key);
-      } catch(e2) {
-        return null;
-      }
-    }
-  },
-  setItem: function(key, value) {
-    try {
-      localStorage.setItem(key, value);
-    } catch(e) {
-      try {
-        sessionStorage.setItem(key, value);
-      } catch(e2) {
-        // Игнорируем
-      }
-    }
-  }
-};
-```
-
-**Решает:** Safari Private Mode блокировку localStorage
-
-### 2. AbortSignal.timeout Polyfill (index.html:64-72)
-
-```javascript
-if (typeof AbortSignal.timeout === 'undefined') {
-  AbortSignal.timeout = function(ms) {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), ms);
-    return controller.signal;
-  };
+# JS/CSS files - 1 YEAR CACHE
+location ~* \.(css|js)$ {
+    expires: Mon, 19 Oct 2026 15:32:12 GMT
+    cache-control: max-age=31536000
+    cache-control: public, immutable
 }
 ```
 
-**Решает:** Совместимость с Safari 14.x и ниже
-
-### 3. Safari Version Detection (index.html:74-113)
-
-```javascript
-const detectSafari = function() {
-  const ua = navigator.userAgent;
-  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
-  const isIOS = /iPhone|iPad|iPod/.test(ua);
-
-  let version = null;
-  const versionMatch = ua.match(/Version\/(\d+(\.\d+)?)/);
-  if (versionMatch) {
-    version = parseFloat(versionMatch[1]);
-  }
-
-  return { isSafari, version, isIOS };
-};
+#### API Proxy (работает ✅)
+```nginx
+location /api/ {
+    proxy_pass http://localhost:3002/api/;
+    # Full proxy configuration applied
+}
 ```
 
-**Решает:** Точная идентификация Safari для применения специфичных фиксов
+---
+
+## 🔍 Проверка работоспособности
+
+### HTTP Status Codes
+✅ **https://testtf.dataworker.ru/** → `200 OK`
+✅ **https://testtf.dataworker.ru/index.html** → `200 OK` (no-cache headers)
+✅ **https://testtf.dataworker.ru/assets/index-CMriL3E7.js** → `200 OK` (1-year cache)
+✅ **https://testtf.dataworker.ru/api/telegram/test** → `404` (backend responding, endpoint doesn't exist - expected)
+
+### Cache Headers Verification
+✅ `index.html`: `cache-control: no-cache, no-store, must-revalidate`
+✅ JS files: `cache-control: max-age=31536000` + `cache-control: public, immutable`
+✅ Nginx: `expires: Mon, 19 Oct 2026` (1 год кеша для JS/CSS)
+
+### Backend Health
+✅ PM2 процесс `tradeframe-test-backend` online
+✅ Порт 3002 слушает подключения
+✅ CORS настроен: `ALLOWED_ORIGINS=https://testtf.dataworker.ru`
+✅ Nginx проксирует `/api/*` запросы на `localhost:3002`
 
 ---
 
-## 🌐 Доступ к приложению
+## 🔧 Исправленные проблемы
 
-**Production URL:** https://prod.dataworker.ru
+### 1. CORS Errors в Production ✅
+**Проблема:** Frontend пытался обращаться к `http://localhost:3001/api/telegram/...`
 
-**Тестовые учетные данные:**
-- Username: admin@mail.com
-- Password: (используйте ваш пароль)
+**Исправление:** `src/services/notificationService.ts`
+- Заменено 9 hardcoded URL на относительные пути
+- Теперь все запросы идут на `/api/telegram/...`
+- Работает во всех средах (dev, test, prod)
 
----
-
-## 📚 Документация
-
-Созданные документы:
-
-1. **MOBILE_ADAPTATION_ANALYSIS.md** - Полный анализ мобильной адаптации
-2. **QUICK_DEPLOY_GUIDE.md** - Руководство по быстрому деплою
-3. **test-mobile-view.html** - Инструмент тестирования на разных устройствах
-4. **quick-deploy.ps1** - PowerShell скрипт деплоя
-5. **quick-deploy.sh** - Bash скрипт деплоя
+**Commit:** `53cad1e`
 
 ---
 
-## 🔄 Откат (если потребуется)
+### 2. Browser Cache - 404 Errors на Chunk Files ✅
+**Проблема:** Браузер кешировал старый `index.html` с ссылками на несуществующие файлы
 
-Если возникнут проблемы, можно откатиться к предыдущей версии:
+**Исправление:** Nginx конфигурация
+```nginx
+location = /index.html {
+    add_header Cache-Control "no-cache, no-store, must-revalidate";
+    add_header Pragma "no-cache";
+    add_header Expires "0";
+}
+```
 
+**Результат:** Браузер всегда получает свежий `index.html`
+
+---
+
+### 3. Nginx API Proxy Configuration ✅
+**Проблема:** Старая конфигурация проксировала только `/api/sts/`
+
+**Исправление:** Универсальный блок `/api/`
+```nginx
+location /api/ {
+    proxy_pass http://localhost:3002/api/;
+    # Proxies ALL API endpoints
+}
+```
+
+**Commit:** `8d19b97`
+
+---
+
+## 📋 Deployment Checklist
+
+- [x] Backend запущен через PM2
+- [x] Nginx конфигурация содержит `location /api/` блок
+- [x] `.env` содержит правильный `ALLOWED_ORIGINS`
+- [x] Health check доступен через Nginx proxy
+- [x] В браузере нет CORS ошибок (после исправления)
+- [x] API запросы идут на `https://testtf.dataworker.ru/api/...`
+- [x] index.html имеет no-cache заголовки
+- [x] JS/CSS файлы имеют 1-year cache заголовки
+- [x] Все chunk файлы доступны (нет 404 ошибок)
+
+---
+
+## 🚀 Build Information
+
+**Версия:** v1.5.30
+**Build команда:** `npm run build`
+**Build output:**
+```
+dist/assets/index-CMriL3E7.js                 1,077.77 kB │ gzip: 285.17 kB
+dist/assets/Prices-g1JssnQR.js                   91.64 kB │ gzip:  21.01 kB
+dist/assets/react-vendor-0G8fJFe6.js            491.37 kB │ gzip: 153.33 kB
+dist/assets/ShiftReportsV2-iq2478L6.js          494.67 kB │ gzip: 153.83 kB
+dist/index.html                                  23.09 kB
+```
+
+**Общий размер:** ~2.2 MB (uncompressed), ~615 KB (gzipped)
+
+---
+
+## 📁 Git History
+
+**Commits deployed:**
+```
+53cad1e - fix: исправлены hardcoded localhost URLs в notificationService.ts
+8d19b97 - config: обновлена Nginx конфигурация для универсального /api/ proxy
+```
+
+**Remote:** `git@194.135.36.195:/var/www/www-root/data/www/testTF.dataworker.ru/repo`
+
+---
+
+## 🔗 Useful Commands
+
+### Проверка статуса
 ```bash
-# SSH на сервер
-ssh root@194.135.36.195
+# PM2 процессы
+ssh root@194.135.36.195 "pm2 list | grep tradeframe"
 
-# Откат из бэкапа (если есть)
-cd /var/www/www-root/data/www/prod.dataworker.ru
-cp -r dist.backup dist
-pm2 restart tradeframe-prod
+# Nginx конфигурация
+ssh root@194.135.36.195 "nginx -t"
+
+# Backend логи
+ssh root@194.135.36.195 "pm2 logs tradeframe-test-backend --lines 50"
+
+# Проверка портов
+ssh root@194.135.36.195 "ss -tlnp | grep 3002"
 ```
 
-Или повторно задеплоить предыдущий коммит.
+### Перезапуск сервисов
+```bash
+# Backend
+ssh root@194.135.36.195 "pm2 restart tradeframe-test-backend"
+
+# Nginx
+ssh root@194.135.36.195 "systemctl reload nginx"
+```
+
+### Деплой новой версии
+```bash
+# Локально
+npm run build
+tar -czf dist.tar.gz dist/
+scp dist.tar.gz root@194.135.36.195:/var/www/www-root/data/www/testTF.dataworker.ru/
+
+# На сервере
+ssh root@194.135.36.195
+cd /var/www/www-root/data/www/testTF.dataworker.ru
+rm -rf dist/
+tar -xzf dist.tar.gz
+pm2 restart tradeframe-test-backend
+```
 
 ---
 
-## ⏱️ Время выполнения деплоя
+## 📚 Documentation
 
-- **Сборка:** 13.26s
-- **Создание архива:** ~5s
-- **Загрузка на сервер:** ~10s
-- **Развертывание:** ~5s
-- **Перезапуск PM2:** ~3s
-
-**Общее время:** ~36 секунд
+См. также:
+- `PRODUCTION_DEPLOYMENT_CHECKLIST.md` - полный чеклист деплоя
+- `server/nginx-config-example.conf` - пример конфигурации Nginx
+- `API_INTEGRATION.md` - документация по интеграции API
 
 ---
 
-## ✅ Чеклист проверки
+## ✨ Environment Status
 
-### Обязательно проверить:
-
-- [ ] Откройте https://prod.dataworker.ru
-- [ ] Проверьте версию в футере (должна быть v1.5.30)
-- [ ] Войдите в систему
-- [ ] Проверьте загрузку Dashboard
-- [ ] Откройте Console (F12) - не должно быть критических ошибок
-- [ ] Проверьте работу API запросов
-- [ ] Откройте на iPhone/iPad Safari (если доступно)
-- [ ] Попробуйте в Safari Private Mode
-- [ ] Проверьте PWA установку
-
-### Дополнительные проверки:
-
-- [ ] Проверьте PM2 логи на ошибки
-- [ ] Проверьте производительность
-- [ ] Проверьте все основные разделы
-- [ ] Проверьте мобильную версию
+| Environment | URL | Backend Port | Status | Last Deploy |
+|-------------|-----|--------------|--------|-------------|
+| Development | localhost:3000 | 3001 | 🟢 Running | Local |
+| **Testing** | **https://testtf.dataworker.ru** | **3002** | **🟢 Online** | **2025-10-19** |
+| Production | https://prod.dataworker.ru | 3001 | 🟡 Pending | - |
 
 ---
 
-## 🎉 Итог
-
-**Деплой версии 1.5.30 завершен успешно!**
-
-Все критические улучшения для Safari применены:
-- ✅ localStorage работает в Private Mode
-- ✅ AbortSignal.timeout совместим с Safari 14.x
-- ✅ Правильная детекция Safari версий
-- ✅ Исправлены все deprecated API
-
-**Приложение готово к production использованию!**
-
----
-
-## 📞 Поддержка
-
-При возникновении проблем:
-
-1. Проверьте PM2 логи:
-   ```bash
-   ssh root@194.135.36.195 "pm2 logs tradeframe-prod --lines 50"
-   ```
-
-2. Проверьте статус процессов:
-   ```bash
-   ssh root@194.135.36.195 "pm2 status"
-   ```
-
-3. Перезапустите при необходимости:
-   ```bash
-   ssh root@194.135.36.195 "pm2 restart tradeframe-prod tradeframe-backend-proxy"
-   ```
-
----
-
-*Отчет создан автоматически: 2025-10-14 23:30*
-*Деплой выполнен: Claude Code AI Assistant*
-*Версия: TradeFrame v1.5.30*
+**Deployment by:** Claude Code Agent
+**Last verified:** 2025-10-19 18:32 MSK
+**Status:** ✅ All systems operational

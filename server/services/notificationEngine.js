@@ -6,13 +6,69 @@
 const { createClient } = require('@supabase/supabase-js');
 const emailService = require('./emailService');
 const telegramService = require('./telegramService');
+const axios = require('axios');
 
-const SUPABASE_URL = 'https://ynwbmxvqucmvjhmsxtqh.supabase.co';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlud2JteHZxdWNtdmpobXN4dHFoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcyNjA2MTcxMCwiZXhwIjoyMDQxNjM3NzEwfQ.uXnaH2K6arna7f_gcUeiyLjwivD-P7NRLg5CtvPnB_g';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const STS_API_URL = process.env.STS_API_URL;
+const STS_API_USERNAME = process.env.STS_API_USERNAME;
+const STS_API_PASSWORD = process.env.STS_API_PASSWORD;
 
 class NotificationEngine {
   constructor() {
     this.supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    this.stsToken = null;
+    this.stsTokenExpiry = null;
+  }
+
+  /**
+   * Получить JWT токен для STS API
+   */
+  async getStsToken() {
+    if (this.stsToken && this.stsTokenExpiry && Date.now() < this.stsTokenExpiry) {
+      return this.stsToken;
+    }
+
+    try {
+      const response = await axios.post(`${STS_API_URL}/v1/login`, {
+        username: STS_API_USERNAME,
+        password: STS_API_PASSWORD
+      });
+
+      const rawToken = response.data;
+      this.stsToken = typeof rawToken === 'string' ? rawToken.replace(/"/g, '') : rawToken;
+      this.stsTokenExpiry = Date.now() + (18 * 60 * 1000); // 18 минут
+
+      return this.stsToken;
+    } catch (error) {
+      console.error('❌ Ошибка получения STS токена:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить данные терминала через STS API v2/info
+   */
+  async getTerminalInfo(networkId, stationNumber) {
+    try {
+      const token = await this.getStsToken();
+
+      const response = await axios.get(`${STS_API_URL}/v2/info`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        params: {
+          system: networkId,
+          station: stationNumber
+        }
+      });
+
+      return Array.isArray(response.data) ? response.data[0] : response.data;
+    } catch (error) {
+      console.error(`❌ Ошибка получения данных станции ${stationNumber}:`, error.message);
+      return null;
+    }
   }
 
   /**
@@ -59,6 +115,8 @@ class NotificationEngine {
           return await this.checkLowFuelLevel(rule);
         case 'shift_not_closed':
           return await this.checkShiftNotClosed(rule);
+        case 'terminal_offline':
+          return await this.checkTerminalOffline(rule);
         default:
           console.warn(`⚠️ Неизвестный тип правила: ${rule.type}`);
           return { success: false, error: 'Unknown rule type' };
@@ -76,12 +134,63 @@ class NotificationEngine {
     const { rule_config } = rule;
     const { checkType, warningLevel, applyToAllStations, specificStations } = rule_config;
 
-    const { data: stations, error } = await this.supabase
-      .from('trading_points')
-      .select('id, code, name, bill_acceptor_count, bill_acceptor_amount');
+    // Получаем данные из таблицы tenants для получения настроек порогов и списка станций
+    const { data: tenants, error } = await this.supabase
+      .from('tenants')
+      .select('id, code, name, settings')
+      .eq('type', 'network')
+      .eq('is_active', true);
 
     if (error) {
       throw error;
+    }
+
+    const stations = [];
+
+    // Для каждой сети получаем актуальные данные из STS API
+    for (const tenant of tenants || []) {
+      const networkId = tenant.settings?.external_id;
+      if (!networkId) {
+        continue;
+      }
+
+      const tenantStations = tenant.settings?.stations || [];
+
+      for (const stationConfig of tenantStations) {
+        if (stationConfig.active === false) {
+          continue;
+        }
+
+        // Получаем актуальные данные с терминала через STS API
+        const terminalData = await this.getTerminalInfo(networkId, stationConfig.code);
+
+        let billCount = 0;
+        let billAmount = 0;
+
+        if (terminalData && terminalData.pos && terminalData.pos[0]) {
+          const devices = terminalData.pos[0].devices || [];
+          const billAcceptor = devices.find(d => d.name === 'Купюроприемник');
+
+          if (billAcceptor && billAcceptor.params) {
+            const billCountParam = billAcceptor.params.find(p => p.name === 'Количество купюр');
+            const billAmountParam = billAcceptor.params.find(p => p.name === 'Сумма купюр');
+
+            billCount = billCountParam ? parseInt(billCountParam.value) : 0;
+            billAmount = billAmountParam ? parseFloat(billAmountParam.value) : 0;
+          }
+        }
+
+        stations.push({
+          id: `${tenant.id}_${stationConfig.code}`,
+          tenant_id: tenant.id,
+          network_id: networkId,
+          code: stationConfig.code,
+          name: stationConfig.name,
+          bill_acceptor_count: billCount,
+          bill_acceptor_amount: billAmount,
+          thresholds: stationConfig.billAcceptorThresholds || {}
+        });
+      }
     }
 
     const notificationsSent = [];
@@ -91,24 +200,38 @@ class NotificationEngine {
         continue;
       }
 
-      const thresholds = this.getBillAcceptorThresholds(station.code);
-      const shouldNotify = this.shouldSendBillAcceptorNotification(
-        station,
-        thresholds,
-        checkType,
-        warningLevel
-      );
+      // Используем пороги из настроек станции
+      const thresholds = station.thresholds.billCountWarning
+        ? station.thresholds
+        : this.getBillAcceptorThresholds(station.code);
 
-      if (shouldNotify) {
-        const notification = await this.createBillAcceptorNotification(
-          rule,
+      // Определяем какие уровни проверять
+      const levelsToCheck = warningLevel === 'both' ? ['warning', 'critical'] : [warningLevel];
+
+      for (const level of levelsToCheck) {
+        const shouldNotify = this.shouldSendBillAcceptorNotification(
           station,
           thresholds,
-          warningLevel
+          checkType,
+          level
         );
 
-        if (notification) {
-          notificationsSent.push(notification);
+        if (shouldNotify) {
+          const notification = await this.createBillAcceptorNotification(
+            rule,
+            station,
+            thresholds,
+            level
+          );
+
+          if (notification) {
+            notificationsSent.push(notification);
+          }
+
+          // Если достигнут критический порог, warning уже не нужен
+          if (level === 'critical') {
+            break;
+          }
         }
       }
     }
@@ -161,8 +284,11 @@ class NotificationEngine {
    */
   async createBillAcceptorNotification(rule, station, thresholds, level) {
     try {
+      // Используем tenant_id станции, если он есть, иначе из правила
+      const tenantId = station.tenant_id || rule.tenant_id;
+
       const notification = {
-        tenant_id: rule.tenant_id,
+        tenant_id: tenantId,
         rule_id: rule.id,
         type: 'bill_acceptor_threshold',
         title: `Превышен порог купюроприемника: ${station.name}`,
@@ -228,36 +354,98 @@ class NotificationEngine {
     const { recipients } = rule;
     const recipientList = [];
 
-    if (recipients.roles && recipients.roles.length > 0) {
-      const { data: roleUsers } = await this.supabase
-        .from('user_roles')
-        .select('user_id, users(id, email, full_name)')
-        .in('role_id', recipients.roles);
+    // Если список получателей пуст, получаем всех активных пользователей
+    const hasRecipients = (recipients.roles && recipients.roles.length > 0) ||
+                          (recipients.users && recipients.users.length > 0);
 
-      if (roleUsers) {
-        recipientList.push(...roleUsers.map(ur => ur.users));
-      }
-    }
-
-    if (recipients.users && recipients.users.length > 0) {
-      const { data: users } = await this.supabase
-        .from('users')
-        .select('id, email, full_name')
-        .in('id', recipients.users);
-
-      if (users) {
-        recipientList.push(...users);
-      }
-    }
-
-    for (const user of recipientList) {
-      const { data: settings } = await this.supabase
+    if (!hasRecipients) {
+      // Получаем всех пользователей с настройками уведомлений
+      const { data: allSettings } = await this.supabase
         .from('user_notification_settings')
         .select('*')
-        .eq('user_id', user.id)
-        .single();
+        .or('email_enabled.eq.true,telegram_enabled.eq.true');
 
-      user.settings = settings;
+      if (allSettings) {
+        // Для каждой настройки получаем данные пользователя
+        for (const setting of allSettings) {
+          const { data: user } = await this.supabase
+            .from('users')
+            .select('id, email, name')
+            .eq('id', setting.user_id)
+            .single();
+
+          if (user) {
+            recipientList.push({
+              id: user.id,
+              email: user.email,
+              full_name: user.name,
+              settings: setting
+            });
+          }
+        }
+      }
+    } else {
+      // Используем указанных получателей
+      if (recipients.roles && recipients.roles.length > 0) {
+        // Получаем ID ролей по названиям
+        const { data: roles } = await this.supabase
+          .from('roles')
+          .select('id')
+          .in('name', recipients.roles);
+
+        if (roles && roles.length > 0) {
+          const roleIds = roles.map(r => r.id);
+
+          const { data: roleUsers } = await this.supabase
+            .from('user_roles')
+            .select('user_id')
+            .in('role_id', roleIds);
+
+          if (roleUsers) {
+            for (const roleUser of roleUsers) {
+              const { data: user } = await this.supabase
+                .from('users')
+                .select('id, email, name')
+                .eq('id', roleUser.user_id)
+                .single();
+
+              if (user) {
+                recipientList.push({
+                  id: user.id,
+                  email: user.email,
+                  full_name: user.name
+                });
+              }
+            }
+          }
+        }
+      }
+
+      if (recipients.users && recipients.users.length > 0) {
+        const { data: users } = await this.supabase
+          .from('users')
+          .select('id, email, name')
+          .in('id', recipients.users);
+
+        if (users) {
+          recipientList.push(...users.map(u => ({
+            id: u.id,
+            email: u.email,
+            full_name: u.name
+          })));
+        }
+      }
+
+      // Получаем настройки для каждого пользователя
+      for (const user of recipientList) {
+        const { data: settings } = await this.supabase
+          .from('user_notification_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        user.settings = settings;
+      }
     }
 
     return recipientList;
@@ -275,27 +463,66 @@ class NotificationEngine {
           return;
         }
 
-        deliveryResult = await emailService.sendBillAcceptorAlert({
-          to: recipient.email,
-          stationName: notification.context.stationName,
-          billCount: notification.context.billCount,
-          billAmount: notification.context.billAmount,
-          threshold: notification.context.threshold,
-          level: notification.context.level
-        });
+        // Выбираем шаблон в зависимости от типа уведомления
+        if (notification.type === 'bill_acceptor_threshold') {
+          deliveryResult = await emailService.sendBillAcceptorAlert({
+            to: recipient.email,
+            stationName: notification.context.stationName,
+            billCount: notification.context.billCount,
+            billAmount: notification.context.billAmount,
+            threshold: notification.context.threshold,
+            level: notification.context.level
+          });
+        } else if (notification.type === 'low_fuel_level') {
+          deliveryResult = await emailService.sendLowFuelLevelAlert({
+            to: recipient.email,
+            stationName: notification.context.stationName,
+            tankNumber: notification.context.tankNumber,
+            fuelType: notification.context.fuelType,
+            currentPercent: notification.context.currentPercent,
+            currentVolume: notification.context.currentVolume,
+            maxVolume: notification.context.maxVolume,
+            threshold: notification.context.threshold,
+            level: notification.context.level
+          });
+        }
       } else if (channel === 'telegram') {
         if (!recipient.settings?.telegram_enabled || !recipient.settings?.telegram_chat_id) {
           return;
         }
 
-        deliveryResult = await telegramService.sendBillAcceptorAlert({
-          chatId: recipient.settings.telegram_chat_id,
-          stationName: notification.context.stationName,
-          billCount: notification.context.billCount,
-          billAmount: notification.context.billAmount,
-          threshold: notification.context.threshold,
-          level: notification.context.level
-        });
+        // Выбираем шаблон в зависимости от типа уведомления
+        if (notification.type === 'bill_acceptor_threshold') {
+          deliveryResult = await telegramService.sendBillAcceptorAlert({
+            chatId: recipient.settings.telegram_chat_id,
+            stationName: notification.context.stationName,
+            billCount: notification.context.billCount,
+            billAmount: notification.context.billAmount,
+            threshold: notification.context.threshold,
+            level: notification.context.level
+          });
+        } else if (notification.type === 'low_fuel_level') {
+          deliveryResult = await telegramService.sendLowFuelLevelAlert({
+            chatId: recipient.settings.telegram_chat_id,
+            stationName: notification.context.stationName,
+            tankNumber: notification.context.tankNumber,
+            fuelType: notification.context.fuelType,
+            currentPercent: notification.context.currentPercent,
+            currentVolume: notification.context.currentVolume,
+            maxVolume: notification.context.maxVolume,
+            threshold: notification.context.threshold,
+            level: notification.context.level
+          });
+        } else if (notification.type === 'terminal_offline') {
+          deliveryResult = await telegramService.sendTerminalOfflineAlert({
+            chatId: recipient.settings.telegram_chat_id,
+            stationName: notification.context.stationName,
+            stationCode: notification.context.stationCode,
+            lastUpdate: notification.context.lastUpdate,
+            delayMinutes: notification.context.delayMinutes,
+            maxDelayMinutes: notification.context.maxDelayMinutes
+          });
+        }
       }
 
       await this.supabase
@@ -322,10 +549,379 @@ class NotificationEngine {
   }
 
   /**
-   * Проверка низкого уровня топлива (заглушка)
+   * Проверка низкого уровня топлива
    */
   async checkLowFuelLevel(rule) {
-    return { success: true, notificationsSent: 0 };
+    const { rule_config } = rule;
+    const { checkType, warningLevel, applyToAllStations, specificStations } = rule_config;
+
+    // Получаем данные из таблицы tenants для получения настроек порогов и списка станций
+    const { data: tenants, error } = await this.supabase
+      .from('tenants')
+      .select('id, code, name, settings')
+      .eq('type', 'network')
+      .eq('is_active', true);
+
+    if (error) {
+      throw error;
+    }
+
+    const stations = [];
+
+    // Для каждой сети получаем актуальные данные из STS API
+    for (const tenant of tenants || []) {
+      const networkId = tenant.settings?.external_id;
+      if (!networkId) {
+        continue;
+      }
+
+      const tenantStations = tenant.settings?.stations || [];
+
+      for (const stationConfig of tenantStations) {
+        if (stationConfig.active === false) {
+          continue;
+        }
+
+        // Получаем актуальные данные резервуаров через STS API
+        try {
+          const token = await this.getStsToken();
+          const response = await axios.get(`${STS_API_URL}/v1/tanks`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            params: {
+              system: networkId,
+              station_number: stationConfig.code
+            }
+          });
+
+          const tanks = response.data || [];
+
+          // Для каждого резервуара проверяем пороги
+          for (const tank of tanks) {
+            const fuelType = tank.fuel_name;
+            const currentVolume = parseFloat(tank.volume || 0);
+            const maxVolume = parseFloat(tank.volume_max || 1);
+            const currentPercent = maxVolume > 0 ? (currentVolume / maxVolume) * 100 : 0;
+
+            // Получаем пороги для этого вида топлива из настроек станции
+            const fuelThresholds = stationConfig.fuelLevelThresholds?.thresholds?.find(
+              t => t.fuelType === fuelType
+            );
+
+            const levelWarning = fuelThresholds?.levelWarning || 20;
+            const levelCritical = fuelThresholds?.levelCritical || 10;
+
+            stations.push({
+              id: `${tenant.id}_${stationConfig.code}_tank_${tank.number}`,
+              tenant_id: tenant.id,
+              network_id: networkId,
+              station_code: stationConfig.code,
+              station_name: stationConfig.name,
+              tank_number: tank.number,
+              fuel_type: fuelType,
+              current_percent: currentPercent,
+              current_volume: currentVolume,
+              max_volume: maxVolume,
+              thresholds: {
+                levelWarning,
+                levelCritical
+              }
+            });
+          }
+        } catch (apiError) {
+          console.error(`❌ Ошибка получения данных резервуаров для станции ${stationConfig.code}:`, apiError.message);
+        }
+      }
+    }
+
+    const notificationsSent = [];
+
+    for (const station of stations) {
+      if (!applyToAllStations && !specificStations?.includes(station.station_code)) {
+        continue;
+      }
+
+      // Определяем какие уровни проверять
+      const levelsToCheck = warningLevel === 'both' ? ['warning', 'critical'] : [warningLevel];
+
+      for (const level of levelsToCheck) {
+        const shouldNotify = this.shouldSendFuelLevelNotification(
+          station,
+          level
+        );
+
+        if (shouldNotify) {
+          const notification = await this.createFuelLevelNotification(
+            rule,
+            station,
+            level
+          );
+
+          if (notification) {
+            notificationsSent.push(notification);
+          }
+
+          // Если достигнут критический порог, warning уже не нужен
+          if (level === 'critical') {
+            break;
+          }
+        }
+      }
+    }
+
+    if (notificationsSent.length > 0) {
+      await this.supabase
+        .from('notification_rules')
+        .update({
+          last_notification_at: new Date().toISOString(),
+          total_notifications_sent: rule.total_notifications_sent + notificationsSent.length
+        })
+        .eq('id', rule.id);
+    }
+
+    return { success: true, notificationsSent: notificationsSent.length };
+  }
+
+  /**
+   * Проверить, нужно ли отправлять уведомление о низком уровне топлива
+   */
+  shouldSendFuelLevelNotification(station, warningLevel) {
+    const currentPercent = station.current_percent || 0;
+
+    if (warningLevel === 'warning') {
+      return currentPercent <= station.thresholds.levelWarning && currentPercent > station.thresholds.levelCritical;
+    } else if (warningLevel === 'critical') {
+      return currentPercent <= station.thresholds.levelCritical;
+    }
+
+    return false;
+  }
+
+  /**
+   * Создать уведомление о низком уровне топлива
+   */
+  async createFuelLevelNotification(rule, station, level) {
+    try {
+      const tenantId = station.tenant_id || rule.tenant_id;
+
+      const notification = {
+        tenant_id: tenantId,
+        rule_id: rule.id,
+        type: 'low_fuel_level',
+        title: `Низкий уровень топлива: ${station.station_name}`,
+        message: `Резервуар №${station.tank_number} (${station.fuel_type}): уровень ${station.current_percent.toFixed(1)}% (${station.current_volume.toLocaleString('ru-RU')} л). Порог ${level === 'warning' ? 'предупреждения' : 'критический'}: ${level === 'warning' ? station.thresholds.levelWarning : station.thresholds.levelCritical}%.`,
+        priority: level === 'warning' ? 'medium' : 'high',
+        context: {
+          stationCode: station.station_code,
+          stationName: station.station_name,
+          tankNumber: station.tank_number,
+          fuelType: station.fuel_type,
+          currentPercent: station.current_percent,
+          currentVolume: station.current_volume,
+          maxVolume: station.max_volume,
+          threshold: station.thresholds,
+          level
+        },
+        status: 'pending',
+        channels: rule.notification_config?.channels || ['email']
+      };
+
+      const { data, error } = await this.supabase
+        .from('notifications')
+        .insert(notification)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      await this.sendNotification(data, rule);
+
+      return data;
+    } catch (error) {
+      console.error('❌ Ошибка создания уведомления о низком уровне топлива:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Проверка работы терминала (задержка передачи данных)
+   */
+  async checkTerminalOffline(rule) {
+    try {
+      console.log('🔍 Проверка работы терминала...');
+
+      const maxDelayMinutes = rule.rule_config?.maxDelayMinutes || 12;
+      let notificationsSent = 0;
+
+      // Получаем тенанта
+      const { data: tenant, error: tenantError } = await this.supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', rule.tenant_id)
+        .single();
+
+      if (tenantError || !tenant) {
+        console.error('❌ Ошибка получения тенанта:', tenantError);
+        return { success: false, error: 'Tenant not found' };
+      }
+
+      const networkId = tenant.settings?.external_id || tenant.external_id;
+      const stations = tenant.settings?.stations || [];
+
+      if (!stations || stations.length === 0) {
+        console.log('⚠️ Нет станций для проверки');
+        return { success: true, notificationsSent: 0 };
+      }
+
+      // Проверяем каждую станцию
+      for (const station of stations) {
+        const stationCode = station.code || station.external_id;
+        const stationName = station.name || `АЗС ${stationCode}`;
+
+        console.log(`📍 Проверка станции: ${stationName} (${stationCode})`);
+
+        // Получаем данные терминала
+        const terminalInfo = await this.getTerminalInfo(networkId, stationCode);
+
+        if (!terminalInfo || !terminalInfo.pos || !terminalInfo.pos[0]) {
+          console.log(`⚠️ Не удалось получить данные терминала для станции ${stationCode}`);
+          continue;
+        }
+
+        const posData = terminalInfo.pos[0];
+        const lastUpdate = posData.dt_info;
+
+        if (!lastUpdate) {
+          console.log(`⚠️ Нет данных о времени последнего обновления для станции ${stationCode}`);
+          continue;
+        }
+
+        // Вычисляем задержку
+        const now = new Date();
+        const lastUpdateDate = new Date(lastUpdate);
+        const delayMs = now - lastUpdateDate;
+        const delayMinutes = Math.floor(delayMs / 60000);
+
+        console.log(`   ⏰ Последнее обновление: ${lastUpdateDate.toLocaleString('ru-RU')}`);
+        console.log(`   ⏱️  Задержка: ${delayMinutes} мин`);
+
+        // Проверяем превышение порога
+        if (delayMinutes > maxDelayMinutes) {
+          console.log(`   ⚠️ Задержка превышает порог (${maxDelayMinutes} мин)!`);
+
+          // Проверяем, не отправляли ли мы недавно уведомление об этой проблеме
+          const shouldSend = await this.shouldSendTerminalOfflineNotification(
+            tenant.id,
+            stationCode,
+            delayMinutes
+          );
+
+          if (shouldSend) {
+            await this.createTerminalOfflineNotification(
+              rule,
+              tenant,
+              stationCode,
+              stationName,
+              lastUpdate,
+              delayMinutes,
+              maxDelayMinutes
+            );
+            notificationsSent++;
+          } else {
+            console.log(`   ℹ️ Уведомление уже было отправлено недавно`);
+          }
+        } else {
+          console.log(`   ✅ Задержка в пределах нормы`);
+        }
+      }
+
+      console.log(`✅ Проверка завершена. Отправлено уведомлений: ${notificationsSent}`);
+      return { success: true, notificationsSent };
+
+    } catch (error) {
+      console.error('❌ Ошибка проверки работы терминала:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Проверить, нужно ли отправлять уведомление о проблемах с терминалом
+   */
+  async shouldSendTerminalOfflineNotification(tenantId, stationCode, delayMinutes) {
+    try {
+      // Проверяем последнее уведомление
+      const { data: lastNotification } = await this.supabase
+        .from('notifications')
+        .select('*')
+        .eq('type', 'terminal_offline')
+        .eq('context->>stationCode', stationCode)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!lastNotification) {
+        return true; // Уведомлений еще не было
+      }
+
+      // Если последнее уведомление было отправлено менее часа назад, не отправляем повторно
+      const lastSentTime = new Date(lastNotification.created_at);
+      const now = new Date();
+      const timeSinceLastNotification = now - lastSentTime;
+      const hoursSinceLastNotification = timeSinceLastNotification / (1000 * 60 * 60);
+
+      return hoursSinceLastNotification >= 1; // Отправляем не чаще раза в час
+
+    } catch (error) {
+      console.error('❌ Ошибка проверки необходимости отправки уведомления:', error);
+      return true; // В случае ошибки отправляем
+    }
+  }
+
+  /**
+   * Создать уведомление о проблемах с работой терминала
+   */
+  async createTerminalOfflineNotification(rule, tenant, stationCode, stationName, lastUpdate, delayMinutes, maxDelayMinutes) {
+    try {
+      const data = {
+        tenant_id: tenant.id,
+        rule_id: rule.id,
+        type: 'terminal_offline',
+        title: `Проблема с передачей данных: ${stationName}`,
+        message: `Терминал не передает данные уже ${delayMinutes} мин. Последнее обновление: ${new Date(lastUpdate).toLocaleString('ru-RU')}`,
+        priority: 'high',
+        status: 'pending',
+        channels: ['email', 'telegram'],
+        context: {
+          stationCode,
+          stationName,
+          lastUpdate,
+          delayMinutes,
+          maxDelayMinutes
+        }
+      };
+
+      const { data: notification, error } = await this.supabase
+        .from('notifications')
+        .insert(data)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Ошибка создания уведомления:', error);
+        return null;
+      }
+
+      await this.sendNotification(data, rule);
+
+      return data;
+    } catch (error) {
+      console.error('❌ Ошибка создания уведомления о проблемах с терминалом:', error);
+      return null;
+    }
   }
 
   /**

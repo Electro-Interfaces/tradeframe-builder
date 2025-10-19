@@ -50,6 +50,27 @@ export interface BillAcceptorThresholds {
   cashAmountCritical?: number;
 }
 
+/**
+ * Пороговые значения уровня топлива для одного вида топлива
+ * Указываются в процентах от объема резервуара
+ */
+export interface FuelLevelThreshold {
+  /** Название вида топлива (ДТ, АИ-92, АИ-95 и т.д.) */
+  fuelType: string;
+  /** Порог уровня топлива (%) для предупреждения */
+  levelWarning?: number;
+  /** Порог уровня топлива (%) для критического предупреждения */
+  levelCritical?: number;
+}
+
+/**
+ * Пороговые значения для всех резервуаров станции
+ */
+export interface FuelLevelThresholds {
+  /** Массив порогов по видам топлива */
+  thresholds: FuelLevelThreshold[];
+}
+
 export interface TradingPointExternalCode {
   id: string;
   system: string;
@@ -75,6 +96,7 @@ export interface TradingPoint {
   schedule?: TradingPointSchedule;
   services?: TradingPointServices;
   billAcceptorThresholds?: BillAcceptorThresholds; // Пороговые значения для купюроприемника
+  fuelLevelThresholds?: FuelLevelThresholds; // Пороговые значения для резервуаров
   externalCodes: TradingPointExternalCode[];
   createdAt: Date;
   updatedAt?: Date;

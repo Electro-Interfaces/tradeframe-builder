@@ -14,6 +14,7 @@ import { useSelection } from '@/contexts/SelectionContext';
 import { useToast } from '@/hooks/use-toast';
 import { getNotificationRules, updateNotificationRule, deleteNotificationRule, createNotificationRule, getNotifications, markNotificationAsRead } from '@/services/notificationService';
 import { RuleDialog } from '@/components/notifications/RuleDialog';
+import { cronToHumanReadable } from '@/utils/scheduleFormatter';
 import type { NotificationRule, Notification, NotificationPriority, NotificationChannel } from '@/types/notification';
 
 export default function NetworkNotifications() {
@@ -367,11 +368,8 @@ function RuleCard({ rule, onToggle, onEdit, onDelete }: RuleCardProps) {
 
   const getScheduleText = (rule: NotificationRule) => {
     if (rule.schedule_type === 'cron') {
-      // Упрощенное отображение cron
       const cron = rule.schedule_config?.cron;
-      if (cron === '0 */6 * * *') return 'Каждые 6 часов';
-      if (cron === '0 */1 * * *') return 'Каждый час';
-      return cron || 'Не задано';
+      return cronToHumanReadable(cron || '');
     }
     if (rule.schedule_type === 'interval') {
       const hours = (rule.schedule_config?.interval || 0) / 3600000;

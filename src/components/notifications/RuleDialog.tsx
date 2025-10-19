@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { CronBuilder } from '@/components/notifications/CronBuilder';
 import type { NotificationRule } from '@/types/notification';
 
 // Схема валидации формы
@@ -53,6 +54,7 @@ const ruleFormSchema = z.object({
   // Расписание
   scheduleType: z.enum(['cron', 'interval', 'realtime']).default('cron'),
   cronExpression: z.string().default('0 */6 * * *'),
+  scheduleDescription: z.string().optional(), // человекочитаемое описание
 
   // Каналы уведомлений
   channels: z.array(z.enum(['email', 'telegram'])).min(1, 'Выберите хотя бы один канал'),
@@ -85,6 +87,7 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
       applyToAllStations: true,
       scheduleType: 'cron',
       cronExpression: '0 */6 * * *',
+      scheduleDescription: 'Каждые 6 часов',
       channels: ['email'],
       priority: 'high',
     },
@@ -330,97 +333,13 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
               />
 
               {form.watch('scheduleType') === 'cron' && (
-                <div className="space-y-3">
-                  <FormField
-                    control={form.control}
-                    name="cronExpression"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-300">Cron выражение</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="0 */6 * * *"
-                            className="bg-slate-800 border-slate-700 text-white font-mono"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-slate-500">
-                          Формат: минута час день месяц день_недели
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Готовые шаблоны */}
-                  <div className="p-3 bg-slate-900 rounded-lg border border-slate-700">
-                    <div className="text-xs font-semibold text-slate-300 mb-2">Готовые шаблоны:</div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => form.setValue('cronExpression', '0 */1 * * *')}
-                        className="text-left p-2 hover:bg-slate-800 rounded text-blue-400"
-                      >
-                        <div className="font-mono">0 */1 * * *</div>
-                        <div className="text-slate-500">Каждый час</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => form.setValue('cronExpression', '0 */6 * * *')}
-                        className="text-left p-2 hover:bg-slate-800 rounded text-blue-400"
-                      >
-                        <div className="font-mono">0 */6 * * *</div>
-                        <div className="text-slate-500">Каждые 6 часов</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => form.setValue('cronExpression', '0 9 * * *')}
-                        className="text-left p-2 hover:bg-slate-800 rounded text-blue-400"
-                      >
-                        <div className="font-mono">0 9 * * *</div>
-                        <div className="text-slate-500">Ежедневно в 9:00</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => form.setValue('cronExpression', '0 9 * * 1')}
-                        className="text-left p-2 hover:bg-slate-800 rounded text-blue-400"
-                      >
-                        <div className="font-mono">0 9 * * 1</div>
-                        <div className="text-slate-500">По понедельникам в 9:00</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => form.setValue('cronExpression', '0 9,18 * * *')}
-                        className="text-left p-2 hover:bg-slate-800 rounded text-blue-400"
-                      >
-                        <div className="font-mono">0 9,18 * * *</div>
-                        <div className="text-slate-500">В 9:00 и 18:00</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => form.setValue('cronExpression', '0 0 1 * *')}
-                        className="text-left p-2 hover:bg-slate-800 rounded text-blue-400"
-                      >
-                        <div className="font-mono">0 0 1 * *</div>
-                        <div className="text-slate-500">1-го числа в полночь</div>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Справка по синтаксису */}
-                  <div className="p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
-                    <div className="text-xs font-semibold text-blue-400 mb-2">Формат Cron:</div>
-                    <div className="text-xs text-slate-300 font-mono mb-2">
-                      минута час день месяц день_недели
-                    </div>
-                    <div className="text-xs text-slate-400 space-y-1">
-                      <div><span className="text-blue-400">*</span> — любое значение</div>
-                      <div><span className="text-blue-400">*/N</span> — каждые N единиц (например, */6 = каждые 6)</div>
-                      <div><span className="text-blue-400">A,B,C</span> — список значений (например, 9,12,18)</div>
-                      <div><span className="text-blue-400">A-B</span> — диапазон (например, 9-17)</div>
-                    </div>
-                  </div>
-                </div>
+                <CronBuilder
+                  value={form.watch('cronExpression')}
+                  onChange={(cron, description) => {
+                    form.setValue('cronExpression', cron);
+                    form.setValue('scheduleDescription', description);
+                  }}
+                />
               )}
             </div>
 

@@ -857,6 +857,7 @@ class STSApiService {
       pos: {
         status: posData?.number ? 'online' : 'offline',
         version: `POS ${posData?.number || 1}`,
+        lastUpdate: posData?.dt_info, // Время последнего обновления данных от терминала
         lastTransaction: posData?.dt_info ? new Date(posData.dt_info).toLocaleTimeString('ru-RU') : '',
         cashierConnected: shiftData?.state === 'Открытая'
       },

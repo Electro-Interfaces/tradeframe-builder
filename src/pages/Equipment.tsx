@@ -20,15 +20,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { MobileTable } from "@/components/ui/mobile-table";
 import {
   Settings,
   Loader2,
   RefreshCw,
-  Thermometer,
-  Database,
-  Fuel,
-  Gauge,
   Power,
   AlertTriangle
 } from "lucide-react";
@@ -36,22 +31,14 @@ import { useEquipment } from "@/hooks/useEquipment";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { EquipmentCard } from "@/components/equipment/EquipmentCard";
 import { BillAcceptorCard } from "@/components/equipment/BillAcceptorCard";
+import { FuelLevelThresholdsCard } from "@/components/equipment/FuelLevelThresholdsCard";
 import { useState, useEffect } from "react";
 import { tradingPointsService } from "@/services/tradingPointsService";
-import type { TradingPoint, BillAcceptorThresholds } from "@/types/tradingpoint";
+import type { TradingPoint, BillAcceptorThresholds, FuelLevelThresholds } from "@/types/tradingpoint";
 
 const PULL_THRESHOLD = 80;
 const MAX_PULL_DISTANCE = 120;
 const INDICATOR_APPEAR_THRESHOLD = 30;
-
-/**
- * Получить цвет индикатора заполнения
- */
-function getFillLevelColor(level: number) {
-  if (level <= 10) return 'bg-red-500';
-  if (level <= 30) return 'bg-yellow-500';
-  return 'bg-green-500';
-}
 
 export default function Equipment() {
   const { selectedNetwork, selectedTradingPoint, isInitialized } = useSelection();
@@ -67,8 +54,8 @@ export default function Equipment() {
     }
   }, [selectedTradingPoint]);
 
-  // Функция сохранения порогов (вызывается из BillAcceptorCard)
-  const handleSaveThresholds = async (thresholds: BillAcceptorThresholds) => {
+  // Функция сохранения порогов купюроприемника (вызывается из BillAcceptorCard)
+  const handleSaveBillAcceptorThresholds = async (thresholds: BillAcceptorThresholds) => {
     if (!selectedTradingPoint) return;
 
     try {
@@ -79,13 +66,31 @@ export default function Equipment() {
       const updatedData = await tradingPointsService.getById(selectedTradingPoint);
       setTradingPointData(updatedData);
     } catch (error) {
-      console.error('Ошибка сохранения порогов:', error);
+      console.error('Ошибка сохранения порогов купюроприемника:', error);
       throw error; // Пробрасываем ошибку для обработки в BillAcceptorCard
+    }
+  };
+
+  // Функция сохранения порогов топлива (вызывается из FuelLevelThresholdsCard)
+  const handleSaveFuelThresholds = async (thresholds: FuelLevelThresholds) => {
+    if (!selectedTradingPoint) return;
+
+    try {
+      // Обновление торговой точки с новыми порогами
+      await tradingPointsService.updateFuelLevelThresholds(selectedTradingPoint, thresholds);
+
+      // Перезагрузка данных торговой точки
+      const updatedData = await tradingPointsService.getById(selectedTradingPoint);
+      setTradingPointData(updatedData);
+    } catch (error) {
+      console.error('Ошибка сохранения порогов топлива:', error);
+      throw error; // Пробрасываем ошибку для обработки в FuelLevelThresholdsCard
     }
   };
 
   // Хук для загрузки оборудования
   const {
+    terminalInfo,
     equipment,
     tanks,
     loading,
@@ -213,7 +218,26 @@ export default function Equipment() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Оборудование</h1>
+              {terminalInfo?.pos?.lastUpdate && (
+                <p className="text-sm text-slate-400 mt-1">
+                  Последняя передача данных: {new Date(terminalInfo.pos.lastUpdate).toLocaleString('ru-RU')}
+                  {(() => {
+                    const now = new Date();
+                    const lastUpdate = new Date(terminalInfo.pos.lastUpdate);
+                    const diffMs = now.getTime() - lastUpdate.getTime();
+                    const diffMinutes = Math.floor(diffMs / 60000);
+
+                    if (diffMinutes < 11) {
+                      return <span className="text-green-400 ml-2">(✓ актуально)</span>;
+                    } else {
+                      return <span className="text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
+                    }
+                  })()}
+                </p>
+              )}
+            </div>
             {!isMobile && (
               <div className="flex gap-3">
                 {/* Кнопка обновления данных */}
@@ -312,7 +336,19 @@ export default function Equipment() {
                     billAcceptor={billAcceptor}
                     isMobile={isMobile}
                     thresholds={tradingPointData?.billAcceptorThresholds}
-                    onSaveThresholds={handleSaveThresholds}
+                    onSaveThresholds={handleSaveBillAcceptorThresholds}
+                  />
+                )}
+
+                {/* Пороги уровня топлива - отдельная карточка */}
+                {tanks.length > 0 && (
+                  <FuelLevelThresholdsCard
+                    tanks={tanks}
+                    isMobile={isMobile}
+                    thresholds={tradingPointData?.fuelLevelThresholds}
+                    onSaveThresholds={handleSaveFuelThresholds}
+                    networkId={selectedNetwork?.external_id}
+                    stationCode={tradingPointData?.external_id}
                   />
                 )}
 
@@ -327,167 +363,6 @@ export default function Equipment() {
           </CardContent>
         </Card>
 
-        {/* Резервуары */}
-        <Card className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
-          <CardHeader className={`${isMobile ? 'px-3 py-2' : 'px-6 py-2'}`}>
-            <CardTitle className={`text-slate-200 flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xl'}`}>
-              <Database className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-400`} />
-              Резервуары
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading && tanks.length === 0 ? (
-              <div className="flex justify-center items-center h-32">
-                <div className="text-center">
-                  <RefreshCw className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-                  <p className="text-slate-400">Загрузка данных резервуаров...</p>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Desktop Table */}
-                <div className="hidden md:block">
-                  <MobileTable showScrollHint={true}>
-                    <table className="w-full text-sm min-w-[600px]">
-                      <thead className="text-left border-b border-slate-600">
-                        <tr>
-                          <th className="pb-3 text-slate-300 font-medium">Резервуар</th>
-                          <th className="pb-3 text-slate-300 font-medium">Топливо</th>
-                          <th className="pb-3 text-slate-300 font-medium">Объем емкости</th>
-                          <th className="pb-3 text-slate-300 font-medium">Факт</th>
-                          <th className="pb-3 text-slate-300 font-medium">Заполнение</th>
-                          <th className="pb-3 text-slate-300 font-medium">Температура</th>
-                          <th className="pb-3 text-slate-300 font-medium">Вода</th>
-                          <th className="pb-3 text-slate-300 font-medium">Статус</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tanks.map((tank) => {
-                          const fillLevel = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
-                          const tankStatus = fillLevel < tank.criticalLevelPercent ? 'critical' : fillLevel < tank.minLevelPercent ? 'warning' : 'normal';
-
-                          return (
-                            <tr key={tank.id} className="border-b border-slate-700 hover:bg-slate-700/30">
-                              <td className="py-4">
-                                <div className="flex items-center gap-2">
-                                  <Database className="w-4 h-4 text-green-500" />
-                                  <span className="text-white font-medium">{tank.name}</span>
-                                </div>
-                              </td>
-                              <td className="py-4 text-slate-300">{tank.fuelType}</td>
-                              <td className="py-4 text-slate-300">{tank.capacityLiters.toLocaleString()} л</td>
-                              <td className="py-4 text-slate-300">{tank.currentLevelLiters.toLocaleString()} л</td>
-                              <td className="py-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="flex-1 bg-slate-600 rounded-full h-2 min-w-[60px]">
-                                    <div
-                                      className={`h-2 rounded-full ${getFillLevelColor(fillLevel)}`}
-                                      style={{ width: `${Math.max(fillLevel, 2)}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-sm text-slate-300 min-w-[35px]">{Math.round(fillLevel)}%</span>
-                                </div>
-                              </td>
-                              <td className="py-4 text-slate-300">
-                                <div className="flex items-center gap-1">
-                                  <Thermometer className="w-4 h-4 text-blue-400" />
-                                  {tank.temperature}°C
-                                </div>
-                              </td>
-                              <td className="py-4 text-slate-300">{tank.waterLevelMm} мм</td>
-                              <td className="py-4">
-                                <Badge
-                                  className={`${
-                                    tankStatus === 'normal'
-                                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                      : tankStatus === 'warning'
-                                      ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                                      : 'bg-red-600 text-white hover:bg-red-700'
-                                  }`}
-                                >
-                                  {tankStatus === 'normal' ? 'Норма' : tankStatus === 'warning' ? 'Мало' : 'Критично'}
-                                </Badge>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </MobileTable>
-                </div>
-
-                {/* Mobile Cards */}
-                <div className="md:hidden space-y-4">
-                  {tanks.map((tank) => {
-                    const fillLevel = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
-                    const tankStatus = fillLevel < tank.criticalLevelPercent ? 'critical' : fillLevel < tank.minLevelPercent ? 'warning' : 'normal';
-
-                    return (
-                      <div key={tank.id} className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Database className="w-4 h-4 text-green-500" />
-                            <span className="text-white font-medium text-base">{tank.name}</span>
-                          </div>
-                          <Badge
-                            className={`text-xs px-2 py-1 ${
-                              tankStatus === 'normal'
-                                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                : tankStatus === 'warning'
-                                ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                                : 'bg-red-600 text-white hover:bg-red-700'
-                            }`}
-                          >
-                            {tankStatus === 'normal' ? 'Норма' : tankStatus === 'warning' ? 'Мало' : 'Критично'}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-2 mb-2">
-                          <Fuel className="w-3 h-3 text-blue-400" />
-                          <span className="text-slate-300 font-medium text-sm">{tank.fuelType}</span>
-                        </div>
-
-                        <div className="mb-3">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs text-slate-400">Заполнение</span>
-                            <span className="text-xs text-white font-medium">{Math.round(fillLevel)}%</span>
-                          </div>
-                          <div className="w-full bg-slate-600 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full transition-all ${getFillLevelColor(fillLevel)}`}
-                              style={{ width: `${Math.max(fillLevel, 2)}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between text-xs text-slate-400 mt-1">
-                            <span>{tank.currentLevelLiters.toLocaleString()} л</span>
-                            <span>{tank.capacityLiters.toLocaleString()} л</span>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="flex items-center gap-2">
-                            <Thermometer className="w-3 h-3 text-blue-400" />
-                            <div>
-                              <div className="text-xs text-slate-400">Температура</div>
-                              <div className="text-xs text-white font-medium">{tank.temperature}°C</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Gauge className="w-3 h-3 text-cyan-400" />
-                            <div>
-                              <div className="text-xs text-slate-400">Вода</div>
-                              <div className="text-xs text-white font-medium">{tank.waterLevelMm} мм</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </MainLayout>
   );

@@ -215,6 +215,7 @@ export interface TerminalInfo {
   pos: {
     version: string;
     status: 'online' | 'offline';
+    lastUpdate?: string; // Время последнего обновления данных от терминала (dt_info)
   };
   shift: {
     number: number;

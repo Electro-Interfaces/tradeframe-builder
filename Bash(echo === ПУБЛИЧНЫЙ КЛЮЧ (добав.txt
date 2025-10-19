@@ -1,0 +1,9 @@
+Bash(echo "=== ПУБЛИЧНЫЙ КЛЮЧ (добавить на сервер) ===" && cat ~/.ssh/github_deploy_key.pub)
+  ⎿  === ПУБЛИЧНЫЙ КЛЮЧ (добавить на сервер) ===
+     ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJT8Gjf7Vybp0rCh7xcEJe58XpJhZ4Zy6F1nMllmeIvE github-actions-deploy
+
+● Bash(echo "=== ПРИВАТНЫЙ КЛЮЧ (добавить в GitHub Secret) ===" && cat ~/.ssh/github_deploy_key)
+  ⎿  === ПРИВАТНЫЙ КЛЮЧ (добавить в GitHub Secret) ===
+     -----BEGIN OPENSSH PRIVATE KEY-----
+     b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+     … +5 lines (ctrl+o to expand)

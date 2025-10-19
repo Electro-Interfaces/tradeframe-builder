@@ -34,8 +34,14 @@ class NotificationScheduler {
 
     this.scheduleTask(
       'checkLowFuelLevel',
-      '0 */4 * * *',
+      '0 */4 * * *', // Каждые 4 часа
       () => this.runLowFuelLevelChecks()
+    );
+
+    this.scheduleTask(
+      'checkTerminalOffline',
+      '*/15 * * * *', // Каждые 15 минут
+      () => this.runTerminalOfflineChecks()
     );
 
     this.isRunning = true;
@@ -88,7 +94,20 @@ class NotificationScheduler {
    * Выполнить проверку низкого уровня топлива
    */
   async runLowFuelLevelChecks() {
-    return { success: true };
+    console.log('🔍 [Scheduler] Запуск проверки низкого уровня топлива...');
+    const result = await notificationEngine.processAllRules();
+    console.log('✅ [Scheduler] Проверка низкого уровня топлива завершена');
+    return result;
+  }
+
+  /**
+   * Выполнить проверку работы терминала
+   */
+  async runTerminalOfflineChecks() {
+    console.log('🔍 [Scheduler] Запуск проверки работы терминала...');
+    const result = await notificationEngine.processAllRules();
+    console.log('✅ [Scheduler] Проверка работы терминала завершена');
+    return result;
   }
 
   /**
@@ -102,6 +121,8 @@ class NotificationScheduler {
         return await this.runEquipmentOfflineChecks();
       case 'checkLowFuelLevel':
         return await this.runLowFuelLevelChecks();
+      case 'checkTerminalOffline':
+        return await this.runTerminalOfflineChecks();
       default:
         throw new Error(`Unknown task: ${taskName}`);
     }
