@@ -2,13 +2,44 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { manifestPlugin } from "./vite-plugin-manifest";
+import { VitePWA } from 'vite-plugin-pwa';
 // Temporarily disable lovable-tagger to fix ESM import issue
 // import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  // GitHub Pages использует /tradeframe-builder/, production использует /
-  base: mode === 'github-pages' ? '/tradeframe-builder/' : '/',
+export default defineConfig(({ mode }) => {
+  // ============================================================================
+  // ТРЕХУРОВНЕВАЯ СИСТЕМА ОКРУЖЕНИЙ
+  // ============================================================================
+  // 1. DEVELOPMENT (localhost:3000)
+  //    - Service Worker: ОТКЛЮЧЕН (devOptions.enabled: false)
+  //    - HMR: Активен для быстрой разработки
+  //    - Backend: localhost:3001
+  //    - Base path: /
+  //
+  // 2. TEST (electro-interfaces.github.io/tradeframe-builder)
+  //    - Service Worker: ВКЛЮЧЕН
+  //    - PWA: Полностью работает
+  //    - Build mode: github-pages
+  //    - Base path: /tradeframe-builder/
+  //    - Git remote: test
+  //    - Деплой: git push test main
+  //
+  // 3. PRODUCTION (prod.dataworker.ru)
+  //    - Service Worker: ВКЛЮЧЕН
+  //    - PWA: Полностью работает
+  //    - Build mode: production
+  //    - Base path: /
+  //    - Git remote: prod
+  //    - Деплой: git push prod main
+  //
+  // Подробнее: DEPLOYMENT_STRATEGY.md
+  // ============================================================================
+
+  const base = mode === 'github-pages' ? '/tradeframe-builder/' : '/';
+
+  return {
+  base,
   // Явное определение переменных окружения
   define: {
     'import.meta.env.VITE_STS_API_URL': JSON.stringify(process.env.VITE_STS_API_URL),
@@ -46,6 +77,84 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     manifestPlugin(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      manifest: {
+        name: 'TradeFrame Builder',
+        short_name: 'TradeFrame',
+        description: 'Платформа управления торговыми сетями АЗС',
+        theme_color: '#1e293b',
+        background_color: '#0f172a',
+        display: 'standalone',
+        // ⚠️ ВАЖНО: scope и start_url используют динамический base
+        // TEST: /tradeframe-builder/
+        // PRODUCTION: /
+        scope: base,
+        start_url: base,
+        orientation: 'portrait-primary',
+        icons: [
+          {
+            src: `${base}pwa-192x192.png`,
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: `${base}pwa-512x512.png`,
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: `${base}pwa-512x512.png`,
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/api\./i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 // 24 часа
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 год
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      },
+      devOptions: {
+        // ⚠️ КРИТИЧНО: Service Worker ДОЛЖЕН быть отключен в development!
+        // Причина: конфликт с Vite HMR вызывает циклические перезагрузки
+        // Service Worker работает ТОЛЬКО в TEST и PRODUCTION окружениях
+        enabled: false,
+        type: 'module'
+      }
+    }),
     // Temporarily disabled: mode === 'development' && componentTagger(),
   ].filter(Boolean),
   build: {
@@ -86,4 +195,5 @@ export default defineConfig(({ mode }) => ({
       "pdfmake/build/vfs_fonts": "pdfmake/build/vfs_fonts.js",
     },
   },
-}));
+  };
+});

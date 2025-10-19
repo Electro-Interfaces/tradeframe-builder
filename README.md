@@ -25,10 +25,24 @@
 
 ## 🚀 Quick Start
 
+### Локальная разработка
+
 ```bash
-npm install
+# 1. Backend Proxy (порт 3001) - запускаем ПЕРВЫМ
+cd server
+node index.js
+
+# 2. Frontend (порт 3000) - в новом терминале
 npm run dev
 ```
+
+### Трехуровневая система окружений
+
+```
+DEVELOPMENT (localhost) → TEST (GitHub Pages) → PRODUCTION (prod.dataworker.ru)
+```
+
+**Подробнее**: см. [DEPLOYMENT_STRATEGY.md](./DEPLOYMENT_STRATEGY.md) и [QUICKSTART.md](./QUICKSTART.md)
 
 ## 🗄️ Database Tools for Claude Code Agents
 
@@ -124,9 +138,28 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
+## 🚀 Развертывание проекта
 
-Simply open [Lovable](https://lovable.dev/projects/a07dc2aa-b36e-4a02-8c1d-c7c0906efdc5) and click on Share -> Publish.
+### Деплой на TEST окружение
+
+```bash
+git add .
+git commit -m "feat: описание изменений"
+git push test main  # GitHub Actions автоматически соберет и задеплоит
+```
+
+**URL**: https://electro-interfaces.github.io/tradeframe-builder/
+
+### Деплой на PRODUCTION
+
+```bash
+# ТОЛЬКО после успешного тестирования на TEST!
+git push prod main
+```
+
+**URL**: https://prod.dataworker.ru/
+
+📖 **Полная документация по деплою**: [DEPLOYMENT_STRATEGY.md](./DEPLOYMENT_STRATEGY.md)
 
 ## Can I connect a custom domain to my Lovable project?
 

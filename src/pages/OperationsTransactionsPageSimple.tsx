@@ -766,7 +766,7 @@ export default function OperationsTransactionsPageSimple() {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="p-4 border-t border-slate-700">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
                   {/* Дата от */}
                   <div>
                     <Label htmlFor="date-from" className="text-xs text-slate-400">Дата от</Label>

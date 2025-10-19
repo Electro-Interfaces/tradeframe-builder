@@ -136,14 +136,15 @@ function detectBrowserName(userAgent: string): { name: string; version: string }
     { name: 'Opera Mini', pattern: /Opera Mini\/(\d+\.\d+)/ },
     { name: 'Opera Mobile', pattern: /Opera Mobi.*Version\/(\d+\.\d+)/ },
     { name: 'QQ Browser', pattern: /MQQBrowser\/(\d+\.\d+)/ },
-    { name: 'Yandex Browser', pattern: /YaBrowser\/(\d+\.\d+)/ },
-    
+    // Улучшенная детекция Yandex Browser (поддерживает YaBrowser и YandexBrowser)
+    { name: 'Yandex Browser', pattern: /(?:YaBrowser|YandexBrowser)\/(\d+\.\d+)/ },
+
     // Основные браузеры
     { name: 'Chrome', pattern: /Chrome\/(\d+\.\d+)/ },
     { name: 'Firefox', pattern: /Firefox\/(\d+\.\d+)/ },
     { name: 'Safari', pattern: /Version\/(\d+\.\d+).*Safari/ },
     { name: 'Edge', pattern: /Edg\/(\d+\.\d+)/ },
-    
+
     // WebView
     { name: 'Android WebView', pattern: /wv.*Chrome\/(\d+\.\d+)/ },
     { name: 'iOS WebView', pattern: /Mobile\/.*Safari/ },

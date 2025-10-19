@@ -942,7 +942,7 @@ export default function Prices() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-white">Цены</h1>
+            <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Цены</h1>
             <div className={`flex ${isMobile ? 'gap-2' : 'gap-3'} items-center`}>
               {!isMobile && (
                 <Button
@@ -1082,7 +1082,7 @@ export default function Prices() {
 
         {/* Диалог создания/редактирования цены */}
         <Dialog open={isFormDialogOpen} onOpenChange={setIsFormDialogOpen}>
-          <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-2xl'}`}>
+          <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh] overflow-y-auto' : 'max-w-2xl'}`}>
             <DialogHeader>
               <DialogTitle>
                 {selectedPrice ? 'Редактировать цену' : 'Новая цена на топливо'}
@@ -1304,7 +1304,7 @@ export default function Prices() {
 
         {/* AlertDialog для установки цен через STS API */}
         <AlertDialog open={isSetPricesDialogOpen} onOpenChange={setIsSetPricesDialogOpen}>
-          <AlertDialogContent className="max-w-4xl max-h-[90vh] bg-slate-900 border-slate-700 overflow-y-auto">
+          <AlertDialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[90vh]' : 'max-w-4xl max-h-[90vh]'} bg-slate-900 border-slate-700 overflow-y-auto`}>
             <AlertDialogHeader>
               <AlertDialogTitle className="text-xl font-semibold text-white flex items-center gap-2">
                 <Edit className="w-5 h-5 text-orange-400" />

@@ -30,29 +30,33 @@ function getStatusIcon(status: string, className: string = 'w-4 h-4') {
 export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
   return (
     <div
-      className={`bg-slate-700 rounded-lg ${isMobile ? 'p-3' : 'p-4'} border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer`}
+      className={`bg-slate-700 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer ${
+        isMobile ? 'p-2.5' : 'p-4'
+      }`}
     >
-      <div className="flex items-center justify-between mb-2">
-        <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-white`}>
+      <div className={`flex items-center justify-between ${isMobile ? 'mb-1.5' : 'mb-2'}`}>
+        <span className={`font-medium text-white ${isMobile ? 'text-xs leading-tight' : 'text-sm'}`}>
           {equipment.name}
         </span>
-        {getStatusIcon(equipment.status, isMobile ? 'w-3 h-3' : 'w-4 h-4')}
+        {getStatusIcon(equipment.status, isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4')}
       </div>
 
-      <div className="space-y-1">
-        <div className={`${isMobile ? 'text-xs' : 'text-xs'} text-slate-300`}>
+      <div className={isMobile ? 'space-y-0.5' : 'space-y-1'}>
+        <div className={`text-slate-300 ${isMobile ? 'text-[10px] leading-tight' : 'text-xs'}`}>
           {equipment.code}
         </div>
         {equipment.location && (
-          <div className={`${isMobile ? 'text-xs' : 'text-xs'} text-slate-400 truncate`}>
+          <div className={`text-slate-400 truncate ${isMobile ? 'text-[10px] leading-tight' : 'text-xs'}`}>
             {equipment.location}
           </div>
         )}
       </div>
 
-      <div className={`${isMobile ? 'mt-2' : 'mt-3'}`}>
+      <div className={isMobile ? 'mt-1.5' : 'mt-3'}>
         <Badge
-          className={`${isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'} font-semibold ${
+          className={`font-semibold ${
+            isMobile ? 'text-[10px] px-1.5 py-0.5 leading-tight' : 'text-xs px-2 py-1'
+          } ${
             equipment.status === 'online' && equipment.statusText === 'Готов'
               ? 'bg-green-600 text-white hover:bg-green-700'
               : equipment.status === 'online'

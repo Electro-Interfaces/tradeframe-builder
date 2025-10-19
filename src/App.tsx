@@ -11,6 +11,7 @@ import { lazy, useEffect, useState } from "react";
 import LazyLoader from "./components/LazyLoader";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PWAInstaller from "./components/pwa/PWAInstaller";
+import SafariPWAInstaller from "./components/pwa/SafariPWAInstaller";
 import UpdateNotification from "./components/pwa/UpdateNotification";
 import "./cache-buster"; // Принудительное обновление кеша
 
@@ -177,7 +178,13 @@ const App = () => {
           </SafeRender>
           <NewAuthProvider>
             <SelectionProvider>
-              <BrowserRouter basename={import.meta.env.BASE_URL}>
+              <BrowserRouter
+                basename={import.meta.env.BASE_URL}
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true
+                }}
+              >
                 <div data-testid="router-ready" style={{ display: 'none' }}></div>
                 <Routes>
                   {/* Критически важные страницы - без lazy loading */}
@@ -234,7 +241,9 @@ const App = () => {
                 </Routes>
               </BrowserRouter>
 
+              {/* PWA Installers: общий для Chrome/Edge + специальный для Safari */}
               {showPWAInstaller && <PWAInstaller />}
+              <SafariPWAInstaller />
               <UpdateNotification />
             </SelectionProvider>
           </NewAuthProvider>

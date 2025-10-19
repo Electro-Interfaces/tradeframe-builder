@@ -11,10 +11,8 @@ import { useSelection } from "@/contexts/SelectionContext";
 import { useTanks } from "@/hooks/useTanks";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { TankCard } from "@/components/tanks/TankCard";
-
-const PULL_THRESHOLD = 80;
-const MAX_PULL_DISTANCE = 120;
-const INDICATOR_APPEAR_THRESHOLD = 30;
+import { PULL_TO_REFRESH_CONFIG } from "@/config/pullToRefresh";
+import { PullToRefreshIndicator } from "@/components/common/PullToRefreshIndicator";
 
 export default function Tanks() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
@@ -36,9 +34,9 @@ export default function Tanks() {
   } = usePullToRefresh({
     onRefresh: refreshTanks,
     enabled: isMobile,
-    pullThreshold: PULL_THRESHOLD,
-    maxPullDistance: MAX_PULL_DISTANCE,
-    indicatorAppearThreshold: INDICATOR_APPEAR_THRESHOLD
+    pullThreshold: PULL_TO_REFRESH_CONFIG.PULL_THRESHOLD,
+    maxPullDistance: PULL_TO_REFRESH_CONFIG.MAX_PULL_DISTANCE,
+    indicatorAppearThreshold: PULL_TO_REFRESH_CONFIG.INDICATOR_APPEAR_THRESHOLD
   });
 
   // Empty state если не выбрана торговая точка
@@ -91,42 +89,12 @@ export default function Tanks() {
         }}
       >
         {/* Pull-to-refresh индикатор */}
-        {isMobile && pullState !== 'idle' && pullDistance >= INDICATOR_APPEAR_THRESHOLD && (
-          <div
-            className="absolute top-0 left-0 right-0 flex justify-center items-center z-50"
-            style={{
-              transform: `translateY(-${Math.max(0, 80 - pullDistance)}px)`,
-              opacity: Math.min(1, (pullDistance - INDICATOR_APPEAR_THRESHOLD) / 40)
-            }}
-          >
-            <div className="bg-white/95 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-full shadow-lg border border-slate-200/50 flex items-center gap-2">
-              {pullState === 'refreshing' ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
-                  <span className="text-sm font-medium">Обновление...</span>
-                </>
-              ) : pullState === 'canRefresh' ? (
-                <>
-                  <RefreshCw className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium">Отпустите для обновления</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw
-                    className="w-4 h-4 text-slate-500"
-                    style={{ transform: `rotate(${pullDistance * 2}deg)` }}
-                  />
-                  <span className="text-sm font-medium">Потяните для обновления</span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        {isMobile && <PullToRefreshIndicator pullState={pullState} pullDistance={pullDistance} />}
 
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-white">Резервуары</h1>
+            <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Резервуары</h1>
             {!isMobile && (
               <Button
                 variant="outline"

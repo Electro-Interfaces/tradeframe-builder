@@ -47,12 +47,11 @@ export default function UserNotificationSettingsPage() {
   const [dndStart, setDndStart] = useState('22:00');
   const [dndEnd, setDndEnd] = useState('08:00');
 
-  // Подписки на типы событий
+  // Подписки на типы событий (только реализованные)
   const [subscriptions, setSubscriptions] = useState({
     bill_acceptor_threshold: true,
-    equipment_offline: true,
-    low_fuel_level: true,
-    shift_not_closed: true
+    terminal_offline: true,
+    low_fuel_level: true
   });
 
   useEffect(() => {
@@ -399,15 +398,15 @@ export default function UserNotificationSettingsPage() {
 
             <div className="flex items-center justify-between p-4 bg-slate-900 rounded-lg hover:bg-slate-900/70">
               <div>
-                <Label className="text-slate-300">Оборудование офлайн</Label>
+                <Label className="text-slate-300">Проблемы с терминалом</Label>
                 <p className="text-xs text-slate-500">
-                  Когда оборудование недоступно или не отвечает
+                  Когда терминал не передает данные или задержка передачи превышает порог
                 </p>
               </div>
               <Switch
-                checked={subscriptions.equipment_offline}
+                checked={subscriptions.terminal_offline}
                 onCheckedChange={(checked) =>
-                  setSubscriptions(prev => ({ ...prev, equipment_offline: checked }))
+                  setSubscriptions(prev => ({ ...prev, terminal_offline: checked }))
                 }
               />
             </div>
@@ -423,21 +422,6 @@ export default function UserNotificationSettingsPage() {
                 checked={subscriptions.low_fuel_level}
                 onCheckedChange={(checked) =>
                   setSubscriptions(prev => ({ ...prev, low_fuel_level: checked }))
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-slate-900 rounded-lg hover:bg-slate-900/70">
-              <div>
-                <Label className="text-slate-300">Незакрытая смена</Label>
-                <p className="text-xs text-slate-500">
-                  Когда смена не закрыта в установленное время
-                </p>
-              </div>
-              <Switch
-                checked={subscriptions.shift_not_closed}
-                onCheckedChange={(checked) =>
-                  setSubscriptions(prev => ({ ...prev, shift_not_closed: checked }))
                 }
               />
             </div>

@@ -95,27 +95,127 @@ export function PriceHistoryTable({
               За последние 30 дней изменений цен не было
             </p>
           </div>
+        ) : isMobile ? (
+          // Мобильная версия - карточки
+          <div className="space-y-3">
+            {sortedSchedule.map((entry, index) => {
+              const originalIndex = priceSchedule.indexOf(entry);
+              const change = priceChanges.get(originalIndex);
+
+              return (
+                <div
+                  key={`${entry.service_code}-${entry.effective_date}-${index}`}
+                  className="bg-slate-700/50 border border-slate-600 rounded-lg p-3"
+                >
+                  {/* Заголовок карточки - топливо и цена */}
+                  <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-600">
+                    <div className="flex items-center gap-2">
+                      <Fuel className="w-4 h-4 text-blue-400" />
+                      <span className="text-slate-200 font-semibold text-sm">
+                        {entry.fuel_type || `Код: ${entry.service_code}`}
+                      </span>
+                    </div>
+                    <span className="text-green-400 font-bold text-lg">
+                      {Number(entry.price).toFixed(2)} ₽
+                    </span>
+                  </div>
+
+                  {/* Изменение цены - ВАЖНЫЙ БЛОК */}
+                  {change && (
+                    <div className="mb-3 pb-3 border-b border-slate-600">
+                      <div className="text-xs text-slate-400 mb-1">Изменение:</div>
+                      <div className="flex items-center gap-2">
+                        {change.diff > 0 ? (
+                          <>
+                            <TrendingUp className="w-5 h-5 text-red-400" />
+                            <span className="text-red-400 font-semibold text-sm">
+                              +{change.diff.toFixed(2)} ₽ ({change.percent > 0 ? '+' : ''}{change.percent.toFixed(1)}%)
+                            </span>
+                          </>
+                        ) : change.diff < 0 ? (
+                          <>
+                            <TrendingDown className="w-5 h-5 text-green-400" />
+                            <span className="text-green-400 font-semibold text-sm">
+                              {change.diff.toFixed(2)} ₽ ({change.percent.toFixed(1)}%)
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Minus className="w-4 h-4 text-slate-400" />
+                            <span className="text-slate-400 text-xs">
+                              Без изменений
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Даты */}
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Дата применения:</span>
+                      <span className="text-slate-300">
+                        {entry.effective_date ? new Date(entry.effective_date).toLocaleString('ru-RU', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : '—'}
+                      </span>
+                    </div>
+                    {entry.created_at && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Дата создания:</span>
+                        <span className="text-slate-300">
+                          {new Date(entry.created_at).toLocaleString('ru-RU', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Статус */}
+                  <div className="mt-3 pt-3 border-t border-slate-600">
+                    <Badge
+                      variant="outline"
+                      className="border-blue-600 text-blue-400 bg-blue-900/20 text-xs"
+                    >
+                      Применена
+                    </Badge>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
+          // Десктопная версия - таблица
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-700">
-                  <th className={`text-left py-3 px-4 text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium text-sm">
                     Дата создания
                   </th>
-                  <th className={`text-left py-3 px-4 text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium text-sm">
                     Дата применения
                   </th>
-                  <th className={`text-left py-3 px-4 text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium text-sm">
                     Топливо
                   </th>
-                  <th className={`text-right py-3 px-4 text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  <th className="text-right py-3 px-4 text-slate-300 font-medium text-sm">
                     Цена (руб/л)
                   </th>
-                  <th className={`text-right py-3 px-4 text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  <th className="text-right py-3 px-4 text-slate-300 font-medium text-sm">
                     Изменение
                   </th>
-                  <th className={`text-left py-3 px-4 text-slate-300 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  <th className="text-left py-3 px-4 text-slate-300 font-medium text-sm">
                     Статус
                   </th>
                 </tr>
@@ -130,7 +230,7 @@ export function PriceHistoryTable({
                       key={`${entry.service_code}-${entry.effective_date}-${index}`}
                       className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
                     >
-                      <td className={`py-3 px-4 text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      <td className="py-3 px-4 text-slate-300 text-sm">
                         {entry.created_at ? new Date(entry.created_at).toLocaleString('ru-RU', {
                           day: '2-digit',
                           month: '2-digit',
@@ -139,7 +239,7 @@ export function PriceHistoryTable({
                           minute: '2-digit'
                         }) : '—'}
                       </td>
-                      <td className={`py-3 px-4 text-slate-300 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      <td className="py-3 px-4 text-slate-300 text-sm">
                         {entry.effective_date ? new Date(entry.effective_date).toLocaleString('ru-RU', {
                           day: '2-digit',
                           month: '2-digit',
@@ -148,7 +248,7 @@ export function PriceHistoryTable({
                           minute: '2-digit'
                         }) : '—'}
                       </td>
-                      <td className={`py-3 px-4 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      <td className="py-3 px-4 text-sm">
                         <div className="flex items-center gap-2">
                           <Fuel className="w-4 h-4 text-blue-400" />
                           <span className="text-slate-300 font-medium">
@@ -156,12 +256,12 @@ export function PriceHistoryTable({
                           </span>
                         </div>
                       </td>
-                      <td className={`py-3 px-4 text-right ${isMobile ? 'text-base' : 'text-lg'}`}>
+                      <td className="py-3 px-4 text-right text-lg">
                         <span className="text-green-400 font-semibold">
                           {Number(entry.price).toFixed(2)}
                         </span>
                       </td>
-                      <td className={`py-3 px-4 text-right ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      <td className="py-3 px-4 text-right text-sm">
                         {change ? (
                           <div className="flex items-center justify-end gap-1">
                             {change.diff > 0 ? (
@@ -194,7 +294,7 @@ export function PriceHistoryTable({
                       <td className="py-3 px-4">
                         <Badge
                           variant="outline"
-                          className={`border-blue-600 text-blue-400 bg-blue-900/20 ${isMobile ? 'text-xs' : 'text-sm'}`}
+                          className="border-blue-600 text-blue-400 bg-blue-900/20 text-sm"
                         >
                           Применена
                         </Badge>

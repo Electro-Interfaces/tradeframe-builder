@@ -415,6 +415,7 @@ TradeFrame Builder v1.5.16 - платформа управления торго�
 - **React Query (TanStack Query)** - Загрузка данных и кэширование
 - **React Hook Form + Zod** - Обработка форм и валидация
 - **Supabase** - База данных и аутентификация
+- **PWA (vite-plugin-pwa)** - Progressive Web App с офлайн поддержкой и возможностью установки
 
 ### 📋 Статус реализации функций
 
@@ -548,15 +549,68 @@ TradeFrame Builder v1.5.16 - платформа управления торго�
 - Ширина контейнера установлена на 100% с отступом 1.5rem
 - Используйте существующие переменные теней и радиуса границ
 
-## Развертывание
+## 🚀 Развертывание
 
-### Система двойного репозитория
-- **Demo (GitHub Pages)**: `electro-interfaces/tradeframe-builder` → https://electro-interfaces.github.io/tradeframe-builder/
-- **Production**: `electro-interfaces/TradeControl` → https://prod.dataworker.ru/
+### Трехуровневая система окружений
 
-### Автоматический деплой
-- **Demo**: При push в ветку `main` автоматически происходит деплой на GitHub Pages через GitHub Actions
-- **Production**: Имеет собственную схему деплоя на рабочий домен https://prod.dataworker.ru/
+TradeFrame Builder использует **3 окружения** для безопасной разработки и деплоя:
+
+```
+DEVELOPMENT (localhost) → TEST (GitHub Pages) → PRODUCTION (prod.dataworker.ru)
+```
+
+#### 1️⃣ DEVELOPMENT (Локальная разработка)
+- **URL**: http://127.0.0.1:3000/
+- **Backend**: http://localhost:3001/
+- **Service Worker**: ❌ ОТКЛЮЧЕН
+- **PWA**: ❌ НЕТ
+- **HMR**: ✅ ДА (Vite Hot Reload)
+- **Назначение**: Быстрая разработка и отладка
+
+```bash
+# Запуск
+cd server && node index.js  # Terminal 1
+npm run dev                  # Terminal 2
+```
+
+#### 2️⃣ TEST (Тестовый сервер)
+- **URL**: https://electro-interfaces.github.io/tradeframe-builder/
+- **Git Remote**: `test` (tradeframe-builder repo)
+- **Service Worker**: ✅ ВКЛЮЧЕН
+- **PWA**: ✅ ПОЛНОСТЬЮ РАБОТАЕТ
+- **Данные**: РЕАЛЬНЫЕ (Supabase + STS API)
+- **Назначение**: Тестирование с полным PWA перед production
+
+```bash
+# Деплой на TEST
+git add . && git commit -m "feat: описание"
+git push test main  # GitHub Actions автоматически соберет и задеплоит
+```
+
+#### 3️⃣ PRODUCTION (Боевой сервер)
+- **URL**: https://prod.dataworker.ru/
+- **Git Remote**: `prod` (TradeControl repo)
+- **Service Worker**: ✅ ВКЛЮЧЕН
+- **PWA**: ✅ ПОЛНОСТЬЮ РАБОТАЕТ
+- **Данные**: РЕАЛЬНЫЕ (Supabase + STS API)
+- **Назначение**: Работа с реальными пользователями
+
+```bash
+# Деплой на PRODUCTION (ТОЛЬКО после успешного тестирования на TEST!)
+git push prod main
+```
+
+### Рекомендуемый Workflow
+
+```
+1. Разработка на localhost (без Service Worker)
+   ↓
+2. Деплой на TEST → Тестирование с PWA
+   ↓
+3. Деплой на PRODUCTION (только после успешных тестов)
+```
+
+📖 **Полная документация**: см. [DEPLOYMENT_STRATEGY.md](./DEPLOYMENT_STRATEGY.md)
 
 ## Важные заметки
 
@@ -572,6 +626,65 @@ TradeFrame Builder v1.5.16 - платформа управления торго�
 ## Рабочий язык
 
 **ОБЯЗАТЕЛЬНО**: Все взаимодействие с агентами Claude Code ведется на **русском языке**. Планы, отчеты, комментарии, коммиты - все на русском.
+
+## 📱 PWA (Progressive Web App)
+
+TradeFrame Builder поддерживает PWA функциональность с помощью `vite-plugin-pwa`.
+
+### Основные возможности
+
+- ✅ **Автоматическое обновление** - Service Worker обновляется при новых версиях
+- ✅ **Офлайн работа** - кэширование статических ресурсов и API запросов
+- ✅ **Установка на устройства** - работает как нативное приложение на Android, iOS, Desktop
+- ✅ **Оптимизированное кэширование**:
+  - API запросы: стратегия `NetworkFirst` (24 часа)
+  - Google Fonts: стратегия `CacheFirst` (1 год)
+  - Статические ресурсы: автоматическое кэширование
+
+### Конфигурация
+
+**Файлы:**
+- `vite.config.ts` - конфигурация PWA плагина
+- `public/pwa-192x192.png` - стандартная иконка
+- `public/pwa-512x512.png` - большая иконка (также maskable)
+- `dist/manifest.webmanifest` - генерируется автоматически при сборке
+- `dist/sw.js` - Service Worker
+- `dist/workbox-*.js` - библиотека Workbox
+
+**Манифест:**
+```json
+{
+  "name": "TradeFrame Builder",
+  "short_name": "TradeFrame",
+  "description": "Платформа управления торговыми сетями АЗС",
+  "theme_color": "#1e293b",
+  "background_color": "#0f172a",
+  "display": "standalone"
+}
+```
+
+### Тестирование PWA
+
+```bash
+# Сборка с PWA
+npm run build
+
+# Предпросмотр production сборки
+npm run preview
+
+# Проверка в Chrome DevTools
+# Application → Service Workers
+# Application → Manifest
+# Lighthouse → Run audit (PWA категория)
+```
+
+### Установка на устройства
+
+- **Desktop (Chrome/Edge):** иконка установки в адресной строке
+- **Android:** Chrome → Меню → "Добавить на главный экран"
+- **iOS:** Safari → Поделиться → "На экран Домой"
+
+📖 **Полная документация:** `PWA_SETUP.md`
 
 ## 🚫 Запреты на код
 
