@@ -21,8 +21,8 @@ module.exports = {
     },
     {
       name: 'tradeframe-test-backend',
-      script: 'server/index.js',
-      cwd: '/var/www/www-root/data/www/testTF.dataworker.ru',
+      script: 'index.js',
+      cwd: '/var/www/www-root/data/www/testTF.dataworker.ru/server',
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
