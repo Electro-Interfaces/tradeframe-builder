@@ -81,6 +81,28 @@ jobs:
             # Обновляем код из git
             git pull origin main || echo "Git pull failed, continuing..."
 
+            # Создаем server/.env с переменными окружения
+            cat > server/.env << 'ENV_EOF'
+            # STS API Configuration
+            STS_API_URL=${{ secrets.VITE_STS_API_URL }}
+            STS_API_USERNAME=${{ secrets.VITE_STS_API_USERNAME }}
+            STS_API_PASSWORD=${{ secrets.VITE_STS_API_PASSWORD }}
+
+            # Server Configuration
+            PORT=3002
+            NODE_ENV=production
+            ALLOWED_ORIGINS=https://testtf.dataworker.ru
+
+            # Telegram Bot Configuration
+            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+            TELEGRAM_BOT_NAME=TradeFrame Notifications
+            TELEGRAM_BOT_USERNAME=TradeFrameDW_Bot
+
+            # Supabase Configuration
+            SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            SUPABASE_SERVICE_KEY=${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+            ENV_EOF
+
             # Устанавливаем зависимости для backend
             cd server
             npm install --production
