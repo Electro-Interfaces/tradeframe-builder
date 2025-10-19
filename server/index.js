@@ -1,19 +1,14 @@
 // ВАЖНО: dotenv.config() должен быть ДО всех импортов, которые используют process.env
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+require('dotenv').config();
 
-// Получаем директорию текущего модуля
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Загружаем переменные окружения из server/.env
-dotenv.config({ path: join(__dirname, '.env') });
-
-// Теперь импортируем остальные модули, которые используют process.env
-import express from 'express';
-import cors from 'cors';
-import stsRoutes from './routes/sts.js';
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const notificationScheduler = require('./services/notificationScheduler');
+const stsRoutes = require('./routes/sts');
+const telegramRoutes = require('./routes/telegram');
+const messagesRoutes = require('./routes/messages');
+const { initTelegramBot } = require('./telegram-bot');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -65,6 +60,12 @@ app.get('/health', (req, res) => {
 // Подключаем роуты для STS API
 app.use('/api/sts', stsRoutes);
 
+// Подключаем роуты для Telegram
+app.use('/api/telegram', telegramRoutes);
+
+// Подключаем роуты для системы сообщений
+app.use('/api/messages', messagesRoutes);
+
 // Обработка несуществующих роутов
 app.use((req, res) => {
   res.status(404).json({
@@ -90,15 +91,28 @@ app.listen(PORT, () => {
   console.log(`Port: ${PORT}`);
   console.log(`Allowed Origins: ${allowedOrigins.join(', ')}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
+
+  notificationScheduler.start();
+  console.log('✅ Notification Scheduler started');
+
+  // Инициализация Telegram бота
+  const bot = initTelegramBot();
+  if (bot) {
+    console.log('✅ Telegram Bot initialized and polling');
+  } else {
+    console.warn('⚠️ Telegram Bot not initialized (check configuration)');
+  }
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM signal received: closing HTTP server');
+  notificationScheduler.stop();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   console.log('SIGINT signal received: closing HTTP server');
+  notificationScheduler.stop();
   process.exit(0);
 });

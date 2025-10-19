@@ -36,6 +36,9 @@ import { useEquipment } from "@/hooks/useEquipment";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { EquipmentCard } from "@/components/equipment/EquipmentCard";
 import { BillAcceptorCard } from "@/components/equipment/BillAcceptorCard";
+import { useState, useEffect } from "react";
+import { tradingPointsService } from "@/services/tradingPointsService";
+import type { TradingPoint, BillAcceptorThresholds } from "@/types/tradingpoint";
 
 const PULL_THRESHOLD = 80;
 const MAX_PULL_DISTANCE = 120;
@@ -53,6 +56,33 @@ function getFillLevelColor(level: number) {
 export default function Equipment() {
   const { selectedNetwork, selectedTradingPoint, isInitialized } = useSelection();
   const isMobile = useIsMobile();
+  const [tradingPointData, setTradingPointData] = useState<TradingPoint | null>(null);
+
+  // Загрузка данных торговой точки для получения пороговых значений
+  useEffect(() => {
+    if (selectedTradingPoint) {
+      tradingPointsService.getById(selectedTradingPoint)
+        .then(data => setTradingPointData(data))
+        .catch(err => console.error('Ошибка загрузки данных торговой точки:', err));
+    }
+  }, [selectedTradingPoint]);
+
+  // Функция сохранения порогов (вызывается из BillAcceptorCard)
+  const handleSaveThresholds = async (thresholds: BillAcceptorThresholds) => {
+    if (!selectedTradingPoint) return;
+
+    try {
+      // Обновление торговой точки с новыми порогами
+      await tradingPointsService.updateBillAcceptorThresholds(selectedTradingPoint, thresholds);
+
+      // Перезагрузка данных торговой точки
+      const updatedData = await tradingPointsService.getById(selectedTradingPoint);
+      setTradingPointData(updatedData);
+    } catch (error) {
+      console.error('Ошибка сохранения порогов:', error);
+      throw error; // Пробрасываем ошибку для обработки в BillAcceptorCard
+    }
+  };
 
   // Хук для загрузки оборудования
   const {
@@ -278,7 +308,12 @@ export default function Equipment() {
               <div className="space-y-6">
                 {/* Купюроприемник - отдельная большая карточка */}
                 {billAcceptor && (
-                  <BillAcceptorCard billAcceptor={billAcceptor} isMobile={isMobile} />
+                  <BillAcceptorCard
+                    billAcceptor={billAcceptor}
+                    isMobile={isMobile}
+                    thresholds={tradingPointData?.billAcceptorThresholds}
+                    onSaveThresholds={handleSaveThresholds}
+                  />
                 )}
 
                 {/* Остальное оборудование в сетке */}

@@ -86,3 +86,5 @@ ngrok.zip
 # Claude settings (local)
 .claude/settings.local.json
 
+SECRETS_VALUES.txt
+ADD_TO_GITHUB_SECRETS.txt

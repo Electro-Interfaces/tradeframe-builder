@@ -39,11 +39,14 @@ TradeFrame Builder v1.5.16 использует гибридную систем�
 
 ### Настройка подключения
 - **Конфигурация**: `src/services/apiConfigService.ts`
-- **Аутентификация**: HTTP Basic Auth
-- **Переменные окружения**:
-  - `VITE_STS_API_URL` - URL API
-  - `VITE_STS_API_USERNAME` - логин для доступа
-  - `VITE_STS_API_PASSWORD` - пароль для доступа
+- **Аутентификация**: JWT (JSON Web Token) через `/v1/login`
+- **Подробная документация**: См. `API_AUTHENTICATION.md`
+- **Переменные окружения** (в `server/.env`):
+  - `STS_API_URL` - URL API (https://pos.autooplata.ru/tms)
+  - `STS_API_USERNAME` - логин для получения JWT токена
+  - `STS_API_PASSWORD` - пароль для получения JWT токена
+
+**⚠️ ВАЖНО:** Аутентификация происходит на **backend** (Node.js сервер), а не на frontend. JWT токен хранится только на backend и автоматически обновляется каждые 18 минут.
 
 ### Доступные endpoints
 

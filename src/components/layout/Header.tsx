@@ -217,6 +217,14 @@ export function Header({
                 <span>Профиль</span>
               </DropdownMenuItem>
 
+              <DropdownMenuItem
+                onClick={() => navigate('/settings/notifications')}
+                className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer"
+              >
+                <Bell className="h-4 w-4 text-muted-foreground" />
+                <span>Уведомления</span>
+              </DropdownMenuItem>
+
               <DropdownMenuItem className="p-0">
                 <UpdateChecker onShowUpdateInfo={handleShowUpdateInfo} />
               </DropdownMenuItem>

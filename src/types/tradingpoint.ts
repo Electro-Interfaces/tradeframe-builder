@@ -35,6 +35,21 @@ export interface TradingPointServices {
   other?: string[];
 }
 
+/**
+ * Пороговые значения для купюроприемника
+ * Используются для предупреждений о необходимости инкассации
+ */
+export interface BillAcceptorThresholds {
+  /** Порог количества купюр (шт.) для предупреждения */
+  billCountWarning?: number;
+  /** Порог количества купюр (шт.) для критического предупреждения */
+  billCountCritical?: number;
+  /** Порог суммы денег (руб.) для предупреждения */
+  cashAmountWarning?: number;
+  /** Порог суммы денег (руб.) для критического предупреждения */
+  cashAmountCritical?: number;
+}
+
 export interface TradingPointExternalCode {
   id: string;
   system: string;
@@ -59,6 +74,7 @@ export interface TradingPoint {
   blockReason?: string;
   schedule?: TradingPointSchedule;
   services?: TradingPointServices;
+  billAcceptorThresholds?: BillAcceptorThresholds; // Пороговые значения для купюроприемника
   externalCodes: TradingPointExternalCode[];
   createdAt: Date;
   updatedAt?: Date;

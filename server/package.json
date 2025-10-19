@@ -2,7 +2,7 @@
   "name": "tradeframe-backend-proxy",
   "version": "1.0.0",
   "description": "Backend proxy server for TradeFrame Builder to securely handle STS API authentication",
-  "type": "module",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -17,10 +17,14 @@
   "author": "TradeFrame Team",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
+    "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.6.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "axios": "^1.6.2"
+    "express": "^4.18.2",
+    "node-cron": "^3.0.3",
+    "node-telegram-bot-api": "^0.66.0",
+    "nodemailer": "^6.9.7"
   },
   "engines": {
     "node": ">=18.0.0"

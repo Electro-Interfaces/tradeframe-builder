@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ сайта OFPTK</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #fff;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 350px;
+            background: #252526;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #3e3e42;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .toolbar {
+            background: #2d2d30;
+            padding: 10px 20px;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .iframe-container {
+            flex: 1;
+            position: relative;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        h2 {
+            margin-top: 0;
+            color: #4ec9b0;
+            font-size: 18px;
+        }
+        h3 {
+            color: #dcdcaa;
+            font-size: 14px;
+            margin: 15px 0 8px 0;
+        }
+        .info-block {
+            background: #1e1e1e;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .credential {
+            background: #2d2d30;
+            padding: 8px;
+            border-radius: 3px;
+            margin: 5px 0;
+            font-family: 'Consolas', monospace;
+            color: #ce9178;
+        }
+        button {
+            background: #0e639c;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        input {
+            background: #3c3c3c;
+            border: 1px solid #3e3e42;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 3px;
+            font-size: 13px;
+            flex: 1;
+        }
+        .log {
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .log-item {
+            padding: 4px 0;
+            border-bottom: 1px solid #2d2d30;
+        }
+        .log-item:last-child {
+            border-bottom: none;
+        }
+        .success { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .info { color: #9cdcfe; }
+        .warning { color: #dcdcaa; }
+        code {
+            background: #2d2d30;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>📊 Анализ OFPTK</h2>
+
+            <div class="info-block">
+                <h3>🔐 Учетные данные</h3>
+                <div class="credential">Логин: admin@mail.com</div>
+                <div class="credential">Пароль: qwerty123</div>
+            </div>
+
+            <div class="info-block">
+                <h3>🎯 Цель анализа</h3>
+                <p>Изучить структуру сайта, элементы интерфейса, навигацию и API endpoints.</p>
+            </div>
+
+            <div class="info-block">
+                <h3>📝 Инструкции</h3>
+                <ol style="padding-left: 20px; margin: 10px 0;">
+                    <li>Откройте DevTools (F12)</li>
+                    <li>Перейдите на вкладку Network</li>
+                    <li>Выполните авторизацию на сайте</li>
+                    <li>Изучите запросы к API</li>
+                    <li>Проанализируйте структуру DOM</li>
+                </ol>
+            </div>
+
+            <div class="info-block">
+                <h3>🔍 Что искать</h3>
+                <ul style="padding-left: 20px; margin: 10px 0;">
+                    <li>Фреймворк (React/Vue/Angular)</li>
+                    <li>API endpoints</li>
+                    <li>Методы аутентификации</li>
+                    <li>Структура навигации</li>
+                    <li>Используемые библиотеки</li>
+                    <li>Формат данных (JSON/XML)</li>
+                </ul>
+            </div>
+
+            <div class="info-block">
+                <h3>⚡ Быстрые действия</h3>
+                <button onclick="openDevTools()">Открыть в новой вкладке</button>
+                <button onclick="copyCredentials()" style="margin-top: 8px;">Копировать логин</button>
+            </div>
+
+            <div class="log" id="log">
+                <div class="log-item info">Готов к анализу...</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="toolbar">
+                <input type="text" id="urlInput" value="https://ofptk.vobrabotke.ru/" readonly>
+                <button onclick="reloadFrame()">🔄 Обновить</button>
+                <button onclick="openInNewTab()">🔗 Открыть в новой вкладке</button>
+            </div>
+            <div class="iframe-container">
+                <iframe id="siteFrame" src="https://ofptk.vobrabotke.ru/"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const log = (message, type = 'info') => {
+            const logEl = document.getElementById('log');
+            const item = document.createElement('div');
+            item.className = `log-item ${type}`;
+            item.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(item);
+            logEl.scrollTop = logEl.scrollHeight;
+        };
+
+        const reloadFrame = () => {
+            const frame = document.getElementById('siteFrame');
+            frame.src = frame.src;
+            log('Перезагрузка iframe...', 'info');
+        };
+
+        const openInNewTab = () => {
+            const url = document.getElementById('urlInput').value;
+            window.open(url, '_blank');
+            log('Открыто в новой вкладке', 'success');
+        };
+
+        const openDevTools = () => {
+            window.open(document.getElementById('urlInput').value, '_blank');
+            log('Откройте DevTools (F12) в новой вкладке', 'warning');
+        };
+
+        const copyCredentials = () => {
+            navigator.clipboard.writeText('admin@mail.com').then(() => {
+                log('Логин скопирован в буфер обмена', 'success');
+            });
+        };
+
+        // Попытка отследить загрузку iframe
+        document.getElementById('siteFrame').addEventListener('load', () => {
+            log('Сайт загружен в iframe', 'success');
+
+            // Попытка получить информацию (может не работать из-за CORS)
+            try {
+                const frame = document.getElementById('siteFrame');
+                const frameDoc = frame.contentDocument || frame.contentWindow.document;
+                log(`Заголовок страницы: ${frameDoc.title}`, 'info');
+            } catch (e) {
+                log('⚠️ CORS блокирует доступ к содержимому iframe. Используйте DevTools в новой вкладке.', 'warning');
+            }
+        });
+
+        log('Инструмент анализа инициализирован', 'success');
+        log('Загрузка сайта OFPTK...', 'info');
+    </script>
+</body>
+</html>

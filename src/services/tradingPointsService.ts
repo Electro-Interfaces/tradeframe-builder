@@ -69,6 +69,7 @@ export const tradingPointsService = {
             blockReason: '',
             schedule: {},
             services: {},
+            billAcceptorThresholds: station.billAcceptorThresholds,
             externalCodes: [station.code],
             createdAt: new Date(tenant.created_at),
             updatedAt: new Date(tenant.updated_at)
@@ -178,6 +179,7 @@ export const tradingPointsService = {
         blockReason: '',
         schedule: {},
         services: {},
+        billAcceptorThresholds: station.billAcceptorThresholds,
         externalCodes: [station.code],
         createdAt: new Date(tenant.created_at),
         updatedAt: new Date(tenant.updated_at)
@@ -517,6 +519,74 @@ export const tradingPointsService = {
       };
     } catch (error) {
       console.error('💥 Critical error getting statistics:', error);
+      throw error;
+    }
+  },
+
+  // Обновить пороговые значения купюроприемника для торговой точки
+  async updateBillAcceptorThresholds(
+    pointId: TradingPointId,
+    thresholds: import('@/types/tradingpoint').BillAcceptorThresholds
+  ): Promise<void> {
+    try {
+      // Парсим ID торговой точки чтобы получить код сети и код станции
+      const parsed = parseStationId(pointId);
+      if (!parsed) {
+        throw new Error(`Неверный формат ID торговой точки: ${pointId}`);
+      }
+
+      const { networkCode, stationCode } = parsed;
+
+      // Находим tenant по коду сети
+      const { data: tenant, error: findError } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('code', networkCode)
+        .eq('type', 'network')
+        .single();
+
+      if (findError || !tenant) {
+        throw new Error(`Сеть с кодом ${networkCode} не найдена`);
+      }
+
+      // Получаем текущие станции
+      const stations = tenant.settings?.stations || [];
+
+      // Находим нужную станцию и обновляем пороги
+      const updatedStations = stations.map((station: any) => {
+        if (station.code === stationCode) {
+          return {
+            ...station,
+            billAcceptorThresholds: thresholds
+          };
+        }
+        return station;
+      });
+
+      // Проверяем, что станция была найдена
+      const stationFound = updatedStations.some((s: any) => s.code === stationCode);
+      if (!stationFound) {
+        throw new Error(`Станция с кодом ${stationCode} не найдена в сети ${networkCode}`);
+      }
+
+      // Обновляем tenant с новыми данными станций
+      const { error: updateError } = await supabase
+        .from('tenants')
+        .update({
+          settings: {
+            ...tenant.settings,
+            stations: updatedStations
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tenant.id);
+
+      if (updateError) {
+        console.error('❌ Supabase error updating thresholds:', updateError);
+        throw new Error(`Ошибка обновления порогов: ${updateError.message}`);
+      }
+    } catch (error) {
+      console.error('💥 Critical error updating bill acceptor thresholds:', error);
       throw error;
     }
   }

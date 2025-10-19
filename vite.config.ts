@@ -22,6 +22,26 @@ export default defineConfig(({ mode }) => ({
     host: "127.0.0.1",
     port: 3000,
     allowedHosts: ["prod.dataworker.ru"],
+    proxy: {
+      // Прокси для всех API запросов - перенаправляем на локальный backend proxy
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            console.log('🔄 [Vite Proxy] Forwarding to backend:', req.url);
+          });
+
+          proxy.on('proxyRes', (proxyRes, req) => {
+            console.log('✅ [Vite Proxy] Backend response:', req.url, '→', proxyRes.statusCode);
+          });
+
+          proxy.on('error', (err, req) => {
+            console.error('❌ [Vite Proxy] Error:', req.url, err.message);
+          });
+        },
+      },
+    },
   },
   plugins: [
     react(),

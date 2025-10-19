@@ -1,5 +1,5 @@
-import express from 'express';
-import axios from 'axios';
+const express = require('express');
+const axios = require('axios');
 
 const router = express.Router();
 
@@ -174,4 +174,4 @@ router.all('*', (req, res) => {
   proxyRequest(req, res);
 });
 
-export default router;
+module.exports = router;

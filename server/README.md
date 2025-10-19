@@ -10,9 +10,15 @@ Browser (prod.dataworker.ru)
 Nginx (порт 443)
     ↓ проксирует на localhost:3001
 Backend Proxy (Express, порт 3001)
-    ↓ добавляет Basic Auth
+    ↓ автоматически получает и обновляет JWT токен
+    ↓ добавляет Authorization: Bearer {token}
 STS API (pos.autooplata.ru/tms)
 ```
+
+**Особенности JWT авторизации**:
+- JWT токен получается автоматически через `/v1/login` с username/password
+- Токен действителен 20 минут, обновляется автоматически каждые 18 минут
+- Клиентский код не знает учетные данные - они хранятся только в `server/.env`
 
 ## Структура файлов
 
@@ -182,8 +188,9 @@ pm2 flush tradeframe-backend-proxy
 
 - ✅ Учетные данные STS API хранятся только в `server/.env`
 - ✅ `.env` файл в `.gitignore` и не попадает в git
-- ✅ CORS настроен только для prod.dataworker.ru
-- ✅ Basic Auth добавляется на сервере, не видим в браузере
+- ✅ CORS настроен только для разрешенных доменов (prod.dataworker.ru, localhost)
+- ✅ JWT токен получается и обновляется автоматически на сервере
+- ✅ Authorization заголовок добавляется на backend, не виден в браузере
 - ✅ Frontend НЕ знает логин и пароль STS API
 
 ## Локальная разработка
