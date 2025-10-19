@@ -8,10 +8,6 @@ module.exports = {
       script: 'npm',
       args: 'run start',
       cwd: '/var/www/www-root/data/www/testTF.dataworker.ru',
-      env: {
-        NODE_ENV: 'development',
-        PORT: 3007
-      },
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
@@ -27,10 +23,6 @@ module.exports = {
       name: 'tradeframe-test-backend',
       script: 'server/index.js',
       cwd: '/var/www/www-root/data/www/testTF.dataworker.ru',
-      env: {
-        NODE_ENV: 'development',
-        PORT: 3002
-      },
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
