@@ -84,9 +84,16 @@ jobs:
             # Устанавливаем зависимости для backend
             cd server
             npm install --production
+            cd ..
 
-            # Перезапускаем PM2 процессы
-            pm2 restart tradeframe-test-frontend tradeframe-test-backend
+            # Останавливаем старые процессы (если есть)
+            pm2 delete tradeframe-test-frontend tradeframe-test-backend || true
+
+            # Запускаем процессы с актуальной конфигурацией
+            pm2 start ecosystem.test.config.cjs
+
+            # Сохраняем конфигурацию PM2
+            pm2 save
 
             # Проверяем статус
             pm2 list | grep tradeframe-test
