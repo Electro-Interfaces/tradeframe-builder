@@ -457,12 +457,12 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                     <div className="border-t border-slate-600 pt-2 flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span className="text-yellow-500">⚠️</span>
-                        <span className="text-slate-400">Предупреждение:</span>
+                        {!isMobile && <span className="text-slate-400">Предупреждение:</span>}
                         <span className="text-white font-medium">{warning}%</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-red-500">🔴</span>
-                        <span className="text-slate-400">Критично:</span>
+                        {!isMobile && <span className="text-slate-400">Критично:</span>}
                         <span className="text-white font-medium">{critical}%</span>
                       </div>
                     </div>
