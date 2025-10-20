@@ -16,6 +16,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUserName: (newName: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 
   // Проверки разрешений
   hasPermission: (permission: string) => boolean;
@@ -289,6 +290,22 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   };
 
   /**
+   * Изменение пароля пользователя
+   */
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+    if (!user) {
+      throw new Error('Нет авторизованного пользователя');
+    }
+
+    try {
+      // Вызываем метод authService для смены пароля
+      await authService.changePassword(user.id, user.email, currentPassword, newPassword);
+    } catch (error: any) {
+      throw new Error(error.message || 'Не удалось изменить пароль');
+    }
+  };
+
+  /**
    * Проверка разрешения
    */
   const hasPermission = (permission: string): boolean => {
@@ -360,6 +377,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     login,
     logout,
     updateUserName,
+    changePassword,
     hasPermission,
     isAdmin,
     canManageTanks,

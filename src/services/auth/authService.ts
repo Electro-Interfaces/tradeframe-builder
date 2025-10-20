@@ -320,6 +320,41 @@ class AuthService {
       throw error;
     }
   }
+
+  /**
+   * Изменяет пароль пользователя
+   */
+  async changePassword(userId: string, email: string, currentPassword: string, newPassword: string): Promise<void> {
+    try {
+      // 1. Сначала проверяем текущий пароль
+      const dbUser = await this.getUserByEmail(email);
+      if (!dbUser) {
+        throw new Error('Пользователь не найден');
+      }
+
+      const isValidPassword = await this.verifyPassword(dbUser, currentPassword);
+      if (!isValidPassword) {
+        throw new Error('Неверный текущий пароль');
+      }
+
+      // 2. Генерируем новую соль и хеш для нового пароля
+      const newSalt = this.generateSalt();
+      const newHash = await this.createPasswordHash(newPassword, newSalt);
+
+      // 3. Обновляем пароль в базе данных
+      await this.makeRequest(`users?id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          pwd_salt: newSalt,
+          pwd_hash: newHash,
+          updated_at: new Date().toISOString()
+        })
+      });
+
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export const authService = new AuthService();

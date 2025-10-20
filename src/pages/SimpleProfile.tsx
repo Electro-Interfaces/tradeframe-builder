@@ -23,7 +23,7 @@ interface PasswordFormData {
 export default function SimpleProfile() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, logout, updateUserName } = useNewAuth();
+  const { user, logout, updateUserName, changePassword } = useNewAuth();
   const isMobile = useIsMobile();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -71,23 +71,23 @@ export default function SimpleProfile() {
 
     setIsLoading(true);
     try {
-      // TODO: Implement password change in backend
-      // await userService.changePassword(data.currentPassword, data.newPassword);
-      
+      // Вызываем метод смены пароля из контекста
+      await changePassword(data.currentPassword, data.newPassword);
+
       toast({
         title: "Успешно",
         description: "Пароль успешно изменён. Пожалуйста, войдите в систему заново.",
         variant: "default"
       });
-      
+
       reset();
       setShowPasswordForm(false);
-      
+
       // Выходим из системы после смены пароля
       setTimeout(() => {
         handleLogout();
       }, 2000);
-      
+
     } catch (error: any) {
       toast({
         title: "Ошибка",
