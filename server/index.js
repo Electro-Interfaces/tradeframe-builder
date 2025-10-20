@@ -8,6 +8,7 @@ const notificationScheduler = require('./services/notificationScheduler');
 const stsRoutes = require('./routes/sts');
 const telegramRoutes = require('./routes/telegram');
 const messagesRoutes = require('./routes/messages');
+const supabaseRoutes = require('./routes/supabase');
 const { initTelegramBot } = require('./telegram-bot');
 
 const app = express();
@@ -65,6 +66,9 @@ app.use('/api/telegram', telegramRoutes);
 
 // Подключаем роуты для системы сообщений
 app.use('/api/messages', messagesRoutes);
+
+// Подключаем роуты для Supabase (прокси для обхода CORS и блокировок)
+app.use('/api/supabase', supabaseRoutes);
 
 // Обработка несуществующих роутов
 app.use((req, res) => {

@@ -37,8 +37,32 @@ interface AppUser {
 }
 
 class AuthService {
-  private readonly SUPABASE_URL = 'https://ssvazdgnmatbdynkhkqo.supabase.co';
-  private readonly SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
+  // Определяем URL в зависимости от окружения
+  private readonly SUPABASE_URL = this.getSupabaseUrl();
+  private readonly SUPABASE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
+
+  /**
+   * Определяет URL для Supabase в зависимости от окружения
+   * - localhost → прямой доступ к Supabase
+   * - testtf.dataworker.ru → через backend proxy
+   * - prod.dataworker.ru → через backend proxy
+   */
+  private getSupabaseUrl(): string {
+    const hostname = window.location.hostname;
+
+    // На production используем backend proxy
+    if (hostname === 'prod.dataworker.ru') {
+      return 'https://prod.dataworker.ru/api/supabase';
+    }
+
+    // На test используем backend proxy
+    if (hostname === 'testtf.dataworker.ru' || hostname.includes('github.io')) {
+      return 'https://testtf.dataworker.ru/api/supabase';
+    }
+
+    // Локально - прямой доступ к Supabase
+    return import.meta.env.VITE_SUPABASE_URL || 'https://ssvazdgnmatbdynkhkqo.supabase.co';
+  }
 
   /**
    * Выполняет HTTP запрос к Supabase
@@ -46,35 +70,43 @@ class AuthService {
   private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = `${this.SUPABASE_URL}/rest/v1/${endpoint}`;
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'apikey': this.SUPABASE_KEY,
-        'Authorization': `Bearer ${this.SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation',
-        ...options.headers,
-      },
-    });
-
-    // Сначала получаем текст ответа, чтобы избежать двойного чтения stream
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      let error = {};
-      try {
-        error = JSON.parse(responseText);
-      } catch {
-        error = { message: responseText };
-      }
-      throw new Error(`Database request failed: ${response.status} ${JSON.stringify(error)}`);
-    }
-
-    // Парсим успешный ответ
     try {
-      return JSON.parse(responseText);
-    } catch {
-      return responseText;
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'apikey': this.SUPABASE_KEY,
+          'Authorization': `Bearer ${this.SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+          ...options.headers,
+        },
+      });
+
+      // Сначала получаем текст ответа, чтобы избежать двойного чтения stream
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        let error = {};
+        try {
+          error = JSON.parse(responseText);
+        } catch {
+          error = { message: responseText };
+        }
+        throw new Error(`Ошибка запроса к базе данных: ${response.status} ${JSON.stringify(error)}`);
+      }
+
+      // Парсим успешный ответ
+      try {
+        return JSON.parse(responseText);
+      } catch {
+        return responseText;
+      }
+    } catch (error) {
+      // Обработка сетевых ошибок (NetworkError, CORS, timeout)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Не удалось подключиться к серверу. Проверьте подключение к интернету или попробуйте позже.');
+      }
+      throw error;
     }
   }
 
