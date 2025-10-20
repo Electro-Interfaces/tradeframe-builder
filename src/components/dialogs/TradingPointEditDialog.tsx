@@ -128,7 +128,8 @@ export function TradingPointEditDialog({
       newErrors.name = "Название торговой точки обязательно";
     }
     
-    if (!data.geolocation?.latitude || !data.geolocation?.longitude) {
+    // ✅ ИСПРАВЛЕНИЕ: Проверяем на null/undefined, а не на falsy (0 - валидная координата)
+    if (data.geolocation?.latitude == null || data.geolocation?.longitude == null) {
       newErrors.geolocation = "Координаты обязательны";
     }
 
