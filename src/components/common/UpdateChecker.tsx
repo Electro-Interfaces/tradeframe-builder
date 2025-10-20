@@ -172,22 +172,19 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
 
   return (
     <div
-      className={`flex items-center gap-3 p-2 rounded-md cursor-pointer hover:bg-accent/50 transition-colors ${className}`}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800/80 cursor-pointer transition-all duration-200 text-slate-200 hover:text-white group w-full ${className}`}
       onClick={checkForUpdates}
     >
-      {getStatusIcon()}
-      <div className="flex flex-col">
+      <div className="w-8 h-8 rounded-lg bg-slate-800/50 group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
+        {getStatusIcon()}
+      </div>
+      <div className="flex flex-col flex-1">
         <span className="text-sm font-medium">
           {isChecking ? 'Проверка обновлений...' : 'Проверить обновления'}
         </span>
-        <span className="text-xs text-muted-foreground">
-          v{currentVersion} (#{buildNumber})
+        <span className="text-xs text-slate-500 group-hover:text-slate-400">
+          v{currentVersion} • {getStatusText()}
         </span>
-        {lastChecked && (
-          <span className="text-xs text-muted-foreground">
-            Последняя проверка: {lastChecked.toLocaleTimeString('ru-RU')}
-          </span>
-        )}
       </div>
     </div>
   );

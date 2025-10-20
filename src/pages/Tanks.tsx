@@ -1,8 +1,10 @@
 /**
  * Страница резервуаров
  * Отрефакторенная версия с использованием хуков и компонентов
+ * ОПТИМИЗИРОВАНО: Добавлена мемоизация для производительности
  */
 
+import { memo, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Gauge, RefreshCw } from "lucide-react";
@@ -13,6 +15,16 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { TankCard } from "@/components/tanks/TankCard";
 import { PULL_TO_REFRESH_CONFIG } from "@/config/pullToRefresh";
 import { PullToRefreshIndicator } from "@/components/common/PullToRefreshIndicator";
+import type { Tank } from "@/types/tanks";
+
+// Мемоизированный компонент списка резервуаров
+const TanksList = memo(({ tanks, isMobile }: { tanks: Tank[]; isMobile: boolean }) => (
+  <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    {tanks.map((tank) => (
+      <TankCard key={tank.id} tank={tank} isMobile={isMobile} />
+    ))}
+  </div>
+));
 
 export default function Tanks() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
@@ -118,11 +130,7 @@ export default function Tanks() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {tanks.map((tank) => (
-              <TankCard key={tank.id} tank={tank} isMobile={isMobile} />
-            ))}
-          </div>
+          <TanksList tanks={tanks} isMobile={isMobile} />
         )}
       </div>
     </MainLayout>

@@ -34,10 +34,8 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
           if (defaultNetwork) {
             setSelectedNetworkId(defaultNetwork.id);
-            console.log('✅ Default network selected: БТО (external_id: 15)');
           } else {
             // Если сеть 15 не найдена, fallback на первую доступную
-            console.warn('⚠️ Network with external_id=15 not found, selecting first available');
             setSelectedNetworkId(networks[0].id);
           }
         }

@@ -1,7 +1,37 @@
 const express = require('express');
 const axios = require('axios');
+const NodeCache = require('node-cache');
 
 const router = express.Router();
+
+// Инициализация кэша
+// stdTTL - время жизни по умолчанию в секундах
+// checkperiod - период проверки истекших ключей
+const cache = new NodeCache({
+  stdTTL: 120, // 2 минуты по умолчанию
+  checkperiod: 60, // Проверка каждую минуту
+  useClones: false // Не клонировать объекты для производительности
+});
+
+// Конфигурация TTL для разных endpoint'ов (в секундах)
+const CACHE_TTL = {
+  '/v1/tanks': 120,              // 2 минуты - резервуары меняются редко
+  '/v2/info': 60,                // 1 минута - статусы ТО
+  '/v1/pos/prices': 300,         // 5 минут - цены меняются редко
+  '/v1/schedule/prices': 300,    // 5 минут - расписание цен
+  '/v1/transactions': 30,        // 30 секунд - транзакции нужны свежие
+  '/v1/coupons': 180,            // 3 минуты - купоны
+  '/v1/shifts': 60,              // 1 минута - смены
+  '/v1/report/receipts': 120,    // 2 минуты - поступления
+  'default': 60                  // 1 минута - остальные
+};
+
+// Статистика кэша
+let cacheStats = {
+  hits: 0,
+  misses: 0,
+  lastReset: Date.now()
+};
 
 // Lazy initialization для STS client и JWT токена
 let stsClient = null;
@@ -70,18 +100,63 @@ async function refreshJwtToken() {
   }
 }
 
-// Middleware для логирования запросов к STS API
+// Генерация ключа кэша из URL и параметров
+function generateCacheKey(urlPath, queryParams) {
+  // Сортируем параметры для стабильности ключа
+  const sortedParams = Object.keys(queryParams || {})
+    .sort()
+    .map(key => `${key}=${queryParams[key]}`)
+    .join('&');
+
+  return `${urlPath}?${sortedParams}`;
+}
+
+// Получение TTL для endpoint'а
+function getTTL(urlPath) {
+  // Ищем точное совпадение
+  if (CACHE_TTL[urlPath]) {
+    return CACHE_TTL[urlPath];
+  }
+
+  // Ищем по началу пути (например /v1/pos/prices/4 -> /v1/pos/prices)
+  for (const [pattern, ttl] of Object.entries(CACHE_TTL)) {
+    if (urlPath.startsWith(pattern)) {
+      return ttl;
+    }
+  }
+
+  return CACHE_TTL.default;
+}
+
+// Middleware для логирования запросов к STS API и измерения времени
 router.use((req, res, next) => {
+  req.startTime = Date.now();
   console.log(`[STS Proxy] ${req.method} ${req.path}`);
   next();
 });
 
-// Универсальный обработчик для проксирования запросов
+// Универсальный обработчик для проксирования запросов с кэшированием
 async function proxyRequest(req, res) {
   try {
     const { method, query, body } = req;
     // Используем req.path (без query string) вместо req.originalUrl
     const urlPath = req.path;
+
+    // Генерируем ключ кэша
+    const cacheKey = generateCacheKey(urlPath, query);
+
+    // Проверяем кэш только для GET запросов
+    if (method === 'GET') {
+      const cachedData = cache.get(cacheKey);
+      if (cachedData !== undefined) {
+        cacheStats.hits++;
+        const duration = Date.now() - req.startTime;
+        console.log(`[STS Proxy] 💾 Cache HIT for ${urlPath} (${duration}ms, total hits: ${cacheStats.hits})`);
+        return res.status(200).json(cachedData);
+      } else {
+        cacheStats.misses++;
+      }
+    }
 
     // Формируем параметры запроса к STS API
     const requestConfig = {
@@ -101,6 +176,17 @@ async function proxyRequest(req, res) {
     if (urlPath === '/v1/tanks') {
       console.log('[STS Proxy] Tanks response:', JSON.stringify(response.data).substring(0, 200));
     }
+
+    // Сохраняем в кэш только GET запросы с успешным ответом
+    if (method === 'GET' && response.status === 200) {
+      const ttl = getTTL(urlPath);
+      cache.set(cacheKey, response.data, ttl);
+      console.log(`[STS Proxy] 💾 Cached response for ${urlPath} (TTL: ${ttl}s)`);
+    }
+
+    // Измеряем время выполнения
+    const duration = Date.now() - req.startTime;
+    console.log(`[STS Proxy] ⏱️ Request ${req.method} ${urlPath} completed in ${duration}ms (cache misses: ${cacheStats.misses})`);
 
     // Возвращаем ответ клиенту
     res.status(response.status).json(response.data);
@@ -134,6 +220,46 @@ async function proxyRequest(req, res) {
     }
   }
 }
+
+// === Endpoints для управления кэшем ===
+
+// Получить статистику кэша
+router.get('/_cache/stats', (req, res) => {
+  const stats = cache.getStats();
+  const uptime = Date.now() - cacheStats.lastReset;
+  const hitRate = cacheStats.hits + cacheStats.misses > 0
+    ? ((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100).toFixed(2)
+    : 0;
+
+  res.json({
+    cache: {
+      keys: stats.keys,
+      hits: cacheStats.hits,
+      misses: cacheStats.misses,
+      hitRate: `${hitRate}%`,
+      uptime: `${Math.round(uptime / 1000)}s`
+    },
+    ttl: CACHE_TTL
+  });
+});
+
+// Очистить кэш
+router.post('/_cache/clear', (req, res) => {
+  cache.flushAll();
+  const oldStats = { ...cacheStats };
+  cacheStats = {
+    hits: 0,
+    misses: 0,
+    lastReset: Date.now()
+  };
+
+  console.log('[STS Proxy] 🧹 Cache cleared');
+
+  res.json({
+    message: 'Cache cleared successfully',
+    previousStats: oldStats
+  });
+});
 
 // === Endpoints для транзакций ===
 router.get('/v1/transactions', (req, res) => proxyRequest(req, res));

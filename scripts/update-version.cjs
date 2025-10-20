@@ -70,10 +70,6 @@ function updateIndexHtml(version) {
       {
         pattern: /<link rel="manifest" href="\/manifest\.json\?v=[\d.]+" \/>/,
         replacement: `<link rel="manifest" href="/manifest.json?v=${version}" />`
-      },
-      {
-        pattern: />v[\d.]+<\/p>/,
-        replacement: `>v${version}</p>`
       }
     ];
 

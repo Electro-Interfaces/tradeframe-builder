@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Руководство пользователя TradeFrame Builder v1.5.31</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1e40af;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            border-bottom: 4px solid #3b82f6;
+            padding-bottom: 15px;
+        }
+
+        h2 {
+            color: #1e40af;
+            font-size: 2em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #93c5fd;
+        }
+
+        h3 {
+            color: #2563eb;
+            font-size: 1.5em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        h4 {
+            color: #3b82f6;
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+
+        .version-info {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .toc {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            font-size: 1.5em;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 20px;
+        }
+
+        .toc li {
+            margin: 8px 0;
+        }
+
+        .toc a {
+            color: #2563eb;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .toc a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        p {
+            margin: 15px 0;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        .screenshot {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .screenshot img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .screenshot-caption {
+            margin-top: 10px;
+            font-style: italic;
+            color: #64748b;
+            font-size: 0.95em;
+        }
+
+        .note {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .note strong {
+            color: #92400e;
+        }
+
+        .info-box {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .feature-list {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+
+        table th {
+            background: #1e40af;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        table tr:hover {
+            background: #f8fafc;
+        }
+
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #dc2626;
+        }
+
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .steps li {
+            counter-increment: step-counter;
+            margin: 20px 0;
+            padding-left: 50px;
+            position: relative;
+        }
+
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #3b82f6;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .contact-info {
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            text-align: center;
+            color: #64748b;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+
+            .screenshot img {
+                max-width: 100%;
+                page-break-inside: avoid;
+            }
+
+            h2 {
+                page-break-before: always;
+            }
+
+            h2:first-of-type {
+                page-break-before: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Руководство пользователя TradeFrame Builder v1.5.31</h1>
+        <p class="subtitle"><strong>Платформа управления торговыми сетями АЗС</strong></p>
+
+        <div class="version-info">
+            <strong>Версия:</strong> 1.5.31<br>
+            <strong>Дата обновления:</strong> Октябрь 2025
+        </div>
+
+        <div class="toc">
+            <h2>📋 Содержание</h2>
+            <ul>
+                <li><a href="#intro">1. Введение</a></li>
+                <li><a href="#getting-started">2. Начало работы</a>
+                    <ul>
+                        <li><a href="#auth">Авторизация в системе</a></li>
+                        <li><a href="#interface">Интерфейс приложения</a></li>
+                    </ul>
+                </li>
+                <li><a href="#networks">3. Торговые сети</a>
+                    <ul>
+                        <li><a href="#network-overview">Обзор сети</a></li>
+                        <li><a href="#operations">Операции и транзакции</a></li>
+                    </ul>
+                </li>
+                <li><a href="#point">4. Торговая точка</a>
+                    <ul>
+                        <li><a href="#prices">Управление ценами</a></li>
+                        <li><a href="#equipment">Мониторинг оборудования</a></li>
+                    </ul>
+                </li>
+                <li><a href="#notifications">5. Система уведомлений</a>
+                    <ul>
+                        <li><a href="#notification-settings">Настройка уведомлений</a></li>
+                        <li><a href="#telegram">Привязка Telegram</a></li>
+                    </ul>
+                </li>
+                <li><a href="#broadcast">6. Рассылка сообщений</a></li>
+                <li><a href="#faq">7. Часто задаваемые вопросы</a></li>
+            </ul>
+        </div>
+
+        <h2 id="intro">📌 Введение</h2>
+
+        <p>TradeFrame Builder — это современная веб-платформа для управления торговыми сетями АЗС. Система предоставляет комплексные инструменты для мониторинга, аналитики и управления операциями на автозаправочных станциях.</p>
+
+        <div class="feature-list">
+            <h3>Основные возможности:</h3>
+            <ul>
+                <li>📊 <strong>Аналитика продаж</strong> с интерактивными графиками и прогнозами</li>
+                <li>💰 <strong>Управление ценами</strong> на топливо с планированием изменений</li>
+                <li>🔔 <strong>Система уведомлений</strong> через Telegram и Email</li>
+                <li>📱 <strong>PWA поддержка</strong> — работает как мобильное приложение</li>
+                <li>🛢️ <strong>Мониторинг резервуаров</strong> и терминального оборудования</li>
+                <li>📨 <strong>Рассылка сообщений</strong> для информирования пользователей</li>
+                <li>🔐 <strong>Управление доступом</strong> с ролевой системой</li>
+            </ul>
+        </div>
+
+        <hr>
+
+        <h2 id="getting-started">🚀 Начало работы</h2>
+
+        <h3 id="auth">Авторизация в системе</h3>
+
+        <p>При первом входе в систему вы увидите страницу авторизации TradeFrame Builder.</p>
+
+        <div class="screenshot">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAewCAYAAABVXF0vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAP8QSURBVHhe7L0JvFRV+v+/VXZlUxZZZFFkU0AQRQVREQQUF1TcN3DBRR..." alt="Страница авторизации">
+            <p class="screenshot-caption">Рисунок 1: Форма входа в систему TradeFrame Builder</p>
+        </div>
+
+        <div class="info-box">
+            <h4>Шаги для входа в систему:</h4>
+            <ol class="steps">
+                <li><strong>Введите Email</strong> — ваш корпоративный адрес электронной почты, выданный администратором</li>
+                <li><strong>Введите пароль</strong> — временный или постоянный пароль доступа</li>
+                <li><strong>Примите условия использования:</strong>
+                    <ul>
+                        <li>✅ Пользовательское соглашение</li>
+                        <li>✅ Политика конфиденциальности</li>
+                        <li>✅ Защита персональных данных</li>
+                    </ul>
+                </li>
+                <li><strong>Опционально:</strong> Установите флажок "Запомнить меня" для автоматического входа в будущем</li>
+                <li><strong>Нажмите "Войти в систему"</strong> для завершения авторизации</li>
+            </ol>
+        </div>
+
+        <div class="note">
+            <strong>Примечание:</strong> При первом входе рекомендуется сменить пароль в настройках профиля для обеспечения безопасности аккаунта.
+        </div>
+
+        <h3 id="interface">Интерфейс приложения</h3>
+
+        <p>После успешной авторизации вы попадаете на главную страницу с информацией о состоянии оборудования торговой точки.</p>
+
+        <div class="screenshot">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAewCAYAAABVXF0vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAP+QSURBVHhe7L0JfFxVtf+9VXZlUxZZFFkUQRZBEQVB..." alt="Главная страница - Оборудование">
+            <p class="screenshot-caption">Рисунок 2: Главная страница с мониторингом оборудования</p>
+        </div>
+
+        <h4>Основные элементы интерфейса:</h4>
+
+        <h4>1. Шапка приложения (верхняя панель)</h4>
+        <ul>
+            <li><strong>Логотип и версия</strong> — TradeFrame v1.5.31</li>
+            <li><strong>Селектор торговой сети</strong> — выбор сети для просмотра данных</li>
+            <li><strong>Селектор торговой точки</strong> — выбор конкретной АЗС</li>
+            <li><strong>Кнопка обновления</strong> — принудительное обновление данных</li>
+            <li><strong>Уведомления</strong> — индикатор новых уведомлений</li>
+            <li><strong>Меню пользователя</strong> — профиль, настройки, выход</li>
+        </ul>
+
+        <h4>2. Боковое меню (навигация)</h4>
+        <ul>
+            <li><strong>ТОРГОВЫЕ СЕТИ</strong> — Обзор, Операции, Поступления, Сменные отчеты</li>
+            <li><strong>ТОРГОВАЯ ТОЧКА</strong> — Цены, Резервуары, Оборудование</li>
+            <li><strong>АДМИНИСТРИРОВАНИЕ</strong> — Сети и ТТ, Пользователи, Роли, Рассылка, Документы, Аудит</li>
+            <li><strong>НАСТРОЙКИ</strong> — API CTC, Внешняя БД, Уведомления</li>
+        </ul>
+
+        <h4>3. Рабочая область</h4>
+        <p>Основной контент текущей выбранной страницы с данными и элементами управления.</p>
+
+        <div class="screenshot">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAewCAYAAABVXF0vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAP9wSURBVHhe7L0JfBxV1f+9VXZlUxZZFFkUQRZB..." alt="Меню пользователя">
+            <p class="screenshot-caption">Рисунок 3: Меню пользователя с доступными опциями</p>
+        </div>
+
+        <h4>Меню пользователя:</h4>
+        <p>Нажмите на иконку пользователя в правом верхнем углу для доступа к:</p>
+        <ul>
+            <li><strong>Профиль</strong> — настройки личного аккаунта</li>
+            <li><strong>Уведомления</strong> — настройка системы уведомлений</li>
+            <li><strong>Проверить обновления</strong> — проверка новых версий приложения</li>
+            <li><strong>Выйти</strong> — безопасный выход из системы</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="networks">📊 Торговые сети</h2>
+
+        <h3 id="network-overview">Обзор сети</h3>
+
+        <p>Раздел "Обзор сети" предоставляет комплексную аналитику продаж с интерактивными графиками и детальной статистикой по всем показателям работы торговой сети.</p>
+
+        <div class="screenshot">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAewCAYAAABVXF0vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAP+gSURBVHhe7L0JfBxV1f+9VXZlUxZZFFkUQRZB..." alt="Обзор сети">
+            <p class="screenshot-caption">Рисунок 4: Dashboard с аналитикой продаж торговой сети</p>
+        </div>
+
+        <h4>Основные блоки аналитики:</h4>
+
+        <h4>1. Фильтры и экспорт</h4>
+        <ul>
+            <li><strong>Дата от / Дата до</strong> — выбор периода анализа (по умолчанию последние 30 дней)</li>
+            <li><strong>Кнопка "Экспорт"</strong> — экспорт данных в Excel, CSV или PDF форматы</li>
+        </ul>
+
+        <h4>2. Средние значения</h4>
+        <p>Ключевые метрики эффективности за выбранный период:</p>
+        <ul>
+            <li><strong>Средний чек</strong> — средняя сумма покупки в рублях</li>
+            <li><strong>Средний объем</strong> — средний объем одной заправки в литрах</li>
+            <li><strong>Операций/день</strong> — среднее количество транзакций в день</li>
+            <li><strong>АИ-92/АИ-95/ДТ средний</strong> — средний объем по каждому виду топлива</li>
+        </ul>
+
+        <h4>3. Виды топлива</h4>
+        <p>Детальная таблица с показателями по каждому типу топлива:</p>
+        <ul>
+            <li>Выручка (₽)</li>
+            <li>Объем (л)</li>
+            <li>Количество операций</li>
+        </ul>
+        <p><strong>Круговая диаграмма</strong> визуализирует распределение продаж по видам топлива для быстрого анализа структуры.</p>
+
+        <h4>4. Способы оплаты</h4>
+        <p>Анализ предпочитаемых методов оплаты клиентами:</p>
+        <ul>
+            <li><strong>Банковские карты</strong> — безналичная оплата картами</li>
+            <li><strong>Наличные</strong> — оплата наличными средствами</li>
+            <li><strong>Онлайн</strong> — оплата через мобильное приложение</li>
+        </ul>
+        <p><strong>Круговая диаграмма</strong> показывает долю каждого способа оплаты в общей выручке.</p>
+
+        <h4>5. Реализация по дням</h4>
+        <p><strong>График продаж</strong> отображает динамику выручки по дням за выбранный период. Позволяет:</p>
+        <ul>
+            <li>Выявить тренды и сезонные колебания</li>
+            <li>Определить пиковые и низкие дни продаж</li>
+            <li>Планировать закупки и логистику</li>
+        </ul>
+
+        <h4>6. Суточная активность по часам</h4>
+        <p><strong>График активности</strong> показывает распределение транзакций по часам суток:</p>
+        <ul>
+            <li>Помогает оптимизировать график работы персонала</li>
+            <li>Планировать загрузку и смены сотрудников</li>
+            <li>Анализировать пиковые часы для специальных предложений</li>
+        </ul>
+
+        <h4>7. Прогнозы продаж</h4>
+        <p>Система автоматически рассчитывает прогнозы на основе исторических данных:</p>
+        <ul>
+            <li><strong>Прогноз на завтра</strong> — ожидаемая выручка с указанием изменения</li>
+            <li><strong>Недельный прогноз</strong> — прогноз на следующие 7 дней</li>
+            <li><strong>Точность прогноза</strong> — процент точности алгоритма машинного обучения</li>
+            <li><strong>График: История и прогноз</strong> — визуализация фактических и прогнозируемых продаж</li>
+        </ul>
+
+        <h4>8. Рекомендации</h4>
+        <p>Система автоматически генерирует рекомендации на основе анализа данных:</p>
+        <ul>
+            <li>Оптимизация закупок топлива</li>
+            <li>Контроль остатков и своевременное пополнение</li>
+            <li>Предупреждения о негативных трендах</li>
+        </ul>
+
+        <hr>
+
+        <h3 id="operations">Операции и транзакции</h3>
+
+        <p>Раздел "Операции" содержит детальную информацию о всех транзакциях с возможностью фильтрации и экспорта данных.</p>
+
+        <div class="screenshot">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAewCAYAAABVXF0vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAP+4SURBVHhe7L0JfFxV1f+9VXZlUxZZFFkUQRZB..." alt="Операции и транзакции">
+            <p class="screenshot-caption">Рисунок 5: Таблица операций с детальной информацией</p>
+        </div>
+
+        <h4>Функционал раздела:</h4>
+
+        <h4>1. Фильтры</h4>
+        <ul>
+            <li><strong>Дата от / Дата до</strong> — фильтр по временному периоду</li>
+            <li><strong>Статус</strong> — фильтр по статусу операции (Все, Завершено, Отменено, В процессе)</li>
+            <li><strong>Поиск</strong> — поиск по ID операции, номеру карты, номеру чека</li>
+        </ul>
+
+        <h4>2. Сводка по видам топлива</h4>
+        <p>Агрегированные карточки с данными:</p>
+        <ul>
+            <li><strong>АИ-92, АИ-95, ДТ</strong>:
+                <ul>
+                    <li>Количество операций</li>
+                    <li>Общий объем (л)</li>
+                    <li>Общая сумма (₽)</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h4>3. Сводка по способам оплаты</h4>
+        <p>Группировка транзакций по методу оплаты с итогами.</p>
+
+        <h4>4. Таблица операций</h4>
+        <p>Детальная таблица со следующими колонками:</p>
+        <ul>
+            <li><strong>Статус</strong> — Завершено ✅ / В процессе ⏳ / Отменено ❌</li>
+            <li><strong>ID</strong> — уникальный идентификатор транзакции</li>
+            <li><strong>Время начала</strong> — дата и время операции</li>
+            <li><strong>Пист.</strong> — номер пистолета (колонки)</li>
+            <li><strong>Вид топлива</strong> — АИ-92, АИ-95, ДТ</li>
+            <li><strong>Факт. (литры)</strong> — фактически отпущенный объем</li>
+            <li><strong>Цена за л</strong> — цена за литр на момент операции</li>
+            <li><strong>Факт. (сумма)</strong> — общая стоимость транзакции</li>
+            <li><strong>Вид оплаты</strong> — способ оплаты</li>
+            <li><strong>POS</strong> — номер POS-терминала</li>
+            <li><strong>Смена</strong> — номер рабочей смены</li>
+            <li><strong>Карта</strong> — маскированный номер карты (для безнал. оплаты)</li>
+            <li><strong>№ чека</strong> — номер фискального чека</li>
+        </ul>
+
+        <div class="info-box">
+            <strong>Пагинация:</strong> Отображается по 50 записей на страницу с удобной навигацией ← Предыдущая / Следующая →
+        </div>
+
+        <hr>
+
+        <h2 id="point">🏪 Торговая точка</h2>
+
+        <h3 id="prices">Управление ценами</h3>
+
+        <p>Раздел "Цены" предназначен для управления ценами на топливо с возможностью планирования изменений.</p>
+
+        <div class="screenshot">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAewCAYAAABVXF0vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAP94SURBVHhe7L0JfFxV1f+9VXZlUxZZFFkUQRZB..." alt="Управление ценами">
+            <p class="screenshot-caption">Рисунок 6: Интерфейс управления ценами на топливо</p>
+        </div>
+
+        <h4>Функционал:</h4>
+
+        <h4>1. Текущие цены</h4>
+        <p>Карточки с активными ценами для каждого вида топлива:</p>
+        <ul>
+            <li><strong>АИ-92</strong> — цена за литр (например, 57.60 ₽/л)</li>
+            <li><strong>АИ-95</strong> — цена за литр (например, 61.20 ₽/л)</li>
+            <li><strong>ДТ</strong> — цена за литр (например, 68.20 ₽/л)</li>
+        </ul>
+        <p><strong>Статус:</strong> Активно ✅ — цена применена и действует на АЗС</p>
+
+        <h4>2. История изменения цен</h4>
+        <p>Таблица со всеми историческими изменениями цен:</p>
+        <ul>
+            <li><strong>Дата создания</strong> — когда было создано изменение</li>
+            <li><strong>Дата применения</strong> — когда цена вступила в силу</li>
+            <li><strong>Топливо</strong> — вид топлива</li>
+            <li><strong>Цена (руб/л)</strong> — новая цена</li>
+            <li><strong>Изменение</strong> — разница с предыдущей ценой (₽ и %)</li>
+            <li><strong>Статус</strong> — Применена / Запланирована / Отменена</li>
+        </ul>
+
+        <div class="info-box">
+            <h4>Как изменить цену:</h4>
+            <ol class="steps">
+                <li>Нажмите на <strong>кнопку с текущей ценой</strong> (например, "57.60 ₽")</li>
+                <li>В открывшемся диалоговом окне введите новую цену</li>
+                <li>Выберите дату и время применения:
+                    <ul>
+                        <li><strong>Немедленно</strong> — цена применяется сразу</li>
+                        <li><strong>Запланировать</strong> — установить дату и время в будущем</li>
+                    </ul>
+                </li>
+                <li>Нажмите <strong>"Сохранить"</strong></li>
+                <li>Система создаст запись в истории изменений</li>
+                <li>При наступлении времени применения цена автоматически обновится на АЗС</li>
+            </ol>
+        </div>
+
+        <div class="note">
+            <strong>Внимание:</strong> Изменение цен требует роли Администратора или Менеджера. Обычные пользователи имеют доступ только для просмотра.
+        </div>
+
+        <hr>
+
+        <h3 id="equipment">Мониторинг оборудования</h3>
+
+        <p>Страница оборудования показывает текущее состояние всего терминального оборудования и резервуаров торговой точки.</p>
+
+        <h4>Блоки мониторинга:</h4>
+
+        <h4>1. Терминальное оборудование</h4>
+        <p>Статус POS-терминала и подключенных устройств:</p>
+        <ul>
+            <li><strong>АЗС</strong> — статус станции (🟢 Онлайн / 🔴 Офлайн)</li>
+            <li><strong>POS</strong> — статус терминала (🟢 Онлайн / 🔴 Офлайн)</li>
+            <li><strong>QR</strong> — статус QR-сканера (✅ Готов / ⚠️ Неисправен)</li>
+            <li><strong>Смена</strong> — текущая смена (номер)</li>
+            <li><strong>Картридер</strong> — статус картридера (✅ Готов / ⚠️ Неисправен)</li>
+            <li><strong>МПС-ридер</strong> — статус ридера платежных карт (✅ Готов / ⚠️ Неисправен)</li>
+        </ul>
+        <p><strong>Кнопка "Перезагрузить"</strong> — удаленная перезагрузка терминала (требует подтверждения)</p>
+
+        <h4>2. Купюроприемник</h4>
+        <p>Мониторинг заполнения купюроприемника с настраиваемыми порогами:</p>
+        <ul>
+            <li><strong>Устройство</strong> — название устройства</li>
+            <li><strong>Статус</strong> — 🟢 Готов / 🟡 Внимание / 🔴 Критично</li>
+            <li><strong>Купюр (шт)</strong> — количество купюр в кассете</li>
+            <li><strong>Сумма (₽)</strong> — общая сумма наличных денег</li>
+        </ul>
+
+        <p><strong>Настраиваемые пороги уведомлений:</strong></p>
+        <ul>
+            <li><strong>Порог ⚠️ купюр</strong> — предупреждение (например, 400 шт)</li>
+            <li><strong>Порог 🔴 купюр</strong> — критический (например, 410 шт)</li>
+            <li><strong>Порог ⚠️ сумма</strong> — предупреждение (например, 250 000 ₽)</li>
+            <li><strong>Порог 🔴 сумма</strong> — критический (например, 300 000 ₽)</li>
+        </ul>
+
+        <h4>3. Резервуары</h4>
+        <p>Таблица с детальной информацией о резервуарах топлива:</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Резервуар</th>
+                    <th>Топливо</th>
+                    <th>Объем емкости</th>
+                    <th>Факт</th>
+                    <th>Заполнение</th>
+                    <th>Осталось времени</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Резервуар №1</td>
+                    <td>ДТ</td>
+                    <td>10 129,88 л</td>
+                    <td>4 847,29 л</td>
+                    <td>48%</td>
+                    <td>2.3 дн (2153 л/день)</td>
+                </tr>
+                <tr>
+                    <td>Резервуар №2</td>
+                    <td>АИ-95</td>
+                    <td>10 309,81 л</td>
+                    <td>5 484,86 л</td>
+                    <td>53%</td>
+                    <td>0.9 дн (6209 л/день)</td>
+                </tr>
+                <tr>
+                    <td>Резервуар №3</td>
+                    <td>АИ-92</td>
+                    <td>10 489,99 л</td>
+                    <td>7 005,13 л</td>
+                    <td>67%</td>
+                    <td>1.5 дн (4539 л/день)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box">
+            <h4>Расчет "Осталось времени":</h4>
+            <p>Система автоматически рассчитывает прогноз на сколько дней хватит топлива на основе:</p>
+            <ul>
+                <li>Текущего уровня топлива в резервуаре</li>
+                <li>Средней скорости расхода за последние 7 дней</li>
+            </ul>
+
+            <h4>Цветовые индикаторы уровня:</h4>
+            <ul>
+                <li>🟢 <strong>Норма</strong> — заполнение выше порога предупреждения</li>
+                <li>🟡 <strong>Внимание</strong> — между порогами предупреждения и критическим</li>
+                <li>🔴 <strong>Критично</strong> — ниже критического порога, требуется срочная заправка</li>
+            </ul>
+        </div>
+
+        <hr>
+
+        <h2 id="notifications">🔔 Система уведомлений</h2>
+
+        <h3 id="notification-settings">Настройка уведомлений</h3>
+
+        <p>Раздел "Настройки уведомлений" позволяет настроить каналы получения уведомлений о важных событиях на АЗС.</p>
+
+        <div class="screenshot">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAewCAYAAABVXF0vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAP+QSURBVHhe7L0JfFxV1f+9VXZlUxZZFFkUQRZB..." alt="Настройки уведомлений">
+            <p class="screenshot-caption">Рисунок 7: Настройки Email, Telegram и режима "Не беспокоить"</p>
+        </div>
+
+        <h4>Доступные каналы уведомлений:</h4>
+
+        <h4>1. Email уведомления</h4>
+        <ul>
+            <li><strong>Email адрес</strong> — укажите корпоративный или личный адрес</li>
+            <li><strong>Переключатель</strong> — включить/выключить Email уведомления</li>
+            <li>На указанный адрес будут приходить письма о событиях согласно подпискам</li>
+        </ul>
+
+        <h4>2. Telegram уведомления</h4>
+        <p>Получение мгновенных уведомлений в Telegram через бота <strong>@TradeFrameDW_Bot</strong></p>
+
+        <p><strong>Возможные статусы:</strong></p>
+        <ul>
+            <li>✅ <strong>Telegram привязан</strong> — аккаунт успешно привязан (отображается username)</li>
+            <li>⚠️ <strong>Telegram не привязан</strong> — требуется первичная привязка</li>
+        </ul>
+
+        <p><strong>Доступные действия:</strong></p>
+        <ul>
+            <li><strong>"Привязать Telegram"</strong> — получить уникальную ссылку для привязки</li>
+            <li><strong>"Отвязать Telegram"</strong> — отключить Telegram уведомления</li>
+            <li><strong>"Отправить тестовое уведомление"</strong> — проверка работоспособности</li>
+        </ul>
+
+        <hr>
+
+        <h3 id="telegram">Привязка Telegram</h3>
+
+        <div class="info-box">
+            <h4>Пошаговая инструкция по привязке Telegram:</h4>
+            <ol class="steps">
+                <li><strong>Нажмите кнопку "Привязать Telegram"</strong> в настройках уведомлений</li>
+                <li>Система автоматически сгенерирует уникальный 8-символьный код (например: <code>ABC12XYZ</code>)</li>
+                <li>Вы получите ссылку вида: <code>https://t.me/TradeFrameDW_Bot?start=ABC12XYZ</code></li>
+                <li><strong>Нажмите на ссылку</strong> или скопируйте ее в браузер</li>
+                <li>Telegram откроется автоматически с ботом <strong>TradeFrame Notifications</strong></li>
+                <li><strong>Нажмите кнопку "START"</strong> в Telegram или отправьте команду <code>/start ABC12XYZ</code></li>
+                <li>Бот автоматически проверит код и привяжет ваш Telegram аккаунт</li>
+                <li>Вы получите подтверждающее сообщение: <strong>"✅ Telegram успешно привязан!"</strong></li>
+                <li>В интерфейсе TradeFrame появится статус: <strong>"Telegram привязан: @ваш_username"</strong></li>
+            </ol>
+        </div>
+
+        <h4>Команды Telegram бота:</h4>
+        <ul>
+            <li><code>/start CODE</code> — привязка аккаунта (CODE — ваш 8-символьный код)</li>
+            <li><code>/help</code> — справка по использованию бота</li>
+            <li><code>/status</code> — проверка статуса привязки и активных подписок</li>
+            <li><code>/unlink</code> — отвязка Telegram аккаунта от системы</li>
+        </ul>
+
+        <div class="note">
+            <strong>Важно:</strong> Код привязки действителен 24 часа и может быть использован только один раз. Если код истек, нажмите "Привязать Telegram" повторно для генерации нового кода.
+        </div>
+
+        <h4>3. Режим "Не беспокоить"</h4>
+        <p>Настройка временного интервала, когда уведомления не должны приходить:</p>
+        <ul>
+            <li><strong>Включить режим</strong> — переключатель ВКЛ/ВЫКЛ</li>
+            <li><strong>Время начала</strong> — например, 22:00 (вечер)</li>
+            <li><strong>Время конца</strong> — например, 08:00 (утро)</li>
+            <li><strong>Разрешить критические уведомления</strong> — получать критические уведомления даже в режиме DND</li>
+        </ul>
+
+        <h4>4. Типы событий</h4>
+        <p>Выберите, о каких событиях вы хотите получать уведомления:</p>
+
+        <ul>
+            <li><strong>Пороги купюроприемника</strong> ⚠️
+                <ul>
+                    <li>Уведомления при заполнении купюроприемника</li>
+                    <li>Срабатывает при достижении предупреждающего или критического порога</li>
+                </ul>
+            </li>
+            <li><strong>Проблемы с терминалом</strong> 🔴
+                <ul>
+                    <li>Когда терминал не передает данные</li>
+                    <li>Когда задержка передачи превышает установленный порог</li>
+                </ul>
+            </li>
+            <li><strong>Низкий уровень топлива</strong> ⛽
+                <ul>
+                    <li>Критически низкий уровень топлива в резервуаре</li>
+                    <li>Уведомления помогают избежать полного опустошения</li>
+                </ul>
+            </li>
+        </ul>
+
+        <div class="info-box">
+            <strong>Сохранение настроек:</strong> После изменения настроек обязательно нажмите кнопку <strong>"Сохранить настройки"</strong> внизу страницы. Изменения вступают в силу немедленно.
+        </div>
+
+        <hr>
+
+        <h2 id="broadcast">📨 Рассылка сообщений</h2>
+
+        <p>Раздел "Рассылка сообщений" предназначен для массовой отправки новостей, объявлений и важной информации пользователям системы.</p>
+
+        <div class="screenshot">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB4AAAAewCAYAAABVXF0vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAP+8SURBVHhe7L0JfFxV1f+9VXZlUxZZFFkUQRZB..." alt="Рассылка сообщений">
+            <p class="screenshot-caption">Рисунок 8: Интерфейс создания и отправки broadcast-сообщений</p>
+        </div>
+
+        <div class="note">
+            <strong>Доступ:</strong> Функция рассылки доступна только пользователям с ролями <strong>Администратор</strong> или <strong>Менеджер</strong>.
+        </div>
+
+        <h4>Функционал раздела:</h4>
+
+        <h4>1. Форма нового сообщения</h4>
+
+        <p><strong>Основные поля:</strong></p>
+        <ul>
+            <li><strong>Заголовок сообщения</strong> — краткий и информативный заголовок (обязательно)</li>
+            <li><strong>Текст сообщения</strong> — основной текст сообщения (обязательно)
+                <ul>
+                    <li>Поддерживается <strong>Markdown форматирование</strong>:</li>
+                    <li><code>**жирный**</code> → <strong>жирный</strong></li>
+                    <li><code>*курсив*</code> → <em>курсив</em></li>
+                    <li><code>[ссылка](url)</code> → активная ссылка</li>
+                    <li><code>`код`</code> → <code>код</code></li>
+                </ul>
+            </li>
+        </ul>
+
+        <p><strong>Настройки сообщения:</strong></p>
+
+        <ul>
+            <li><strong>Тип сообщения:</strong>
+                <ul>
+                    <li>📰 Новости — общие новостные сообщения</li>
+                    <li>📢 Объявление — важные объявления для персонала</li>
+                    <li>⚠️ Оповещение — срочные оповещения</li>
+                    <li>🔧 Техническое обслуживание — информация о плановых работах</li>
+                </ul>
+            </li>
+            <li><strong>Приоритет:</strong>
+                <ul>
+                    <li>🔵 Низкий — обычные информационные сообщения</li>
+                    <li>🟡 Средний — стандартный приоритет (по умолчанию)</li>
+                    <li>🟠 Высокий — важные сообщения, требующие внимания</li>
+                    <li>🔴 Критический — срочные сообщения высшего приоритета</li>
+                </ul>
+            </li>
+            <li><strong>Каналы доставки:</strong>
+                <ul>
+                    <li>☑️ Telegram — отправка через Telegram бота</li>
+                    <li>☑️ Email — отправка на корпоративный email</li>
+                    <li>Можно выбрать оба канала одновременно</li>
+                </ul>
+            </li>
+            <li><strong>Получатели:</strong>
+                <ul>
+                    <li>Все пользователи — массовая рассылка всем зарегистрированным</li>
+                    <li>По ролям — выбор конкретных ролей (Администраторы, Менеджеры и т.д.)</li>
+                    <li>Конкретные пользователи — индивидуальный выбор получателей</li>
+                    <li>По торговым точкам — фильтр по конкретным АЗС</li>
+                    <li>По торговым сетям — фильтр по сетям</li>
+                </ul>
+            </li>
+        </ul>
+
+        <p><strong>Действия с сообщением:</strong></p>
+        <ul>
+            <li><strong>"Отправить сейчас"</strong> — немедленная отправка сообщения (активна при заполненных обязательных полях)</li>
+            <li><strong>"Сохранить черновик"</strong> — сохранение для редактирования и отправки позже</li>
+            <li><strong>"Очистить"</strong> — очистка формы и сброс всех полей</li>
+        </ul>
+
+        <h4>2. История отправленных сообщений</h4>
+        <p>Список всех отправленных broadcast-сообщений с подробной информацией:</p>
+
+        <ul>
+            <li><strong>Заголовок</strong> — краткое название сообщения</li>
+            <li><strong>Статус</strong> — текущий статус доставки:
+                <ul>
+                    <li>✅ <strong>Отправлено</strong> — успешно доставлено всем получателям</li>
+                    <li>⏳ <strong>В процессе</strong> — отправка еще не завершена</li>
+                    <li>❌ <strong>Ошибка</strong> — произошла ошибка при отправке</li>
+                    <li>📝 <strong>Черновик</strong> — сохранено, но не отправлено</li>
+                </ul>
+            </li>
+            <li><strong>Текст (превью)</strong> — краткий превью содержимого</li>
+            <li><strong>Получатели</strong> — количество получателей</li>
+            <li><strong>Дата отправки</strong> — дата и время отправки</li>
+            <li><strong>Статистика доставки</strong> — количество успешно доставленных сообщений</li>
+        </ul>
+
+        <div class="info-box">
+            <strong>Детальная статистика:</strong> Кликните на любое сообщение в истории для просмотра подробной статистики доставки, списка получателей и возможных ошибок.
+        </div>
+
+        <hr>
+
+        <h2 id="faq">❓ Часто задаваемые вопросы</h2>
+
+        <h3>Общие вопросы</h3>
+
+        <h4>Q: Как сменить пароль?</h4>
+        <p><strong>A:</strong> Нажмите на иконку пользователя в правом верхнем углу → Профиль → Изменить пароль. Введите текущий пароль и дважды новый пароль для подтверждения.</p>
+
+        <h4>Q: Как переключиться между торговыми точками?</h4>
+        <p><strong>A:</strong> Используйте селектор торговой точки в верхней панели приложения. Выберите нужную АЗС из выпадающего списка.</p>
+
+        <h4>Q: Можно ли работать офлайн?</h4>
+        <p><strong>A:</strong> Да, приложение поддерживает PWA (Progressive Web App) и может кэшировать данные для ограниченной офлайн работы. Однако для полного функционала необходимо интернет-соединение.</p>
+
+        <h4>Q: Как установить приложение на телефон?</h4>
+        <p><strong>A:</strong> Откройте приложение в мобильном браузере → Меню браузера → "Добавить на главный экран" (iOS Safari) или "Установить приложение" (Android Chrome).</p>
+
+        <hr>
+
+        <h3>Уведомления</h3>
+
+        <h4>Q: Не приходят уведомления в Telegram. Что делать?</h4>
+        <p><strong>A:</strong> Выполните следующие шаги:</p>
+        <ol>
+            <li>Проверьте, что Telegram привязан в настройках (должен быть статус ✅ "Telegram привязан")</li>
+            <li>Убедитесь, что переключатель "Telegram уведомления" включен</li>
+            <li>Проверьте активные подписки на типы событий</li>
+            <li>Отправьте тестовое уведомление кнопкой "Отправить тестовое уведомление"</li>
+            <li>Убедитесь, что не заблокировали бота в Telegram</li>
+        </ol>
+
+        <h4>Q: Как отписаться от определенного типа уведомлений?</h4>
+        <p><strong>A:</strong> Настройки → Уведомления → Прокрутите до раздела "Типы событий" → Выключите ненужные типы переключателями → Сохраните настройки.</p>
+
+        <h4>Q: Что делать, если код привязки Telegram истек?</h4>
+        <p><strong>A:</strong> Нажмите кнопку "Привязать Telegram" повторно — система автоматически сгенерирует новый код привязки со сроком действия 24 часа.</p>
+
+        <hr>
+
+        <h3>Цены и операции</h3>
+
+        <h4>Q: Кто может изменять цены на топливо?</h4>
+        <p><strong>A:</strong> Только пользователи с ролями <strong>Администратор</strong> или <strong>Менеджер</strong> имеют права на изменение цен. Обычные пользователи могут только просматривать текущие цены и историю.</p>
+
+        <h4>Q: Можно ли запланировать изменение цены на будущее?</h4>
+        <p><strong>A:</strong> Да, при изменении цены выберите опцию "Запланировать" и укажите желаемую дату и время применения. Цена автоматически применится в указанное время.</p>
+
+        <h4>Q: Как экспортировать список операций?</h4>
+        <p><strong>A:</strong> На странице "Операции" нажмите кнопку "Экспорт" в правом верхнем углу и выберите желаемый формат: Excel (.xlsx), CSV или PDF.</p>
+
+        <hr>
+
+        <h3>Мониторинг оборудования</h3>
+
+        <h4>Q: Как часто обновляются данные об оборудовании?</h4>
+        <p><strong>A:</strong> Данные обновляются автоматически каждые 5 минут. Вы также можете обновить данные вручную, нажав кнопку "Обновить" в правом верхнем углу страницы.</p>
+
+        <h4>Q: Что делать, если оборудование показывает статус "Офлайн"?</h4>
+        <p><strong>A:</strong> Выполните следующие действия:</p>
+        <ol>
+            <li>Проверьте физическое подключение оборудования к сети</li>
+            <li>Попробуйте перезагрузить терминал через кнопку "Перезагрузить" в интерфейсе</li>
+            <li>Подождите 5-10 минут для автоматического переподключения</li>
+            <li>Если проблема сохраняется более 30 минут, обратитесь в техническую поддержку</li>
+        </ol>
+
+        <h4>Q: Как настроить пороги для купюроприемника?</h4>
+        <p><strong>A:</strong> Перейдите на страницу "Оборудование" → Найдите блок "Купюроприемник" → Нажмите кнопку "Настроить пороги" → Установите желаемые значения для предупреждающих и критических порогов → Сохраните изменения.</p>
+
+        <hr>
+
+        <h3>Рассылка сообщений</h3>
+
+        <h4>Q: Кто может отправлять broadcast-сообщения?</h4>
+        <p><strong>A:</strong> Только пользователи с ролями <strong>Администратор</strong> или <strong>Менеджер</strong> имеют доступ к функции массовой рассылки сообщений.</p>
+
+        <h4>Q: Можно ли отменить отправленное сообщение?</h4>
+        <p><strong>A:</strong> Нет, отправленные сообщения отменить невозможно, так как они доставляются мгновенно. Рекомендуется использовать черновики для предварительной проверки текста и настроек перед отправкой.</p>
+
+        <h4>Q: Как узнать, кто именно получил сообщение?</h4>
+        <p><strong>A:</strong> Кликните на интересующее сообщение в разделе "История сообщений" для просмотра детальной статистики доставки со списком всех получателей и статусами доставки по каждому каналу.</p>
+
+        <hr>
+
+        <div class="contact-info">
+            <h2>📞 Техническая поддержка</h2>
+            <p>Если вы не нашли ответ на свой вопрос, обратитесь в службу технической поддержки:</p>
+            <ul>
+                <li>📧 <strong>Email:</strong> support@tradeframe.com</li>
+                <li>📱 <strong>Telegram:</strong> @TradeFrameSupport</li>
+                <li>📞 <strong>Телефон:</strong> +7 (XXX) XXX-XX-XX</li>
+            </ul>
+
+            <h3>Дополнительная документация:</h3>
+            <ul>
+                <li>🔗 <a href="../CLAUDE.md">Документация для разработчиков</a></li>
+                <li>🔗 <a href="../API_INTEGRATION.md">API документация</a></li>
+                <li>🔗 <a href="../NOTIFICATION_SYSTEM.md">Архитектура системы уведомлений</a></li>
+                <li>🔗 <a href="../BROADCAST_MESSAGES_SETUP.md">Настройка системы рассылок</a></li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <hr>
+            <p><strong>© 2024-2025 TradeFrame Builder v1.5.31</strong></p>
+            <p>Дата последнего обновления документации: Октябрь 2025</p>
+            <p>Платформа управления торговыми сетями АЗС</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,22 +84,7 @@ export function Header({
     }
     onMobileMenuToggle?.();
   };
-  
-  // Получаем инициалы и имя пользователя
-  const getUserInitials = () => {
-    if (user?.firstName && user?.lastName) {
-      return user.firstName[0] + user.lastName[0];
-    }
-    if (user?.name) {
-      const names = user.name.split(' ');
-      if (names.length >= 2) {
-        return names[0][0] + names[1][0];
-      }
-      return user.name[0];
-    }
-    return 'У';
-  };
-  
+
   const getUserDisplayName = () => {
     return user?.email || 'Пользователь';
   };
@@ -135,9 +119,8 @@ export function Header({
 
         {/* Desktop Left Section: Logo + Brand */}
         <div className="hidden md:flex items-center gap-4">
-          <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md relative">
-            <span className="text-white font-bold text-sm">TF</span>
-            <span className="absolute -top-1 -right-1 text-white font-bold text-xs bg-blue-400 rounded-full w-4 h-4 flex items-center justify-center">24</span>
+          <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-base">TF</span>
           </div>
           <div>
             <h1 className="font-semibold text-white text-lg tracking-tight">TradeFrame</h1>
@@ -166,57 +149,87 @@ export function Header({
                 variant="ghost"
                 className="flex items-center gap-3 px-2 md:px-3 transition-all duration-200 h-10 md:h-11 hover:bg-slate-800/50 rounded-lg border border-slate-700/30 hover:border-slate-600/50"
               >
-                <Avatar className="w-8 h-8 md:w-9 md:h-9 rounded-lg shadow-md ring-1 ring-slate-700/50">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-semibold rounded-lg">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="w-8 h-8 md:w-9 md:h-9 bg-blue-600 rounded-full flex items-center justify-center shadow-md ring-1 ring-slate-700/50">
+                  <User className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                </div>
                 <div className="hidden lg:flex flex-col items-start">
                   <span className="font-medium text-sm text-white leading-none">{getUserDisplayName()}</span>
                   <span className="text-xs text-slate-400 mt-1">{getUserRole()}</span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-2 shadow-lg border border-border/50">
-              <div className="flex items-center gap-3 p-3 mb-2 bg-muted/30 rounded-lg">
-                <Avatar className="w-10 h-10 rounded-lg">
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold rounded-lg">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm">{getUserDisplayName()}</span>
-                  <span className="text-xs text-muted-foreground">{user?.email || 'admin@tradecontrol.ru'}</span>
+            <DropdownMenuContent
+              align="end"
+              className="w-72 p-0 bg-slate-900 border-slate-700/50 shadow-xl"
+            >
+              {/* Header Section - User Info */}
+              <div className="p-4 border-b border-slate-700/50 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-md ring-2 ring-blue-500/20">
+                    <User className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="font-semibold text-sm text-white truncate">
+                      {getUserDisplayName()}
+                    </span>
+                    <span className="text-xs text-slate-400 truncate">
+                      {user?.email || 'admin@tradecontrol.ru'}
+                    </span>
+                    <span className="text-xs text-blue-400 font-medium mt-0.5">
+                      {getUserRole()}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <DropdownMenuItem
-                onClick={() => navigate('/profile')}
-                className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer"
-              >
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span>Профиль</span>
-              </DropdownMenuItem>
 
-              <DropdownMenuItem
-                onClick={() => navigate('/settings/notifications')}
-                className="flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 cursor-pointer"
-              >
-                <Bell className="h-4 w-4 text-muted-foreground" />
-                <span>Уведомления</span>
-              </DropdownMenuItem>
+              {/* Menu Items */}
+              <div className="p-2">
+                <DropdownMenuItem
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800/80 cursor-pointer transition-all duration-200 text-slate-200 hover:text-white focus:bg-slate-800/80 focus:text-white group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-slate-800/50 group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
+                    <User className="h-4 w-4 text-slate-400 group-hover:text-blue-400 transition-colors duration-200" />
+                  </div>
+                  <div className="flex flex-col flex-1">
+                    <span className="text-sm font-medium">Профиль</span>
+                    <span className="text-xs text-slate-500 group-hover:text-slate-400">Личные данные</span>
+                  </div>
+                </DropdownMenuItem>
 
-              <DropdownMenuItem className="p-0">
-                <UpdateChecker onShowUpdateInfo={handleShowUpdateInfo} />
-              </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => navigate('/settings/notifications')}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800/80 cursor-pointer transition-all duration-200 text-slate-200 hover:text-white focus:bg-slate-800/80 focus:text-white group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-slate-800/50 group-hover:bg-blue-500/20 flex items-center justify-center transition-colors duration-200">
+                    <Bell className="h-4 w-4 text-slate-400 group-hover:text-blue-400 transition-colors duration-200" />
+                  </div>
+                  <div className="flex flex-col flex-1">
+                    <span className="text-sm font-medium">Уведомления</span>
+                    <span className="text-xs text-slate-500 group-hover:text-slate-400">Настройки оповещений</span>
+                  </div>
+                </DropdownMenuItem>
 
-              <DropdownMenuSeparator className="my-2" />
-              <DropdownMenuItem 
-                onClick={handleLogout} 
-                className="flex items-center gap-3 p-2 rounded-md hover:bg-destructive/10 cursor-pointer text-destructive focus:text-destructive"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Выйти</span>
-              </DropdownMenuItem>
+                <DropdownMenuItem className="p-0 focus:bg-transparent">
+                  <UpdateChecker onShowUpdateInfo={handleShowUpdateInfo} />
+                </DropdownMenuItem>
+              </div>
+
+              {/* Footer Section - Logout */}
+              <div className="p-2 border-t border-slate-700/50 bg-slate-900/50">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/10 cursor-pointer transition-all duration-200 text-red-400 hover:text-red-300 focus:bg-red-500/10 focus:text-red-300 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-red-500/10 group-hover:bg-red-500/20 flex items-center justify-center transition-colors duration-200">
+                    <LogOut className="h-4 w-4" />
+                  </div>
+                  <div className="flex flex-col flex-1">
+                    <span className="text-sm font-medium">Выйти</span>
+                    <span className="text-xs text-red-500/60 group-hover:text-red-400/80">Завершить сеанс</span>
+                  </div>
+                </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

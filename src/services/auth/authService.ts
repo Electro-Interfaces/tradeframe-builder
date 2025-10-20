@@ -174,15 +174,6 @@ class AuthService {
 
       const isValid = computedHash === user.pwd_hash;
 
-      // ВРЕМЕННАЯ ОТЛАДКА
-      console.log('🔐 Password Verification Debug:');
-      console.log('  Password:', password);
-      console.log('  Salt:', user.pwd_salt);
-      console.log('  Password+Salt:', passwordWithSalt);
-      console.log('  Computed Hash:', computedHash);
-      console.log('  Expected Hash:', user.pwd_hash);
-      console.log('  Match:', isValid);
-
       return isValid;
     } catch (error) {
       return false;

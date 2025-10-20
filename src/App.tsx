@@ -60,6 +60,7 @@ const LegalDocuments = lazy(() => import("./pages/LegalDocuments"));
 const LegalDocumentEditor = lazy(() => import("./pages/LegalDocumentEditor"));
 const LegalDocumentHistory = lazy(() => import("./pages/LegalDocumentHistory"));
 const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances"));
+const LogoVariants = lazy(() => import("./pages/LogoVariants"));
 
 // Используем предварительно настроенный queryClient из lib/supabase/queryClient
 
@@ -235,6 +236,7 @@ const App = () => {
                   <Route path="/admin/legal-documents/:docType/edit" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/legal-documents/:docType/create" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/legal-documents/:docType/view" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/logos" element={<LazyLoader><LogoVariants /></LazyLoader>} />
 
                   {/* Fallback routes */}
                   <Route path="*" element={<NotFound />} />

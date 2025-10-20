@@ -1,7 +1,9 @@
 /**
  * Компонент карточки резервуара
+ * ОПТИМИЗИРОВАНО: Добавлена мемоизация для предотвращения лишних ре-рендеров
  */
 
+import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Thermometer, Gauge, Droplets, Fuel } from "lucide-react";
@@ -29,7 +31,7 @@ function getTankStatus(percentage: number, minLevel: number, criticalLevel: numb
   return 'critical';
 }
 
-export function TankCard({ tank, isMobile }: TankCardProps) {
+const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
   const currentLevel = tank.currentLevelLiters || 0;
   const capacity = tank.capacityLiters || 0;
   const percentage = getPercentage(currentLevel, capacity);
@@ -232,4 +234,17 @@ export function TankCard({ tank, isMobile }: TankCardProps) {
       </CardContent>
     </Card>
   );
-}
+};
+
+// Мемоизированный экспорт для предотвращения лишних ре-рендеров
+export const TankCard = memo(TankCardComponent, (prevProps, nextProps) => {
+  // Сравниваем только значимые поля для оптимизации
+  return (
+    prevProps.isMobile === nextProps.isMobile &&
+    prevProps.tank.id === nextProps.tank.id &&
+    prevProps.tank.currentLevelLiters === nextProps.tank.currentLevelLiters &&
+    prevProps.tank.capacityLiters === nextProps.tank.capacityLiters &&
+    prevProps.tank.temperature === nextProps.tank.temperature &&
+    prevProps.tank.apiData?.dt === nextProps.tank.apiData?.dt
+  );
+});
