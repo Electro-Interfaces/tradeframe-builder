@@ -1,6 +1,6 @@
 /**
- * Диалог создания/редактирования пользователя
- * Включает назначение ролей и управление статусом
+ * Улучшенный диалог создания/редактирования пользователя
+ * Версия 2.0: Упрощенный интерфейс с улучшенной читаемостью
  */
 
 import React, { useState, useEffect } from 'react'
@@ -23,13 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
-import { Users as UsersIcon } from 'lucide-react'
+import { User as UserIcon, Mail, KeyRound, Shield, Eye, EyeOff, Sparkles } from 'lucide-react'
 import { externalUsersService } from '@/services/externalUsersService'
 import { externalRolesService } from '@/services/externalRolesService'
 import type { User, Role, UserStatus } from '@/types/auth'
@@ -42,15 +40,16 @@ interface UserFormDialogProps {
   onSaved: () => void
 }
 
-const STATUS_OPTIONS: Array<{ value: UserStatus; label: string; description: string }> = [
-  { value: 'active', label: 'Активен', description: 'Пользователь может входить в систему' },
-  { value: 'inactive', label: 'Неактивен', description: 'Вход временно запрещен' },
-  { value: 'blocked', label: 'Заблокирован', description: 'Доступ полностью запрещен' }
+const STATUS_OPTIONS: Array<{ value: UserStatus; label: string; description: string; color: string }> = [
+  { value: 'active', label: 'Активен', description: 'Может входить в систему', color: 'bg-green-600' },
+  { value: 'inactive', label: 'Неактивен', description: 'Вход временно запрещен', color: 'bg-yellow-600' },
+  { value: 'blocked', label: 'Заблокирован', description: 'Доступ полностью запрещен', color: 'bg-red-600' }
 ]
 
 export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: UserFormDialogProps) {
   const isMobile = useIsMobile()
   const { toast } = useToast()
+
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -60,10 +59,9 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
   })
   const [selectedRole, setSelectedRole] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('basic')
-  const [showResetPassword, setShowResetPassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
-  // Инициализация формы при изменении пользователя
+  // Инициализация формы
   useEffect(() => {
     if (user) {
       setFormData({
@@ -74,7 +72,6 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         status: user.status
       })
       setSelectedRole(user.roles.length > 0 ? user.roles[0].role_id : '')
-      setShowResetPassword(false)
     } else {
       setFormData({
         email: '',
@@ -84,65 +81,124 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         status: 'active'
       })
       setSelectedRole('')
-      setShowResetPassword(false)
     }
-  }, [user])
+    setShowPassword(false)
+  }, [user, open])
+
+  const handleGeneratePassword = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
+    let password = ''
+    for (let i = 0; i < 12; i++) {
+      password += chars[Math.floor(Math.random() * chars.length)]
+    }
+    setFormData(prev => ({ ...prev, password, confirmPassword: password }))
+    toast({
+      title: "Пароль сгенерирован",
+      description: "Скопируйте его для передачи пользователю",
+      duration: 3000
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (loading) return
 
     // Валидация
-    if (!user && formData.password !== formData.confirmPassword) {
+    if (!formData.name.trim() || !formData.email.trim()) {
       toast({
-        title: "Ошибка валидации",
-        description: "Пароли не совпадают. Пожалуйста, проверьте введенные пароли.",
+        title: "Ошибка",
+        description: "Заполните имя и email",
         variant: "destructive"
       })
       return
     }
 
-    if (!user && !formData.password) {
-      toast({
-        title: "Ошибка валидации", 
-        description: "Пароль обязателен для создания нового пользователя.",
-        variant: "destructive"
-      })
-      return
+    // Проверка пароля при создании
+    if (!user) {
+      if (!formData.password) {
+        toast({
+          title: "Ошибка",
+          description: "Установите пароль для нового пользователя",
+          variant: "destructive"
+        })
+        return
+      }
+      if (formData.password.length < 6) {
+        toast({
+          title: "Ошибка",
+          description: "Пароль должен содержать минимум 6 символов",
+          variant: "destructive"
+        })
+        return
+      }
+      if (formData.password !== formData.confirmPassword) {
+        toast({
+          title: "Ошибка",
+          description: "Пароли не совпадают",
+          variant: "destructive"
+        })
+        return
+      }
+    }
+
+    // Проверка пароля при изменении
+    if (user && formData.password) {
+      if (formData.password.length < 6) {
+        toast({
+          title: "Ошибка",
+          description: "Пароль должен содержать минимум 6 символов",
+          variant: "destructive"
+        })
+        return
+      }
+      if (formData.password !== formData.confirmPassword) {
+        toast({
+          title: "Ошибка",
+          description: "Пароли не совпадают",
+          variant: "destructive"
+        })
+        return
+      }
     }
 
     try {
       setLoading(true)
 
       if (user) {
-        // Редактирование пользователя
+        // Редактирование
         await externalUsersService.updateUser(user.id, {
           email: formData.email,
           name: formData.name,
           status: formData.status
         })
 
-        // Обновляем роль пользователя
+        // Обновление роли
         const currentRoleId = user.roles.length > 0 ? user.roles[0].role_id : null
-        
         if (currentRoleId !== selectedRole) {
-          // Убираем старую роль если есть
           if (currentRoleId) {
             await externalRolesService.removeRoleFromUser(user.id, currentRoleId)
           }
-          
-          // Назначаем новую роль если выбрана
           if (selectedRole) {
             await externalRolesService.assignRoleToUser(user.id, selectedRole)
           }
         }
 
-        // Сброс пароля если нужно
-        if (showResetPassword && formData.password) {
+        // Изменение пароля если указан
+        if (formData.password) {
           await externalUsersService.changePassword(user.id, formData.password)
+          toast({
+            title: "Пароль изменен",
+            description: `Новый пароль для ${user.name} установлен`,
+            duration: 5000
+          })
         }
+
+        toast({
+          title: "Успешно",
+          description: "Данные пользователя обновлены"
+        })
       } else {
-        // Создание нового пользователя
+        // Создание
         await externalUsersService.createUser({
           email: formData.email,
           name: formData.name,
@@ -150,43 +206,27 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
           status: formData.status,
           roles: selectedRole ? [selectedRole] : []
         })
-      }
 
-      // Показываем уведомление об успехе
-      toast({
-        title: "Успешно сохранено",
-        description: user ? "Данные пользователя обновлены" : "Новый пользователь создан",
-        variant: "default"
-      })
+        toast({
+          title: "Создано",
+          description: "Новый пользователь успешно создан"
+        })
+      }
 
       onSaved()
     } catch (error: any) {
-      console.error('Ошибка сохранения пользователя:', error)
-      
-      // Обработка специфичных ошибок
-      let errorMessage = 'Произошла неизвестная ошибка при сохранении пользователя'
-      
+      let errorMessage = 'Не удалось сохранить пользователя'
+
       if (error?.message) {
-        const message = error.message
-        
-        if (message.includes('был удален ранее')) {
-          // Специальная обработка для удаленных пользователей
-          errorMessage = message
-        } else if (message.toLowerCase().includes('duplicate key value violates unique constraint') && message.toLowerCase().includes('email')) {
-          errorMessage = 'Пользователь с таким email уже существует. Пожалуйста, используйте другой email адрес.'
-        } else if (message.includes('23505')) {
-          errorMessage = 'Данные пользователя конфликтуют с существующими записями. Проверьте уникальность email адреса.'
-        } else if (message.toLowerCase().includes('network error') || message.toLowerCase().includes('fetch')) {
-          errorMessage = 'Ошибка соединения с сервером. Проверьте подключение к интернету.'
-        } else if (message.toLowerCase().includes('validation')) {
-          errorMessage = 'Ошибка валидации данных. Проверьте корректность введенной информации.'
-        } else {
-          errorMessage = 'Не удалось сохранить пользователя. Попробуйте еще раз или обратитесь к администратору.'
+        if (error.message.includes('duplicate') || error.message.includes('уже существует')) {
+          errorMessage = 'Пользователь с таким email уже существует'
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Ошибка соединения с сервером'
         }
       }
-      
+
       toast({
-        title: "Ошибка сохранения",
+        title: "Ошибка",
         description: errorMessage,
         variant: "destructive"
       })
@@ -195,366 +235,264 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
     }
   }
 
-
-  const handleGeneratePassword = () => {
-    const password = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
-    setFormData(prev => ({ ...prev, password, confirmPassword: password }))
-  }
-
   const activeRoles = (roles || []).filter(r => r.is_active)
+  const selectedRoleData = activeRoles.find(r => r.id === selectedRole)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-2xl max-h-[90vh]'} overflow-hidden flex flex-col bg-slate-900 border-slate-700 text-white`}>
-        <DialogHeader>
-          <DialogTitle>
-            {user ? 'Редактирование пользователя' : 'Создание нового пользователя'}
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-3xl max-h-[90vh]'} overflow-hidden flex flex-col bg-slate-900 border-slate-700 text-white`}>
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-2xl flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
+              <UserIcon className="w-5 h-5 text-blue-400" />
+            </div>
+            {user ? 'Редактирование пользователя' : 'Новый пользователь'}
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
-            {user ? 'Измените данные пользователя и назначьте роли' : 'Введите данные нового пользователя и назначьте роли'}
+          <DialogDescription className="text-slate-400 text-base">
+            {user ? `Изменение данных пользователя ${user.name}` : 'Создание нового пользователя в системе'}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 bg-slate-800 border-slate-700">
-              <TabsTrigger value="basic" className="relative">
-                Основные данные
-                {(!formData.name || !formData.email) && (
-                  <div className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="roles" className="relative">
-                Роли
-                <Badge className="ml-2 h-5 px-1 text-xs" variant="secondary">
-                  {selectedRole ? '1' : '0'}
-                </Badge>
-              </TabsTrigger>
-              {user && <TabsTrigger value="security">Безопасность</TabsTrigger>}
-            </TabsList>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-6">
+          {/* Основная информация */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-300">
+              <Mail className="w-4 h-4" />
+              Основная информация
+            </div>
 
-            {/* Основные данные */}
-            <TabsContent value="basic" className="space-y-4 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-200">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="user@company.com"
-                    required
-                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-200">Имя *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Иван Петров"
-                    required
-                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-slate-200 text-sm font-medium">
+                  Имя пользователя <span className="text-red-400">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Иван Петров"
+                  required
+                  className="h-11 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500"
+                />
               </div>
-
 
               <div className="space-y-2">
-                <Label className="text-slate-200">Статус</Label>
-                <Select 
-                  value={formData.status} 
-                  onValueChange={(value: UserStatus) => setFormData(prev => ({ ...prev, status: value }))}
-                >
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    {STATUS_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value} className="text-white hover:bg-slate-700">
-                        <div>
-                          <div className="font-medium">{option.label}</div>
-                          <div className="text-sm text-slate-400">{option.description}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="email" className="text-slate-200 text-sm font-medium">
+                  Email <span className="text-red-400">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="user@company.com"
+                  required
+                  className="h-11 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500"
+                />
               </div>
+            </div>
 
-              {/* Пароль для нового пользователя */}
-              {!user && (
-                <>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-slate-200">Пароль *</Label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleGeneratePassword}
-                        className="text-slate-400 hover:text-white hover:bg-slate-700"
-                      >
-                        Сгенерировать
-                      </Button>
-                    </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                      placeholder="Введите пароль"
-                      required
-                      className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-slate-200">Подтвердите пароль *</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      placeholder="Повторите пароль"
-                      required
-                      className={`bg-slate-800 border-slate-700 text-white placeholder-slate-400 ${
-                        formData.confirmPassword && formData.password !== formData.confirmPassword 
-                          ? 'border-red-500' : ''
+            <div className="space-y-2">
+              <Label className="text-slate-200 text-sm font-medium">Статус</Label>
+              <RadioGroup value={formData.status} onValueChange={(value: UserStatus) => setFormData(prev => ({ ...prev, status: value }))}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {STATUS_OPTIONS.map(option => (
+                    <div
+                      key={option.value}
+                      className={`relative flex items-start space-x-3 rounded-lg border-2 p-4 cursor-pointer transition-all ${
+                        formData.status === option.value
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-slate-700 bg-slate-800 hover:border-slate-600'
                       }`}
-                    />
-                    {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                      <p className="text-sm text-red-400">Пароли не совпадают</p>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* Навигация */}
-              <div className="flex justify-between pt-4 border-t border-slate-600">
-                <div></div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setActiveTab('roles')}
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-                >
-                  Далее: Роли →
-                </Button>
-              </div>
-            </TabsContent>
-
-            {/* Роли */}
-            <TabsContent value="roles" className="flex-1 overflow-y-auto space-y-4">
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-slate-200">Назначение ролей</CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Выберите роли для пользователя. Разрешения будут объединены.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {activeRoles.length === 0 ? (
-                    <div className="text-center py-8">
-                      <div className="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <UsersIcon className="w-6 h-6 text-slate-400" />
-                      </div>
-                      <h3 className="text-sm font-medium text-slate-200 mb-1">Роли не найдены</h3>
-                      <p className="text-xs text-slate-400">
-                        В системе нет доступных ролей. Создайте роли в разделе администрирования.
-                      </p>
-                    </div>
-                  ) : (
-                    <RadioGroup value={selectedRole} onValueChange={setSelectedRole} className="space-y-2">
-                      {/* Пустой вариант для сброса выбора */}
-                      <div className="flex items-center space-x-3 p-3 border border-slate-600 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">
-                        <RadioGroupItem value="" id="no-role" className="border-slate-400 text-slate-400" />
-                        <Label htmlFor="no-role" className="text-slate-200 cursor-pointer flex-1">
-                          <span className="font-medium">Без роли</span>
-                          <p className="text-sm text-slate-400">Пользователь не будет иметь специальных прав</p>
+                      onClick={() => setFormData(prev => ({ ...prev, status: option.value }))}
+                    >
+                      <RadioGroupItem value={option.value} id={option.value} className="mt-0.5" />
+                      <div className="flex-1">
+                        <Label htmlFor={option.value} className="cursor-pointer">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className={`w-2 h-2 rounded-full ${option.color}`} />
+                            <span className="font-medium text-white">{option.label}</span>
+                          </div>
+                          <p className="text-xs text-slate-400">{option.description}</p>
                         </Label>
                       </div>
-                      
-                      {/* Роли */}
-                      {activeRoles.map(role => (
-                        <div key={role.id} className="flex items-center space-x-3 p-3 border border-slate-600 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">
-                          <RadioGroupItem value={role.id} id={role.id} className="border-slate-400 text-blue-400" />
-                          <Label htmlFor={role.id} className="text-slate-200 cursor-pointer flex-1">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-medium">{role.name}</span>
-                              <Badge variant={role.is_system ? 'secondary' : 'default'} className="bg-slate-600 text-slate-300">
-                                {role.is_system ? 'Системная' : 'Пользовательская'}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-slate-400">{role.description}</p>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <Badge variant="outline" className="text-xs border-slate-500 text-slate-300">
-                                {role.scope === 'global' ? 'Глобальная' :
-                                 role.scope === 'network' ? 'Сеть' :
-                                 role.scope === 'trading_point' ? 'Торговая точка' :
-                                 'Назначенная'}
-                              </Badge>
-                              <span className="text-xs text-slate-400">
-                                {role.permissions.length} разрешений
-                              </span>
-                            </div>
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Подсказка и навигация */}
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                <div className="flex items-start space-x-3 mb-4">
-                  <div className="text-blue-400">ℹ️</div>
-                  <div>
-                    <h4 className="font-medium text-slate-200">
-                      {selectedRole ? 'Выбрана роль' : 'Роль не выбрана'}
-                    </h4>
-                    <p className="text-sm text-slate-400 mt-1">
-                      {!selectedRole 
-                        ? 'Выберите роль для пользователя'
-                        : 'Пользователь получит права доступа согласно выбранной роли'
-                      }
-                    </p>
-                  </div>
+                    </div>
+                  ))}
                 </div>
-                
-                {/* Навигация */}
-                <div className="flex justify-between pt-4 border-t border-slate-600">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setActiveTab('basic')}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+              </RadioGroup>
+            </div>
+          </div>
+
+          <Separator className="bg-slate-700" />
+
+          {/* Роль */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-300">
+              <Shield className="w-4 h-4" />
+              Назначение роли
+            </div>
+
+            {activeRoles.length === 0 ? (
+              <div className="text-center py-8 bg-slate-800/50 rounded-lg border border-slate-700">
+                <p className="text-slate-400">Нет доступных ролей</p>
+              </div>
+            ) : (
+              <RadioGroup value={selectedRole} onValueChange={setSelectedRole}>
+                <div className="grid grid-cols-1 gap-2">
+                  {/* Без роли */}
+                  <div
+                    className={`relative flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
+                      selectedRole === ''
+                        ? 'border-blue-500 bg-blue-500/10'
+                        : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'
+                    }`}
+                    onClick={() => setSelectedRole('')}
                   >
-                    ← Назад: Основные данные
-                  </Button>
-                  {user && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setActiveTab('security')}
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+                    <RadioGroupItem value="" id="no-role" className="mt-1" />
+                    <Label htmlFor="no-role" className="cursor-pointer flex-1">
+                      <span className="font-medium text-slate-200">Без роли</span>
+                      <p className="text-sm text-slate-400 mt-0.5">Базовые права доступа</p>
+                    </Label>
+                  </div>
+
+                  {/* Роли */}
+                  {activeRoles.map(role => (
+                    <div
+                      key={role.id}
+                      className={`relative flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
+                        selectedRole === role.id
+                          ? 'border-blue-500 bg-blue-500/10'
+                          : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'
+                      }`}
+                      onClick={() => setSelectedRole(role.id)}
                     >
-                      Далее: Безопасность →
-                    </Button>
-                  )}
+                      <RadioGroupItem value={role.id} id={role.id} className="mt-1" />
+                      <Label htmlFor={role.id} className="cursor-pointer flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-white">{role.name}</span>
+                          {role.is_system && (
+                            <Badge variant="secondary" className="text-xs bg-slate-600 text-slate-300">
+                              Системная
+                            </Badge>
+                          )}
+                        </div>
+                        {role.description && (
+                          <p className="text-sm text-slate-400 mb-2">{role.description}</p>
+                        )}
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <span>{role.permissions.length} разрешений</span>
+                          <span>•</span>
+                          <span>
+                            {role.scope === 'global' ? 'Глобальная' :
+                             role.scope === 'network' ? 'Сеть' :
+                             role.scope === 'trading_point' ? 'Торговая точка' : 'Назначенная'}
+                          </span>
+                        </div>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </RadioGroup>
+            )}
+          </div>
+
+          <Separator className="bg-slate-700" />
+
+          {/* Пароль */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-300">
+                <KeyRound className="w-4 h-4" />
+                {user ? 'Изменить пароль' : 'Установить пароль'}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleGeneratePassword}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-2" />
+                Сгенерировать
+              </Button>
+            </div>
+
+            {user && (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                <p className="text-sm text-blue-300">
+                  💡 Оставьте поля пустыми, если не хотите изменять пароль
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-slate-200 text-sm font-medium">
+                  {user ? 'Новый пароль' : 'Пароль'} {!user && <span className="text-red-400">*</span>}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Минимум 6 символов"
+                    required={!user}
+                    className="h-11 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
-            </TabsContent>
 
-            {/* Безопасность (только для редактирования) */}
-            {user && (
-              <TabsContent value="security" className="space-y-4">
-                <Card className="bg-slate-800 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-slate-200">Безопасность</CardTitle>
-                    <CardDescription className="text-slate-400">
-                      Настройки безопасности учетной записи
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-slate-200">Сброс пароля</Label>
-                        <p className="text-sm text-slate-400">
-                          Установить новый пароль для пользователя
-                        </p>
-                      </div>
-                      <Switch
-                        checked={showResetPassword}
-                        onCheckedChange={setShowResetPassword}
-                      />
-                    </div>
-
-                    {showResetPassword && (
-                      <div className="space-y-4 border-t border-slate-600 pt-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="newPassword" className="text-slate-200">Новый пароль</Label>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleGeneratePassword}
-                              className="text-slate-400 hover:text-white hover:bg-slate-700"
-                            >
-                              Сгенерировать
-                            </Button>
-                          </div>
-                          <Input
-                            id="newPassword"
-                            type="password"
-                            value={formData.password}
-                            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                            placeholder="Введите новый пароль"
-                            className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="confirmNewPassword" className="text-slate-200">Подтвердите новый пароль</Label>
-                          <Input
-                            id="confirmNewPassword"
-                            type="password"
-                            value={formData.confirmPassword}
-                            onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                            placeholder="Повторите новый пароль"
-                            className="bg-slate-800 border-slate-700 text-white placeholder-slate-400"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {user.last_login && (
-                      <div className="border-t border-slate-600 pt-4">
-                        <Label className="text-slate-200">Последний вход</Label>
-                        <p className="text-sm text-slate-400">
-                          {new Date(user.last_login).toLocaleString('ru-RU')}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Навигация */}
-                    <div className="flex justify-between pt-4 border-t border-slate-600">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setActiveTab('roles')}
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-                      >
-                        ← Назад: Роли
-                      </Button>
-                      <div></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            )}
-          </Tabs>
-
-          <DialogFooter className="mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-            >
-              Отмена
-            </Button>
-            <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-              {loading ? 'Сохранение...' : (user ? 'Сохранить' : 'Создать')}
-            </Button>
-          </DialogFooter>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-slate-200 text-sm font-medium">
+                  Подтверждение {!user && <span className="text-red-400">*</span>}
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Повторите пароль"
+                  required={!user}
+                  className={`h-11 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 ${
+                    formData.confirmPassword && formData.password !== formData.confirmPassword
+                      ? 'border-red-500 focus:ring-red-500' : ''
+                  }`}
+                />
+                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                  <p className="text-sm text-red-400">Пароли не совпадают</p>
+                )}
+              </div>
+            </div>
+          </div>
         </form>
+
+        <DialogFooter className="flex-row gap-2 justify-end pt-6 border-t border-slate-700">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+            className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+          >
+            Отмена
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 min-w-[120px]"
+          >
+            {loading ? 'Сохранение...' : user ? 'Сохранить' : 'Создать'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

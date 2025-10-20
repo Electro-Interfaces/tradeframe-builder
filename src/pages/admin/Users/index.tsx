@@ -21,7 +21,6 @@ import { useToast } from '@/hooks/use-toast';
 
 // Импорты рефакторенных компонентов и хуков
 import { useUserDialogs } from './hooks/useUserDialogs';
-import { usePasswordReset } from './hooks/usePasswordReset';
 import { UsersTable } from './components/UsersTable';
 import { UsersCards } from './components/UsersCards';
 
@@ -51,7 +50,6 @@ export default function Users() {
 
   // Кастомные хуки для управления состоянием
   const dialogsState = useUserDialogs();
-  const passwordResetState = usePasswordReset();
 
   // Фильтрация пользователей
   const filteredUsers = useMemo(() => {
@@ -86,19 +84,6 @@ export default function Users() {
         title: "Ошибка",
         description: "Не удалось удалить пользователя",
         variant: "destructive"
-      });
-    }
-  };
-
-  const handleResetPasswordConfirm = async () => {
-    const tempPassword = await passwordResetState.confirmReset();
-
-    if (tempPassword && passwordResetState.userToReset) {
-      // Показываем пароль в toast с возможностью копирования
-      toast({
-        title: "Пароль сброшен",
-        description: `Новый временный пароль для ${passwordResetState.userToReset.name}: ${tempPassword}`,
-        duration: 15000 // Показываем дольше
       });
     }
   };
@@ -237,7 +222,6 @@ export default function Users() {
                 isLoading={isLoading}
                 onEdit={dialogsState.openEditDialog}
                 onDelete={dialogsState.openDeleteDialog}
-                onResetPassword={passwordResetState.openResetDialog}
               />
             </div>
 
@@ -250,7 +234,6 @@ export default function Users() {
                   users={filteredUsers}
                   onEdit={dialogsState.openEditDialog}
                   onDelete={dialogsState.openDeleteDialog}
-                  onResetPassword={passwordResetState.openResetDialog}
                 />
               )}
             </div>
@@ -276,19 +259,6 @@ export default function Users() {
           variant="destructive"
         />
 
-        <ConfirmDialog
-          open={passwordResetState.isOpen}
-          onOpenChange={passwordResetState.closeResetDialog}
-          title="Сброс пароля"
-          description={
-            passwordResetState.userToReset
-              ? `Вы действительно хотите сбросить пароль для пользователя "${passwordResetState.userToReset.name}"?\n\nБудет сгенерирован новый временный пароль, который нужно будет передать пользователю.`
-              : ''
-          }
-          onConfirm={handleResetPasswordConfirm}
-          confirmText="Сбросить пароль"
-          variant="default"
-        />
       </div>
     </MainLayout>
   );

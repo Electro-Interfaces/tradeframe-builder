@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit, Trash2, User, KeyRound } from "lucide-react";
+import { Edit, Trash2, User } from "lucide-react";
 import { User as UserType } from "@/types/auth";
 import { formatDate } from "../utils/formatters";
 
@@ -10,15 +10,13 @@ interface UsersTableProps {
   isLoading: boolean;
   onEdit: (user: UserType) => void;
   onDelete: (user: UserType) => void;
-  onResetPassword: (user: UserType) => void;
 }
 
 export function UsersTable({
   users,
   isLoading,
   onEdit,
-  onDelete,
-  onResetPassword
+  onDelete
 }: UsersTableProps) {
   if (isLoading) {
     return (
@@ -117,15 +115,6 @@ export function UsersTable({
                     title="Редактировать пользователя"
                   >
                     <Edit className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onResetPassword(user)}
-                    className="h-7 w-7 p-0 text-slate-400 hover:text-yellow-400 hover:bg-slate-700"
-                    title="Сбросить пароль"
-                  >
-                    <KeyRound className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="ghost"

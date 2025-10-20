@@ -213,6 +213,19 @@ class AuthService {
       // Трансформируем пользователя из БД в формат приложения
       const appUser = this.transformUser(dbUser);
 
+      // Обновляем время последнего входа
+      try {
+        await this.makeRequest(`users?id=eq.${appUser.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            last_login: new Date().toISOString()
+          })
+        });
+      } catch (error) {
+        console.error('Failed to update last_login:', error);
+        // Не прерываем вход при ошибке обновления
+      }
+
       // Логируем успешный вход
       await auditLogService.logAuthentication('login', email, {
         user_id: appUser.id,

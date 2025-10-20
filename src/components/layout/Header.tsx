@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, User, Menu, Bell, MessageCircle, Info } from "lucide-react";
+import { LogOut, User, Menu, Bell } from "lucide-react";
 import UpdateChecker from "@/components/common/UpdateChecker";
 import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { NetworkSelect } from "@/components/selects/NetworkSelect";
@@ -157,28 +157,8 @@ export function Header({
           />
         </div>
 
-        {/* Right Section: Notifications + User Profile */}
+        {/* Right Section: User Profile */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Mobile Quick Actions */}
-          <div className="flex md:hidden items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-800/50 rounded-lg">
-              <Bell className="h-4 w-4 text-slate-300" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-800/50 rounded-lg">
-              <MessageCircle className="h-4 w-4 text-slate-300" />
-            </Button>
-          </div>
-
-          {/* Desktop Quick Actions */}
-          <div className="hidden md:flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-slate-800/50 rounded-lg">
-              <Bell className="h-5 w-5 text-slate-300 hover:text-white" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-slate-800/50 rounded-lg">
-              <MessageCircle className="h-5 w-5 text-slate-300 hover:text-white" />
-            </Button>
-          </div>
-
           {/* User Profile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

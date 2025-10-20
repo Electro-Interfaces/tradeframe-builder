@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, KeyRound, User } from "lucide-react";
+import { Edit, Trash2, User } from "lucide-react";
 import { User as UserType } from "@/types/auth";
 import { formatDate } from "../utils/formatters";
 
@@ -8,10 +8,9 @@ interface UsersCardsProps {
   users: UserType[];
   onEdit: (user: UserType) => void;
   onDelete: (user: UserType) => void;
-  onResetPassword: (user: UserType) => void;
 }
 
-export function UsersCards({ users, onEdit, onDelete, onResetPassword }: UsersCardsProps) {
+export function UsersCards({ users, onEdit, onDelete }: UsersCardsProps) {
   return (
     <div className="space-y-2 px-4 pb-6">
       {users.map((user) => (
@@ -48,22 +47,16 @@ export function UsersCards({ users, onEdit, onDelete, onResetPassword }: UsersCa
                 size="sm"
                 onClick={() => onEdit(user)}
                 className="h-7 w-7 p-0 text-slate-400 hover:text-white"
+                title="Редактировать"
               >
                 <Edit className="h-3.5 w-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onResetPassword(user)}
-                className="h-7 w-7 p-0 text-slate-400 hover:text-yellow-400"
-              >
-                <KeyRound className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
                 onClick={() => onDelete(user)}
                 className="h-7 w-7 p-0 text-slate-400 hover:text-red-400"
+                title="Удалить"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
