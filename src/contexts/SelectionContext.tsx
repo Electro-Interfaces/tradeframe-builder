@@ -29,20 +29,16 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     if (!selectedNetworkId) {
       networksService.getAll().then(networks => {
         if (networks.length > 0) {
-          // Для МенеджерБТО ограничиваем доступ только к сети БТО
-          if (user && user.role === 'bto_manager') {
-            const btoNetwork = networks.find(n => n.external_id === "15" || n.name?.toLowerCase().includes('бто'));
-            if (btoNetwork) {
-              setSelectedNetworkId(btoNetwork.id);
-            } else {
-              console.error('BTO network not found for manager role');
-            }
+          // По умолчанию для ВСЕХ пользователей выбираем сеть с external_id === "15" (БТО)
+          const defaultNetwork = networks.find(n => n.external_id === "15");
+
+          if (defaultNetwork) {
+            setSelectedNetworkId(defaultNetwork.id);
+            console.log('✅ Default network selected: БТО (external_id: 15)');
           } else {
-            // Для остальных ролей - обычная логика выбора
-            const btoNetwork = networks.find(n => n.name && n.name.toLowerCase().includes('бто'));
-            const demoNetwork = networks.find(n => n.external_id === "1");
-            const networkToSelect = btoNetwork || demoNetwork || networks[0];
-            setSelectedNetworkId(networkToSelect.id);
+            // Если сеть 15 не найдена, fallback на первую доступную
+            console.warn('⚠️ Network with external_id=15 not found, selecting first available');
+            setSelectedNetworkId(networks[0].id);
           }
         }
       }).catch(error => {
