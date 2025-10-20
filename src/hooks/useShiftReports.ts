@@ -43,10 +43,19 @@ export function useShiftReports({ tradingPoint, filters }: UseShiftReportsOption
           return;
         }
 
-        const requestParams = {
+        // Формируем параметры с датами из фильтров
+        const requestParams: any = {
           system: STS_SYSTEM_ID,
           station: stationNumber,
         };
+
+        // Добавляем даты в запрос, если они заданы в фильтрах
+        if (filters.dateFrom) {
+          requestParams.dt_beg = new Date(filters.dateFrom).toISOString();
+        }
+        if (filters.dateTo) {
+          requestParams.dt_end = new Date(filters.dateTo).toISOString();
+        }
 
         const data = await shiftReportsV2Service.getShifts(
           requestParams,
@@ -64,31 +73,14 @@ export function useShiftReports({ tradingPoint, filters }: UseShiftReportsOption
     };
 
     loadShifts();
-  }, [tradingPoint]);
+  }, [tradingPoint, filters.dateFrom, filters.dateTo]);
 
-  // Фильтрация и сортировка смен
+  // Фильтрация и сортировка смен (даты уже отфильтрованы на сервере)
   const filteredShifts = useMemo(() => {
     let filtered = shiftReportsV2Service.filterShifts(shifts, {
       status: filters.status !== 'all' ? filters.status : undefined,
       shiftNumber: filters.shiftNumber,
     });
-
-    // Фильтрация по датам на клиенте
-    if (filters.dateFrom) {
-      const dateFrom = new Date(filters.dateFrom).setHours(0, 0, 0, 0);
-      filtered = filtered.filter(shift => {
-        const shiftDate = new Date(shift.openedAt).setHours(0, 0, 0, 0);
-        return shiftDate >= dateFrom;
-      });
-    }
-
-    if (filters.dateTo) {
-      const dateTo = new Date(filters.dateTo).setHours(23, 59, 59, 999);
-      filtered = filtered.filter(shift => {
-        const shiftDate = new Date(shift.openedAt).getTime();
-        return shiftDate <= dateTo;
-      });
-    }
 
     // Сортировка: самые свежие наверху (по дате открытия, DESC)
     filtered.sort((a, b) => {
@@ -98,7 +90,7 @@ export function useShiftReports({ tradingPoint, filters }: UseShiftReportsOption
     });
 
     return filtered;
-  }, [shifts, filters]);
+  }, [shifts, filters.status, filters.shiftNumber]);
 
   // Функция обновления данных
   const refresh = () => {

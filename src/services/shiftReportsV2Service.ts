@@ -44,7 +44,8 @@ class ShiftReportsV2Service {
 
       // Преобразуем смены в UI формат без запроса деталей
       // Детали будут загружаться по требованию при клике на смену
-      const shiftsListItems = response.slice(0, 50).map((shift) => {
+      // Фильтрация по датам происходит на уровне API запроса
+      const shiftsListItems = response.map((shift) => {
         return this.createFallbackListItem(shift, params, stationName);
       });
 
