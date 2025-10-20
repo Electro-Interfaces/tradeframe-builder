@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MapPin, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { TradingPoint } from "@/types/tradingpoint";
+import { useQuery } from "@tanstack/react-query";
 
 interface PointSelectProps {
   value?: string;
@@ -15,27 +16,22 @@ interface PointSelectProps {
 
 export function PointSelect({ value, onValueChange, className, disabled, networkId }: PointSelectProps) {
   const [open, setOpen] = useState(false);
-  const [tradingPoints, setTradingPoints] = useState<TradingPoint[]>([]);
-  const selectedPoint = tradingPoints.find(p => p.id === value);
-  
-  useEffect(() => {
-    const loadTradingPoints = async () => {
-      try {
-        let data;
-        if (networkId) {
-          data = await tradingPointsService.getByNetworkId(networkId);
-        } else {
-          data = await tradingPointsService.getAll();
-        }
-        setTradingPoints(data);
-      } catch (error) {
-        console.error('Error loading trading points:', error);
-        setTradingPoints([]);
-      }
-    };
 
-    loadTradingPoints();
-  }, [networkId]);
+  // ✅ ИСПРАВЛЕНИЕ: Используем React Query для кэширования
+  const { data: tradingPoints = [] } = useQuery({
+    queryKey: ['tradingPoints', networkId],
+    queryFn: async () => {
+      if (networkId) {
+        return tradingPointsService.getByNetworkId(networkId);
+      }
+      return tradingPointsService.getAll();
+    },
+    enabled: !disabled, // Загружаем только если не disabled
+    staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
+    gcTime: 30 * 60 * 1000, // 30 минут - время хранения в кэше
+  });
+
+  const selectedPoint = tradingPoints.find(p => p.id === value);
   
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);

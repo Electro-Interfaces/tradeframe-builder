@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Network as NetworkIcon, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { networksService } from "@/services/networksService";
 import type { Network } from "@/types/network";
 import { useNewAuth } from "@/contexts/NewAuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { networksService } from "@/services/networksService";
 
 interface NetworkSelectProps {
   value?: string;
@@ -14,29 +15,20 @@ interface NetworkSelectProps {
 
 export function NetworkSelect({ value, onValueChange, className }: NetworkSelectProps) {
   const [open, setOpen] = useState(false);
-  const [networks, setNetworks] = useState<Network[]>([]);
-  const selectedNetwork = networks.find(n => n.id === value);
   const { user } = useNewAuth();
-  
-  const loadNetworks = async () => {
-    try {
-      const data = await networksService.getAll(user?.role);
-      setNetworks(data);
-    } catch (error) {
-      console.error('Error loading networks:', error);
-    }
-  };
-  
-  useEffect(() => {
-    loadNetworks();
-  }, [user?.role]); // Перезагружаем при изменении роли пользователя
-  
-  // Обновляем данные при открытии селектора
+
+  // ✅ ИСПРАВЛЕНИЕ: Используем React Query для кэширования
+  const { data: networks = [] } = useQuery({
+    queryKey: ['networks', user?.role],
+    queryFn: () => networksService.getAll(user?.role),
+    staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
+    gcTime: 30 * 60 * 1000, // 30 минут - время хранения в кэше
+  });
+
+  const selectedNetwork = networks.find(n => n.id === value);
+
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
-    if (newOpen) {
-      loadNetworks(); // Обновляем данные при каждом открытии
-    }
   };
   
   const handleSelect = (networkId: string) => {

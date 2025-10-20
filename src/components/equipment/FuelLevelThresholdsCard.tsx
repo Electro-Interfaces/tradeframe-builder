@@ -163,13 +163,13 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
       }
 
       // Получаем дату 7 дней назад
-      const dateTo = new Date().toISOString().split('T')[0];
-      const dateFrom = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const dateTo = new Date();
+      const dateFrom = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
       // Загружаем транзакции за последние 7 дней
-      const transactions = await stsApiService.getTransactions(
-        dateFrom,
-        dateTo,
+      const allTransactions = await stsApiService.getTransactions(
+        dateFrom.toISOString().split('T')[0],
+        dateTo.toISOString().split('T')[0],
         10000, // большой лимит для получения всех транзакций
         {
           networkId,
@@ -177,15 +177,30 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
         }
       );
 
+      // ✅ ФИЛЬТРАЦИЯ: STS API игнорирует date_from/date_to, фильтруем на клиенте
+      const transactions = allTransactions.filter(tx => {
+        if (!tx.date && !tx.startTime) return false;
+        const txDate = new Date(tx.date || tx.startTime);
+        return txDate >= dateFrom && txDate <= dateTo;
+      });
+
       // Группируем транзакции по видам топлива и считаем суммарную реализацию
       const fuelSales: Record<string, number> = {};
+      const fuelDates: Record<string, Set<string>> = {};
 
       transactions.forEach(tx => {
         const fuelType = tx.fuelType;
         const volume = tx.volume || 0;
+        const txDate = (tx.date || tx.startTime)?.split('T')[0];
 
-        if (fuelType) {
+        if (fuelType && txDate) {
           fuelSales[fuelType] = (fuelSales[fuelType] || 0) + volume;
+
+          // Отслеживаем уникальные даты для точного расчёта
+          if (!fuelDates[fuelType]) {
+            fuelDates[fuelType] = new Set();
+          }
+          fuelDates[fuelType].add(txDate);
         }
       });
 
@@ -194,14 +209,25 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
 
       Object.keys(fuelSales).forEach(fuelType => {
         const totalSales = fuelSales[fuelType];
-        const avgDailySales = totalSales / 7; // средняя за 7 дней
+        // ✅ ИСПРАВЛЕНИЕ: Используем реальное количество дней с продажами
+        const actualDays = fuelDates[fuelType]?.size || 7;
+        const avgDailySales = actualDays > 0 ? totalSales / actualDays : 0;
 
         // Находим текущий остаток по этому виду топлива
         const tanksOfType = tanks.filter(t => t.fuelType === fuelType);
         const currentVolume = tanksOfType.reduce((sum, t) => sum + t.currentLevelLiters, 0);
 
-        // Рассчитываем сколько дней осталось
-        const daysRemaining = avgDailySales > 0 ? currentVolume / avgDailySales : 0;
+        // ✅ ИСПРАВЛЕНИЕ: Рассчитываем до критического уровня, а не до нуля
+        const threshold = thresholds?.thresholds?.find(t => t.fuelType === fuelType);
+        const criticalPercent = threshold?.levelCritical || 10;
+        const totalCapacity = tanksOfType.reduce((sum, t) => sum + t.capacityLiters, 0);
+        const criticalVolume = (totalCapacity * criticalPercent) / 100;
+
+        // Сколько литров до критического уровня
+        const volumeUntilCritical = Math.max(0, currentVolume - criticalVolume);
+
+        // Рассчитываем сколько дней осталось до критического уровня
+        const daysRemaining = avgDailySales > 0 ? volumeUntilCritical / avgDailySales : 0;
 
         remaining[fuelType] = {
           daysRemaining,

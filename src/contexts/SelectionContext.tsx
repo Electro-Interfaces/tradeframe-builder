@@ -16,8 +16,17 @@ type SelectionContextValue = {
 const SelectionContext = createContext<SelectionContextValue | undefined>(undefined);
 
 export function SelectionProvider({ children }: { children: React.ReactNode }) {
-  const [selectedNetworkId, setSelectedNetworkId] = useState<string>("");
-  const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>("");
+  // ✅ ИСПРАВЛЕНИЕ: Инициализируем state из localStorage СРАЗУ (синхронно)
+  const [selectedNetworkId, setSelectedNetworkId] = useState<string>(() => {
+    if (typeof window === 'undefined') return "";
+    return localStorage.getItem("tc:selectedNetwork") || "";
+  });
+
+  const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>(() => {
+    if (typeof window === 'undefined') return "";
+    return localStorage.getItem("tc:selectedTradingPoint") || "";
+  });
+
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const { user } = useNewAuth();
 
@@ -140,27 +149,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Hydrate from localStorage on first mount
-  useEffect(() => {
-    // Проверяем, что мы в браузере
-    if (typeof window !== 'undefined') {
-      try {
-        const savedNetwork = localStorage.getItem("tc:selectedNetwork");
-        const savedTradingPoint = localStorage.getItem("tc:selectedTradingPoint");
-        
-        // Если есть сохраненная сеть, используем её
-        if (savedNetwork && savedNetwork.trim()) {
-          setSelectedNetworkId(savedNetwork);
-        }
-        
-        // Если есть сохраненная торговая точка, используем её
-        if (savedTradingPoint) {
-          setSelectedTradingPoint(savedTradingPoint);
-        }
-      } catch (e) {
-      }
-    }
-  }, []); // Убираем зависимость selectedNetworkId
+  // ✅ УДАЛЕНО: Hydrate from localStorage теперь происходит в useState(() => ...) выше
 
   // Persist to localStorage
   useEffect(() => {
