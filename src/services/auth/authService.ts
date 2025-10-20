@@ -57,12 +57,25 @@ class AuthService {
       },
     });
 
+    // Сначала получаем текст ответа, чтобы избежать двойного чтения stream
+    const responseText = await response.text();
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      let error = {};
+      try {
+        error = JSON.parse(responseText);
+      } catch {
+        error = { message: responseText };
+      }
       throw new Error(`Database request failed: ${response.status} ${JSON.stringify(error)}`);
     }
 
-    return response.json();
+    // Парсим успешный ответ
+    try {
+      return JSON.parse(responseText);
+    } catch {
+      return responseText;
+    }
   }
 
   /**
