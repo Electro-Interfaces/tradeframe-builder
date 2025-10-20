@@ -38,14 +38,16 @@ export function TankCard({ tank, isMobile }: TankCardProps) {
 
   return (
     <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-8 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-md"></div>
-            <div>
-              <CardTitle className="text-white text-lg font-bold">{tank.name}</CardTitle>
+      <CardHeader className={isMobile ? 'pb-3 px-3 pt-3' : 'pb-4'}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-3 h-8 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-md flex-shrink-0"></div>
+            <div className="min-w-0 flex-1">
+              <CardTitle className={`text-white font-bold truncate ${isMobile ? 'text-base' : 'text-lg'}`}>
+                {tank.name}
+              </CardTitle>
               <p
-                className={`text-sm font-semibold ${
+                className={`font-semibold truncate ${isMobile ? 'text-xs' : 'text-sm'} ${
                   tankStatus === 'normal'
                     ? 'text-green-400'
                     : tankStatus === 'warning'
@@ -57,77 +59,79 @@ export function TankCard({ tank, isMobile }: TankCardProps) {
               </p>
             </div>
           </div>
-          <Badge className="px-4 py-2 text-sm font-bold rounded-lg shadow-md bg-gradient-to-r from-slate-600 to-slate-700 text-white border border-slate-500/50 shadow-slate-500/25 transition-all">
+          <Badge className={`font-bold rounded-lg shadow-md bg-gradient-to-r from-slate-600 to-slate-700 text-white border border-slate-500/50 shadow-slate-500/25 transition-all flex-shrink-0 whitespace-nowrap ${isMobile ? 'px-2 py-1 text-xs' : 'px-4 py-2 text-sm'}`}>
             {tank.fuelType}
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className={isMobile ? 'space-y-3 px-3 pb-3' : 'space-y-4'}>
         {/* Volume and Progress */}
         <div className="flex items-center gap-4">
-          <div className="flex-1 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold text-white">
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex justify-between items-center gap-2">
+              <span className={`font-bold text-white truncate ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                 {currentLevel.toLocaleString()} л
               </span>
-              <span className="text-lg font-bold text-slate-300">({percentage}%)</span>
+              <span className={`font-bold text-slate-300 flex-shrink-0 ${isMobile ? 'text-sm' : 'text-lg'}`}>
+                ({percentage}%)
+              </span>
             </div>
             <div className="flex justify-between text-xs text-slate-400">
-              <span>Макс: {capacity.toLocaleString()} л</span>
+              <span className="truncate">Макс: {capacity.toLocaleString()} л</span>
             </div>
           </div>
 
           {/* Vertical Progress Bar */}
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 flex-shrink-0">
             <TankProgressIndicator
               percentage={percentage}
               minLevel={tank.minLevelPercent}
               criticalLevel={tank.criticalLevelPercent}
               isMobile={isMobile}
             />
-            <span className="text-xs text-slate-400 font-medium">{percentage}%</span>
+            <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{percentage}%</span>
           </div>
         </div>
 
         {/* Key Metrics Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/20">
+        <div className={`grid grid-cols-2 ${isMobile ? 'gap-2' : 'gap-3'}`}>
+          <div className={`bg-slate-700/30 rounded-lg border border-slate-600/20 ${isMobile ? 'p-2' : 'p-3'}`}>
             <div className="flex items-center gap-2 mb-1">
-              <Thermometer className="w-4 h-4 text-orange-400" />
-              <span className="text-xs text-slate-400">Температура</span>
+              <Thermometer className={isMobile ? 'w-3 h-3 text-orange-400' : 'w-4 h-4 text-orange-400'} />
+              <span className={`text-slate-400 truncate ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Температура</span>
             </div>
-            <div className="text-white font-bold">
+            <div className={`text-white font-bold truncate ${isMobile ? 'text-xs' : 'text-base'}`}>
               {parseFloat(tank.apiData?.temperature?.toString() || tank.temperature?.toString() || '0').toFixed(1)}°C
             </div>
           </div>
 
-          <div className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/20">
+          <div className={`bg-slate-700/30 rounded-lg border border-slate-600/20 ${isMobile ? 'p-2' : 'p-3'}`}>
             <div className="flex items-center gap-2 mb-1">
-              <Gauge className="w-4 h-4 text-blue-400" />
-              <span className="text-xs text-slate-400">Уровень</span>
+              <Gauge className={isMobile ? 'w-3 h-3 text-blue-400' : 'w-4 h-4 text-blue-400'} />
+              <span className={`text-slate-400 truncate ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Уровень</span>
             </div>
-            <div className="text-white font-bold">
+            <div className={`text-white font-bold truncate ${isMobile ? 'text-xs' : 'text-base'}`}>
               {parseFloat(tank.apiData?.level?.toString() || '126.2').toFixed(1)} мм
             </div>
           </div>
 
-          <div className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/20">
+          <div className={`bg-slate-700/30 rounded-lg border border-slate-600/20 ${isMobile ? 'p-2' : 'p-3'}`}>
             <div className="flex items-center gap-2 mb-1">
-              <Droplets className="w-4 h-4 text-cyan-400" />
-              <span className="text-xs text-slate-400">Вода</span>
+              <Droplets className={isMobile ? 'w-3 h-3 text-cyan-400' : 'w-4 h-4 text-cyan-400'} />
+              <span className={`text-slate-400 truncate ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Вода</span>
             </div>
-            <div className="text-white font-bold">
+            <div className={`text-white font-bold truncate ${isMobile ? 'text-xs' : 'text-base'}`}>
               {parseFloat(tank.apiData?.water?.level?.toString() || tank.waterLevelMm?.toString() || '0').toFixed(1)} мм
             </div>
           </div>
 
-          <div className="bg-slate-700/30 rounded-lg p-3 border border-slate-600/20">
+          <div className={`bg-slate-700/30 rounded-lg border border-slate-600/20 ${isMobile ? 'p-2' : 'p-3'}`}>
             <div className="flex items-center gap-2 mb-1">
-              <Fuel className="w-4 h-4 text-green-400" />
-              <span className="text-xs text-slate-400">Свободно</span>
+              <Fuel className={isMobile ? 'w-3 h-3 text-green-400' : 'w-4 h-4 text-green-400'} />
+              <span className={`text-slate-400 truncate ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Свободно</span>
             </div>
-            <div className="text-white font-bold">{freeSpace.toLocaleString()} л</div>
+            <div className={`text-white font-bold truncate ${isMobile ? 'text-xs' : 'text-base'}`}>{freeSpace.toLocaleString()} л</div>
           </div>
         </div>
 
