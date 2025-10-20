@@ -68,7 +68,12 @@ class AuthService {
    * Выполняет HTTP запрос к Supabase
    */
   private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const url = `${this.SUPABASE_URL}/rest/v1/${endpoint}`;
+    // Если используем proxy, /rest/v1/ уже добавлен в proxy route
+    // Если прямой доступ к Supabase, добавляем /rest/v1/
+    const isProxy = this.SUPABASE_URL.includes('/api/supabase');
+    const url = isProxy
+      ? `${this.SUPABASE_URL}/${endpoint}`
+      : `${this.SUPABASE_URL}/rest/v1/${endpoint}`;
 
     try {
       const response = await fetch(url, {

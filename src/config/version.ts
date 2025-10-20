@@ -1,11 +1,11 @@
 // Централизованное управление версией приложения
-export const APP_VERSION = '1.5.37';
+export const APP_VERSION = '1.5.38';
 
 // Дополнительная информация о версии
 export const VERSION_INFO = {
   major: 1,
   minor: 5,
-  patch: 37,
+  patch: 38,
   full: APP_VERSION,
   displayName: `TradeFrame v${APP_VERSION}`,
   copyright: `© 2024 TradeFrame v${APP_VERSION}`
