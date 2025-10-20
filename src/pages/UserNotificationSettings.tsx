@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Bell, Mail, MessageCircle, MoonStar, Save, Link as LinkIcon, CheckCircle, Send } from 'lucide-react';
+import { Bell, MessageCircle, MoonStar, Save, Link as LinkIcon, CheckCircle, Send } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -30,10 +30,6 @@ export default function UserNotificationSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<UserNotificationSettings | null>(null);
-
-  // Email настройки
-  const [email, setEmail] = useState('');
-  const [emailEnabled, setEmailEnabled] = useState(true);
 
   // Telegram настройки
   const [telegramVerified, setTelegramVerified] = useState(false);
@@ -69,8 +65,6 @@ export default function UserNotificationSettingsPage() {
 
       if (data) {
         setSettings(data);
-        setEmail(data.email || user.email || '');
-        setEmailEnabled(data.email_enabled ?? true);
         setTelegramVerified(data.telegram_verified ?? false);
         setTelegramUsername(data.telegram_username || '');
         setDndEnabled(data.dnd_enabled ?? false);
@@ -78,7 +72,6 @@ export default function UserNotificationSettingsPage() {
         setDndEnd(data.dnd_end || '08:00');
       } else {
         // Настройки ещё не созданы, используем defaults
-        setEmail(user.email || '');
       }
 
       // Загружаем подписки
@@ -106,8 +99,6 @@ export default function UserNotificationSettingsPage() {
     setSaving(true);
     try {
       await updateUserNotificationSettings(user.id, {
-        email_address: email,
-        email_enabled: emailEnabled,
         dnd_enabled: dndEnabled,
         dnd_start: dndStart,
         dnd_end: dndEnd
@@ -117,7 +108,7 @@ export default function UserNotificationSettingsPage() {
       for (const [type, enabled] of Object.entries(subscriptions)) {
         await updateUserNotificationSubscription(user.id, type, {
           enabled,
-          channels: enabled ? ['email', 'telegram'] : []
+          channels: enabled ? ['telegram'] : [] // ✅ Только Telegram
         });
       }
 
@@ -210,44 +201,6 @@ export default function UserNotificationSettingsPage() {
             Управляйте способами получения уведомлений и выберите интересующие события
           </p>
         </div>
-
-        {/* Email настройки */}
-        <Card className="p-6 bg-slate-800 border-slate-700">
-          <div className="flex items-center gap-3 mb-4">
-            <Mail className="w-6 h-6 text-blue-400" />
-            <h2 className="text-xl font-semibold text-white">Email уведомления</h2>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="email" className="text-slate-300">Email адрес</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your-email@example.com"
-                className="mt-2 bg-slate-900 border-slate-700 text-white"
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                На этот адрес будут приходить уведомления о событиях
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-slate-900 rounded-lg">
-              <div>
-                <Label className="text-slate-300">Получать Email уведомления</Label>
-                <p className="text-xs text-slate-500">
-                  Включить отправку уведомлений на Email
-                </p>
-              </div>
-              <Switch
-                checked={emailEnabled}
-                onCheckedChange={setEmailEnabled}
-              />
-            </div>
-          </div>
-        </Card>
 
         {/* Telegram настройки */}
         <Card className="p-6 bg-slate-800 border-slate-700">

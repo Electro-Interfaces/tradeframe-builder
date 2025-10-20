@@ -165,13 +165,6 @@ export function MessageForm({
               />
               <span className="text-slate-300">Telegram</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <Switch
-                checked={channels.includes('email')}
-                onCheckedChange={() => handleToggleChannel('email')}
-              />
-              <span className="text-slate-300">Email</span>
-            </label>
           </div>
         </div>
 

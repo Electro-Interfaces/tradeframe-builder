@@ -1,6 +1,6 @@
 /**
  * Страница отправки broadcast сообщений пользователям (РЕФАКТОРИНГ)
- * Отправка через Telegram и Email
+ * Отправка через Telegram
  */
 
 import { useState, useEffect } from 'react';
@@ -159,7 +159,7 @@ export default function BroadcastMessagesPage() {
               Рассылка сообщений
             </h1>
             <p className={`text-slate-400 ${isMobile ? 'text-sm mt-1' : 'mt-2'}`}>
-              Отправка новостных сообщений и объявлений через Telegram и Email
+              Отправка новостных сообщений и объявлений через Telegram
             </p>
           </div>
         </div>

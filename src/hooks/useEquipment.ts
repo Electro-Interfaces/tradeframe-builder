@@ -72,30 +72,30 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
         tradingPointId: tradingPoint.external_id
       };
 
-      // Загружаем данные по отдельности, чтобы ошибка в одном не ломала другой
-      let terminalInfoData: TerminalInfo | null = null;
-      let tanksData: Tank[] = [];
+      // ✅ ОПТИМИЗАЦИЯ: Параллельная загрузка данных вместо последовательной
+      // Загружаем данные параллельно, чтобы ошибка в одном не ломала другой
+      const [terminalInfoResult, tanksResult] = await Promise.allSettled([
+        stsApiService.getTerminalInfo(contextParams),
+        stsApiService.getTanks(contextParams)
+      ]);
 
-      // Пытаемся загрузить информацию о терминале
-      try {
-        terminalInfoData = await stsApiService.getTerminalInfo(contextParams);
+      // Обрабатываем результат загрузки терминала
+      if (terminalInfoResult.status === 'fulfilled') {
+        const terminalInfoData = terminalInfoResult.value;
         setTerminalInfo(terminalInfoData);
-
-        // Преобразуем данные терминала в формат для отображения
         const equipmentItems = equipmentService.mapTerminalInfoToEquipment(terminalInfoData);
         setEquipment(equipmentItems);
-      } catch (terminalError) {
-        console.warn('Не удалось загрузить информацию о терминале:', terminalError);
+      } else {
+        console.warn('Не удалось загрузить информацию о терминале:', terminalInfoResult.reason);
         setTerminalInfo(null);
         setEquipment([]);
       }
 
-      // Пытаемся загрузить резервуары
-      try {
-        tanksData = await stsApiService.getTanks(contextParams);
-        setTanks(tanksData);
-      } catch (tanksError) {
-        console.warn('Не удалось загрузить резервуары:', tanksError);
+      // Обрабатываем результат загрузки резервуаров
+      if (tanksResult.status === 'fulfilled') {
+        setTanks(tanksResult.value);
+      } else {
+        console.warn('Не удалось загрузить резервуары:', tanksResult.reason);
         setTanks([]);
       }
 

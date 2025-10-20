@@ -4,7 +4,6 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
-const emailService = require('./emailService');
 const telegramService = require('./telegramService');
 const axios = require('axios');
 
@@ -303,7 +302,7 @@ class NotificationEngine {
           level
         },
         status: 'pending',
-        channels: rule.notification_config?.channels || ['email']
+        channels: ['telegram'] // ✅ Только Telegram
       };
 
       const { data, error } = await this.supabase
@@ -330,7 +329,7 @@ class NotificationEngine {
    */
   async sendNotification(notification, rule) {
     const recipients = await this.getRecipients(rule, notification.tenant_id);
-    const channels = notification.channels || ['email'];
+    const channels = notification.channels || ['telegram']; // ✅ Только Telegram
 
     for (const recipient of recipients) {
       for (const channel of channels) {
@@ -359,25 +358,24 @@ class NotificationEngine {
                           (recipients.users && recipients.users.length > 0);
 
     if (!hasRecipients) {
-      // Получаем всех пользователей с настройками уведомлений
+      // ✅ Получаем всех пользователей с включенным Telegram
       const { data: allSettings } = await this.supabase
         .from('user_notification_settings')
         .select('*')
-        .or('email_enabled.eq.true,telegram_enabled.eq.true');
+        .eq('telegram_enabled', true);
 
       if (allSettings) {
         // Для каждой настройки получаем данные пользователя
         for (const setting of allSettings) {
           const { data: user } = await this.supabase
             .from('users')
-            .select('id, email, name')
+            .select('id, name')
             .eq('id', setting.user_id)
             .single();
 
           if (user) {
             recipientList.push({
               id: user.id,
-              email: user.email,
               full_name: user.name,
               settings: setting
             });
@@ -405,15 +403,14 @@ class NotificationEngine {
             for (const roleUser of roleUsers) {
               const { data: user } = await this.supabase
                 .from('users')
-                .select('id, email, name')
+                .select('id, name')
                 .eq('id', roleUser.user_id)
                 .single();
 
               if (user) {
                 recipientList.push({
                   id: user.id,
-                  email: user.email,
-                  full_name: user.name
+                      full_name: user.name
                 });
               }
             }
@@ -424,13 +421,12 @@ class NotificationEngine {
       if (recipients.users && recipients.users.length > 0) {
         const { data: users } = await this.supabase
           .from('users')
-          .select('id, email, name')
+          .select('id, name')
           .in('id', recipients.users);
 
         if (users) {
           recipientList.push(...users.map(u => ({
             id: u.id,
-            email: u.email,
             full_name: u.name
           })));
         }
@@ -458,35 +454,8 @@ class NotificationEngine {
     try {
       let deliveryResult;
 
-      if (channel === 'email') {
-        if (!recipient.settings?.email_enabled || !recipient.email) {
-          return;
-        }
-
-        // Выбираем шаблон в зависимости от типа уведомления
-        if (notification.type === 'bill_acceptor_threshold') {
-          deliveryResult = await emailService.sendBillAcceptorAlert({
-            to: recipient.email,
-            stationName: notification.context.stationName,
-            billCount: notification.context.billCount,
-            billAmount: notification.context.billAmount,
-            threshold: notification.context.threshold,
-            level: notification.context.level
-          });
-        } else if (notification.type === 'low_fuel_level') {
-          deliveryResult = await emailService.sendLowFuelLevelAlert({
-            to: recipient.email,
-            stationName: notification.context.stationName,
-            tankNumber: notification.context.tankNumber,
-            fuelType: notification.context.fuelType,
-            currentPercent: notification.context.currentPercent,
-            currentVolume: notification.context.currentVolume,
-            maxVolume: notification.context.maxVolume,
-            threshold: notification.context.threshold,
-            level: notification.context.level
-          });
-        }
-      } else if (channel === 'telegram') {
+      // ✅ Только Telegram канал
+      if (channel === 'telegram') {
         if (!recipient.settings?.telegram_enabled || !recipient.settings?.telegram_chat_id) {
           return;
         }
@@ -725,7 +694,7 @@ class NotificationEngine {
           level
         },
         status: 'pending',
-        channels: rule.notification_config?.channels || ['email']
+        channels: ['telegram'] // ✅ Только Telegram
       };
 
       const { data, error } = await this.supabase
@@ -894,7 +863,7 @@ class NotificationEngine {
         message: `Терминал не передает данные уже ${delayMinutes} мин. Последнее обновление: ${new Date(lastUpdate).toLocaleString('ru-RU')}`,
         priority: 'high',
         status: 'pending',
-        channels: ['email', 'telegram'],
+        channels: ['telegram'], // ✅ Только Telegram
         context: {
           stationCode,
           stationName,

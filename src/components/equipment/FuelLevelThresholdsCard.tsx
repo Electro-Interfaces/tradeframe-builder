@@ -244,10 +244,15 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
     }
   };
 
-  // Автоматический запуск расчета при загрузке компонента
+  // ✅ ОПТИМИЗАЦИЯ: Отложенный запуск расчета после рендера страницы
+  // Используем setTimeout с задержкой 100мс, чтобы страница успела отрисоваться
   useEffect(() => {
     if (networkId && stationCode && tanks.length > 0) {
-      calculateRemainingTime();
+      const timer = setTimeout(() => {
+        calculateRemainingTime();
+      }, 100); // Страница отрисуется первой, потом начнется расчет
+
+      return () => clearTimeout(timer);
     }
   }, [networkId, stationCode]);
 

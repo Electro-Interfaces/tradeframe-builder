@@ -23,11 +23,39 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'no-updates' | 'found-updates' | null>(null);
 
   const currentVersion = APP_VERSION;
+  const isDevelopment = import.meta.env.DEV;
+
   // Генерируем номер сборки на основе даты (YYYYMMDD + часы)
   const now = new Date();
   const buildNumber = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.${now.getHours().toString().padStart(2, '0')}`;
 
   const checkForUpdates = async () => {
+    // ✅ В development режиме просто показываем информацию о версии
+    if (isDevelopment) {
+      setIsChecking(true);
+      setLastChecked(new Date());
+
+      // Показываем информацию без проверки SW
+      onShowUpdateInfo?.({
+        version: currentVersion,
+        buildNumber,
+        hasUpdate: false,
+        swRegistrations: 0,
+        swActive: false,
+        swWaiting: false,
+        swScope: 'Development mode (Service Worker disabled)',
+        lastCheck: new Date().toLocaleString('ru-RU')
+      });
+
+      setUpdateStatus('no-updates');
+      setTimeout(() => {
+        setUpdateStatus(null);
+        setIsChecking(false);
+      }, 2000);
+      return;
+    }
+
+    // ✅ Production режим - проверяем Service Worker
     if (isChecking) return;
 
     setIsChecking(true);
@@ -160,14 +188,16 @@ export const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className, onShowU
   const getStatusText = () => {
     if (isChecking) return 'Проверка...';
     if (hasUpdate) return 'Обновление...';
-    if (updateStatus === 'no-updates') return 'Актуальная версия';
+    if (updateStatus === 'no-updates') {
+      return isDevelopment ? 'Development режим' : 'Актуальная версия';
+    }
     if (updateStatus === 'found-updates') return 'Найдены обновления!';
     if (lastChecked) {
       const timeDiff = Date.now() - lastChecked.getTime();
       const minutes = Math.floor(timeDiff / (1000 * 60));
       return minutes < 1 ? 'Обновлено' : `${minutes}м назад`;
     }
-    return 'Обновить';
+    return isDevelopment ? 'Версия приложения' : 'Обновить';
   };
 
   return (
