@@ -67,13 +67,13 @@ export function TankCard({ tank, isMobile }: TankCardProps) {
 
       <CardContent className={isMobile ? 'space-y-3 px-3 pb-3' : 'space-y-4'}>
         {/* Volume and Progress */}
-        <div className="flex items-center gap-4">
+        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-4'}`}>
           <div className="flex-1 min-w-0 space-y-2">
             <div className="flex justify-between items-center gap-2">
               <span className={`font-bold text-white truncate ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                 {currentLevel.toLocaleString()} л
               </span>
-              <span className={`font-bold text-slate-300 flex-shrink-0 ${isMobile ? 'text-sm' : 'text-lg'}`}>
+              <span className={`font-bold text-slate-300 flex-shrink-0 ${isMobile ? 'text-xs' : 'text-lg'}`}>
                 ({percentage}%)
               </span>
             </div>
