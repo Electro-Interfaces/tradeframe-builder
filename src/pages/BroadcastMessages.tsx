@@ -28,19 +28,17 @@ export default function BroadcastMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
+  // Загружаем сообщения при монтировании
   useEffect(() => {
     loadMessages();
-  }, [user]);
+  }, []);
 
   const loadMessages = async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-
     try {
+      setLoading(true);
+      // Загружаем сообщения для фиксированной сети (ID 15)
       const response = await messageService.getMessages({
-        authorId: user.id,
+        networkId: messageForm.selectedNetworkId,
         limit: 20
       });
 
@@ -177,6 +175,8 @@ export default function BroadcastMessagesPage() {
               priority={messageForm.priority}
               channels={messageForm.channels}
               recipientType={messageForm.recipientType}
+              selectedNetworkId={messageForm.selectedNetworkId}
+              networks={[]} // Не используется при фиксированной сети
               sending={sending}
               isMobile={isMobile}
               onTitleChange={messageForm.setTitle}
@@ -185,6 +185,7 @@ export default function BroadcastMessagesPage() {
               onPriorityChange={messageForm.setPriority}
               onChannelsChange={messageForm.setChannels}
               onRecipientTypeChange={messageForm.setRecipientType}
+              onNetworkChange={() => {}} // Заглушка - сеть фиксирована
               onSend={handleSend}
               onSaveAsDraft={handleSaveAsDraft}
               onReset={messageForm.reset}

@@ -23,6 +23,7 @@ class MessageService {
   async getMessages(params?: {
     status?: string;
     authorId?: string;
+    networkId?: string;
     limit?: number;
     offset?: number;
   }): Promise<MessageListResponse> {

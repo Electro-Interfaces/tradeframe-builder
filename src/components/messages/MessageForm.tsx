@@ -29,14 +29,17 @@ interface MessageFormProps {
   priority: MessagePriority;
   channels: MessageChannel[];
   recipientType: RecipientType;
+  selectedNetworkId: string | null;
   sending: boolean;
   isMobile?: boolean;
+  networks?: Array<{ id: string; name: string }>;
   onTitleChange: (value: string) => void;
   onContentChange: (value: string) => void;
   onMessageTypeChange: (value: MessageType) => void;
   onPriorityChange: (value: MessagePriority) => void;
   onChannelsChange: (channels: MessageChannel[]) => void;
   onRecipientTypeChange: (value: RecipientType) => void;
+  onNetworkChange: (networkId: string | null) => void;
   onSend: () => void;
   onSaveAsDraft: () => void;
   onReset: () => void;
@@ -49,14 +52,17 @@ export function MessageForm({
   priority,
   channels,
   recipientType,
+  selectedNetworkId,
   sending,
   isMobile = false,
+  networks = [],
   onTitleChange,
   onContentChange,
   onMessageTypeChange,
   onPriorityChange,
   onChannelsChange,
   onRecipientTypeChange,
+  onNetworkChange,
   onSend,
   onSaveAsDraft,
   onReset
@@ -169,20 +175,13 @@ export function MessageForm({
           </div>
         </div>
 
-        {/* Получатели */}
-        <div>
-          <Label className="text-slate-300">Получатели</Label>
-          <select
-            value={recipientType}
-            onChange={(e) => onRecipientTypeChange(e.target.value as RecipientType)}
-            className="w-full mt-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-md text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {Object.entries(RECIPIENT_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+        {/* Информация о получателях */}
+        <div className="bg-slate-900/50 border border-slate-700 rounded-md p-3">
+          <Label className="text-slate-300 text-sm">Получатели</Label>
+          <p className="text-slate-100 mt-1">Все пользователи сети АЗС</p>
+          <p className="text-xs text-slate-500 mt-1">
+            Сообщение будет отправлено всем пользователям торговой сети
+          </p>
         </div>
 
         <Separator className="bg-slate-700" />
