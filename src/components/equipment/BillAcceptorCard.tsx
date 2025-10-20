@@ -90,13 +90,13 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
     >
       {/* Заголовок */}
       <div className={`${isMobile ? 'space-y-3 mb-3' : 'flex items-center justify-between mb-4'}`}>
-        <div className="flex items-center gap-3">
-          <Banknote className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-400`} />
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <Banknote className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-green-400 flex-shrink-0`} />
           <div className="flex-1 min-w-0">
-            <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white`}>
+            <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-white truncate`}>
               {billAcceptor.name}
             </h3>
-            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400`}>
+            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-400 truncate`}>
               {billAcceptor.location}
             </p>
           </div>

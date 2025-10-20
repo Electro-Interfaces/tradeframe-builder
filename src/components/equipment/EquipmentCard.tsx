@@ -34,11 +34,13 @@ export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
         isMobile ? 'p-2.5' : 'p-4'
       }`}
     >
-      <div className={`flex items-center justify-between ${isMobile ? 'mb-1.5' : 'mb-2'}`}>
-        <span className={`font-medium text-white ${isMobile ? 'text-xs leading-tight' : 'text-sm'}`}>
+      <div className={`flex items-center justify-between ${isMobile ? 'mb-1.5 gap-2' : 'mb-2 gap-3'}`}>
+        <span className={`font-medium text-white truncate flex-1 min-w-0 ${isMobile ? 'text-xs leading-tight' : 'text-sm'}`}>
           {equipment.name}
         </span>
-        {getStatusIcon(equipment.status, isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4')}
+        <div className="flex-shrink-0">
+          {getStatusIcon(equipment.status, isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4')}
+        </div>
       </div>
 
       <div className={isMobile ? 'space-y-0.5' : 'space-y-1'}>
@@ -54,7 +56,7 @@ export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
 
       <div className={isMobile ? 'mt-1.5' : 'mt-3'}>
         <Badge
-          className={`font-semibold ${
+          className={`font-semibold truncate max-w-full inline-block ${
             isMobile ? 'text-[10px] px-1.5 py-0.5 leading-tight' : 'text-xs px-2 py-1'
           } ${
             equipment.status === 'online' && equipment.statusText === 'Готов'
