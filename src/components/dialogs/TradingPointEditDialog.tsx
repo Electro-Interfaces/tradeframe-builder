@@ -431,12 +431,12 @@ export function TradingPointEditDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="city" className="text-slate-200 block">Город</Label>
+                <Label htmlFor="city" className="text-slate-200 block">Населенный Пункт</Label>
                 <Input
                   id="city"
                   value={formData.geolocation?.city}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     geolocation: { ...prev.geolocation!, city: e.target.value }
                   }))}
                   placeholder="Казань"

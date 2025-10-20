@@ -114,17 +114,21 @@ export const tradingPointsService = {
           external_id: station.code,
           networkId: tenant.id,
           name: station.name || `АЗС №${station.code}`,
-          description: `${tenant.name} - ${station.name}`,
+          description: station.description || `${tenant.name} - ${station.name}`,
           geolocation: {
+            latitude: station.latitude,
+            longitude: station.longitude,
+            region: station.region || '',
+            city: station.city || '',
             address: station.address || ''
           },
-          phone: '',
-          email: '',
-          website: '',
+          phone: station.phone || '',
+          email: station.email || '',
+          website: station.website || '',
           isBlocked: !station.active,
-          blockReason: '',
-          schedule: {},
-          services: {},
+          blockReason: station.blockReason || '',
+          schedule: station.schedule || {},
+          services: station.services || {},
           externalCodes: [station.code],
           createdAt: new Date(tenant.created_at),
           updatedAt: new Date(tenant.updated_at)
@@ -168,17 +172,21 @@ export const tradingPointsService = {
         external_id: station.code,
         networkId: tenant.id,
         name: station.name || `АЗС №${station.code}`,
-        description: `${tenant.name} - ${station.name}`,
+        description: station.description || `${tenant.name} - ${station.name}`,
         geolocation: {
+          latitude: station.latitude,
+          longitude: station.longitude,
+          region: station.region || '',
+          city: station.city || '',
           address: station.address || ''
         },
-        phone: '',
-        email: '',
-        website: '',
+        phone: station.phone || '',
+        email: station.email || '',
+        website: station.website || '',
         isBlocked: !station.active,
-        blockReason: '',
-        schedule: {},
-        services: {},
+        blockReason: station.blockReason || '',
+        schedule: station.schedule || {},
+        services: station.services || {},
         billAcceptorThresholds: station.billAcceptorThresholds,
         fuelLevelThresholds: station.fuelLevelThresholds,
         externalCodes: [station.code],
@@ -303,11 +311,23 @@ export const tradingPointsService = {
       }
 
       // Обновляем станцию
+      // ✅ ИСПРАВЛЕНИЕ: Сохраняем ВСЕ поля (геолокация, контакты, услуги, расписание)
       stations[stationIndex] = {
         ...stations[stationIndex],
         name: input.name,
+        description: input.description,
         address: input.geolocation?.address || stations[stationIndex].address,
-        active: !input.isBlocked
+        latitude: input.geolocation?.latitude,
+        longitude: input.geolocation?.longitude,
+        region: input.geolocation?.region,
+        city: input.geolocation?.city,
+        phone: input.phone,
+        email: input.email,
+        website: input.website,
+        active: !input.isBlocked,
+        blockReason: input.blockReason,
+        schedule: input.schedule,
+        services: input.services
       };
 
       // Сохраняем изменения
@@ -335,17 +355,21 @@ export const tradingPointsService = {
         external_id: updatedStation.code,
         networkId: tenant.id,
         name: updatedStation.name,
-        description: `${tenant.name} - ${updatedStation.name}`,
+        description: updatedStation.description || `${tenant.name} - ${updatedStation.name}`,
         geolocation: {
-          address: updatedStation.address
+          latitude: updatedStation.latitude,
+          longitude: updatedStation.longitude,
+          region: updatedStation.region || '',
+          city: updatedStation.city || '',
+          address: updatedStation.address || ''
         },
-        phone: '',
-        email: '',
-        website: '',
+        phone: updatedStation.phone || '',
+        email: updatedStation.email || '',
+        website: updatedStation.website || '',
         isBlocked: !updatedStation.active,
-        blockReason: '',
-        schedule: {},
-        services: {},
+        blockReason: updatedStation.blockReason || '',
+        schedule: updatedStation.schedule || {},
+        services: updatedStation.services || {},
         externalCodes: [updatedStation.code],
         createdAt: new Date(updated.created_at),
         updatedAt: new Date(updated.updated_at)
