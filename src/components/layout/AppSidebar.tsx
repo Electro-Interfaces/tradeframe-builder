@@ -150,24 +150,11 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
         {/* ТОРГОВЫЕ СЕТИ */}
         {menuVisibility.networks && (
         <div className="px-4 py-3">
-          <button
-            className="w-full text-slate-200 text-xs font-semibold tracking-wider hover:text-white hover:bg-slate-700/50 active:bg-slate-700 transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggleGroup("networks");
-            }}
-            type="button"
-          >
+          <div className="w-full text-slate-200 text-xs font-semibold tracking-wider flex items-center gap-2 mb-3 uppercase px-2 py-2">
             <Network className="w-4 h-4 flex-shrink-0" />
             <span className="flex-1 text-left">ТОРГОВЫЕ СЕТИ</span>
-            <ChevronRight
-              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
-                openGroups.includes("networks") ? "rotate-90" : ""
-              }`}
-            />
-          </button>
-          {openGroups.includes("networks") && (
+          </div>
+          {(
             <div className="space-y-1">
               {networkMenuItems.map((item) => (
                 <div key={item.title}>
