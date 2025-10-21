@@ -10,6 +10,7 @@ jobs:
   deploy-test:
     name: Deploy to testtf.dataworker.ru
     runs-on: ubuntu-latest
+    if: github.repository == 'Electro-Interfaces/tradeframe-builder'
 
     steps:
       - name: Checkout code

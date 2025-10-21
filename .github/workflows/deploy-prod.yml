@@ -10,6 +10,7 @@ jobs:
   deploy-prod:
     name: Deploy to prod.dataworker.ru
     runs-on: ubuntu-latest
+    if: github.repository == 'Electro-Interfaces/TradeControl'
 
     steps:
       - name: Checkout code
