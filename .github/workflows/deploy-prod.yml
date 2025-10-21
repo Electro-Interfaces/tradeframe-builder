@@ -51,7 +51,7 @@ jobs:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "dist.tar.gz"
+          source: "dist.tar.gz,ecosystem.prod.config.cjs"
           target: "/tmp/"
 
       - name: Execute deployment on PRODUCTION server
@@ -79,8 +79,10 @@ jobs:
             rm /tmp/dist.tar.gz
             echo "✅ New build extracted"
 
-            # Обновляем код из git
-            git pull origin main || echo "Git pull failed, continuing..."
+            # Копируем PM2 конфигурацию
+            cp /tmp/ecosystem.prod.config.cjs ./
+            rm /tmp/ecosystem.prod.config.cjs
+            echo "✅ PM2 config updated"
 
             # Создаем server/.env с переменными окружения
             cat > server/.env << 'ENV_EOF'
