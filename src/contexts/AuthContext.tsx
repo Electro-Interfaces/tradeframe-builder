@@ -4,6 +4,12 @@ import { testServiceConnection } from '../services/supabaseServiceClient';
 import { currentUserService } from '../services/currentUserService';
 import { type User as DBUser } from '../services/usersService';
 import '../types/window';
+import {
+  saveRememberedCredentials,
+  getRememberedCredentials,
+  clearRememberedCredentials,
+  hasRememberedCredentials
+} from '../utils/secureStorage';
 
 
 // Типы пользователей и ролей
@@ -163,7 +169,7 @@ interface AuthContextType {
   canViewReports: () => boolean;
   canApproveDrains: () => boolean;
   getUserRole: () => string;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -193,11 +199,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 
   // Инициализация пользователя при загрузке приложения
-  // Проверяем, есть ли сохраненная сессия
+  // Проверяем, есть ли сохраненная сессия или "Запомнить меня"
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         if (typeof window !== 'undefined') {
+          // Сначала проверяем localStorage (текущая сессия)
           const savedUser = localStorage.getItem('tradeframe_user');
           const authToken = localStorage.getItem('authToken');
 
@@ -206,27 +213,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
               if (savedUser.startsWith('[object Object]') || savedUser === '[object Object]') {
                 clearAllAuthData();
                 setUser(null);
-                return;
+              } else {
+                const parsedUser = JSON.parse(savedUser);
+                setUser(parsedUser);
+                return; // Успешно восстановили сессию
               }
-
-              const parsedUser = JSON.parse(savedUser);
-              setUser(parsedUser);
             } catch (error) {
               clearAllAuthData();
               setUser(null);
             }
-          } else {
-            // Нет сохраненной сессии - пользователь должен войти
-            setUser(null);
           }
+
+          // Если нет активной сессии, проверяем "Запомнить меня" в IndexedDB
+          try {
+            const rememberedCreds = await getRememberedCredentials();
+            if (rememberedCreds) {
+              // Автоматически входим с сохраненными учетными данными
+              await login(rememberedCreds.email, rememberedCreds.password, true);
+              return; // Успешно вошли автоматически
+            }
+          } catch (error) {
+            // Игнорируем ошибки IndexedDB - просто не делаем автовход
+          }
+
+          // Нет ни сессии, ни сохраненных данных
+          setUser(null);
         } else {
           // На сервере пользователь не авторизован
           setUser(null);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
         setUser(null);
-        // Очищаем поврежденные данные
         clearAllAuthData();
       } finally {
         setLoading(false);
@@ -306,8 +323,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Вход в систему через базу данных с улучшенной обработкой ошибок
-  const login = async (email: string, password: string): Promise<void> => {
+  // Вход в систему через базу данных с поддержкой "Запомнить меня"
+  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<void> => {
     setLoading(true);
     try {
 
@@ -315,7 +332,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const dbUser = await currentUserService.authenticateUser(email, password);
 
       if (dbUser) {
-        
+
         // Определяем основную роль пользователя
         let primaryRole = 'user';
         if (dbUser.roles && dbUser.roles.length > 0) {
@@ -339,19 +356,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
           status: dbUser.status,
           lastLogin: new Date().toISOString()
         };
-        
+
         setUser(contextUser);
-        
+
         // Устанавливаем ID текущего пользователя в сервисе
         currentUserService.setCurrentUserId(dbUser.id);
-        
+
         // Сохраняем пользователя в localStorage (используем тот же ключ что и при восстановлении)
         if (typeof window !== 'undefined') {
           try {
             const userJson = JSON.stringify(contextUser);
             localStorage.setItem('tradeframe_user', userJson);
             localStorage.setItem('authToken', 'database_session');
+
+            // Если выбрано "Запомнить меня", сохраняем в IndexedDB
+            if (rememberMe) {
+              await saveRememberedCredentials(email, password, 30); // 30 дней
+            } else {
+              // Если не выбрано, удаляем старые данные
+              await clearRememberedCredentials();
+            }
           } catch (error) {
+            // Игнорируем ошибки сохранения - главное вход выполнен
           }
         }
       } else {
@@ -375,10 +401,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await SupabaseAuthService.logout();
       setUser(null);
       clearAllAuthData();
+      // Также очищаем "Запомнить меня" из IndexedDB
+      await clearRememberedCredentials();
     } catch (error: any) {
       // Даже если ошибка, очищаем локальные данные
       setUser(null);
       clearAllAuthData();
+      await clearRememberedCredentials();
     }
   };
 
