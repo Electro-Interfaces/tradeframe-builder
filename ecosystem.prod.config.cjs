@@ -27,6 +27,7 @@ module.exports = {
       name: 'tradeframe-prod-backend',
       script: 'index.js',
       cwd: '/var/www/www-root/data/www/prod.dataworker.ru/server',
+      exec_mode: 'fork',  // ВАЖНО: fork для одного процесса, иначе EADDRINUSE
       env: {
         NODE_ENV: 'production',
         PORT: 3001
