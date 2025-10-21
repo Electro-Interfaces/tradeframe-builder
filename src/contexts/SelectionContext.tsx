@@ -19,7 +19,16 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
   // ✅ ИСПРАВЛЕНИЕ: Инициализируем state из localStorage СРАЗУ (синхронно)
   const [selectedNetworkId, setSelectedNetworkId] = useState<string>(() => {
     if (typeof window === 'undefined') return "";
-    return localStorage.getItem("tc:selectedNetwork") || "";
+    const saved = localStorage.getItem("tc:selectedNetwork") || "";
+    // Проверяем что saved это UUID (формат: 8-4-4-4-12 символов с дефисами)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved);
+    if (saved && !isUUID) {
+      // Если в localStorage лежит не UUID (например старый external_id="15"), очищаем
+      console.warn(`⚠️ Invalid network ID in localStorage: "${saved}", clearing...`);
+      localStorage.removeItem("tc:selectedNetwork");
+      return "";
+    }
+    return saved;
   });
 
   const [selectedTradingPoint, setSelectedTradingPoint] = useState<string>(() => {
