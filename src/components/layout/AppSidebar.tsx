@@ -162,7 +162,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
             <Network className="w-4 h-4 flex-shrink-0" />
             <span className="flex-1 text-left">ТОРГОВЫЕ СЕТИ</span>
             <ChevronRight
-              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
+              className={`w-4 h-4 flex-shrink-0 -mr-8 transition-transform duration-200 ${
                 openGroups.includes("networks") ? "rotate-90" : ""
               }`}
             />
@@ -201,7 +201,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
             <MapPin className="w-4 h-4 flex-shrink-0" />
             <span className="flex-1 text-left">ТОРГОВАЯ ТОЧКА</span>
             <ChevronRight
-              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
+              className={`w-4 h-4 flex-shrink-0 -mr-8 transition-transform duration-200 ${
                 openGroups.includes("trading-point") ? "rotate-90" : ""
               }`}
             />
@@ -246,7 +246,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
             <Shield className="w-4 h-4 flex-shrink-0" />
             <span className="flex-1 text-left">АДМИНИСТРИРОВАНИЕ</span>
             <ChevronRight
-              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
+              className={`w-4 h-4 flex-shrink-0 -mr-8 transition-transform duration-200 ${
                 openGroups.includes("admin") ? "rotate-90" : ""
               }`}
             />
@@ -285,7 +285,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
             <Cog className="w-4 h-4 flex-shrink-0" />
             <span className="flex-1 text-left">НАСТРОЙКИ</span>
             <ChevronRight
-              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
+              className={`w-4 h-4 flex-shrink-0 -mr-8 transition-transform duration-200 ${
                 openGroups.includes("settings") ? "rotate-90" : ""
               }`}
             />
