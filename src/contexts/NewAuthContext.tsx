@@ -277,13 +277,20 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
    * Выход из системы
    */
   const logout = async () => {
-    // Логируем выход перед очисткой данных
-    if (user) {
-      await auditLogService.logAuthentication('logout', user.email, {
-        user_id: user.id,
-        user_name: user.name,
-        success: true
-      });
+    try {
+      // Логируем выход перед очисткой данных
+      if (user?.email) {
+        await auditLogService.logAuthentication('logout', user.email, {
+          user_id: user.id,
+          user_name: user.name,
+          success: true
+        });
+      }
+    } catch (error) {
+      // Не прерываем logout при ошибке логирования
+      if (import.meta.env.DEV) {
+        console.error('Ошибка при логировании logout:', error);
+      }
     }
 
     setUser(null);

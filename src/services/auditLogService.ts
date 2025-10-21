@@ -123,6 +123,14 @@ export const auditLogService = {
     userEmail: string,
     details?: AuditDetails
   ): Promise<AuditLogEntry | null> {
+    // Защита от undefined/null userEmail
+    if (!userEmail) {
+      if (import.meta.env.DEV) {
+        console.warn('[AuditLog] Пропущено логирование аутентификации - userEmail не передан');
+      }
+      return null;
+    }
+
     const actionTexts = {
       login: `Вход в систему: ${userEmail}`,
       logout: `Выход из системы: ${userEmail}`,
@@ -136,7 +144,7 @@ export const auditLogService = {
       object: userEmail,
       object_type: 'user',
       user_email: userEmail, // Явно передаем email
-      user_name: details?.user_name || userEmail.split('@')[0], // Имя из details или из email
+      user_name: details?.user_name || (userEmail.includes('@') ? userEmail.split('@')[0] : userEmail), // Имя из details или из email
       user_id: details?.user_id, // ID из details если есть
       details: {
         ...details,
