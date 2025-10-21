@@ -77,8 +77,8 @@ export async function stsProxyRequest<T>(
         });
       }
 
-      // Адаптивный timeout: первый запрос 10 сек, последующие 20 сек
-      const timeout = attempt === 0 ? 10000 : 20000;
+      // Адаптивный timeout: первый запрос 45 сек, последующие 90 сек (увеличено для медленных соединений на PROD)
+      const timeout = attempt === 0 ? 45000 : 90000;
 
       // Выполняем запрос с timeout
       const controller = new AbortController();
