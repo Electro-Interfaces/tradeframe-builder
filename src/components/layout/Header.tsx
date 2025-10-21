@@ -97,7 +97,7 @@ export function Header({
   };
 
   return (
-    <header className={`${isMobile ? 'relative' : 'fixed'} top-0 left-0 right-0 z-50 h-header bg-slate-900 border-b border-slate-700/50 shadow-lg`}>
+    <header className={`${isMobile ? 'relative' : 'fixed top-0'} left-0 right-0 z-50 h-header bg-slate-900 border-b border-slate-700/50 shadow-lg mobile-safe-top`}>
       <div className="flex items-center justify-between h-full px-4 md:px-6">
         {/* Mobile Left Section: Burger + Network Selector */}
         <div className="flex items-center gap-3 md:hidden flex-1 min-w-0">
