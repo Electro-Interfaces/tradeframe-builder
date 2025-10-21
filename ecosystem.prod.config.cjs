@@ -1,5 +1,6 @@
 // PM2 Configuration for Production Environment
 // Created: 2025-10-17
+// Updated: 2025-10-21 - Fixed backend path and PORT configuration
 
 module.exports = {
   apps: [
@@ -10,7 +11,7 @@ module.exports = {
       cwd: '/var/www/www-root/data/www/prod.dataworker.ru',
       env: {
         NODE_ENV: 'production',
-        PORT: 3006
+        PORT: 8080
       },
       instances: 1,
       autorestart: true,
@@ -24,8 +25,8 @@ module.exports = {
     },
     {
       name: 'tradeframe-prod-backend',
-      script: 'server/index.js',
-      cwd: '/var/www/www-root/data/www/prod.dataworker.ru',
+      script: 'index.js',
+      cwd: '/var/www/www-root/data/www/prod.dataworker.ru/server',
       env: {
         NODE_ENV: 'production',
         PORT: 3001

@@ -1,5 +1,6 @@
 // PM2 Configuration for Testing Environment
 // Created: 2025-10-17
+// Updated: 2025-10-21 - Added PORT configuration
 
 module.exports = {
   apps: [
@@ -8,6 +9,10 @@ module.exports = {
       script: 'npm',
       args: 'run start',
       cwd: '/var/www/www-root/data/www/testTF.dataworker.ru',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 8082
+      },
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
@@ -23,6 +28,10 @@ module.exports = {
       name: 'tradeframe-test-backend',
       script: 'index.js',
       cwd: '/var/www/www-root/data/www/testTF.dataworker.ru/server',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3002
+      },
       exec_mode: 'fork',
       instances: 1,
       autorestart: true,
