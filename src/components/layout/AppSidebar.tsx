@@ -318,7 +318,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
       {isMobile ? (
         // Mobile version without Sidebar wrapper
         <div
-          className="scrollbar-hide h-full overflow-y-auto bg-slate-800 text-slate-100 overscroll-contain touch-auto"
+          className="scrollbar-hide h-full overflow-y-auto bg-slate-800 text-slate-100 overscroll-contain touch-auto pt-12 mobile-safe-top"
           onScroll={handleScroll}
           ref={scrollContainerRef}
         >
