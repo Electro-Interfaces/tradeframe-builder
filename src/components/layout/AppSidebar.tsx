@@ -150,22 +150,23 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
         {/* ТОРГОВЫЕ СЕТИ */}
         {menuVisibility.networks && (
         <div className="px-4 py-3">
-          <div 
-            className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
+          <button
+            className="w-full text-slate-200 text-xs font-semibold tracking-wider hover:text-white hover:bg-slate-700/50 active:bg-slate-700 transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               toggleGroup("networks");
             }}
+            type="button"
           >
             <Network className="w-4 h-4 flex-shrink-0" />
-            ТОРГОВЫЕ СЕТИ
-            <ChevronRight 
-              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+            <span className="flex-1 text-left">ТОРГОВЫЕ СЕТИ</span>
+            <ChevronRight
+              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
                 openGroups.includes("networks") ? "rotate-90" : ""
-              }`} 
+              }`}
             />
-          </div>
+          </button>
           {openGroups.includes("networks") && (
             <div className="space-y-1">
               {networkMenuItems.map((item) => (
@@ -188,22 +189,23 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
         {/* ТОРГОВАЯ ТОЧКА */}
         {menuVisibility.tradingPoint && (
         <div className="border-t border-slate-600 px-4 py-3">
-          <div 
-            className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
+          <button
+            className="w-full text-slate-200 text-xs font-semibold tracking-wider hover:text-white hover:bg-slate-700/50 active:bg-slate-700 transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               toggleGroup("trading-point");
             }}
+            type="button"
           >
             <MapPin className="w-4 h-4 flex-shrink-0" />
-            ТОРГОВАЯ ТОЧКА
-            <ChevronRight 
-              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+            <span className="flex-1 text-left">ТОРГОВАЯ ТОЧКА</span>
+            <ChevronRight
+              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
                 openGroups.includes("trading-point") ? "rotate-90" : ""
-              }`} 
+              }`}
             />
-          </div>
+          </button>
           {openGroups.includes("trading-point") && (
             <div className="space-y-1">
               {tradingPointMenuItems.map((item) => (
@@ -232,22 +234,23 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
         {/* АДМИНИСТРИРОВАНИЕ */}
         {menuVisibility.admin && (
         <div className="border-t border-slate-600 px-4 py-3">
-          <div 
-            className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
+          <button
+            className="w-full text-slate-200 text-xs font-semibold tracking-wider hover:text-white hover:bg-slate-700/50 active:bg-slate-700 transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               toggleGroup("admin");
             }}
+            type="button"
           >
             <Shield className="w-4 h-4 flex-shrink-0" />
-            АДМИНИСТРИРОВАНИЕ
-            <ChevronRight 
-              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+            <span className="flex-1 text-left">АДМИНИСТРИРОВАНИЕ</span>
+            <ChevronRight
+              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
                 openGroups.includes("admin") ? "rotate-90" : ""
-              }`} 
+              }`}
             />
-          </div>
+          </button>
           {openGroups.includes("admin") && (
             <div className="space-y-1">
               {adminMenuItems.map((item) => (
@@ -270,22 +273,23 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
         {/* НАСТРОЙКИ */}
         {menuVisibility.settings && (
         <div className="border-t border-slate-600 px-4 py-3">
-          <div 
-            className="text-slate-200 text-xs font-semibold tracking-wider cursor-pointer hover:text-white transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase"
+          <button
+            className="w-full text-slate-200 text-xs font-semibold tracking-wider hover:text-white hover:bg-slate-700/50 active:bg-slate-700 transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               toggleGroup("settings");
             }}
+            type="button"
           >
             <Cog className="w-4 h-4 flex-shrink-0" />
-            НАСТРОЙКИ
-            <ChevronRight 
-              className={`w-4 h-4 ml-auto transition-transform duration-200 ${
+            <span className="flex-1 text-left">НАСТРОЙКИ</span>
+            <ChevronRight
+              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
                 openGroups.includes("settings") ? "rotate-90" : ""
-              }`} 
+              }`}
             />
-          </div>
+          </button>
           {openGroups.includes("settings") && (
             <div className="space-y-3">
               {/* Основные настройки */}
