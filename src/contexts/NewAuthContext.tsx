@@ -6,6 +6,11 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { authService, type AppUser } from '../services/auth/authService';
 import { permissionService, type MenuVisibility } from '../services/auth/permissionService';
 import { auditLogService } from '../services/auditLogService';
+import {
+  saveRememberedCredentials,
+  getRememberedCredentials,
+  clearRememberedCredentials
+} from '../utils/secureStorage';
 
 interface AuthContextType {
   // Состояние
@@ -13,7 +18,7 @@ interface AuthContextType {
   loading: boolean;
 
   // Основные методы
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
   updateUserName: (newName: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -55,7 +60,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   /**
    * Очищает все данные авторизации
    */
-  const clearAuthData = () => {
+  const clearAuthData = async () => {
     // Новые ключи
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
@@ -65,6 +70,9 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
     localStorage.removeItem('auth_token');
+
+    // Очищаем IndexedDB
+    await clearRememberedCredentials();
   };
 
   /**
@@ -193,19 +201,34 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        // Сначала проверяем текущую сессию
         const sessionEmail = getSessionEmail();
         if (sessionEmail) {
 
           const freshUser = await loadFreshUserData(sessionEmail);
           if (freshUser) {
             setUser(freshUser);
+            return; // Успешно восстановили сессию
           } else {
-            clearAuthData();
+            await clearAuthData();
           }
-        } else {
         }
+
+        // Если нет активной сессии, проверяем "Запомнить меня" в IndexedDB
+        try {
+          const rememberedCreds = await getRememberedCredentials();
+          if (rememberedCreds) {
+            // Автоматически входим с сохраненными учетными данными
+            await login(rememberedCreds.email, rememberedCreds.password, true);
+            return; // Успешно вошли автоматически
+          }
+        } catch (error) {
+          // Игнорируем ошибки IndexedDB - просто не делаем автовход
+        }
+
+        // Нет ни сессии, ни сохраненных данных
       } catch (error) {
-        clearAuthData();
+        await clearAuthData();
       } finally {
         setLoading(false);
       }
@@ -217,7 +240,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   /**
    * Вход в систему
    */
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<void> => {
     setLoading(true);
 
     try {
@@ -234,6 +257,14 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       // Сохраняем пользователя и токен
       setUser(authenticatedUser);
       saveAuthSession(authenticatedUser, token);
+
+      // Если выбрано "Запомнить меня", сохраняем в IndexedDB
+      if (rememberMe) {
+        await saveRememberedCredentials(email, password, 30); // 30 дней
+      } else {
+        // Если не выбрано, удаляем старые данные
+        await clearRememberedCredentials();
+      }
 
     } catch (error: any) {
       throw new Error(error.message || 'Ошибка входа в систему');

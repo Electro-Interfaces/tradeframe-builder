@@ -290,8 +290,8 @@ const LoginPageWithLegal = () => {
     setError('');
 
     try {
-      // Login first to get authentication
-      await login(email, password);
+      // Login first to get authentication with Remember Me option
+      await login(email, password, rememberMe);
 
       // Ждем 100ms чтобы данные пользователя сохранились в localStorage
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -328,13 +328,8 @@ const LoginPageWithLegal = () => {
           console.warn('⚠️ Legal documents acceptance failed, but login continues');
         }
       }
-      
-      // Сохраняем email если выбрано "Запомнить меня"
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
-      } else {
-        localStorage.removeItem('rememberedEmail');
-      }
+
+      // Сохранение учетных данных обрабатывается в AuthContext через IndexedDB
 
       // Очищаем временное состояние формы при успешной авторизации
       sessionStorage.removeItem('loginFormState');
