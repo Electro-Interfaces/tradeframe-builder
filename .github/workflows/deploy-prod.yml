@@ -80,7 +80,10 @@ jobs:
             echo "✅ New build extracted"
 
             # Обновляем исходный код из git (включая server/, src/)
-            git pull origin main || echo "⚠️ Git pull failed, continuing with existing source code..."
+            # Сбрасываем любые локальные изменения и принудительно обновляем
+            git fetch origin main
+            git reset --hard origin/main
+            echo "✅ Code updated from git to latest version"
 
             # Копируем PM2 конфигурацию
             cp /tmp/ecosystem.prod.config.cjs ./
