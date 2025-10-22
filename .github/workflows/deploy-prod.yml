@@ -79,6 +79,9 @@ jobs:
             rm /tmp/dist.tar.gz
             echo "✅ New build extracted"
 
+            # Обновляем исходный код из git (включая server/, src/)
+            git pull origin main || echo "⚠️ Git pull failed, continuing with existing source code..."
+
             # Копируем PM2 конфигурацию
             cp /tmp/ecosystem.prod.config.cjs ./
             rm /tmp/ecosystem.prod.config.cjs
