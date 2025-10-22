@@ -116,6 +116,9 @@ NODE_ENV=development
 ALLOWED_ORIGINS=https://prod.dataworker.ru,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
 
 # Telegram Bot Configuration
+# ⚠️ ВАЖНО: Используйте РАЗНЫЕ боты для PROD и TEST!
+# PROD: @TradeFrameDW_Bot (токен: 8049816280:AAEHimSlNiuyRIRA_sjrG9f78lvc9aprwa8)
+# TEST: @TradeFrameTest_Bot (токен: 8136366785:AAGeedwALOK5jIM8ACDb1i99vxjZebyRdD0)
 TELEGRAM_BOT_TOKEN=your_bot_token_from_@BotFather
 TELEGRAM_BOT_NAME=TradeFrame Notifications
 TELEGRAM_BOT_USERNAME=TradeFrameDW_Bot
@@ -162,6 +165,33 @@ See `tools/README.md` for complete documentation.
 TradeFrame Builder имеет две системы коммуникации с пользователями:
 1. **Автоматические уведомления** - триггерные уведомления о событиях (пороги оборудования, офлайн, и т.д.)
 2. **Broadcast сообщения** - ручная рассылка новостей и объявлений администраторами
+
+### 🤖 Telegram Боты - ВАЖНО!
+
+**⚠️ КРИТИЧНО: Используются ДВА РАЗНЫХ бота для PROD и TEST!**
+
+**PRODUCTION Bot:**
+- Username: @TradeFrameDW_Bot
+- Token: `8049816280:AAEHimSlNiuyRIRA_sjrG9f78lvc9aprwa8`
+- Назначение: Боевая среда prod.dataworker.ru
+- Конфигурация: `/var/www/www-root/data/www/prod.dataworker.ru/server/.env`
+
+**TEST Bot:**
+- Username: @TradeFrameTest_Bot
+- Token: `8136366785:AAGeedwALOK5jIM8ACDb1i99vxjZebyRdD0`
+- Назначение: Тестовая среда testtf.dataworker.ru
+- Конфигурация: `/var/www/www-root/data/www/testTF.dataworker.ru/server/.env`
+
+**Почему разные боты?**
+1. Разделение пользователей - тестовые и production подписки не пересекаются
+2. Разные базы данных - у PROD и TEST разные Supabase таблицы
+3. Предотвращение конфликтов 409 - два сервера не конфликтуют за одного бота
+4. Безопасность - компрометация TEST не затрагивает PROD
+
+**⚠️ ВАЖНО для локальной разработки:**
+- НЕ используйте PROD токен в локальном `server/.env`
+- Создайте отдельный DEV бот или используйте TEST токен
+- Иначе возникнет конфликт 409 (два процесса читают обновления одного бота)
 
 ### 📨 Система Broadcast Сообщений (NEW!)
 
