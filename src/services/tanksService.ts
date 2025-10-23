@@ -71,7 +71,7 @@ class TanksService {
         id: apiTank.number || apiTank.id,
         name: `Резервуар №${apiTank.number}`,
         fuelType: apiTank.fuel_name || 'Неизвестно',
-        currentLevelLiters: parseFloat(apiTank.volume_end || apiTank.volume || '0'),
+        currentLevelLiters: parseFloat(apiTank.volume || apiTank.volume_end || '0'),
         capacityLiters: parseFloat(apiTank.volume_max || '0'),
         minLevelPercent: 20,
         criticalLevelPercent: 10,
