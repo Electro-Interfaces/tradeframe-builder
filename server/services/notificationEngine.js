@@ -569,17 +569,17 @@ class NotificationEngine {
 
           // Для каждого резервуара проверяем пороги
           for (const tank of tanks) {
+            // ✅ ВАЖНО: Пропускаем неактивные резервуары (state !== 1)
+            // API может вернуть резервуары из других станций сети или неактивные резервуары
+            // Только резервуары с state === 1 являются активными и должны проверяться
+            if (!tank.state || tank.state !== 1) {
+              continue;
+            }
+
             const fuelType = tank.fuel_name;
             const currentVolume = parseFloat(tank.volume || tank.volume_end || 0);
             const maxVolume = parseFloat(tank.volume_max || 1);
             const currentPercent = maxVolume > 0 ? (currentVolume / maxVolume) * 100 : 0;
-
-            // Пропускаем резервуары с некорректными данными
-            // (если объем = 0 и емкость > 0, скорее всего это ошибка API или неактивный резервуар)
-            if (currentVolume === 0 && maxVolume > 0) {
-              console.warn(`⚠️ Пропущен резервуар ${tank.number} (${fuelType}) на станции ${stationConfig.code}: нулевой объем при ненулевой емкости (возможно, некорректные данные API)`);
-              continue;
-            }
 
             // Получаем пороги для этого вида топлива из настроек станции
             const fuelThresholds = stationConfig.fuelLevelThresholds?.thresholds?.find(
