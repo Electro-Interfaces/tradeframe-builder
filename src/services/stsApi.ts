@@ -231,6 +231,8 @@ interface Transaction {
   id: number;
   transactionId: string;
   date: string;
+  stationNumber?: string;
+  stationName?: string;
   pumpId?: number;
   pumpName?: string;
   fuelType: string;
@@ -383,8 +385,9 @@ class STSApiService {
         throw new Error(`Ошибка 422: Номер сети "${networkId}" должен быть числом. Проверьте поле "external_id" для выбранной сети.`);
       }
 
-      // Для запросов транзакций обязательно требуется торговая точка
-      if (endpoint.includes('/v1/transactions')) {
+      // Для запросов транзакций v1 обязательно требуется торговая точка
+      // v2/transactions работает без station (возвращает данные по всем станциям системы)
+      if (endpoint.includes('/v1/transactions') && !endpoint.includes('/v2/transactions')) {
         if (!tradingPointId) {
           console.error('🔍 STS API: Отсутствует номер торговой точки для запроса транзакций');
           throw new Error(`Ошибка 422: Для запроса транзакций требуется указать номер торговой точки (station). Выберите конкретную торговую точку в селекторе.`);
@@ -962,7 +965,8 @@ class STSApiService {
 
     try {
       // Формируем endpoint с параметрами
-      let endpoint = '/v1/transactions';
+      // Используем v2 endpoint который работает без обязательного station параметра
+      let endpoint = '/v2/transactions';
       const params = new URLSearchParams();
 
       // Добавляем дополнительные параметры фильтрации если они заданы
@@ -982,10 +986,25 @@ class STSApiService {
 
       const data = await this.apiRequest<any>(endpoint, {}, contextParams);
 
-      if (Array.isArray(data)) {
+      // Обработка формата v2 API: массив объектов с полем items
+      if (Array.isArray(data) && data.length > 0 && data[0].items) {
+        // v2/transactions возвращает: [{system, number, total, items: [...]}]
+        const allTransactions = data.flatMap(station =>
+          (station.items || []).map((tx: any) => ({
+            ...tx,
+            stationNumber: station.number // Добавляем номер станции к каждой транзакции
+          }))
+        );
+        const mappedTransactions = allTransactions.map(tx => this.mapApiTransactionToTransaction(tx));
+        return mappedTransactions;
+      }
+      // Обработка формата v1 API: массив транзакций напрямую
+      else if (Array.isArray(data)) {
         const mappedTransactions = data.map(tx => this.mapApiTransactionToTransaction(tx));
         return mappedTransactions;
-      } else if (data && typeof data === 'object' && data.transactions) {
+      }
+      // Обработка формата с полем transactions
+      else if (data && typeof data === 'object' && data.transactions) {
         const mappedTransactions = data.transactions.map(tx => this.mapApiTransactionToTransaction(tx));
         return mappedTransactions;
       }
@@ -1171,6 +1190,8 @@ class STSApiService {
       id,
       transactionId,
       date,
+      stationNumber: apiTransaction.stationNumber?.toString(),
+      stationName: apiTransaction.stationName,
       startTime,
       endTime: endTime || undefined,
       pumpId,

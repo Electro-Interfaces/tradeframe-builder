@@ -3,11 +3,14 @@
  * ОПТИМИЗИРОВАНО: Добавлена мемоизация для предотвращения лишних ре-рендеров
  */
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Thermometer, Gauge, Droplets, Fuel } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Thermometer, Gauge, Droplets, Fuel, LineChart, Settings } from "lucide-react";
 import { TankProgressIndicator } from "./TankProgressIndicator";
+import { TankAnalysisDialog } from "./TankAnalysisDialog";
+import { TankCalibrationDialog } from "./TankCalibrationDialog";
 import type { Tank, TankStatus } from "@/types/tanks";
 
 interface TankCardProps {
@@ -32,6 +35,8 @@ function getTankStatus(percentage: number, minLevel: number, criticalLevel: numb
 }
 
 const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showCalibration, setShowCalibration] = useState(false);
   const currentLevel = tank.currentLevelLiters || 0;
   const capacity = tank.capacityLiters || 0;
   const percentage = getPercentage(currentLevel, capacity);
@@ -41,6 +46,31 @@ const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
   return (
     <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
       <CardHeader className={isMobile ? 'pb-3 px-3 pt-3' : 'pb-4'}>
+        {/* Кнопки действий */}
+        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'} mb-3`}>
+          <Button
+            variant="outline"
+            size={isMobile ? 'sm' : 'default'}
+            className="flex-1 hover:bg-accent/50"
+            onClick={() => setShowAnalysis(true)}
+          >
+            <LineChart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+            {!isMobile && 'Детальный анализ'}
+            {isMobile && 'Анализ'}
+          </Button>
+
+          <Button
+            variant="outline"
+            size={isMobile ? 'sm' : 'default'}
+            className="flex-1 hover:bg-accent/50"
+            onClick={() => setShowCalibration(true)}
+          >
+            <Settings className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+            Параметры
+          </Button>
+        </div>
+
+        {/* Заголовок резервуара */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-3 h-8 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-md flex-shrink-0"></div>
@@ -231,7 +261,22 @@ const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
             </div>
           </div>
         </div>
+
       </CardContent>
+
+      {/* Диалог анализа */}
+      <TankAnalysisDialog
+        tank={tank}
+        open={showAnalysis}
+        onOpenChange={setShowAnalysis}
+      />
+
+      {/* Диалог калибровки */}
+      <TankCalibrationDialog
+        tank={tank}
+        open={showCalibration}
+        onOpenChange={setShowCalibration}
+      />
     </Card>
   );
 };

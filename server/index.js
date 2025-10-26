@@ -9,6 +9,7 @@ const stsRoutes = require('./routes/sts');
 const telegramRoutes = require('./routes/telegram');
 const messagesRoutes = require('./routes/messages');
 const supabaseRoutes = require('./routes/supabase');
+const tankCalibrationRoutes = require('./routes/tankCalibration');
 const { initTelegramBot } = require('./telegram-bot');
 
 const app = express();
@@ -69,6 +70,9 @@ app.use('/api/messages', messagesRoutes);
 
 // Подключаем роуты для Supabase (прокси для обхода CORS и блокировок)
 app.use('/api/supabase', supabaseRoutes);
+
+// Подключаем роуты для настроек калибровки резервуаров
+app.use('/api/tank-calibration', tankCalibrationRoutes);
 
 // Обработка несуществующих роутов
 app.use((req, res) => {

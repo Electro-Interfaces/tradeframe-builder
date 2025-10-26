@@ -7,6 +7,7 @@ import { NameConfirmationDialog } from "@/components/dialogs/NameConfirmationDia
 import { TradingPointCreateDialog } from "@/components/dialogs/TradingPointCreateDialog";
 import { TradingPointEditDialog } from "@/components/dialogs/TradingPointEditDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSelection } from "@/contexts/SelectionContext";
 import { useNetworks } from "./NetworksPage/hooks/useNetworks";
 import { useTradingPoints } from "./NetworksPage/hooks/useTradingPoints";
 import { useNetworkDialogs } from "./NetworksPage/hooks/useNetworkDialogs";
@@ -18,6 +19,7 @@ import { TradingPointInput, TradingPointUpdateInput } from "@/types/tradingpoint
 export default function NetworksPage() {
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
+  const { selectedTradingPoint, setSelectedTradingPoint } = useSelection();
 
   // Custom hooks для управления состоянием
   const networksState = useNetworks();
@@ -70,7 +72,13 @@ export default function NetworksPage() {
   };
 
   const handleUpdateTradingPoint = async (id: string, input: TradingPointUpdateInput) => {
-    await tradingPointsState.updateTradingPoint(id, input);
+    const updated = await tradingPointsState.updateTradingPoint(id, input);
+
+    // Если изменился external_id, обновляем выбранную точку в контексте
+    if (updated && selectedTradingPoint === id) {
+      setSelectedTradingPoint(updated.id);
+    }
+
     dialogsState.closePointDialogs();
   };
 

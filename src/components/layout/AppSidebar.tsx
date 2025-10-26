@@ -25,12 +25,37 @@ import {
   Fuel,
   Database
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface AppSidebarProps {
   selectedTradingPoint: string;
   isMobile?: boolean;
   setMobileMenuOpen?: (open: boolean) => void;
 }
+
+const TradingPointMenuItem = ({ item, selectedTradingPoint, isMobile, setMobileMenuOpen, getNavCls, isActive }) => {
+  const handleNavigate = (e) => {
+    // Разрешаем навигацию всегда, страницы сами покажут сообщение если нужна конкретная АЗС
+    if (isMobile && setMobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+  };
+
+  const isLinkActive = isActive(item.url);
+
+  return (
+    <div key={item.title}>
+      <NavLink
+        to={item.url}
+        onClick={handleNavigate}
+        className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isLinkActive)}`}
+      >
+        <item.icon className="w-4 h-4 flex-shrink-0" />
+        <span className="truncate">{item.title}</span>
+      </NavLink>
+    </div>
+  );
+};
 
 const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobileMenuOpen }: AppSidebarProps) => {
   const { state } = useSidebar();
@@ -114,6 +139,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const networkMenuItems = [
     { title: "Обзор", url: "/network/overview", icon: Network },
     { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
+    { title: "Остатки топлива", url: "/network/fuel-inventory", icon: Fuel },
     { title: "Поступления", url: "/network/receipts", icon: Fuel },
     { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },
     { title: "Купоны", url: "/network/coupons", icon: Component },
@@ -196,22 +222,15 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
           {openGroups.includes("trading-point") && (
             <div className="space-y-1">
               {tradingPointMenuItems.map((item) => (
-                <div key={item.title}>
-                  <div 
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                      getNavCls(isActive(item.url))
-                    }`}
-                  >
-                    <NavLink 
-                      to={item.url} 
-                      className="flex items-center gap-3 w-full"
-                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                    >
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{item.title}</span>
-                    </NavLink>
-                  </div>
-                </div>
+                <TradingPointMenuItem
+                  key={item.title}
+                  item={item}
+                  selectedTradingPoint={selectedTradingPoint}
+                  isMobile={isMobile}
+                  setMobileMenuOpen={setMobileMenuOpen}
+                  getNavCls={getNavCls}
+                  isActive={isActive}
+                />
               ))}
             </div>
           )}

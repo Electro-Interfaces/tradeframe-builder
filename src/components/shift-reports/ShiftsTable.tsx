@@ -90,6 +90,7 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
       <table className="w-full text-sm">
         <thead className="bg-slate-700/80">
           <tr>
+            <th className="px-6 py-4 text-left text-slate-100 font-medium">ТТ</th>
             <th className="px-6 py-4 text-left text-slate-100 font-medium">СМЕНА №</th>
             <th className="px-6 py-4 text-left text-slate-100 font-medium">ОТКРЫТА</th>
             <th className="px-6 py-4 text-left text-slate-100 font-medium">ЗАКРЫТА</th>
@@ -105,6 +106,13 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
                 onSelectShift(shift.shiftNumber);
               }}
             >
+              {/* ТТ */}
+              <td className="px-6 py-4">
+                <div className="text-white">
+                  {shift.stationName || `ТТ ${shift.stationCode}`}
+                </div>
+              </td>
+
               {/* Номер смены */}
               <td className="px-6 py-4">
                 <span className="text-white font-semibold text-base">

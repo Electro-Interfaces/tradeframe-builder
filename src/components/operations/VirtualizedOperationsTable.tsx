@@ -7,6 +7,8 @@ interface Operation {
   id: string;
   status: string;
   startTime: string;
+  stationNumber?: string;
+  stationName?: string;
   nozzleNumber?: string;
   fuelType?: string;
   actualQuantity?: number;
@@ -70,6 +72,7 @@ const TableRowComponent = memo(({ index, style, operations, onRowClick }: {
       }`}
       onClick={() => onRowClick?.(record)}
     >
+      <div className="flex-shrink-0 w-16 px-2 text-slate-300 text-sm text-center">{record.stationNumber || '-'}</div>
       <div className="flex-shrink-0 w-24 px-2">{getStatusBadge(record.status)}</div>
       <div className="flex-shrink-0 w-32 px-2 text-slate-300 font-mono text-xs truncate">{record.id}</div>
       <div className="flex-shrink-0 w-36 px-2 text-slate-300 text-sm">
@@ -149,6 +152,7 @@ export const VirtualizedOperationsTable = memo(function VirtualizedOperationsTab
           minHeight: '42px'
         }}
       >
+        <div className="flex-shrink-0 w-16 px-2 text-slate-300 text-sm font-medium">ТТ</div>
         <div className="flex-shrink-0 w-24 px-2 text-slate-300 text-sm font-medium">Статус</div>
         <div className="flex-shrink-0 w-32 px-2 text-slate-300 text-sm font-medium">ID</div>
         <div className="flex-shrink-0 w-36 px-2 text-slate-300 text-sm font-medium">Время начала</div>

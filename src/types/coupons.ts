@@ -72,6 +72,8 @@ export interface CouponWithAge extends Coupon {
   isActive: boolean;        // Активен ли купон (state.id === 0)
   isRedeemed: boolean;      // Погашен ли купон (state.id === 2)
   isExpired: boolean;       // Истек ли купон
+  stationName?: string;     // Название торговой точки
+  stationCode?: number;     // Код торговой точки
 }
 
 // Приоритеты купонов для мониторинга

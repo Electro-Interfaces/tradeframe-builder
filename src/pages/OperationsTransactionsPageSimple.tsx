@@ -127,39 +127,44 @@ export default function OperationsTransactionsPageSimple() {
       return;
     }
 
-    if (!selectedTradingPoint || selectedTradingPoint === 'all') {
-      if (!isMobile) alert('Для загрузки транзакций из STS API выберите конкретную торговую точку (не "Все точки")');
-      return;
-    }
-
     setLoadingFromSTS(true);
     try {
-      // Получаем объект торговой точки для получения external_id
-      const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
-      if (!tradingPoint) {
-        throw new Error(`Торговая точка с ID ${selectedTradingPoint} не найдена`);
+      let transactions;
+
+      // Если выбрано "Все торговые точки"
+      if (!selectedTradingPoint || selectedTradingPoint === 'all') {
+        // Загружаем транзакции для всех станций сети через v2 API
+        transactions = await stsApiService.getTransactions(
+          dateFrom,
+          dateTo,
+          100,
+          {
+            networkId: selectedNetwork.external_id
+            // tradingPointId не указываем - получим все станции
+          }
+        );
+      } else {
+        // Загружаем для конкретной торговой точки
+        const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
+        if (!tradingPoint) {
+          throw new Error(`Торговая точка с ID ${selectedTradingPoint} не найдена`);
+        }
+
+        if (tradingPoint.external_id === null || tradingPoint.external_id === undefined || tradingPoint.external_id === '') {
+          throw new Error(`У торговой точки "${tradingPoint.name}" отсутствует external_id. Настройте его в разделе администрирования.`);
+        }
+
+        transactions = await stsApiService.getTransactions(
+          dateFrom,
+          dateTo,
+          100,
+          {
+            networkId: selectedNetwork.external_id,
+            tradingPointId: tradingPoint.external_id
+          }
+        );
       }
 
-      if (tradingPoint.external_id === null || tradingPoint.external_id === undefined || tradingPoint.external_id === '') {
-        throw new Error(`У торговой точки "${tradingPoint.name}" отсутствует external_id. Настройте его в разделе администрирования.`);
-      }
-      
-      const transactions = await stsApiService.getTransactions(
-        dateFrom,
-        dateTo,
-        100,
-        {
-          networkId: selectedNetwork.external_id,
-          tradingPointId: tradingPoint.external_id
-        }
-      );
-      
-      
-      // Детальный анализ первой транзакции для отладки маппинга
-      if (transactions.length > 0) {
-        const firstTx = transactions[0];
-      }
-      
       // Сортируем транзакции по дате (свежие сверху)
       const sortedTransactions = transactions.sort((a, b) => {
         const dateA = new Date(a.startTime || a.date).getTime();
@@ -177,6 +182,8 @@ export default function OperationsTransactionsPageSimple() {
           id: rawTx.id?.toString() || tx.transactionId || rawTx.id,
           status: tx.status || 'completed',
           toNumber: '4', // Номер ТО (фиксированное значение)
+          stationNumber: tx.stationNumber || rawTx.stationNumber?.toString(),
+          stationName: tx.stationName || rawTx.stationName,
           startTime: rawTx.dt || tx.startTime || tx.date,
           endTime: tx.endTime,
 

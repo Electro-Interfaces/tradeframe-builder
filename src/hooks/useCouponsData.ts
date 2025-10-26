@@ -42,8 +42,11 @@ export function useCouponsData() {
       // Загружаем данные с API
       const apiResponse = await couponsApiService.getCoupons(apiParams);
 
-      // Обрабатываем ответ API
-      const processedResult = couponsApiService.processRawCoupons(apiResponse);
+      // Обрабатываем ответ API, передаем название ТТ
+      const processedResult = await couponsApiService.processRawCoupons(
+        apiResponse,
+        selectedTradingPoint?.name
+      );
 
       // Применяем дополнительные фильтры
       const filteredResult = couponsApiService.filterCoupons(processedResult, filters);

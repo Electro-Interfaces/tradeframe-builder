@@ -116,6 +116,7 @@ export interface TradingPointInput {
 }
 
 export interface TradingPointUpdateInput extends TradingPointInput {
+  external_id?: string;
   isBlocked?: boolean;
   blockReason?: string;
 }

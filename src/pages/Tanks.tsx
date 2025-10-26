@@ -15,6 +15,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { TankCard } from "@/components/tanks/TankCard";
 import { PULL_TO_REFRESH_CONFIG } from "@/config/pullToRefresh";
 import { PullToRefreshIndicator } from "@/components/common/PullToRefreshIndicator";
+import { SelectTradingPointMessage } from "@/components/common/SelectTradingPointMessage";
 import type { Tank } from "@/types/tanks";
 
 // Мемоизированный компонент списка резервуаров
@@ -52,19 +53,11 @@ export default function Tanks() {
   });
 
   // Empty state если не выбрана торговая точка
-  if (!selectedTradingPoint) {
+  if (!selectedTradingPoint || selectedTradingPoint === 'all') {
     return (
       <MainLayout fullWidth={true}>
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <Gauge className="h-16 w-16 text-slate-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-white mb-2">
-              Торговая точка не выбрана
-            </h2>
-            <p className="text-slate-400">
-              Пожалуйста, выберите торговую точку для просмотра данных о резервуарах
-            </p>
-          </div>
+        <div className="p-6">
+          <SelectTradingPointMessage message="Выберите торговую точку в селекторе для просмотра данных о резервуарах" />
         </div>
       </MainLayout>
     );

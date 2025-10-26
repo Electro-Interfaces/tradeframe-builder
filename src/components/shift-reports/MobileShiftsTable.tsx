@@ -147,6 +147,13 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
                     {getStatusBadge(shift.status)}
                   </div>
 
+                  {/* ТТ */}
+                  <div className="mb-2">
+                    <span className="text-slate-300 text-sm">
+                      {shift.stationName || `ТТ ${shift.stationCode}`}
+                    </span>
+                  </div>
+
                   {/* Даты - компактный вид */}
                   <div className="space-y-1 text-sm mb-2">
                     <div className="flex items-center gap-2">

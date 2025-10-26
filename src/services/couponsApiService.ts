@@ -4,6 +4,7 @@
  */
 
 import { stsProxyClient } from './stsProxyClient';
+import { tradingPointsService } from './tradingPointsService';
 import {
   CouponsApiResponse,
   CouponsApiParams,
@@ -59,18 +60,31 @@ class CouponsApiService {
   /**
    * Обработка данных купонов с добавлением расчетных полей
    */
-  processRawCoupons(apiResponse: CouponsApiResponse): CouponsSearchResult {
+  async processRawCoupons(apiResponse: CouponsApiResponse, stationName?: string): Promise<CouponsSearchResult> {
     const groups: CouponsStationGroup[] = [];
     let totalStats: CouponsStats = this.getEmptyStats();
 
+    // Загружаем все торговые точки один раз для получения названий
+    const allTradingPoints = await tradingPointsService.getAll();
+
     apiResponse.forEach(stationData => {
-      const couponsWithAge = this.addAgeCalculations(stationData.coupons);
+      // Пытаемся найти название станции по external_id
+      let displayStationName = stationName;
+
+      if (!displayStationName) {
+        const tradingPoint = allTradingPoints.find(
+          tp => tp.external_id === String(stationData.number)
+        );
+        displayStationName = tradingPoint?.name || `ТТ ${stationData.number}`;
+      }
+
+      const couponsWithAge = this.addAgeCalculations(stationData.coupons, displayStationName, stationData.number);
 
       // Создаем группу для станции
       const group: CouponsStationGroup = {
         systemId: stationData.system,
         stationId: stationData.number,
-        stationName: `Станция ${stationData.number}`,
+        stationName: displayStationName,
         totalDebt: this.calculateTotalDebt(couponsWithAge),
         activeCouponsCount: stationData.total.active,
         totalCouponsCount: stationData.coupons.length,
@@ -96,7 +110,7 @@ class CouponsApiService {
   /**
    * Добавление расчетных полей к купонам
    */
-  private addAgeCalculations(coupons: any[]): CouponWithAge[] {
+  private addAgeCalculations(coupons: any[], stationName: string, stationCode: number): CouponWithAge[] {
     const now = new Date();
 
     return coupons.map(coupon => {
@@ -124,7 +138,9 @@ class CouponsApiService {
         priority,
         isActive,
         isRedeemed,
-        isExpired
+        isExpired,
+        stationName,
+        stationCode
       };
     });
   }

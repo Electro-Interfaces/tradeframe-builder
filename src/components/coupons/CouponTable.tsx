@@ -26,6 +26,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
       <Table>
         <TableHeader>
           <TableRow className="border-slate-700 hover:bg-slate-800">
+            <TableHead className="text-slate-300 min-w-[120px]">ТТ</TableHead>
             <TableHead className="text-slate-300 min-w-[120px]">Номер купона</TableHead>
             <TableHead className="text-slate-300 min-w-[140px]">Дата создания</TableHead>
             <TableHead className="text-slate-300 min-w-[100px]">Тип топлива</TableHead>
@@ -40,6 +41,9 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
         <TableBody>
           {coupons.map((coupon) => (
             <TableRow key={coupon.number} className="border-slate-700 hover:bg-slate-800">
+              <TableCell className="text-slate-300 text-sm min-w-[120px]">
+                <span>{coupon.stationName || `ТТ ${coupon.stationCode}`}</span>
+              </TableCell>
               <TableCell className="text-slate-300 font-mono text-sm min-w-[120px]">
                 <div className="flex flex-col">
                   <span>{coupon.number}</span>

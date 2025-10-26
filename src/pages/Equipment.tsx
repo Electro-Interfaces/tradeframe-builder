@@ -17,6 +17,7 @@ import { FuelLevelThresholdsCard } from "@/components/equipment/FuelLevelThresho
 import { EquipmentHeader } from "@/components/equipment/EquipmentHeader";
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/PageStates";
 import { PullToRefreshIndicator } from "@/components/common/PullToRefreshIndicator";
+import { SelectTradingPointMessage } from "@/components/common/SelectTradingPointMessage";
 import { PULL_TO_REFRESH_CONFIG } from "@/config/pullToRefresh";
 
 export default function Equipment() {
@@ -71,13 +72,12 @@ export default function Equipment() {
   }
 
   // Empty state если не выбрана торговая точка
-  if (!selectedTradingPoint) {
+  if (!selectedTradingPoint || selectedTradingPoint === 'all') {
     return (
       <MainLayout fullWidth={true}>
-        <EmptyState
-          title="Оборудование"
-          message="Выберите торговую точку для просмотра оборудования"
-        />
+        <div className="p-6">
+          <SelectTradingPointMessage message="Выберите торговую точку в селекторе для просмотра оборудования" />
+        </div>
       </MainLayout>
     );
   }

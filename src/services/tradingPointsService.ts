@@ -142,6 +142,11 @@ export const tradingPointsService = {
   // Получить торговую точку по ID
   async getById(id: TradingPointId): Promise<TradingPoint | null> {
     try {
+      // Обработка специального случая "Все торговые точки"
+      if (id === 'all') {
+        return null;
+      }
+
       const parsed = parseStationId(id);
       if (!parsed) {
         console.error('Invalid trading point ID format:', id);
@@ -284,7 +289,7 @@ export const tradingPointsService = {
   },
 
   // Обновить торговую точку (обновить станцию в tenant.settings.stations)
-  async update(id: TradingPointId, input: TradingPointInput): Promise<TradingPoint | null> {
+  async update(id: TradingPointId, input: TradingPointInput & { external_id?: string }): Promise<TradingPoint | null> {
     try {
       const parsed = parseStationId(id);
       if (!parsed) {
@@ -311,9 +316,10 @@ export const tradingPointsService = {
       }
 
       // Обновляем станцию
-      // ✅ ИСПРАВЛЕНИЕ: Сохраняем ВСЕ поля (геолокация, контакты, услуги, расписание)
+      // ✅ ИСПРАВЛЕНИЕ: Сохраняем ВСЕ поля (геолокация, контакты, услуги, расписание, external_id)
       stations[stationIndex] = {
         ...stations[stationIndex],
+        code: input.external_id || stations[stationIndex].code,
         name: input.name,
         description: input.description,
         address: input.geolocation?.address || stations[stationIndex].address,
@@ -350,8 +356,11 @@ export const tradingPointsService = {
 
       const updatedStation = stations[stationIndex];
 
+      // Генерируем новый ID на основе обновленного code
+      const newId = generateStationId(tenant.code, updatedStation.code);
+
       return {
-        id: id,
+        id: newId,
         external_id: updatedStation.code,
         networkId: tenant.id,
         name: updatedStation.name,

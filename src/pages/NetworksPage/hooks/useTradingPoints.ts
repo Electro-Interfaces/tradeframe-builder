@@ -9,7 +9,7 @@ interface UseTradingPointsReturn {
   actionLoading: string | null;
   loadTradingPoints: (networkId: string) => Promise<void>;
   createTradingPoint: (input: TradingPointInput) => Promise<void>;
-  updateTradingPoint: (id: string, input: TradingPointUpdateInput) => Promise<void>;
+  updateTradingPoint: (id: string, input: TradingPointUpdateInput) => Promise<TradingPoint | null>;
   deleteTradingPoint: (id: string) => Promise<void>;
   searchTradingPoints: (query: string) => TradingPoint[];
 }
@@ -58,18 +58,26 @@ export function useTradingPoints(networkId: string | null): UseTradingPointsRetu
     }
   }, [toast]);
 
-  const updateTradingPoint = useCallback(async (id: string, input: TradingPointUpdateInput) => {
+  const updateTradingPoint = useCallback(async (id: string, input: TradingPointUpdateInput): Promise<TradingPoint | null> => {
     setActionLoading(`update-${id}`);
     try {
       const updated = await tradingPointsService.update(id, input);
       if (updated) {
-        setTradingPoints(prev => prev.map(p => p.id === id ? updated : p));
+        // Если external_id изменился, то изменился и ID точки
+        // Удаляем старую запись и добавляем новую
+        setTradingPoints(prev => {
+          const filtered = prev.filter(p => p.id !== id);
+          return [updated, ...filtered];
+        });
 
         toast({
           title: "Успешно",
           description: "Торговая точка обновлена"
         });
+
+        return updated;
       }
+      return null;
     } catch (error) {
       toast({
         title: "Ошибка",

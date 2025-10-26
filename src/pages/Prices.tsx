@@ -56,6 +56,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SelectTradingPointMessage } from "@/components/common/SelectTradingPointMessage";
 import { useSelection } from "@/contexts/SelectionContext";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import {
@@ -869,25 +870,11 @@ export default function Prices() {
 
 
   // Проверка выбора торговой точки
-  if (!selectedTradingPoint) {
+  if (!selectedTradingPoint || selectedTradingPoint === 'all') {
     return (
       <MainLayout fullWidth={true}>
-        <div className="w-full h-full px-4 md:px-6 lg:px-8">
-          <div className="mb-6 pt-4">
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Цены по видам топлива</h1>
-              <span className="text-xs text-green-400 font-mono">🔧 Версия: {new Date().toLocaleTimeString()}</span>
-            </div>
-          </div>
-          <div className="bg-slate-800 mb-6 w-full rounded-lg">
-            <div className="px-4 md:px-6 py-4">
-              <EmptyState 
-                title="Выберите торговую точку" 
-                description="Для управления ценами на топливо необходимо выбрать торговую точку из выпадающего списка выше"
-                className="py-16"
-              />
-            </div>
-          </div>
+        <div className="p-6">
+          <SelectTradingPointMessage message="Выберите торговую точку в селекторе для управления ценами на топливо" />
         </div>
       </MainLayout>
     );

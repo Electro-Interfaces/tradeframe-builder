@@ -36,7 +36,8 @@ export function useThresholds(options: UseThresholdsOptions = {}): UseThresholds
    * Загрузка данных торговой точки
    */
   const loadThresholds = useCallback(async () => {
-    if (!tradingPointId) {
+    // Нет торговой точки или выбраны "Все торговые точки"
+    if (!tradingPointId || tradingPointId === 'all') {
       setBillAcceptorThresholds(undefined);
       setFuelLevelThresholds(undefined);
       return;

@@ -121,14 +121,20 @@ export default function NetworkOverview() {
       // Загружаем дополнительные данные для более полного обзора
       let additionalDataLoaded = [];
       try {
-        
-        // Загружаем резервуары
-        const tanksData = await stsApiService.getTanks(contextParams);
-        setTanks(tanksData);
-        if (tanksData.length > 0) additionalDataLoaded.push(`${tanksData.length} резервуаров`);
+
+        // Загружаем резервуары (только для конкретной торговой точки)
+        if (contextParams.tradingPointId && contextParams.tradingPointId !== 'all' && contextParams.tradingPointId !== '1') {
+          try {
+            const tanksData = await stsApiService.getTanks(contextParams);
+            setTanks(tanksData);
+            if (tanksData.length > 0) additionalDataLoaded.push(`${tanksData.length} резервуаров`);
+          } catch (tanksError) {
+            // Не удалось загрузить резервуары
+          }
+        }
 
         // Загружаем информацию о терминале (если выбрана конкретная торговая точка)
-        if (contextParams.tradingPointId && contextParams.tradingPointId !== '1') {
+        if (contextParams.tradingPointId && contextParams.tradingPointId !== 'all' && contextParams.tradingPointId !== '1') {
           try {
             const terminalData = await stsApiService.getTerminalInfo(contextParams);
             setTerminalInfo(terminalData);
@@ -139,7 +145,7 @@ export default function NetworkOverview() {
         }
 
         // Загружаем цены (если выбрана конкретная торговая точка)
-        if (contextParams.tradingPointId && contextParams.tradingPointId !== '1') {
+        if (contextParams.tradingPointId && contextParams.tradingPointId !== 'all' && contextParams.tradingPointId !== '1') {
           try {
             const pricesData = await stsApiService.getPrices(contextParams);
             setPrices(pricesData);
