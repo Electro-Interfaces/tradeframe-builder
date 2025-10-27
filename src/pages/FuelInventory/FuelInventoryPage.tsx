@@ -4,7 +4,7 @@
  * Модульная архитектура с разделением на components, hooks, utils
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -36,12 +36,14 @@ import {
   ReferenceLine
 } from 'recharts';
 import { useSelection } from '@/contexts/SelectionContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Импорты из локальных модулей
 import { useFuelInventory } from './hooks/useFuelInventory';
 import { useChartData } from './hooks/useChartData';
 import { FuelInventoryFilters } from './components/FuelInventoryFilters';
 import { FuelSummaryCards } from './components/FuelSummaryCards';
+import { TankInventoryCard } from './components/TankInventoryCard';
 import {
   formatNumber,
   filterInventory,
@@ -52,6 +54,7 @@ import {
 
 export default function FuelInventory() {
   const { selectedNetwork } = useSelection();
+  const isMobile = useIsMobile();
 
   // Состояние фильтров
   const [selectedFuel, setSelectedFuel] = useState<string>('all');
@@ -71,14 +74,7 @@ export default function FuelInventory() {
 
   // Используем хуки для загрузки данных
   const { loading, inventory, fuelSummaries, error, loadInventory } = useFuelInventory(dateFrom, dateTo);
-  const { chartDataByFuel, loadingCharts, loadChartData } = useChartData(dateFrom, dateTo);
-
-  // Загрузка данных для графиков при изменении summaries
-  useEffect(() => {
-    if (fuelSummaries.length > 0) {
-      loadChartData(fuelSummaries);
-    }
-  }, [fuelSummaries, loadChartData]);
+  const { chartDataByFuel, loadingCharts, loadChartData } = useChartData(dateFrom, dateTo, fuelSummaries);
 
   // Обработчик клика на заголовок столбца для сортировки
   const handleSort = (column: 'station' | 'fuel') => {
@@ -149,15 +145,15 @@ export default function FuelInventory() {
           <FuelSummaryCards summaries={fuelSummaries} loading={loading} />
         </div>
 
-        {/* Таблица остатков */}
+        {/* Таблица/Карточки остатков */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className={`flex ${isMobile ? 'flex-col gap-3' : 'flex-row justify-between items-center'}`}>
               <CardTitle className="text-white">Остатки по резервуарам</CardTitle>
-              <div className="flex gap-2">
+              <div className={`flex ${isMobile ? 'flex-col w-full' : 'flex-row'} gap-2`}>
                 {/* Фильтр по ТТ */}
                 <Select value={selectedStationFilter} onValueChange={setSelectedStationFilter}>
-                  <SelectTrigger className="w-[200px] bg-slate-900">
+                  <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-slate-900`}>
                     <SelectValue placeholder="Все ТТ" />
                   </SelectTrigger>
                   <SelectContent>
@@ -172,7 +168,7 @@ export default function FuelInventory() {
 
                 {/* Фильтр по виду топлива */}
                 <Select value={selectedFuel} onValueChange={setSelectedFuel}>
-                  <SelectTrigger className="w-[200px] bg-slate-900">
+                  <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-slate-900`}>
                     <SelectValue placeholder="Все виды топлива" />
                   </SelectTrigger>
                   <SelectContent>
@@ -188,136 +184,192 @@ export default function FuelInventory() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border border-slate-700">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-slate-800/50 border-slate-700">
-                    <TableHead className="text-slate-300">
-                      <button
-                        onClick={() => handleSort('station')}
-                        className="flex items-center gap-1 hover:text-white transition-colors"
-                      >
-                        ТТ
-                        {getSortIcon('station')}
-                      </button>
-                    </TableHead>
-                    <TableHead className="text-slate-300">Резервуар</TableHead>
-                    <TableHead className="text-slate-300">
-                      <button
-                        onClick={() => handleSort('fuel')}
-                        className="flex items-center gap-1 hover:text-white transition-colors"
-                      >
-                        Топливо
-                        {getSortIcon('fuel')}
-                      </button>
-                    </TableHead>
-                    <TableHead className="text-right text-slate-300">Начальный остаток</TableHead>
-                    <TableHead className="text-right text-slate-300">Поступления</TableHead>
-                    <TableHead className="text-right text-slate-300">Реализация</TableHead>
-                    <TableHead className="text-right text-slate-300">Книжный остаток</TableHead>
-                    <TableHead className="text-slate-300">Обновлено</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedInventory.map((tank, idx) => (
-                    <TableRow key={idx} className="hover:bg-slate-700/30 border-slate-700">
-                      <TableCell className="text-slate-100">{tank.station}</TableCell>
-                      <TableCell className="text-slate-100">Р{tank.tankNumber}</TableCell>
-                      <TableCell>
-                        <span className="text-slate-100">{tank.fuelName}</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="space-y-0.5">
-                          <div className="font-mono text-slate-400">
-                            {formatNumber(tank.volumeBegin)} л
-                          </div>
-                          {tank.initialShift && (
-                            <div className="text-xs text-slate-500">
-                              Смена #{tank.initialShift.number}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-green-400">
-                        +{formatNumber(tank.volumeReceipts)} л
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-red-400">
-                        -{formatNumber(tank.volumeSales)} л
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="space-y-1">
-                          <div className="font-mono text-slate-100 font-semibold">
-                            {formatNumber(tank.volumeBook)} л
-                          </div>
-                          <div className="flex items-center gap-2 justify-end">
-                            <span className="text-xs text-slate-400">{tank.fillPercent.toFixed(1)}%</span>
-                            <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full ${getProgressColor()}`}
-                                style={{ width: `${tank.fillPercent}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-slate-400 text-sm">
-                        {new Date(tank.lastUpdate).toLocaleString('ru-RU', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+            {isMobile ? (
+              /* Мобильный вид - карточки */
+              <div className="space-y-3">
+                {sortedInventory.length === 0 && !loading ? (
+                  <div className="text-center py-8 text-slate-400">
+                    Нет данных для отображения
+                  </div>
+                ) : (
+                  sortedInventory.map((tank, idx) => (
+                    <TankInventoryCard key={idx} tank={tank} />
+                  ))
+                )}
 
-                  {/* Итоговая строка (только когда выбран конкретный вид топлива) */}
-                  {totals && (
-                    <TableRow className="bg-slate-800/70 border-t-2 border-slate-600 hover:bg-slate-800">
-                      <TableCell colSpan={3} className="text-slate-100 font-semibold">
+                {/* Итоговая карточка для мобильных */}
+                {totals && (
+                  <Card className="bg-slate-900/70 border-slate-600 border-2">
+                    <CardContent className="p-4 space-y-2">
+                      <div className="text-sm font-semibold text-white mb-3">
                         ИТОГО ({totals.tankCount} {totals.tankCount === 1 ? 'резервуар' : totals.tankCount < 5 ? 'резервуара' : 'резервуаров'})
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-slate-300 font-semibold">
-                        {formatNumber(totals.volumeBegin)} л
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-green-400 font-semibold">
-                        +{formatNumber(totals.volumeReceipts)} л
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-red-400 font-semibold">
-                        -{formatNumber(totals.volumeSales)} л
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="space-y-1">
-                          <div className="font-mono text-slate-100 font-bold">
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-slate-800 rounded p-2">
+                          <div className="text-[10px] text-slate-400 mb-0.5">Начальный</div>
+                          <div className="text-sm font-mono text-slate-300 font-semibold">
+                            {formatNumber(totals.volumeBegin)} л
+                          </div>
+                        </div>
+                        <div className="bg-slate-800 rounded p-2">
+                          <div className="text-[10px] text-slate-400 mb-0.5">Книжный</div>
+                          <div className="text-sm font-mono text-white font-bold">
                             {formatNumber(totals.volumeBook)} л
                           </div>
-                          <div className="flex items-center gap-2 justify-end">
-                            <span className="text-xs text-slate-400 font-semibold">
-                              {((totals.volumeBook / totals.capacity) * 100).toFixed(1)}%
-                            </span>
-                            <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full ${getProgressColor()}`}
-                                style={{ width: `${(totals.volumeBook / totals.capacity) * 100}%` }}
-                              ></div>
-                            </div>
+                        </div>
+                        <div className="bg-green-900/20 rounded p-2 border border-green-700/30">
+                          <div className="text-[10px] text-green-400 mb-0.5">Поступления</div>
+                          <div className="text-sm font-mono text-green-400 font-semibold">
+                            +{formatNumber(totals.volumeReceipts)} л
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-slate-500 text-sm">—</TableCell>
+                        <div className="bg-red-900/20 rounded p-2 border border-red-700/30">
+                          <div className="text-[10px] text-red-400 mb-0.5">Реализация</div>
+                          <div className="text-sm font-mono text-red-400 font-semibold">
+                            -{formatNumber(totals.volumeSales)} л
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-slate-400 text-right mt-2">
+                        Заполнение: {((totals.volumeBook / totals.capacity) * 100).toFixed(1)}%
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            ) : (
+              /* Десктопный вид - таблица */
+              <div className="rounded-md border border-slate-700">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-slate-800/50 border-slate-700">
+                      <TableHead className="text-slate-300">
+                        <button
+                          onClick={() => handleSort('station')}
+                          className="flex items-center gap-1 hover:text-white transition-colors"
+                        >
+                          ТТ
+                          {getSortIcon('station')}
+                        </button>
+                      </TableHead>
+                      <TableHead className="text-slate-300">Резервуар</TableHead>
+                      <TableHead className="text-slate-300">
+                        <button
+                          onClick={() => handleSort('fuel')}
+                          className="flex items-center gap-1 hover:text-white transition-colors"
+                        >
+                          Топливо
+                          {getSortIcon('fuel')}
+                        </button>
+                      </TableHead>
+                      <TableHead className="text-right text-slate-300">Начальный остаток</TableHead>
+                      <TableHead className="text-right text-slate-300">Поступления</TableHead>
+                      <TableHead className="text-right text-slate-300">Реализация</TableHead>
+                      <TableHead className="text-right text-slate-300">Книжный остаток</TableHead>
+                      <TableHead className="text-slate-300">Обновлено</TableHead>
                     </TableRow>
-                  )}
+                  </TableHeader>
+                  <TableBody>
+                    {sortedInventory.map((tank, idx) => (
+                      <TableRow key={idx} className="hover:bg-slate-700/30 border-slate-700">
+                        <TableCell className="text-slate-100">{tank.station}</TableCell>
+                        <TableCell className="text-slate-100">Р{tank.tankNumber}</TableCell>
+                        <TableCell>
+                          <span className="text-slate-100">{tank.fuelName}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="space-y-0.5">
+                            <div className="font-mono text-slate-400">
+                              {formatNumber(tank.volumeBegin)} л
+                            </div>
+                            {tank.initialShift && (
+                              <div className="text-xs text-slate-500">
+                                Смена #{tank.initialShift.number}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-green-400">
+                          +{formatNumber(tank.volumeReceipts)} л
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-red-400">
+                          -{formatNumber(tank.volumeSales)} л
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="space-y-1">
+                            <div className="font-mono text-slate-100 font-semibold">
+                              {formatNumber(tank.volumeBook)} л
+                            </div>
+                            <div className="flex items-center gap-2 justify-end">
+                              <span className="text-xs text-slate-400">{tank.fillPercent.toFixed(1)}%</span>
+                              <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full ${getProgressColor()}`}
+                                  style={{ width: `${tank.fillPercent}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-slate-400 text-sm">
+                          {new Date(tank.lastUpdate).toLocaleString('ru-RU', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
 
-                  {sortedInventory.length === 0 && !loading && (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-slate-400">
-                        Нет данных для отображения
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    {/* Итоговая строка (только когда выбран конкретный вид топлива) */}
+                    {totals && (
+                      <TableRow className="bg-slate-800/70 border-t-2 border-slate-600 hover:bg-slate-800">
+                        <TableCell colSpan={3} className="text-slate-100 font-semibold">
+                          ИТОГО ({totals.tankCount} {totals.tankCount === 1 ? 'резервуар' : totals.tankCount < 5 ? 'резервуара' : 'резервуаров'})
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-slate-300 font-semibold">
+                          {formatNumber(totals.volumeBegin)} л
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-green-400 font-semibold">
+                          +{formatNumber(totals.volumeReceipts)} л
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-red-400 font-semibold">
+                          -{formatNumber(totals.volumeSales)} л
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="space-y-1">
+                            <div className="font-mono text-slate-100 font-bold">
+                              {formatNumber(totals.volumeBook)} л
+                            </div>
+                            <div className="flex items-center gap-2 justify-end">
+                              <span className="text-xs text-slate-400 font-semibold">
+                                {((totals.volumeBook / totals.capacity) * 100).toFixed(1)}%
+                              </span>
+                              <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full ${getProgressColor()}`}
+                                  style={{ width: `${(totals.volumeBook / totals.capacity) * 100}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-slate-500 text-sm">—</TableCell>
+                      </TableRow>
+                    )}
+
+                    {sortedInventory.length === 0 && !loading && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-slate-400">
+                          Нет данных для отображения
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -341,6 +393,9 @@ export default function FuelInventory() {
               const trend = lastVolume - firstVolume;
               const trendPercent = ((trend / firstVolume) * 100).toFixed(1);
 
+              // Считаем количество поступлений за период
+              const totalReceiptCount = chartData.reduce((sum, d) => sum + (d.receiptCount || 0), 0);
+
               return (
                 <Card key={summary.fuelCode} className="bg-slate-800 border-slate-700">
                   <CardHeader>
@@ -362,7 +417,7 @@ export default function FuelInventory() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Аналитика */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
                       <div>
                         <div className="text-xs text-slate-400 mb-1">Среднее</div>
                         <div className="text-lg font-semibold text-blue-400">{formatNumber(Math.round(avgVolume))} л</div>
@@ -388,6 +443,10 @@ export default function FuelInventory() {
                           {parseFloat(trendPercent) >= 0 ? '+' : ''}{trendPercent}%
                         </div>
                       </div>
+                      <div>
+                        <div className="text-xs text-slate-400 mb-1">📦 Поступлений</div>
+                        <div className="text-lg font-semibold text-purple-400">{totalReceiptCount} раз</div>
+                      </div>
                     </div>
 
                     {/* График */}
@@ -411,10 +470,37 @@ export default function FuelInventory() {
                             backgroundColor: '#1e293b',
                             border: '1px solid #334155',
                             borderRadius: '6px',
-                            color: '#f1f5f9'
+                            color: '#f1f5f9',
+                            padding: '12px'
                           }}
-                          formatter={(value: number) => [`${formatNumber(value)} л`, 'Остаток']}
-                          labelStyle={{ color: '#94a3b8' }}
+                          content={({ active, payload }) => {
+                            if (!active || !payload || !payload.length) return null;
+                            const data = payload[0].payload;
+                            return (
+                              <div className="space-y-1">
+                                <div className="text-sm font-semibold text-slate-200 border-b border-slate-600 pb-1 mb-2">
+                                  {data.time}
+                                </div>
+                                <div className="text-sm">
+                                  <span className="text-slate-400">Остаток:</span>{' '}
+                                  <span className="font-medium text-emerald-400">{formatNumber(data.volume)} л</span>
+                                </div>
+                                <div className="text-sm">
+                                  <span className="text-slate-400">Реализация:</span>{' '}
+                                  <span className="font-medium text-orange-400">{formatNumber(data.sales)} л</span>
+                                </div>
+                                <div className="text-sm">
+                                  <span className="text-slate-400">Поступления:</span>{' '}
+                                  <span className="font-medium text-blue-400">{formatNumber(data.receipts)} л</span>
+                                </div>
+                                {data.receiptCount > 0 && (
+                                  <div className="text-xs text-slate-500 border-t border-slate-700 pt-1 mt-1">
+                                    📦 Количество поступлений: {data.receiptCount}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }}
                         />
                         {/* Линия среднего значения */}
                         <ReferenceLine

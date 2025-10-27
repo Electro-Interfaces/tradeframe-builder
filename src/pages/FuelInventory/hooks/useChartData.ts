@@ -1,34 +1,46 @@
 /**
  * Хук для загрузки и управления данными графиков
+ * Использует React Query для кэширования
  */
 
-import { useState, useCallback } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useSelection } from '@/contexts/SelectionContext';
 import { stsProxyRequest } from '@/services/stsProxyClient';
 import type { FuelInventorySummary } from '@/services/fuelInventoryService';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
 
-export const useChartData = (dateFrom: string, dateTo: string) => {
+export const useChartData = (dateFrom: string, dateTo: string, summaries: FuelInventorySummary[]) => {
   const { selectedNetwork } = useSelection();
-  const [chartDataByFuel, setChartDataByFuel] = useState<Map<number, any[]>>(new Map());
-  const [loadingCharts, setLoadingCharts] = useState(false);
 
-  const loadChartData = useCallback(async (summaries: FuelInventorySummary[]) => {
+  // Создаем ключ запроса на основе всех параметров
+  const queryKey = useMemo(() => [
+    'chartData',
+    selectedNetwork?.id,
+    dateFrom,
+    dateTo,
+    summaries.map(s => s.fuelCode).join(',')
+  ], [selectedNetwork?.id, dateFrom, dateTo, summaries]);
+
+  // React Query для загрузки данных графиков с кэшированием
+  const {
+    data: chartDataByFuel = new Map<number, any[]>(),
+    isLoading: loadingCharts,
+    refetch: loadChartData
+  } = useQuery<Map<number, any[]>, Error>({
+    queryKey,
+    queryFn: async () => {
     if (!selectedNetwork || summaries.length === 0) {
-      return;
+      return new Map<number, any[]>();
     }
 
-    setLoadingCharts(true);
     const chartData = new Map<number, any[]>();
-
-    try {
       // Получаем список всех ТТ сети
       const { tradingPointsService } = await import('@/services/tradingPointsService');
       const tradingPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
 
       if (tradingPoints.length === 0) {
-        setLoadingCharts(false);
-        return;
+        return new Map<number, any[]>();
       }
 
       // Для каждой ТТ получаем список смен, затем shift_report для каждой смены
@@ -107,8 +119,14 @@ export const useChartData = (dateFrom: string, dateTo: string) => {
       );
 
       // Собираем данные по видам топлива и датам
-      // Map<fuelCode, Map<dateKey, Map<tankKey, { volumeEnd, shiftDate }>>>
-      const dataByFuel = new Map<number, Map<string, Map<string, { volumeEnd: number; shiftDate: string }>>>();
+      // Map<fuelCode, Map<dateKey, Map<tankKey, { volumeEnd, shiftDate, sales, receipts, receiptCount }>>>
+      const dataByFuel = new Map<number, Map<string, Map<string, {
+        volumeEnd: number;
+        shiftDate: string;
+        sales: number;
+        receipts: number;
+        receiptCount: number;
+      }>>>();
 
       allReports.flat().forEach(report => {
         // Пропускаем некорректные записи
@@ -123,9 +141,15 @@ export const useChartData = (dateFrom: string, dateTo: string) => {
 
           const fuelCode = tank.service.service_code;
           const volumeEnd = parseFloat(tank.doc_end?.volume || '0');
-          const shiftDate = report.dt_close || report.dt_open || new Date().toISOString();
+          // Используем dt_open для группировки по дате открытия смены
+          const shiftDate = report.dt_open || report.dt_close || new Date().toISOString();
           const dateKey = shiftDate.split(' ')[0] || shiftDate.split('T')[0];
           const tankKey = `${report.station}_${tank.tank}`;
+
+          // Извлекаем данные о продажах и поступлениях (из правильных полей)
+          const sales = parseFloat(tank.release?.volume || '0');
+          const receipts = parseFloat(tank.receipt?.volume || '0');
+          const receiptCount = receipts > 0 ? 1 : 0; // Если было поступление - считаем
 
           // Инициализируем структуры данных
           if (!dataByFuel.has(fuelCode)) {
@@ -142,7 +166,13 @@ export const useChartData = (dateFrom: string, dateTo: string) => {
 
           // Берем последнюю смену за день для этого резервуара
           if (!existing || new Date(shiftDate) > new Date(existing.shiftDate)) {
-            dayData.set(tankKey, { volumeEnd, shiftDate });
+            dayData.set(tankKey, {
+              volumeEnd,
+              shiftDate,
+              sales,
+              receipts,
+              receiptCount
+            });
           }
         });
       });
@@ -154,13 +184,20 @@ export const useChartData = (dateFrom: string, dateTo: string) => {
         if (fuelData) {
           const chartPoints = Array.from(fuelData.entries())
             .map(([dateKey, tankRecords]) => {
+              const records = Array.from(tankRecords.values());
+
               // Суммируем объемы всех резервуаров за день (берем последнюю смену каждого резервуара)
-              const totalVolume = Array.from(tankRecords.values())
-                .reduce((sum, record) => sum + record.volumeEnd, 0);
+              const totalVolume = records.reduce((sum, record) => sum + record.volumeEnd, 0);
+              const totalSales = records.reduce((sum, record) => sum + record.sales, 0);
+              const totalReceipts = records.reduce((sum, record) => sum + record.receipts, 0);
+              const receiptCount = records.reduce((sum, record) => sum + record.receiptCount, 0);
 
               return {
                 time: new Date(dateKey).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
                 volume: Math.round(totalVolume),
+                sales: Math.round(totalSales),
+                receipts: Math.round(totalReceipts),
+                receiptCount: receiptCount,
                 dateKey
               };
             })
@@ -170,13 +207,14 @@ export const useChartData = (dateFrom: string, dateTo: string) => {
         }
       });
 
-      setChartDataByFuel(chartData);
-    } catch (err) {
-      // Ошибки обрабатываются молча
-    } finally {
-      setLoadingCharts(false);
-    }
-  }, [selectedNetwork, dateFrom, dateTo]);
+      return chartData;
+    },
+    enabled: !!selectedNetwork && summaries.length > 0,
+    staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
+    gcTime: 10 * 60 * 1000, // 10 минут - хранение в кэше
+    retry: 1,
+    refetchOnWindowFocus: false
+  });
 
   return {
     chartDataByFuel,
