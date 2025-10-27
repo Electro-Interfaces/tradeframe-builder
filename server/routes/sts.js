@@ -21,8 +21,10 @@ const CACHE_TTL = {
   '/v1/schedule/prices': 300,    // 5 минут - расписание цен
   '/v1/transactions': 30,        // 30 секунд - транзакции нужны свежие
   '/v1/coupons': 180,            // 3 минуты - купоны
-  '/v1/shifts': 60,              // 1 минута - смены
-  '/v1/report/receipts': 120,    // 2 минуты - поступления
+  '/v1/shifts': 300,             // 5 минут - список смен меняется редко
+  '/v1/report/shift_report': 600,// 10 минут - исторические данные не меняются
+  '/v1/report/receipts': 300,    // 5 минут - поступления
+  '/v1/tank_history': 300,       // 5 минут - история резервуаров
   'default': 60                  // 1 минута - остальные
 };
 
@@ -280,7 +282,7 @@ router.get('/v1/coupons', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для отчетов ===
 router.get('/v1/report/receipts', (req, res) => proxyRequest(req, res));
-router.get('/v1/report/shift_report', (req, res) => proxyRequest(req, res));
+router.post('/v1/report/shift_report', (req, res) => proxyRequest(req, res)); // POST для сменных отчетов
 
 // === Endpoints для цен ===
 router.get('/v1/prices', (req, res) => proxyRequest(req, res));
