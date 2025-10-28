@@ -82,6 +82,39 @@ export function TankCalibrationSettingsComponent({
   // Вычисляемый градиент: объём резервуара × коэффициент расширения
   const calculatedGradient = (tankCapacity * settings.thermal_expansion_coefficient).toFixed(2);
 
+  // ⚡ НОВОЕ: Функция расчета объема резервуара по геометрическим размерам
+  const calculateTankVolume = (): number => {
+    const shape = settings.tank_shape_type;
+    const diameter = settings.tank_diameter_mm;
+    const length = settings.tank_length_mm;
+    const width = settings.tank_width_mm;
+    const height = settings.tank_height_mm;
+
+    switch (shape) {
+      case 'horizontal_cylinder':
+        // V = π × (D/2)² × L (литры)
+        return Math.PI * Math.pow(diameter / 2, 2) * length / 1_000_000;
+
+      case 'vertical_cylinder':
+        // V = π × (D/2)² × H (литры)
+        return Math.PI * Math.pow(diameter / 2, 2) * height / 1_000_000;
+
+      case 'spherical':
+        // V = (4/3) × π × (D/2)³ (литры)
+        return (4 / 3) * Math.PI * Math.pow(diameter / 2, 3) / 1_000_000;
+
+      case 'rectangular':
+        // V = L × W × H (литры)
+        return length * width * height / 1_000_000;
+
+      default:
+        return 0;
+    }
+  };
+
+  // Автоматически рассчитанный объем резервуара (литры)
+  const calculatedVolume = calculateTankVolume();
+
   const updateSetting = <K extends keyof CalibrationSettings>(
     key: K,
     value: CalibrationSettings[K]
@@ -408,41 +441,79 @@ export function TankCalibrationSettingsComponent({
 
               {/* Геометрические параметры резервуара */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="tank_diameter_mm">Диаметр резервуара (мм)</Label>
-                  <Input
-                    id="tank_diameter_mm"
-                    type="number"
-                    min="1000"
-                    value={settings.tank_diameter_mm}
-                    onChange={(e) => updateSetting('tank_diameter_mm', parseInt(e.target.value))}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Внутренний диаметр резервуара. Типовые: 2500, 2600, 3000 мм
-                  </p>
-                </div>
+                {/* Диаметр - только для цилиндрических и сферических */}
+                {(settings.tank_shape_type === 'horizontal_cylinder' ||
+                  settings.tank_shape_type === 'vertical_cylinder' ||
+                  settings.tank_shape_type === 'spherical') && (
+                  <div className="space-y-2">
+                    <Label htmlFor="tank_diameter_mm">Диаметр резервуара (мм)</Label>
+                    <Input
+                      id="tank_diameter_mm"
+                      type="number"
+                      min="1000"
+                      value={settings.tank_diameter_mm}
+                      onChange={(e) => updateSetting('tank_diameter_mm', parseInt(e.target.value))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Внутренний диаметр резервуара. Типовые: 2500, 2600, 3000 мм
+                    </p>
+                  </div>
+                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="tank_length_or_height">
-                    {settings.tank_shape_type === 'vertical_cylinder' ? 'Высота резервуара (мм)' : 'Длина резервуара (мм)'}
-                  </Label>
-                  <Input
-                    id="tank_length_or_height"
-                    type="number"
-                    min="1000"
-                    value={settings.tank_shape_type === 'vertical_cylinder' ? settings.tank_height_mm : settings.tank_length_mm}
-                    onChange={(e) => {
-                      const field = settings.tank_shape_type === 'vertical_cylinder' ? 'tank_height_mm' : 'tank_length_mm';
-                      updateSetting(field, parseInt(e.target.value));
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {settings.tank_shape_type === 'vertical_cylinder' 
-                      ? 'Высота вертикального резервуара' 
-                      : 'Длина горизонтального резервуара. Типовые: 6300, 7800 мм'}
-                  </p>
-                </div>
+                {/* Длина - для горизонтальных цилиндров и прямоугольных */}
+                {(settings.tank_shape_type === 'horizontal_cylinder' ||
+                  settings.tank_shape_type === 'rectangular') && (
+                  <div className="space-y-2">
+                    <Label htmlFor="tank_length_mm">Длина резервуара (мм)</Label>
+                    <Input
+                      id="tank_length_mm"
+                      type="number"
+                      min="1000"
+                      value={settings.tank_length_mm}
+                      onChange={(e) => updateSetting('tank_length_mm', parseInt(e.target.value))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Длина резервуара. Типовые: 6300, 7800 мм
+                    </p>
+                  </div>
+                )}
 
+                {/* Ширина - только для прямоугольных */}
+                {settings.tank_shape_type === 'rectangular' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="tank_width_mm">Ширина резервуара (мм)</Label>
+                    <Input
+                      id="tank_width_mm"
+                      type="number"
+                      min="1000"
+                      value={settings.tank_width_mm}
+                      onChange={(e) => updateSetting('tank_width_mm', parseInt(e.target.value))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Ширина прямоугольного резервуара
+                    </p>
+                  </div>
+                )}
+
+                {/* Высота - для вертикальных цилиндров и прямоугольных */}
+                {(settings.tank_shape_type === 'vertical_cylinder' ||
+                  settings.tank_shape_type === 'rectangular') && (
+                  <div className="space-y-2">
+                    <Label htmlFor="tank_height_mm">Высота резервуара (мм)</Label>
+                    <Input
+                      id="tank_height_mm"
+                      type="number"
+                      min="1000"
+                      value={settings.tank_height_mm}
+                      onChange={(e) => updateSetting('tank_height_mm', parseInt(e.target.value))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Высота резервуара
+                    </p>
+                  </div>
+                )}
+
+                {/* Угол наклона - только для горизонтальных цилиндров */}
                 {settings.tank_shape_type === 'horizontal_cylinder' && (
                   <div className="space-y-2">
                     <Label htmlFor="tank_tilt_angle_degrees">Угол наклона (градусы)</Label>
@@ -460,6 +531,26 @@ export function TankCalibrationSettingsComponent({
                     </p>
                   </div>
                 )}
+              </div>
+
+              {/* Автоматически рассчитанный объем */}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <Calculator className="h-6 w-6 text-blue-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-300">Расчетный объем резервуара</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {settings.tank_shape_type === 'horizontal_cylinder' && 'Формула: V = π × (D/2)² × L'}
+                      {settings.tank_shape_type === 'vertical_cylinder' && 'Формула: V = π × (D/2)² × H'}
+                      {settings.tank_shape_type === 'spherical' && 'Формула: V = (4/3) × π × (D/2)³'}
+                      {settings.tank_shape_type === 'rectangular' && 'Формула: V = L × W × H'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-white">{calculatedVolume.toFixed(0)}</p>
+                    <p className="text-sm text-slate-400">литров</p>
+                  </div>
+                </div>
               </div>
 
               {/* Тип датчика уровня */}

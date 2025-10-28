@@ -382,9 +382,10 @@ export interface TankCalibrationSettings {
   // Характеристики резервуара и оборудования
   tank_shape_type: TankShapeType;          // Тип резервуара по форме
   tank_location_type: TankLocationType;    // Расположение резервуара (наземный/подземный)
-  tank_diameter_mm: number;                // Диаметр резервуара (мм)
+  tank_diameter_mm: number;                // Диаметр резервуара (мм) - для цилиндрических
   tank_length_mm: number;                  // Длина резервуара (мм) - для горизонтальных
-  tank_height_mm: number;                  // Высота резервуара (мм) - для вертикальных
+  tank_width_mm: number;                   // Ширина резервуара (мм) - для прямоугольных
+  tank_height_mm: number;                  // Высота резервуара (мм) - для вертикальных и прямоугольных
   tank_tilt_angle_degrees: number;         // Угол наклона (градусы) - для горизонтальных
   level_sensor_type: LevelSensorType;      // Тип датчика уровня
   nozzles_count: number;                   // Количество пистолетов (ТРК)
@@ -466,7 +467,8 @@ export const DEFAULT_CALIBRATION_SETTINGS: Partial<TankCalibrationSettings> = {
   tank_location_type: 'underground',      // Подземный - наиболее распространённый тип на АЗС
   tank_diameter_mm: 2500,                 // Типовой диаметр 2.5 м (25 м³ резервуар)
   tank_length_mm: 6300,                   // Типовая длина 6.3 м (25 м³ резервуар)
-  tank_height_mm: 2500,                   // Для вертикальных (если применимо)
+  tank_width_mm: 2000,                    // Для прямоугольных (если применимо)
+  tank_height_mm: 2500,                   // Для вертикальных и прямоугольных (если применимо)
   tank_tilt_angle_degrees: 0,             // Обычно 0-3° для горизонтальных
   level_sensor_type: 'radar',             // Радарный - наиболее точный
   nozzles_count: 2,                      // Обычно 2-4 пистолета на резервуар
