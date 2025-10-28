@@ -662,14 +662,12 @@ export function TankCalibrationSettingsComponent({
                   <Input
                     id="bias_offset_percent"
                     type="number"
-                    step="0.01"
-                    min="0"
-                    max="1"
+                    step="0.001"
                     value={settings.bias_offset_percent}
                     onChange={(e) => updateSetting('bias_offset_percent', parseFloat(e.target.value))}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Допустимое колебание показаний для фильтрации выбросов
+                    Допустимое колебание показаний для фильтрации выбросов (может быть отрицательным, точность до 0.001%)
                   </p>
                 </div>
               </div>
