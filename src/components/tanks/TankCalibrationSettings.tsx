@@ -358,9 +358,15 @@ export function TankCalibrationSettingsComponent({
     setAnalysisResult(null);
 
     try {
-      // 1. Получаем текущую активную калибровочную таблицу
-      const currentTables = await getCalibrationTables(tankId);
-      const activeTable = currentTables.find(t => t.is_active && t.status === 'applied');
+      // 1. Получаем текущую активную калибровочную таблицу (если есть)
+      let activeTable;
+      try {
+        const currentTables = await getCalibrationTables(tankId);
+        activeTable = currentTables.find(t => t.is_active && t.status === 'applied');
+      } catch (error) {
+        // Игнорируем ошибку - возможно API не реализован или нет таблиц
+        activeTable = undefined;
+      }
 
       // 2. Получаем историю резервуара за период
       const history = await getTankHistory({
