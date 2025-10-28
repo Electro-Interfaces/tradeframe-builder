@@ -38,7 +38,8 @@ import {
   Download,
   FileSpreadsheet,
   Bell,
-  Gauge
+  Gauge,
+  LineChart
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -78,6 +79,9 @@ export function TankCalibrationSettingsComponent({
   const [calculationNotes, setCalculationNotes] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculationResult, setCalculationResult] = useState<CalculateCalibrationTableResult | null>(null);
+
+  // Состояние для диалога анализа калибровки
+  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
 
   // Вычисляемый градиент: объём резервуара × коэффициент расширения
   const calculatedGradient = (tankCapacity * settings.thermal_expansion_coefficient).toFixed(2);
@@ -315,6 +319,14 @@ export function TankCalibrationSettingsComponent({
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAnalysisDialog(true)}
+          >
+            <LineChart className="w-4 h-4 mr-2" />
+            Анализ Калибровки
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -1536,6 +1548,35 @@ export function TankCalibrationSettingsComponent({
                 <CardTitle>История калибровочных таблиц</CardTitle>
                 <CardDescription>
                   Все расчитанные таблицы для этого резервуара. Применение таблицы требует прав администратора.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CalibrationTablesHistory tankId={tankId} />
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Модальное окно анализа калибровки */}
+      <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
+              <LineChart className="h-6 w-6 text-blue-400" />
+              Анализ Калибровки
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Просмотр истории калибровок и анализ точности измерений резервуара
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">История калибровок</CardTitle>
+                <CardDescription>
+                  Здесь будет отображаться история выполненных калибровок резервуара
                 </CardDescription>
               </CardHeader>
               <CardContent>
