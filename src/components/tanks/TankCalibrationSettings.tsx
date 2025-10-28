@@ -11,6 +11,9 @@ import {
   CalculateCalibrationTableResult
 } from '@/types/tanks';
 import { calculateCalibrationTable, downloadCalibrationTable, getCalibrationTables } from '@/services/calibrationTableService';
+import { calculateCalibrationTable as runCalibrationAlgorithm } from '@/utils/calibrationAlgorithm';
+import { getTankHistory } from '@/services/tankHistoryService';
+import { getTransactions } from '@/services/tankBookService';
 import { CalibrationTablesHistory } from './CalibrationTablesHistory';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -42,6 +45,7 @@ import {
   LineChart
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { useSelection } from '@/contexts/SelectionContext';
 
 interface TankCalibrationSettingsProps {
   tankId: string;
@@ -89,6 +93,7 @@ export function TankCalibrationSettingsComponent({
     } as CalibrationSettings;
   });
 
+  const { selectedNetwork, selectedTradingPoint } = useSelection();
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
@@ -323,7 +328,7 @@ export function TankCalibrationSettingsComponent({
     }
   };
 
-  // Обработчик анализа калибровки (тот же расчет, но с сравнением с текущей таблицей)
+  // Обработчик анализа калибровки (локальный расчет с сравнением с текущей таблицей)
   const handleAnalysis = async () => {
     if (!analysisStartDate || !analysisEndDate) {
       setAnalysisResult({
@@ -341,30 +346,62 @@ export function TankCalibrationSettingsComponent({
       return;
     }
 
+    if (!selectedNetwork || !selectedTradingPoint) {
+      setAnalysisResult({
+        success: false,
+        error: 'Необходимо выбрать сеть и торговую точку',
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     setAnalysisResult(null);
 
     try {
-      // Получаем текущую активную калибровочную таблицу
+      // 1. Получаем текущую активную калибровочную таблицу
       const currentTables = await getCalibrationTables(tankId);
       const activeTable = currentTables.find(t => t.is_active && t.status === 'applied');
 
-      // Запускаем расчет (тот же алгоритм что и автокалибровка)
-      const calculatedResult = await calculateCalibrationTable({
-        tank_id: tankId,
-        period: {
-          start_date: analysisStartDate,
-          end_date: analysisEndDate,
-        },
-        notes: analysisNotes,
-        // TODO: добавить флаг dry_run: true для анализа без сохранения
+      // 2. Получаем историю резервуара за период
+      const history = await getTankHistory({
+        system: selectedNetwork.external_id,
+        station: selectedTradingPoint.external_id,
+        dt_beg: `${analysisStartDate} 00:00:00`,
+        dt_end: `${analysisEndDate} 23:59:59`
       });
 
-      // Сравниваем с текущей таблицей, если она существует
+      // Фильтруем по номеру резервуара (используем tankId как номер)
+      const tankNumber = parseInt(tankId, 10);
+      const tankHistory = history.filter(r => r.number === tankNumber);
+
+      if (tankHistory.length === 0) {
+        throw new Error('Нет данных истории резервуара за выбранный период');
+      }
+
+      // 3. Получаем транзакции (отпуски ТРК) за период
+      const transactionsResponse = await getTransactions({
+        system: selectedNetwork.external_id,
+        station: selectedTradingPoint.external_id,
+        dt_beg: `${analysisStartDate} 00:00:00`,
+        dt_end: `${analysisEndDate} 23:59:59`,
+        limit: 10000 // Достаточно большой лимит
+      });
+
+      const transactions = transactionsResponse.items || [];
+
+      // 4. Запускаем локальный алгоритм расчета калибровочной таблицы
+      const calculationResult = runCalibrationAlgorithm(
+        tankHistory,
+        transactions,
+        settings,
+        tankNumber
+      );
+
+      // 5. Сравниваем с текущей таблицей, если она существует
       let comparison: CalibrationComparison[] | undefined;
       let statistics: AnalysisResult['statistics'] | undefined;
 
-      if (activeTable && activeTable.table && calculatedResult.success && calculatedResult.table) {
+      if (activeTable && activeTable.table && calculationResult.table) {
         comparison = [];
         let totalDiff = 0;
         let totalDiffPercent = 0;
@@ -377,7 +414,7 @@ export function TankCalibrationSettingsComponent({
         );
 
         // Сравниваем каждую точку
-        for (const calcPoint of calculatedResult.table) {
+        for (const calcPoint of calculationResult.table) {
           const currentVolume = currentMap.get(calcPoint.level_mm);
           
           if (currentVolume !== undefined) {
@@ -412,9 +449,13 @@ export function TankCalibrationSettingsComponent({
         }
       }
 
-      // Формируем результат с дополнительной информацией
+      // 6. Формируем результат с дополнительной информацией
       setAnalysisResult({
-        ...calculatedResult,
+        success: true,
+        table: calculationResult.table,
+        calibration_id: '', // Не сохраняется
+        data_points_used: calculationResult.data_points_count,
+        quality_metrics: calculationResult.quality_metrics,
         comparison,
         current_table_version: activeTable?.version,
         statistics,
