@@ -125,14 +125,6 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
       setBookRelease(bookData.bookRelease);
       setBookReceipts(bookData.bookReceipts);
 
-      // Debug: показываем загруженные данные
-      console.log('📊 Данные анализа резервуара загружены:', {
-        historyRecords: historyResult.history.length,
-        bookRelease: bookData.bookRelease,
-        bookReceipts: bookData.bookReceipts,
-        transactionsCount: bookData.transactions.items?.length || 0,
-        receiptsCount: bookData.receipts.shifts?.reduce((sum, s) => sum + (s.receipt?.length || 0), 0) || 0
-      });
     } catch (err) {
       console.error('❌ Ошибка загрузки данных анализа:', err);
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
@@ -170,79 +162,47 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
       return sum + (isNaN(quantity) ? 0 : quantity);
     }, 0);
 
-    // ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ
-    console.log('📊 СРАВНЕНИЕ ДВУХ ПОТОКОВ ДАННЫХ:');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`🔷 РЕЗЕРВУАР: ${tank.name} (ID: ${tankNumber})`);
-    console.log(`⏰ Первая запись истории: ${firstRecord.dt}`);
-    console.log('');
-    console.log('📈 ФАКТИЧЕСКАЯ РЕАЛИЗАЦИЯ (датчики резервуара):');
-    console.log(`   Источник: /v1/tank_history поле "volume" (фактический остаток)`);
-    console.log(`   Фактический остаток в первой записи: ${firstVolume.toFixed(2)} л`);
-    console.log(`   Расчет: изменение фактического остатка (firstVolume - currentVolume)`);
-    console.log('');
-    console.log('📕 КНИЖНАЯ РЕАЛИЗАЦИЯ (транзакции):');
-    console.log(`   Источник: /v2/transactions поле "quantity"`);
-    console.log(`   Транзакций до первой записи: ${transactionsBeforeFirst.length} шт`);
-    console.log(`   Сумма транзакций до первой записи: ${firstReleaseBook.toFixed(2)} л`);
-    if (transactionsBeforeFirst.length > 0) {
-      console.log('   Первые 3 транзакции:');
-      transactionsBeforeFirst.slice(0, 3).forEach((tx, idx) => {
-        const qty = typeof tx.quantity === 'string' ? parseFloat(tx.quantity) : tx.quantity;
-        console.log(`     ${idx + 1}. ${tx.dt} - ${qty.toFixed(2)} л (${tx.fuel_name})`);
-      });
-    }
-    console.log('');
-    console.log('🔢 НАЧАЛЬНЫЕ ЗНАЧЕНИЯ:');
-    console.log(`   Фактический остаток: ${firstVolume.toFixed(2)} л`);
-    console.log(`   Книжная реализация до первой записи: ${firstReleaseBook.toFixed(2)} л`);
-    console.log('');
-    console.log('💡 ПРИМЕЧАНИЕ:');
-    console.log(`   Графики будут нормализованы - начинаться с 0 литров`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
 
   // Подготовка данных для графиков
-  const chartData = history.map((record, index) => {
+  const tankNumber = typeof tank.id === 'number' ? tank.id : parseInt(tank.id.toString());
+
+  // ⚡ ОПТИМИЗАЦИЯ: Предварительно фильтруем и сортируем транзакции ОДИН раз
+  const tankTransactions = transactions?.items
+    ? transactions.items
+        .filter(item => item.tank === tankNumber)
+        .map(item => ({
+          time: new Date(item.dt || '').getTime(),
+          quantity: typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity
+        }))
+        .filter(item => !isNaN(item.quantity))
+        .sort((a, b) => a.time - b.time)
+    : [];
+
+  // ⚡ ОПТИМИЗАЦИЯ: Используем TWO-POINTER подход O(n+m) вместо O(n×m)
+  let txPointer = 0; // Указатель на текущую транзакцию
+  let cumulativeRelease = 0; // Накопленная реализация
+
+  const chartData = history.map((record) => {
     const currentVolume = parseFloat(record.volume);
     const currentVolumeEnd = parseFloat(record.volume_end);
+    const currentTime = new Date(record.dt).getTime();
 
     // 🔷 ФАКТИЧЕСКАЯ РЕАЛИЗАЦИЯ (с датчиков резервуара)
-    // Рассчитываем по изменению фактического остатка
     const releaseActual = firstVolume - currentVolume;
 
     // 📕 КНИЖНАЯ РЕАЛИЗАЦИЯ (из транзакций)
-    // Рассчитываем по фактическим транзакциям
-    let releaseBook = 0;
-    let releaseBookRaw = 0; // Для расчета книжного остатка
-
-    if (transactions?.items && transactions.items.length > 0) {
-      // Получаем номер резервуара
-      const tankNumber = typeof tank.id === 'number' ? tank.id : parseInt(tank.id.toString());
-      const currentTime = new Date(record.dt).getTime();
-
-      // Суммируем все транзакции до текущего момента времени
-      releaseBookRaw = transactions.items
-        .filter(item => item.tank === tankNumber) // Только этот резервуар
-        .filter(item => {
-          // Только транзакции до или равно текущего времени
-          const txTime = new Date(item.dt || '').getTime();
-          return txTime <= currentTime;
-        })
-        .reduce((sum, item) => {
-          const quantity = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
-          return sum + (isNaN(quantity) ? 0 : quantity);
-        }, 0);
-
-      // Нормализуем относительно начала периода
-      releaseBook = releaseBookRaw - firstReleaseBook;
+    // Добавляем все транзакции до текущего времени в накопительную сумму
+    while (txPointer < tankTransactions.length && tankTransactions[txPointer].time <= currentTime) {
+      cumulativeRelease += tankTransactions[txPointer].quantity;
+      txPointer++;
     }
-    // Если нет транзакций - releaseBook остается 0
+
+    const releaseBook = cumulativeRelease - firstReleaseBook;
 
     // 📗 КНИЖНЫЙ ОСТАТОК
-    // Рассчитываем: остаток на начало смены минус все транзакции с 00:00
     const volumeBegin = parseFloat(record.volume_begin);
-    const volumeBookCalculated = volumeBegin - releaseBookRaw;
+    const volumeBookCalculated = volumeBegin - cumulativeRelease;
 
     return {
       time: new Date(record.dt).toLocaleString('ru-RU', {
@@ -251,18 +211,11 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
         hour: '2-digit',
         minute: '2-digit'
       }),
-      // Остатки
-      volumeActual: currentVolume,                    // Фактический (по датчикам)
-      volumeBook: volumeBookCalculated,               // Книжный (рассчитанный: начало смены - транзакции)
-
-      // Реализация
-      releaseActual: releaseActual,                   // Фактическая реализация (нормализованная от начала периода)
-      releaseBook: releaseBook,                       // Книжная реализация (нормализованная от начала периода)
-
-      // Разница реализации
-      releaseDifference: releaseActual - releaseBook, // Разница (фактическая - книжная)
-
-      // Остальные показатели
+      volumeActual: currentVolume,
+      volumeBook: volumeBookCalculated,
+      releaseActual: releaseActual,
+      releaseBook: releaseBook,
+      releaseDifference: releaseActual - releaseBook,
       temperature: parseFloat(record.temperature),
       density: parseFloat(record.density),
       waterLevel: parseFloat(record.water.level)
@@ -270,44 +223,6 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
   });
 
   // Логирование итоговых значений графика
-  if (chartData.length > 0 && firstRecord) {
-    const lastRecord = chartData[chartData.length - 1];
-    console.log('');
-    console.log('📊 ИТОГОВЫЕ ЗНАЧЕНИЯ НА ГРАФИКЕ:');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`📍 Период: ${chartData[0].time} → ${lastRecord.time}`);
-    console.log(`📏 Точек на графике: ${chartData.length}`);
-    console.log('');
-    console.log('📈 ФАКТИЧЕСКАЯ РЕАЛИЗАЦИЯ (датчики):');
-    console.log(`   Источник: изменение volume (${firstVolume.toFixed(2)} → ${parseFloat(history[history.length-1].volume).toFixed(2)} л)`);
-    console.log(`   Начало: ${chartData[0].releaseActual.toFixed(2)} л (нормализовано)`);
-    console.log(`   Конец: ${lastRecord.releaseActual.toFixed(2)} л`);
-    console.log(`   Всего отпущено: ${lastRecord.releaseActual.toFixed(2)} л`);
-    console.log('');
-    console.log('📕 КНИЖНАЯ РЕАЛИЗАЦИЯ (транзакции):');
-    console.log(`   Источник: сумма quantity из /v2/transactions`);
-    console.log(`   Начало: ${chartData[0].releaseBook.toFixed(2)} л (нормализовано)`);
-    console.log(`   Конец: ${lastRecord.releaseBook.toFixed(2)} л`);
-    console.log(`   Всего по транзакциям: ${lastRecord.releaseBook.toFixed(2)} л`);
-    console.log('');
-    console.log('⚖️ РАСХОЖДЕНИЕ (Факт - Книга):');
-    console.log(`   В начале периода: ${chartData[0].releaseDifference.toFixed(2)} л`);
-    console.log(`   В конце периода: ${lastRecord.releaseDifference.toFixed(2)} л`);
-    const avgDiff = chartData.reduce((sum, d) => sum + d.releaseDifference, 0) / chartData.length;
-    console.log(`   Средняя разница: ${avgDiff.toFixed(2)} л`);
-    console.log('');
-    if (Math.abs(lastRecord.releaseDifference) > 50) {
-      console.log(`   ⚠️ ВНИМАНИЕ: Большое расхождение ${lastRecord.releaseDifference.toFixed(2)} л!`);
-      if (lastRecord.releaseDifference > 0) {
-        console.log(`   Факт БОЛЬШЕ книги - возможно недоучтенные транзакции`);
-      } else {
-        console.log(`   Книга БОЛЬШЕ факта - возможно утечки или испарение`);
-      }
-    } else {
-      console.log(`   ✅ Расхождение в пределах нормы`);
-    }
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  }
 
   // 📊 График "Погрешность" - используем те же точки что и chartData
   // Для каждой точки вычисляем: Книжная реализация - Фактическая реализация
@@ -549,17 +464,27 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
             {/* График остатков */}
             <TabsContent value="volume" className="mt-6">
               <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="volumeActualGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="volumeBookGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                   <XAxis
                     dataKey="time"
                     stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                   />
                   <YAxis
                     stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
-                    label={{ value: 'Литры', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    label={{ value: 'Объем (л)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
                   />
                   <Tooltip
                     contentStyle={{
@@ -569,42 +494,50 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                       color: '#fff'
                     }}
                   />
-                  <Legend />
-                  <Line
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Area
                     type="monotone"
                     dataKey="volumeActual"
                     stroke="#3b82f6"
                     strokeWidth={2}
-                    name="Фактический остаток (л)"
-                    dot={{ fill: '#3b82f6', r: 3 }}
+                    fill="url(#volumeActualGradient)"
+                    name="Фактический остаток"
+                    dot={false}
                   />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="volumeBook"
                     stroke="#10b981"
                     strokeWidth={2}
                     strokeDasharray="5 5"
-                    name="Книжный остаток (л)"
-                    dot={{ fill: '#10b981', r: 3 }}
+                    fill="url(#volumeBookGradient)"
+                    name="Книжный остаток"
+                    dot={false}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </TabsContent>
 
             {/* График температуры */}
             <TabsContent value="temperature" className="mt-6">
               <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="temperatureGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                   <XAxis
                     dataKey="time"
                     stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                   />
                   <YAxis
                     stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
-                    label={{ value: '°C', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    label={{ value: 'Температура (°C)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
                   />
                   <Tooltip
                     contentStyle={{
@@ -614,33 +547,40 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                       color: '#fff'
                     }}
                   />
-                  <Legend />
-                  <Line
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Area
                     type="monotone"
                     dataKey="temperature"
                     stroke="#f59e0b"
                     strokeWidth={2}
-                    name="Температура (°C)"
-                    dot={{ fill: '#f59e0b', r: 3 }}
+                    fill="url(#temperatureGradient)"
+                    name="Температура"
+                    dot={false}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </TabsContent>
 
             {/* График плотности */}
             <TabsContent value="density" className="mt-6">
               <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="densityGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                   <XAxis
                     dataKey="time"
                     stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                   />
                   <YAxis
                     stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
-                    label={{ value: 'кг/м³', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    label={{ value: 'Плотность (кг/м³)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
                   />
                   <Tooltip
                     contentStyle={{
@@ -650,33 +590,40 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                       color: '#fff'
                     }}
                   />
-                  <Legend />
-                  <Line
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Area
                     type="monotone"
                     dataKey="density"
                     stroke="#8b5cf6"
                     strokeWidth={2}
-                    name="Плотность (кг/м³)"
-                    dot={{ fill: '#8b5cf6', r: 3 }}
+                    fill="url(#densityGradient)"
+                    name="Плотность"
+                    dot={false}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </TabsContent>
 
             {/* График уровня воды */}
             <TabsContent value="water" className="mt-6">
               <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="waterGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                   <XAxis
                     dataKey="time"
                     stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                   />
                   <YAxis
                     stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8' }}
-                    label={{ value: 'см', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                    label={{ value: 'Уровень воды (см)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
                   />
                   <Tooltip
                     contentStyle={{
@@ -686,16 +633,17 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                       color: '#fff'
                     }}
                   />
-                  <Legend />
-                  <Line
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Area
                     type="monotone"
                     dataKey="waterLevel"
                     stroke="#06b6d4"
                     strokeWidth={2}
-                    name="Уровень воды (см)"
-                    dot={{ fill: '#06b6d4', r: 3 }}
+                    fill="url(#waterGradient)"
+                    name="Уровень воды"
+                    dot={false}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </TabsContent>
 
@@ -729,7 +677,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                     stroke="#10b981"
                     fill="#10b981"
                     fillOpacity={0.3}
-                    strokeWidth={2}
+                    strokeWidth={1}
                     name="Фактическая реализация (л)"
                   />
                   <Area
@@ -738,7 +686,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                     stroke="#f59e0b"
                     fill="#f59e0b"
                     fillOpacity={0.2}
-                    strokeWidth={2}
+                    strokeWidth={1}
                     strokeDasharray="5 5"
                     name="Книжная реализация (л)"
                   />
@@ -799,7 +747,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                     stroke="#a855f7"
                     fill="#a855f7"
                     fillOpacity={0.3}
-                    strokeWidth={3}
+                    strokeWidth={1}
                     name="Погрешность учета (л)"
                   />
                 </AreaChart>
