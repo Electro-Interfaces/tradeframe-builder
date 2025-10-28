@@ -10,7 +10,7 @@ import {
   CalibrationMethod,
   CalculateCalibrationTableResult
 } from '@/types/tanks';
-import { calculateCalibrationTable, downloadCalibrationTable } from '@/services/calibrationTableService';
+import { calculateCalibrationTable, downloadCalibrationTable, getCalibrationTables } from '@/services/calibrationTableService';
 import { CalibrationTablesHistory } from './CalibrationTablesHistory';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -51,6 +51,26 @@ interface TankCalibrationSettingsProps {
   onSave: (settings: CalibrationSettings) => Promise<void>;
 }
 
+// Интерфейс для результата сравнения калибровочных таблиц
+interface CalibrationComparison {
+  level_mm: number;
+  current_volume: number;
+  calculated_volume: number;
+  difference: number;
+  difference_percent: number;
+}
+
+interface AnalysisResult extends CalculateCalibrationTableResult {
+  comparison?: CalibrationComparison[];
+  current_table_version?: number;
+  statistics?: {
+    max_difference: number;
+    avg_difference: number;
+    max_difference_percent: number;
+    avg_difference_percent: number;
+  };
+}
+
 export function TankCalibrationSettingsComponent({
   tankId,
   tankName,
@@ -82,6 +102,11 @@ export function TankCalibrationSettingsComponent({
 
   // Состояние для диалога анализа калибровки
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
+  const [analysisStartDate, setAnalysisStartDate] = useState('');
+  const [analysisEndDate, setAnalysisEndDate] = useState('');
+  const [analysisNotes, setAnalysisNotes] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
   // Вычисляемый градиент: объём резервуара × коэффициент расширения
   const calculatedGradient = (tankCapacity * settings.thermal_expansion_coefficient).toFixed(2);
@@ -295,6 +320,112 @@ export function TankCalibrationSettingsComponent({
       });
     } finally {
       setIsCalculating(false);
+    }
+  };
+
+  // Обработчик анализа калибровки (тот же расчет, но с сравнением с текущей таблицей)
+  const handleAnalysis = async () => {
+    if (!analysisStartDate || !analysisEndDate) {
+      setAnalysisResult({
+        success: false,
+        error: 'Необходимо указать начальную и конечную дату периода анализа',
+      });
+      return;
+    }
+
+    if (new Date(analysisStartDate) > new Date(analysisEndDate)) {
+      setAnalysisResult({
+        success: false,
+        error: 'Начальная дата не может быть позже конечной',
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+
+    try {
+      // Получаем текущую активную калибровочную таблицу
+      const currentTables = await getCalibrationTables(tankId);
+      const activeTable = currentTables.find(t => t.is_active && t.status === 'applied');
+
+      // Запускаем расчет (тот же алгоритм что и автокалибровка)
+      const calculatedResult = await calculateCalibrationTable({
+        tank_id: tankId,
+        period: {
+          start_date: analysisStartDate,
+          end_date: analysisEndDate,
+        },
+        notes: analysisNotes,
+        // TODO: добавить флаг dry_run: true для анализа без сохранения
+      });
+
+      // Сравниваем с текущей таблицей, если она существует
+      let comparison: CalibrationComparison[] | undefined;
+      let statistics: AnalysisResult['statistics'] | undefined;
+
+      if (activeTable && activeTable.table && calculatedResult.success && calculatedResult.table) {
+        comparison = [];
+        let totalDiff = 0;
+        let totalDiffPercent = 0;
+        let maxDiff = 0;
+        let maxDiffPercent = 0;
+
+        // Создаем map текущих значений для быстрого поиска
+        const currentMap = new Map(
+          activeTable.table.map(point => [point.level_mm, point.volume_liters])
+        );
+
+        // Сравниваем каждую точку
+        for (const calcPoint of calculatedResult.table) {
+          const currentVolume = currentMap.get(calcPoint.level_mm);
+          
+          if (currentVolume !== undefined) {
+            const difference = calcPoint.volume_liters - currentVolume;
+            const differencePercent = currentVolume > 0 
+              ? (difference / currentVolume) * 100 
+              : 0;
+
+            comparison.push({
+              level_mm: calcPoint.level_mm,
+              current_volume: currentVolume,
+              calculated_volume: calcPoint.volume_liters,
+              difference,
+              difference_percent: differencePercent,
+            });
+
+            totalDiff += Math.abs(difference);
+            totalDiffPercent += Math.abs(differencePercent);
+            maxDiff = Math.max(maxDiff, Math.abs(difference));
+            maxDiffPercent = Math.max(maxDiffPercent, Math.abs(differencePercent));
+          }
+        }
+
+        // Вычисляем статистику
+        if (comparison.length > 0) {
+          statistics = {
+            max_difference: maxDiff,
+            avg_difference: totalDiff / comparison.length,
+            max_difference_percent: maxDiffPercent,
+            avg_difference_percent: totalDiffPercent / comparison.length,
+          };
+        }
+      }
+
+      // Формируем результат с дополнительной информацией
+      setAnalysisResult({
+        ...calculatedResult,
+        comparison,
+        current_table_version: activeTable?.version,
+        statistics,
+      });
+    } catch (error) {
+      setAnalysisResult({
+        success: false,
+        error: error instanceof Error ? error.message : 'Ошибка анализа',
+      });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -1560,29 +1691,391 @@ export function TankCalibrationSettingsComponent({
 
       {/* Модальное окно анализа калибровки */}
       <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
               <LineChart className="h-6 w-6 text-blue-400" />
               Анализ Калибровки
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Просмотр истории калибровок и анализ точности измерений резервуара
+            <DialogDescription className="text-slate-400 text-base">
+              Расчет таблицы на основе реальных отпусков ТРК с последующим сравнением с текущей калибровкой
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 mt-4">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">История калибровок</CardTitle>
-                <CardDescription>
-                  Здесь будет отображаться история выполненных калибровок резервуара
-                </CardDescription>
+          <div className="space-y-6">
+            {/* Выбор периода */}
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-blue-400" />
+                  Период анализа данных
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <CalibrationTablesHistory tankId={tankId} />
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Дата от */}
+                  <div>
+                    <Label htmlFor="analysis_start_date" className="text-sm text-slate-300">📅 Начальная дата</Label>
+                    <Input
+                      id="analysis_start_date"
+                      type="date"
+                      value={analysisStartDate}
+                      onChange={(e) => setAnalysisStartDate(e.target.value)}
+                      max={analysisEndDate || undefined}
+                      className="mt-1.5 bg-slate-900 border-slate-600 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Дата до */}
+                  <div>
+                    <Label htmlFor="analysis_end_date" className="text-sm text-slate-300">📅 Конечная дата</Label>
+                    <Input
+                      id="analysis_end_date"
+                      type="date"
+                      value={analysisEndDate}
+                      onChange={(e) => setAnalysisEndDate(e.target.value)}
+                      min={analysisStartDate || undefined}
+                      max={new Date().toISOString().split('T')[0]}
+                      className="mt-1.5 bg-slate-900 border-slate-600 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-200 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                  </div>
+                </div>
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-2.5">
+                  <p className="text-xs text-blue-300 flex items-center gap-2">
+                    <span className="text-blue-400">ℹ️</span>
+                    Данные из /v1/tank_history (обновление каждые 10 минут)
+                  </p>
+                </div>
               </CardContent>
             </Card>
+
+            {/* Параметры расчета */}
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-green-400" />
+                  Параметры расчета
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Алгоритм расчета */}
+                <div className="space-y-2">
+                  <Label htmlFor="analysis_calibration_method" className="text-sm font-medium text-slate-200">
+                    🧮 Алгоритм расчета
+                  </Label>
+                  <Select
+                    value={settings.calibration_method}
+                    onValueChange={(value) => updateSetting('calibration_method', value as CalibrationMethod)}
+                  >
+                    <SelectTrigger id="analysis_calibration_method" className="bg-slate-900 border-slate-600">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="linear_regression">Линейная регрессия</SelectItem>
+                      <SelectItem value="least_squares">Метод наименьших квадратов (МНК)</SelectItem>
+                      <SelectItem value="moving_average">Скользящее среднее</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {/* Динамическое описание алгоритма */}
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-md p-2.5">
+                    <p className="text-xs text-slate-300">
+                      {settings.calibration_method === 'linear_regression' && (
+                        <>
+                          <span className="font-semibold text-blue-400">Линейная регрессия:</span> Строит линейную зависимость между уровнем и объемом.
+                          Быстрый и простой метод, подходит для резервуаров с простой геометрией.
+                        </>
+                      )}
+                      {settings.calibration_method === 'least_squares' && (
+                        <>
+                          <span className="font-semibold text-green-400">МНК:</span> Минимизирует сумму квадратов отклонений.
+                          Наиболее точный метод, учитывает все точки данных. Рекомендуется для коммерческого учета.
+                        </>
+                      )}
+                      {settings.calibration_method === 'moving_average' && (
+                        <>
+                          <span className="font-semibold text-orange-400">Скользящее среднее:</span> Сглаживает колебания данных усреднением.
+                          Устойчив к выбросам, хорош для данных с шумом и частыми колебаниями.
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <Separator className="my-3" />
+
+                {/* Фильтрация аномалий */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-orange-400" />
+                    Фильтрация данных
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
+                      <Label htmlFor="analysis_exclude_delivery" className="text-sm cursor-pointer">
+                        ⛽ Исключать приемы топлива
+                      </Label>
+                      <Switch
+                        id="analysis_exclude_delivery"
+                        checked={settings.exclude_delivery_periods}
+                        onCheckedChange={(checked) => updateSetting('exclude_delivery_periods', checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
+                      <Label htmlFor="analysis_exclude_maintenance" className="text-sm cursor-pointer">
+                        🔧 Исключать периоды ТО
+                      </Label>
+                      <Switch
+                        id="analysis_exclude_maintenance"
+                        checked={settings.exclude_maintenance_periods}
+                        onCheckedChange={(checked) => updateSetting('exclude_maintenance_periods', checked)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
+                      <Label htmlFor="analysis_outlier_filter" className="text-sm cursor-pointer">
+                        🎯 Фильтр выбросов
+                      </Label>
+                      <Switch
+                        id="analysis_outlier_filter"
+                        checked={settings.outlier_filter_enabled}
+                        onCheckedChange={(checked) => updateSetting('outlier_filter_enabled', checked)}
+                      />
+                    </div>
+
+                    {settings.outlier_filter_enabled && (
+                      <div className="space-y-2">
+                        <Label htmlFor="analysis_outlier_sigma" className="text-sm text-slate-300">σ Сигма</Label>
+                        <Input
+                          id="analysis_outlier_sigma"
+                          type="number"
+                          step="0.1"
+                          value={settings.outlier_filter_sigma}
+                          onChange={(e) => updateSetting('outlier_filter_sigma', parseFloat(e.target.value))}
+                          className="bg-slate-900 border-slate-600"
+                        />
+                        <p className="text-xs text-slate-400">
+                          3σ = 99.7% данных
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Separator className="my-3" />
+
+                {/* Веса данных */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                    ⚖️ Веса источников данных
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="analysis_sensor_weight" className="text-sm text-slate-300">
+                        📡 Вес уровнемера (0-1)
+                      </Label>
+                      <Input
+                        id="analysis_sensor_weight"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="1"
+                        value={settings.sensor_weight}
+                        onChange={(e) => updateSetting('sensor_weight', parseFloat(e.target.value))}
+                        className="bg-slate-900 border-slate-600"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="analysis_dispenser_weight" className="text-sm text-slate-300">
+                        ⛽ Вес ТРК (0-1)
+                      </Label>
+                      <Input
+                        id="analysis_dispenser_weight"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="1"
+                        value={settings.dispenser_weight}
+                        onChange={(e) => updateSetting('dispenser_weight', parseFloat(e.target.value))}
+                        className="bg-slate-900 border-slate-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Примечания */}
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-purple-400" />
+                  Примечания к анализу
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  id="analysis_notes"
+                  placeholder="Укажите причину анализа калибровки..."
+                  value={analysisNotes}
+                  onChange={(e) => setAnalysisNotes(e.target.value)}
+                  rows={3}
+                  className="bg-slate-900 border-slate-600 resize-none"
+                />
+              </CardContent>
+            </Card>
+
+            {/* Кнопка анализа */}
+            <Button
+              onClick={handleAnalysis}
+              disabled={isAnalyzing}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Выполняется анализ...
+                </>
+              ) : (
+                <>
+                  <LineChart className="w-4 h-4 mr-2" />
+                  Выполнить анализ
+                </>
+              )}
+            </Button>
+
+            {/* Результаты анализа */}
+            {analysisResult && (
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    {analysisResult.success ? (
+                      <>
+                        <CheckCircle2 className="h-5 w-5 text-green-400" />
+                        <span className="text-green-400">Анализ выполнен успешно</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-5 w-5 text-red-400" />
+                        <span className="text-red-400">Ошибка анализа</span>
+                      </>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {analysisResult.success ? (
+                    <div className="space-y-4">
+                      {/* Статистика сравнения */}
+                      {analysisResult.statistics && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="bg-slate-900 border border-slate-700 rounded-md p-3">
+                            <p className="text-xs text-slate-400 mb-1">Макс. отклонение</p>
+                            <p className="text-lg font-semibold text-white">
+                              {analysisResult.statistics.max_difference.toFixed(2)} л
+                            </p>
+                          </div>
+                          <div className="bg-slate-900 border border-slate-700 rounded-md p-3">
+                            <p className="text-xs text-slate-400 mb-1">Средн. отклонение</p>
+                            <p className="text-lg font-semibold text-white">
+                              {analysisResult.statistics.avg_difference.toFixed(2)} л
+                            </p>
+                          </div>
+                          <div className="bg-slate-900 border border-slate-700 rounded-md p-3">
+                            <p className="text-xs text-slate-400 mb-1">Макс. отклонение %</p>
+                            <p className="text-lg font-semibold text-white">
+                              {analysisResult.statistics.max_difference_percent.toFixed(3)}%
+                            </p>
+                          </div>
+                          <div className="bg-slate-900 border border-slate-700 rounded-md p-3">
+                            <p className="text-xs text-slate-400 mb-1">Средн. отклонение %</p>
+                            <p className="text-lg font-semibold text-white">
+                              {analysisResult.statistics.avg_difference_percent.toFixed(3)}%
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Информация о версии текущей таблицы */}
+                      {analysisResult.current_table_version !== undefined && (
+                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-md p-3">
+                          <p className="text-sm text-blue-300">
+                            ℹ️ Сравнение с текущей таблицей (версия {analysisResult.current_table_version})
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Таблица сравнения */}
+                      {analysisResult.comparison && analysisResult.comparison.length > 0 && (
+                        <div className="border border-slate-700 rounded-md overflow-hidden">
+                          <div className="max-h-96 overflow-y-auto">
+                            <table className="w-full text-sm">
+                              <thead className="bg-slate-800 sticky top-0">
+                                <tr>
+                                  <th className="px-3 py-2 text-left text-slate-300 font-medium">Уровень (мм)</th>
+                                  <th className="px-3 py-2 text-right text-slate-300 font-medium">Текущий (л)</th>
+                                  <th className="px-3 py-2 text-right text-slate-300 font-medium">Рассчитанный (л)</th>
+                                  <th className="px-3 py-2 text-right text-slate-300 font-medium">Разница (л)</th>
+                                  <th className="px-3 py-2 text-right text-slate-300 font-medium">Разница (%)</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-slate-900">
+                                {analysisResult.comparison.map((row, idx) => (
+                                  <tr 
+                                    key={idx}
+                                    className={`border-t border-slate-800 ${
+                                      Math.abs(row.difference_percent) > 1 ? 'bg-red-500/10' :
+                                      Math.abs(row.difference_percent) > 0.5 ? 'bg-yellow-500/10' :
+                                      ''
+                                    }`}
+                                  >
+                                    <td className="px-3 py-2 text-slate-200">{row.level_mm}</td>
+                                    <td className="px-3 py-2 text-right text-slate-200">
+                                      {row.current_volume.toFixed(2)}
+                                    </td>
+                                    <td className="px-3 py-2 text-right text-slate-200">
+                                      {row.calculated_volume.toFixed(2)}
+                                    </td>
+                                    <td className={`px-3 py-2 text-right font-medium ${
+                                      Math.abs(row.difference) > 50 ? 'text-red-400' :
+                                      Math.abs(row.difference) > 20 ? 'text-yellow-400' :
+                                      'text-green-400'
+                                    }`}>
+                                      {row.difference > 0 ? '+' : ''}{row.difference.toFixed(2)}
+                                    </td>
+                                    <td className={`px-3 py-2 text-right font-medium ${
+                                      Math.abs(row.difference_percent) > 1 ? 'text-red-400' :
+                                      Math.abs(row.difference_percent) > 0.5 ? 'text-yellow-400' :
+                                      'text-green-400'
+                                    }`}>
+                                      {row.difference_percent > 0 ? '+' : ''}{row.difference_percent.toFixed(3)}%
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Нет текущей таблицы для сравнения */}
+                      {!analysisResult.comparison && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-4">
+                          <p className="text-sm text-yellow-300">
+                            ⚠️ Нет активной калибровочной таблицы для сравнения. Показаны только рассчитанные значения.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-red-400">
+                      <XCircle className="w-4 h-4" />
+                      <span>Ошибка: {analysisResult.error}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </DialogContent>
       </Dialog>
