@@ -20,10 +20,10 @@ interface TradingPointEditDialogProps {
   onRemoveExternalCode?: (pointId: string, codeId: string) => Promise<void>;
 }
 
-export function TradingPointEditDialog({ 
-  open, 
-  onOpenChange, 
-  tradingPoint, 
+export function TradingPointEditDialog({
+  open,
+  onOpenChange,
+  tradingPoint,
   onSubmit,
   onAddExternalCode,
   onUpdateExternalCode,
@@ -32,6 +32,8 @@ export function TradingPointEditDialog({
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic' | 'codes'>('basic');
+  const [latitudeInput, setLatitudeInput] = useState<string>('');
+  const [longitudeInput, setLongitudeInput] = useState<string>('');
   const [formData, setFormData] = useState<TradingPointUpdateInput>({
     name: "",
     description: "",
@@ -78,13 +80,19 @@ export function TradingPointEditDialog({
   // Initialize form with trading point data when tradingPoint changes
   useEffect(() => {
     if (tradingPoint) {
+      // Инициализация строковых состояний для координат
+      const lat = tradingPoint.geolocation.latitude || 0;
+      const lng = tradingPoint.geolocation.longitude || 0;
+      setLatitudeInput(lat === 0 ? '' : lat.toString());
+      setLongitudeInput(lng === 0 ? '' : lng.toString());
+
       setFormData({
         name: tradingPoint.name || "",
         description: tradingPoint.description || "",
         external_id: tradingPoint.external_id || "",
         geolocation: {
-          latitude: tradingPoint.geolocation.latitude || 0,
-          longitude: tradingPoint.geolocation.longitude || 0,
+          latitude: lat,
+          longitude: lng,
           region: tradingPoint.geolocation.region || "",
           city: tradingPoint.geolocation.city || "",
           address: tradingPoint.geolocation.address || ""
@@ -167,13 +175,18 @@ export function TradingPointEditDialog({
 
   const handleCancel = () => {
     if (tradingPoint) {
+      const lat = tradingPoint.geolocation.latitude || 0;
+      const lng = tradingPoint.geolocation.longitude || 0;
+      setLatitudeInput(lat === 0 ? '' : lat.toString());
+      setLongitudeInput(lng === 0 ? '' : lng.toString());
+
       setFormData({
         name: tradingPoint.name || "",
         description: tradingPoint.description || "",
         external_id: tradingPoint.external_id || "",
         geolocation: {
-          latitude: tradingPoint.geolocation.latitude || 0,
-          longitude: tradingPoint.geolocation.longitude || 0,
+          latitude: lat,
+          longitude: lng,
           region: tradingPoint.geolocation.region || "",
           city: tradingPoint.geolocation.city || "",
           address: tradingPoint.geolocation.address || ""
@@ -384,13 +397,29 @@ export function TradingPointEditDialog({
                 </Label>
                 <Input
                   id="latitude"
-                  type="number"
-                  step="any"
-                  value={formData.geolocation?.latitude}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    geolocation: { ...prev.geolocation!, latitude: parseFloat(e.target.value) || 0 }
-                  }))}
+                  type="text"
+                  inputMode="decimal"
+                  value={latitudeInput}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Разрешаем любой ввод, сохраняем в строковом состоянии
+                    setLatitudeInput(value);
+                    // Парсим только если это валидное число
+                    if (value === '' || value === '-' || value === '.' || value === '-.') {
+                      setFormData(prev => ({
+                        ...prev,
+                        geolocation: { ...prev.geolocation!, latitude: 0 }
+                      }));
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          geolocation: { ...prev.geolocation!, latitude: numValue }
+                        }));
+                      }
+                    }
+                  }}
                   placeholder="55.7558"
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                 />
@@ -402,13 +431,29 @@ export function TradingPointEditDialog({
                 </Label>
                 <Input
                   id="longitude"
-                  type="number"
-                  step="any"
-                  value={formData.geolocation?.longitude}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    geolocation: { ...prev.geolocation!, longitude: parseFloat(e.target.value) || 0 }
-                  }))}
+                  type="text"
+                  inputMode="decimal"
+                  value={longitudeInput}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Разрешаем любой ввод, сохраняем в строковом состоянии
+                    setLongitudeInput(value);
+                    // Парсим только если это валидное число
+                    if (value === '' || value === '-' || value === '.' || value === '-.') {
+                      setFormData(prev => ({
+                        ...prev,
+                        geolocation: { ...prev.geolocation!, longitude: 0 }
+                      }));
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          geolocation: { ...prev.geolocation!, longitude: numValue }
+                        }));
+                      }
+                    }
+                  }}
                   placeholder="49.2077"
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                 />

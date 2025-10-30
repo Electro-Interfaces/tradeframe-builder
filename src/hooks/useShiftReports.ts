@@ -10,10 +10,12 @@ import type { ShiftListItem, ShiftFilters } from '@/types/shift-reports-v2';
 
 interface UseShiftReportsOptions {
   tradingPoint: any | null;
+  networkId: string | null;
+  isAllTradingPoints: boolean;
   filters: ShiftFilters;
 }
 
-export function useShiftReports({ tradingPoint, filters }: UseShiftReportsOptions) {
+export function useShiftReports({ tradingPoint, networkId, isAllTradingPoints, filters }: UseShiftReportsOptions) {
   const [shifts, setShifts] = useState<ShiftListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +23,56 @@ export function useShiftReports({ tradingPoint, filters }: UseShiftReportsOption
   // Загрузка смен
   useEffect(() => {
     const loadShifts = async () => {
+      // Если выбраны "Все торговые точки" - загружаем для всей сети
+      if (isAllTradingPoints && networkId) {
+        try {
+          setLoading(true);
+          setError(null);
+
+          // Загружаем все торговые точки сети
+          const tradingPointsService = (await import('@/services/tradingPointsService')).default;
+          const tradingPoints = await tradingPointsService.getByNetworkId(networkId);
+
+          // Загружаем смены для всех станций параллельно
+          const allShiftsPromises = tradingPoints.map(async (tp) => {
+            const stationNumber = extractStationNumber(tp);
+            if (!stationNumber) return [];
+
+            const requestParams: any = {
+              system: STS_SYSTEM_ID,
+              station: stationNumber,
+            };
+
+            if (filters.dateFrom) {
+              requestParams.dt_beg = new Date(filters.dateFrom).toISOString();
+            }
+            if (filters.dateTo) {
+              requestParams.dt_end = new Date(filters.dateTo).toISOString();
+            }
+
+            try {
+              return await shiftReportsV2Service.getShifts(requestParams, tp.name);
+            } catch (err) {
+              console.error(`Ошибка загрузки смен для ${tp.name}:`, err);
+              return [];
+            }
+          });
+
+          const allShiftsArrays = await Promise.all(allShiftsPromises);
+          const allShifts = allShiftsArrays.flat();
+
+          setShifts(allShifts);
+        } catch (err: any) {
+          const errorMessage = err.message || 'Ошибка загрузки смен';
+          setError(errorMessage);
+          setShifts([]);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // Если выбрана конкретная торговая точка
       if (!tradingPoint) {
         setShifts([]);
         return;
@@ -73,7 +125,7 @@ export function useShiftReports({ tradingPoint, filters }: UseShiftReportsOption
     };
 
     loadShifts();
-  }, [tradingPoint, filters.dateFrom, filters.dateTo]);
+  }, [tradingPoint, networkId, isAllTradingPoints, filters.dateFrom, filters.dateTo]);
 
   // Фильтрация и сортировка смен (даты уже отфильтрованы на сервере)
   const filteredShifts = useMemo(() => {

@@ -10,7 +10,7 @@ import type { ShiftListItem } from '@/types/shift-reports-v2';
 
 interface MobileShiftsTableProps {
   shifts: ShiftListItem[];
-  onSelectShift: (shiftNumber: number) => void;
+  onSelectShift: (shift: ShiftListItem) => void;
   loading?: boolean;
   selectedShiftIds?: string[];
   onToggleShiftSelection?: (shiftId: string) => void;
@@ -138,7 +138,7 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
 
                 <div
                   className="flex-1 min-w-0 cursor-pointer"
-                  onClick={() => onSelectShift(shift.shiftNumber)}
+                  onClick={() => onSelectShift(shift)}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <span className="text-white font-semibold text-base">
@@ -187,7 +187,7 @@ const MobileShiftsTable: React.FC<MobileShiftsTableProps> = ({
                     className="mt-2 w-full text-xs h-8"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onSelectShift(shift.shiftNumber);
+                      onSelectShift(shift);
                     }}
                   >
                     <Eye className="w-3 h-3 mr-1" />

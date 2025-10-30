@@ -140,6 +140,88 @@ export function calculateHorizontalCylinderVolume(
 }
 
 /**
+ * Построить ГЕОМЕТРИЧЕСКУЮ калибровочную таблицу на основе физических параметров
+ * Это ЭТАЛОННАЯ таблица, рассчитанная по математической модели резервуара
+ * 
+ * @param settings - Настройки калибровки (содержат diameter_mm, length_mm, shape и т.д.)
+ * @returns Результат с эталонной калибровочной таблицей
+ */
+export function buildGeometricCalibrationTable(
+  settings: TankCalibrationSettings
+): CalibrationCalculationResult {
+  
+  console.log('📐 Построение ГЕОМЕТРИЧЕСКОЙ калибровочной таблицы');
+  console.log(`   Диаметр: ${settings.tank_diameter_mm} мм`);
+  console.log(`   Длина: ${settings.tank_length_mm} мм`);
+  console.log(`   Форма: ${settings.tank_shape_type}`);
+  
+  const table: CalibrationTablePoint[] = [];
+  const step = settings.calibration_step_mm;
+  
+  // Строим таблицу от 0 до tank_diameter_mm с заданным шагом
+  for (let level = 0; level <= settings.tank_diameter_mm; level += step) {
+    let volume = 0;
+    
+    // Выбираем формулу в зависимости от типа резервуара
+    switch (settings.tank_shape_type) {
+      case 'horizontal_cylinder':
+        volume = calculateHorizontalCylinderVolume(
+          level,
+          settings.tank_diameter_mm,
+          settings.tank_length_mm,
+          settings.tank_tilt_angle_degrees
+        );
+        break;
+      
+      case 'vertical_cylinder':
+        // Для вертикального: V = π × R² × h
+        const R = settings.tank_diameter_mm / 2;
+        volume = (Math.PI * R * R * level) / 1000000; // мм³ → литры
+        break;
+      
+      case 'sphere':
+        // Для сферы (упрощенно)
+        volume = calculateHorizontalCylinderVolume(
+          level,
+          settings.tank_diameter_mm,
+          settings.tank_length_mm,
+          settings.tank_tilt_angle_degrees
+        );
+        break;
+      
+      default:
+        // По умолчанию - горизонтальный цилиндр
+        volume = calculateHorizontalCylinderVolume(
+          level,
+          settings.tank_diameter_mm,
+          settings.tank_length_mm,
+          settings.tank_tilt_angle_degrees
+        );
+    }
+    
+    table.push({
+      level_mm: level,
+      volume_liters: Math.max(0, volume)
+    });
+  }
+  
+  console.log(`✅ Геометрическая таблица построена: ${table.length} точек`);
+  console.log(`   Полный объем: ${table[table.length - 1].volume_liters.toFixed(2)} л`);
+  
+  return {
+    table,
+    data_points_count: table.length,
+    filtered_points_count: table.length,
+    method_used: 'geometric' as CalibrationMethod,
+    quality_metrics: {
+      r_squared: 1.0, // Идеальная геометрия
+      rmse: 0,
+      max_error: 0
+    }
+  };
+}
+
+/**
  * Построить текущую калибровочную таблицу из показаний API (level, volume)
  * Это таблица, которая используется датчиками СЕЙЧАС
  */

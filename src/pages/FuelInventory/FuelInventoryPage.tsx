@@ -27,6 +27,8 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Fuel, TrendingUp, TrendingDown, Refres
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -114,9 +116,9 @@ export default function FuelInventory() {
         {/* Заголовок */}
         <div className="flex flex-col gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-100">Остатки топлива</h1>
+            <h1 className="text-3xl font-bold text-slate-100">Остатки</h1>
             <p className="text-slate-400 mt-1">
-              Книжные остатки по всем резервуарам сети {selectedNetwork?.name}
+              Книжные остатки по всем резервуарам на основании данных сменных отчетов
             </p>
           </div>
 
@@ -451,8 +453,14 @@ export default function FuelInventory() {
 
                     {/* График */}
                     <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id={`volumeGradient-${summary.fuelCode}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                         <XAxis
                           dataKey="time"
                           stroke="#94a3b8"
@@ -515,15 +523,15 @@ export default function FuelInventory() {
                             fontSize: 12
                           }}
                         />
-                        <Line
+                        <Area
                           type="monotone"
                           dataKey="volume"
                           stroke="#10b981"
                           strokeWidth={2}
-                          dot={{ fill: '#10b981', r: 3 }}
-                          activeDot={{ r: 5 }}
+                          fill={`url(#volumeGradient-${summary.fuelCode})`}
+                          dot={false}
                         />
-                      </LineChart>
+                      </AreaChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>

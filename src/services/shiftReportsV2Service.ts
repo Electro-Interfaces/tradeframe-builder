@@ -94,6 +94,7 @@ class ShiftReportsV2Service {
 
       stationCode: params.station || params.system,
       stationName,
+      station: params.station, // Добавляем station для корректной работы модального окна
     };
   }
 
@@ -119,33 +120,6 @@ class ShiftReportsV2Service {
 
       // Получаем детальные данные из API
       const response = await shiftsService.getShiftReport(params);
-
-      console.log('🔍 ShiftReportsV2Service: Структура ответа', {
-        hasShift: !!response.shift,
-        hasPosInfo: !!response.pos_info,
-        hasTanks: !!response.tanks,
-        keys: Object.keys(response),
-        allData: response
-      });
-
-      // Выводим все ключи верхнего уровня с их типами
-      Object.keys(response).forEach(key => {
-      });
-
-      // Выводим структуру psm
-      if (response.psm) {
-      }
-
-      // Выводим первый элемент массивов для примера
-      if (response.release && response.release.length > 0) {
-        console.log('⛽ Release[0]:', response.release[0]);
-      }
-      if (response.sales && response.sales.length > 0) {
-      }
-      if (response.receipt && response.receipt.length > 0) {
-      }
-      if (response.money && response.money.length > 0) {
-      }
 
       // Преобразуем в UI формат используя новый адаптер (V2)
       return ShiftReportAdapterV2.toDetails(response, params.shift, params.system, params.station, stationName, shiftInfo);

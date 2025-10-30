@@ -32,8 +32,6 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
     queryParams.dt_end = params.dt_end;
   }
 
-  console.log('🔄 Запрос транзакций:', queryParams);
-
   try {
     // API возвращает массив объектов: [{system, number, total, items}]
     const response = await stsProxyRequest<TransactionV2Response[]>('/v2/transactions', {
@@ -45,7 +43,6 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
     const stationData = Array.isArray(response) && response.length > 0 ? response[0] : null;
 
     if (!stationData) {
-      console.warn('⚠️ API вернул пустой массив или некорректный формат');
       return {
         system: params.system,
         number: params.station,
@@ -53,18 +50,6 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
         items: []
       };
     }
-
-    console.log('✅ Транзакции получены:', {
-      hasItems: !!stationData.items,
-      itemsCount: stationData.items?.length || 0,
-      hasTotal: !!stationData.total,
-      totalFuelsCount: stationData.total?.fuels?.length || 0,
-      firstItem: stationData.items?.[0] ? {
-        tank: stationData.items[0].tank,
-        fuel: stationData.items[0].fuel,
-        quantity: stationData.items[0].quantity
-      } : null
-    });
 
     return stationData;
   } catch (error) {
@@ -90,8 +75,6 @@ export async function getReceipts(params: BookDataParams): Promise<ReceiptRespon
     queryParams.dt_end = params.dt_end;
   }
 
-  console.log('🔄 Запрос поступлений:', queryParams);
-
   try {
     // API возвращает массив объектов: [{system, number, shifts}]
     const response = await stsProxyRequest<ReceiptResponse[]>('/v1/report/receipts', {
@@ -103,18 +86,12 @@ export async function getReceipts(params: BookDataParams): Promise<ReceiptRespon
     const stationData = Array.isArray(response) && response.length > 0 ? response[0] : null;
 
     if (!stationData) {
-      console.warn('⚠️ API вернул пустой массив поступлений');
       return {
         system: params.system,
         number: params.station,
         shifts: []
       };
     }
-
-    console.log('✅ Поступления получены:', {
-      shiftsCount: stationData.shifts?.length || 0,
-      receiptsCount: stationData.shifts?.reduce((sum, s) => sum + (s.receipt?.length || 0), 0) || 0
-    });
 
     return stationData;
   } catch (error) {
@@ -143,16 +120,6 @@ export function calculateBookReleaseFromTransactions(
     const quantity = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
     return sum + (isNaN(quantity) ? 0 : quantity);
   }, 0);
-
-  console.log(`📊 Транзакции для резервуара ${tankNumber}:`, {
-    totalTransactions: transactions.items.length,
-    tankTransactions: tankTransactions.length,
-    totalRelease,
-    sampleQuantities: tankTransactions.slice(0, 3).map(t => ({
-      quantity: t.quantity,
-      type: typeof t.quantity
-    }))
-  });
 
   return totalRelease;
 }
@@ -206,14 +173,6 @@ export function calculateReceiptsForTank(
           filteredCount++;
         });
     }
-  });
-
-  console.log(`📦 Поступления для резервуара ${tankNumber}:`, {
-    totalShifts: receipts.shifts.length,
-    filteredReceipts: filteredCount,
-    skippedReceipts: skippedCount,
-    totalReceipts,
-    period: dt_beg && dt_end ? `${dt_beg} - ${dt_end}` : 'Все время'
   });
 
   return totalReceipts;

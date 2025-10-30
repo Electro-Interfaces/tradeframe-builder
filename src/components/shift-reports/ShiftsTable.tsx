@@ -8,7 +8,7 @@ import type { ShiftListItem } from '@/types/shift-reports-v2';
 
 interface ShiftsTableProps {
   shifts: ShiftListItem[];
-  onSelectShift: (shiftNumber: number) => void;
+  onSelectShift: (shift: ShiftListItem) => void;
   loading?: boolean;
 }
 
@@ -103,7 +103,7 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
               key={shift.id}
               className="border-b border-slate-600 hover:bg-slate-700/50 transition-colors cursor-pointer"
               onClick={() => {
-                onSelectShift(shift.shiftNumber);
+                onSelectShift(shift);
               }}
             >
               {/* ТТ */}

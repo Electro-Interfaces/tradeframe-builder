@@ -23,12 +23,12 @@ import MobileShiftsTable from "@/components/shift-reports/MobileShiftsTable";
 import ShiftDetailsModal from "@/components/shift-reports/ShiftDetailsModal";
 
 export default function ShiftReportsV2() {
-  const { selectedNetwork, selectedTradingPoint: selectedTradingPointId } = useSelection();
+  const { selectedNetwork, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints } = useSelection();
   const isMobile = useIsMobile();
 
-  // Загрузка объекта торговой точки
+  // Загрузка объекта торговой точки (только если выбрана конкретная точка)
   const { tradingPoint } = useTradingPoint({
-    tradingPointId: selectedTradingPointId,
+    tradingPointId: isAllTradingPoints ? null : selectedTradingPointId,
     networkId: selectedNetwork?.id || null
   });
 
@@ -38,40 +38,20 @@ export default function ShiftReportsV2() {
   // Загрузка и фильтрация смен
   const { shifts, filteredShifts, loading, refresh } = useShiftReports({
     tradingPoint,
+    networkId: selectedNetwork?.id || null,
+    isAllTradingPoints,
     filters
   });
 
   // Управление выделением смен
   const {
     selectedShiftIds,
-    selectedShiftNumber,
+    selectedShift,
     toggleShiftSelection,
     toggleAllShifts,
     selectShift,
     closeShiftDetails
   } = useShiftSelection();
-
-  // Проверка выбора торговой точки
-  if (!tradingPoint) {
-    return (
-      <MainLayout fullWidth={true}>
-        <div className="w-full h-full px-4 md:px-6 lg:px-8">
-          <div className="mb-6 pt-4">
-            <h1 className="text-2xl font-semibold text-white">Сменные отчеты</h1>
-          </div>
-          <div className="bg-slate-800 mb-6 w-full rounded-lg">
-            <div className="px-4 md:px-6 py-4">
-              <EmptyState
-                title="Выберите торговую точку"
-                description="Для просмотра сменных отчетов необходимо выбрать торговую точку из выпадающего списка выше"
-                className="py-16"
-              />
-            </div>
-          </div>
-        </div>
-      </MainLayout>
-    );
-  }
 
   return (
     <MainLayout fullWidth={true}>
@@ -122,14 +102,14 @@ export default function ShiftReportsV2() {
         </div>
 
         {/* Модальное окно деталей смены */}
-        {tradingPoint && (
+        {selectedShift && (
           <ShiftDetailsModal
-            isOpen={selectedShiftNumber !== null}
+            isOpen={true}
             onClose={closeShiftDetails}
-            shiftNumber={selectedShiftNumber}
+            shiftNumber={selectedShift.shiftNumber}
             system={STS_SYSTEM_ID}
-            station={extractStationNumber(tradingPoint) || 0}
-            stationName={tradingPoint.name}
+            station={selectedShift.station || (tradingPoint ? extractStationNumber(tradingPoint) || 0 : 0)}
+            stationName={selectedShift.stationName || tradingPoint?.name || 'Неизвестная станция'}
           />
         )}
       </div>

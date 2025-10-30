@@ -45,9 +45,8 @@ export function getPeriodDates(period: AnalysisPeriod, customStart?: Date, custo
 
   switch (period) {
     case '24h':
-      // Начинаем с 00:00 сегодняшнего дня
-      startDate = new Date(now);
-      startDate.setHours(0, 0, 0, 0);
+      // Последние 24 часа от текущего момента
+      startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       break;
     case '7d':
       // Начинаем с 00:00, 7 дней назад

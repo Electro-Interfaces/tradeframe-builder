@@ -51,7 +51,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
     if (isOpen && shiftNumber !== null) {
       loadShiftDetails();
     }
-  }, [isOpen, shiftNumber]);
+  }, [isOpen, shiftNumber, station, system]);
 
   const loadShiftDetails = async () => {
     if (shiftNumber === null) return;

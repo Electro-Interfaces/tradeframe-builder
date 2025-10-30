@@ -139,7 +139,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   const networkMenuItems = [
     { title: "Обзор", url: "/network/overview", icon: Network },
     { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
-    { title: "Остатки топлива", url: "/network/fuel-inventory", icon: Fuel },
+    { title: "Остатки", url: "/network/fuel-inventory", icon: Fuel },
     { title: "Поступления", url: "/network/receipts", icon: Fuel },
     { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },
     { title: "Купоны", url: "/network/coupons", icon: Component },

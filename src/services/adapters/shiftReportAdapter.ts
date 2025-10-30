@@ -192,6 +192,8 @@ export class ShiftReportAdapter {
       operator: this.extractOperator(apiReport.pos_info),
       posNumber: apiReport.pos_info[0]?.number || 0,
       shift: apiReport.shift.shift,
+      stationName: stationName,
+      station: apiReport.station,
 
       // Итоги
       totalRevenue,

@@ -22,7 +22,6 @@ export class ShiftReportAdapterV2 {
    * Преобразовать ответ API в детали смены
    */
   static toDetails(apiResponse: any, shiftNumber: number, system: number, station: number, stationName?: string, shiftInfo?: any): ShiftDetails {
-
     // Извлекаем информацию о ПСМ
     const posInfo = this.extractPosInfo(apiResponse.psm, shiftNumber);
 

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSelection } from '@/contexts/SelectionContext';
 import { couponsApiService } from '@/services/couponsApiService';
+import { tradingPointsService } from '@/services/tradingPointsService';
 import type {
   CouponsSearchResult,
   CouponsFilter,
@@ -28,13 +29,23 @@ export function useCouponsData() {
     setError(null);
 
     try {
+      // Загружаем полный объект торговой точки для получения external_id
+      let tradingPointExternalId: number | undefined;
+      let tradingPointName: string | undefined;
+
+      if (selectedTradingPoint) {
+        const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
+        if (tradingPoint?.external_id && !isNaN(Number(tradingPoint.external_id))) {
+          tradingPointExternalId = Number(tradingPoint.external_id);
+          tradingPointName = tradingPoint.name;
+        }
+      }
+
       // Параметры запроса к API
       const apiParams: CouponsApiParams = {
         system: filters.system,
         // Используем external_id торговой точки если он число
-        ...(selectedTradingPoint?.external_id && !isNaN(Number(selectedTradingPoint.external_id)) && {
-          station: Number(selectedTradingPoint.external_id)
-        }),
+        ...(tradingPointExternalId && { station: tradingPointExternalId }),
         ...(filters.dateFrom && { dt_beg: filters.dateFrom }),
         ...(filters.dateTo && { dt_end: filters.dateTo })
       };
@@ -45,7 +56,7 @@ export function useCouponsData() {
       // Обрабатываем ответ API, передаем название ТТ
       const processedResult = await couponsApiService.processRawCoupons(
         apiResponse,
-        selectedTradingPoint?.name
+        tradingPointName
       );
 
       // Применяем дополнительные фильтры

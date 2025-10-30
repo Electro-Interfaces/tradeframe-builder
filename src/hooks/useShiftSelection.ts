@@ -7,7 +7,7 @@ import type { ShiftListItem } from '@/types/shift-reports-v2';
 
 export function useShiftSelection() {
   const [selectedShiftIds, setSelectedShiftIds] = useState<string[]>([]);
-  const [selectedShiftNumber, setSelectedShiftNumber] = useState<number | null>(null);
+  const [selectedShift, setSelectedShift] = useState<ShiftListItem | null>(null);
 
   // Переключение выделения одной смены
   const toggleShiftSelection = (shiftId: string) => {
@@ -28,18 +28,18 @@ export function useShiftSelection() {
   };
 
   // Выбор смены для просмотра деталей
-  const selectShift = (shiftNumber: number) => {
-    setSelectedShiftNumber(shiftNumber);
+  const selectShift = (shift: ShiftListItem) => {
+    setSelectedShift(shift);
   };
 
   // Закрытие модального окна деталей
   const closeShiftDetails = () => {
-    setSelectedShiftNumber(null);
+    setSelectedShift(null);
   };
 
   return {
     selectedShiftIds,
-    selectedShiftNumber,
+    selectedShift,
     toggleShiftSelection,
     toggleAllShifts,
     selectShift,

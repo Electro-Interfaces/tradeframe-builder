@@ -8,11 +8,20 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Settings, 
-  TestTube, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Settings,
+  TestTube,
+  CheckCircle,
+  XCircle,
   Clock,
   Save,
   RotateCcw,
@@ -26,7 +35,9 @@ import {
   Code,
   Tag,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Edit3,
+  Send
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
@@ -63,6 +74,12 @@ export default function STSApiSettings() {
   const [testingMethod, setTestingMethod] = useState<string | null>(null);
   const [expandedMethods, setExpandedMethods] = useState<Set<string>>(new Set());
   const [testResults, setTestResults] = useState<Record<string, any>>({});
+
+  // Состояния для диалога редактирования параметров
+  const [isParamsDialogOpen, setIsParamsDialogOpen] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<any | null>(null);
+  const [editableParams, setEditableParams] = useState<Record<string, any>>({});
+  const [editableBody, setEditableBody] = useState<string>('');
   
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<STSApiConfig>({
     defaultValues: config
@@ -448,7 +465,69 @@ export default function STSApiSettings() {
     return 'test';
   };
 
-  const testApiMethod = async (method: any) => {
+  const openParamsDialog = (method: any) => {
+    if (!config.token) {
+      toast({
+        title: "Нет токена",
+        description: "Сначала получите JWT токен через тест подключения",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Подготавливаем параметры для редактирования
+    const currentValues = watchedValues;
+    const params: Record<string, string> = {};
+
+    // Path параметры
+    let urlPath = method.path;
+    if (currentValues.networkId && urlPath.includes('{networkId}')) {
+      params['networkId'] = String(currentValues.networkId);
+    }
+    if (currentValues.tradingPointId && urlPath.includes('{tradingPointId}')) {
+      params['tradingPointId'] = String(currentValues.tradingPointId);
+    }
+
+    // Query параметры
+    if (method.parameters && Array.isArray(method.parameters)) {
+      method.parameters.forEach((param: any) => {
+        if (param.in === 'query') {
+          const value = getQueryParamValue(param.name, param.schema, currentValues);
+          if (value !== undefined) {
+            params[param.name] = String(value);
+          }
+        }
+      });
+    }
+
+    // Если нет параметров, добавляем пустые значения для system и station
+    if (Object.keys(params).length === 0) {
+      params['system'] = currentValues.networkId || '15';
+      params['station'] = currentValues.tradingPointId || '4';
+    }
+
+    // Подготавливаем body для POST/PUT методов
+    let bodyText = '';
+    if (method.method === 'POST' || method.method === 'PUT' || method.method === 'PATCH') {
+      const body = buildRequestBody(method, currentValues);
+      bodyText = JSON.stringify(body, null, 2);
+    }
+
+    // Устанавливаем состояние в правильном порядке
+    setEditableParams(params);
+    setEditableBody(bodyText);
+    setSelectedMethod(method);
+    setIsParamsDialogOpen(true);
+  };
+
+  const testApiMethodWithParams = async () => {
+    if (!selectedMethod) return;
+
+    setIsParamsDialogOpen(false);
+    await testApiMethod(selectedMethod, editableParams, editableBody);
+  };
+
+  const testApiMethod = async (method: any, customParams?: Record<string, any>, customBody?: string) => {
     if (!config.token) {
       toast({
         title: "Нет токена",
@@ -459,56 +538,30 @@ export default function STSApiSettings() {
     }
 
     setTestingMethod(method.id);
-    
-    // Используем текущие значения из формы
+
+    // Используем текущие значения из формы или кастомные параметры
     const currentValues = watchedValues;
-    
-    console.log('Тестирование метода:', method.path, 'с параметрами:', {
-      networkId: currentValues.networkId,
-      tradingPointId: currentValues.tradingPointId
-    });
-    
+    const params = customParams || {};
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), currentValues.timeout);
 
-      // Подставляем параметры в путь если они указаны
+      // Подставляем параметры в путь
       let urlPath = method.path;
-      console.log('Исходный путь:', urlPath);
-      
-      if (currentValues.networkId && urlPath.includes('{networkId}')) {
-        urlPath = urlPath.replace('{networkId}', currentValues.networkId);
-        console.log('Заменили {networkId} на:', currentValues.networkId);
-      }
-      if (currentValues.tradingPointId && urlPath.includes('{tradingPointId}')) {
-        urlPath = urlPath.replace('{tradingPointId}', currentValues.tradingPointId);
-        console.log('Заменили {tradingPointId} на:', currentValues.tradingPointId);
-      }
+      Object.entries(params).forEach(([key, value]) => {
+        if (urlPath.includes(`{${key}}`)) {
+          urlPath = urlPath.replace(`{${key}}`, String(value));
+        }
+      });
 
-      // Добавляем query параметры если они не в пути
+      // Добавляем query параметры
       const url = new URL(`${currentValues.url}${urlPath}`);
-      console.log('URL после подстановки пути:', url.toString());
-      
-      if (currentValues.networkId && !urlPath.includes(currentValues.networkId)) {
-        // Проверяем, нужен ли параметр networkId для этого метода
-        const needsNetworkId = method.parameters?.some((p: any) => p.name === 'networkId' || p.name === 'network_id');
-        console.log('Нужен параметр networkId:', needsNetworkId, 'Параметры метода:', method.parameters?.map((p: any) => p.name));
-        if (needsNetworkId) {
-          url.searchParams.set('networkId', currentValues.networkId);
-          console.log('Добавили networkId в query параметры');
+      Object.entries(params).forEach(([key, value]) => {
+        if (!urlPath.includes(String(value))) {
+          url.searchParams.set(key, String(value));
         }
-      }
-      if (currentValues.tradingPointId && !urlPath.includes(currentValues.tradingPointId)) {
-        // Проверяем, нужен ли параметр tradingPointId для этого метода  
-        const needsTradingPointId = method.parameters?.some((p: any) => p.name === 'tradingPointId' || p.name === 'trading_point_id');
-        console.log('Нужен параметр tradingPointId:', needsTradingPointId, 'Параметры метода:', method.parameters?.map((p: any) => p.name));
-        if (needsTradingPointId) {
-          url.searchParams.set('tradingPointId', currentValues.tradingPointId);
-          console.log('Добавили tradingPointId в query параметры');
-        }
-      }
-      
-      console.log('Финальный URL:', url.toString());
+      });
 
       // Базовые заголовки
       const headers: Record<string, string> = {
@@ -519,15 +572,24 @@ export default function STSApiSettings() {
       let requestBody = undefined;
       if (method.method === 'POST' || method.method === 'PUT' || method.method === 'PATCH') {
         headers['Content-Type'] = 'application/json';
-        const body = buildRequestBody(method, currentValues);
-        requestBody = JSON.stringify(body);
-        console.log('Отправляем тело запроса:', requestBody);
-      }
-
-      // Для GET запросов проверяем, нужны ли дополнительные query параметры
-      if (method.method === 'GET') {
-        addRequiredQueryParams(url, method, currentValues);
-        console.log('GET запрос с параметрами:', url.toString());
+        if (customBody) {
+          try {
+            // Проверяем валидность JSON
+            JSON.parse(customBody);
+            requestBody = customBody;
+          } catch (e) {
+            toast({
+              title: "Ошибка JSON",
+              description: "Тело запроса содержит невалидный JSON",
+              variant: "destructive"
+            });
+            setTestingMethod(null);
+            return;
+          }
+        } else {
+          const body = buildRequestBody(method, currentValues);
+          requestBody = JSON.stringify(body);
+        }
       }
 
       const fetchOptions: RequestInit = {
@@ -539,13 +601,6 @@ export default function STSApiSettings() {
       if (requestBody) {
         fetchOptions.body = requestBody;
       }
-
-      console.log('Параметры запроса:', {
-        method: method.method,
-        url: url.toString(),
-        headers: headers,
-        body: requestBody
-      });
 
       const response = await fetch(url.toString(), fetchOptions);
 
@@ -598,8 +653,8 @@ export default function STSApiSettings() {
         status: response.status,
         statusText: response.statusText,
         url: url.toString(),
-        usedNetworkId: currentValues.networkId,
-        usedTradingPointId: currentValues.tradingPointId,
+        usedParams: params,
+        requestBody: requestBody ? JSON.parse(requestBody) : null,
         data: responseData,
         timestamp: new Date().toISOString(),
         success: response.ok
@@ -610,8 +665,6 @@ export default function STSApiSettings() {
         [method.id]: testResult
       }));
 
-      console.log(`API Test - ${method.method} ${urlPath}:`, testResult);
-
     } catch (error: any) {
       const errorMessage = error.name === 'AbortError' 
         ? 'Превышен таймаут'
@@ -620,12 +673,19 @@ export default function STSApiSettings() {
       console.error('Ошибка при выполнении запроса:', error);
       
       // Сохраняем результат с ошибкой
+      let parsedBody = null;
+      try {
+        parsedBody = customBody ? JSON.parse(customBody) : null;
+      } catch (e) {
+        parsedBody = customBody;
+      }
+
       const errorResult = {
         status: 0,
         statusText: 'Network Error',
         url: `${currentValues.url}${method.path}`,
-        usedNetworkId: currentValues.networkId,
-        usedTradingPointId: currentValues.tradingPointId,
+        usedParams: params,
+        requestBody: parsedBody,
         data: { error: errorMessage },
         timestamp: new Date().toISOString(),
         success: false
@@ -1154,14 +1214,15 @@ export default function STSApiSettings() {
                               variant="outline"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                testApiMethod(method);
+                                openParamsDialog(method);
                               }}
                               disabled={testingMethod === method.id || !config.token}
+                              title="Настроить параметры и выполнить запрос"
                             >
                               {testingMethod === method.id ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
-                                <Play className="h-3 w-3" />
+                                <Edit3 className="h-3 w-3" />
                               )}
                             </Button>
                             {expandedMethods.has(method.id) ? (
@@ -1255,17 +1316,27 @@ export default function STSApiSettings() {
                                     {new Date(testResults[method.id].timestamp).toLocaleTimeString('ru-RU')}
                                   </span>
                                 </div>
-                                
-                                {testResults[method.id].usedNetworkId && (
-                                  <p className="text-xs text-muted-foreground">
-                                    Сеть: {testResults[method.id].usedNetworkId}
-                                  </p>
+
+                                {testResults[method.id].usedParams && Object.keys(testResults[method.id].usedParams).length > 0 && (
+                                  <div className="mb-2">
+                                    <strong className="text-xs">Параметры:</strong>
+                                    <div className="text-xs bg-muted/50 p-2 rounded mt-1">
+                                      {Object.entries(testResults[method.id].usedParams).map(([key, value]) => (
+                                        <div key={key} className="font-mono">
+                                          <span className="text-blue-600">{key}</span>: {String(value)}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
                                 )}
-                                
-                                {testResults[method.id].usedTradingPointId && (
-                                  <p className="text-xs text-muted-foreground">
-                                    ТТ: {testResults[method.id].usedTradingPointId}
-                                  </p>
+
+                                {testResults[method.id].requestBody && (
+                                  <div className="mb-2">
+                                    <strong className="text-xs">Тело запроса:</strong>
+                                    <pre className="text-xs bg-muted/50 p-2 rounded mt-1 overflow-x-auto max-h-24 overflow-y-auto">
+                                      {JSON.stringify(testResults[method.id].requestBody, null, 2)}
+                                    </pre>
+                                  </div>
                                 )}
 
                                 <p className="text-xs text-muted-foreground mb-2">
@@ -1276,7 +1347,7 @@ export default function STSApiSettings() {
                                   <div>
                                     <strong className="text-xs">Данные ответа:</strong>
                                     <pre className="text-xs bg-muted/50 p-2 rounded mt-1 overflow-x-auto max-h-32 overflow-y-auto">
-                                      {typeof testResults[method.id].data === 'string' 
+                                      {typeof testResults[method.id].data === 'string'
                                         ? testResults[method.id].data
                                         : JSON.stringify(testResults[method.id].data, null, 2)}
                                     </pre>
@@ -1294,6 +1365,87 @@ export default function STSApiSettings() {
             </Card>
           </div>
         )}
+
+        {/* Диалог настройки параметров */}
+        <Dialog open={isParamsDialogOpen} onOpenChange={setIsParamsDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit3 className="h-5 w-5" />
+                Настройка параметров запроса
+              </DialogTitle>
+              {selectedMethod && (
+                <DialogDescription className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className={`${getMethodColor(selectedMethod.method)} text-xs font-mono`}>
+                    {selectedMethod.method}
+                  </Badge>
+                  <code className="text-sm">{selectedMethod.path}</code>
+                </DialogDescription>
+              )}
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {/* Параметры запроса */}
+              {Object.keys(editableParams).length > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Параметры запроса</Label>
+                  <div className="space-y-3">
+                    {Object.entries(editableParams).map(([key, value]) => (
+                      <div key={key} className="space-y-1">
+                        <Label htmlFor={`param-${key}`} className="text-xs font-mono text-blue-600">
+                          {key}
+                        </Label>
+                        <Input
+                          id={`param-${key}`}
+                          type="text"
+                          value={value || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setEditableParams(prev => ({
+                              ...prev,
+                              [key]: newValue
+                            }));
+                          }}
+                          autoComplete="off"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Тело запроса для POST/PUT */}
+              {selectedMethod && (selectedMethod.method === 'POST' || selectedMethod.method === 'PUT' || selectedMethod.method === 'PATCH') && (
+                <div className="space-y-2">
+                  <Label htmlFor="request-body" className="text-sm font-semibold">Тело запроса (JSON)</Label>
+                  <Textarea
+                    id="request-body"
+                    className="font-mono text-xs min-h-[200px]"
+                    value={editableBody || ''}
+                    onChange={(e) => {
+                      setEditableBody(e.target.value);
+                    }}
+                    placeholder='{"key": "value"}'
+                    autoComplete="off"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Редактируйте JSON прямо здесь. Проверьте валидность перед отправкой.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsParamsDialogOpen(false)}>
+                Отмена
+              </Button>
+              <Button onClick={testApiMethodWithParams} disabled={testingMethod !== null}>
+                <Send className="h-4 w-4 mr-2" />
+                Выполнить запрос
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

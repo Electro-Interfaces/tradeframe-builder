@@ -534,6 +534,7 @@ export const DEFAULT_CALIBRATION_SETTINGS: Partial<TankCalibrationSettings> = {
   sensor_weight: 0.6,
   dispenser_weight: 0.4,
   auto_calibration_enabled: false,
+  calibration_step_mm: 100,                // Шаг построения калибровочной таблицы (100 мм = 10 см)
 
   calibration_status: 'never',
 }

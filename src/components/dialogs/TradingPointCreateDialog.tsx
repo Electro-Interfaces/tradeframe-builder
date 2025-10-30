@@ -23,6 +23,8 @@ export function TradingPointCreateDialog({
 }: TradingPointCreateDialogProps) {
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
+  const [latitudeInput, setLatitudeInput] = useState<string>('');
+  const [longitudeInput, setLongitudeInput] = useState<string>('');
   const [formData, setFormData] = useState<TradingPointInput>({
     networkId: networkId,
     name: "",
@@ -90,12 +92,14 @@ export function TradingPointCreateDialog({
 
   const handleSubmit = async () => {
     if (!validate(formData)) return;
-    
+
     setLoading(true);
     try {
       await onSubmit(formData);
-      
+
       // Reset form
+      setLatitudeInput('');
+      setLongitudeInput('');
       setFormData({
         name: "",
         description: "",
@@ -145,6 +149,8 @@ export function TradingPointCreateDialog({
   };
 
   const handleCancel = () => {
+    setLatitudeInput('');
+    setLongitudeInput('');
     setFormData({
       name: "",
       description: "",
@@ -243,13 +249,29 @@ export function TradingPointCreateDialog({
                 </Label>
                 <Input
                   id="latitude"
-                  type="number"
-                  step="any"
-                  value={formData.geolocation.latitude}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    geolocation: { ...prev.geolocation, latitude: parseFloat(e.target.value) || 0 }
-                  }))}
+                  type="text"
+                  inputMode="decimal"
+                  value={latitudeInput}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Разрешаем любой ввод, сохраняем в строковом состоянии
+                    setLatitudeInput(value);
+                    // Парсим только если это валидное число
+                    if (value === '' || value === '-' || value === '.' || value === '-.') {
+                      setFormData(prev => ({
+                        ...prev,
+                        geolocation: { ...prev.geolocation, latitude: 0 }
+                      }));
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          geolocation: { ...prev.geolocation, latitude: numValue }
+                        }));
+                      }
+                    }
+                  }}
                   placeholder="55.7558"
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                 />
@@ -261,13 +283,29 @@ export function TradingPointCreateDialog({
                 </Label>
                 <Input
                   id="longitude"
-                  type="number"
-                  step="any"
-                  value={formData.geolocation.longitude}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    geolocation: { ...prev.geolocation, longitude: parseFloat(e.target.value) || 0 }
-                  }))}
+                  type="text"
+                  inputMode="decimal"
+                  value={longitudeInput}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Разрешаем любой ввод, сохраняем в строковом состоянии
+                    setLongitudeInput(value);
+                    // Парсим только если это валидное число
+                    if (value === '' || value === '-' || value === '.' || value === '-.') {
+                      setFormData(prev => ({
+                        ...prev,
+                        geolocation: { ...prev.geolocation, longitude: 0 }
+                      }));
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          geolocation: { ...prev.geolocation, longitude: numValue }
+                        }));
+                      }
+                    }
+                  }}
                   placeholder="49.2077"
                   className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                 />
