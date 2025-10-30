@@ -1989,11 +1989,11 @@ export default function NetworkOverview() {
           <>
             {/* Заголовок секции */}
             <div className="w-full">
-              <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
-                <span>📊</span>
-                Сравнение работы станций
+              <h2 className={`font-bold text-white flex items-center ${isMobile ? 'text-lg mb-1 gap-1.5' : 'text-2xl mb-2 gap-2'}`}>
+                <span className={isMobile ? 'text-lg' : 'text-2xl'}>📊</span>
+                {isMobile ? 'Сравнение станций' : 'Сравнение работы станций'}
               </h2>
-              <p className="text-slate-400 text-sm mb-6">
+              <p className={`text-slate-400 ${isMobile ? 'text-xs mb-4' : 'text-sm mb-6'}`}>
                 Аналитика и сравнительные показатели по всем АЗС сети
               </p>
             </div>
@@ -2002,20 +2002,23 @@ export default function NetworkOverview() {
             <StationRevenueChart
               transactions={filteredTransactions}
               className="w-full"
+              isMobile={isMobile}
             />
 
-            {/* График 2 и 3: В две колонки на больших экранах */}
-            <div className="w-full grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* График 2 и 3: В две колонки на больших экранах, стек на мобильных */}
+            <div className={`w-full grid grid-cols-1 ${isMobile ? 'gap-4' : 'xl:grid-cols-2 gap-6'}`}>
               {/* График 2: Продажи по видам топлива */}
               <StationFuelSalesChart
                 transactions={filteredTransactions}
                 className="w-full"
+                isMobile={isMobile}
               />
 
               {/* График 3: Динамика выручки */}
               <StationRevenueTrendChart
                 transactions={filteredTransactions}
                 className="w-full"
+                isMobile={isMobile}
               />
             </div>
           </>

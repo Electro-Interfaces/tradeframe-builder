@@ -7,6 +7,7 @@ import { Transaction } from '@/services/stsApi';
 interface StationFuelSalesChartProps {
   transactions: Transaction[];
   className?: string;
+  isMobile?: boolean;
 }
 
 // Цвета для разных видов топлива
@@ -37,7 +38,8 @@ const getFuelPriority = (fuelType: string): number => {
 
 export const StationFuelSalesChart: React.FC<StationFuelSalesChartProps> = ({
   transactions,
-  className = ''
+  className = '',
+  isMobile = false
 }) => {
   const { chartData, fuelTypes } = useMemo(() => {
     // Группируем по станциям и видам топлива
@@ -130,31 +132,32 @@ export const StationFuelSalesChart: React.FC<StationFuelSalesChartProps> = ({
 
   return (
     <Card className={`bg-slate-800 border-slate-600 ${className}`}>
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <span className="text-2xl">⛽</span>
-          Продажи по видам топлива на станциях
+      <CardHeader className={isMobile ? 'pb-3 px-3 pt-3' : ''}>
+        <CardTitle className={`text-white flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
+          <span className={isMobile ? 'text-lg' : 'text-2xl'}>⛽</span>
+          {isMobile ? 'Продажи по топливу' : 'Продажи по видам топлива на станциях'}
         </CardTitle>
-        <p className="text-sm text-slate-400 mt-1">
-          Сравнение структуры продаж разных видов топлива по АЗС
+        <p className={`text-slate-400 mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+          Сравнение структуры продаж {isMobile ? '' : 'разных видов топлива '}по АЗС
         </p>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-80 w-full">
+      <CardContent className={isMobile ? 'px-3 pb-3' : ''}>
+        <ChartContainer config={chartConfig} className={isMobile ? 'h-64 w-full' : 'h-80 w-full'}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+            <BarChart data={chartData} margin={isMobile ? { top: 10, right: 10, left: 10, bottom: 50 } : { top: 20, right: 30, left: 20, bottom: 60 }}>
               <XAxis
                 dataKey="station"
                 stroke="#94a3b8"
                 angle={-45}
                 textAnchor="end"
-                height={80}
-                tick={{ fill: '#94a3b8', fontSize: 12 }}
+                height={isMobile ? 60 : 80}
+                tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }}
               />
               <YAxis
                 stroke="#94a3b8"
-                tick={{ fill: '#94a3b8' }}
+                tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }}
                 tickFormatter={formatCurrency}
+                width={isMobile ? 60 : 80}
               />
               <ChartTooltip
                 content={({ active, payload, label }) => {
@@ -213,19 +216,19 @@ export const StationFuelSalesChart: React.FC<StationFuelSalesChartProps> = ({
         </ChartContainer>
 
         {/* Краткая статистика по видам топлива */}
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ${isMobile ? 'mt-3 gap-2' : 'mt-4 gap-3'}`}>
           {fuelTypes.slice(0, 4).map((fuelType) => {
             const totalForFuel = chartData.reduce((sum, item) => sum + (item[fuelType] || 0), 0);
             return (
-              <div key={fuelType} className="bg-slate-700/50 rounded-lg p-3">
+              <div key={fuelType} className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
                 <div className="flex items-center gap-2 mb-1">
                   <div
-                    className="w-3 h-3 rounded"
+                    className={isMobile ? 'w-2 h-2 rounded' : 'w-3 h-3 rounded'}
                     style={{ backgroundColor: chartConfig[fuelType]?.color }}
                   />
-                  <div className="text-xs text-slate-400">{fuelType}</div>
+                  <div className={`text-slate-400 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{fuelType}</div>
                 </div>
-                <div className="text-lg font-semibold text-white">
+                <div className={`font-semibold text-white ${isMobile ? 'text-sm' : 'text-lg'}`}>
                   {formatCurrency(totalForFuel)} ₽
                 </div>
               </div>

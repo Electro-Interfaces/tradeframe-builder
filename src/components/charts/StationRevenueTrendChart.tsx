@@ -9,6 +9,7 @@ import { ru } from 'date-fns/locale';
 interface StationRevenueTrendChartProps {
   transactions: Transaction[];
   className?: string;
+  isMobile?: boolean;
 }
 
 // Цвета для разных станций (те же что в StationRevenueChart)
@@ -25,7 +26,8 @@ const STATION_COLORS = [
 
 export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> = ({
   transactions,
-  className = ''
+  className = '',
+  isMobile = false
 }) => {
   const { chartData, stations } = useMemo(() => {
     // Группируем транзакции по датам и станциям
@@ -128,29 +130,30 @@ export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> =
 
   return (
     <Card className={`bg-slate-800 border-slate-600 ${className}`}>
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <span className="text-2xl">📈</span>
-          Динамика выручки по станциям
+      <CardHeader className={isMobile ? 'pb-3 px-3 pt-3' : ''}>
+        <CardTitle className={`text-white flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
+          <span className={isMobile ? 'text-lg' : 'text-2xl'}>📈</span>
+          {isMobile ? 'Динамика выручки' : 'Динамика выручки по станциям'}
         </CardTitle>
-        <p className="text-sm text-slate-400 mt-1">
-          Тренды изменения выручки по дням для каждой АЗС
+        <p className={`text-slate-400 mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+          Тренды изменения выручки {isMobile ? '' : 'по дням '}для каждой АЗС
         </p>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-80 w-full">
+      <CardContent className={isMobile ? 'px-3 pb-3' : ''}>
+        <ChartContainer config={chartConfig} className={isMobile ? 'h-64 w-full' : 'h-80 w-full'}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <LineChart data={chartData} margin={isMobile ? { top: 10, right: 10, left: 10, bottom: 10 } : { top: 20, right: 30, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis
                 dataKey="displayDate"
                 stroke="#94a3b8"
-                tick={{ fill: '#94a3b8', fontSize: 12 }}
+                tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }}
               />
               <YAxis
                 stroke="#94a3b8"
-                tick={{ fill: '#94a3b8' }}
+                tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }}
                 tickFormatter={formatCurrency}
+                width={isMobile ? 60 : 80}
               />
               <ChartTooltip
                 content={({ active, payload, label }) => {
@@ -219,28 +222,28 @@ export const StationRevenueTrendChart: React.FC<StationRevenueTrendChartProps> =
         </ChartContainer>
 
         {/* Статистика по трендам */}
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-slate-700/50 rounded-lg p-3">
-            <div className="text-xs text-slate-400 mb-1">Период</div>
-            <div className="text-lg font-semibold text-white">
+        <div className={`grid grid-cols-2 md:grid-cols-4 ${isMobile ? 'mt-3 gap-2' : 'mt-4 gap-3'}`}>
+          <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
+            <div className={`text-slate-400 mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Период</div>
+            <div className={`font-semibold text-white ${isMobile ? 'text-sm' : 'text-lg'}`}>
               {chartData.length} {chartData.length === 1 ? 'день' : 'дней'}
             </div>
           </div>
-          <div className="bg-slate-700/50 rounded-lg p-3">
-            <div className="text-xs text-slate-400 mb-1">Станций</div>
-            <div className="text-lg font-semibold text-white">{stations.length}</div>
+          <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
+            <div className={`text-slate-400 mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Станций</div>
+            <div className={`font-semibold text-white ${isMobile ? 'text-base' : 'text-lg'}`}>{stations.length}</div>
           </div>
           {stations.length > 0 && (
             <>
-              <div className="bg-slate-700/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400 mb-1">Лидер тренда</div>
-                <div className="text-sm font-semibold text-emerald-400 truncate">
+              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
+                <div className={`text-slate-400 mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Лидер тренда</div>
+                <div className={`font-semibold text-emerald-400 truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>
                   {stations[0].replace('Станция ', 'АЗС ')}
                 </div>
               </div>
-              <div className="bg-slate-700/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400 mb-1">Средняя выручка/день</div>
-                <div className="text-sm font-semibold text-blue-400">
+              <div className={`bg-slate-700/50 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
+                <div className={`text-slate-400 mb-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Средняя выручка/день</div>
+                <div className={`font-semibold text-blue-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                   {formatCurrency(
                     chartData.reduce((sum, day) => {
                       const dayTotal = stations.reduce((s, st) => s + (day[st] || 0), 0);
