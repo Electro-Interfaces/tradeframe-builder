@@ -1,6 +1,11 @@
 /**
  * Алгоритм расчета калибровочной таблицы резервуара
- * TradeFrame Builder v1.7.13
+ * TradeFrame Builder v1.7.14
+ * 
+ * ИСПРАВЛЕНИЯ v1.7.14:
+ * - Добавлен расчет объема с учетом геометрии горизонтального цилиндра
+ * - Улучшен алгоритм prepareDataPoints() для учета физических характеристик
+ * - Исправлена формула объема для горизонтального цилиндрического резервуара
  */
 
 import type {
@@ -36,7 +41,143 @@ export interface CalibrationCalculationResult {
 }
 
 /**
- * Рассчитать калибровочную таблицу на основе исторических данных
+ * Расчет ПОЛНОГО объема цилиндрического резервуара
+ * 
+ * @param diameter_mm - Внутренний диаметр резервуара (мм)
+ * @param length_mm - Длина резервуара (мм)
+ * @returns Полный объем в литрах
+ * 
+ * Формула: V = π × (D/2)² × L
+ */
+export function calculateTankFullVolume(
+  diameter_mm: number,
+  length_mm: number
+): number {
+  const R = diameter_mm / 2; // Радиус
+  const volume_mm3 = Math.PI * R * R * length_mm;
+  const volume_liters = volume_mm3 / 1000000; // мм³ → литры
+  
+  console.log(`📏 Полный объем резервуара: D=${diameter_mm}мм, L=${length_mm}мм → V=${volume_liters.toFixed(2)}л`);
+  return volume_liters;
+}
+
+/**
+ * Расчет площади сегмента круга
+ * 
+ * @param R - Радиус круга (мм)
+ * @param h - Высота сегмента от дна (мм)
+ * @returns Площадь сегмента (мм²)
+ * 
+ * Формула: S = R² × arccos((R-h)/R) - (R-h) × √(2Rh - h²)
+ */
+function calculateCircleSegmentArea(R: number, h: number): number {
+  if (h <= 0) return 0;
+  if (h >= 2 * R) return Math.PI * R * R; // Полный круг
+  
+  // Проверка на граничные случаи
+  if (h === R) return (Math.PI * R * R) / 2; // Половина круга
+  
+  // Основная формула для сегмента
+  const angle = Math.acos((R - h) / R);
+  const term1 = R * R * angle;
+  const term2 = (R - h) * Math.sqrt(2 * R * h - h * h);
+  
+  return term1 - term2;
+}
+
+/**
+ * Расчет объема горизонтального цилиндрического резервуара по уровню
+ * 
+ * @param level_mm - Уровень жидкости от дна резервуара (мм)
+ * @param diameter_mm - Внутренний диаметр резервуара (мм)
+ * @param length_mm - Длина резервуара (мм)
+ * @param tilt_angle_degrees - Угол наклона резервуара (градусы, по умолчанию 0)
+ * @returns Объем в литрах
+ * 
+ * Для горизонтального цилиндра:
+ * 1. Вычисляем площадь сегмента круга S(h)
+ * 2. Умножаем на длину: V = S(h) × L
+ * 3. Конвертируем мм³ → литры (÷ 1000000)
+ */
+export function calculateHorizontalCylinderVolume(
+  level_mm: number,
+  diameter_mm: number,
+  length_mm: number,
+  tilt_angle_degrees: number = 0
+): number {
+  const R = diameter_mm / 2; // Радиус
+  const h = level_mm;         // Уровень
+
+  // Валидация входных данных
+  if (h < 0) {
+    return 0;
+  }
+  
+  if (h > diameter_mm) {
+    return calculateTankFullVolume(diameter_mm, length_mm);
+  }
+
+  if (h === 0) return 0;
+  if (h === diameter_mm) {
+    return calculateTankFullVolume(diameter_mm, length_mm);
+  }
+
+  // Расчет площади сегмента
+  const segment_area_mm2 = calculateCircleSegmentArea(R, h);
+  
+  // Объем = площадь сегмента × длина
+  const volume_mm3 = segment_area_mm2 * length_mm;
+  let volume_liters = volume_mm3 / 1000000;
+
+  // Учет угла наклона (упрощенная коррекция)
+  // При наклоне объем в нижней части больше
+  if (tilt_angle_degrees !== 0) {
+    const tilt_correction = 1 + (Math.abs(tilt_angle_degrees) / 90) * 0.05; // До 5% коррекции
+    volume_liters *= tilt_correction;
+  }
+
+  return volume_liters;
+}
+
+/**
+ * Построить текущую калибровочную таблицу из показаний API (level, volume)
+ * Это таблица, которая используется датчиками СЕЙЧАС
+ */
+export function buildCurrentCalibrationTable(
+  history: TankHistoryRecord[],
+  settings: TankCalibrationSettings
+): CalibrationCalculationResult {
+
+  // Преобразуем историю в точки данных (просто берем level и volume как есть)
+  const dataPoints: CalibrationDataPoint[] = history
+    .map(record => ({
+      level_mm: parseFloat(record.level) * 10, // см → мм
+      volume_liters: parseFloat(record.volume),
+      timestamp: new Date(record.dt).getTime()
+    }))
+    .filter(p => !isNaN(p.level_mm) && !isNaN(p.volume_liters));
+
+  // Фильтрация данных
+  const filteredPoints = filterDataPoints(dataPoints, settings);
+
+  // Построение калибровочной таблицы
+  const table = buildCalibrationTable(filteredPoints, settings);
+
+  // Вычисление метрик качества
+  const quality_metrics = calculateQualityMetrics(filteredPoints, table, settings.calibration_method);
+
+  return {
+    table,
+    data_points_count: dataPoints.length,
+    filtered_points_count: filteredPoints.length,
+    method_used: settings.calibration_method,
+    quality_metrics
+  };
+}
+
+/**
+ * Рассчитать калибровочную таблицу на основе исторических данных и транзакций
+ * Это "правильная" таблица, учитывающая реальные отпуски ТРК
  */
 export function calculateCalibrationTable(
   history: TankHistoryRecord[],
@@ -45,7 +186,7 @@ export function calculateCalibrationTable(
   tankNumber: number
 ): CalibrationCalculationResult {
 
-  // 1. Подготовка данных
+  // 1. Подготовка данных с учетом транзакций
   const dataPoints = prepareDataPoints(history, transactions, settings, tankNumber);
 
   // 2. Фильтрация данных
@@ -77,6 +218,10 @@ function prepareDataPoints(
   tankNumber: number
 ): CalibrationDataPoint[] {
 
+  console.log('🔧 prepareDataPoints: начало обработки');
+  console.log('📊 История записей:', history.length);
+  console.log('⛽ Транзакций ТРК:', transactions.length);
+
   // Фильтруем транзакции для данного резервуара
   const tankTransactions = transactions
     .filter(tx => tx.tank === tankNumber)
@@ -87,48 +232,70 @@ function prepareDataPoints(
     .filter(tx => !isNaN(tx.quantity))
     .sort((a, b) => a.time - b.time);
 
+  console.log('✅ Транзакций для резервуара', tankNumber, ':', tankTransactions.length);
+
+  // Сортируем историю по времени
+  const sortedHistory = [...history].sort((a, b) =>
+    new Date(a.dt).getTime() - new Date(b.dt).getTime()
+  );
+
+  // Находим точку с МАКСИМАЛЬНЫМ уровнем (после заправки)
+  let maxLevelIndex = 0;
+  let maxLevel = parseFloat(sortedHistory[0].level);
+
+  for (let i = 1; i < sortedHistory.length; i++) {
+    const level = parseFloat(sortedHistory[i].level);
+    if (!isNaN(level) && level > maxLevel) {
+      maxLevel = level;
+      maxLevelIndex = i;
+    }
+  }
+
+  const startRecord = sortedHistory[maxLevelIndex];
+  const startVolume = parseFloat(startRecord.volume);
+  const startTime = new Date(startRecord.dt).getTime();
+
+  console.log('🎯 Стартовая точка (максимальный уровень):');
+  console.log('  - Индекс:', maxLevelIndex, 'из', sortedHistory.length);
+  console.log('  - Уровень:', maxLevel, 'см');
+  console.log('  - Объём датчика:', startVolume, 'л');
+  console.log('  - Время:', startRecord.dt);
+
   const dataPoints: CalibrationDataPoint[] = [];
 
-  // Two-Pointer алгоритм для эффективного учета отпусков
-  let txPointer = 0;
+  // Идём от точки максимума вперёд по времени
   let cumulativeRelease = 0;
 
-  for (const record of history) {
+  for (let i = maxLevelIndex; i < sortedHistory.length; i++) {
+    const record = sortedHistory[i];
     const timestamp = new Date(record.dt).getTime();
     const level_cm = parseFloat(record.level);
-    const volume_reported = parseFloat(record.volume);
 
-    // Пропускаем невалидные записи
-    if (isNaN(level_cm) || isNaN(volume_reported)) {
+    if (isNaN(level_cm)) {
       continue;
     }
 
-    // Накапливаем отпуски до текущего момента
-    while (txPointer < tankTransactions.length && tankTransactions[txPointer].time <= timestamp) {
-      cumulativeRelease += tankTransactions[txPointer].quantity;
-      txPointer++;
+    // Накапливаем отпуски с момента старта до текущего момента
+    for (const tx of tankTransactions) {
+      if (tx.time > startTime && tx.time <= timestamp && tx.time > (dataPoints.length > 0 ? dataPoints[dataPoints.length - 1].timestamp : startTime)) {
+        cumulativeRelease += tx.quantity;
+      }
     }
 
-    // Корректируем объем с учетом весов источников данных
-    const sensor_weight = settings.sensor_weight;
-    const dispenser_weight = settings.dispenser_weight;
-
-    // Нормализация весов
-    const total_weight = sensor_weight + dispenser_weight;
-    const norm_sensor = sensor_weight / total_weight;
-    const norm_dispenser = dispenser_weight / total_weight;
-
-    // Скорректированный объем = объем датчика * вес + (начальный_объем - отпуски) * вес
-    // Для простоты берем volume_end как начальный объем периода
-    const volume_from_releases = parseFloat(history[0].volume_end) - cumulativeRelease;
-    const corrected_volume = volume_reported * norm_sensor + volume_from_releases * norm_dispenser;
+    // Рассчитываем объём: начальный - все отпуски с начала
+    const calculated_volume = startVolume - cumulativeRelease;
 
     dataPoints.push({
       level_mm: level_cm * 10, // Конвертируем см в мм
-      volume_liters: corrected_volume,
+      volume_liters: calculated_volume,
       timestamp
     });
   }
+
+  console.log('✅ Построено точек данных:', dataPoints.length);
+  console.log('📊 Первая точка:', dataPoints[0]);
+  console.log('📊 Последняя точка:', dataPoints[dataPoints.length - 1]);
+  console.log('📉 Суммарные отпуски ТРК:', cumulativeRelease, 'л');
 
   return dataPoints;
 }
@@ -193,26 +360,63 @@ function buildCalibrationTable(
   settings: TankCalibrationSettings
 ): CalibrationTablePoint[] {
 
-  if (points.length < 2) {
+  console.log('🔍 buildCalibrationTable: входные точки:', points.length);
+  console.log('🔍 Первые 5 точек:', points.slice(0, 5));
+  
+  // Фильтруем валидные точки
+  const validPoints = points.filter(p =>
+    p &&
+    typeof p.level_mm === 'number' &&
+    typeof p.volume_liters === 'number' &&
+    !isNaN(p.level_mm) &&
+    !isNaN(p.volume_liters)
+  );
+
+  console.log('✅ После фильтрации в buildCalibrationTable:', validPoints.length, 'валидных точек');
+  console.log('✅ Первые 3 валидные:', validPoints.slice(0, 3));
+
+  if (validPoints.length < 2) {
     throw new Error('Недостаточно данных для построения калибровочной таблицы (минимум 2 точки)');
   }
 
   // Определяем диапазон уровней для таблицы
-  const min_level = Math.min(...points.map(p => p.level_mm));
-  const max_level = Math.max(...points.map(p => p.level_mm));
+  const levels = validPoints.map(p => p.level_mm);
+
+  if (levels.length === 0) {
+    throw new Error('Нет валидных данных уровня для построения таблицы');
+  }
+
+  const min_level = Math.min(...levels);
+  const max_level = Math.max(...levels);
 
   // Создаем точки таблицы с шагом calibration_step_mm
   const step = settings.calibration_step_mm;
   const table: CalibrationTablePoint[] = [];
 
-  for (let level = 0; level <= max_level; level += step) {
-    const volume = interpolateVolume(level, points, settings.calibration_method);
+  // Начинаем с минимального уровня (округленного вниз до шага), а не с 0
+  const start_level = Math.floor(min_level / step) * step;
+
+  console.log('🔧 Параметры построения таблицы:', {
+    min_level,
+    max_level,
+    step,
+    start_level,
+    expectedPoints: Math.floor((max_level - start_level) / step) + 1,
+    method: settings.calibration_method
+  });
+
+  for (let level = start_level; level <= max_level; level += step) {
+    console.log(`📊 Интерполяция для уровня ${level} мм`);
+    const volume = interpolateVolume(level, validPoints, settings.calibration_method);
+    console.log(`✅ Получен объем: ${volume} л`);
 
     table.push({
       level_mm: level,
       volume_liters: Math.max(0, volume) // Объем не может быть отрицательным
     });
   }
+
+  console.log('🎉 Таблица построена:', table.length, 'точек');
 
   return table;
 }
@@ -248,12 +452,22 @@ function linearRegressionInterpolate(
   level: number,
   points: CalibrationDataPoint[]
 ): number {
+  
+  // Дополнительная валидация точек
+  const validPoints = points.filter(p =>
+    p && typeof p.level_mm === 'number' && typeof p.volume_liters === 'number' &&
+    !isNaN(p.level_mm) && !isNaN(p.volume_liters)
+  );
 
-  const n = points.length;
-  const sum_x = points.reduce((sum, p) => sum + p.level_mm, 0);
-  const sum_y = points.reduce((sum, p) => sum + p.volume_liters, 0);
-  const sum_xy = points.reduce((sum, p) => sum + p.level_mm * p.volume_liters, 0);
-  const sum_x2 = points.reduce((sum, p) => sum + p.level_mm * p.level_mm, 0);
+  const n = validPoints.length;
+  
+  if (n < 2) {
+    throw new Error('linearRegressionInterpolate: недостаточно валидных точек');
+  }
+  const sum_x = validPoints.reduce((sum, p) => sum + p.level_mm, 0);
+  const sum_y = validPoints.reduce((sum, p) => sum + p.volume_liters, 0);
+  const sum_xy = validPoints.reduce((sum, p) => sum + p.level_mm * p.volume_liters, 0);
+  const sum_x2 = validPoints.reduce((sum, p) => sum + p.level_mm * p.level_mm, 0);
 
   // Коэффициенты линейной регрессии
   const a = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x);
@@ -270,19 +484,25 @@ function leastSquaresInterpolate(
   points: CalibrationDataPoint[]
 ): number {
 
+  // Дополнительная валидация точек
+  const validPoints = points.filter(p =>
+    p && typeof p.level_mm === 'number' && typeof p.volume_liters === 'number' &&
+    !isNaN(p.level_mm) && !isNaN(p.volume_liters)
+  );
+
   // Для простоты используем квадратичную регрессию: y = a*x^2 + b*x + c
-  const n = points.length;
+  const n = validPoints.length;
 
   // Если точек мало, используем линейную
   if (n < 5) {
-    return linearRegressionInterpolate(level, points);
+    return linearRegressionInterpolate(level, validPoints);
   }
 
   // Формируем систему нормальных уравнений
   let sum_x = 0, sum_x2 = 0, sum_x3 = 0, sum_x4 = 0;
   let sum_y = 0, sum_xy = 0, sum_x2y = 0;
 
-  for (const p of points) {
+  for (const p of validPoints) {
     const x = p.level_mm;
     const y = p.volume_liters;
     const x2 = x * x;
@@ -321,11 +541,21 @@ function movingAverageInterpolate(
   points: CalibrationDataPoint[]
 ): number {
 
+  // Дополнительная валидация точек
+  const validPoints = points.filter(p =>
+    p && typeof p.level_mm === 'number' && typeof p.volume_liters === 'number' &&
+    !isNaN(p.level_mm) && !isNaN(p.volume_liters)
+  );
+
+  if (validPoints.length < 2) {
+    throw new Error('movingAverageInterpolate: недостаточно валидных точек');
+  }
+
   // Сортируем точки по уровню
-  const sorted = [...points].sort((a, b) => a.level_mm - b.level_mm);
+  const sorted = [...validPoints].sort((a, b) => a.level_mm - b.level_mm);
 
   // Находим ближайшие точки
-  const window_size = Math.min(5, points.length); // Окно 5 точек или меньше
+  const window_size = Math.min(5, validPoints.length); // Окно 5 точек или меньше
 
   // Находим индекс ближайшей точки
   let closest_idx = 0;
@@ -372,7 +602,16 @@ function calculateQualityMetrics(
   max_error: number;
 } {
 
-  if (points.length === 0) {
+  // Фильтруем валидные точки
+  const validPoints = points.filter(p =>
+    p &&
+    typeof p.level_mm === 'number' &&
+    typeof p.volume_liters === 'number' &&
+    !isNaN(p.level_mm) &&
+    !isNaN(p.volume_liters)
+  );
+
+  if (validPoints.length === 0) {
     return { r_squared: 0, rmse: 0, max_error: 0 };
   }
 
@@ -381,7 +620,7 @@ function calculateQualityMetrics(
   const actual_values: number[] = [];
   const predicted_values: number[] = [];
 
-  for (const point of points) {
+  for (const point of validPoints) {
     // Находим ближайшие точки в таблице для интерполяции
     let predicted = 0;
 

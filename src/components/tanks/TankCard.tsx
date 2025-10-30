@@ -16,6 +16,7 @@ import type { Tank, TankStatus } from "@/types/tanks";
 interface TankCardProps {
   tank: Tank;
   isMobile: boolean;
+  isSuperAdmin?: boolean;
 }
 
 /**
@@ -34,7 +35,7 @@ function getTankStatus(percentage: number, minLevel: number, criticalLevel: numb
   return 'critical';
 }
 
-const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
+const TankCardComponent = ({ tank, isMobile, isSuperAdmin = false }: TankCardProps) => {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showCalibration, setShowCalibration] = useState(false);
   const currentLevel = tank.currentLevelLiters || 0;
@@ -46,29 +47,31 @@ const TankCardComponent = ({ tank, isMobile }: TankCardProps) => {
   return (
     <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
       <CardHeader className={isMobile ? 'pb-3 px-3 pt-3' : 'pb-4'}>
-        {/* Кнопки действий */}
-        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'} mb-3`}>
-          <Button
-            variant="outline"
-            size={isMobile ? 'sm' : 'default'}
-            className="flex-1 hover:bg-accent/50"
-            onClick={() => setShowAnalysis(true)}
-          >
-            <LineChart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
-            {!isMobile && 'Детальный анализ'}
-            {isMobile && 'Анализ'}
-          </Button>
+        {/* Кнопки действий - доступны только супер-администраторам */}
+        {isSuperAdmin && (
+          <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'} mb-3`}>
+            <Button
+              variant="outline"
+              size={isMobile ? 'sm' : 'default'}
+              className="flex-1 hover:bg-accent/50"
+              onClick={() => setShowAnalysis(true)}
+            >
+              <LineChart className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              {!isMobile && 'Детальный анализ'}
+              {isMobile && 'Анализ'}
+            </Button>
 
-          <Button
-            variant="outline"
-            size={isMobile ? 'sm' : 'default'}
-            className="flex-1 hover:bg-accent/50"
-            onClick={() => setShowCalibration(true)}
-          >
-            <Settings className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
-            Параметры
-          </Button>
-        </div>
+            <Button
+              variant="outline"
+              size={isMobile ? 'sm' : 'default'}
+              className="flex-1 hover:bg-accent/50"
+              onClick={() => setShowCalibration(true)}
+            >
+              <Settings className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              Параметры
+            </Button>
+          </div>
+        )}
 
         {/* Заголовок резервуара */}
         <div className="flex items-center justify-between gap-2">

@@ -20,6 +20,9 @@ import { DailySalesChart } from "@/components/charts/DailySalesChart";
 import { FuelPerformanceChart } from "@/components/charts/FuelPerformanceChart";
 import { PaymentDistributionChart } from "@/components/charts/PaymentDistributionChart";
 import { HourlyActivityChart } from "@/components/charts/HourlyActivityChart";
+import { StationRevenueChart } from "@/components/charts/StationRevenueChart";
+import { StationFuelSalesChart } from "@/components/charts/StationFuelSalesChart";
+import { StationRevenueTrendChart } from "@/components/charts/StationRevenueTrendChart";
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 import { loadPdfMake } from "@/utils/pdfMake";
@@ -27,7 +30,7 @@ import { loadPdfMake } from "@/utils/pdfMake";
 
 export default function NetworkOverview() {
   const isMobile = useIsMobile();
-  const { selectedNetwork, selectedTradingPoint } = useSelection();
+  const { selectedNetwork, selectedTradingPoint, isAllTradingPoints } = useSelection();
   const { toast } = useToast();
   
   // Даты по умолчанию
@@ -1979,6 +1982,43 @@ export default function NetworkOverview() {
                 />
               </div>
           </div>
+        )}
+
+        {/* Сравнение станций - только если данные по ВСЕЙ сети */}
+        {!initializing && selectedNetwork && stsApiConfigured && transactions.length > 0 && isAllTradingPoints && (
+          <>
+            {/* Заголовок секции */}
+            <div className="w-full">
+              <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                <span>📊</span>
+                Сравнение работы станций
+              </h2>
+              <p className="text-slate-400 text-sm mb-6">
+                Аналитика и сравнительные показатели по всем АЗС сети
+              </p>
+            </div>
+
+            {/* График 1: Выручка по станциям */}
+            <StationRevenueChart
+              transactions={filteredTransactions}
+              className="w-full"
+            />
+
+            {/* График 2 и 3: В две колонки на больших экранах */}
+            <div className="w-full grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* График 2: Продажи по видам топлива */}
+              <StationFuelSalesChart
+                transactions={filteredTransactions}
+                className="w-full"
+              />
+
+              {/* График 3: Динамика выручки */}
+              <StationRevenueTrendChart
+                transactions={filteredTransactions}
+                className="w-full"
+              />
+            </div>
+          </>
         )}
 
         {/* Прогнозирование продаж */}

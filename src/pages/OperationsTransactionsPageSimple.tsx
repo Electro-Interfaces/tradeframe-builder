@@ -27,7 +27,7 @@ import { normalizePaymentMethod } from "@/utils/paymentUtils";
 import { useOperationsFilters } from "@/hooks/useOperationsFilters";
 
 export default function OperationsTransactionsPageSimple() {
-  const { selectedNetwork, selectedTradingPoint, isInitialized } = useSelection();
+  const { selectedNetwork, selectedTradingPoint, isAllTradingPoints, isInitialized } = useSelection();
   const isMobile = useIsMobile();
 
   // Управление фильтрами через кастомный хук
@@ -132,7 +132,7 @@ export default function OperationsTransactionsPageSimple() {
       let transactions;
 
       // Если выбрано "Все торговые точки"
-      if (!selectedTradingPoint || selectedTradingPoint === 'all') {
+      if (isAllTradingPoints) {
         // Загружаем транзакции для всех станций сети через v2 API
         transactions = await stsApiService.getTransactions(
           dateFrom,
@@ -143,9 +143,9 @@ export default function OperationsTransactionsPageSimple() {
             // tradingPointId не указываем - получим все станции
           }
         );
-      } else {
+      } else if (selectedTradingPoint) {
         // Загружаем для конкретной торговой точки
-        const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
+        const tradingPoint = await tradingPointsService.getById(selectedTradingPoint, selectedNetwork.id);
         if (!tradingPoint) {
           throw new Error(`Торговая точка с ID ${selectedTradingPoint} не найдена`);
         }
@@ -163,6 +163,9 @@ export default function OperationsTransactionsPageSimple() {
             tradingPointId: tradingPoint.external_id
           }
         );
+      } else {
+        setLoadingFromSTS(false);
+        return;
       }
 
       // Сортируем транзакции по дате (свежие сверху)
@@ -298,18 +301,16 @@ export default function OperationsTransactionsPageSimple() {
 
   // Автоматическая загрузка данных при монтировании компонента
   useEffect(() => {
-    
+
     // Обеспечиваем правильную настройку STS API
     ensureSTSApiConfigured();
     setStsApiConfigured(true);
-    
-    // Автоматически загружаем данные № при выборе торговой точки
-    
-    if (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedNetwork?.external_id) {
+
+    // Автоматически загружаем данные при выборе сети и торговых точек
+    if (selectedNetwork?.external_id && (isAllTradingPoints || selectedTradingPoint)) {
       loadFromStsApi();
-    } else {
     }
-  }, [selectedTradingPoint, selectedNetwork]);
+  }, [selectedTradingPoint, selectedNetwork, isAllTradingPoints]);
 
 
   // Базовая фильтрация (исключения и базовые фильтры)

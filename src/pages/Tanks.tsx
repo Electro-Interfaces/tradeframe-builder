@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Gauge, RefreshCw } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
+import { useNewAuth } from "@/contexts/NewAuthContext";
 import { useTanks } from "@/hooks/useTanks";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { TankCard } from "@/components/tanks/TankCard";
@@ -19,17 +20,21 @@ import { SelectTradingPointMessage } from "@/components/common/SelectTradingPoin
 import type { Tank } from "@/types/tanks";
 
 // Мемоизированный компонент списка резервуаров
-const TanksList = memo(({ tanks, isMobile }: { tanks: Tank[]; isMobile: boolean }) => (
+const TanksList = memo(({ tanks, isMobile, isSuperAdmin }: { tanks: Tank[]; isMobile: boolean; isSuperAdmin: boolean }) => (
   <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
     {tanks.map((tank) => (
-      <TankCard key={tank.id} tank={tank} isMobile={isMobile} />
+      <TankCard key={tank.id} tank={tank} isMobile={isMobile} isSuperAdmin={isSuperAdmin} />
     ))}
   </div>
 ));
 
 export default function Tanks() {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
+  const { user } = useNewAuth();
   const isMobile = useIsMobile();
+
+  // Проверяем, является ли пользователь супер-администратором
+  const isSuperAdmin = user?.role === 'super_admin';
 
   // Хук для загрузки резервуаров
   const { tanks, loading, error, refreshTanks } = useTanks({
@@ -123,7 +128,7 @@ export default function Tanks() {
             </div>
           </div>
         ) : (
-          <TanksList tanks={tanks} isMobile={isMobile} />
+          <TanksList tanks={tanks} isMobile={isMobile} isSuperAdmin={isSuperAdmin} />
         )}
       </div>
     </MainLayout>

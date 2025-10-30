@@ -15,6 +15,7 @@ import {
   getFilterOptions,
 } from '@/services/receiptsService';
 import { exportReceiptsToExcel } from '@/services/receiptsExportService';
+import { extractStationNumber } from '@/utils/tradingPointUtils';
 import type { ReceiptsQueryParams, FlatReceipt } from '@/types/receipts';
 import type { Network } from '@/types/network';
 import type { TradingPoint } from '@/types/tradingPoint';
@@ -57,11 +58,12 @@ const INDICATOR_APPEAR_THRESHOLD = 30;
 
 export default function Receipts() {
   // Используем контекст выбора
-  const { selectedNetwork } = useSelection();
+  const { selectedNetwork, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints } = useSelection();
   const isMobile = useIsMobile();
 
   // Состояние фильтров
   const [systemId, setSystemId] = useState<number | null>(null);
+  const [stationNumber, setStationNumber] = useState<number | null>(null);
   const [stationIds, setStationIds] = useState<number[]>([]);
   const [selectedKpiFuels, setSelectedKpiFuels] = useState<Set<string>>(new Set());
   const [dateFrom, setDateFrom] = useState<string>('');
@@ -93,17 +95,36 @@ export default function Receipts() {
     }
   }, [selectedNetwork]);
 
+  // Извлекаем номер станции из выбранной торговой точки
+  useEffect(() => {
+    if (isAllTradingPoints) {
+      setStationNumber(null);
+    } else if (selectedTradingPointId && selectedNetwork?.id) {
+      tradingPointsService.getById(selectedTradingPointId, selectedNetwork.id)
+        .then(tp => {
+          const station = extractStationNumber(tp);
+          setStationNumber(station || null);
+        })
+        .catch(() => setStationNumber(null));
+    }
+  }, [selectedTradingPointId, selectedNetwork, isAllTradingPoints]);
+
   // Параметры запроса к API
   const queryParams: ReceiptsQueryParams = useMemo(() => {
     const params: ReceiptsQueryParams = {
       system: systemId || 0
     };
 
+    // Добавляем station если выбрана конкретная торговая точка
+    if (stationNumber !== null && !isAllTradingPoints) {
+      params.station = stationNumber;
+    }
+
     if (dateFrom) params.dt_beg = dateFrom;
     if (dateTo) params.dt_end = dateTo;
 
     return params;
-  }, [systemId, dateFrom, dateTo]);
+  }, [systemId, stationNumber, isAllTradingPoints, dateFrom, dateTo]);
 
   // Загрузка данных
   const { data: receiptsData, isLoading, isError, error, refetch } = useReceipts(queryParams);
@@ -400,7 +421,7 @@ export default function Receipts() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="p-4 border-t border-slate-700">
-                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Дата от */}
                     <div>
                       <Label htmlFor="date-from" className="text-xs text-slate-400">Дата от</Label>
