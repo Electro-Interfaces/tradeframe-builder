@@ -182,8 +182,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
               }}
               className="flex-1 border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"
             >
-              <Settings className="w-4 h-4 mr-2" />
-              <span className="text-sm">{isSettingsExpanded ? 'Скрыть настройки' : 'Настроить пороги'}</span>
+              <Settings className="w-4 h-4" />
               {isSettingsExpanded ? (
                 <ChevronUp className="w-4 h-4 ml-2" />
               ) : (

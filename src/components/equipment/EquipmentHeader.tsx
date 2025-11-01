@@ -89,75 +89,77 @@ export function EquipmentHeader({
             </p>
           )}
         </div>
-        {!isMobile && (
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRefresh}
-              disabled={loading}
-              className="border-slate-600 text-white hover:bg-slate-700"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={restartingTerminal || !networkName || !tradingPointId}
-                  className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+        {/* Кнопки управления */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={loading}
+            className="border-slate-600 text-white hover:bg-slate-700"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={restartingTerminal || !networkName || !tradingPointId}
+                className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+              >
+                {restartingTerminal ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Power className="w-4 h-4" />
+                )}
+                {!isMobile && (
+                  <span className="ml-2">{restartingTerminal ? 'Перезагрузка...' : 'Перезагрузить'}</span>
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className={`bg-slate-800 border border-slate-600 ${isMobile ? 'max-w-[95vw]' : ''}`}>
+              <AlertDialogHeader>
+                <AlertDialogTitle className={`text-white flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
+                  <AlertTriangle className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-400`} />
+                  Подтверждение перезагрузки
+                </AlertDialogTitle>
+                <AlertDialogDescription className={`text-slate-300 ${isMobile ? 'text-sm' : ''}`}>
+                  Вы уверены, что хотите перезагрузить терминал?
+                  <br />
+                  <br />
+                  <strong className="text-yellow-400">⚠️ ВНИМАНИЕ:</strong>
+                  <br />
+                  • Терминал будет недоступен во время перезагрузки
+                  <br />
+                  • Все активные операции будут прерваны
+                  <br />
+                  • Процесс может занять до 2-3 минут
+                  <br />
+                  <br />
+                  <span className="text-white">
+                    Сеть: <strong>{networkName}</strong>
+                    <br />
+                    Торговая точка: <strong>{tradingPointId}</strong>
+                  </span>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
+                <AlertDialogCancel className="bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white">
+                  Отмена
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onRestartTerminal}
+                  className="bg-red-600 hover:bg-red-700 text-white"
                 >
-                  {restartingTerminal ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Power className="w-4 h-4 mr-2" />
-                  )}
-                  {restartingTerminal ? 'Перезагрузка...' : 'Перезагрузить'}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="bg-slate-800 border border-slate-600">
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="text-white flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-red-400" />
-                    Подтверждение перезагрузки терминала
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className="text-slate-300">
-                    Вы уверены, что хотите перезагрузить терминал?
-                    <br />
-                    <br />
-                    <strong className="text-yellow-400">⚠️ ВНИМАНИЕ:</strong>
-                    <br />
-                    • Терминал будет недоступен во время перезагрузки
-                    <br />
-                    • Все активные операции будут прерваны
-                    <br />
-                    • Процесс может занять до 2-3 минут
-                    <br />
-                    <br />
-                    <span className="text-white">
-                      Сеть: <strong>{networkName}</strong>
-                      <br />
-                      Торговая точка: <strong>{tradingPointId}</strong>
-                    </span>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white">
-                    Отмена
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={onRestartTerminal}
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Да, перезагрузить терминал
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        )}
+                  Да, перезагрузить
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
     </div>
   );

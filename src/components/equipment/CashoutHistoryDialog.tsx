@@ -62,17 +62,19 @@ export function CashoutHistoryDialog({ cashoutRecords, loading, isMobile }: Cash
           size="sm"
           variant="outline"
           disabled={loading}
-          className="border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white transition-colors"
+          className={`border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white transition-colors ${
+            isMobile ? 'flex-1' : ''
+          }`}
         >
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-              <span className={isMobile ? 'text-sm' : ''}>Загрузка...</span>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {!isMobile && <span className="ml-1.5">Загрузка...</span>}
             </>
           ) : (
             <>
-              <History className="w-4 h-4 mr-1.5" />
-              <span className={isMobile ? 'text-sm' : ''}>Журнал инкассации</span>
+              <History className="w-4 h-4" />
+              {!isMobile && <span className="ml-1.5">Журнал инкассации</span>}
             </>
           )}
         </Button>
