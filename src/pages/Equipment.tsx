@@ -11,6 +11,7 @@ import { Settings } from "lucide-react";
 import { useEquipment } from "@/hooks/useEquipment";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useThresholds } from "@/hooks/useThresholds";
+import { useCashoutHistory } from "@/hooks/useCashoutHistory";
 import { EquipmentCard } from "@/components/equipment/EquipmentCard";
 import { BillAcceptorCard } from "@/components/equipment/BillAcceptorCard";
 import { FuelLevelThresholdsCard } from "@/components/equipment/FuelLevelThresholdsCard";
@@ -47,6 +48,16 @@ export default function Equipment() {
     tradingPointId: selectedTradingPoint,
     autoLoad: true,
     showToasts: !isMobile
+  });
+
+  // Хук для загрузки журнала инкассации
+  const {
+    cashoutRecords,
+    loading: cashoutLoading
+  } = useCashoutHistory({
+    networkId: selectedNetwork?.external_id,
+    tradingPointId: selectedTradingPoint,
+    autoLoad: true
   });
 
   // Хук для pull-to-refresh
@@ -146,6 +157,8 @@ export default function Equipment() {
                     isMobile={isMobile}
                     thresholds={billAcceptorThresholds}
                     onSaveThresholds={saveBillAcceptorThresholds}
+                    cashoutRecords={cashoutRecords}
+                    cashoutLoading={cashoutLoading}
                   />
                 )}
 

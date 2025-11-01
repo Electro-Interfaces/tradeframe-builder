@@ -9,17 +9,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Banknote, CheckCircle2, AlertCircle, AlertTriangle, Settings, Loader2, Save, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import type { TerminalEquipmentItem } from '@/types/equipment';
+import type { TerminalEquipmentItem, CashoutRecord } from '@/types/equipment';
 import type { BillAcceptorThresholds } from '@/types/tradingpoint';
 import {
   checkBillAcceptorThresholds
 } from '@/utils/billAcceptorThresholds';
+import { CashoutHistoryDialog } from './CashoutHistoryDialog';
 
 interface BillAcceptorCardProps {
   billAcceptor: TerminalEquipmentItem;
   isMobile: boolean;
   thresholds?: BillAcceptorThresholds;
   onSaveThresholds?: (thresholds: BillAcceptorThresholds) => Promise<void>;
+  cashoutRecords?: CashoutRecord[];
+  cashoutLoading?: boolean;
 }
 
 /**
@@ -37,7 +40,7 @@ function getStatusIcon(status: string, className: string = 'w-5 h-5') {
   }
 }
 
-export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThresholds }: BillAcceptorCardProps) {
+export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThresholds, cashoutRecords = [], cashoutLoading = false }: BillAcceptorCardProps) {
   const [saving, setSaving] = useState(false);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
   const [thresholdForm, setThresholdForm] = useState({
@@ -131,6 +134,13 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
               {billAcceptor.statusText}
             </Badge>
 
+            {/* Кнопка журнала инкассации */}
+            <CashoutHistoryDialog
+              cashoutRecords={cashoutRecords}
+              loading={cashoutLoading}
+              isMobile={isMobile}
+            />
+
             {/* Кнопка настройки порогов */}
             <Button
               size="sm"
@@ -152,25 +162,35 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
           </div>
         )}
 
-        {/* Кнопка настройки порогов для мобильных - отдельная строка */}
+        {/* Кнопки для мобильных - отдельная строка */}
         {isMobile && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsSettingsExpanded(!isSettingsExpanded);
-            }}
-            className="w-full border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            <span className="text-sm">{isSettingsExpanded ? 'Скрыть настройки' : 'Настроить пороги'}</span>
-            {isSettingsExpanded ? (
-              <ChevronUp className="w-4 h-4 ml-2" />
-            ) : (
-              <ChevronDown className="w-4 h-4 ml-2" />
-            )}
-          </Button>
+          <div className="flex gap-2">
+            {/* Кнопка журнала инкассации */}
+            <CashoutHistoryDialog
+              cashoutRecords={cashoutRecords}
+              loading={cashoutLoading}
+              isMobile={isMobile}
+            />
+
+            {/* Кнопка настройки порогов */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsSettingsExpanded(!isSettingsExpanded);
+              }}
+              className="flex-1 border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              <span className="text-sm">{isSettingsExpanded ? 'Скрыть настройки' : 'Настроить пороги'}</span>
+              {isSettingsExpanded ? (
+                <ChevronUp className="w-4 h-4 ml-2" />
+              ) : (
+                <ChevronDown className="w-4 h-4 ml-2" />
+              )}
+            </Button>
+          </div>
         )}
       </div>
 

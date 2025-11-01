@@ -251,3 +251,23 @@ export interface RestartTerminalResult {
   success: boolean;
   message: string;
 }
+
+/**
+ * Запись об инкассации
+ */
+export interface CashoutRecord {
+  shift: number;         // Номер смены
+  pos: number;          // Номер POS-терминала
+  cashoutno: number;    // Номер инкассации в течение смены (порядковый номер)
+  dt: string;           // Дата и время инкассации (ISO 8601)
+  value: number;        // Сумма инкассации в рублях (купюроприемник работает только с купюрами)
+}
+
+/**
+ * Данные об инкассации для станции
+ */
+export interface StationCashout {
+  system: number;       // ID системы (external_id сети)
+  number: number;       // Номер станции
+  cashout: CashoutRecord[];  // Массив записей об инкассации
+}

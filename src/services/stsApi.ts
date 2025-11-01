@@ -1563,6 +1563,26 @@ class STSApiService {
   }
 
   /**
+   * Получить журнал инкассации
+   * GET /v1/cashout
+   */
+  async getCashoutHistory(contextParams?: {networkId?: string; tradingPointId?: string}): Promise<import('@/types/equipment').StationCashout[]> {
+    try {
+      const endpoint = '/v1/cashout';
+      const data = await this.apiRequest<any>(endpoint, {}, contextParams);
+
+      if (Array.isArray(data)) {
+        return data;
+      }
+
+      return [];
+    } catch (error) {
+      console.error('🔍 STS API: Ошибка получения журнала инкассации:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Получение журнала изменения цен на дату
    * GET /v1/schedule/prices/{station_number}
    */
