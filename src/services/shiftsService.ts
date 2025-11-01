@@ -16,6 +16,8 @@ import {
   ReceiptsRequestParams,
   ShiftReport,
   ShiftReportRequestParams,
+  FuelTotal,
+  Shift
 } from '@/types/shifts';
 import { stsProxyClient } from './stsProxyClient';
 
@@ -30,8 +32,16 @@ import { stsProxyClient } from './stsProxyClient';
  */
 export async function getShifts(params: ShiftsRequestParams): Promise<Shift[]> {
   try {
-    const response = await stsProxyClient.get<Shift[]>('/v1/shifts', params);
-    return response;
+    const response = await stsProxyClient.get<any[]>('/v1/shifts', params);
+
+    // API не возвращает system и station в ответе, добавляем их из параметров запроса
+    const shifts: Shift[] = response.map(shift => ({
+      ...shift,
+      system: params.system,
+      station: params.station
+    }));
+
+    return shifts;
   } catch (error) {
     console.error('❌ ShiftsService: Ошибка получения смен', error);
     throw error;
@@ -84,8 +94,37 @@ export async function getFuelReceipts(params: ReceiptsRequestParams): Promise<Re
  */
 export async function getShiftReport(params: ShiftReportRequestParams): Promise<ShiftReport> {
   try {
-    const response = await stsProxyClient.get<ShiftReport>('/v1/report/shift_report', params);
-    return response;
+    const response = await stsProxyClient.get<any>('/v1/report/shift_report', params);
+
+    // Преобразуем ответ API к нужному формату
+    // API возвращает { psm, release, receipt, sales, money }
+    // Нужно преобразовать в ShiftReport с полем fuel_totals
+    const fuelTotals: FuelTotal[] = response.psm?.total?.map((item: any) => ({
+      service_code: item.service?.service_code || 0,
+      service_name: item.service?.service_name || '',
+      release: {
+        quantity: item.release?.quantity || 0,
+        cost: item.release?.cost || 0,
+        amount: item.release?.amount
+      }
+    })) || [];
+
+    return {
+      system: params.system,
+      station: params.station,
+      shift: {
+        shift: params.shift,
+        state: 0, // Предполагаем закрытую смену
+        dt_open: undefined,
+        dt_close: null
+      },
+      pos_info: [],
+      tanks: [],
+      receipts: [],
+      fuel_totals: fuelTotals,
+      payment_totals: [],
+      cash_movements: []
+    };
   } catch (error) {
     console.error('❌ ShiftsService: Ошибка получения сменного отчета', error);
     throw error;
