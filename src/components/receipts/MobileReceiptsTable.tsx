@@ -47,10 +47,10 @@ export function MobileReceiptsTable({ receipts, onReceiptClick }: MobileReceipts
             </div>
             <div className="text-right">
               <div className="text-lg font-bold text-white">
-                {receipt.fact?.volume ? parseFloat(receipt.fact.volume).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : '0'} л
+                {receipt.doc?.volume ? parseFloat(receipt.doc.volume).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : '0'} л
               </div>
               <div className="text-xs text-slate-400">
-                {receipt.fact?.amount ? parseFloat(receipt.fact.amount).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : '0'} кг
+                {receipt.doc?.amount ? parseFloat(receipt.doc.amount).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : '0'} кг
               </div>
             </div>
           </div>
