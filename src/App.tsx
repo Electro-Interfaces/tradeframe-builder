@@ -45,6 +45,7 @@ const NetworkNotifications = lazy(() => import("./pages/NetworkNotifications"));
 const Messages = lazy(() => import("./pages/Messages"));
 const BroadcastMessages = lazy(() => import("./pages/BroadcastMessages"));
 const Receipts = lazy(() => import("./pages/network/Receipts"));
+const NetworkPricing = lazy(() => import("./pages/NetworkPricing"));
 
 // Equipment и остальные страницы - ленивая загрузка (приоритет 3)
 
@@ -215,6 +216,7 @@ const App = () => {
 
                   {/* Network страницы - приоритет 3 */}
                   <Route path="/network/sales-analysis" element={<ProtectedRoute><LazyLoader><SalesAnalysisPage /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/pricing" element={<ProtectedRoute><LazyLoader><NetworkPricing /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/notifications" element={<ProtectedRoute><LazyLoader><NetworkNotifications /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/messages" element={<ProtectedRoute><LazyLoader><Messages /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/broadcast-messages" element={<ProtectedRoute><LazyLoader><BroadcastMessages /></LazyLoader></ProtectedRoute>} />
