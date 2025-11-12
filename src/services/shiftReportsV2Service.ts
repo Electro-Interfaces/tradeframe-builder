@@ -118,8 +118,8 @@ class ShiftReportsV2Service {
       });
       const shiftInfo = shifts.find(s => s.shift === params.shift);
 
-      // Получаем детальные данные из API
-      const response = await shiftsService.getShiftReport(params);
+      // Получаем СЫРЫЕ детальные данные из API (используем getShiftReportRaw)
+      const response = await shiftsService.getShiftReportRaw(params);
 
       // Преобразуем в UI формат используя новый адаптер (V2)
       return ShiftReportAdapterV2.toDetails(response, params.shift, params.system, params.station, stationName, shiftInfo);

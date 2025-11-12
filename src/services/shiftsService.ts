@@ -73,7 +73,34 @@ export async function getFuelReceipts(params: ReceiptsRequestParams): Promise<Re
 }
 
 /**
- * Получить полный сменный отчет
+ * Получить сырые данные сменного отчета от API
+ * Используется в ShiftReportsV2 для полного контроля над преобразованием данных
+ *
+ * @param params - Параметры запроса (system, station, shift)
+ * @returns Сырые данные от STS API { psm, release, receipt, sales, money }
+ *
+ * @example
+ * const rawData = await getShiftReportRaw({
+ *   system: 15,
+ *   station: 1,
+ *   shift: 123
+ * });
+ */
+export async function getShiftReportRaw(params: ShiftReportRequestParams): Promise<any> {
+  try {
+    // Возвращаем сырые данные от API без преобразования
+    // API возвращает { psm: {total, data}, release, receipt, sales, money }
+    const response = await stsProxyClient.get<any>('/v1/report/shift_report', params);
+    return response;
+  } catch (error) {
+    console.error('❌ ShiftsService: Ошибка получения сырого сменного отчета', error);
+    throw error;
+  }
+}
+
+/**
+ * Получить полный сменный отчет (преобразованный формат)
+ * Используется в Pricing и других страницах для обратной совместимости
  *
  * Отчет включает:
  * - Информацию по ПСМ (постам смены менеджера)
@@ -83,7 +110,7 @@ export async function getFuelReceipts(params: ReceiptsRequestParams): Promise<Re
  * - Движение наличных денежных средств
  *
  * @param params - Параметры запроса (system, station, shift)
- * @returns Полный сменный отчет
+ * @returns Преобразованный сменный отчет в формате ShiftReport
  *
  * @example
  * const report = await getShiftReport({
@@ -96,9 +123,8 @@ export async function getShiftReport(params: ShiftReportRequestParams): Promise<
   try {
     const response = await stsProxyClient.get<any>('/v1/report/shift_report', params);
 
-    // Преобразуем ответ API к нужному формату
+    // Преобразуем ответ API к формату ShiftReport для обратной совместимости
     // API возвращает { psm, release, receipt, sales, money }
-    // Нужно преобразовать в ShiftReport с полем fuel_totals
     const fuelTotals: FuelTotal[] = response.psm?.total?.map((item: any) => ({
       service_code: item.service?.service_code || 0,
       service_name: item.service?.service_name || '',
@@ -123,7 +149,8 @@ export async function getShiftReport(params: ShiftReportRequestParams): Promise<
       receipts: [],
       fuel_totals: fuelTotals,
       payment_totals: [],
-      cash_movements: []
+      cash_movements: [],
+      report_date: new Date().toISOString()
     };
   } catch (error) {
     console.error('❌ ShiftsService: Ошибка получения сменного отчета', error);
@@ -138,6 +165,7 @@ export const shiftsService = {
   getShifts,
   getFuelReceipts,
   getShiftReport,
+  getShiftReportRaw,
 };
 
 export default shiftsService;

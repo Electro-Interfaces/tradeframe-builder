@@ -35,7 +35,7 @@ export class ShiftReportAdapterV2 {
     const { fuelSales, paymentSales } = this.extractSales(apiResponse.sales);
 
     // Извлекаем детализированные продажи для расшифровки реализации
-    const salesBreakdown = this.extractSalesBreakdown(apiResponse.sales);
+    const salesBreakdown = this.extractSalesBreakdown(apiResponse.sales, nozzleReadings);
 
     // Извлекаем поступления
     const receipts = this.extractReceipts(apiResponse.receipt);
@@ -86,7 +86,7 @@ export class ShiftReportAdapterV2 {
       }
     }
 
-    return {
+    const result = {
       // Базовая информация
       id: `${system}-${station}-${shiftNumber}`,
       shiftNumber,
@@ -131,6 +131,8 @@ export class ShiftReportAdapterV2 {
       // Сырые данные для дополнительных расчетов
       salesRaw: apiResponse.sales || [],
     } as any;
+    
+    return result;
   }
 
   /**
@@ -281,7 +283,7 @@ export class ShiftReportAdapterV2 {
    * Извлечь детализированные продажи по топливу и способам оплаты
    * Для таблицы "Расшифровка реализации"
    */
-  private static extractSalesBreakdown(sales: any[]): any[] {
+  private static extractSalesBreakdown(sales: any[], nozzleReadings: NozzleReading[]): any[] {
     if (!sales || !Array.isArray(sales)) {
       return [];
     }
@@ -358,6 +360,20 @@ export class ShiftReportAdapterV2 {
           }
         });
       }
+    });
+
+    // Вычисляем pumpVolume из показаний ТРК (nozzleReadings)
+    // и разницу между прокачкой и продажами
+    breakdownMap.forEach((breakdown, fuelCode) => {
+      // Суммируем объемы из всех пистолетов для данного топлива
+      const totalPumpVolume = nozzleReadings
+        .filter(nozzle => nozzle.fuelCode === fuelCode)
+        .reduce((sum, nozzle) => sum + nozzle.volume, 0);
+      
+      breakdown.pumpVolume = totalPumpVolume;
+      
+      // Вычисляем разницу = Прокачка - Всего (продажи)
+      breakdown.difference = breakdown.pumpVolume - breakdown.totalVolume;
     });
 
     const result = Array.from(breakdownMap.values());
