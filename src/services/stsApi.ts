@@ -363,7 +363,7 @@ class STSApiService {
     }
   }
 
-  private async apiRequest<T>(endpoint: string, options: RequestInit = {}, contextParams?: {networkId?: string; tradingPointId?: string}): Promise<T> {
+  private async apiRequest<T>(endpoint: string, options: RequestInit = {}, contextParams?: {networkId?: string; tradingPointId?: string}, customTimeout?: number): Promise<T> {
     // Backend Proxy не требует конфигурации на frontend - все настройки на сервере
     // Просто используем относительные пути /api/sts/*
 
@@ -450,9 +450,11 @@ class STSApiService {
     };
 
 
-    // Адаптивный timeout: 15 секунд - компромисс между скоростью и надежностью
-    // Это помогает быстро обнаружить проблемы с backend proxy
-    const timeout = 15000;
+    // Адаптивный timeout:
+    // - Если указан customTimeout - используем его
+    // - По умолчанию 15 секунд для обычных запросов
+    // - Для тяжелых запросов (транзакции) будет использоваться больший timeout
+    const timeout = customTimeout || 15000;
 
     const response = await fetch(url.toString(), {
       ...options,
@@ -984,7 +986,9 @@ class STSApiService {
         endpoint += `?${params.toString()}`;
       }
 
-      const data = await this.apiRequest<any>(endpoint, {}, contextParams);
+      // Используем увеличенный timeout для запроса транзакций (45 секунд)
+      // так как это тяжелый запрос с большим объемом данных
+      const data = await this.apiRequest<any>(endpoint, {}, contextParams, 45000);
 
       // Обработка формата v2 API: массив объектов с полем items
       if (Array.isArray(data) && data.length > 0 && data[0].items) {
