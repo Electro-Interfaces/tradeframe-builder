@@ -669,6 +669,12 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                       borderRadius: '8px',
                       color: '#fff'
                     }}
+                    formatter={(value: any) => {
+                      if (typeof value === 'number') {
+                        return value.toFixed(2) + ' л';
+                      }
+                      return value;
+                    }}
                   />
                   <Legend />
                   <Area

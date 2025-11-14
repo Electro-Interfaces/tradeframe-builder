@@ -39,8 +39,10 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
       params: queryParams
     });
 
-    // Извлекаем первый элемент массива (данные по запрошенной станции)
-    const stationData = Array.isArray(response) && response.length > 0 ? response[0] : null;
+    // Ищем данные по запрошенной станции (API может вернуть несколько станций)
+    const stationData = Array.isArray(response)
+      ? response.find(item => item.number === params.station)
+      : null;
 
     if (!stationData) {
       return {
@@ -82,8 +84,10 @@ export async function getReceipts(params: BookDataParams): Promise<ReceiptRespon
       params: queryParams
     });
 
-    // Извлекаем первый элемент массива (данные по запрошенной станции)
-    const stationData = Array.isArray(response) && response.length > 0 ? response[0] : null;
+    // Ищем данные по запрошенной станции (API может вернуть несколько станций)
+    const stationData = Array.isArray(response)
+      ? response.find(item => item.number === params.station)
+      : null;
 
     if (!stationData) {
       return {
