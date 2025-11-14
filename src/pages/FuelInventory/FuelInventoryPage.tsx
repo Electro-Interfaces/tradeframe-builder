@@ -481,7 +481,8 @@ export default function FuelInventory() {
                     </div>
 
                     {/* График */}
-                    <ResponsiveContainer width="100%" height={300}>
+                    <div className="-mx-8 md:mx-0">
+                      <ResponsiveContainer width="100%" height={300}>
                       <AreaChart data={chartData}>
                         <defs>
                           <linearGradient id={`volumeGradient-${summary.fuelCode}`} x1="0" y1="0" x2="0" y2="1">
@@ -562,6 +563,7 @@ export default function FuelInventory() {
                         />
                       </AreaChart>
                     </ResponsiveContainer>
+                    </div>
                   </CardContent>
                 </Card>
               );
