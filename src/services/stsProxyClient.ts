@@ -32,10 +32,10 @@ const getProxyBaseUrl = (): string => {
   }
 
   // ⚠️ GitHub Pages НЕ может запускать backend proxy (статический хостинг)
-  // TEST окружение использует production backend для API запросов
+  // TEST окружение использует TEST backend для API запросов
   if (origin.includes('github.io')) {
-    console.log('🔄 [TEST Environment] Using production backend for API requests');
-    return 'https://prod.dataworker.ru';
+    console.log('🔄 [TEST Environment] Using TEST backend for API requests');
+    return 'https://testtf.dataworker.ru';
   }
 
   // LOCAL и PRODUCTION используют собственный origin
