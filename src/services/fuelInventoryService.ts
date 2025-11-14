@@ -85,20 +85,20 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
   // Получаем список всех ТТ
   const tradingPoints = await tradingPointsService.getByNetworkId(params.networkId);
 
-  // Обрабатываем каждую ТТ
-  for (const point of tradingPoints) {
-    if (!point.external_id) {
-      continue;
-    }
+  // ✅ ОПТИМИЗАЦИЯ: Обрабатываем все ТТ параллельно с Promise.all()
+  const pointPromises = tradingPoints
+    .filter(point => {
+      if (!point.external_id) return false;
+      // Если выбрана конкретная ТТ - обрабатываем только её
+      if (params.station && parseInt(point.external_id) !== params.station) {
+        return false;
+      }
+      return true;
+    })
+    .map(async (point) => {
+      const stationId = parseInt(point.external_id!);
 
-    // Если выбрана конкретная ТТ - обрабатываем только её
-    if (params.station && parseInt(point.external_id) !== params.station) {
-      continue;
-    }
-
-    const stationId = parseInt(point.external_id);
-
-    try {
+      try {
       // 1. Получаем список всех смен
       const shiftsResponse = await stsProxyRequest<any>(
         '/v1/shifts',
@@ -180,9 +180,8 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
         // Игнорируем ошибки получения емкостей
       }
 
-      // 3. Получаем данные из сменных отчётов для каждой смены
-      const shiftReports: any[] = [];
-      for (const shift of validShifts) {
+      // 3. ✅ ОПТИМИЗАЦИЯ: Получаем данные из сменных отчётов параллельно
+      const shiftReportPromises = validShifts.map(async (shift) => {
         try {
           const report = await stsProxyRequest<any>(
             '/v1/report/shift_report',
@@ -202,16 +201,21 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
           }
 
           if (reportData?.release && reportData.release.length > 0) {
-            shiftReports.push({
+            return {
               shiftNumber: shift.shift,
               shiftDate: shift.dt_close || shift.dt_open,
               data: reportData
-            });
+            };
           }
+          return null;
         } catch (err) {
           // Игнорируем ошибки получения отдельных отчетов
+          return null;
         }
-      }
+      });
+
+      const shiftReportsResults = await Promise.all(shiftReportPromises);
+      const shiftReports = shiftReportsResults.filter(report => report !== null);
 
       if (shiftReports.length === 0) {
         continue;
@@ -260,6 +264,7 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
       });
 
       // 5. Создаём TankInventory для каждого резервуара
+      const tankInventories: TankInventory[] = [];
       tankDataMap.forEach((data, tankNumber) => {
         const firstTank = data.firstShift.data.release.find((t: any) => t.tank === tankNumber);
         const lastTank = data.lastShift.data.release.find((t: any) => t.tank === tankNumber);
@@ -267,7 +272,7 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
         const volumeBegin = parseFloat(firstTank?.doc_beg?.volume || '0');
         const volumeEnd = parseFloat(lastTank?.doc_end?.volume || '0');
 
-        inventory.push({
+        tankInventories.push({
           station: stationId,
           stationName: point.name,
           tankNumber: tankNumber,
@@ -288,10 +293,21 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
         });
       });
 
+      return tankInventories;
+
     } catch (err) {
       // Игнорируем ошибки обработки ТТ
+      return [];
     }
-  }
+  });
+
+  // ✅ ОПТИМИЗАЦИЯ: Ждем завершения всех торговых точек параллельно
+  const allResults = await Promise.all(pointPromises);
+
+  // Объединяем результаты всех ТТ в один массив
+  allResults.forEach(tankInventories => {
+    inventory.push(...tankInventories);
+  });
 
   return inventory;
 }
