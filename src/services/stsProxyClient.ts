@@ -18,10 +18,11 @@ interface StsProxyRequestOptions {
 
 /**
  * Базовый URL для Backend Proxy
- * В development - localhost, в production - текущий домен
+ * - LOCAL (localhost): http://localhost:3000 (через Vite proxy → localhost:3001)
+ * - TEST (GitHub Pages): https://prod.dataworker.ru (использует production backend)
+ * - PRODUCTION: https://prod.dataworker.ru (собственный backend)
  */
 const getProxyBaseUrl = (): string => {
-  // Всегда используем текущий домен (откуда загружено приложение)
   const origin = window.location.origin;
 
   // Проверка на корректность origin
@@ -30,6 +31,14 @@ const getProxyBaseUrl = (): string => {
     throw new Error('Cannot determine origin for STS Proxy');
   }
 
+  // ⚠️ GitHub Pages НЕ может запускать backend proxy (статический хостинг)
+  // TEST окружение использует production backend для API запросов
+  if (origin.includes('github.io')) {
+    console.log('🔄 [TEST Environment] Using production backend for API requests');
+    return 'https://prod.dataworker.ru';
+  }
+
+  // LOCAL и PRODUCTION используют собственный origin
   return origin;
 };
 
