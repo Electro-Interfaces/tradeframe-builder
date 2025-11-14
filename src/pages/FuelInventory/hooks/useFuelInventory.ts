@@ -3,7 +3,7 @@
  * Использует React Query для кэширования
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelection } from '@/contexts/SelectionContext';
 import { getInventoryFromShiftReports, aggregateByFuel, type TankInventory, type FuelInventorySummary } from '@/services/fuelInventoryService';
@@ -11,6 +11,9 @@ import { formatDateForApi } from '../utils/fuelInventoryHelpers';
 
 export const useFuelInventory = (dateFrom: string, dateTo: string) => {
   const { selectedNetwork, selectedStation } = useSelection();
+
+  // Состояние прогресса загрузки смен
+  const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: 0 });
 
   // Создаем ключ запроса на основе всех параметров
   const queryKey = useMemo(() => {
@@ -41,7 +44,10 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
         networkId: selectedNetwork.id,
         station: selectedStation ? parseInt(selectedStation.external_id) : undefined,
         dt_beg: formatDateForApi(dateFrom, false),
-        dt_end: formatDateForApi(dateTo, true)
+        dt_end: formatDateForApi(dateTo, true),
+        onProgress: (loaded, total) => {
+          setLoadingProgress({ loaded, total });
+        }
       });
 
       if (data.length === 0) {
@@ -69,6 +75,7 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
     inventory,
     fuelSummaries,
     error,
-    loadInventory
+    loadInventory,
+    loadingProgress
   };
 };

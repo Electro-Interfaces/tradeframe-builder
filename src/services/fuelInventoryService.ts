@@ -15,6 +15,7 @@ export interface InventoryParams {
   station?: number;         // external_id ТТ (опционально)
   dt_beg?: string;
   dt_end?: string;
+  onProgress?: (loaded: number, total: number) => void; // Callback для отслеживания прогресса загрузки смен
 }
 
 /**
@@ -180,7 +181,15 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
         // Игнорируем ошибки получения емкостей
       }
 
-      // 3. ✅ ОПТИМИЗАЦИЯ: Получаем данные из сменных отчётов параллельно
+      // 3. ✅ ОПТИМИЗАЦИЯ: Получаем данные из сменных отчётов параллельно с отслеживанием прогресса
+      let completedShifts = 0;
+      const totalShifts = validShifts.length;
+
+      // Вызываем начальный прогресс
+      if (params.onProgress) {
+        params.onProgress(0, totalShifts);
+      }
+
       const shiftReportPromises = validShifts.map(async (shift) => {
         try {
           const report = await stsProxyRequest<any>(
@@ -200,6 +209,12 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
             reportData = report[0];
           }
 
+          // Увеличиваем счетчик и вызываем callback
+          completedShifts++;
+          if (params.onProgress) {
+            params.onProgress(completedShifts, totalShifts);
+          }
+
           if (reportData?.release && reportData.release.length > 0) {
             return {
               shiftNumber: shift.shift,
@@ -210,6 +225,11 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
           return null;
         } catch (err) {
           // Игнорируем ошибки получения отдельных отчетов
+          // Но все равно считаем как завершенную
+          completedShifts++;
+          if (params.onProgress) {
+            params.onProgress(completedShifts, totalShifts);
+          }
           return null;
         }
       });
