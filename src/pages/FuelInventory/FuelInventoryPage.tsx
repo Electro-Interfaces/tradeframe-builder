@@ -155,7 +155,10 @@ export default function FuelInventory() {
               <CardTitle className="text-white">Остатки по резервуарам</CardTitle>
               <div className={`flex ${isMobile ? 'flex-col w-full' : 'flex-row'} gap-2`}>
                 {/* Фильтр по ТТ */}
-                <Select value={selectedStationFilter} onValueChange={setSelectedStationFilter}>
+                <Select
+                  value={selectedStationFilter}
+                  onValueChange={setSelectedStationFilter}
+                >
                   <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} bg-slate-900`}>
                     <SelectValue placeholder="Все ТТ" />
                   </SelectTrigger>

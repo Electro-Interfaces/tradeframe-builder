@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { networksService } from "@/services/networksService";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import { Network } from "@/types/network";
+import { TradingPoint } from "@/types/tradingpoint";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 
 type SelectionContextValue = {
@@ -9,6 +10,7 @@ type SelectionContextValue = {
   setSelectedNetwork: (networkId: string) => void;
   selectedTradingPoint: string;
   setSelectedTradingPoint: (v: string) => void;
+  selectedStation: TradingPoint | null; // ✅ ДОБАВЛЕНО: Объект торговой точки
   isAllTradingPoints: boolean;
   isInitialized: boolean;
 };
@@ -41,6 +43,9 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
   // Получаем объект сети по ID
   const [selectedNetwork, setSelectedNetworkState] = useState<Network | null>(null);
+
+  // ✅ ДОБАВЛЕНО: Получаем объект торговой точки по ID
+  const [selectedStation, setSelectedStation] = useState<TradingPoint | null>(null);
   
   // Загружаем первую доступную сеть при старте
   useEffect(() => {
@@ -130,6 +135,22 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedNetworkId]);
 
+  // ✅ ДОБАВЛЕНО: Загружаем объект торговой точки при изменении selectedTradingPoint
+  useEffect(() => {
+    if (selectedTradingPoint && selectedTradingPoint !== 'all') {
+      tradingPointsService.getById(selectedTradingPoint)
+        .then(station => {
+          setSelectedStation(station);
+        })
+        .catch(error => {
+          console.error('Failed to load trading point:', error);
+          setSelectedStation(null);
+        });
+    } else {
+      setSelectedStation(null);
+    }
+  }, [selectedTradingPoint]);
+
   // Обертка для setSelectedNetwork, которая сбрасывает торговую точку при смене сети
   const handleSetSelectedNetwork = (networkId: string) => {
     // Для МенеджерБТО разрешаем менять сеть только на БТО
@@ -188,6 +209,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     setSelectedNetwork: handleSetSelectedNetwork,
     selectedTradingPoint,
     setSelectedTradingPoint,
+    selectedStation, // ✅ ДОБАВЛЕНО: Объект торговой точки
     isAllTradingPoints,
     isInitialized,
   };

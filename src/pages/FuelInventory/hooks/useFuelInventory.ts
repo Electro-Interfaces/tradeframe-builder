@@ -13,13 +13,15 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
   const { selectedNetwork, selectedStation } = useSelection();
 
   // Создаем ключ запроса на основе всех параметров
-  const queryKey = useMemo(() => [
-    'fuelInventory',
-    selectedNetwork?.id,
-    selectedStation?.id,
-    dateFrom,
-    dateTo
-  ], [selectedNetwork?.id, selectedStation?.id, dateFrom, dateTo]);
+  const queryKey = useMemo(() => {
+    return [
+      'fuelInventory',
+      selectedNetwork?.id,
+      selectedStation?.id,
+      dateFrom,
+      dateTo
+    ];
+  }, [selectedNetwork?.id, selectedStation?.id, dateFrom, dateTo]);
 
   // React Query для загрузки данных с кэшированием
   const {
