@@ -113,6 +113,10 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
   // Получаем список всех ТТ
   const tradingPoints = await tradingPointsService.getByNetworkId(params.networkId);
 
+  // ✅ Агрегированный счетчик прогресса для ВСЕХ станций
+  let totalShiftsAcrossAllStations = 0;
+  let loadedShiftsAcrossAllStations = 0;
+
   // ✅ ОПТИМИЗАЦИЯ: Обрабатываем все ТТ параллельно с Promise.all()
   const pointPromises = tradingPoints
     .filter(point => {
@@ -125,11 +129,6 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
     })
     .map(async (point) => {
       const stationId = parseInt(point.external_id!);
-
-      // ✅ Показываем индикатор подготовки станции СРАЗУ
-      if (params.onProgress) {
-        params.onProgress(0, 0); // Показываем, что идет подготовка данных
-      }
 
       try {
       // 1. Получаем список всех смен
@@ -216,9 +215,12 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
       // 3. ✅ ОПТИМИЗАЦИЯ: Получаем данные из сменных отчётов пачками для предотвращения перегрузки API
       const totalShifts = validShifts.length;
 
-      // Вызываем начальный прогресс
+      // Добавляем смены этой станции к общему счетчику
+      totalShiftsAcrossAllStations += totalShifts;
+
+      // Вызываем начальный прогресс с обновленным total
       if (params.onProgress) {
-        params.onProgress(0, totalShifts);
+        params.onProgress(loadedShiftsAcrossAllStations, totalShiftsAcrossAllStations);
       }
 
       // Используем пакетную обработку (5 запросов параллельно) для предотвращения перегрузки STS API
@@ -238,9 +240,12 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
               }
             );
 
-            // Обновляем прогресс после завершения запроса
+            // Обновляем ГЛОБАЛЬНЫЙ счетчик загруженных смен
+            loadedShiftsAcrossAllStations++;
+
+            // Обновляем прогресс с агрегированными значениями
             if (params.onProgress) {
-              params.onProgress(index + 1, totalShifts);
+              params.onProgress(loadedShiftsAcrossAllStations, totalShiftsAcrossAllStations);
             }
 
             let reportData = report;
@@ -257,9 +262,12 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
             }
             return null;
           } catch (err) {
-            // Обновляем прогресс даже при ошибке
+            // Обновляем ГЛОБАЛЬНЫЙ счетчик даже при ошибке
+            loadedShiftsAcrossAllStations++;
+
+            // Обновляем прогресс с агрегированными значениями
             if (params.onProgress) {
-              params.onProgress(index + 1, totalShifts);
+              params.onProgress(loadedShiftsAcrossAllStations, totalShiftsAcrossAllStations);
             }
             // Игнорируем ошибки получения отдельных отчетов
             return null;
