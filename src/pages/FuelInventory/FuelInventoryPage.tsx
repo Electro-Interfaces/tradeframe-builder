@@ -135,25 +135,32 @@ export default function FuelInventory() {
         </div>
 
         {/* Индикатор прогресса загрузки смен */}
-        {loading && loadingProgress.total > 0 && (
+        {loading && (
           <Card className="bg-blue-900/20 border-blue-700">
             <CardContent className="py-4">
               <div className="flex items-center gap-4">
                 <RefreshCw className="w-5 h-5 text-blue-400 animate-spin" />
                 <div className="flex-1">
                   <p className="text-blue-400 font-medium mb-2">
-                    Загрузка сменных отчетов: {loadingProgress.loaded} / {loadingProgress.total}
+                    {loadingProgress.total === 0
+                      ? 'Подготовка данных...'
+                      : `Загрузка сменных отчетов: ${loadingProgress.loaded} / ${loadingProgress.total}`
+                    }
                   </p>
-                  <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 transition-all duration-300"
-                      style={{ width: `${(loadingProgress.loaded / loadingProgress.total) * 100}%` }}
-                    ></div>
+                  {loadingProgress.total > 0 && (
+                    <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 transition-all duration-300"
+                        style={{ width: `${(loadingProgress.loaded / loadingProgress.total) * 100}%` }}
+                      ></div>
+                    </div>
+                  )}
+                </div>
+                {loadingProgress.total > 0 && (
+                  <div className="text-blue-400 font-mono text-sm">
+                    {Math.round((loadingProgress.loaded / loadingProgress.total) * 100)}%
                   </div>
-                </div>
-                <div className="text-blue-400 font-mono text-sm">
-                  {Math.round((loadingProgress.loaded / loadingProgress.total) * 100)}%
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -481,7 +488,7 @@ export default function FuelInventory() {
                     </div>
 
                     {/* График */}
-                    <div className="-mx-8 md:mx-0">
+                    <div className="-mx-6 px-2 md:mx-0 md:px-0">
                       <ResponsiveContainer width="100%" height={300}>
                       <AreaChart data={chartData}>
                         <defs>

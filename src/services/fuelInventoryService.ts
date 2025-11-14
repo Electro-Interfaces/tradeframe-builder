@@ -79,6 +79,11 @@ export interface InventoryHistory {
 export async function getInventoryFromShiftReports(params: InventoryParams): Promise<TankInventory[]> {
   const inventory: TankInventory[] = [];
 
+  // ✅ Показываем индикатор загрузки СРАЗУ в начале
+  if (params.onProgress) {
+    params.onProgress(0, 0); // Показываем, что загрузка началась
+  }
+
   // Границы периода
   const periodStart = new Date(params.dt_beg!);
   const periodEnd = new Date(params.dt_end!);
@@ -98,6 +103,11 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
     })
     .map(async (point) => {
       const stationId = parseInt(point.external_id!);
+
+      // ✅ Показываем индикатор подготовки станции СРАЗУ
+      if (params.onProgress) {
+        params.onProgress(0, 0); // Показываем, что идет подготовка данных
+      }
 
       try {
       // 1. Получаем список всех смен
