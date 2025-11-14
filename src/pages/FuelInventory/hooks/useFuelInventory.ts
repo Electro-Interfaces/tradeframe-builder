@@ -35,6 +35,9 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
   } = useQuery<TankInventory[], Error>({
     queryKey,
     queryFn: async () => {
+      // Сбрасываем прогресс в начале загрузки
+      setLoadingProgress({ loaded: 0, total: 0 });
+
       if (!selectedNetwork) {
         throw new Error('Не выбрана торговая сеть');
       }

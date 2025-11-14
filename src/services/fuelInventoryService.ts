@@ -182,7 +182,6 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
       }
 
       // 3. ✅ ОПТИМИЗАЦИЯ: Получаем данные из сменных отчётов параллельно с отслеживанием прогресса
-      let completedShifts = 0;
       const totalShifts = validShifts.length;
 
       // Вызываем начальный прогресс
@@ -190,7 +189,8 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
         params.onProgress(0, totalShifts);
       }
 
-      const shiftReportPromises = validShifts.map(async (shift) => {
+      // Используем Promise.allSettled для отслеживания завершения каждого промиса
+      const shiftReportPromises = validShifts.map(async (shift, index) => {
         try {
           const report = await stsProxyRequest<any>(
             '/v1/report/shift_report',
@@ -209,12 +209,6 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
             reportData = report[0];
           }
 
-          // Увеличиваем счетчик и вызываем callback
-          completedShifts++;
-          if (params.onProgress) {
-            params.onProgress(completedShifts, totalShifts);
-          }
-
           if (reportData?.release && reportData.release.length > 0) {
             return {
               shiftNumber: shift.shift,
@@ -225,16 +219,28 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
           return null;
         } catch (err) {
           // Игнорируем ошибки получения отдельных отчетов
-          // Но все равно считаем как завершенную
-          completedShifts++;
-          if (params.onProgress) {
-            params.onProgress(completedShifts, totalShifts);
-          }
           return null;
         }
       });
 
-      const shiftReportsResults = await Promise.all(shiftReportPromises);
+      // Оборачиваем каждый промис для отслеживания прогресса без race condition
+      const trackedPromises = shiftReportPromises.map((promise, index) =>
+        promise.then((result) => {
+          // Безопасно обновляем прогресс после завершения промиса
+          if (params.onProgress) {
+            params.onProgress(index + 1, totalShifts);
+          }
+          return result;
+        }).catch((err) => {
+          // Даже при ошибке обновляем прогресс
+          if (params.onProgress) {
+            params.onProgress(index + 1, totalShifts);
+          }
+          return null;
+        })
+      );
+
+      const shiftReportsResults = await Promise.all(trackedPromises);
       const shiftReports = shiftReportsResults.filter(report => report !== null);
 
       if (shiftReports.length === 0) {
