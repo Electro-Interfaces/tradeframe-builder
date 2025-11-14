@@ -73,6 +73,28 @@ export interface InventoryHistory {
 
 
 /**
+ * Вспомогательная функция для выполнения промисов пачками
+ * Ограничивает количество одновременных запросов для предотвращения перегрузки API
+ */
+async function batchPromises<T>(
+  items: any[],
+  processFn: (item: any, index: number) => Promise<T>,
+  batchSize: number = 5
+): Promise<T[]> {
+  const results: T[] = [];
+
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchResults = await Promise.all(
+      batch.map((item, batchIndex) => processFn(item, i + batchIndex))
+    );
+    results.push(...batchResults);
+  }
+
+  return results;
+}
+
+/**
  * НОВАЯ ФУНКЦИЯ: Получить остатки на основе ТОЛЬКО сменных отчётов
  * Использует только /v1/shifts и /v1/report/shift_report
  */
@@ -191,7 +213,7 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
         // Игнорируем ошибки получения емкостей
       }
 
-      // 3. ✅ ОПТИМИЗАЦИЯ: Получаем данные из сменных отчётов параллельно с отслеживанием прогресса
+      // 3. ✅ ОПТИМИЗАЦИЯ: Получаем данные из сменных отчётов пачками для предотвращения перегрузки API
       const totalShifts = validShifts.length;
 
       // Вызываем начальный прогресс
@@ -199,58 +221,53 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
         params.onProgress(0, totalShifts);
       }
 
-      // Используем Promise.allSettled для отслеживания завершения каждого промиса
-      const shiftReportPromises = validShifts.map(async (shift, index) => {
-        try {
-          const report = await stsProxyRequest<any>(
-            '/v1/report/shift_report',
-            {
-              method: 'GET',
-              params: {
-                system: params.system,
-                station: stationId,
-                shift: shift.shift
+      // Используем пакетную обработку (5 запросов параллельно) для предотвращения перегрузки STS API
+      const shiftReportsResults = await batchPromises(
+        validShifts,
+        async (shift, index) => {
+          try {
+            const report = await stsProxyRequest<any>(
+              '/v1/report/shift_report',
+              {
+                method: 'GET',
+                params: {
+                  system: params.system,
+                  station: stationId,
+                  shift: shift.shift
+                }
               }
+            );
+
+            // Обновляем прогресс после завершения запроса
+            if (params.onProgress) {
+              params.onProgress(index + 1, totalShifts);
             }
-          );
 
-          let reportData = report;
-          if (Array.isArray(report) && report.length > 0) {
-            reportData = report[0];
-          }
+            let reportData = report;
+            if (Array.isArray(report) && report.length > 0) {
+              reportData = report[0];
+            }
 
-          if (reportData?.release && reportData.release.length > 0) {
-            return {
-              shiftNumber: shift.shift,
-              shiftDate: shift.dt_close || shift.dt_open,
-              data: reportData
-            };
+            if (reportData?.release && reportData.release.length > 0) {
+              return {
+                shiftNumber: shift.shift,
+                shiftDate: shift.dt_close || shift.dt_open,
+                data: reportData
+              };
+            }
+            return null;
+          } catch (err) {
+            // Обновляем прогресс даже при ошибке
+            if (params.onProgress) {
+              params.onProgress(index + 1, totalShifts);
+            }
+            // Игнорируем ошибки получения отдельных отчетов
+            return null;
           }
-          return null;
-        } catch (err) {
-          // Игнорируем ошибки получения отдельных отчетов
-          return null;
-        }
-      });
-
-      // Оборачиваем каждый промис для отслеживания прогресса без race condition
-      const trackedPromises = shiftReportPromises.map((promise, index) =>
-        promise.then((result) => {
-          // Безопасно обновляем прогресс после завершения промиса
-          if (params.onProgress) {
-            params.onProgress(index + 1, totalShifts);
-          }
-          return result;
-        }).catch((err) => {
-          // Даже при ошибке обновляем прогресс
-          if (params.onProgress) {
-            params.onProgress(index + 1, totalShifts);
-          }
-          return null;
-        })
+        },
+        5 // Размер пачки: 5 запросов одновременно (было неограниченно)
       );
 
-      const shiftReportsResults = await Promise.all(trackedPromises);
       const shiftReports = shiftReportsResults.filter(report => report !== null);
 
       if (shiftReports.length === 0) {

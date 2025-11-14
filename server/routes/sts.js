@@ -59,7 +59,7 @@ async function getStsClient() {
       headers: {
         'Content-Type': 'application/json'
       },
-      timeout: 30000 // 30 секунд таймаут
+      timeout: 60000 // 60 секунд таймаут (увеличено для медленных запросов на production)
     });
 
     console.log('[STS Proxy] Client initialized with URL:', STS_API_URL);
