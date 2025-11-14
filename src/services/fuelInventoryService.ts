@@ -135,7 +135,7 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
       });
 
       if (validShifts.length === 0) {
-        continue;
+        return []; // Нет смен в периоде - возвращаем пустой массив
       }
 
       // 2.5. Получаем емкости резервуаров из tank_history
@@ -218,7 +218,7 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
       const shiftReports = shiftReportsResults.filter(report => report !== null);
 
       if (shiftReports.length === 0) {
-        continue;
+        return []; // Нет данных из отчетов - возвращаем пустой массив
       }
 
       // 4. Группируем данные по резервуарам
