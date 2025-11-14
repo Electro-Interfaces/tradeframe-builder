@@ -74,8 +74,12 @@ export default function FuelInventory() {
     return new Date().toISOString().split('T')[0];
   });
 
-  // Используем хуки для загрузки данных
-  const { loading, inventory, fuelSummaries, error, loadInventory } = useFuelInventory(dateFrom, dateTo);
+  // Используем хуки для загрузки данных - передаем selectedStationFilter
+  const { loading, inventory, fuelSummaries, error, loadInventory } = useFuelInventory(
+    dateFrom,
+    dateTo,
+    selectedStationFilter === 'all' ? undefined : selectedStationFilter
+  );
   const { chartDataByFuel, loadingCharts, loadChartData } = useChartData(dateFrom, dateTo, fuelSummaries);
 
   // Обработчик клика на заголовок столбца для сортировки
@@ -89,7 +93,8 @@ export default function FuelInventory() {
   };
 
   // Фильтрация и сортировка данных
-  const filteredInventory = filterInventory(inventory, selectedFuel, selectedStationFilter);
+  // Фильтр по станции теперь на сервере, здесь только по виду топлива
+  const filteredInventory = filterInventory(inventory, selectedFuel, 'all');
   const sortedInventory = sortInventory(filteredInventory, sortColumn, sortDirection);
 
   // Расчет суммарных значений для выбранного фильтра (только когда выбран конкретный вид топлива)

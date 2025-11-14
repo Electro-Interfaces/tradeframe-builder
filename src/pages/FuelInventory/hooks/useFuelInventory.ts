@@ -9,7 +9,7 @@ import { useSelection } from '@/contexts/SelectionContext';
 import { getInventoryFromShiftReports, aggregateByFuel, type TankInventory, type FuelInventorySummary } from '@/services/fuelInventoryService';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
 
-export const useFuelInventory = (dateFrom: string, dateTo: string) => {
+export const useFuelInventory = (dateFrom: string, dateTo: string, stationFilter?: string) => {
   const { selectedNetwork, selectedStation } = useSelection();
 
   // Создаем ключ запроса на основе всех параметров
@@ -17,9 +17,10 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
     'fuelInventory',
     selectedNetwork?.id,
     selectedStation?.id,
+    stationFilter, // добавляем stationFilter в queryKey
     dateFrom,
     dateTo
-  ], [selectedNetwork?.id, selectedStation?.id, dateFrom, dateTo]);
+  ], [selectedNetwork?.id, selectedStation?.id, stationFilter, dateFrom, dateTo]);
 
   // React Query для загрузки данных с кэшированием
   const {
@@ -34,10 +35,17 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
         throw new Error('Не выбрана торговая сеть');
       }
 
+      // Определяем станцию: приоритет у stationFilter, потом selectedStation
+      const stationId = stationFilter
+        ? parseInt(stationFilter)
+        : selectedStation
+          ? parseInt(selectedStation.external_id)
+          : undefined;
+
       const data = await getInventoryFromShiftReports({
         system: parseInt(selectedNetwork.external_id),
         networkId: selectedNetwork.id,
-        station: selectedStation ? parseInt(selectedStation.external_id) : undefined,
+        station: stationId,
         dt_beg: formatDateForApi(dateFrom, false),
         dt_end: formatDateForApi(dateTo, true)
       });
