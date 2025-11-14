@@ -490,6 +490,23 @@ TradeFrame Builder v1.5.16 - платформа управления торго�
 - `server/package.json` - Зависимости: express, cors, axios, dotenv, @supabase/supabase-js, node-telegram-bot-api, node-cron, nodemailer
 - `server/ecosystem.config.cjs` - PM2 конфигурация для production
 
+**Документация**:
+- `docs/` - Техническая документация для разработчиков
+  - `ARCHITECTURE.md` - архитектура приложения
+  - `DEVELOPER_GUIDE.md` - руководство разработчика
+  - `API_TRADING_NETWORK.md`, `API_SHIFT_REPORTS.md`, `STS_API_EXAMPLES.md` - документация API
+  - `DATABASE_SETUP.md` - настройка базы данных
+  - `TANK_CALIBRATION.md` - калибровка резервуаров
+- `docs/user-guide/` - Пользовательская документация
+  - `USER_GUIDE.md` - полное руководство пользователя (Markdown)
+  - `USER_GUIDE_COMPLETE.html` - руководство в HTML формате
+  - `COMPLETE_GUIDE.md`, `COMPLETE_GUIDE_v2.md` - расширенные версии
+  - `screenshots/` - 10 скриншотов интерфейса (8.4 MB)
+- **📁 Google Drive**: `G:\Другие компьютеры\Компьютер\Google диск\Описание TF` - **Полная презентация проекта**
+  - `ПРЕЗЕНТАЦИЯ_TRADEFRAME_BUILDER_ПОЛНЫЙ_ТЕКСТ.md` - полный текст презентации (110 KB)
+  - `create_html_presentation.py` - скрипт генерации HTML презентации
+  - `screenshots/` - **23 скриншота** с описанием всех функций (desktop + mobile версии)
+
 ### Паттерн маршрутизации
 Все маршруты определены в `src/App.tsx`:
 - Админ маршруты: `/admin/*`
@@ -619,6 +636,9 @@ git push test main  # GitHub Actions автоматически соберет �
 
 #### 3️⃣ PRODUCTION (Боевой сервер)
 - **URL**: https://prod.dataworker.ru/
+- **Server IP**: 194.135.36.195
+- **SSH Access**: root@194.135.36.195
+- **SSH Password**: n3cBMDPU2@N*Cd
 - **Git Remote**: `prod` (TradeControl repo)
 - **Service Worker**: ✅ ВКЛЮЧЕН
 - **PWA**: ✅ ПОЛНОСТЬЮ РАБОТАЕТ
@@ -626,6 +646,15 @@ git push test main  # GitHub Actions автоматически соберет �
 - **Назначение**: Работа с реальными пользователями
 
 ```bash
+# SSH подключение к production серверу
+ssh root@194.135.36.195
+# Пароль: n3cBMDPU2@N*Cd
+
+# Проверка статуса приложения на сервере
+cd /var/www/www-root/data/www/prod.dataworker.ru
+pm2 status
+pm2 logs
+
 # Деплой на PRODUCTION (ТОЛЬКО после успешного тестирования на TEST!)
 git push prod main
 ```

@@ -20,7 +20,8 @@ export function extractStationNumber(tradingPoint: any): number | undefined {
 
   // 1. Проверяем external_id
   if (tradingPoint.external_id && !isNaN(parseInt(tradingPoint.external_id))) {
-    return parseInt(tradingPoint.external_id);
+    const stationNum = parseInt(tradingPoint.external_id);
+    return stationNum;
   }
 
   // 2. Ищем код для системы STS в externalCodes
