@@ -2491,7 +2491,8 @@ export function TankCalibrationSettingsComponent({
                           analysisResult.trk_validation.forEach(point => {
                             // Используем средний уровень интервала
                             const avgLevel = Math.round((point.level_before_mm + point.level_after_mm) / 2);
-                            const increment = point.volume_by_trk; // Отпущено по ТРК
+                            // ИСПРАВЛЕНО: используем изменение объема по датчику (прирост), а не отпуск ТРК
+                            const increment = point.volume_by_sensor; // Изменение объема по датчику в интервале с отпусками
                             
                             // Если на этом уровне уже есть данные - усредняем
                             if (trkDataMap.has(avgLevel)) {

@@ -44,8 +44,10 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
     console.log('📊 getTransactions - Ответ API:', response);
 
     // Ищем данные по запрошенной станции (API может вернуть несколько станций)
+    // ИСПРАВЛЕНО: Приводим params.station к числу для корректного сравнения
+    const stationNumber = typeof params.station === 'string' ? parseInt(params.station, 10) : params.station;
     const stationData = Array.isArray(response)
-      ? response.find(item => item.number === params.station)
+      ? response.find(item => item.number === stationNumber)
       : null;
 
     if (!stationData) {
@@ -93,8 +95,10 @@ export async function getReceipts(params: BookDataParams): Promise<ReceiptRespon
     });
 
     // Ищем данные по запрошенной станции (API может вернуть несколько станций)
+    // ИСПРАВЛЕНО: Приводим params.station к числу для корректного сравнения
+    const stationNumber = typeof params.station === 'string' ? parseInt(params.station, 10) : params.station;
     const stationData = Array.isArray(response)
-      ? response.find(item => item.number === params.station)
+      ? response.find(item => item.number === stationNumber)
       : null;
 
     if (!stationData) {
