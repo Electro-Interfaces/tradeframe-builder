@@ -37,6 +37,13 @@ import type { Tank, TankHistoryRecord, TankHistoryStats, AnalysisPeriod, Transac
 import { getTankAnalysis, getPeriodDates } from '@/services/tankHistoryService';
 import { getBookData } from '@/services/tankBookService';
 import { useSelection } from '@/contexts/SelectionContext';
+import {
+  normalizeTransactions,
+  normalizeReceipts,
+  calculateInitialValues,
+  calculateChartData,
+  recalculateVolumeBookStats
+} from '@/services/tankAnalysisCalculations';
 
 interface TankAnalysisDialogProps {
   tank: Tank;
@@ -65,6 +72,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
   const [receipts, setReceipts] = useState<ReceiptResponse | null>(null);
   const [bookRelease, setBookRelease] = useState<number>(0);
   const [bookReceipts, setBookReceipts] = useState<number>(0);
+  const [periodDates, setPeriodDates] = useState<{ dt_beg: string; dt_end: string } | null>(null);
 
   // Получаем external_id торговой точки
   useEffect(() => {
@@ -104,6 +112,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
     try {
       // Вычисляем даты периода
       const dates = getPeriodDates(period);
+      setPeriodDates(dates); // Сохраняем для использования в нормализации
 
       const params = {
         system: parseInt(selectedNetwork.external_id),
@@ -140,87 +149,46 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
     }
   }, [open, period]);
 
-  // Вычисляем начальное смещение для нормализации графиков
-  const firstRecord = history[0];
-  // Для фактической реализации используем изменение фактического остатка (volume)
-  const firstVolume = firstRecord ? parseFloat(firstRecord.volume) : 0;
+  // ═══════════════════════════════════════════════════════════════════
+  // НОВАЯ ЛОГИКА: Используем оптимизированные функции из tankAnalysisCalculations.ts
+  // ═══════════════════════════════════════════════════════════════════
 
-  // Вычисляем книжную реализацию до первой записи периода
-  let firstReleaseBook = 0;
-  if (transactions?.items && transactions.items.length > 0 && firstRecord) {
-    const tankNumber = typeof tank.id === 'number' ? tank.id : parseInt(tank.id.toString());
-    const firstTime = new Date(firstRecord.dt).getTime();
-
-    const transactionsBeforeFirst = transactions.items.filter(item => {
-      if (item.tank !== tankNumber) return false;
-      const txTime = new Date(item.dt || '').getTime();
-      return txTime <= firstTime;
-    });
-
-    firstReleaseBook = transactionsBeforeFirst.reduce((sum, item) => {
-      const quantity = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
-      return sum + (isNaN(quantity) ? 0 : quantity);
-    }, 0);
-
-  }
-
-  // Подготовка данных для графиков
   const tankNumber = typeof tank.id === 'number' ? tank.id : parseInt(tank.id.toString());
 
-  // ⚡ ОПТИМИЗАЦИЯ: Предварительно фильтруем и сортируем транзакции ОДИН раз
-  const tankTransactions = transactions?.items
-    ? transactions.items
-        .filter(item => item.tank === tankNumber)
-        .map(item => ({
-          time: new Date(item.dt || '').getTime(),
-          quantity: typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity
-        }))
-        .filter(item => !isNaN(item.quantity))
-        .sort((a, b) => a.time - b.time)
-    : [];
+  // Нормализуем данные (фильтрация по резервуару, датам, парсинг, сортировка)
+  const normalizedTransactions = normalizeTransactions(
+    transactions,
+    tankNumber,
+    periodDates?.dt_beg,
+    periodDates?.dt_end
+  );
+  const normalizedReceipts = normalizeReceipts(
+    receipts,
+    tankNumber,
+    periodDates?.dt_beg,
+    periodDates?.dt_end
+  );
 
-  // ⚡ ОПТИМИЗАЦИЯ: Используем TWO-POINTER подход O(n+m) вместо O(n×m)
-  let txPointer = 0; // Указатель на текущую транзакцию
-  let cumulativeRelease = 0; // Накопленная реализация
+  // Вычисляем начальные значения
+  const initialValues = calculateInitialValues(
+    history[0],
+    normalizedTransactions,
+    normalizedReceipts
+  );
 
-  const chartData = history.map((record) => {
-    const currentVolume = parseFloat(record.volume);
-    const currentVolumeEnd = parseFloat(record.volume_end);
-    const currentTime = new Date(record.dt).getTime();
+  // Вычисляем данные для графиков с ПРАВИЛЬНЫМ учетом поступлений
+  const chartData = calculateChartData(
+    history,
+    normalizedTransactions,
+    normalizedReceipts,
+    initialValues
+  );
 
-    // 🔷 ФАКТИЧЕСКАЯ РЕАЛИЗАЦИЯ (с датчиков резервуара)
-    const releaseActual = firstVolume - currentVolume;
-
-    // 📕 КНИЖНАЯ РЕАЛИЗАЦИЯ (из транзакций)
-    // Добавляем все транзакции до текущего времени в накопительную сумму
-    while (txPointer < tankTransactions.length && tankTransactions[txPointer].time <= currentTime) {
-      cumulativeRelease += tankTransactions[txPointer].quantity;
-      txPointer++;
-    }
-
-    const releaseBook = cumulativeRelease - firstReleaseBook;
-
-    // 📗 КНИЖНЫЙ ОСТАТОК
-    const volumeBegin = parseFloat(record.volume_begin);
-    const volumeBookCalculated = volumeBegin - cumulativeRelease;
-
-    return {
-      time: new Date(record.dt).toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      volumeActual: currentVolume,
-      volumeBook: volumeBookCalculated,
-      releaseActual: releaseActual,
-      releaseBook: releaseBook,
-      releaseDifference: releaseActual - releaseBook,
-      temperature: parseFloat(record.temperature),
-      density: parseFloat(record.density),
-      waterLevel: parseFloat(record.water.level)
-    };
-  });
+  // Пересчитываем статистику книжного остатка на основе chartData
+  const volumeBookStats = recalculateVolumeBookStats(chartData);
+  if (stats) {
+    stats.volumeBook = volumeBookStats;
+  }
 
   // Логирование итоговых значений графика
 
@@ -581,6 +549,10 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                     stroke="#94a3b8"
                     tick={{ fill: '#94a3b8', fontSize: 12 }}
                     label={{ value: 'Плотность (кг/м³)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    domain={[
+                      (dataMin: number) => Math.floor(dataMin - 2),
+                      (dataMax: number) => Math.ceil(dataMax + 2)
+                    ]}
                   />
                   <Tooltip
                     contentStyle={{
