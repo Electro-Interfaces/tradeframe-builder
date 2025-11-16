@@ -389,6 +389,14 @@ export function TankCalibrationSettingsComponent({
     // Настраиваемое окно поиска = 3 интервала опроса (обычно 30 минут)
     const searchWindowMinutes = pollingIntervalMinutes * 3;
     
+    // Счетчики для отладки
+    let totalIntervals = 0;
+    let skippedLargeIntervals = 0;
+    let intervalsWithoutTransactions = 0;
+    let skippedNoVolumeChange = 0;
+    let skippedLevelIncrease = 0;
+    let skippedInterpolationFailed = 0;
+    
     // Сортируем историю по времени
     const sortedHistory = [...tankHistory].sort((a, b) => 
       new Date(a.dt).getTime() - new Date(b.dt).getTime()
@@ -401,6 +409,7 @@ export function TankCalibrationSettingsComponent({
     
     // Проходим по всем парам соседних замеров уровня
     for (let i = 0; i < sortedHistory.length - 1; i++) {
+      totalIntervals++;
       const recordBefore = sortedHistory[i];
       const recordAfter = sortedHistory[i + 1];
       
@@ -409,7 +418,10 @@ export function TankCalibrationSettingsComponent({
       const intervalMinutes = (timeAfter - timeBefore) / (1000 * 60);
       
       // Пропускаем слишком большие интервалы (больше окна поиска)
-      if (intervalMinutes > searchWindowMinutes) continue;
+      if (intervalMinutes > searchWindowMinutes) {
+        skippedLargeIntervals++;
+        continue;
+      }
       
       // Находим ВСЕ транзакции между этими двумя замерами
       const transactionsInInterval = tankTransactions.filter(t => {
@@ -418,7 +430,10 @@ export function TankCalibrationSettingsComponent({
       });
       
       // Если нет транзакций в интервале - пропускаем
-      if (transactionsInInterval.length === 0) continue;
+      if (transactionsInInterval.length === 0) {
+        intervalsWithoutTransactions++;
+        continue;
+      }
       
       // Суммируем объем ВСЕХ отпусков в интервале
       let totalVolumeTRK = 0;
@@ -435,20 +450,29 @@ export function TankCalibrationSettingsComponent({
         }
       }
       
-      if (totalVolumeTRK <= 0) continue;
+      if (totalVolumeTRK <= 0) {
+        skippedNoVolumeChange++;
+        continue;
+      }
       
       // Рассчитываем уровни
       const levelBefore = parseFloat(recordBefore.level) * 10; // см → мм
       const levelAfter = parseFloat(recordAfter.level) * 10;   // см → мм
       
       if (isNaN(levelBefore) || isNaN(levelAfter)) continue;
-      if (levelBefore <= levelAfter) continue; // Уровень должен УМЕНЬШИТЬСЯ
+      if (levelBefore <= levelAfter) {
+        skippedLevelIncrease++;
+        continue; // Уровень должен УМЕНЬШИТЬСЯ
+      }
       
       // Получаем объемы из калибровочной таблицы
       const volumeBefore = interpolateVolume(levelBefore, currentCalibrationMap);
       const volumeAfter = interpolateVolume(levelAfter, currentCalibrationMap);
       
-      if (volumeBefore === null || volumeAfter === null) continue;
+      if (volumeBefore === null || volumeAfter === null) {
+        skippedInterpolationFailed++;
+        continue;
+      }
       
       const volumeBySensor = volumeBefore - volumeAfter;
       const deviation = volumeBySensor - totalVolumeTRK;
@@ -2618,6 +2642,21 @@ export function TankCalibrationSettingsComponent({
                             ТРК {maxIncrementTRK > 0 ? maxIncrementTRK.toFixed(1) : 'N/A'}л
                             — характерная особенность горизонтального цилиндра!
                           </p>
+                          
+                          {/* Информация о данных ТРК */}
+                          {trkIncrements.length === 0 && (
+                            <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-600/50 rounded-md">
+                              <p className="text-xs text-yellow-300 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4" />
+                                <strong>Данные ТРК (синяя линия) недоступны:</strong>
+                              </p>
+                              <ul className="text-xs text-yellow-200 mt-2 ml-6 list-disc space-y-1">
+                                <li>Найдено точек валидации ТРК: {analysisResult.trk_validation?.length || 0}</li>
+                                <li>Возможные причины: нет транзакций в периоде, интервалы между замерами {'>'} 30 мин, уровень не уменьшился</li>
+                                <li>Попробуйте: выбрать период с активными отпусками, уменьшить интервал опроса датчика</li>
+                              </ul>
+                            </div>
+                          )}
                         </div>
                         );
                       })()}

@@ -24,12 +24,13 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
     number: params.station
   };
 
+  // ИСПРАВЛЕНО: API v2/transactions использует date_from и date_to вместо dt_beg и dt_end
   if (params.dt_beg) {
-    queryParams.dt_beg = params.dt_beg;
+    queryParams.date_from = params.dt_beg;
   }
 
   if (params.dt_end) {
-    queryParams.dt_end = params.dt_end;
+    queryParams.date_to = params.dt_end;
   }
 
   try {
@@ -38,6 +39,9 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
       method: 'GET',
       params: queryParams
     });
+    
+    console.log('📊 getTransactions - Параметры запроса:', queryParams);
+    console.log('📊 getTransactions - Ответ API:', response);
 
     // Ищем данные по запрошенной станции (API может вернуть несколько станций)
     const stationData = Array.isArray(response)
@@ -45,6 +49,8 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
       : null;
 
     if (!stationData) {
+      console.warn('⚠️ getTransactions - Данные для станции не найдены:', params.station);
+      console.warn('⚠️ getTransactions - Доступные станции в ответе:', response);
       return {
         system: params.system,
         number: params.station,
@@ -52,6 +58,8 @@ export async function getTransactions(params: BookDataParams): Promise<Transacti
         items: []
       };
     }
+    
+    console.log('✅ getTransactions - Найдено транзакций:', stationData.items?.length || 0);
 
     return stationData;
   } catch (error) {
