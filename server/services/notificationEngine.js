@@ -561,7 +561,7 @@ class NotificationEngine {
             },
             params: {
               system: networkId,
-              station_number: stationConfig.code
+              station: stationConfig.code
             }
           });
 
@@ -755,6 +755,11 @@ class NotificationEngine {
 
       // Проверяем каждую станцию
       for (const station of stations) {
+        // ✅ Пропускаем неактивные станции (аналогично checkBillAcceptorThresholds и checkLowFuelLevel)
+        if (station.active === false) {
+          continue;
+        }
+
         const stationCode = station.code || station.external_id;
         const stationName = station.name || `АЗС ${stationCode}`;
 
