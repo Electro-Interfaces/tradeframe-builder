@@ -85,17 +85,17 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
                 </div>
               </div>
 
-              {/* Цены по топливу */}
-              <div className="grid grid-cols-2 gap-2">
+              {/* Цены по топливу - построчно */}
+              <div className="space-y-1">
                 {fuelTypes.map(fuelType => {
                   const price = stationData.prices.find(p => p.fuelType === fuelType);
                   const stat = statistics.find(s => s.fuelType === fuelType);
 
                   if (!price || !stat) {
                     return (
-                      <div key={fuelType} className="text-center py-2">
-                        <div className="text-xs text-slate-500 mb-1">{fuelType}</div>
-                        <div className="text-xs text-slate-600">—</div>
+                      <div key={fuelType} className="flex items-center justify-between py-1.5 border-b border-slate-700/50 last:border-b-0">
+                        <span className="text-xs text-slate-500">{fuelType}</span>
+                        <span className="text-xs text-slate-600">—</span>
                       </div>
                     );
                   }
@@ -103,22 +103,22 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
                   const deviation = checkPriceDeviation(price.price, stat.averagePrice);
 
                   return (
-                    <div key={fuelType} className="text-center py-2">
-                      <div className="text-xs text-slate-400 mb-1">{fuelType}</div>
-                      <div className="flex items-center justify-center gap-1">
+                    <div key={fuelType} className="flex items-center justify-between py-1.5 border-b border-slate-700/50 last:border-b-0">
+                      <span className="text-xs text-slate-400">{fuelType}</span>
+                      <div className="flex items-center gap-1.5">
                         <span className="text-sm font-bold text-white">
-                          {formatPrice(price.price)}
+                          {formatPrice(price.price)} ₽
                         </span>
                         {deviation.hasDeviation && (
-                          <AlertTriangle className="w-3 h-3 text-yellow-500 flex-shrink-0" />
+                          <>
+                            <AlertTriangle className="w-3 h-3 text-yellow-500 flex-shrink-0" />
+                            <span className="text-[10px] text-yellow-500">
+                              {deviation.deviationPercent > 0 ? '+' : ''}
+                              {deviation.deviationPercent}%
+                            </span>
+                          </>
                         )}
                       </div>
-                      {deviation.hasDeviation && (
-                        <div className="text-[10px] text-yellow-500 mt-0.5">
-                          {deviation.deviationPercent > 0 ? '+' : ''}
-                          {deviation.deviationPercent}%
-                        </div>
-                      )}
                     </div>
                   );
                 })}
