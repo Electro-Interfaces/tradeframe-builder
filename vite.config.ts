@@ -116,14 +116,26 @@ export default defineConfig(({ mode }) => {
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // Критично для SPA: fallback на index.html при навигации
+        navigateFallback: `${base}index.html`,
+        navigateFallbackDenylist: [/^\/api\//, /\.[^/?]+$/],
+        // Пропускаем кэширование для API запросов в precache
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],
+        // Очищаем устаревшие кэши при обновлении
+        cleanupOutdatedCaches: true,
+        // Не ждём закрытия вкладок - активируем сразу
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\./i,
+            // API запросы - сначала сеть, потом кэш (с таймаутом)
+            urlPattern: /^https?:\/\/.*\/api\//i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
+              networkTimeoutSeconds: 5, // Быстрый fallback на кэш
               expiration: {
-                maxEntries: 50,
+                maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 // 24 часа
               },
               cacheableResponse: {
@@ -132,10 +144,41 @@ export default defineConfig(({ mode }) => {
             }
           },
           {
+            // Статические ресурсы - сначала кэш
+            urlPattern: /\.(?:js|css|woff2?|png|jpg|jpeg|svg|gif|ico)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'static-cache',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 дней
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            // Google Fonts
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 год
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            // Google Fonts файлы шрифтов
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-files',
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 * 24 * 365 // 1 год

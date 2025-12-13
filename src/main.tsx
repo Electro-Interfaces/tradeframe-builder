@@ -3,11 +3,44 @@ import App from './App.tsx'
 import './index.css'
 import './styles/mobile.css'
 
-// Простая регистрация Service Worker для PWA
+// Регистрация Service Worker для PWA (единственная точка регистрации)
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  const base = import.meta.env.BASE_URL;
-  navigator.serviceWorker.register(`${base}sw.js`, { scope: base })
-    .catch(() => {}); // Игнорируем ошибки - не критично
+  // Регистрируем после загрузки страницы для лучшей производительности
+  window.addEventListener('load', () => {
+    const base = import.meta.env.BASE_URL;
+
+    navigator.serviceWorker.register(`${base}sw.js`, { scope: base })
+      .then((registration) => {
+        // Проверяем обновления каждые 60 секунд
+        setInterval(() => {
+          registration.update().catch(() => {});
+        }, 60000);
+
+        // Обработка нового SW
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              // SW активирован - можно использовать кэш
+              if (newWorker.state === 'activated') {
+                // Уведомляем о готовности PWA
+                window.dispatchEvent(new CustomEvent('sw-ready'));
+              }
+            });
+          }
+        });
+      })
+      .catch(() => {}); // Игнорируем ошибки - не критично для работы приложения
+
+    // Обработка обновления SW (перезагрузка при смене контроллера)
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+  });
 }
 
 // Глобальная функция для сброса демо данных

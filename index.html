@@ -5,7 +5,7 @@
     <!-- Base URL для правильной работы относительных путей на GitHub Pages -->
     <!-- Vite автоматически подставит правильный base при сборке -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>TradeFrame - Управление торговыми сетями v1.7.47</title>
+    <title>TradeFrame - Управление торговыми сетями v1.9.7</title>
     <meta name="description" content="Система управления торговыми сетями и АЗС. Активные разделы: обзор сетей, операции, цены, резервуары, управление пользователями. Некоторые разделы находятся в разработке." />
     <meta name="author" content="TradeFrame" />
 
@@ -13,7 +13,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta name="cache-buster" content="v1.7.47-20251114" />
+    <meta name="cache-buster" content="v1.9.7-20251213" />
     
     <!-- Политики безопасности -->
     <!-- CSP отключен для production - слишком строгие правила блокируют ES modules -->
@@ -26,44 +26,11 @@
     <script>
       // Детекция мобильного устройства
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const isGitHubPages = window.location.hostname === 'electro-interfaces.github.io';
 
-      // Специальная обработка для мобильных (на всех доменах!)
+      // Специальная обработка для мобильных
       if (isMobile) {
-        const APP_VERSION = 'v1.7.47';
-        const BUILD_TIMESTAMP = 'BUILD_' + Date.now(); // Уникальный ID сборки
-        const CACHE_VERSION_KEY = 'tf_cache_version';
-        const LAST_RELOAD_KEY = 'tf_last_force_reload';
-
-        // Безопасная работа с localStorage (Safari Private Mode protection)
-        const safeStorage = {
-          getItem: function(key) {
-            try {
-              return localStorage.getItem(key) || sessionStorage.getItem(key);
-            } catch(e) {
-              try {
-                return sessionStorage.getItem(key);
-              } catch(e2) {
-                return null;
-              }
-            }
-          },
-          setItem: function(key, value) {
-            try {
-              localStorage.setItem(key, value);
-            } catch(e) {
-              try {
-                sessionStorage.setItem(key, value);
-              } catch(e2) {
-                // Игнорируем если и sessionStorage недоступен
-              }
-            }
-          }
-        };
-
         // Polyfill для AbortSignal.timeout (Safari 14 и ниже)
-        // Safari 15.4+ поддерживает нативно, но для старых версий добавляем fallback
-        if (typeof AbortSignal.timeout === 'undefined') {
+        if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'undefined') {
           AbortSignal.timeout = function(ms) {
             const controller = new AbortController();
             setTimeout(() => controller.abort(), ms);
@@ -71,81 +38,12 @@
           };
         }
 
-        // Улучшенная детекция Safari и его версии
-        const detectSafari = function() {
-          const ua = navigator.userAgent;
+        // Детекция Safari для iOS-specific фиксов
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 
-          // Проверяем что это Safari (не Chrome, не Edge)
-          const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
-
-          if (!isSafari) {
-            return { isSafari: false, version: null, isIOS: false };
-          }
-
-          // Определяем iOS Safari
-          const isIOS = /iPhone|iPad|iPod/.test(ua);
-
-          // Извлекаем версию Safari
-          let version = null;
-          const versionMatch = ua.match(/Version\/(\d+(\.\d+)?)/);
-          if (versionMatch) {
-            version = parseFloat(versionMatch[1]);
-          }
-
-          return { isSafari: true, version, isIOS };
-        };
-
-        const safariInfo = detectSafari();
-
-        // Применяем специфичные для Safari фиксы
-        if (safariInfo.isSafari) {
-          // Для Safari < 15 добавляем дополнительную защиту
-          if (safariInfo.version && safariInfo.version < 15) {
-            // Дополнительные legacy фиксы для старых Safari
-            console.info('Safari < 15 detected, applying legacy compatibility fixes');
-          }
-
-          // Для iOS Safari применяем мобильные оптимизации
-          if (safariInfo.isIOS) {
-            // iOS-specific improvements
-            document.documentElement.style.setProperty('-webkit-tap-highlight-color', 'transparent');
-          }
-        }
-
-        // Принудительная очистка кеша при каждой загрузке если прошло > 1 минуты
-        const lastReload = safeStorage.getItem(LAST_RELOAD_KEY);
-        const now = Date.now();
-
-        if (!lastReload || (now - parseInt(lastReload)) > 60000) {
-          // Прошло больше минуты - очищаем кеш
-          safeStorage.setItem(LAST_RELOAD_KEY, now.toString());
-          safeStorage.setItem(CACHE_VERSION_KEY, APP_VERSION);
-
-          if ('caches' in window) {
-            caches.keys().then(cacheNames => {
-              return Promise.all(
-                cacheNames.map(cacheName => caches.delete(cacheName))
-              );
-            });
-          }
-        }
-
-        // Умная очистка кэша - при изменении версии
-        if ('caches' in window) {
-          const savedVersion = safeStorage.getItem(CACHE_VERSION_KEY);
-          if (savedVersion !== APP_VERSION) {
-            // Версия изменилась - очищаем старый кэш и перезагружаем
-            caches.keys().then(cacheNames => {
-              return Promise.all(
-                cacheNames.map(cacheName => caches.delete(cacheName))
-              );
-            }).then(() => {
-              safeStorage.setItem(CACHE_VERSION_KEY, APP_VERSION);
-              safeStorage.setItem(LAST_RELOAD_KEY, now.toString());
-              // Исправлено: reload(true) устарел в Safari
-              window.location.reload();
-            });
-          }
+        if (isSafari && isIOS) {
+          document.documentElement.style.setProperty('-webkit-tap-highlight-color', 'transparent');
         }
 
         // Увеличенные timeout'ы для API запросов на медленных соединениях
@@ -153,10 +51,8 @@
           const originalFetch = window.fetch;
           window.fetch = function(input, init) {
             init = init || {};
-            // Разрешаем кэширование, но с ограниченным временем
-            init.cache = init.cache || 'default';
 
-            // Увеличенный timeout для мобильных - 30 секунд
+            // Увеличенный timeout для мобильных - 30 секунд (если не задан)
             if (!init.signal) {
               const controller = new AbortController();
               init.signal = controller.signal;
@@ -168,39 +64,7 @@
         }
       }
 
-      // Регистрация Service Worker для PWA с динамическим BASE_URL
-      const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname);
-      if ('serviceWorker' in navigator && (location.protocol === 'https:' || isLocalhost)) {
-        window.addEventListener('load', function() {
-          // Получаем базовый путь из различных источников
-          let basePath = '/';
-
-          // 1. Проверяем Vite BASE_URL (если доступен)
-          if (typeof __BASE__ !== 'undefined') {
-            basePath = __BASE__;
-          }
-          // 2. Проверяем <base> тег
-          else {
-            const baseTag = document.querySelector('base');
-            if (baseTag) {
-              basePath = baseTag.getAttribute('href') || '/';
-            }
-            // 3. Определяем по текущему пути для GitHub Pages
-            else if (location.pathname.includes('/tradeframe-builder/')) {
-              basePath = '/tradeframe-builder/';
-            }
-          }
-
-          // Нормализуем путь
-          const normalizedBase = basePath.endsWith('/') ? basePath : basePath + '/';
-
-          navigator.serviceWorker.register(`${normalizedBase}sw.js`, {
-            scope: normalizedBase
-          }).then(function(registration) {
-          }).catch(function(error) {
-          });
-        });
-      }
+      // Service Worker регистрируется в main.tsx для единой точки входа
     </script>
 
     <!-- PWA настройки -->
@@ -291,7 +155,7 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
     <!-- PWA Manifest - автоматически генерируется vite-plugin-pwa -->
-    <!-- <link rel="manifest" href="/manifest.json?v=1.7.47" /> -->
+    <!-- <link rel="manifest" href="/manifest.json?v=1.9.7" /> -->
 
     <!-- iOS Splash Screens для разных устройств -->
     <link rel="apple-touch-startup-image" media="screen and (device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/splash-640x1136.png" />
