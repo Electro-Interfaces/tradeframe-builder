@@ -17,7 +17,7 @@ import {
   buildGeometricCalibrationTable
 } from '@/utils/calibrationAlgorithm';
 import { getTankHistory } from '@/services/tankHistoryService';
-import { getTransactions } from '@/services/tankBookService';
+import { getTransactions, getReceipts } from '@/services/tankBookService';
 import { CalibrationTablesHistory } from './CalibrationTablesHistory';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -59,7 +59,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
+  ReferenceDot
 } from 'recharts';
 
 interface TankCalibrationSettingsProps {
@@ -73,8 +74,9 @@ interface TankCalibrationSettingsProps {
 // Интерфейс для результата сравнения калибровочных таблиц
 interface CalibrationComparison {
   level_mm: number;
-  current_volume: number;
+  current_volume: number | undefined;  // undefined = нет данных (линия прерывается)
   calculated_volume: number;
+  trk_volume: number | undefined;      // undefined = нет данных ТРК (линия прерывается)
   difference: number;
   difference_percent: number;
 }
@@ -121,7 +123,7 @@ export function TankCalibrationSettingsComponent({
         calibration_status: initialSettings.calibration_status || 'never'
       } as CalibrationSettings;
     }
-    
+
     // Если нет initialSettings - используем дефолты
     return {
       tank_id: tankId,
@@ -385,10 +387,10 @@ export function TankCalibrationSettingsComponent({
     pollingIntervalMinutes: number = 10  // Интервал опроса датчика (по умолчанию 10 мин)
   ): TRKValidationPoint[] => {
     const validationPoints: TRKValidationPoint[] = [];
-    
+
     // Настраиваемое окно поиска = 3 интервала опроса (обычно 30 минут)
     const searchWindowMinutes = pollingIntervalMinutes * 3;
-    
+
     // Счетчики для отладки
     let totalIntervals = 0;
     let skippedLargeIntervals = 0;
@@ -396,91 +398,91 @@ export function TankCalibrationSettingsComponent({
     let skippedNoVolumeChange = 0;
     let skippedLevelIncrease = 0;
     let skippedInterpolationFailed = 0;
-    
+
     // Сортируем историю по времени
-    const sortedHistory = [...tankHistory].sort((a, b) => 
+    const sortedHistory = [...tankHistory].sort((a, b) =>
       new Date(a.dt).getTime() - new Date(b.dt).getTime()
     );
-    
+
     // Фильтруем и сортируем транзакции по этому резервуару
     const tankTransactions = transactions
       .filter(t => t.tank === tankNumber && t.dt)
       .sort((a, b) => new Date(a.dt!).getTime() - new Date(b.dt!).getTime());
-    
+
     // Проходим по всем парам соседних замеров уровня
     for (let i = 0; i < sortedHistory.length - 1; i++) {
       totalIntervals++;
       const recordBefore = sortedHistory[i];
       const recordAfter = sortedHistory[i + 1];
-      
+
       const timeBefore = new Date(recordBefore.dt).getTime();
       const timeAfter = new Date(recordAfter.dt).getTime();
       const intervalMinutes = (timeAfter - timeBefore) / (1000 * 60);
-      
+
       // Пропускаем слишком большие интервалы (больше окна поиска)
       if (intervalMinutes > searchWindowMinutes) {
         skippedLargeIntervals++;
         continue;
       }
-      
+
       // Находим ВСЕ транзакции между этими двумя замерами
       const transactionsInInterval = tankTransactions.filter(t => {
         const transactionTime = new Date(t.dt!).getTime();
         return transactionTime > timeBefore && transactionTime < timeAfter;
       });
-      
+
       // Если нет транзакций в интервале - пропускаем
       if (transactionsInInterval.length === 0) {
         intervalsWithoutTransactions++;
         continue;
       }
-      
+
       // Суммируем объем ВСЕХ отпусков в интервале
       let totalVolumeTRK = 0;
       const nozzlesUsed = new Set<number>();
-      
+
       for (const transaction of transactionsInInterval) {
-        const volumeTRK = typeof transaction.quantity === 'string' 
-          ? parseFloat(transaction.quantity) 
+        const volumeTRK = typeof transaction.quantity === 'string'
+          ? parseFloat(transaction.quantity)
           : transaction.quantity;
-        
+
         if (!isNaN(volumeTRK) && volumeTRK > 0) {
           totalVolumeTRK += volumeTRK;
           nozzlesUsed.add(transaction.nozzle);
         }
       }
-      
+
       if (totalVolumeTRK <= 0) {
         skippedNoVolumeChange++;
         continue;
       }
-      
+
       // Рассчитываем уровни
       const levelBefore = parseFloat(recordBefore.level) * 10; // см → мм
       const levelAfter = parseFloat(recordAfter.level) * 10;   // см → мм
-      
+
       if (isNaN(levelBefore) || isNaN(levelAfter)) continue;
       if (levelBefore <= levelAfter) {
         skippedLevelIncrease++;
         continue; // Уровень должен УМЕНЬШИТЬСЯ
       }
-      
+
       // Получаем объемы из калибровочной таблицы
       const volumeBefore = interpolateVolume(levelBefore, currentCalibrationMap);
       const volumeAfter = interpolateVolume(levelAfter, currentCalibrationMap);
-      
+
       if (volumeBefore === null || volumeAfter === null) {
         skippedInterpolationFailed++;
         continue;
       }
-      
+
       const volumeBySensor = volumeBefore - volumeAfter;
       const deviation = volumeBySensor - totalVolumeTRK;
       const deviationPercent = totalVolumeTRK > 0 ? (deviation / totalVolumeTRK) * 100 : 0;
-      
+
       // Берем временную метку середины интервала
       const middleTimestamp = new Date((timeBefore + timeAfter) / 2).toISOString();
-      
+
       validationPoints.push({
         timestamp: middleTimestamp,
         level_before_mm: Math.round(levelBefore),
@@ -492,27 +494,27 @@ export function TankCalibrationSettingsComponent({
         nozzle: nozzlesUsed.size > 1 ? -1 : Array.from(nozzlesUsed)[0]  // -1 если несколько пистолетов
       });
     }
-    
+
     return validationPoints;
   };
-  
+
   // Вспомогательная функция интерполяции объема по уровню
   const interpolateVolume = (
-    levelMm: number, 
+    levelMm: number,
     calibrationMap: Map<number, number>
   ): number | null => {
     // Прямой lookup
     if (calibrationMap.has(levelMm)) {
       return calibrationMap.get(levelMm)!;
     }
-    
+
     // Линейная интерполяция
     const levels = Array.from(calibrationMap.keys()).sort((a, b) => a - b);
-    
+
     for (let i = 0; i < levels.length - 1; i++) {
       const level1 = levels[i];
       const level2 = levels[i + 1];
-      
+
       if (levelMm >= level1 && levelMm <= level2) {
         const vol1 = calibrationMap.get(level1)!;
         const vol2 = calibrationMap.get(level2)!;
@@ -520,7 +522,7 @@ export function TankCalibrationSettingsComponent({
         return vol1 + t * (vol2 - vol1);
       }
     }
-    
+
     return null; // Вне диапазона
   };
 
@@ -613,18 +615,36 @@ export function TankCalibrationSettingsComponent({
 
       const transactions = transactionsResponse.items || [];
 
+      // 3.1 Получаем поступления (receipts) за период для корректного расчёта объёмов
+      let receipts: import('@/types/tanks').ReceiptItem[] = [];
+      try {
+        const receiptsResponse = await getReceipts({
+          system: selectedNetwork.external_id,
+          station: tradingPointExternalId,
+          dt_beg: `${analysisStartDate} 00:00:00`,
+          dt_end: `${analysisEndDate} 23:59:59`
+        });
+        // Собираем все поступления из всех смен
+        receipts = receiptsResponse.shifts?.flatMap(shift => shift.receipt || []) || [];
+      } catch {
+        // Если не удалось получить поступления - продолжаем без них
+        // Алгоритм справится с помощью fallback логики
+      }
+
       // 4. Строим ГЕОМЕТРИЧЕСКУЮ (эталонную) калибровочную таблицу на основе физических параметров
       const geometricTableResult = buildGeometricCalibrationTable(settings);
 
       // 5. Строим ТЕКУЩУЮ калибровочную таблицу из показаний API датчика (level, volume)
       const currentTableResult = buildCurrentCalibrationTable(tankHistory, settings);
 
-      // 6. Строим РАССЧИТАННУЮ калибровочную таблицу на основе транзакций ТРК
+      // 6. Строим РАССЧИТАННУЮ калибровочную таблицу на основе транзакций ТРК и поступлений
       const calculatedTableResult = runCalibrationAlgorithm(
         tankHistory,
         transactions,
         settings,
-        tankNumber
+        tankNumber,
+        receipts,  // Передаём поступления для корректного расчёта сегментов
+        activeTable?.table // Передаем текущую таблицу для использования в качестве опорной (если выбрано в настройках)
       );
 
       // 7. Сравниваем ГЕОМЕТРИЧЕСКУЮ (эталон) с ТЕКУЩЕЙ (датчик)
@@ -638,12 +658,15 @@ export function TankCalibrationSettingsComponent({
         let maxDiff = 0;
         let maxDiffPercent = 0;
 
-        // Создаем map геометрической (эталон) и текущей (датчик) таблиц
+        // Создаем map геометрической (эталон), текущей (датчик) и рассчитанной (ТРК) таблиц
         const geometricMap = new Map(
           geometricTableResult.table.map(point => [point.level_mm, point.volume_liters])
         );
         const currentMap = new Map(
           currentTableResult.table.map(point => [point.level_mm, point.volume_liters])
+        );
+        const calculatedMap = new Map(
+          calculatedTableResult.table.map(point => [point.level_mm, point.volume_liters])
         );
 
         // Берем все уровни из геометрической таблицы для сравнения
@@ -658,7 +681,7 @@ export function TankCalibrationSettingsComponent({
           // Находим объем из текущей таблицы через интерполяцию
           let current_volume: number | null = null;
           const sortedCurrentLevels = Array.from(currentMap.keys()).sort((a, b) => a - b);
-          
+
           // Определяем диапазон реальных исторических данных
           const minHistoricalLevel = sortedCurrentLevels[0];
           const maxHistoricalLevel = sortedCurrentLevels[sortedCurrentLevels.length - 1];
@@ -686,6 +709,35 @@ export function TankCalibrationSettingsComponent({
           }
           // Если уровень за пределами истории - оставляем current_volume = null
 
+          // Получаем объем из рассчитанной таблицы (ТРК) с интерполяцией
+          let trk_volume: number | null = null;
+          const sortedCalculatedLevels = Array.from(calculatedMap.keys()).sort((a, b) => a - b);
+          const minCalculatedLevel = sortedCalculatedLevels[0];
+          const maxCalculatedLevel = sortedCalculatedLevels[sortedCalculatedLevels.length - 1];
+
+          // Ограничиваем данные ТРК опорной точкой - выше неё данные недостоверны
+          const referenceLevel = calculatedTableResult.diagnostics?.referencePoint?.level_mm ?? maxCalculatedLevel;
+          const effectiveMaxLevel = Math.min(maxCalculatedLevel, referenceLevel);
+
+          if (sortedCalculatedLevels.length > 0 && level_mm >= minCalculatedLevel && level_mm <= effectiveMaxLevel) {
+            if (calculatedMap.has(level_mm)) {
+              trk_volume = calculatedMap.get(level_mm)!;
+            } else {
+              // Линейная интерполяция
+              for (let i = 0; i < sortedCalculatedLevels.length - 1; i++) {
+                if (level_mm >= sortedCalculatedLevels[i] && level_mm <= sortedCalculatedLevels[i + 1]) {
+                  const level1 = sortedCalculatedLevels[i];
+                  const level2 = sortedCalculatedLevels[i + 1];
+                  const vol1 = calculatedMap.get(level1)!;
+                  const vol2 = calculatedMap.get(level2)!;
+                  const t = (level_mm - level1) / (level2 - level1);
+                  trk_volume = vol1 + t * (vol2 - vol1);
+                  break;
+                }
+              }
+            }
+          }
+
           // Разница: геометрия - датчик (положительное = датчик занижает, отрицательное = завышает)
           // Вычисляем разницу только если есть исторические данные
           const difference = current_volume !== null ? geometric_volume - current_volume : 0;
@@ -695,8 +747,9 @@ export function TankCalibrationSettingsComponent({
 
           comparison.push({
             level_mm: Math.round(level_mm),
-            current_volume: current_volume ?? 0, // Используем 0 для отсутствующих данных (Recharts не поддерживает null)
+            current_volume: current_volume ?? undefined, // undefined = линия прерывается
             calculated_volume: geometric_volume, // Геометрическая (эталон)
+            trk_volume: trk_volume ?? undefined, // undefined = линия прерывается
             difference,
             difference_percent: differencePercent,
           });
@@ -732,7 +785,7 @@ export function TankCalibrationSettingsComponent({
         currentCalibrationMap,
         settings.data_polling_interval_minutes  // Используем настройку из параметров
       );
-      
+
       // 8. Формируем результат с дополнительной информацией
       setAnalysisResult({
         success: true,
@@ -744,6 +797,7 @@ export function TankCalibrationSettingsComponent({
         current_table_version: activeTable?.version,
         statistics,
         trk_validation: trkValidation,  // Данные валидации через ТРК
+        diagnostics: calculatedTableResult.diagnostics,  // Диагностика процесса расчета
         debug: {
           tankHistoryCount: tankHistory.length,
           transactionsCount: transactions.length,
@@ -762,7 +816,23 @@ export function TankCalibrationSettingsComponent({
             min: Math.min(...tankHistory.map(r => parseFloat(r.volume))),
             max: Math.max(...tankHistory.map(r => parseFloat(r.volume)))
           },
-          stepMm: settings.calibration_step_mm
+          stepMm: settings.calibration_step_mm,
+          // Сравнение сырых объёмов: датчик vs ТРК (5 точек из середины диапазона)
+          rawComparison: comparison && comparison.length > 0 ? (() => {
+            const validPoints = comparison.filter(p => p.current_volume !== undefined && p.current_volume > 0 && p.trk_volume !== undefined && p.trk_volume > 0);
+            const step = Math.max(1, Math.floor(validPoints.length / 5));
+            return validPoints
+              .filter((_, i) => i % step === 0)
+              .filter(p => p.current_volume !== undefined && p.trk_volume !== undefined)
+              .slice(0, 5)
+              .map(p => ({
+                level: p.level_mm,
+                sensor: Math.round(p.current_volume!),
+                trk: Math.round(p.trk_volume!),
+                diff: Math.round(p.trk_volume! - p.current_volume!),
+                diffPercent: ((p.trk_volume! - p.current_volume!) / p.current_volume! * 100).toFixed(2)
+              }));
+          })() : []
         }
       });
     } catch (error) {
@@ -801,7 +871,7 @@ export function TankCalibrationSettingsComponent({
             size="sm"
             onClick={() => setShowAnalysisDialog(true)}
 
-// DUMMY - This won't actually be inserted, I need to find the right location in the JSX
+          // DUMMY - This won't actually be inserted, I need to find the right location in the JSX
           >
             <LineChart className="w-4 h-4 mr-2" />
             Анализ Калибровки
@@ -816,14 +886,14 @@ export function TankCalibrationSettingsComponent({
           </Button>
           <Badge variant={
             settings.calibration_status === 'completed' ? 'default' :
-            settings.calibration_status === 'in_progress' ? 'secondary' :
-            settings.calibration_status === 'failed' ? 'destructive' :
-            'outline'
+              settings.calibration_status === 'in_progress' ? 'secondary' :
+                settings.calibration_status === 'failed' ? 'destructive' :
+                  'outline'
           }>
             {settings.calibration_status === 'completed' ? 'Откалиброван' :
-             settings.calibration_status === 'in_progress' ? 'В процессе' :
-             settings.calibration_status === 'failed' ? 'Ошибка' :
-             'Не калиброван'}
+              settings.calibration_status === 'in_progress' ? 'В процессе' :
+                settings.calibration_status === 'failed' ? 'Ошибка' :
+                  'Не калиброван'}
           </Badge>
         </div>
       </div>
@@ -863,761 +933,803 @@ export function TankCalibrationSettingsComponent({
         <div className="h-[520px] overflow-y-auto">
           {/* Погрешности оборудования */}
           <TabsContent value="equipment" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Характеристики резервуара и оборудования
-              </CardTitle>
-              <CardDescription>
-                Физические характеристики резервуара, геометрические параметры и тип датчика уровня
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Характеристики резервуара и оборудования
+                </CardTitle>
+                <CardDescription>
+                  Физические характеристики резервуара, геометрические параметры и тип датчика уровня
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tank_shape_type">Тип резервуара по форме</Label>
+                    <Select
+                      value={settings.tank_shape_type}
+                      onValueChange={(value: TankShapeType) => updateSetting('tank_shape_type', value)}
+                    >
+                      <SelectTrigger id="tank_shape_type">
+                        <SelectValue placeholder="Выберите тип резервуара" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="horizontal_cylinder">Горизонтальный цилиндрический</SelectItem>
+                        <SelectItem value="vertical_cylinder">Вертикальный цилиндрический</SelectItem>
+                        <SelectItem value="spherical">Сферический (СУГ)</SelectItem>
+                        <SelectItem value="rectangular">Прямоугольный</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Форма резервуара влияет на расчёт калибровочной таблицы
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tank_location_type">Расположение резервуара</Label>
+                    <Select
+                      value={settings.tank_location_type}
+                      onValueChange={(value: TankLocationType) => updateSetting('tank_location_type', value)}
+                    >
+                      <SelectTrigger id="tank_location_type">
+                        <SelectValue placeholder="Выберите расположение" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="underground">🔽 Подземный</SelectItem>
+                        <SelectItem value="surface">🔼 Наземный</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Влияет на температурный режим и условия эксплуатации
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nozzles_count">Количество пистолетов (ТРК)</Label>
+                    <Input
+                      id="nozzles_count"
+                      type="number"
+                      min="1"
+                      value={settings.nozzles_count || ''}
+                      onChange={(e) => handleNumberInput('nozzles_count', e.target.value, true)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Количество раздаточных пистолетов, подключённых к резервуару
+                    </p>
+                  </div>
+                </div>
+
+                {/* Геометрические параметры резервуара */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Диаметр - только для цилиндрических и сферических */}
+                  {(settings.tank_shape_type === 'horizontal_cylinder' ||
+                    settings.tank_shape_type === 'vertical_cylinder' ||
+                    settings.tank_shape_type === 'spherical') && (
+                      <div className="space-y-2">
+                        <Label htmlFor="tank_diameter_mm">Диаметр резервуара (мм)</Label>
+                        <Input
+                          id="tank_diameter_mm"
+                          type="number"
+                          min="1000"
+                          value={settings.tank_diameter_mm || ''}
+                          onChange={(e) => handleNumberInput('tank_diameter_mm', e.target.value, true)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Внутренний диаметр резервуара. Типовые: 2500, 2600, 3000 мм
+                        </p>
+                      </div>
+                    )}
+
+                  {/* Длина - для горизонтальных цилиндров и прямоугольных */}
+                  {(settings.tank_shape_type === 'horizontal_cylinder' ||
+                    settings.tank_shape_type === 'rectangular') && (
+                      <div className="space-y-2">
+                        <Label htmlFor="tank_length_mm">Длина резервуара (мм)</Label>
+                        <Input
+                          id="tank_length_mm"
+                          type="number"
+                          min="1000"
+                          value={settings.tank_length_mm || ''}
+                          onChange={(e) => handleNumberInput('tank_length_mm', e.target.value, true)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Длина резервуара. Типовые: 6300, 7800 мм
+                        </p>
+                      </div>
+                    )}
+
+                  {/* Ширина - только для прямоугольных */}
+                  {settings.tank_shape_type === 'rectangular' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="tank_width_mm">Ширина резервуара (мм)</Label>
+                      <Input
+                        id="tank_width_mm"
+                        type="number"
+                        min="1000"
+                        value={settings.tank_width_mm || ''}
+                        onChange={(e) => handleNumberInput('tank_width_mm', e.target.value, true)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Ширина прямоугольного резервуара
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Высота - для вертикальных цилиндров и прямоугольных */}
+                  {(settings.tank_shape_type === 'vertical_cylinder' ||
+                    settings.tank_shape_type === 'rectangular') && (
+                      <div className="space-y-2">
+                        <Label htmlFor="tank_height_mm">Высота резервуара (мм)</Label>
+                        <Input
+                          id="tank_height_mm"
+                          type="number"
+                          min="1000"
+                          value={settings.tank_height_mm || ''}
+                          onChange={(e) => handleNumberInput('tank_height_mm', e.target.value, true)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Высота резервуара
+                        </p>
+                      </div>
+                    )}
+
+                  {/* Угол наклона - только для горизонтальных цилиндров */}
+                  {settings.tank_shape_type === 'horizontal_cylinder' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="tank_tilt_angle_degrees">Угол наклона (градусы)</Label>
+                      <Input
+                        id="tank_tilt_angle_degrees"
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        value={settings.tank_tilt_angle_degrees || ''}
+                        onChange={(e) => handleNumberInput('tank_tilt_angle_degrees', e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Угол наклона для слива остатков. Обычно 0-3°
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Автоматически рассчитанный объем */}
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <Calculator className="h-6 w-6 text-blue-400" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-300">Расчетный объем резервуара</p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {settings.tank_shape_type === 'horizontal_cylinder' && 'Формула: V = π × (D/2)² × L'}
+                        {settings.tank_shape_type === 'vertical_cylinder' && 'Формула: V = π × (D/2)² × H'}
+                        {settings.tank_shape_type === 'spherical' && 'Формула: V = (4/3) × π × (D/2)³'}
+                        {settings.tank_shape_type === 'rectangular' && 'Формула: V = L × W × H'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-white">{calculatedVolume.toFixed(0)}</p>
+                      <p className="text-sm text-slate-400">литров</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Источник опорной точки */}
+                <div className="space-y-4 pt-4 border-t border-slate-700">
+                  <h4 className="text-sm font-medium text-slate-300">Алгоритм калибровки</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reference_source">Источник опорной точки</Label>
+                      <Select
+                        value={settings.reference_source || 'geometry'}
+                        onValueChange={(value: any) => updateSetting('reference_source', value)}
+                      >
+                        <SelectTrigger id="reference_source">
+                          <SelectValue placeholder="Выберите источник" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="geometry">📐 Геометрия (по размерам)</SelectItem>
+                          <SelectItem value="current_table">📊 Текущая таблица (плавный переход)</SelectItem>
+                          <SelectItem value="manual">✍️ Вручную (метрошток)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Откуда брать объем для верхней точки заполнения
+                      </p>
+                    </div>
+
+                    {settings.reference_source === 'manual' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="manual_reference_volume">Объем опорной точки (л)</Label>
+                        <Input
+                          id="manual_reference_volume"
+                          type="number"
+                          min="0"
+                          value={settings.manual_reference_volume || ''}
+                          onChange={(e) => handleNumberInput('manual_reference_volume', e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Введите точный объем при максимальном заполнении
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Тип датчика уровня */}
                 <div className="space-y-2">
-                  <Label htmlFor="tank_shape_type">Тип резервуара по форме</Label>
+                  <Label htmlFor="level_sensor_type">Тип датчика уровня</Label>
                   <Select
-                    value={settings.tank_shape_type}
-                    onValueChange={(value: TankShapeType) => updateSetting('tank_shape_type', value)}
+                    value={settings.level_sensor_type}
+                    onValueChange={handleSensorTypeChange}
                   >
-                    <SelectTrigger id="tank_shape_type">
-                      <SelectValue placeholder="Выберите тип резервуара" />
+                    <SelectTrigger id="level_sensor_type">
+                      <SelectValue placeholder="Выберите тип датчика" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="horizontal_cylinder">Горизонтальный цилиндрический</SelectItem>
-                      <SelectItem value="vertical_cylinder">Вертикальный цилиндрический</SelectItem>
-                      <SelectItem value="spherical">Сферический (СУГ)</SelectItem>
-                      <SelectItem value="rectangular">Прямоугольный</SelectItem>
+                      <SelectItem value="radar">📡 Радарный (±1мм)</SelectItem>
+                      <SelectItem value="float">🎈 Поплавковый (±1мм)</SelectItem>
+                      <SelectItem value="capacitive">⚡ Емкостной (±3мм)</SelectItem>
+                      <SelectItem value="hydrostatic">💧 Гидростатический (±3мм)</SelectItem>
+                      <SelectItem value="other">🔧 Другой</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Форма резервуара влияет на расчёт калибровочной таблицы
+                    Для каждого типа доступны рекомендуемые погрешности на основе ГОСТ и данных производителей (раздел "Погрешности")
                   </p>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tank_location_type">Расположение резервуара</Label>
-                  <Select
-                    value={settings.tank_location_type}
-                    onValueChange={(value: TankLocationType) => updateSetting('tank_location_type', value)}
+          {/* Погрешности измерительного оборудования */}
+          <TabsContent value="accuracy" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gauge className="h-5 w-5" />
+                  Погрешности измерительного оборудования
+                </CardTitle>
+                <CardDescription>
+                  Метрологические параметры ТРК и датчиков уровня по ГОСТ Р 8.579-2001
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Информационный badge с текущими настройками */}
+                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex items-center justify-between gap-4">
+                  <p className="text-sm text-slate-300">
+                    <span className="font-semibold">Текущий датчик:</span> {getSensorAccuracyHint()}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={applyRecommendedAccuracy}
+                    className="shrink-0"
                   >
-                    <SelectTrigger id="tank_location_type">
-                      <SelectValue placeholder="Выберите расположение" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="underground">🔽 Подземный</SelectItem>
-                      <SelectItem value="surface">🔼 Наземный</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Влияет на температурный режим и условия эксплуатации
-                  </p>
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Применить рекомендуемые
+                  </Button>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="nozzles_count">Количество пистолетов (ТРК)</Label>
-                  <Input
-                    id="nozzles_count"
-                    type="number"
-                    min="1"
-                    value={settings.nozzles_count || ''}
-                    onChange={(e) => handleNumberInput('nozzles_count', e.target.value, true)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Количество раздаточных пистолетов, подключённых к резервуару
-                  </p>
-                </div>
-              </div>
-
-              {/* Геометрические параметры резервуара */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Диаметр - только для цилиндрических и сферических */}
-                {(settings.tank_shape_type === 'horizontal_cylinder' ||
-                  settings.tank_shape_type === 'vertical_cylinder' ||
-                  settings.tank_shape_type === 'spherical') && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="tank_diameter_mm">Диаметр резервуара (мм)</Label>
+                    <Label htmlFor="dispensers_error_percent">Погрешность ТРК (%)</Label>
                     <Input
-                      id="tank_diameter_mm"
+                      id="dispensers_error_percent"
                       type="number"
-                      min="1000"
-                      value={settings.tank_diameter_mm || ''}
-                      onChange={(e) => handleNumberInput('tank_diameter_mm', e.target.value, true)}
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      value={settings.dispensers_error_percent || ''}
+                      onChange={(e) => handleNumberInput('dispensers_error_percent', e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Внутренний диаметр резервуара. Типовые: 2500, 2600, 3000 мм
+                      {getDispenserAccuracyHint()}
                     </p>
                   </div>
-                )}
 
-                {/* Длина - для горизонтальных цилиндров и прямоугольных */}
-                {(settings.tank_shape_type === 'horizontal_cylinder' ||
-                  settings.tank_shape_type === 'rectangular') && (
                   <div className="space-y-2">
-                    <Label htmlFor="tank_length_mm">Длина резервуара (мм)</Label>
+                    <Label htmlFor="level_sensor_error_percent">Погрешность уровнемера (%)</Label>
                     <Input
-                      id="tank_length_mm"
+                      id="level_sensor_error_percent"
                       type="number"
-                      min="1000"
-                      value={settings.tank_length_mm || ''}
-                      onChange={(e) => handleNumberInput('tank_length_mm', e.target.value, true)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Длина резервуара. Типовые: 6300, 7800 мм
-                    </p>
-                  </div>
-                )}
-
-                {/* Ширина - только для прямоугольных */}
-                {settings.tank_shape_type === 'rectangular' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="tank_width_mm">Ширина резервуара (мм)</Label>
-                    <Input
-                      id="tank_width_mm"
-                      type="number"
-                      min="1000"
-                      value={settings.tank_width_mm || ''}
-                      onChange={(e) => handleNumberInput('tank_width_mm', e.target.value, true)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Ширина прямоугольного резервуара
-                    </p>
-                  </div>
-                )}
-
-                {/* Высота - для вертикальных цилиндров и прямоугольных */}
-                {(settings.tank_shape_type === 'vertical_cylinder' ||
-                  settings.tank_shape_type === 'rectangular') && (
-                  <div className="space-y-2">
-                    <Label htmlFor="tank_height_mm">Высота резервуара (мм)</Label>
-                    <Input
-                      id="tank_height_mm"
-                      type="number"
-                      min="1000"
-                      value={settings.tank_height_mm || ''}
-                      onChange={(e) => handleNumberInput('tank_height_mm', e.target.value, true)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Высота резервуара
-                    </p>
-                  </div>
-                )}
-
-                {/* Угол наклона - только для горизонтальных цилиндров */}
-                {settings.tank_shape_type === 'horizontal_cylinder' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="tank_tilt_angle_degrees">Угол наклона (градусы)</Label>
-                    <Input
-                      id="tank_tilt_angle_degrees"
-                      type="number"
+                      step="0.01"
                       min="0"
                       max="5"
-                      step="0.1"
-                      value={settings.tank_tilt_angle_degrees || ''}
-                      onChange={(e) => handleNumberInput('tank_tilt_angle_degrees', e.target.value)}
+                      value={settings.level_sensor_error_percent || ''}
+                      onChange={(e) => handleNumberInput('level_sensor_error_percent', e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Угол наклона для слива остатков. Обычно 0-3°
+                      Можно указать свое значение или применить рекомендуемое для выбранного типа датчика
                     </p>
                   </div>
-                )}
-              </div>
 
-              {/* Автоматически рассчитанный объем */}
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <Calculator className="h-6 w-6 text-blue-400" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-blue-300">Расчетный объем резервуара</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {settings.tank_shape_type === 'horizontal_cylinder' && 'Формула: V = π × (D/2)² × L'}
-                      {settings.tank_shape_type === 'vertical_cylinder' && 'Формула: V = π × (D/2)² × H'}
-                      {settings.tank_shape_type === 'spherical' && 'Формула: V = (4/3) × π × (D/2)³'}
-                      {settings.tank_shape_type === 'rectangular' && 'Формула: V = L × W × H'}
+                  <div className="space-y-2">
+                    <Label htmlFor="level_sensor_accuracy_mm">Точность уровнемера (мм)</Label>
+                    <Input
+                      id="level_sensor_accuracy_mm"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="10"
+                      value={settings.level_sensor_accuracy_mm || ''}
+                      onChange={(e) => handleNumberInput('level_sensor_accuracy_mm', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Коммерческий учет: ±3мм (ГОСТ), высокоточные радарные: ±1мм
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-white">{calculatedVolume.toFixed(0)}</p>
-                    <p className="text-sm text-slate-400">литров</p>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bias_offset_percent">Колебание (%)</Label>
+                    <Input
+                      id="bias_offset_percent"
+                      type="number"
+                      step="0.001"
+                      value={settings.bias_offset_percent || ''}
+                      onChange={(e) => handleNumberInput('bias_offset_percent', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Допустимое колебание показаний для фильтрации выбросов (может быть отрицательным, точность до 0.001%)
+                    </p>
                   </div>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              {/* Тип датчика уровня */}
-              <div className="space-y-2">
-                <Label htmlFor="level_sensor_type">Тип датчика уровня</Label>
-                <Select
-                  value={settings.level_sensor_type}
-                  onValueChange={handleSensorTypeChange}
-                >
-                  <SelectTrigger id="level_sensor_type">
-                    <SelectValue placeholder="Выберите тип датчика" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="radar">📡 Радарный (±1мм)</SelectItem>
-                    <SelectItem value="float">🎈 Поплавковый (±1мм)</SelectItem>
-                    <SelectItem value="capacitive">⚡ Емкостной (±3мм)</SelectItem>
-                    <SelectItem value="hydrostatic">💧 Гидростатический (±3мм)</SelectItem>
-                    <SelectItem value="other">🔧 Другой</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Для каждого типа доступны рекомендуемые погрешности на основе ГОСТ и данных производителей (раздел "Погрешности")
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          {/* Температурные параметры */}
+          <TabsContent value="temperature" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Thermometer className="h-5 w-5" />
+                  Температурные параметры
+                </CardTitle>
+                <CardDescription>
+                  Коэффициенты теплового расширения топлива
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fuel_type">Тип топлива</Label>
+                    <Select
+                      value={settings.fuel_type}
+                      onValueChange={(value) => handleFuelTypeChange(value as CalibrationFuelType)}
+                    >
+                      <SelectTrigger id="fuel_type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="gasoline">Бензин</SelectItem>
+                        <SelectItem value="diesel">Дизельное топливо</SelectItem>
+                        <SelectItem value="propane">Пропан (СУГ)</SelectItem>
+                        <SelectItem value="gas">Газ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-        {/* Погрешности измерительного оборудования */}
-        <TabsContent value="accuracy" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Gauge className="h-5 w-5" />
-                Погрешности измерительного оборудования
-              </CardTitle>
-              <CardDescription>
-                Метрологические параметры ТРК и датчиков уровня по ГОСТ Р 8.579-2001
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Информационный badge с текущими настройками */}
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex items-center justify-between gap-4">
-                <p className="text-sm text-slate-300">
-                  <span className="font-semibold">Текущий датчик:</span> {getSensorAccuracyHint()}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={applyRecommendedAccuracy}
-                  className="shrink-0"
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Применить рекомендуемые
-                </Button>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="thermal_expansion_coefficient">Коэффициент расширения (1/°C)</Label>
+                    <Input
+                      id="thermal_expansion_coefficient"
+                      type="number"
+                      step="0.0001"
+                      value={settings.thermal_expansion_coefficient || ''}
+                      onChange={(e) => handleNumberInput('thermal_expansion_coefficient', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      АИ-92/95: 0.00083, ДТ: 0.00074, Пропан: 0.003, Керосин: 0.001
+                    </p>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dispensers_error_percent">Погрешность ТРК (%)</Label>
-                  <Input
-                    id="dispensers_error_percent"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="1"
-                    value={settings.dispensers_error_percent || ''}
-                    onChange={(e) => handleNumberInput('dispensers_error_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {getDispenserAccuracyHint()}
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="base_temperature">Базовая температура (°C)</Label>
+                    <Input
+                      id="base_temperature"
+                      type="number"
+                      value={settings.base_temperature || ''}
+                      onChange={(e) => handleNumberInput('base_temperature', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Обычно 15°C или 20°C
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="temp_gradient_liters_per_degree">Градиент (л/°C)</Label>
+                    <Input
+                      id="temp_gradient_liters_per_degree"
+                      type="text"
+                      value={calculatedGradient}
+                      readOnly
+                      className="bg-slate-800 cursor-not-allowed"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Автоматический расчет: {tankCapacity} л × {settings.thermal_expansion_coefficient}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="working_temp_min">Мин. температура (°C)</Label>
+                    <Input
+                      id="working_temp_min"
+                      type="number"
+                      value={settings.working_temp_min || ''}
+                      onChange={(e) => handleNumberInput('working_temp_min', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="working_temp_max">Макс. температура (°C)</Label>
+                    <Input
+                      id="working_temp_max"
+                      type="number"
+                      value={settings.working_temp_max || ''}
+                      onChange={(e) => handleNumberInput('working_temp_max', e.target.value)}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="level_sensor_error_percent">Погрешность уровнемера (%)</Label>
-                  <Input
-                    id="level_sensor_error_percent"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="5"
-                    value={settings.level_sensor_error_percent || ''}
-                    onChange={(e) => handleNumberInput('level_sensor_error_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Можно указать свое значение или применить рекомендуемое для выбранного типа датчика
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="level_sensor_accuracy_mm">Точность уровнемера (мм)</Label>
-                  <Input
-                    id="level_sensor_accuracy_mm"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="10"
-                    value={settings.level_sensor_accuracy_mm || ''}
-                    onChange={(e) => handleNumberInput('level_sensor_accuracy_mm', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Коммерческий учет: ±3мм (ГОСТ), высокоточные радарные: ±1мм
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bias_offset_percent">Колебание (%)</Label>
-                  <Input
-                    id="bias_offset_percent"
-                    type="number"
-                    step="0.001"
-                    value={settings.bias_offset_percent || ''}
-                    onChange={(e) => handleNumberInput('bias_offset_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Допустимое колебание показаний для фильтрации выбросов (может быть отрицательным, точность до 0.001%)
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Температурные параметры */}
-        <TabsContent value="temperature" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Thermometer className="h-5 w-5" />
-                Температурные параметры
-              </CardTitle>
-              <CardDescription>
-                Коэффициенты теплового расширения топлива
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fuel_type">Тип топлива</Label>
-                  <Select
-                    value={settings.fuel_type}
-                    onValueChange={(value) => handleFuelTypeChange(value as CalibrationFuelType)}
-                  >
-                    <SelectTrigger id="fuel_type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gasoline">Бензин</SelectItem>
-                      <SelectItem value="diesel">Дизельное топливо</SelectItem>
-                      <SelectItem value="propane">Пропан (СУГ)</SelectItem>
-                      <SelectItem value="gas">Газ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="thermal_expansion_coefficient">Коэффициент расширения (1/°C)</Label>
-                  <Input
-                    id="thermal_expansion_coefficient"
-                    type="number"
-                    step="0.0001"
-                    value={settings.thermal_expansion_coefficient || ''}
-                    onChange={(e) => handleNumberInput('thermal_expansion_coefficient', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    АИ-92/95: 0.00083, ДТ: 0.00074, Пропан: 0.003, Керосин: 0.001
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="base_temperature">Базовая температура (°C)</Label>
-                  <Input
-                    id="base_temperature"
-                    type="number"
-                    value={settings.base_temperature || ''}
-                    onChange={(e) => handleNumberInput('base_temperature', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Обычно 15°C или 20°C
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="temp_gradient_liters_per_degree">Градиент (л/°C)</Label>
-                  <Input
-                    id="temp_gradient_liters_per_degree"
-                    type="text"
-                    value={calculatedGradient}
-                    readOnly
-                    className="bg-slate-800 cursor-not-allowed"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Автоматический расчет: {tankCapacity} л × {settings.thermal_expansion_coefficient}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="working_temp_min">Мин. температура (°C)</Label>
-                  <Input
-                    id="working_temp_min"
-                    type="number"
-                    value={settings.working_temp_min || ''}
-                    onChange={(e) => handleNumberInput('working_temp_min', e.target.value)}
+                {/* Теплоизоляция */}
+                <div className="flex items-center justify-between p-4 border border-slate-700 rounded-lg bg-slate-800/30">
+                  <div className="space-y-1">
+                    <Label htmlFor="has_thermal_insulation" className="text-base font-medium">
+                      Наличие теплоизоляции
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Улучшает стабильность температуры, снижает суточные колебания и влияние внешних факторов
+                    </p>
+                  </div>
+                  <Switch
+                    id="has_thermal_insulation"
+                    checked={settings.has_thermal_insulation}
+                    onCheckedChange={(checked) => updateSetting('has_thermal_insulation', checked)}
                   />
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="working_temp_max">Макс. температура (°C)</Label>
-                  <Input
-                    id="working_temp_max"
-                    type="number"
-                    value={settings.working_temp_max || ''}
-                    onChange={(e) => handleNumberInput('working_temp_max', e.target.value)}
-                  />
-                </div>
-              </div>
+          {/* Испарение и потери */}
+          <TabsContent value="losses" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Droplets className="h-5 w-5" />
+                  Испарение и естественная убыль
+                </CardTitle>
+                <CardDescription>
+                  Параметры потерь топлива при хранении и отпуске
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="natural_loss_summer_percent">Убыль летом (%)</Label>
+                    <Input
+                      id="natural_loss_summer_percent"
+                      type="number"
+                      step="0.1"
+                      value={settings.natural_loss_summer_percent || ''}
+                      onChange={(e) => handleNumberInput('natural_loss_summer_percent', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Весенне-летний (01.04-30.09): Бензин 0.08%, ДТ 0.05%, Пропан ~0.12% (Приказ № 281)
+                    </p>
+                  </div>
 
-              {/* Теплоизоляция */}
-              <div className="flex items-center justify-between p-4 border border-slate-700 rounded-lg bg-slate-800/30">
-                <div className="space-y-1">
-                  <Label htmlFor="has_thermal_insulation" className="text-base font-medium">
-                    Наличие теплоизоляции
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Улучшает стабильность температуры, снижает суточные колебания и влияние внешних факторов
-                  </p>
-                </div>
-                <Switch
-                  id="has_thermal_insulation"
-                  checked={settings.has_thermal_insulation}
-                  onCheckedChange={(checked) => updateSetting('has_thermal_insulation', checked)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="natural_loss_winter_percent">Убыль зимой (%)</Label>
+                    <Input
+                      id="natural_loss_winter_percent"
+                      type="number"
+                      step="0.1"
+                      value={settings.natural_loss_winter_percent || ''}
+                      onChange={(e) => handleNumberInput('natural_loss_winter_percent', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Осенне-зимний (01.10-31.03): Бензин 0.03%, ДТ 0.02%, Пропан ~0.74% (Приказ № 281)
+                    </p>
+                  </div>
 
-        {/* Испарение и потери */}
-        <TabsContent value="losses" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Droplets className="h-5 w-5" />
-                Испарение и естественная убыль
-              </CardTitle>
-              <CardDescription>
-                Параметры потерь топлива при хранении и отпуске
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="natural_loss_summer_percent">Убыль летом (%)</Label>
-                  <Input
-                    id="natural_loss_summer_percent"
-                    type="number"
-                    step="0.1"
-                    value={settings.natural_loss_summer_percent || ''}
-                    onChange={(e) => handleNumberInput('natural_loss_summer_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Весенне-летний (01.04-30.09): Бензин 0.08%, ДТ 0.05%, Пропан ~0.12% (Приказ № 281)
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="discharge_loss_percent">Потери при сливе (%)</Label>
+                    <Input
+                      id="discharge_loss_percent"
+                      type="number"
+                      step="0.01"
+                      value={settings.discharge_loss_percent || ''}
+                      onChange={(e) => handleNumberInput('discharge_loss_percent', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Обычно 0.1-0.2%
+                    </p>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="natural_loss_winter_percent">Убыль зимой (%)</Label>
-                  <Input
-                    id="natural_loss_winter_percent"
-                    type="number"
-                    step="0.1"
-                    value={settings.natural_loss_winter_percent || ''}
-                    onChange={(e) => handleNumberInput('natural_loss_winter_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Осенне-зимний (01.10-31.03): Бензин 0.03%, ДТ 0.02%, Пропан ~0.74% (Приказ № 281)
-                  </p>
-                </div>
+          {/* Временные параметры */}
+          <TabsContent value="timing" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Временные интервалы
+                </CardTitle>
+                <CardDescription>
+                  Периоды усреднения и анализа данных
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="data_polling_interval_minutes">Интервал получения данных (мин)</Label>
+                    <Input
+                      id="data_polling_interval_minutes"
+                      type="number"
+                      value={settings.data_polling_interval_minutes || ''}
+                      onChange={(e) => handleNumberInput('data_polling_interval_minutes', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Частота опроса остатков резервуара (5, 10, 15 минут)
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="discharge_loss_percent">Потери при сливе (%)</Label>
-                  <Input
-                    id="discharge_loss_percent"
-                    type="number"
-                    step="0.01"
-                    value={settings.discharge_loss_percent || ''}
-                    onChange={(e) => handleNumberInput('discharge_loss_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Обычно 0.1-0.2%
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="averaging_period_minutes">Период усреднения (мин)</Label>
+                    <Input
+                      id="averaging_period_minutes"
+                      type="number"
+                      value={settings.averaging_period_minutes || ''}
+                      onChange={(e) => handleNumberInput('averaging_period_minutes', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Интервал усреднения показаний датчика (15, 30, 60 минут)
+                    </p>
+                  </div>
 
-        {/* Временные параметры */}
-        <TabsContent value="timing" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Временные интервалы
-              </CardTitle>
-              <CardDescription>
-                Периоды усреднения и анализа данных
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="data_polling_interval_minutes">Интервал получения данных (мин)</Label>
-                  <Input
-                    id="data_polling_interval_minutes"
-                    type="number"
-                    value={settings.data_polling_interval_minutes || ''}
-                    onChange={(e) => handleNumberInput('data_polling_interval_minutes', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Частота опроса остатков резервуара (5, 10, 15 минут)
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="tank_rest_time_minutes">Время покоя резервуара (мин)</Label>
+                    <Input
+                      id="tank_rest_time_minutes"
+                      type="number"
+                      value={settings.tank_rest_time_minutes || ''}
+                      onChange={(e) => handleNumberInput('tank_rest_time_minutes', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Время стабилизации после приёма/отпуска топлива (обычно 30 мин)
+                    </p>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="averaging_period_minutes">Период усреднения (мин)</Label>
-                  <Input
-                    id="averaging_period_minutes"
-                    type="number"
-                    value={settings.averaging_period_minutes || ''}
-                    onChange={(e) => handleNumberInput('averaging_period_minutes', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Интервал усреднения показаний датчика (15, 30, 60 минут)
-                  </p>
-                </div>
+          {/* Пороговые значения */}
+          <TabsContent value="thresholds" className="space-y-4">
+            {/* Пороговые уведомления */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Пороги уведомлений
+                </CardTitle>
+                <CardDescription>
+                  Настройка уровней для автоматических уведомлений (как на странице Оборудование)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fuel_level_warning_percent">⚠️ Порог предупреждения (%)</Label>
+                    <Input
+                      id="fuel_level_warning_percent"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={settings.fuel_level_warning_percent || ''}
+                      onChange={(e) => handleNumberInput('fuel_level_warning_percent', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Уведомление при уровне ≤ указанного %
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tank_rest_time_minutes">Время покоя резервуара (мин)</Label>
-                  <Input
-                    id="tank_rest_time_minutes"
-                    type="number"
-                    value={settings.tank_rest_time_minutes || ''}
-                    onChange={(e) => handleNumberInput('tank_rest_time_minutes', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Время стабилизации после приёма/отпуска топлива (обычно 30 мин)
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="fuel_level_critical_percent">🔴 Критический порог (%)</Label>
+                    <Input
+                      id="fuel_level_critical_percent"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={settings.fuel_level_critical_percent || ''}
+                      onChange={(e) => handleNumberInput('fuel_level_critical_percent', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Критическое уведомление при уровне ≤ указанного %
+                    </p>
+                  </div>
 
-        {/* Пороговые значения */}
-        <TabsContent value="thresholds" className="space-y-4">
-          {/* Пороговые уведомления */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Пороги уведомлений
-              </CardTitle>
-              <CardDescription>
-                Настройка уровней для автоматических уведомлений (как на странице Оборудование)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fuel_level_warning_percent">⚠️ Порог предупреждения (%)</Label>
-                  <Input
-                    id="fuel_level_warning_percent"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={settings.fuel_level_warning_percent || ''}
-                    onChange={(e) => handleNumberInput('fuel_level_warning_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Уведомление при уровне ≤ указанного %
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="fuel_level_max_percent">🔼 Максимальный уровень (%)</Label>
+                    <Input
+                      id="fuel_level_max_percent"
+                      type="number"
+                      min="80"
+                      max="100"
+                      value={settings.fuel_level_max_percent || ''}
+                      onChange={(e) => handleNumberInput('fuel_level_max_percent', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Бензин/ДТ: 95%, Пропан (СУГ): 85% - безопасность заполнения
+                    </p>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="space-y-2">
-                  <Label htmlFor="fuel_level_critical_percent">🔴 Критический порог (%)</Label>
-                  <Input
-                    id="fuel_level_critical_percent"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={settings.fuel_level_critical_percent || ''}
-                    onChange={(e) => handleNumberInput('fuel_level_critical_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Критическое уведомление при уровне ≤ указанного %
-                  </p>
-                </div>
+            {/* Мёртвый остаток и зоны датчика */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Droplets className="h-5 w-5" />
+                  Мёртвый остаток и зоны измерений
+                </CardTitle>
+                <CardDescription>
+                  Технический остаток и мёртвые зоны датчика уровня (ГОСТ 8.346-2000)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dead_stock_liters">Мёртвый остаток (л)</Label>
+                    <Input
+                      id="dead_stock_liters"
+                      type="number"
+                      min="0"
+                      value={settings.dead_stock_liters || ''}
+                      onChange={(e) => handleNumberInput('dead_stock_liters', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Объём под заливной трубой, не откачиваемый (для 25 м³: ~1500 л)
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="fuel_level_max_percent">🔼 Максимальный уровень (%)</Label>
-                  <Input
-                    id="fuel_level_max_percent"
-                    type="number"
-                    min="80"
-                    max="100"
-                    value={settings.fuel_level_max_percent || ''}
-                    onChange={(e) => handleNumberInput('fuel_level_max_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Бензин/ДТ: 95%, Пропан (СУГ): 85% - безопасность заполнения
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="space-y-2">
+                    <Label htmlFor="dead_stock_percent">Мёртвый остаток (%)</Label>
+                    <Input
+                      id="dead_stock_percent"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={settings.dead_stock_percent || ''}
+                      onChange={(e) => handleNumberInput('dead_stock_percent', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Обычно 0-6% от объёма резервуара
+                    </p>
+                  </div>
 
-          {/* Мёртвый остаток и зоны датчика */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Droplets className="h-5 w-5" />
-                Мёртвый остаток и зоны измерений
-              </CardTitle>
-              <CardDescription>
-                Технический остаток и мёртвые зоны датчика уровня (ГОСТ 8.346-2000)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dead_stock_liters">Мёртвый остаток (л)</Label>
-                  <Input
-                    id="dead_stock_liters"
-                    type="number"
-                    min="0"
-                    value={settings.dead_stock_liters || ''}
-                    onChange={(e) => handleNumberInput('dead_stock_liters', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Объём под заливной трубой, не откачиваемый (для 25 м³: ~1500 л)
-                  </p>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sensor_blind_zone_bottom_mm">Мёртвая зона снизу (мм)</Label>
+                    <Input
+                      id="sensor_blind_zone_bottom_mm"
+                      type="number"
+                      min="0"
+                      value={settings.sensor_blind_zone_bottom_mm || ''}
+                      onChange={(e) => handleNumberInput('sensor_blind_zone_bottom_mm', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Зона где датчик не работает (снизу), обычно 100-200 мм
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="dead_stock_percent">Мёртвый остаток (%)</Label>
-                  <Input
-                    id="dead_stock_percent"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={settings.dead_stock_percent || ''}
-                    onChange={(e) => handleNumberInput('dead_stock_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Обычно 0-6% от объёма резервуара
-                  </p>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sensor_blind_zone_top_mm">Мёртвая зона сверху (мм)</Label>
+                    <Input
+                      id="sensor_blind_zone_top_mm"
+                      type="number"
+                      min="0"
+                      value={settings.sensor_blind_zone_top_mm || ''}
+                      onChange={(e) => handleNumberInput('sensor_blind_zone_top_mm', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Зона где датчик не работает (сверху), обычно 100-200 мм
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="sensor_blind_zone_bottom_mm">Мёртвая зона снизу (мм)</Label>
-                  <Input
-                    id="sensor_blind_zone_bottom_mm"
-                    type="number"
-                    min="0"
-                    value={settings.sensor_blind_zone_bottom_mm || ''}
-                    onChange={(e) => handleNumberInput('sensor_blind_zone_bottom_mm', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Зона где датчик не работает (снизу), обычно 100-200 мм
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="critical_water_level_mm">Критический уровень воды (мм)</Label>
+                    <Input
+                      id="critical_water_level_mm"
+                      type="number"
+                      min="0"
+                      value={settings.critical_water_level_mm || ''}
+                      onChange={(e) => handleNumberInput('critical_water_level_mm', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      При превышении требуется откачка, обычно 30-50 мм
+                    </p>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="space-y-2">
-                  <Label htmlFor="sensor_blind_zone_top_mm">Мёртвая зона сверху (мм)</Label>
-                  <Input
-                    id="sensor_blind_zone_top_mm"
-                    type="number"
-                    min="0"
-                    value={settings.sensor_blind_zone_top_mm || ''}
-                    onChange={(e) => handleNumberInput('sensor_blind_zone_top_mm', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Зона где датчик не работает (сверху), обычно 100-200 мм
-                  </p>
-                </div>
+            {/* Пороговые значения мониторинга */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  Пороги мониторинга работы резервуара
+                </CardTitle>
+                <CardDescription>
+                  Допустимые отклонения при работе. При нарушении система сигнализирует о необходимости калибровки
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="min_change_for_calibration_liters">Мин. изменение для калибровки (л)</Label>
+                    <Input
+                      id="min_change_for_calibration_liters"
+                      type="number"
+                      value={settings.min_change_for_calibration_liters || ''}
+                      onChange={(e) => handleNumberInput('min_change_for_calibration_liters', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Минимальное изменение объёма для учёта в калибровке
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="critical_water_level_mm">Критический уровень воды (мм)</Label>
-                  <Input
-                    id="critical_water_level_mm"
-                    type="number"
-                    min="0"
-                    value={settings.critical_water_level_mm || ''}
-                    onChange={(e) => handleNumberInput('critical_water_level_mm', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    При превышении требуется откачка, обычно 30-50 мм
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="space-y-2">
+                    <Label htmlFor="max_acceptable_deviation_percent">Макс. допустимое расхождение (%)</Label>
+                    <Input
+                      id="max_acceptable_deviation_percent"
+                      type="number"
+                      step="0.1"
+                      value={settings.max_acceptable_deviation_percent || ''}
+                      onChange={(e) => handleNumberInput('max_acceptable_deviation_percent', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Максимально допустимое расхождение от калибровки
+                    </p>
+                  </div>
 
-          {/* Пороговые значения мониторинга */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Пороги мониторинга работы резервуара
-              </CardTitle>
-              <CardDescription>
-                Допустимые отклонения при работе. При нарушении система сигнализирует о необходимости калибровки
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="min_change_for_calibration_liters">Мин. изменение для калибровки (л)</Label>
-                  <Input
-                    id="min_change_for_calibration_liters"
-                    type="number"
-                    value={settings.min_change_for_calibration_liters || ''}
-                    onChange={(e) => handleNumberInput('min_change_for_calibration_liters', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Минимальное изменение объёма для учёта в калибровке
-                  </p>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="max_acceptable_deviation_liters">Макс. допустимое расхождение (л)</Label>
+                    <Input
+                      id="max_acceptable_deviation_liters"
+                      type="number"
+                      value={settings.max_acceptable_deviation_liters || ''}
+                      onChange={(e) => handleNumberInput('max_acceptable_deviation_liters', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Максимально допустимое расхождение в литрах
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="max_acceptable_deviation_percent">Макс. допустимое расхождение (%)</Label>
-                  <Input
-                    id="max_acceptable_deviation_percent"
-                    type="number"
-                    step="0.1"
-                    value={settings.max_acceptable_deviation_percent || ''}
-                    onChange={(e) => handleNumberInput('max_acceptable_deviation_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Максимально допустимое расхождение от калибровки
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="critical_error_threshold_percent">Критическая ошибка (%)</Label>
+                    <Input
+                      id="critical_error_threshold_percent"
+                      type="number"
+                      step="0.1"
+                      value={settings.critical_error_threshold_percent || ''}
+                      onChange={(e) => handleNumberInput('critical_error_threshold_percent', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      При превышении требуется ручная проверка калибровки
+                    </p>
+                  </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="max_acceptable_deviation_liters">Макс. допустимое расхождение (л)</Label>
-                  <Input
-                    id="max_acceptable_deviation_liters"
-                    type="number"
-                    value={settings.max_acceptable_deviation_liters || ''}
-                    onChange={(e) => handleNumberInput('max_acceptable_deviation_liters', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Максимально допустимое расхождение в литрах
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="critical_error_threshold_percent">Критическая ошибка (%)</Label>
-                  <Input
-                    id="critical_error_threshold_percent"
-                    type="number"
-                    step="0.1"
-                    value={settings.critical_error_threshold_percent || ''}
-                    onChange={(e) => handleNumberInput('critical_error_threshold_percent', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    При превышении требуется ручная проверка калибровки
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </div>
       </Tabs>
 
@@ -1788,28 +1900,6 @@ export function TankCalibrationSettingsComponent({
                   </h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
-                      <Label htmlFor="dialog_exclude_delivery" className="text-sm cursor-pointer">
-                        ⛽ Исключать приемы топлива
-                      </Label>
-                      <Switch
-                        id="dialog_exclude_delivery"
-                        checked={settings.exclude_delivery_periods}
-                        onCheckedChange={(checked) => updateSetting('exclude_delivery_periods', checked)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
-                      <Label htmlFor="dialog_exclude_maintenance" className="text-sm cursor-pointer">
-                        🔧 Исключать периоды ТО
-                      </Label>
-                      <Switch
-                        id="dialog_exclude_maintenance"
-                        checked={settings.exclude_maintenance_periods}
-                        onCheckedChange={(checked) => updateSetting('exclude_maintenance_periods', checked)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
                       <Label htmlFor="dialog_outlier_filter" className="text-sm cursor-pointer">
                         🎯 Фильтр выбросов
                       </Label>
@@ -1839,47 +1929,6 @@ export function TankCalibrationSettingsComponent({
                   </div>
                 </div>
 
-                <Separator className="my-3" />
-
-                {/* Веса данных */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-slate-200 flex items-center gap-2">
-                    ⚖️ Веса источников данных
-                  </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dialog_sensor_weight" className="text-sm text-slate-300">
-                        📡 Вес уровнемера (0-1)
-                      </Label>
-                      <Input
-                        id="dialog_sensor_weight"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="1"
-                        value={settings.sensor_weight || ''}
-                        onChange={(e) => handleNumberInput('sensor_weight', e.target.value)}
-                        className="bg-slate-900 border-slate-600"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="dialog_dispenser_weight" className="text-sm text-slate-300">
-                        ⛽ Вес ТРК (0-1)
-                      </Label>
-                      <Input
-                        id="dialog_dispenser_weight"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="1"
-                        value={settings.dispenser_weight || ''}
-                        onChange={(e) => handleNumberInput('dispenser_weight', e.target.value)}
-                        className="bg-slate-900 border-slate-600"
-                      />
-                    </div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
 
@@ -2159,28 +2208,6 @@ export function TankCalibrationSettingsComponent({
                   </h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
-                      <Label htmlFor="analysis_exclude_delivery" className="text-sm cursor-pointer">
-                        ⛽ Исключать приемы топлива
-                      </Label>
-                      <Switch
-                        id="analysis_exclude_delivery"
-                        checked={settings.exclude_delivery_periods}
-                        onCheckedChange={(checked) => updateSetting('exclude_delivery_periods', checked)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
-                      <Label htmlFor="analysis_exclude_maintenance" className="text-sm cursor-pointer">
-                        🔧 Исключать периоды ТО
-                      </Label>
-                      <Switch
-                        id="analysis_exclude_maintenance"
-                        checked={settings.exclude_maintenance_periods}
-                        onCheckedChange={(checked) => updateSetting('exclude_maintenance_periods', checked)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 bg-slate-900 rounded-md border border-slate-700">
                       <Label htmlFor="analysis_outlier_filter" className="text-sm cursor-pointer">
                         🎯 Фильтр выбросов
                       </Label>
@@ -2230,46 +2257,6 @@ export function TankCalibrationSettingsComponent({
                   <p className="text-xs text-slate-400">
                     Шаг между точками калибровочной таблицы. Рекомендуется 50-100 мм для коммерческого учёта.
                   </p>
-                </div>
-
-                {/* Веса данных */}
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium text-slate-200 flex items-center gap-2">
-                    ⚖️ Веса источников данных
-                  </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="analysis_sensor_weight" className="text-sm text-slate-300">
-                        📡 Вес уровнемера (0-1)
-                      </Label>
-                      <Input
-                        id="analysis_sensor_weight"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="1"
-                        value={settings.sensor_weight || ''}
-                        onChange={(e) => handleNumberInput('sensor_weight', e.target.value)}
-                        className="bg-slate-900 border-slate-600"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="analysis_dispenser_weight" className="text-sm text-slate-300">
-                        ⛽ Вес ТРК (0-1)
-                      </Label>
-                      <Input
-                        id="analysis_dispenser_weight"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="1"
-                        value={settings.dispenser_weight || ''}
-                        onChange={(e) => handleNumberInput('dispenser_weight', e.target.value)}
-                        className="bg-slate-900 border-slate-600"
-                      />
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -2393,7 +2380,71 @@ export function TankCalibrationSettingsComponent({
                                 <strong>Шаг таблицы:</strong> {analysisResult.debug.stepMm} мм
                               </div>
                             )}
+                            {analysisResult.debug.rawComparison && analysisResult.debug.rawComparison.length > 0 && (
+                              <div className="col-span-2 border-t border-yellow-500/20 pt-2 mt-2">
+                                <strong className="text-yellow-300">📊 Сравнение объёмов (Датчик vs ТРК):</strong>
+                                <table className="w-full mt-2 text-xs">
+                                  <thead>
+                                    <tr className="text-yellow-400">
+                                      <th className="text-left">Уровень</th>
+                                      <th className="text-right">Датчик</th>
+                                      <th className="text-right">ТРК</th>
+                                      <th className="text-right">Разница</th>
+                                      <th className="text-right">%</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {analysisResult.debug.rawComparison.map((row: { level: number, sensor: number, trk: number, diff: number, diffPercent: string }, i: number) => (
+                                      <tr key={i} className="text-yellow-200">
+                                        <td>{row.level} мм</td>
+                                        <td className="text-right">{row.sensor} л</td>
+                                        <td className="text-right">{row.trk} л</td>
+                                        <td className={`text-right ${row.diff > 0 ? 'text-green-400' : row.diff < 0 ? 'text-red-400' : ''}`}>
+                                          {row.diff > 0 ? '+' : ''}{row.diff} л
+                                        </td>
+                                        <td className={`text-right ${parseFloat(row.diffPercent) > 0 ? 'text-green-400' : parseFloat(row.diffPercent) < 0 ? 'text-red-400' : ''}`}>
+                                          {row.diffPercent}%
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Диагностика алгоритма калибровки */}
+                      {analysisResult.diagnostics && (
+                        <div className="bg-purple-500/10 border border-purple-500/20 rounded-md p-3 mb-3">
+                          <p className="text-sm font-semibold text-purple-300 mb-2">🔬 Диагностика алгоритма калибровки:</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-purple-200">
+                            <div>Сегментов обработано: <strong>{analysisResult.diagnostics.segmentsCount}</strong></div>
+                            <div>Поступлений учтено: <strong>{analysisResult.diagnostics.receiptsProcessed}</strong></div>
+                            <div>Точек до фильтрации: <strong>{analysisResult.diagnostics.totalPointsBeforeFilter}</strong></div>
+                            <div>Точек после фильтрации: <strong>{analysisResult.diagnostics.totalPointsAfterFilter}</strong></div>
+                            <div>Транзакций обработано: <strong>{analysisResult.diagnostics.transactionsProcessed}</strong></div>
+                            <div>Отфильтровано (слепые зоны): <strong>{analysisResult.diagnostics.blindZonesFiltered}</strong></div>
+                            <div className="col-span-2">
+                              Температурная коррекция: <strong>{analysisResult.diagnostics.temperatureCorrectionApplied ? '✅ Применена' : '❌ Не применена'}</strong>
+                            </div>
+                          </div>
+
+                          {/* Предупреждения алгоритма */}
+                          {analysisResult.diagnostics.warnings && analysisResult.diagnostics.warnings.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-purple-500/20">
+                              <p className="text-sm font-semibold text-amber-300 mb-2">⚠️ Предупреждения ({analysisResult.diagnostics.warnings.length}):</p>
+                              <ul className="space-y-1 text-xs text-amber-200">
+                                {analysisResult.diagnostics.warnings.map((warning, index) => (
+                                  <li key={index} className="flex items-start gap-2">
+                                    <span className="text-amber-400">•</span>
+                                    <span>{warning}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -2406,266 +2457,210 @@ export function TankCalibrationSettingsComponent({
 
                       {/* График разницы по уровням */}
                       {analysisResult.comparison && analysisResult.comparison.length > 0 && (() => {
-                        const differences = analysisResult.comparison.map(r => r.difference);
-                        const minDiff = Math.min(...differences);
-                        const maxDiff = Math.max(...differences);
-                        console.log('📊 График данные:', {
-                          точек: analysisResult.comparison.length,
-                          минРазница: minDiff,
-                          максРазница: maxDiff,
-                          первые3: analysisResult.comparison.slice(0, 3),
-                          последние3: analysisResult.comparison.slice(-3)
-                        });
                         return (
-                        <div className="bg-slate-900 border border-slate-700 rounded-md p-4 mb-4">
-                          <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-                            📊 График зависимости объема от уровня
-                          </h4>
-                          <ResponsiveContainer width="100%" height={400}>
-                            <RechartsLineChart
-                              data={analysisResult.comparison}
-                              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                            >
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                              <XAxis
-                                dataKey="level_mm"
-                                stroke="#94a3b8"
-                                label={{ value: 'Уровень (мм)', position: 'insideBottom', offset: -5, fill: '#94a3b8' }}
-                              />
-                              <YAxis
-                                stroke="#94a3b8"
-                                label={{ value: 'Объем (л)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
-                              />
-                              <Tooltip
-                                contentStyle={{
-                                  backgroundColor: '#1e293b',
-                                  border: '1px solid #475569',
-                                  borderRadius: '6px',
-                                  color: '#e2e8f0'
-                                }}
-                                formatter={(value: number, name: string) => [
-                                  `${value.toFixed(2)} л`, 
-                                  name === 'calculated_volume' ? 'Геометрия (эталон)' : 'Датчик (текущий)'
-                                ]}
-                                labelFormatter={(label) => `Уровень: ${label} мм`}
-                              />
-                              <Legend
-                                wrapperStyle={{ color: '#94a3b8' }}
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="calculated_volume"
-                                stroke="#3b82f6"
-                                strokeWidth={2}
-                                dot={{ fill: '#3b82f6', r: 2 }}
-                                activeDot={{ r: 5 }}
-                                name="Геометрия (эталон)"
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="current_volume"
-                                stroke="#f97316"
-                                strokeWidth={2}
-                                dot={{ fill: '#f97316', r: 2 }}
-                                activeDot={{ r: 5 }}
-                                name="Датчик (текущий)"
-                              />
-                            </RechartsLineChart>
-                          </ResponsiveContainer>
-                          <p className="text-xs text-slate-400 mt-2 text-center">
-                            Синяя линия — геометрический расчет (эталон), оранжевая — показания датчика уровня. 
-                            ⚠️ Если оранжевая линия "застревает" на одном уровне — в истории резервуара нет данных для более высоких уровней.
-                          </p>
-                        </div>
+                          <div className="bg-slate-900 border border-slate-700 rounded-md p-4 mb-4">
+                            <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                              📊 График зависимости объема от уровня
+                            </h4>
+                            <ResponsiveContainer width="100%" height={400}>
+                              <RechartsLineChart
+                                data={analysisResult.comparison}
+                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                              >
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                <XAxis
+                                  dataKey="level_mm"
+                                  type="number"
+                                  domain={['dataMin', 'dataMax']}
+                                  stroke="#94a3b8"
+                                  label={{ value: 'Уровень (мм)', position: 'insideBottom', offset: -5, fill: '#94a3b8' }}
+                                />
+                                <YAxis
+                                  stroke="#94a3b8"
+                                  label={{ value: 'Объем (л)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                                />
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: '#1e293b',
+                                    border: '1px solid #475569',
+                                    borderRadius: '6px',
+                                    color: '#e2e8f0'
+                                  }}
+                                  formatter={(value: number, name: string) => [
+                                    `${value.toFixed(0)} л`,
+                                    name === 'calculated_volume' ? '🟢 Геометрия (эталон)' : '🟠 Датчик (текущий)'
+                                  ]}
+                                  labelFormatter={(label) => `Уровень: ${label} мм`}
+                                />
+                                <Legend
+                                  wrapperStyle={{ color: '#94a3b8' }}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="calculated_volume"
+                                  stroke="#10b981"
+                                  strokeWidth={2}
+                                  dot={{ fill: '#10b981', r: 2 }}
+                                  activeDot={{ r: 5 }}
+                                  name="Геометрия (эталон)"
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="current_volume"
+                                  stroke="#f97316"
+                                  strokeWidth={2}
+                                  dot={{ fill: '#f97316', r: 2 }}
+                                  activeDot={{ r: 5 }}
+                                  name="Датчик (текущий)"
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="trk_volume"
+                                  stroke="#3b82f6"
+                                  strokeWidth={2}
+                                  dot={{ fill: '#3b82f6', r: 2 }}
+                                  activeDot={{ r: 5 }}
+                                  name="Калибровка ТРК"
+                                />
+                                {/* Опорная точка - место где синяя и оранжевая линии совпадают */}
+                                {analysisResult?.diagnostics?.referencePoint &&
+                                  !isNaN(analysisResult.diagnostics.referencePoint.level_mm) &&
+                                  !isNaN(analysisResult.diagnostics.referencePoint.volume_liters) && (
+                                    <>
+                                      <ReferenceLine
+                                        x={analysisResult.diagnostics.referencePoint.level_mm}
+                                        stroke="#ef4444"
+                                        strokeDasharray="5 5"
+                                        strokeWidth={2}
+                                        ifOverflow="visible"
+                                        label={{
+                                          value: `⭐ Опорная ${analysisResult.diagnostics.referencePoint.level_mm.toFixed(0)}мм`,
+                                          position: 'insideTopRight',
+                                          fill: '#ef4444',
+                                          fontSize: 11
+                                        }}
+                                      />
+                                      <ReferenceDot
+                                        x={analysisResult.diagnostics.referencePoint.level_mm}
+                                        y={analysisResult.diagnostics.referencePoint.volume_liters}
+                                        r={10}
+                                        fill="#ef4444"
+                                        stroke="#ffffff"
+                                        strokeWidth={3}
+                                        ifOverflow="visible"
+                                      />
+                                    </>
+                                  )}
+                              </RechartsLineChart>
+                            </ResponsiveContainer>
+                            <p className="text-xs text-slate-400 mt-2 text-center">
+                              🟢 <strong>Зеленая</strong> — геометрия (эталон),
+                              🟠 <strong>Оранжевая</strong> — датчик (текущая калибровка),
+                              🔵 <strong>Синяя</strong> — калибровка ТРК,
+                              🔴 <strong>Красная точка</strong> — опорная точка (здесь синяя и оранжевая совпадают).
+                            </p>
+                          </div>
                         );
                       })()}
 
-                      {/* График прироста объема на каждый шаг */}
-                      {analysisResult.comparison && analysisResult.comparison.length > 1 && (() => {
-                        // Вычисляем прирост объема между соседними точками (геометрия, датчик И ТРК)
-                        const increments = [];
-                        
-                        // Создаем Map из данных валидации ТРК для быстрого поиска
-                        const trkDataMap = new Map<number, number>();
-                        if (analysisResult.trk_validation) {
-                          analysisResult.trk_validation.forEach(point => {
-                            // Используем средний уровень интервала
-                            const avgLevel = Math.round((point.level_before_mm + point.level_after_mm) / 2);
-                            // ИСПРАВЛЕНО: используем изменение объема по датчику (прирост), а не отпуск ТРК
-                            const increment = point.volume_by_sensor; // Изменение объема по датчику в интервале с отпусками
-                            
-                            // Если на этом уровне уже есть данные - усредняем
-                            if (trkDataMap.has(avgLevel)) {
-                              const existing = trkDataMap.get(avgLevel)!;
-                              trkDataMap.set(avgLevel, (existing + increment) / 2);
-                            } else {
-                              trkDataMap.set(avgLevel, increment);
-                            }
-                          });
-                        }
-                        
-                        for (let i = 1; i < analysisResult.comparison.length; i++) {
-                          const prev = analysisResult.comparison[i - 1];
-                          const curr = analysisResult.comparison[i];
-                          const levelStep = curr.level_mm - prev.level_mm;
-                          
-                          // Прирост по геометрической модели (зеленая линия)
-                          const volumeIncrementGeometric = curr.calculated_volume - prev.calculated_volume;
-                          
-                          // Прирост по датчику (оранжевая линия) - только если есть данные
-                          const volumeIncrementSensor = (curr.current_volume > 0 && prev.current_volume > 0)
-                            ? curr.current_volume - prev.current_volume
-                            : null;
-                          
-                          // Прирост по ТРК (синяя линия) - ищем ближайшие данные
-                          let volumeIncrementTRK: number | null = null;
-                          if (trkDataMap.size > 0) {
-                            const avgLevel = Math.round((curr.level_mm + prev.level_mm) / 2);
-                            
-                            // Прямой lookup
-                            if (trkDataMap.has(avgLevel)) {
-                              volumeIncrementTRK = trkDataMap.get(avgLevel)!;
-                            } else {
-                              // Поиск ближайшего уровня (в пределах ±100 мм)
-                              const sortedLevels = Array.from(trkDataMap.keys()).sort((a, b) => a - b);
-                              const closest = sortedLevels.find(level => 
-                                Math.abs(level - avgLevel) <= 100
-                              );
-                              if (closest !== undefined) {
-                                volumeIncrementTRK = trkDataMap.get(closest)!;
-                              }
-                            }
-                          }
-                          
-                          increments.push({
-                            level_mm: curr.level_mm,
-                            increment_geometric: volumeIncrementGeometric,
-                            increment_sensor: volumeIncrementSensor,
-                            increment_trk: volumeIncrementTRK,
-                            increment_per_mm: volumeIncrementGeometric / levelStep
-                          });
-                        }
-                        
-                        const maxIncrementGeometric = Math.max(...increments.map(i => i.increment_geometric));
-                        const minIncrementGeometric = Math.min(...increments.map(i => i.increment_geometric));
-                        
-                        // Фильтруем для статистики по датчику (исключаем null)
-                        const sensorIncrements = increments.filter(i => i.increment_sensor !== null).map(i => i.increment_sensor!);
-                        const maxIncrementSensor = sensorIncrements.length > 0 ? Math.max(...sensorIncrements) : 0;
-                        const minIncrementSensor = sensorIncrements.length > 0 ? Math.min(...sensorIncrements) : 0;
-                        
-                        // Фильтруем для статистики по ТРК (исключаем null)
-                        const trkIncrements = increments.filter(i => i.increment_trk !== null).map(i => i.increment_trk!);
-                        const maxIncrementTRK = trkIncrements.length > 0 ? Math.max(...trkIncrements) : 0;
-                        const minIncrementTRK = trkIncrements.length > 0 ? Math.min(...trkIncrements) : 0;
-                        
+                      {/* График отклонений Датчик vs ТРК */}
+                      {analysisResult.comparison && analysisResult.comparison.length > 0 && (() => {
+                        // Подготовка данных для графика отклонений
+                        const deviationData = analysisResult.comparison
+                          .filter((p: CalibrationComparison) => p.current_volume > 0 && p.trk_volume > 0)
+                          .map((p: CalibrationComparison) => ({
+                            level_mm: p.level_mm,
+                            diff_liters: Math.round(p.trk_volume - p.current_volume),
+                            diff_percent: ((p.trk_volume - p.current_volume) / p.current_volume * 100)
+                          }));
+
+                        if (deviationData.length === 0) return null;
+
+                        const maxAbsDiff = Math.max(...deviationData.map((d: { diff_liters: number }) => Math.abs(d.diff_liters)));
+                        const minDiff = Math.min(...deviationData.map((d: { diff_liters: number }) => d.diff_liters));
+                        const maxDiff = Math.max(...deviationData.map((d: { diff_liters: number }) => d.diff_liters));
+
                         return (
-                        <div className="bg-slate-900 border border-slate-700 rounded-md p-4 mb-4">
-                          <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-                            📈 График прироста объема (НЕЛИНЕЙНОСТЬ)
-                          </h4>
-                          <ResponsiveContainer width="100%" height={300}>
-                            <RechartsLineChart
-                              data={increments}
-                              margin={{ top: 5, right: 30, left: 70, bottom: 5 }}
-                              layout="vertical"
-                            >
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                              <XAxis
-                                type="number"
-                                stroke="#94a3b8"
-                                label={{ value: 'Прирост объема (л)', position: 'insideBottom', offset: -5, fill: '#94a3b8' }}
-                              />
-                              <YAxis
-                                type="number"
-                                dataKey="level_mm"
-                                stroke="#94a3b8"
-                                label={{ value: 'Уровень (мм)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
-                                reversed={true}
-                              />
-                              <Tooltip
-                                contentStyle={{
-                                  backgroundColor: '#1e293b',
-                                  border: '1px solid #475569',
-                                  borderRadius: '6px',
-                                  color: '#e2e8f0'
-                                }}
-                                formatter={(value: number | null, name: string) => {
-                                  if (value === null) return ['Нет данных', name];
-                                  const labels: Record<string, string> = {
-                                    'increment_geometric': 'Геометрия',
-                                    'increment_sensor': 'Датчик',
-                                    'increment_trk': 'ТРК'
-                                  };
-                                  return [`${value.toFixed(2)} л`, labels[name] || name];
-                                }}
-                                labelFormatter={(label) => `Уровень: ${label} мм`}
-                              />
-                              <Legend wrapperStyle={{ color: '#94a3b8' }} />
-                              <Line
-                                type="monotone"
-                                dataKey="increment_geometric"
-                                stroke="#10b981"
-                                strokeWidth={2}
-                                dot={{ fill: '#10b981', r: 2 }}
-                                activeDot={{ r: 5 }}
-                                name="Геометрия (эталон)"
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="increment_sensor"
-                                stroke="#f97316"
-                                strokeWidth={2}
-                                dot={{ fill: '#f97316', r: 2 }}
-                                activeDot={{ r: 5 }}
-                                name="Датчик (текущий)"
-                                connectNulls={false}
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="increment_trk"
-                                stroke="#3b82f6"
-                                strokeWidth={2}
-                                dot={{ fill: '#3b82f6', r: 3 }}
-                                activeDot={{ r: 6 }}
-                                name="ТРК (реальные отпуски)"
-                                connectNulls={false}
-                              />
-                            </RechartsLineChart>
-                          </ResponsiveContainer>
-                          <p className="text-xs text-slate-400 mt-2 text-center">
-                            🟢 <strong>Зеленая</strong> — теоретический прирост (геометрия). 
-                            🟠 <strong>Оранжевая</strong> — прирост по датчику (из API volume). 
-                            🔵 <strong>Синяя</strong> — прирост по ТРК (реальные отпуски, метрологически поверенные). 
-                            Максимум в середине: 
-                            геом {maxIncrementGeometric.toFixed(1)}л, 
-                            датчик {maxIncrementSensor > 0 ? maxIncrementSensor.toFixed(1) : 'N/A'}л,
-                            ТРК {maxIncrementTRK > 0 ? maxIncrementTRK.toFixed(1) : 'N/A'}л
-                            — характерная особенность горизонтального цилиндра!
-                          </p>
-                          
-                          {/* Информация о данных ТРК */}
-                          {trkIncrements.length === 0 && (
-                            <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-600/50 rounded-md">
-                              <p className="text-xs text-yellow-300 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" />
-                                <strong>Данные ТРК (синяя линия) недоступны:</strong>
-                              </p>
-                              <ul className="text-xs text-yellow-200 mt-2 ml-6 list-disc space-y-1">
-                                <li>Найдено точек валидации ТРК: {analysisResult.trk_validation?.length || 0}</li>
-                                <li>Возможные причины: нет транзакций в периоде, интервалы между замерами {'>'} 30 мин, уровень не уменьшился</li>
-                                <li>Попробуйте: выбрать период с активными отпусками, уменьшить интервал опроса датчика</li>
-                              </ul>
+                          <div className="bg-slate-900 border border-slate-700 rounded-md p-4 mb-4">
+                            <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                              📉 Отклонение: ТРК минус Датчик (литры)
+                            </h4>
+                            <div className="grid grid-cols-3 gap-3 mb-3">
+                              <div className="bg-slate-800 rounded p-2 text-center">
+                                <p className="text-xs text-slate-400">Мин. отклонение</p>
+                                <p className={`text-lg font-bold ${minDiff < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                  {minDiff > 0 ? '+' : ''}{minDiff} л
+                                </p>
+                              </div>
+                              <div className="bg-slate-800 rounded p-2 text-center">
+                                <p className="text-xs text-slate-400">Макс. отклонение</p>
+                                <p className={`text-lg font-bold ${maxDiff < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                  {maxDiff > 0 ? '+' : ''}{maxDiff} л
+                                </p>
+                              </div>
+                              <div className="bg-slate-800 rounded p-2 text-center">
+                                <p className="text-xs text-slate-400">Макс. |отклонение|</p>
+                                <p className="text-lg font-bold text-yellow-400">{maxAbsDiff} л</p>
+                              </div>
                             </div>
-                          )}
-                        </div>
+                            <ResponsiveContainer width="100%" height={250}>
+                              <RechartsLineChart
+                                data={deviationData}
+                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                              >
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                <XAxis
+                                  dataKey="level_mm"
+                                  stroke="#94a3b8"
+                                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                                  label={{ value: 'Уровень (мм)', position: 'bottom', fill: '#94a3b8', fontSize: 12, offset: -5 }}
+                                />
+                                <YAxis
+                                  stroke="#94a3b8"
+                                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                                  label={{ value: 'Отклонение (л)', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 12 }}
+                                  domain={[-maxAbsDiff * 1.1, maxAbsDiff * 1.1]}
+                                />
+                                <ReferenceLine y={0} stroke="#64748b" strokeWidth={2} />
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: '#1e293b',
+                                    border: '1px solid #475569',
+                                    borderRadius: '8px',
+                                    color: '#e2e8f0'
+                                  }}
+                                  formatter={(value: number, name: string) => {
+                                    if (name === 'diff_liters') {
+                                      return [`${value > 0 ? '+' : ''}${value} л`, 'ТРК - Датчик'];
+                                    }
+                                    return [value, name];
+                                  }}
+                                  labelFormatter={(label) => `Уровень: ${label} мм`}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="diff_liters"
+                                  stroke="#f59e0b"
+                                  strokeWidth={2}
+                                  dot={{ fill: '#f59e0b', r: 2 }}
+                                  activeDot={{ r: 5 }}
+                                  name="diff_liters"
+                                />
+                              </RechartsLineChart>
+                            </ResponsiveContainer>
+                            <p className="text-xs text-slate-400 mt-2 text-center">
+                              📊 Если линия <strong>ниже нуля</strong> — датчик завышает объём относительно ТРК.
+                              Если <strong>выше нуля</strong> — датчик занижает.
+                            </p>
+                          </div>
                         );
                       })()}
+
 
                       {/* График валидации калибровки через ТРК */}
                       {analysisResult.trk_validation && analysisResult.trk_validation.length > 0 && (() => {
                         const trkData = analysisResult.trk_validation;
-                        
+
                         // Группируем по пистолетам для статистики
                         const nozzleGroups = trkData.reduce((acc, point) => {
                           if (!acc[point.nozzle]) {
@@ -2674,126 +2669,126 @@ export function TankCalibrationSettingsComponent({
                           acc[point.nozzle].push(point);
                           return acc;
                         }, {} as Record<number, TRKValidationPoint[]>);
-                        
+
                         // Статистика по всем точкам
                         const avgDeviation = trkData.reduce((sum, p) => sum + Math.abs(p.deviation), 0) / trkData.length;
                         const maxDeviation = Math.max(...trkData.map(p => Math.abs(p.deviation)));
                         const avgDeviationPercent = trkData.reduce((sum, p) => sum + Math.abs(p.deviation_percent), 0) / trkData.length;
-                        
+
                         // Данные для графика: сортируем по времени
-                        const chartData = [...trkData].sort((a, b) => 
+                        const chartData = [...trkData].sort((a, b) =>
                           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
                         );
-                        
+
                         return (
-                        <div className="bg-slate-900 border border-slate-700 rounded-md p-4 mb-4">
-                          <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-                            🎯 Валидация калибровки через ТРК (независимый эталон)
-                          </h4>
-                          
-                          {/* Статистика по пистолетам */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                            <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
-                              <p className="text-xs text-slate-400 mb-1">Всего проверок</p>
-                              <p className="text-lg font-semibold text-white">{trkData.length}</p>
+                          <div className="bg-slate-900 border border-slate-700 rounded-md p-4 mb-4">
+                            <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                              🎯 Валидация калибровки через ТРК (независимый эталон)
+                            </h4>
+
+                            {/* Статистика по пистолетам */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                              <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
+                                <p className="text-xs text-slate-400 mb-1">Всего проверок</p>
+                                <p className="text-lg font-semibold text-white">{trkData.length}</p>
+                              </div>
+                              <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
+                                <p className="text-xs text-slate-400 mb-1">Средн. отклонение</p>
+                                <p className="text-lg font-semibold text-white">{avgDeviation.toFixed(2)} л</p>
+                                <p className="text-xs text-slate-400">({avgDeviationPercent.toFixed(2)}%)</p>
+                              </div>
+                              <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
+                                <p className="text-xs text-slate-400 mb-1">Макс. отклонение</p>
+                                <p className="text-lg font-semibold text-white">{maxDeviation.toFixed(2)} л</p>
+                              </div>
+                              <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
+                                <p className="text-xs text-slate-400 mb-1">Пистолетов</p>
+                                <p className="text-lg font-semibold text-white">{Object.keys(nozzleGroups).filter(n => n !== '-1').length}</p>
+                                <p className="text-xs text-slate-400">
+                                  {Object.keys(nozzleGroups)
+                                    .filter(n => n !== '-1')
+                                    .map(n => `№${n}`)
+                                    .join(', ')}
+                                  {nozzleGroups[-1] && nozzleGroups[-1].length > 0 &&
+                                    ` (+${nozzleGroups[-1].length} групповых)`}
+                                </p>
+                              </div>
                             </div>
-                            <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
-                              <p className="text-xs text-slate-400 mb-1">Средн. отклонение</p>
-                              <p className="text-lg font-semibold text-white">{avgDeviation.toFixed(2)} л</p>
-                              <p className="text-xs text-slate-400">({avgDeviationPercent.toFixed(2)}%)</p>
-                            </div>
-                            <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
-                              <p className="text-xs text-slate-400 mb-1">Макс. отклонение</p>
-                              <p className="text-lg font-semibold text-white">{maxDeviation.toFixed(2)} л</p>
-                            </div>
-                            <div className="bg-slate-800 border border-slate-600 rounded-md p-3">
-                              <p className="text-xs text-slate-400 mb-1">Пистолетов</p>
-                              <p className="text-lg font-semibold text-white">{Object.keys(nozzleGroups).filter(n => n !== '-1').length}</p>
-                              <p className="text-xs text-slate-400">
-                                {Object.keys(nozzleGroups)
-                                  .filter(n => n !== '-1')
-                                  .map(n => `№${n}`)
-                                  .join(', ')}
-                                {nozzleGroups[-1] && nozzleGroups[-1].length > 0 && 
-                                  ` (+${nozzleGroups[-1].length} групповых)`}
-                              </p>
-                            </div>
+
+                            {/* График отклонений по времени */}
+                            <ResponsiveContainer width="100%" height={300}>
+                              <RechartsLineChart
+                                data={chartData.map((point, idx) => ({
+                                  index: idx + 1,
+                                  timestamp: new Date(point.timestamp).toLocaleTimeString('ru-RU', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  }),
+                                  deviation_percent: point.deviation_percent,
+                                  volume_by_trk: point.volume_by_trk,
+                                  volume_by_sensor: point.volume_by_sensor,
+                                  nozzle: point.nozzle
+                                }))}
+                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                              >
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                <XAxis
+                                  dataKey="index"
+                                  stroke="#94a3b8"
+                                  label={{ value: 'Номер отпуска', position: 'insideBottom', offset: -5, fill: '#94a3b8' }}
+                                />
+                                <YAxis
+                                  stroke="#94a3b8"
+                                  label={{ value: 'Отклонение (%)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                                />
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: '#1e293b',
+                                    border: '1px solid #475569',
+                                    borderRadius: '6px',
+                                    color: '#e2e8f0'
+                                  }}
+                                  formatter={(value: number, name: string) => {
+                                    if (name === 'deviation_percent') return [`${value.toFixed(2)}%`, 'Отклонение'];
+                                    if (name === 'volume_by_trk') return [`${value.toFixed(2)} л`, 'ТРК'];
+                                    if (name === 'volume_by_sensor') return [`${value.toFixed(2)} л`, 'Датчик'];
+                                    return [value, name];
+                                  }}
+                                  labelFormatter={(label) => `Отпуск №${label}`}
+                                />
+                                <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                                <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
+                                <ReferenceLine y={2} stroke="#f59e0b" strokeDasharray="2 2" label={{ value: '+2%', fill: '#f59e0b' }} />
+                                <ReferenceLine y={-2} stroke="#f59e0b" strokeDasharray="2 2" label={{ value: '-2%', fill: '#f59e0b' }} />
+                                <Line
+                                  type="monotone"
+                                  dataKey="deviation_percent"
+                                  stroke="#8b5cf6"
+                                  strokeWidth={2}
+                                  dot={{ fill: '#8b5cf6', r: 3 }}
+                                  activeDot={{ r: 6 }}
+                                  name="Отклонение датчика от ТРК"
+                                />
+                              </RechartsLineChart>
+                            </ResponsiveContainer>
+
+                            <p className="text-xs text-slate-400 mt-2 text-center">
+                              🎯 Сравнение показаний датчика уровня (через калибровочную таблицу) с фактическими отпусками через ТРК.
+                              ТРК — метрологически поверенные приборы (±0.25% ГОСТ), служат независимым эталоном для проверки калибровки.
+                            </p>
+
+                            {avgDeviationPercent > 2 && (
+                              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-3 mt-3">
+                                <p className="text-sm text-yellow-300 flex items-center gap-2">
+                                  <AlertTriangle className="w-4 h-4" />
+                                  <strong>Внимание:</strong> Среднее отклонение {avgDeviationPercent.toFixed(2)}% превышает допустимые 2%.
+                                  Рекомендуется повторная калибровка резервуара.
+                                </p>
+                              </div>
+                            )}
                           </div>
-                          
-                          {/* График отклонений по времени */}
-                          <ResponsiveContainer width="100%" height={300}>
-                            <RechartsLineChart
-                              data={chartData.map((point, idx) => ({
-                                index: idx + 1,
-                                timestamp: new Date(point.timestamp).toLocaleTimeString('ru-RU', { 
-                                  month: 'short', 
-                                  day: 'numeric', 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                }),
-                                deviation_percent: point.deviation_percent,
-                                volume_by_trk: point.volume_by_trk,
-                                volume_by_sensor: point.volume_by_sensor,
-                                nozzle: point.nozzle
-                              }))}
-                              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                            >
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                              <XAxis
-                                dataKey="index"
-                                stroke="#94a3b8"
-                                label={{ value: 'Номер отпуска', position: 'insideBottom', offset: -5, fill: '#94a3b8' }}
-                              />
-                              <YAxis
-                                stroke="#94a3b8"
-                                label={{ value: 'Отклонение (%)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
-                              />
-                              <Tooltip
-                                contentStyle={{
-                                  backgroundColor: '#1e293b',
-                                  border: '1px solid #475569',
-                                  borderRadius: '6px',
-                                  color: '#e2e8f0'
-                                }}
-                                formatter={(value: number, name: string) => {
-                                  if (name === 'deviation_percent') return [`${value.toFixed(2)}%`, 'Отклонение'];
-                                  if (name === 'volume_by_trk') return [`${value.toFixed(2)} л`, 'ТРК'];
-                                  if (name === 'volume_by_sensor') return [`${value.toFixed(2)} л`, 'Датчик'];
-                                  return [value, name];
-                                }}
-                                labelFormatter={(label) => `Отпуск №${label}`}
-                              />
-                              <Legend wrapperStyle={{ color: '#94a3b8' }} />
-                              <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
-                              <ReferenceLine y={2} stroke="#f59e0b" strokeDasharray="2 2" label={{ value: '+2%', fill: '#f59e0b' }} />
-                              <ReferenceLine y={-2} stroke="#f59e0b" strokeDasharray="2 2" label={{ value: '-2%', fill: '#f59e0b' }} />
-                              <Line
-                                type="monotone"
-                                dataKey="deviation_percent"
-                                stroke="#8b5cf6"
-                                strokeWidth={2}
-                                dot={{ fill: '#8b5cf6', r: 3 }}
-                                activeDot={{ r: 6 }}
-                                name="Отклонение датчика от ТРК"
-                              />
-                            </RechartsLineChart>
-                          </ResponsiveContainer>
-                          
-                          <p className="text-xs text-slate-400 mt-2 text-center">
-                            🎯 Сравнение показаний датчика уровня (через калибровочную таблицу) с фактическими отпусками через ТРК. 
-                            ТРК — метрологически поверенные приборы (±0.25% ГОСТ), служат независимым эталоном для проверки калибровки.
-                          </p>
-                          
-                          {avgDeviationPercent > 2 && (
-                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-3 mt-3">
-                              <p className="text-sm text-yellow-300 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" />
-                                <strong>Внимание:</strong> Среднее отклонение {avgDeviationPercent.toFixed(2)}% превышает допустимые 2%. 
-                                Рекомендуется повторная калибровка резервуара.
-                              </p>
-                            </div>
-                          )}
-                        </div>
                         );
                       })()}
 
@@ -2813,33 +2808,30 @@ export function TankCalibrationSettingsComponent({
                               </thead>
                               <tbody className="bg-slate-900">
                                 {analysisResult.comparison.map((row, idx) => (
-                                  <tr 
+                                  <tr
                                     key={idx}
-                                    className={`border-t border-slate-800 ${
-                                      Math.abs(row.difference_percent) > 1 ? 'bg-red-500/10' :
-                                      Math.abs(row.difference_percent) > 0.5 ? 'bg-yellow-500/10' :
-                                      ''
-                                    }`}
+                                    className={`border-t border-slate-800 ${Math.abs(row.difference_percent) > 1 ? 'bg-red-500/10' :
+                                        Math.abs(row.difference_percent) > 0.5 ? 'bg-yellow-500/10' :
+                                          ''
+                                      }`}
                                   >
                                     <td className="px-3 py-2 text-slate-200">{row.level_mm}</td>
                                     <td className="px-3 py-2 text-right text-slate-200">
-                                      {row.current_volume.toFixed(2)}
+                                      {row.current_volume?.toFixed(2) ?? '—'}
                                     </td>
                                     <td className="px-3 py-2 text-right text-slate-200">
                                       {row.calculated_volume.toFixed(2)}
                                     </td>
-                                    <td className={`px-3 py-2 text-right font-medium ${
-                                      Math.abs(row.difference) > 50 ? 'text-red-400' :
-                                      Math.abs(row.difference) > 20 ? 'text-yellow-400' :
-                                      'text-green-400'
-                                    }`}>
+                                    <td className={`px-3 py-2 text-right font-medium ${Math.abs(row.difference) > 50 ? 'text-red-400' :
+                                        Math.abs(row.difference) > 20 ? 'text-yellow-400' :
+                                          'text-green-400'
+                                      }`}>
                                       {row.difference > 0 ? '+' : ''}{row.difference.toFixed(2)}
                                     </td>
-                                    <td className={`px-3 py-2 text-right font-medium ${
-                                      Math.abs(row.difference_percent) > 1 ? 'text-red-400' :
-                                      Math.abs(row.difference_percent) > 0.5 ? 'text-yellow-400' :
-                                      'text-green-400'
-                                    }`}>
+                                    <td className={`px-3 py-2 text-right font-medium ${Math.abs(row.difference_percent) > 1 ? 'text-red-400' :
+                                        Math.abs(row.difference_percent) > 0.5 ? 'text-yellow-400' :
+                                          'text-green-400'
+                                      }`}>
                                       {row.difference_percent > 0 ? '+' : ''}{row.difference_percent.toFixed(3)}%
                                     </td>
                                   </tr>

@@ -368,176 +368,10 @@ export type TankLocationType = 'underground' | 'surface';
 export type LevelSensorType = 'radar' | 'float' | 'capacitive' | 'hydrostatic' | 'other';
 
 // Метод калибровки
-export type CalibrationMethod = 'linear_regression' | 'least_squares' | 'moving_average';
+export type CalibrationMethod = 'geometric' | 'mathematical' | 'combined';
 
-// Статус калибровки
-export type CalibrationStatus = 'never' | 'in_progress' | 'completed' | 'failed';
-
-// Настройки автокалибровки резервуара
-export interface TankCalibrationSettings {
-  // ID и привязка
-  id?: string;
-  tank_id: string;
-
-  // Характеристики резервуара и оборудования
-  tank_shape_type: TankShapeType;          // Тип резервуара по форме
-  tank_location_type: TankLocationType;    // Расположение резервуара (наземный/подземный)
-  tank_diameter_mm: number;                // Диаметр резервуара (мм) - для цилиндрических
-  tank_length_mm: number;                  // Длина резервуара (мм) - для горизонтальных
-  tank_width_mm: number;                   // Ширина резервуара (мм) - для прямоугольных
-  tank_height_mm: number;                  // Высота резервуара (мм) - для вертикальных и прямоугольных
-  tank_tilt_angle_degrees: number;         // Угол наклона (градусы) - для горизонтальных
-  level_sensor_type: LevelSensorType;      // Тип датчика уровня
-  nozzles_count: number;                   // Количество пистолетов (ТРК)
-  dispensers_error_percent: number;        // Погрешность ТРК (%)
-  dispensers_error_liters: number;         // Погрешность ТРК (л)
-  level_sensor_error_percent: number;      // Погрешность уровнемера (%)
-  level_sensor_error_liters: number;       // Погрешность уровнемера (л)
-  level_sensor_accuracy_mm: number;        // Точность уровнемера (мм)
-  bias_offset_percent: number;             // Смещение в процентах (%)
-
-  // Температурные параметры
-  fuel_type: CalibrationFuelType;          // Тип топлива
-  thermal_expansion_coefficient: number;    // Коэффициент расширения (1/°C)
-  base_temperature: number;                 // Базовая температура (°C)
-  temp_gradient_liters_per_degree: number; // Изменение объема (л/°C)
-  working_temp_min: number;                 // Мин. рабочая температура (°C)
-  working_temp_max: number;                 // Макс. рабочая температура (°C)
-  has_thermal_insulation: boolean;          // Наличие теплоизоляции
-
-  // Испарение и усадка
-  natural_loss_summer_percent: number;     // Естественная убыль летом (%)
-  natural_loss_winter_percent: number;     // Естественная убыль зимой (%)
-  discharge_loss_percent: number;          // Потери при сливе (%)
-
-  // Временные параметры
-  data_polling_interval_minutes: number;   // Интервал получения данных по остаткам (мин)
-  averaging_period_minutes: number;        // Период усреднения (мин)
-  analysis_window_days: number;            // Окно анализа (дней)
-  tank_rest_time_minutes: number;          // Время покоя резервуара (мин)
-
-  // Пороговые значения для калибровки
-  min_change_for_calibration_liters: number;  // Мин. изменение (л)
-  max_acceptable_deviation_percent: number;   // Макс. расхождение (%)
-  max_acceptable_deviation_liters: number;    // Макс. расхождение (л)
-  critical_error_threshold_percent: number;   // Критическая ошибка (%)
-
-  // Пороговые значения уведомлений (% от объёма)
-  fuel_level_warning_percent: number;         // Порог предупреждения о низком уровне
-  fuel_level_critical_percent: number;        // Критический порог низкого уровня
-  fuel_level_max_percent: number;             // Максимальный уровень заполнения (безопасность)
-
-  // Мёртвый остаток и зоны измерений
-  dead_stock_liters: number;                  // Технический (мёртвый) остаток (л)
-  dead_stock_percent: number;                 // Технический остаток (%)
-  sensor_blind_zone_bottom_mm: number;        // Мёртвая зона датчика снизу (мм)
-  sensor_blind_zone_top_mm: number;           // Мёртвая зона датчика сверху (мм)
-
-  // Критический уровень воды
-  critical_water_level_mm: number;            // Критический уровень воды (мм)
-
-  // Геометрия резервуара
-  tank_shape: TankShape;                   // Форма резервуара
-  tank_tilt_degrees: number;               // Наклон резервуара (градусы)
-  has_calibration_table: boolean;          // Есть ли калибровочная таблица
-
-  // Фильтрация аномалий
-  exclude_delivery_periods: boolean;       // Исключать периоды приема
-  exclude_maintenance_periods: boolean;    // Исключать ТО
-  outlier_filter_enabled: boolean;         // Фильтр выбросов
-  outlier_filter_sigma: number;            // Сигма для фильтра выбросов
-
-  // Метод калибровки
-  calibration_method: CalibrationMethod;   // Метод расчета
-  sensor_weight: number;                   // Вес данных уровнемера (0-1)
-  dispenser_weight: number;                // Вес данных ТРК (0-1)
-  auto_calibration_enabled: boolean;       // Автоматическая калибровка
-
-  // Метаданные
-  last_calibration_date?: string;
-  calibration_status: CalibrationStatus;
-  created_at?: string;
-  updated_at?: string;
-}
-
-// Значения по умолчанию для настроек калибровки
-export const DEFAULT_CALIBRATION_SETTINGS: Partial<TankCalibrationSettings> = {
-  // Характеристики резервуара и оборудования (ГОСТ Р 8.579-2001)
-  tank_shape_type: 'horizontal_cylinder', // Горизонтальный цилиндр - самый распространённый на АЗС
-  tank_location_type: 'underground',      // Подземный - наиболее распространённый тип на АЗС
-  tank_diameter_mm: 2500,                 // Типовой диаметр 2.5 м (25 м³ резервуар)
-  tank_length_mm: 6300,                   // Типовая длина 6.3 м (25 м³ резервуар)
-  tank_width_mm: 2000,                    // Для прямоугольных (если применимо)
-  tank_height_mm: 2500,                   // Для вертикальных и прямоугольных (если применимо)
-  tank_tilt_angle_degrees: 0,             // Обычно 0-3° для горизонтальных
-  level_sensor_type: 'radar',             // Радарный - наиболее точный
-  nozzles_count: 2,                      // Обычно 2-4 пистолета на резервуар
-  dispensers_error_percent: 0.25,        // ±0.25% коммерческие АЗС (ГОСТ 9018-89, с 2024г обязательно)
-  dispensers_error_liters: 50,
-  level_sensor_error_percent: 0.1,       // ±0.1% для радарных датчиков (БАРС351И, Rosemount 5300)
-  level_sensor_error_liters: 30,
-  level_sensor_accuracy_mm: 1,           // ±1мм для радарных датчиков (высокоточные модели)
-  bias_offset_percent: 0,
-
-  // Температурные параметры
-  thermal_expansion_coefficient: 0.00083,  // Для бензина АИ-92/95
-  base_temperature: 15,
-  temp_gradient_liters_per_degree: 10,
-  working_temp_min: -40,
-  working_temp_max: 50,
-  has_thermal_insulation: false,           // Обычно подземные резервуары без изоляции
-
-  // Испарение и усадка (Приказ Минэнерго № 281 от 16.04.2018)
-  natural_loss_summer_percent: 0.08,     // Весенне-летний период (%) - Бензин автомобильный
-  natural_loss_winter_percent: 0.03,     // Осенне-зимний период (%) - Бензин автомобильный
-  discharge_loss_percent: 0.15,
-
-  // Временные параметры
-  data_polling_interval_minutes: 10,   // Опрос каждые 10 минут
-  averaging_period_minutes: 60,
-  analysis_window_days: 30,
-  tank_rest_time_minutes: 30,
-
-  // Пороговые значения для калибровки
-  min_change_for_calibration_liters: 100,
-  max_acceptable_deviation_percent: 2,
-  max_acceptable_deviation_liters: 500,
-  critical_error_threshold_percent: 5,
-
-  // Пороговые значения уведомлений (как на странице Оборудование)
-  fuel_level_warning_percent: 20,       // ⚠️ Предупреждение при уровне ≤20%
-  fuel_level_critical_percent: 10,      // 🔴 Критично при уровне ≤10%
-  fuel_level_max_percent: 95,           // 🔼 Максимальный уровень: Бензин/ДТ 95%, Пропан 85%
-
-  // Мёртвый остаток (технический остаток под заливной трубой)
-  dead_stock_liters: 0,                 // Рассчитывается индивидуально
-  dead_stock_percent: 0,                // Обычно 0-6% от объёма
-  sensor_blind_zone_bottom_mm: 100,     // Мёртвая зона снизу (~100-200 мм)
-  sensor_blind_zone_top_mm: 100,        // Мёртвая зона сверху (~100-200 мм)
-
-  // Критический уровень воды (требует откачки)
-  critical_water_level_mm: 50,          // Обычно 30-50 мм
-
-  // Геометрия
-  tank_shape: 'cylindrical',
-  tank_tilt_degrees: 0,
-  has_calibration_table: false,
-
-  // Фильтрация
-  exclude_delivery_periods: true,
-  exclude_maintenance_periods: true,
-  outlier_filter_enabled: true,
-  outlier_filter_sigma: 3,
-
-  // Метод калибровки
-  calibration_method: 'least_squares',
-  sensor_weight: 0.6,
-  dispenser_weight: 0.4,
-  auto_calibration_enabled: false,
-  calibration_step_mm: 100,                // Шаг построения калибровочной таблицы (100 мм = 10 см)
-
-  calibration_status: 'never',
-}
+// Источник опорной точки
+export type ReferenceSource = 'geometry' | 'current_table' | 'manual';
 
 // ============================================================
 // Калибровочные таблицы резервуаров
@@ -624,6 +458,23 @@ export interface CalculateCalibrationTableParams {
   notes?: string;            // Примечания к расчету
 }
 
+// Диагностика процесса калибровки
+export interface CalibrationDiagnostics {
+  segmentsCount: number;
+  totalPointsBeforeFilter: number;
+  totalPointsAfterFilter: number;
+  receiptsProcessed: number;
+  transactionsProcessed: number;
+  temperatureCorrectionApplied: boolean;
+  blindZonesFiltered: number;
+  warnings: string[];
+  // Опорная точка для отображения на графике
+  referencePoint?: {
+    level_mm: number;
+    volume_liters: number;
+  };
+}
+
 // Результат расчета калибровочной таблицы
 export interface CalculateCalibrationTableResult {
   success: boolean;
@@ -631,5 +482,112 @@ export interface CalculateCalibrationTableResult {
   table?: CalibrationTablePoint[];
   statistics?: CalibrationTableStatistics;
   comparison?: CalibrationTableComparison;
+  diagnostics?: CalibrationDiagnostics;
   error?: string;
 }
+
+// Настройки калибровки резервуара
+export interface TankCalibrationSettings {
+  tank_id: string;
+  tank_shape_type: TankShapeType;
+  tank_location_type: TankLocationType;
+  tank_diameter_mm: number;
+  tank_length_mm: number;
+  tank_width_mm: number;
+  tank_height_mm: number;
+  tank_tilt_angle_degrees: number;
+
+  level_sensor_type: LevelSensorType;
+  level_sensor_error_percent: number;
+  level_sensor_accuracy_mm: number;
+
+  fuel_type: CalibrationFuelType;
+  thermal_expansion_coefficient: number;
+  base_temperature: number;
+  working_temp_min: number;
+  working_temp_max: number;
+
+  has_thermal_insulation: boolean;
+
+  natural_loss_summer_percent: number;
+  natural_loss_winter_percent: number;
+  discharge_loss_percent: number;
+
+  data_polling_interval_minutes: number;
+  averaging_period_minutes: number;
+  tank_rest_time_minutes: number;
+
+  fuel_level_warning_percent: number;
+  fuel_level_critical_percent: number;
+  fuel_level_max_percent: number;
+
+  dead_stock_liters: number;
+  dead_stock_percent: number;
+  sensor_blind_zone_bottom_mm: number;
+  sensor_blind_zone_top_mm: number;
+  critical_water_level_mm: number;
+
+  calibration_method: CalibrationMethod;
+  calibration_step_mm: number;
+  bias_offset_percent: number;
+
+  nozzles_count: number;
+
+  calibration_status: 'never' | 'in_progress' | 'completed' | 'failed';
+  last_calibration_date?: string;
+
+  // Источник опорной точки
+  reference_source: ReferenceSource;
+  manual_reference_volume?: number;
+}
+
+export const DEFAULT_CALIBRATION_SETTINGS: Omit<TankCalibrationSettings, 'tank_id'> = {
+  tank_shape_type: 'horizontal_cylinder',
+  tank_location_type: 'underground',
+  tank_diameter_mm: 2800,
+  tank_length_mm: 8500,
+  tank_width_mm: 0,
+  tank_height_mm: 0,
+  tank_tilt_angle_degrees: 0,
+
+  level_sensor_type: 'other',
+  level_sensor_error_percent: 0.5,
+  level_sensor_accuracy_mm: 1,
+
+  fuel_type: 'gasoline',
+  thermal_expansion_coefficient: 0.00083,
+  base_temperature: 15,
+  working_temp_min: -40,
+  working_temp_max: 50,
+
+  has_thermal_insulation: false,
+
+  natural_loss_summer_percent: 0.08,
+  natural_loss_winter_percent: 0.03,
+  discharge_loss_percent: 0.1,
+
+  data_polling_interval_minutes: 10,
+  averaging_period_minutes: 30,
+  tank_rest_time_minutes: 30,
+
+  fuel_level_warning_percent: 15,
+  fuel_level_critical_percent: 5,
+  fuel_level_max_percent: 95,
+
+  dead_stock_liters: 1500,
+  dead_stock_percent: 3,
+  sensor_blind_zone_bottom_mm: 150,
+  sensor_blind_zone_top_mm: 100,
+  critical_water_level_mm: 50,
+
+  calibration_method: 'combined',
+  calibration_step_mm: 10,
+  bias_offset_percent: 0.002,
+
+  nozzles_count: 1,
+
+  calibration_status: 'never',
+
+  reference_source: 'geometry',
+  manual_reference_volume: 0
+};
