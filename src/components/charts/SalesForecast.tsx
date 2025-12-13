@@ -238,15 +238,6 @@ export function SalesForecast({ transactions, className }: SalesForecastProps) {
       recommendations
     };
 
-
-    // Дополнительная отладка данных
-    chartData.forEach((point, index) => {
-      if (point.historical !== undefined) {
-      }
-      if (point.forecast !== undefined) {
-      }
-    });
-
     return { chartData, summary };
   }, [transactions]);
 
