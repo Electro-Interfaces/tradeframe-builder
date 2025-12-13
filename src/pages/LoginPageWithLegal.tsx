@@ -14,6 +14,7 @@ import { legalDocumentsService } from '@/services/legalDocumentsService';
 import { DocumentType } from '@/types/legal';
 import { useMobile } from '@/hooks/useMobile';
 import { VERSION_INFO } from '@/config/version';
+import { getRememberedCredentials } from '@/utils/secureStorage';
 
 interface LegalDocument {
   type: DocumentType;
@@ -343,28 +344,40 @@ const LoginPageWithLegal = () => {
   };
 
 
-  // Автосохранение состояния формы
+  // Автосохранение состояния формы и загрузка сохраненных учетных данных
   useEffect(() => {
-    const savedState = sessionStorage.getItem('loginFormState');
-    if (savedState) {
-      try {
-        const state = JSON.parse(savedState);
-        setEmail(state.email || '');
-        setPassword(state.password || '');
-        setRememberMe(state.rememberMe || false);
-        setAcceptedTerms(state.acceptedTerms !== undefined ? state.acceptedTerms : true);
-        setAcceptedPrivacy(state.acceptedPrivacy !== undefined ? state.acceptedPrivacy : true);
-        setAcceptedPdn(state.acceptedPdn !== undefined ? state.acceptedPdn : true);
-      } catch (error) {
+    const loadSavedData = async () => {
+      // Сначала проверяем sessionStorage (для текущей сессии браузера)
+      const savedState = sessionStorage.getItem('loginFormState');
+      if (savedState) {
+        try {
+          const state = JSON.parse(savedState);
+          setEmail(state.email || '');
+          setPassword(state.password || '');
+          setRememberMe(state.rememberMe || false);
+          setAcceptedTerms(state.acceptedTerms !== undefined ? state.acceptedTerms : true);
+          setAcceptedPrivacy(state.acceptedPrivacy !== undefined ? state.acceptedPrivacy : true);
+          setAcceptedPdn(state.acceptedPdn !== undefined ? state.acceptedPdn : true);
+          return; // Если есть данные в сессии, используем их
+        } catch (error) {
+          // Игнорируем ошибки парсинга
+        }
       }
-    }
 
-    // Загружаем сохраненный email при загрузке страницы
-    const rememberedEmail = localStorage.getItem('rememberedEmail');
-    if (rememberedEmail && !email) {
-      setEmail(rememberedEmail);
-      setRememberMe(true);
-    }
+      // Если нет данных в сессии, проверяем IndexedDB ("Запомнить меня")
+      try {
+        const rememberedCreds = await getRememberedCredentials();
+        if (rememberedCreds) {
+          setEmail(rememberedCreds.email);
+          setPassword(rememberedCreds.password);
+          setRememberMe(true);
+        }
+      } catch (error) {
+        // Игнорируем ошибки IndexedDB
+      }
+    };
+
+    loadSavedData();
   }, []);
 
   // Сохраняем состояние формы при каждом изменении
