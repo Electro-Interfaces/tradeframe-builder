@@ -17,8 +17,14 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUP
  */
 router.all('/*', async (req, res) => {
   try {
-    const endpoint = req.params[0]; // Всё после /api/supabase/
-    const url = `${SUPABASE_URL}/rest/v1/${endpoint}${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;
+    let endpoint = req.params[0]; // Всё после /api/supabase/
+
+    // Если путь не начинается с rest/v1/, добавляем его
+    if (!endpoint.startsWith('rest/v1/')) {
+      endpoint = 'rest/v1/' + endpoint;
+    }
+
+    const url = `${SUPABASE_URL}/${endpoint}${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;
 
     console.log(`[Supabase Proxy] ${req.method} ${url}`);
 
