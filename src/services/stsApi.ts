@@ -1408,6 +1408,8 @@ class STSApiService {
       case 'топливная_карта':
       case 'fleet_card':
         return 'fuel_card';
+      case 'кр':             // Корпоративные карты (id=7) из STS API
+        return 'corporate_card';
       case 'online':
       case 'online_order':
       case 'digital':

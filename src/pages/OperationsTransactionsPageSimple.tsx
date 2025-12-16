@@ -317,7 +317,7 @@ export default function OperationsTransactionsPageSimple() {
   const baseFilteredOperations = useMemo(() => {
     return operations.filter(record => {
       // Исключаем нежелательные способы оплаты
-      const excludedPaymentMethods = ['supplier_delivery', 'corporate_card', 'mobile_payment'];
+      const excludedPaymentMethods = ['supplier_delivery', 'mobile_payment'];
       if (record.paymentMethod && excludedPaymentMethods.includes(record.paymentMethod)) {
         return false;
       }
@@ -379,6 +379,7 @@ export default function OperationsTransactionsPageSimple() {
           'cash': ['cash', 'наличные'],
           'bank_card': ['bank_card', 'карта', 'сбербанк'],
           'fuel_card': ['fuel_card', 'топливная_карта', 'нкт'],
+          'corporate_card': ['corporate_card', 'кр'],
           'online_order': ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата']
         };
 
@@ -1039,6 +1040,7 @@ export default function OperationsTransactionsPageSimple() {
                   { key: 'cash', values: ['cash', 'наличные'], display: 'Наличные' },
                   { key: 'bank_card', values: ['bank_card', 'карта', 'сбербанк'], display: 'Банк. карты' },
                   { key: 'fuel_card', values: ['fuel_card', 'топливная_карта'], display: 'Топл. карты' },
+                  { key: 'corporate_card', values: ['corporate_card', 'кр'], display: 'Корп. карты' },
                   { key: 'online_order', values: ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата'], display: 'Онлайн' }
                 ]
                   .map(({ key, values, display }) => {

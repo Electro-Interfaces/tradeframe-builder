@@ -139,6 +139,20 @@ export class ShiftReportAdapter {
   }
 
   /**
+   * Получает выручку по корпоративным картам (КР)
+   */
+  static getCorporateCardRevenue(paymentTotals: any[]): number {
+    if (!paymentTotals) return 0;
+
+    const corporateCardPayment = paymentTotals.find(p =>
+      p.name?.toLowerCase() === 'кр' ||
+      p.id === 7
+    );
+
+    return corporateCardPayment?.release?.cost || 0;
+  }
+
+  /**
    * Получает выручку прочими способами
    */
   static getOtherRevenue(paymentTotals: any[]): number {
@@ -149,7 +163,8 @@ export class ShiftReportAdapter {
       this.getCashRevenue(paymentTotals) +
       this.getCardRevenue(paymentTotals) +
       this.getSbpRevenue(paymentTotals) +
-      this.getFuelCardRevenue(paymentTotals);
+      this.getFuelCardRevenue(paymentTotals) +
+      this.getCorporateCardRevenue(paymentTotals);
 
     return Math.max(0, totalRevenue - knownRevenue);
   }
@@ -205,6 +220,7 @@ export class ShiftReportAdapter {
       cardRevenue: this.getCardRevenue(apiReport.payment_totals),
       sbpRevenue: this.getSbpRevenue(apiReport.payment_totals),
       fuelCardRevenue: this.getFuelCardRevenue(apiReport.payment_totals),
+      corporateCardRevenue: this.getCorporateCardRevenue(apiReport.payment_totals),
       otherRevenue: this.getOtherRevenue(apiReport.payment_totals),
 
       // Флаги

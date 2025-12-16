@@ -71,6 +71,9 @@ export interface ShiftListItem {
   /** Выручка по топливным картам (рубли) */
   fuelCardRevenue: number;
 
+  /** Выручка по корпоративным картам - КР (рубли) */
+  corporateCardRevenue: number;
+
   /** Прочие способы оплаты (рубли) */
   otherRevenue: number;
 

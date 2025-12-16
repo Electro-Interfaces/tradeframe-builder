@@ -33,6 +33,11 @@ export function normalizePaymentMethod(paymentMethod: string): string {
     return 'Онлайн';
   }
 
+  // Корпоративные карты (КР из STS API)
+  if (['corporate_card', 'кр'].includes(method)) {
+    return 'Корп. карты';
+  }
+
   // Если не найдено соответствие, возвращаем исходное значение
   return paymentMethod;
 }
@@ -55,6 +60,8 @@ export function getShortPaymentName(paymentMethod: string): string {
       return 'Нал.';
     case 'Онлайн':
       return 'Online';
+    case 'Корп. карты':
+      return 'Корп.';
     default:
       return normalized;
   }

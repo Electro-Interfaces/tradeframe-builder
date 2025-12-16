@@ -107,6 +107,7 @@ export class ShiftReportAdapterV2 {
       cardRevenue: paymentSales.find(p => p.paymentTypeName.toLowerCase().includes('карт'))?.cost || 0,
       sbpRevenue: paymentSales.find(p => p.paymentTypeName.toLowerCase().includes('сбп'))?.cost || 0,
       fuelCardRevenue: paymentSales.find(p => p.paymentTypeName.toLowerCase().includes('топливн'))?.cost || 0,
+      corporateCardRevenue: paymentSales.find(p => p.paymentTypeName.toLowerCase() === 'кр')?.cost || 0,
       otherRevenue: 0,
 
       // Флаги

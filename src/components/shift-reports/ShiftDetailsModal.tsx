@@ -657,29 +657,37 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="bg-slate-800">
-                      {details.tanks.map((tank, idx) => (
-                        <tr key={idx} className="border-b border-slate-600">
-                          <td className={`${tdClass} text-white font-medium border-r-2 border-slate-600`}>{tank.fuelName}</td>
-                          <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.tankNumber}</td>
-                          <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.density ? tank.density.toFixed(4) : '—'}</td>
-                          <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeBegin.toFixed(2)}</td>
-                          <td className={`${tdClass} text-right text-white border-r-2 border-slate-600`}>{(tank.volumeBegin * (tank.density || 1)).toFixed(2)}</td>
-                          <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeReceived.toFixed(2)}</td>
-                          <td className={`${tdClass} text-right text-white border-r-2 border-slate-600`}>{(tank.volumeReceived * (tank.density || 1)).toFixed(2)}</td>
-                          <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeDispensed.toFixed(2)}</td>
-                          <td className={`${tdClass} text-right text-white border-r-2 border-slate-600`}>{(tank.volumeDispensed * (tank.density || 1)).toFixed(2)}</td>
-                          <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.density ? tank.density.toFixed(4) : '—'}</td>
-                          <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.temperature?.toFixed(1) || '—'}</td>
-                          <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.level?.toFixed(2) || '—'}</td>
-                          <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeEnd.toFixed(2)}</td>
-                          <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.waterLevel?.toFixed(2) || '—'}</td>
-                          <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.waterVolume?.toFixed(2) || '—'}</td>
-                          <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeEnd.toFixed(2)}</td>
-                          <td className={`${tdClass} text-right text-white border-r-2 border-slate-600`}>{(tank.volumeEnd * (tank.density || 1)).toFixed(2)}</td>
-                          <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeCalculated.toFixed(2)}</td>
-                          <td className={`${tdClass} text-right text-white`}>{(tank.volumeCalculated * (tank.density || 1)).toFixed(2)}</td>
+                      {details.tanks.length === 0 ? (
+                        <tr>
+                          <td colSpan={19} className="px-4 py-8 text-center text-slate-400">
+                            Данные по резервуарам недоступны. На данной торговой точке отсутствуют автоматические уровнемеры или данные не передаются в систему.
+                          </td>
                         </tr>
-                      ))}
+                      ) : (
+                        details.tanks.map((tank, idx) => (
+                          <tr key={idx} className="border-b border-slate-600">
+                            <td className={`${tdClass} text-white font-medium border-r-2 border-slate-600`}>{tank.fuelName}</td>
+                            <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.tankNumber}</td>
+                            <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.density ? tank.density.toFixed(4) : '—'}</td>
+                            <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeBegin.toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-white border-r-2 border-slate-600`}>{(tank.volumeBegin * (tank.density || 1)).toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeReceived.toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-white border-r-2 border-slate-600`}>{(tank.volumeReceived * (tank.density || 1)).toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeDispensed.toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-white border-r-2 border-slate-600`}>{(tank.volumeDispensed * (tank.density || 1)).toFixed(2)}</td>
+                            <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.density ? tank.density.toFixed(4) : '—'}</td>
+                            <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.temperature?.toFixed(1) || '—'}</td>
+                            <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.level?.toFixed(2) || '—'}</td>
+                            <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeEnd.toFixed(2)}</td>
+                            <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.waterLevel?.toFixed(2) || '—'}</td>
+                            <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{tank.waterVolume?.toFixed(2) || '—'}</td>
+                            <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeEnd.toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-white border-r-2 border-slate-600`}>{(tank.volumeEnd * (tank.density || 1)).toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-white font-medium border-r-2 border-slate-600`}>{tank.volumeCalculated.toFixed(2)}</td>
+                            <td className={`${tdClass} text-right text-white`}>{(tank.volumeCalculated * (tank.density || 1)).toFixed(2)}</td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
