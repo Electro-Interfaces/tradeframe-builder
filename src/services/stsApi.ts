@@ -1410,6 +1410,9 @@ class STSApiService {
         return 'fuel_card';
       case 'кр':             // Корпоративные карты (id=7) из STS API
         return 'corporate_card';
+      case 'купон':          // Купон (id=16) из STS API
+      case 'купон на сдачу': // Полное название купона
+        return 'coupon';
       case 'online':
       case 'online_order':
       case 'digital':

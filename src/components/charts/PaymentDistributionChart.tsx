@@ -28,6 +28,7 @@ const PAYMENT_COLORS = {
   online_order: '#8b5cf6',   // purple-500
   fuel_card: '#f59e0b',      // amber-500
   corporate_card: '#ef4444', // red-500 - корпоративные карты
+  coupon: '#ec4899',         // pink-500 - купоны
   default: '#6b7280'         // gray-500
 };
 

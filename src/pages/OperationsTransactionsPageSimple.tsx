@@ -380,7 +380,8 @@ export default function OperationsTransactionsPageSimple() {
           'bank_card': ['bank_card', 'карта', 'сбербанк'],
           'fuel_card': ['fuel_card', 'топливная_карта', 'нкт'],
           'corporate_card': ['corporate_card', 'кр'],
-          'online_order': ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата']
+          'online_order': ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата'],
+          'coupon': ['coupon', 'купон', 'купон на сдачу']
         };
 
         const matchesKpiPayment = Array.from(selectedKpiPayments).some(selectedKey => {
@@ -1035,13 +1036,14 @@ export default function OperationsTransactionsPageSimple() {
                 <h3 className={`text-slate-300 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
                 <span className="text-xs text-slate-500">выберите один или несколько элементов</span>
               </div>
-              <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+              <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-3' : 'grid-cols-3 lg:grid-cols-6'}`}>
                 {[
                   { key: 'cash', values: ['cash', 'наличные'], display: 'Наличные' },
                   { key: 'bank_card', values: ['bank_card', 'карта', 'сбербанк'], display: 'Банк. карты' },
                   { key: 'fuel_card', values: ['fuel_card', 'топливная_карта'], display: 'Топл. карты' },
                   { key: 'corporate_card', values: ['corporate_card', 'кр'], display: 'Корп. карты' },
-                  { key: 'online_order', values: ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата'], display: 'Онлайн' }
+                  { key: 'online_order', values: ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата'], display: 'Онлайн' },
+                  { key: 'coupon', values: ['coupon', 'купон', 'купон на сдачу'], display: 'Купон' }
                 ]
                   .map(({ key, values, display }) => {
                     const allPaymentOps = operations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');

@@ -38,6 +38,11 @@ export function normalizePaymentMethod(paymentMethod: string): string {
     return 'Корп. карты';
   }
 
+  // Купоны (из STS API)
+  if (['coupon', 'купон', 'купон на сдачу'].includes(method)) {
+    return 'Купон';
+  }
+
   // Если не найдено соответствие, возвращаем исходное значение
   return paymentMethod;
 }
@@ -62,6 +67,8 @@ export function getShortPaymentName(paymentMethod: string): string {
       return 'Online';
     case 'Корп. карты':
       return 'Корп.';
+    case 'Купон':
+      return 'Куп.';
     default:
       return normalized;
   }

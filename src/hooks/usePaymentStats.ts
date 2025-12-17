@@ -22,6 +22,7 @@ const getPaymentTypeDisplayName = (paymentType: string | undefined): string => {
     'fuel_card': 'Топливная карта',
     'fleet_card': 'Корпоративная карта',
     'corporate_card': 'Корп. карты',
+    'coupon': 'Купон',
     'online_order': 'Онлайн заказ',
     'mobile': 'Мобильная оплата',
     'qr': 'QR-код',
