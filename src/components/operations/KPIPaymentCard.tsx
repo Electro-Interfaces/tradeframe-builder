@@ -29,20 +29,18 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
         }`}
         onClick={handleClick}
       >
-        <CardContent className="p-4">
-          <div className="relative">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-slate-100 font-semibold text-sm truncate mb-1">{display}</p>
-                <div className="flex items-center gap-1">
-                  <Activity className="w-4 h-4 text-slate-400" />
-                  <span className="text-slate-200 text-sm font-medium">{transactionCount}</span>
-                </div>
+        <CardContent className="p-3">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <p className="text-slate-100 font-semibold text-xs">{display}</p>
+              <div className="flex items-center gap-1">
+                <Activity className="w-3 h-3 text-slate-400" />
+                <span className="text-slate-200 text-xs font-medium">{transactionCount}</span>
               </div>
-              <div className="text-right flex-shrink-0 ml-3">
-                <div className="text-slate-200 text-sm font-semibold">{volume.toFixed(0)} л</div>
-                <div className="text-slate-200 text-sm font-semibold">{cost.toLocaleString()} ₽</div>
-              </div>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-300">{volume.toFixed(0)} л</span>
+              <span className="text-slate-200 font-semibold">{cost.toLocaleString('ru-RU')} ₽</span>
             </div>
           </div>
         </CardContent>
