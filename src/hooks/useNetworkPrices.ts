@@ -482,7 +482,7 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
       }
 
       // Фильтруем станции, где удалось получить цены
-      const validPricesData = pricesData.filter(pd => pd.prices.length > 0);
+      const validPricesData = pricesData.filter(pd => pd.prices.length > 0).sort((a, b) => { const numA = parseInt(a.stationNumber || "999999", 10); const numB = parseInt(b.stationNumber || "999999", 10); return numA - numB; });
 
       setNetworkPrices(validPricesData);
 
