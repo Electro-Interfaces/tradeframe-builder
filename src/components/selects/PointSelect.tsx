@@ -71,7 +71,7 @@ export function PointSelect({ value, onValueChange, className, disabled, network
           <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-2" align="start">
+      <PopoverContent className="w-auto min-w-56 max-w-md p-2" align="start">
         <ul className="space-y-1">
           {/* Опция "Все" */}
           <li
@@ -98,15 +98,13 @@ export function PointSelect({ value, onValueChange, className, disabled, network
                 )} 
                 aria-hidden 
               />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate">{point.name}</span>
-                  {point.external_id && (
-                    <span className="text-xs text-blue-400 font-mono shrink-0">({point.external_id})</span>
-                  )}
-                </div>
-                {point.description && (
-                  <div className="text-xs text-slate-400 truncate">{point.description}</div>
+              <div className="min-w-0 flex-1 flex items-center gap-2">
+                <span>
+                  {point.name}
+                  {point.description && <span className="text-slate-400"> - {point.description}</span>}
+                </span>
+                {point.external_id && (
+                  <span className="text-xs text-blue-400 font-mono shrink-0">({point.external_id})</span>
                 )}
               </div>
             </li>
