@@ -13,6 +13,7 @@ export interface NetworkPriceData {
   stationId: string;
   stationName: string;
   stationNumber: string;
+  stationDescription?: string;
   prices: Price[];
 }
 
@@ -268,6 +269,7 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
             stationId: tp.id,
             stationName: tp.name,
             stationNumber: tp.external_id || '',
+            stationDescription: tp.description || '',
             prices
           };
         } catch (err) {
@@ -276,6 +278,7 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
             stationId: tp.id,
             stationName: tp.name,
             stationNumber: tp.external_id || '',
+            stationDescription: tp.description || '',
             prices: []
           };
         }

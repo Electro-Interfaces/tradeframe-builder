@@ -98,10 +98,15 @@ export function PointSelect({ value, onValueChange, className, disabled, network
                 )} 
                 aria-hidden 
               />
-              <div className="min-w-0 flex-1 flex items-center gap-2">
-                <span className="truncate">{point.name}</span>
-                {point.external_id && (
-                  <span className="text-xs text-blue-400 font-mono shrink-0">({point.external_id})</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate">{point.name}</span>
+                  {point.external_id && (
+                    <span className="text-xs text-blue-400 font-mono shrink-0">({point.external_id})</span>
+                  )}
+                </div>
+                {point.description && (
+                  <div className="text-xs text-slate-400 truncate">{point.description}</div>
                 )}
               </div>
             </li>

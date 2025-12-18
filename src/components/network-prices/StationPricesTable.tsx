@@ -71,7 +71,7 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
               <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-600">
                 <div>
                   <div className="font-medium text-white text-sm">{stationData.stationName}</div>
-                  <div className="text-xs text-slate-400">АЗС №{stationData.stationNumber}</div>
+                  <div className="text-xs text-slate-400">{stationData.stationDescription || `АЗС №${stationData.stationNumber}`}</div>
                 </div>
                 <div className="text-[10px] text-slate-400">
                   {latestEffectiveDate
@@ -163,7 +163,7 @@ export function StationPricesTable({ networkPrices, statistics, isMobile }: Stat
                 <td className="py-3 px-4">
                   <div>
                     <div className="text-white font-medium">{stationData.stationName}</div>
-                    <div className="text-xs text-slate-400">АЗС №{stationData.stationNumber}</div>
+                    <div className="text-xs text-slate-400">{stationData.stationDescription || `АЗС №${stationData.stationNumber}`}</div>
                   </div>
                 </td>
 
