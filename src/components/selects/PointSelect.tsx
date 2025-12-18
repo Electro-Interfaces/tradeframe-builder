@@ -21,10 +21,18 @@ export function PointSelect({ value, onValueChange, className, disabled, network
   const { data: tradingPoints = [] } = useQuery({
     queryKey: ['tradingPoints', networkId],
     queryFn: async () => {
+      let points: TradingPoint[];
       if (networkId) {
-        return tradingPointsService.getByNetworkId(networkId);
+        points = await tradingPointsService.getByNetworkId(networkId);
+      } else {
+        points = await tradingPointsService.getAll();
       }
-      return tradingPointsService.getAll();
+      // Сортируем по external_id (номеру станции) по возрастанию
+      return points.sort((a, b) => {
+        const numA = parseInt(a.external_id || '999999', 10);
+        const numB = parseInt(b.external_id || '999999', 10);
+        return numA - numB;
+      });
     },
     enabled: !disabled, // Загружаем только если не disabled
     staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
