@@ -162,8 +162,8 @@ export const PaymentDistributionChart = memo(function PaymentDistributionChart({
 
         {/* Легенда */}
         <div className="space-y-2">
-          {data.map((payment) => (
-            <div key={payment.type} className="flex items-center justify-between text-sm">
+          {data.map((payment, index) => (
+            <div key={`${payment.type}-${index}`} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <div
                   className="w-3 h-3 rounded-full"
