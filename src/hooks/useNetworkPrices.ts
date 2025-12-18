@@ -458,14 +458,12 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
                   revenue
                 });
               } else {
-                console.warn(`⚠️ Не найдена цена для ${fuelType} на дату ${shiftCloseDate}, объем ${volume} л`);
                 missedSalesVolume += volume;
               }
             }
           });
         });
 
-        console.log(`📊 Продажи: всего ${totalSalesVolume.toFixed(2)} л, потеряно ${missedSalesVolume.toFixed(2)} л (${((missedSalesVolume / totalSalesVolume) * 100).toFixed(1)}%)`);
 
         // Группируем продажи по ценам
         const salesByPriceMap = new Map<string, SalesByPrice>();
