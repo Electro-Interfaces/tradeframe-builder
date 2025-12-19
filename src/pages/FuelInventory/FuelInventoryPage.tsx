@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowUpDown, ArrowUp, ArrowDown, Fuel, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ConnectionButton } from '@/components/common/ConnectionButton';
 import {
   LineChart,
   Line,
@@ -116,11 +118,14 @@ export default function FuelInventory() {
       <div className="space-y-6">
         {/* Заголовок */}
         <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-100">Остатки</h1>
-            <p className="text-slate-400 mt-1">
-              Книжные остатки по всем резервуарам на основании данных сменных отчетов
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-100">Остатки</h1>
+              <p className="text-slate-400 mt-1">
+                Книжные остатки по всем резервуарам на основании данных сменных отчетов
+              </p>
+            </div>
+            <ConnectionButton />
           </div>
 
           {/* Фильтры */}

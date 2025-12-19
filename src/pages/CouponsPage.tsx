@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSelection } from '@/contexts/SelectionContext';
 import { Download } from 'lucide-react';
+import { ConnectionButton } from '@/components/common/ConnectionButton';
 
 // Хуки
 import { useCouponsData } from '@/hooks/useCouponsData';
@@ -61,6 +62,7 @@ export default function CouponsPage() {
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
+  
   // Загрузка данных при изменении сети или точки
   useEffect(() => {
     if (selectedNetwork?.external_id) {
@@ -97,17 +99,20 @@ export default function CouponsPage() {
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-white">Купоны</h1>
-            {filteredCoupons.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Экспорт
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <ConnectionButton />
+              {filteredCoupons.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExport}
+                  className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Экспорт
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

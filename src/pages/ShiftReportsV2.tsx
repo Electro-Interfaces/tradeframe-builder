@@ -27,6 +27,7 @@ import { useShiftReports } from "@/hooks/useShiftReports";
 import { useShiftSelection } from "@/hooks/useShiftSelection";
 
 // Компоненты
+import { LastDataTransfer } from "@/components/common/LastDataTransfer";
 import ShiftFilters from "@/components/shift-reports/ShiftFilters";
 import ShiftsTable from "@/components/shift-reports/ShiftsTable";
 import MobileShiftsTable from "@/components/shift-reports/MobileShiftsTable";
@@ -72,7 +73,10 @@ export default function ShiftReportsV2() {
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h1 className="text-2xl font-semibold text-white">Сменные отчеты</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-semibold text-white">Сменные отчеты</h1>
+            <LastDataTransfer />
+          </div>
           <div className="flex gap-2">
             <Button
               variant="outline"

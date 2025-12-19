@@ -17,6 +17,7 @@ import { PriceDynamicsChart } from "@/components/network-prices/PriceDynamicsCha
 import { LoadingState, ErrorState } from "@/components/common/PageStates";
 import { SelectNetworkMessage } from "@/components/common/SelectNetworkMessage";
 import { DollarSign, RefreshCw, TrendingUp, Fuel } from "lucide-react";
+import { ConnectionButton } from "@/components/common/ConnectionButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function NetworkPricing() {
@@ -91,40 +92,45 @@ export default function NetworkPricing() {
               </p>
             </div>
 
-            {/* Селектор периода */}
-            <div className={`${isMobile ? 'w-32' : 'w-48'}`}>
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue placeholder="Период" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600">
-                  <SelectItem value="7" className="text-white hover:bg-slate-700">
-                    {isMobile ? '7 дней' : 'Последние 7 дней'}
-                  </SelectItem>
-                  <SelectItem value="30" className="text-white hover:bg-slate-700">
-                    {isMobile ? '30 дней' : 'Последние 30 дней'}
-                  </SelectItem>
-                  <SelectItem value="90" className="text-white hover:bg-slate-700">
-                    {isMobile ? '3 месяца' : 'Последние 3 месяца'}
-                  </SelectItem>
-                  <SelectItem value="all" className="text-white hover:bg-slate-700">
-                    Всё время
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Кнопки и селекторы */}
+            <div className="flex items-center gap-2">
+              <ConnectionButton />
 
-            {/* Кнопка обновления */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refresh}
-              disabled={loading}
-              className="border-slate-600 text-white hover:bg-slate-700 flex-shrink-0"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              {!isMobile && <span className="ml-2">Обновить</span>}
-            </Button>
+              {/* Селектор периода */}
+              <div className={`${isMobile ? 'w-32' : 'w-48'}`}>
+                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                    <SelectValue placeholder="Период" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-600">
+                    <SelectItem value="7" className="text-white hover:bg-slate-700">
+                      {isMobile ? '7 дней' : 'Последние 7 дней'}
+                    </SelectItem>
+                    <SelectItem value="30" className="text-white hover:bg-slate-700">
+                      {isMobile ? '30 дней' : 'Последние 30 дней'}
+                    </SelectItem>
+                    <SelectItem value="90" className="text-white hover:bg-slate-700">
+                      {isMobile ? '3 месяца' : 'Последние 3 месяца'}
+                    </SelectItem>
+                    <SelectItem value="all" className="text-white hover:bg-slate-700">
+                      Всё время
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Кнопка обновления */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refresh}
+                disabled={loading}
+                className="border-slate-600 text-white hover:bg-slate-700 flex-shrink-0"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                {!isMobile && <span className="ml-2">Обновить</span>}
+              </Button>
+            </div>
           </div>
         </div>
 

@@ -17,6 +17,7 @@ import { TankCard } from "@/components/tanks/TankCard";
 import { PULL_TO_REFRESH_CONFIG } from "@/config/pullToRefresh";
 import { PullToRefreshIndicator } from "@/components/common/PullToRefreshIndicator";
 import { SelectTradingPointMessage } from "@/components/common/SelectTradingPointMessage";
+import { LastDataTransfer } from "@/components/common/LastDataTransfer";
 import type { Tank } from "@/types/tanks";
 
 // Мемоизированный компонент списка резервуаров
@@ -104,7 +105,10 @@ export default function Tanks() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Резервуары</h1>
+            <div className="flex-1 min-w-0">
+              <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Резервуары</h1>
+              <LastDataTransfer />
+            </div>
             {!isMobile && (
               <Button
                 variant="outline"

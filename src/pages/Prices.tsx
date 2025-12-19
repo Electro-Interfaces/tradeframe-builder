@@ -57,6 +57,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SelectTradingPointMessage } from "@/components/common/SelectTradingPointMessage";
+import { LastDataTransfer } from "@/components/common/LastDataTransfer";
 import { useSelection } from "@/contexts/SelectionContext";
 import { tradingPointsService } from "@/services/tradingPointsService";
 import {
@@ -929,7 +930,10 @@ export default function Prices() {
         {/* Заголовок страницы */}
         <div className="mb-6 pt-4">
           <div className="flex items-center justify-between">
-            <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Цены</h1>
+            <div className="flex-1 min-w-0">
+              <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Цены</h1>
+              <LastDataTransfer />
+            </div>
             <div className={`flex ${isMobile ? 'gap-2' : 'gap-3'} items-center`}>
               {!isMobile && (
                 <Button
