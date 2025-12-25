@@ -17,7 +17,6 @@ import { PriceDynamicsChart } from "@/components/network-prices/PriceDynamicsCha
 import { LoadingState, ErrorState } from "@/components/common/PageStates";
 import { SelectNetworkMessage } from "@/components/common/SelectNetworkMessage";
 import { DollarSign, RefreshCw, TrendingUp, Fuel } from "lucide-react";
-import { ConnectionButton } from "@/components/common/ConnectionButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function NetworkPricing() {
@@ -94,8 +93,6 @@ export default function NetworkPricing() {
 
             {/* Кнопки и селекторы */}
             <div className="flex items-center gap-2">
-              <ConnectionButton />
-
               {/* Селектор периода */}
               <div className={`${isMobile ? 'w-32' : 'w-48'}`}>
                 <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>

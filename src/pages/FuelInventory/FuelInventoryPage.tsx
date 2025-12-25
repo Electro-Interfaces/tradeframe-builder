@@ -25,7 +25,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowUpDown, ArrowUp, ArrowDown, Fuel, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ConnectionButton } from '@/components/common/ConnectionButton';
 import {
   LineChart,
   Line,
@@ -125,7 +124,6 @@ export default function FuelInventory() {
                 Книжные остатки по всем резервуарам на основании данных сменных отчетов
               </p>
             </div>
-            <ConnectionButton />
           </div>
 
           {/* Фильтры */}

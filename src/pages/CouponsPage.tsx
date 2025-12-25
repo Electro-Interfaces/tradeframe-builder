@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSelection } from '@/contexts/SelectionContext';
 import { Download } from 'lucide-react';
-import { ConnectionButton } from '@/components/common/ConnectionButton';
 
 // Хуки
 import { useCouponsData } from '@/hooks/useCouponsData';
@@ -100,7 +99,6 @@ export default function CouponsPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-white">Купоны</h1>
             <div className="flex items-center gap-2">
-              <ConnectionButton />
               {filteredCoupons.length > 0 && (
                 <Button
                   variant="outline"

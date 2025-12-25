@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Menu, Bell } from "lucide-react";
+import { LogOut, User, Menu, Bell, Wifi } from "lucide-react";
 import UpdateChecker from "@/components/common/UpdateChecker";
 import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { NetworkSelect } from "@/components/selects/NetworkSelect";
@@ -16,6 +16,7 @@ import { APP_VERSION } from "@/config/version";
 import { PointSelect } from "@/components/selects/PointSelect";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { useMobile, mobileUtils } from "@/hooks/useMobile";
+import StationsConnectionDialog from "@/components/operations/StationsConnectionDialog";
 
 interface HeaderProps {
   selectedNetwork: string;
@@ -50,6 +51,9 @@ export function Header({
     swScope: string;
     lastCheck: string;
   } | null>(null);
+
+  // Состояние для диалога проверки связи
+  const [isConnectionDialogOpen, setIsConnectionDialogOpen] = useState(false);
 
   const handleShowUpdateInfo = (details: {
     version: string;
@@ -99,8 +103,8 @@ export function Header({
   return (
     <header className={`${isMobile ? 'relative' : 'fixed top-0'} left-0 right-0 z-50 min-h-header bg-slate-900 border-b border-slate-700/50 shadow-lg mobile-safe-top`}>
       <div className="flex items-center justify-between min-h-header px-4 md:px-6">
-        {/* Mobile Left Section: Burger + Network Selector */}
-        <div className="flex items-center gap-3 md:hidden flex-1 min-w-0">
+        {/* Mobile Left Section: Burger + Network Selector + Connection Button */}
+        <div className="flex items-center gap-2 md:hidden flex-1 min-w-0">
           <Button
             variant="ghost"
             size="icon"
@@ -115,6 +119,17 @@ export function Header({
             onValueChange={onNetworkChange}
             className="!h-10 !py-0 text-sm min-w-0 flex-1 bg-slate-800/50 border-slate-600/50 hover:bg-slate-700/50"
           />
+
+          {/* Mobile Connection Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsConnectionDialogOpen(true)}
+            className="shrink-0 h-10 w-10 bg-slate-800/80 hover:bg-blue-600 text-blue-400 hover:text-white border border-slate-600/50 rounded-lg transition-all duration-200"
+            title="Проверить связь со станциями"
+          >
+            <Wifi className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Desktop Left Section: Logo + Brand */}
@@ -128,7 +143,7 @@ export function Header({
           </div>
         </div>
 
-        {/* Desktop Center: Context Selectors */}
+        {/* Desktop Center: Context Selectors + Connection Button */}
         <div className="hidden md:flex items-center justify-center gap-2">
           <NetworkSelect value={selectedNetwork} onValueChange={onNetworkChange} />
           <PointSelect 
@@ -138,6 +153,17 @@ export function Header({
             networkId={selectedNetwork}
             className="inline-flex"
           />
+          {/* Desktop Connection Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsConnectionDialogOpen(true)}
+            className="h-9 px-3 bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/50 hover:border-blue-500 rounded-lg transition-all duration-200 font-medium"
+            title="Проверить связь со станциями"
+          >
+            <Wifi className="h-4 w-4 mr-1.5" />
+            Связь
+          </Button>
         </div>
 
         {/* Right Section: User Profile */}
@@ -239,6 +265,11 @@ export function Header({
         open={showUpdateDialog}
         onOpenChange={setShowUpdateDialog}
         details={updateDetails}
+      />
+
+      <StationsConnectionDialog
+        open={isConnectionDialogOpen}
+        onOpenChange={setIsConnectionDialogOpen}
       />
     </header>
   );

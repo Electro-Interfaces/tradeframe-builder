@@ -3,7 +3,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DollarSign, Users, Fuel, Monitor, CreditCard, Loader2, RefreshCw, Activity, Calendar, Download, HelpCircle, FileText, FileSpreadsheet, Filter, ChevronDown, ChevronRight } from "lucide-react";
-import { ConnectionButton } from "@/components/common/ConnectionButton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1594,7 +1593,6 @@ export default function NetworkOverview() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-white">Обзор сети</h1>
             <div className="flex items-center gap-2">
-              <ConnectionButton />
               {!initializing && selectedNetwork && filteredTransactions.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

@@ -14,7 +14,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Download, Activity, AlertTriangle, Loader2, FileText, FileSpreadsheet, Calendar, Fuel, CreditCard, Pin, HelpCircle, RefreshCw, Filter, ChevronDown, ChevronRight } from "lucide-react";
-import { ConnectionButton } from "@/components/common/ConnectionButton";
 import { operationsService } from "@/services/operationsService";
 import { stsApiService, Transaction } from "@/services/stsApi";
 import { tradingPointsService } from "@/services/tradingPointsService";
@@ -707,7 +706,6 @@ export default function OperationsTransactionsPageSimple() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-white">Операции</h1>
             <div className="flex items-center gap-2">
-              <ConnectionButton />
               {filteredOperations.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

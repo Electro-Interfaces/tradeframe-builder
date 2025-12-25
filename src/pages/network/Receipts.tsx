@@ -40,7 +40,6 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Filter, Download, RefreshCw } from 'lucide-react';
-import { ConnectionButton } from '@/components/common/ConnectionButton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -371,7 +370,6 @@ export default function Receipts() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-white">Поступления топлива</h1>
             <div className="flex items-center gap-2">
-              <ConnectionButton />
               <Button
                 variant="outline"
                 size="sm"
