@@ -4,6 +4,8 @@
  * Поддерживает "Запомнить меня" функционал
  */
 
+import { utf8ToBase64, base64ToUtf8 } from './base64';
+
 // Константы для IndexedDB
 const DB_NAME = 'TradeFrameSecureStorage';
 const DB_VERSION = 1;
@@ -48,14 +50,14 @@ function simpleEncrypt(text: string, key: string): string {
     const charCode = text.charCodeAt(i) ^ key.charCodeAt(i % key.length);
     encrypted += String.fromCharCode(charCode);
   }
-  return btoa(encrypted); // base64 encode
+  return utf8ToBase64(encrypted); // Безопасное base64 кодирование с поддержкой Unicode
 }
 
 /**
  * Простая расшифровка пароля
  */
 function simpleDecrypt(encrypted: string, key: string): string {
-  const decoded = atob(encrypted); // base64 decode
+  const decoded = base64ToUtf8(encrypted); // Безопасное base64 декодирование с поддержкой Unicode
   let decrypted = '';
   for (let i = 0; i < decoded.length; i++) {
     const charCode = decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length);
@@ -73,7 +75,8 @@ function getDeviceKey(): string {
   const platform = navigator.platform;
   const screenResolution = `${screen.width}x${screen.height}`;
 
-  return btoa(`${userAgent}-${language}-${platform}-${screenResolution}`).substring(0, 32);
+  // Используем безопасное base64 кодирование для поддержки Unicode символов
+  return utf8ToBase64(`${userAgent}-${language}-${platform}-${screenResolution}`).substring(0, 32);
 }
 
 /**
