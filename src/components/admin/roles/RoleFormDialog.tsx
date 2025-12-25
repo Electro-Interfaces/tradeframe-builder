@@ -32,6 +32,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { externalRolesService } from '@/services/externalRolesService'
 import { PERMISSION_SECTIONS, PermissionHelpers } from '@/config/permissions'
 import type { Role, Permission, RoleScope, PermissionAction } from '@/types/auth'
+import { NetworkSelect } from '@/components/selects/NetworkSelect'
+import { MultiPointSelect } from '@/components/selects/MultiPointSelect'
 
 interface RoleFormDialogProps {
   open: boolean
@@ -62,7 +64,9 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
     name: '',
     description: '',
     scope: 'trading_point' as RoleScope,
-    is_active: true
+    is_active: true,
+    scopeNetworkId: '',
+    scopeValues: [] as string[]
   })
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [loading, setLoading] = useState(false)
@@ -77,7 +81,9 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
         name: role.name,
         description: role.description,
         scope: role.scope,
-        is_active: role.is_active
+        is_active: role.is_active,
+        scopeNetworkId: '',
+        scopeValues: role.scope_values || []
       })
       setPermissions([...role.permissions])
     } else {
@@ -86,7 +92,9 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
         name: '',
         description: '',
         scope: 'trading_point',
-        is_active: true
+        is_active: true,
+        scopeNetworkId: '',
+        scopeValues: []
       })
       setPermissions([])
     }
@@ -99,6 +107,11 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
     try {
       setLoading(true)
 
+      // Определяем scope_values в зависимости от scope
+      const scopeValues = (formData.scope === 'trading_point' || formData.scope === 'assigned')
+        ? formData.scopeValues
+        : [];
+
       if (role) {
         // Редактирование роли
         await externalRolesService.updateRole(role.id, {
@@ -106,6 +119,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
           description: formData.description,
           permissions,
           scope: formData.scope,
+          scope_values: scopeValues,
           is_active: formData.is_active
         })
       } else {
@@ -115,7 +129,8 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
           name: formData.name,
           description: formData.description,
           permissions,
-          scope: formData.scope
+          scope: formData.scope,
+          scope_values: scopeValues
         })
       }
 
@@ -299,9 +314,13 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
 
               <div className="space-y-2">
                 <Label className="text-slate-200">Область действия</Label>
-                <Select 
-                  value={formData.scope} 
-                  onValueChange={(value: RoleScope) => setFormData(prev => ({ ...prev, scope: value }))}
+                <Select
+                  value={formData.scope}
+                  onValueChange={(value: RoleScope) => setFormData(prev => ({
+                    ...prev,
+                    scope: value,
+                    scopeValues: value !== 'trading_point' && value !== 'assigned' ? [] : prev.scopeValues
+                  }))}
                 >
                   <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
                     <SelectValue />
@@ -318,6 +337,53 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Выбор конкретных торговых точек */}
+              {(formData.scope === 'trading_point' || formData.scope === 'assigned') && (
+                <div className="space-y-4 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <h4 className="font-medium text-slate-200">Ограничение доступа к торговым точкам</h4>
+                  </div>
+
+                  <p className="text-sm text-slate-400">
+                    Выберите сеть, затем укажите торговые точки, к которым будет ограничен доступ пользователей с этой ролью.
+                    {formData.scopeValues.length === 0 && " Если не выбрать ни одной точки, доступ будет ко всем точкам сети."}
+                  </p>
+
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Сеть</Label>
+                      <NetworkSelect
+                        value={formData.scopeNetworkId}
+                        onValueChange={(value) => setFormData(prev => ({
+                          ...prev,
+                          scopeNetworkId: value,
+                          scopeValues: [] // Сбрасываем выбор при смене сети
+                        }))}
+                        className="bg-slate-800 border-slate-700"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-slate-300">Торговые точки</Label>
+                      <MultiPointSelect
+                        value={formData.scopeValues}
+                        onValueChange={(values) => setFormData(prev => ({ ...prev, scopeValues: values }))}
+                        networkId={formData.scopeNetworkId}
+                        disabled={!formData.scopeNetworkId}
+                        placeholder={formData.scopeNetworkId ? "Выберите торговые точки" : "Сначала выберите сеть"}
+                      />
+                    </div>
+
+                    {formData.scopeValues.length > 0 && (
+                      <div className="text-sm text-green-400">
+                        ✓ Выбрано торговых точек: {formData.scopeValues.length}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center space-x-2">
                 <Switch

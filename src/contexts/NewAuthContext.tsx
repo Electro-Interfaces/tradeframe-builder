@@ -3,7 +3,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authService, type AppUser } from '../services/auth/authService';
+import { authService, type AppUser, type UserRole } from '../services/auth/authService';
 import { permissionService, type MenuVisibility } from '../services/auth/permissionService';
 import { auditLogService } from '../services/auditLogService';
 import {
@@ -11,6 +11,7 @@ import {
   getRememberedCredentials,
   clearRememberedCredentials
 } from '../utils/secureStorage';
+import { jsonToBase64 } from '../utils/base64';
 
 interface AuthContextType {
   // Состояние
@@ -85,7 +86,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       role: user.role,
       timestamp: Date.now()
     };
-    return btoa(JSON.stringify(tokenData));
+    return jsonToBase64(tokenData);
   };
 
   /**
@@ -146,7 +147,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
         return null;
       }
 
-      // Получаем роль из новой схемы БД
+      // Получаем роли из новой схемы БД
       const userRoles = (dbUser as any).user_roles || [];
       const primaryRole = userRoles[0]?.role;
 
@@ -154,29 +155,36 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       let roleId = 0;
       let permissions: string[] = [];
 
-      if (primaryRole) {
+      // Маппинг имен ролей на коды для совместимости
+      const roleNameToCode: Record<string, string> = {
+        'Суперадминистратор': 'super_admin',
+        'Администратор сети': 'network_admin',
+        'Менеджер': 'manager',
+        'Оператор': 'operator',
+        'Менеджер БТО': 'bto_manager'
+      };
 
+      if (primaryRole) {
         // Используем код роли или имя для маппинга
-        userRole = primaryRole.code || primaryRole.name;
+        userRole = primaryRole.code || roleNameToCode[primaryRole.name] || primaryRole.name;
         roleId = primaryRole.id;
         permissions = primaryRole.permissions || [];
-
-        // Маппинг имен ролей на коды (если код не задан)
-        if (!primaryRole.code) {
-          const roleNameToCode: Record<string, string> = {
-            'Суперадминистратор': 'super_admin',
-            'Администратор сети': 'network_admin',
-            'Менеджер': 'manager',
-            'Оператор': 'operator',
-            'Менеджер БТО': 'bto_manager'
-          };
-
-          if (roleNameToCode[primaryRole.name]) {
-            userRole = roleNameToCode[primaryRole.name];
-          }
-        }
-      } else {
       }
+
+      // Формируем массив ролей для отображения в профиле
+      const roles: UserRole[] = userRoles
+        .filter((ur: any) => ur.role)
+        .map((ur: any) => {
+          const role = ur.role;
+          return {
+            roleId: String(role.id),
+            roleName: role.name,
+            roleCode: role.code || roleNameToCode[role.name] || role.name,
+            scope: role.scope,
+            scopeValues: role.scope_values || [],
+            permissions: role.permissions || []
+          };
+        });
 
       const userData: AppUser = {
         id: dbUser.id,
@@ -186,7 +194,8 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
         status: dbUser.status,
         role: userRole,
         roleId: roleId,
-        permissions: permissions
+        permissions: permissions,
+        roles: roles
       };
 
       return userData;

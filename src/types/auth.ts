@@ -22,7 +22,7 @@ export interface Permission {
 
 export interface Role {
   id: string
-  tenant_id: string
+  tenant_id?: string               // опционально, не используется в текущей БД
   code: string                     // уникальный код роли
   name: string                     // отображаемое имя
   description: string

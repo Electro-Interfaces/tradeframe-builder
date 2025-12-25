@@ -105,18 +105,17 @@ class ExternalRolesService {
     let permissions: Permission[] = [];
     try {
       if (dbRole.permissions) {
-        permissions = typeof dbRole.permissions === 'string' 
-          ? JSON.parse(dbRole.permissions) 
+        permissions = typeof dbRole.permissions === 'string'
+          ? JSON.parse(dbRole.permissions)
           : dbRole.permissions;
       }
     } catch (error) {
       console.error('Error parsing role permissions:', error);
       permissions = [];
     }
-    
+
     return {
       id: dbRole.id,
-      tenant_id: dbRole.tenant_id || '00000000-0000-0000-0000-000000000001',
       code: dbRole.code,
       name: dbRole.name,
       description: dbRole.description || '',
@@ -182,7 +181,6 @@ class ExternalRolesService {
   async createRole(input: CreateRoleInput): Promise<Role> {
     try {
       const roleData = {
-        tenant_id: input.tenant_id || '00000000-0000-0000-0000-000000000001',
         code: input.code,
         name: input.name,
         description: input.description,

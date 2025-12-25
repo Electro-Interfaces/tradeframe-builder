@@ -62,9 +62,9 @@ export default function Users() {
   }, [users, searchTerm, statusFilter]);
 
   // Handlers
-  const handleUserSaved = () => {
+  const handleUserSaved = async () => {
     dialogsState.closeEditDialog();
-    refetch();
+    await refetch();
   };
 
   const handleDelete = async () => {

@@ -337,62 +337,74 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                 <p className="text-slate-400">Нет доступных ролей</p>
               </div>
             ) : (
-              <RadioGroup value={selectedRole} onValueChange={setSelectedRole}>
-                <div className="grid grid-cols-1 gap-2">
-                  {/* Без роли */}
-                  <div
+              <div className="grid grid-cols-1 gap-2">
+                {/* Без роли */}
+                <label
+                  htmlFor="no-role"
+                  className={`relative flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
+                    selectedRole === ''
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    id="no-role"
+                    name="user-role"
+                    checked={selectedRole === ''}
+                    onChange={() => setSelectedRole('')}
+                    className="mt-1 h-4 w-4 text-blue-600 border-slate-600 bg-slate-800 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <span className="font-medium text-slate-200">Без роли</span>
+                    <p className="text-sm text-slate-400 mt-0.5">Базовые права доступа</p>
+                  </div>
+                </label>
+
+                {/* Роли */}
+                {activeRoles.map(role => (
+                  <label
+                    key={role.id}
+                    htmlFor={`role-${role.id}`}
                     className={`relative flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
-                      selectedRole === ''
+                      selectedRole === role.id
                         ? 'border-blue-500 bg-blue-500/10'
                         : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'
                     }`}
-                    onClick={() => setSelectedRole('')}
                   >
-                    <RadioGroupItem value="" id="no-role" className="mt-1" />
-                    <Label htmlFor="no-role" className="cursor-pointer flex-1">
-                      <span className="font-medium text-slate-200">Без роли</span>
-                      <p className="text-sm text-slate-400 mt-0.5">Базовые права доступа</p>
-                    </Label>
-                  </div>
-
-                  {/* Роли */}
-                  {activeRoles.map(role => (
-                    <div
-                      key={role.id}
-                      className={`relative flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-all ${
-                        selectedRole === role.id
-                          ? 'border-blue-500 bg-blue-500/10'
-                          : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'
-                      }`}
-                      onClick={() => setSelectedRole(role.id)}
-                    >
-                      <RadioGroupItem value={role.id} id={role.id} className="mt-1" />
-                      <Label htmlFor={role.id} className="cursor-pointer flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-white">{role.name}</span>
-                          {role.is_system && (
-                            <Badge variant="secondary" className="text-xs bg-slate-600 text-slate-300">
-                              Системная
-                            </Badge>
-                          )}
-                        </div>
-                        {role.description && (
-                          <p className="text-sm text-slate-400 mb-2">{role.description}</p>
+                    <input
+                      type="radio"
+                      id={`role-${role.id}`}
+                      name="user-role"
+                      checked={selectedRole === role.id}
+                      onChange={() => setSelectedRole(role.id)}
+                      className="mt-1 h-4 w-4 text-blue-600 border-slate-600 bg-slate-800 focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-white">{role.name}</span>
+                        {role.is_system && (
+                          <Badge variant="secondary" className="text-xs bg-slate-600 text-slate-300">
+                            Системная
+                          </Badge>
                         )}
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <span>{role.permissions.length} разрешений</span>
-                          <span>•</span>
-                          <span>
-                            {role.scope === 'global' ? 'Глобальная' :
-                             role.scope === 'network' ? 'Сеть' :
-                             role.scope === 'trading_point' ? 'Торговая точка' : 'Назначенная'}
-                          </span>
-                        </div>
-                      </Label>
+                      </div>
+                      {role.description && (
+                        <p className="text-sm text-slate-400 mb-2">{role.description}</p>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <span>{role.permissions.length} разрешений</span>
+                        <span>•</span>
+                        <span>
+                          {role.scope === 'global' ? 'Глобальная' :
+                           role.scope === 'network' ? 'Сеть' :
+                           role.scope === 'trading_point' ? 'Торговая точка' : 'Назначенная'}
+                        </span>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </RadioGroup>
+                  </label>
+                ))}
+              </div>
             )}
           </div>
 

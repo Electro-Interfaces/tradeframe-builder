@@ -787,15 +787,22 @@ class STSApiService {
 
     const endpoint = `/v2/info`;
     const data = await this.apiRequest<any>(endpoint, {}, contextParams);
-    return this.mapApiTerminalInfo(data);
+
+    // API возвращает массив всех станций - находим нужную по номеру
+    const stationNumber = parseInt(contextParams.tradingPointId, 10);
+    const stationData = Array.isArray(data)
+      ? data.find(s => s.station === stationNumber) || data[0]
+      : data;
+
+    return this.mapApiTerminalInfo(stationData);
   }
 
   /**
    * Преобразует данные о терминале из API в формат приложения
    */
   private mapApiTerminalInfo(apiData: any): TerminalInfo {
-    // API возвращает массив, берем первый элемент
-    const data = Array.isArray(apiData) ? apiData[0] : apiData;
+    // Данные станции уже отфильтрованы в getTerminalInfo
+    const data = apiData;
     
     // Извлекаем информацию о POS терминале
     const posData = data?.pos?.[0] || {};

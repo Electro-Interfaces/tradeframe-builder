@@ -7,6 +7,7 @@
 import { authService as newAuthService } from './auth/authService'
 import { PermissionChecker } from '@/utils/permissions'
 import { persistentStorage } from '@/utils/persistentStorage'
+import { jsonToBase64 } from '@/utils/base64'
 import type {
   User,
   Session,
@@ -83,7 +84,7 @@ export class AuthService {
       issued_at: session.issued_at.getTime(),
       expires_at: session.expires_at.getTime()
     }
-    const token = btoa(JSON.stringify(tokenData))
+    const token = jsonToBase64(tokenData)
 
     await this.logAudit('Auth.Login.Success', 'User', user.id, {
       email: user.email,
@@ -232,7 +233,7 @@ export class AuthService {
       issued_at: currentSession.issued_at.getTime(),
       expires_at: currentSession.expires_at.getTime()
     }
-    const token = btoa(JSON.stringify(tokenData))
+    const token = jsonToBase64(tokenData)
     localStorage.setItem(this.SESSION_KEY, token)
 
     return token
@@ -347,7 +348,7 @@ export class AuthService {
       issued_at: session.issued_at.getTime(),
       expires_at: session.expires_at.getTime()
     }
-    localStorage.setItem(this.SESSION_KEY, btoa(JSON.stringify(tokenData)))
+    localStorage.setItem(this.SESSION_KEY, jsonToBase64(tokenData))
   }
 
   /**

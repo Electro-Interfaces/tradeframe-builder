@@ -25,6 +25,15 @@ interface DatabaseUser {
   updated_at: string;
 }
 
+interface UserRole {
+  roleId: string;
+  roleName: string;
+  roleCode: string;
+  scope?: string;
+  scopeValues?: string[];
+  permissions: string[];
+}
+
 interface AppUser {
   id: string;
   email: string;
@@ -34,6 +43,7 @@ interface AppUser {
   role: string;
   roleId: number;
   permissions: string[];
+  roles: UserRole[];  // Массив ролей для отображения в профиле
 }
 
 class AuthService {
@@ -236,7 +246,7 @@ class AuthService {
    */
   private transformUser(dbUser: DatabaseUser): AppUser {
 
-    // Получаем первую (основную) роль пользователя из новой схемы БД
+    // Получаем все роли пользователя из новой схемы БД
     const userRoles = dbUser.user_roles || [];
     const primaryRole = userRoles[0]?.role;
 
@@ -244,29 +254,36 @@ class AuthService {
     let roleId = 0;
     let permissions: string[] = [];
 
-    if (primaryRole) {
+    // Маппинг имен ролей на коды для совместимости
+    const roleNameToCode: Record<string, string> = {
+      'Суперадминистратор': 'super_admin',
+      'Администратор сети': 'network_admin',
+      'Менеджер': 'manager',
+      'Оператор': 'operator',
+      'Менеджер БТО': 'bto_manager'
+    };
 
+    if (primaryRole) {
       // Используем код роли напрямую из БД или имя роли для маппинга
-      userRole = primaryRole.code || primaryRole.name;
+      userRole = primaryRole.code || roleNameToCode[primaryRole.name] || primaryRole.name;
       roleId = primaryRole.id;
       permissions = primaryRole.permissions || [];
-
-      // Маппинг имен ролей на коды для совместимости (если код не задан)
-      if (!primaryRole.code) {
-        const roleNameToCode: Record<string, string> = {
-          'Суперадминистратор': 'super_admin',
-          'Администратор сети': 'network_admin',
-          'Менеджер': 'manager',
-          'Оператор': 'operator',
-          'Менеджер БТО': 'bto_manager'
-        };
-
-        if (roleNameToCode[primaryRole.name]) {
-          userRole = roleNameToCode[primaryRole.name];
-        }
-      }
-    } else {
     }
+
+    // Формируем массив ролей для отображения в профиле
+    const roles: UserRole[] = userRoles
+      .filter((ur: any) => ur.role)
+      .map((ur: any) => {
+        const role = ur.role;
+        return {
+          roleId: String(role.id),
+          roleName: role.name,
+          roleCode: role.code || roleNameToCode[role.name] || role.name,
+          scope: role.scope,
+          scopeValues: role.scope_values || [],
+          permissions: role.permissions || []
+        };
+      });
 
     const appUser = {
       id: dbUser.id,
@@ -276,7 +293,8 @@ class AuthService {
       status: dbUser.status,
       role: userRole,
       roleId: roleId,
-      permissions: permissions
+      permissions: permissions,
+      roles: roles
     };
 
     return appUser;
@@ -362,4 +380,4 @@ class AuthService {
 }
 
 export const authService = new AuthService();
-export type { AppUser };
+export type { AppUser, UserRole };
