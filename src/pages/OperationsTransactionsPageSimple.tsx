@@ -3,6 +3,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSelection } from "@/contexts/SelectionContext";
+import { useNewAuth } from "@/contexts/NewAuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,34 @@ import { useOperationsFilters } from "@/hooks/useOperationsFilters";
 
 export default function OperationsTransactionsPageSimple() {
   const { selectedNetwork, selectedTradingPoint, isAllTradingPoints, isInitialized } = useSelection();
+  const { user } = useNewAuth();
   const isMobile = useIsMobile();
+
+  // Вычисляем разрешенные номера станций из scopeValues ролей пользователя
+  const allowedStationNumbers = useMemo(() => {
+    if (!user?.roles) return null;
+
+    const userScopeValues: string[] = [];
+    user.roles.forEach(role => {
+      if (role.scopeValues && role.scopeValues.length > 0) {
+        userScopeValues.push(...role.scopeValues);
+      }
+    });
+
+    // Если scopeValues пустой - полный доступ (null означает "без ограничений")
+    if (userScopeValues.length === 0) return null;
+
+    // Извлекаем номера станций из scopeValues формата "{networkCode}-azs-{stationNumber}"
+    const stationNumbers = new Set<string>();
+    userScopeValues.forEach(scopeValue => {
+      const parts = scopeValue.split('-azs-');
+      if (parts.length === 2) {
+        stationNumbers.add(parts[1]);
+      }
+    });
+
+    return stationNumbers.size > 0 ? stationNumbers : null;
+  }, [user?.roles]);
 
   // Управление фильтрами через кастомный хук
   const {
@@ -317,6 +345,14 @@ export default function OperationsTransactionsPageSimple() {
   // Базовая фильтрация (исключения и базовые фильтры)
   const baseFilteredOperations = useMemo(() => {
     return operations.filter(record => {
+      // Фильтр по доступным станциям (на основе scopeValues роли пользователя)
+      if (allowedStationNumbers) {
+        const stationNum = String(record.stationNumber || '');
+        if (!allowedStationNumbers.has(stationNum)) {
+          return false;
+        }
+      }
+
       // Исключаем нежелательные способы оплаты
       const excludedPaymentMethods = ['supplier_delivery', 'mobile_payment'];
       if (record.paymentMethod && excludedPaymentMethods.includes(record.paymentMethod)) {
@@ -338,7 +374,7 @@ export default function OperationsTransactionsPageSimple() {
 
       return true;
     });
-  }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus]);
+  }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus, allowedStationNumbers]);
 
   // Фильтрация по датам (отдельный useMemo с debounced значениями)
   const dateFilteredOperations = useMemo(() => {

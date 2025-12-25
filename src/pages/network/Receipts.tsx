@@ -7,6 +7,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useReceipts } from '@/hooks/useReceipts';
 import { useSelection } from '@/contexts/SelectionContext';
+import { useNewAuth } from '@/contexts/NewAuthContext';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { networksService } from '@/services/networksService';
 import { tradingPointsService } from '@/services/tradingPointsService';
@@ -59,7 +60,34 @@ const INDICATOR_APPEAR_THRESHOLD = 30;
 export default function Receipts() {
   // Используем контекст выбора
   const { selectedNetwork, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints } = useSelection();
+  const { user } = useNewAuth();
   const isMobile = useIsMobile();
+
+  // Вычисляем разрешенные номера станций из scopeValues ролей пользователя
+  const allowedStationNumbers = useMemo(() => {
+    if (!user?.roles) return null;
+
+    const userScopeValues: string[] = [];
+    user.roles.forEach(role => {
+      if (role.scopeValues && role.scopeValues.length > 0) {
+        userScopeValues.push(...role.scopeValues);
+      }
+    });
+
+    // Если scopeValues пустой - полный доступ
+    if (userScopeValues.length === 0) return null;
+
+    // Извлекаем номера станций из scopeValues формата "{networkCode}-azs-{stationNumber}"
+    const stationNumbers = new Set<string>();
+    userScopeValues.forEach(scopeValue => {
+      const parts = scopeValue.split('-azs-');
+      if (parts.length === 2) {
+        stationNumbers.add(parts[1]);
+      }
+    });
+
+    return stationNumbers.size > 0 ? stationNumbers : null;
+  }, [user?.roles]);
 
   // Состояние фильтров
   const [systemId, setSystemId] = useState<number | null>(null);
@@ -166,6 +194,11 @@ export default function Receipts() {
   const baseFilteredReceipts = useMemo(() => {
     let filtered = flatReceipts;
 
+    // Фильтр по доступным станциям (RBAC на основе scopeValues роли пользователя)
+    if (allowedStationNumbers) {
+      filtered = filtered.filter(r => allowedStationNumbers.has(String(r.stationNumber)));
+    }
+
     // Фильтр по ТТ
     if (stationIds.length > 0) {
       filtered = filtered.filter(r => stationIds.includes(r.stationNumber));
@@ -214,7 +247,7 @@ export default function Receipts() {
     }
 
     return filtered;
-  }, [flatReceipts, stationIds, shiftNumber, baseId, debouncedTtn, dateFrom, dateTo]);
+  }, [flatReceipts, stationIds, shiftNumber, baseId, debouncedTtn, dateFrom, dateTo, allowedStationNumbers]);
 
   // Фильтрация и сортировка данных на клиенте (для таблицы)
   const filteredReceipts = useMemo(() => {

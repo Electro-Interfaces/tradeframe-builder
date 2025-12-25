@@ -41,6 +41,45 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const { user } = useNewAuth();
 
+  // Проверяем, имеет ли пользователь доступ к сохраненной в localStorage сети
+  useEffect(() => {
+    if (!selectedNetworkId || !user?.roles) return;
+
+    // Собираем scopeValues из ролей пользователя
+    const userScopeValues: string[] = [];
+    user.roles.forEach(role => {
+      if (role.scopeValues && role.scopeValues.length > 0) {
+        userScopeValues.push(...role.scopeValues);
+      }
+    });
+
+    // Если нет ограничений - ничего не делаем
+    if (userScopeValues.length === 0) return;
+
+    // Извлекаем разрешенные коды сетей
+    const allowedNetworkCodes = new Set<string>();
+    userScopeValues.forEach(scopeValue => {
+      const parts = scopeValue.split('-azs-');
+      if (parts.length === 2) {
+        allowedNetworkCodes.add(parts[0]);
+      }
+    });
+
+    // Проверяем, есть ли доступ к текущей сети
+    networksService.getById(selectedNetworkId).then(network => {
+      if (network && !allowedNetworkCodes.has(network.code)) {
+        // Нет доступа - сбрасываем выбор сети
+        localStorage.removeItem("tc:selectedNetwork");
+        localStorage.removeItem("tc:selectedTradingPoint");
+        setSelectedNetworkId("");
+        setSelectedTradingPoint("");
+      }
+    }).catch(() => {
+      // Сеть не найдена - сбрасываем
+      setSelectedNetworkId("");
+    });
+  }, [user?.roles, selectedNetworkId]);
+
   // Получаем объект сети по ID
   const [selectedNetwork, setSelectedNetworkState] = useState<Network | null>(null);
 
@@ -50,16 +89,41 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
   // Загружаем первую доступную сеть при старте
   useEffect(() => {
     if (!selectedNetworkId) {
-      networksService.getAll().then(networks => {
-        if (networks.length > 0) {
-          // По умолчанию для ВСЕХ пользователей выбираем сеть с external_id === "15" (БТО)
-          const defaultNetwork = networks.find(n => n.external_id === "15");
+      networksService.getAll().then(allNetworks => {
+        if (allNetworks.length > 0) {
+          // Собираем scopeValues из ролей пользователя для фильтрации сетей
+          const userScopeValues: string[] = [];
+          if (user?.roles) {
+            user.roles.forEach(role => {
+              if (role.scopeValues && role.scopeValues.length > 0) {
+                userScopeValues.push(...role.scopeValues);
+              }
+            });
+          }
 
-          if (defaultNetwork) {
-            setSelectedNetworkId(defaultNetwork.id);
-          } else {
-            // Если сеть 15 не найдена, fallback на первую доступную
-            setSelectedNetworkId(networks[0].id);
+          let availableNetworks = allNetworks;
+
+          // Если есть ограничения по scope_values - фильтруем сети
+          if (userScopeValues.length > 0) {
+            const allowedNetworkCodes = new Set<string>();
+            userScopeValues.forEach(scopeValue => {
+              const parts = scopeValue.split('-azs-');
+              if (parts.length === 2) {
+                allowedNetworkCodes.add(parts[0]);
+              }
+            });
+            availableNetworks = allNetworks.filter(n => allowedNetworkCodes.has(n.code));
+          }
+
+          if (availableNetworks.length > 0) {
+            // По умолчанию выбираем сеть БТО (external_id === "15") если она доступна
+            const defaultNetwork = availableNetworks.find(n => n.external_id === "15");
+            if (defaultNetwork) {
+              setSelectedNetworkId(defaultNetwork.id);
+            } else {
+              // Иначе первую доступную
+              setSelectedNetworkId(availableNetworks[0].id);
+            }
           }
         }
       }).catch(error => {
@@ -74,14 +138,29 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
         .then(network => {
           setSelectedNetworkState(network);
 
-          // Автоматически выбираем торговую точку "АЗС 4" если её нет и если localStorage пуст
+          // Автоматически выбираем торговую точку если localStorage пуст
           if (!selectedTradingPoint && typeof window !== 'undefined') {
             const savedTradingPoint = localStorage.getItem("tc:selectedTradingPoint");
             if (!savedTradingPoint || savedTradingPoint.trim() === '') {
               tradingPointsService.getByNetworkId(selectedNetworkId)
                 .then(tradingPoints => {
-                  // Ищем торговую точку "АЗС 4" или с похожим названием
-                  const azs4Point = tradingPoints.find(p =>
+                  // Собираем scopeValues из ролей пользователя для фильтрации
+                  const userScopeValues: string[] = [];
+                  if (user?.roles) {
+                    user.roles.forEach(role => {
+                      if (role.scopeValues && role.scopeValues.length > 0) {
+                        userScopeValues.push(...role.scopeValues);
+                      }
+                    });
+                  }
+
+                  // Фильтруем торговые точки если есть ограничения
+                  const availablePoints = userScopeValues.length > 0
+                    ? tradingPoints.filter(p => userScopeValues.includes(p.id))
+                    : tradingPoints;
+
+                  // Ищем торговую точку "АЗС 4" среди доступных
+                  const azs4Point = availablePoints.find(p =>
                     p.name && (
                       p.name.toLowerCase().includes('азс 4') ||
                       p.name.toLowerCase().includes('азс4') ||
@@ -91,9 +170,9 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
                   if (azs4Point) {
                     setSelectedTradingPoint(azs4Point.id);
-                  } else if (tradingPoints.length > 0) {
+                  } else if (availablePoints.length > 0) {
                     // Если АЗС 4 не найдена, выбираем первую доступную
-                    setSelectedTradingPoint(tradingPoints[0].id);
+                    setSelectedTradingPoint(availablePoints[0].id);
                   }
 
                   // Отмечаем инициализацию как завершенную

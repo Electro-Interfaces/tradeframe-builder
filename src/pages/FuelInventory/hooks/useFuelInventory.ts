@@ -6,25 +6,56 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelection } from '@/contexts/SelectionContext';
+import { useNewAuth } from '@/contexts/NewAuthContext';
 import { getInventoryFromShiftReports, aggregateByFuel, type TankInventory, type FuelInventorySummary } from '@/services/fuelInventoryService';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
 
 export const useFuelInventory = (dateFrom: string, dateTo: string) => {
   const { selectedNetwork, selectedStation } = useSelection();
+  const { user } = useNewAuth();
+
+  // Вычисляем разрешенные номера станций из scopeValues ролей пользователя
+  const allowedStationNumbers = useMemo(() => {
+    if (!user?.roles) return null;
+
+    const userScopeValues: string[] = [];
+    user.roles.forEach(role => {
+      if (role.scopeValues && role.scopeValues.length > 0) {
+        userScopeValues.push(...role.scopeValues);
+      }
+    });
+
+    // Если scopeValues пустой - полный доступ
+    if (userScopeValues.length === 0) return null;
+
+    // Извлекаем номера станций из scopeValues формата "{networkCode}-azs-{stationNumber}"
+    const stationNumbers = new Set<string>();
+    userScopeValues.forEach(scopeValue => {
+      const parts = scopeValue.split('-azs-');
+      if (parts.length === 2) {
+        stationNumbers.add(parts[1]);
+      }
+    });
+
+    return stationNumbers.size > 0 ? stationNumbers : null;
+  }, [user?.roles]);
 
   // Состояние прогресса загрузки смен
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: 0 });
 
   // Создаем ключ запроса на основе всех параметров
   const queryKey = useMemo(() => {
+    // Преобразуем Set в массив для стабильного ключа кэша
+    const allowedStationsArray = allowedStationNumbers ? Array.from(allowedStationNumbers).sort() : null;
     return [
       'fuelInventory',
       selectedNetwork?.id,
       selectedStation?.id,
       dateFrom,
-      dateTo
+      dateTo,
+      allowedStationsArray
     ];
-  }, [selectedNetwork?.id, selectedStation?.id, dateFrom, dateTo]);
+  }, [selectedNetwork?.id, selectedStation?.id, dateFrom, dateTo, allowedStationNumbers]);
 
   // React Query для загрузки данных с кэшированием
   const {
@@ -48,6 +79,7 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
         station: selectedStation ? parseInt(selectedStation.external_id) : undefined,
         dt_beg: formatDateForApi(dateFrom, false),
         dt_end: formatDateForApi(dateTo, true),
+        allowedStations: allowedStationNumbers, // Передаем разрешенные станции для фильтрации по ролям
         onProgress: (loaded, total) => {
           setLoadingProgress({ loaded, total });
         }

@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { shiftReportsV2Service } from '@/services/shiftReportsV2Service';
 import { extractStationNumber } from '@/utils/tradingPointUtils';
 import { STS_SYSTEM_ID } from '@/config/stsConfig';
+import { useNewAuth } from '@/contexts/NewAuthContext';
 import type { ShiftListItem, ShiftFilters } from '@/types/shift-reports-v2';
 
 interface UseShiftReportsOptions {
@@ -19,6 +20,33 @@ export function useShiftReports({ tradingPoint, networkId, isAllTradingPoints, f
   const [shifts, setShifts] = useState<ShiftListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useNewAuth();
+
+  // Вычисляем разрешенные номера станций из scopeValues ролей пользователя
+  const allowedStationNumbers = useMemo(() => {
+    if (!user?.roles) return null;
+
+    const userScopeValues: string[] = [];
+    user.roles.forEach(role => {
+      if (role.scopeValues && role.scopeValues.length > 0) {
+        userScopeValues.push(...role.scopeValues);
+      }
+    });
+
+    // Если scopeValues пустой - полный доступ
+    if (userScopeValues.length === 0) return null;
+
+    // Извлекаем номера станций из scopeValues формата "{networkCode}-azs-{stationNumber}"
+    const stationNumbers = new Set<string>();
+    userScopeValues.forEach(scopeValue => {
+      const parts = scopeValue.split('-azs-');
+      if (parts.length === 2) {
+        stationNumbers.add(parts[1]);
+      }
+    });
+
+    return stationNumbers.size > 0 ? stationNumbers : null;
+  }, [user?.roles]);
 
   // Загрузка смен
   useEffect(() => {
@@ -31,7 +59,15 @@ export function useShiftReports({ tradingPoint, networkId, isAllTradingPoints, f
 
           // Загружаем все торговые точки сети
           const tradingPointsService = (await import('@/services/tradingPointsService')).default;
-          const tradingPoints = await tradingPointsService.getByNetworkId(networkId);
+          let tradingPoints = await tradingPointsService.getByNetworkId(networkId);
+
+          // Фильтрация по разрешенным станциям (RBAC)
+          if (allowedStationNumbers) {
+            tradingPoints = tradingPoints.filter(tp => {
+              const stationNum = extractStationNumber(tp);
+              return stationNum && allowedStationNumbers.has(String(stationNum));
+            });
+          }
 
           // Загружаем смены для всех станций параллельно
           const allShiftsPromises = tradingPoints.map(async (tp) => {
@@ -125,7 +161,7 @@ export function useShiftReports({ tradingPoint, networkId, isAllTradingPoints, f
     };
 
     loadShifts();
-  }, [tradingPoint, networkId, isAllTradingPoints, filters.dateFrom, filters.dateTo]);
+  }, [tradingPoint, networkId, isAllTradingPoints, filters.dateFrom, filters.dateTo, allowedStationNumbers]);
 
   // Фильтрация и сортировка смен (даты уже отфильтрованы на сервере)
   const filteredShifts = useMemo(() => {
@@ -133,6 +169,14 @@ export function useShiftReports({ tradingPoint, networkId, isAllTradingPoints, f
       status: filters.status !== 'all' ? filters.status : undefined,
       shiftNumber: filters.shiftNumber,
     });
+
+    // Фильтрация по разрешенным станциям (RBAC) - дополнительная защита
+    if (allowedStationNumbers) {
+      filtered = filtered.filter(shift => {
+        const stationNum = String(shift.station || '');
+        return allowedStationNumbers.has(stationNum);
+      });
+    }
 
     // Сортировка: самые свежие наверху (по дате открытия, DESC)
     filtered.sort((a, b) => {
@@ -142,7 +186,7 @@ export function useShiftReports({ tradingPoint, networkId, isAllTradingPoints, f
     });
 
     return filtered;
-  }, [shifts, filters.status, filters.shiftNumber]);
+  }, [shifts, filters.status, filters.shiftNumber, allowedStationNumbers]);
 
   // Функция обновления данных
   const refresh = () => {

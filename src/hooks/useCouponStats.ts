@@ -3,6 +3,7 @@
  */
 
 import { useMemo } from 'react';
+import { useNewAuth } from '@/contexts/NewAuthContext';
 import type {
   CouponsSearchResult,
   CouponsFilter,
@@ -25,10 +26,48 @@ export function useCouponStats(
   selectedKpiStates: Set<string>,
   selectedFuelType: string
 ) {
-  // Получаем все купоны из результата поиска
+  const { user } = useNewAuth();
+
+  // Вычисляем разрешенные номера станций из scopeValues ролей пользователя
+  const allowedStationNumbers = useMemo(() => {
+    if (!user?.roles) return null;
+
+    const userScopeValues: string[] = [];
+    user.roles.forEach(role => {
+      if (role.scopeValues && role.scopeValues.length > 0) {
+        userScopeValues.push(...role.scopeValues);
+      }
+    });
+
+    // Если scopeValues пустой - полный доступ
+    if (userScopeValues.length === 0) return null;
+
+    // Извлекаем номера станций из scopeValues формата "{networkCode}-azs-{stationNumber}"
+    const stationNumbers = new Set<string>();
+    userScopeValues.forEach(scopeValue => {
+      const parts = scopeValue.split('-azs-');
+      if (parts.length === 2) {
+        stationNumbers.add(parts[1]);
+      }
+    });
+
+    return stationNumbers.size > 0 ? stationNumbers : null;
+  }, [user?.roles]);
+
+  // Получаем все купоны из результата поиска с фильтрацией по RBAC
   const allCoupons = useMemo(() => {
-    return searchResult?.groups.flatMap(g => g.coupons) || [];
-  }, [searchResult]);
+    let coupons = searchResult?.groups.flatMap(g => g.coupons) || [];
+
+    // Фильтрация по разрешенным станциям (RBAC)
+    if (allowedStationNumbers) {
+      coupons = coupons.filter(coupon => {
+        const stationNum = String(coupon.stationCode || '');
+        return allowedStationNumbers.has(stationNum);
+      });
+    }
+
+    return coupons;
+  }, [searchResult, allowedStationNumbers]);
 
   // Отфильтрованные купоны (дополнительная фильтрация поверх API)
   const filteredCoupons = useMemo(() => {

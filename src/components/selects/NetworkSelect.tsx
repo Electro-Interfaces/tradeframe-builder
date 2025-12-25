@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Network as NetworkIcon, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -18,12 +18,43 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
   const { user } = useNewAuth();
 
   // ✅ ИСПРАВЛЕНИЕ: Используем React Query для кэширования
-  const { data: networks = [] } = useQuery({
+  const { data: allNetworks = [] } = useQuery({
     queryKey: ['networks', user?.role],
     queryFn: () => networksService.getAll(user?.role),
     staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
     gcTime: 30 * 60 * 1000, // 30 минут - время хранения в кэше
   });
+
+  // Фильтруем сети по scope_values из ролей пользователя
+  const networks = useMemo(() => {
+    // Собираем все scopeValues из всех ролей пользователя
+    const userScopeValues: string[] = [];
+    if (user?.roles) {
+      user.roles.forEach(role => {
+        if (role.scopeValues && role.scopeValues.length > 0) {
+          userScopeValues.push(...role.scopeValues);
+        }
+      });
+    }
+
+    // Если scopeValues пустой - показываем все сети (полный доступ)
+    if (userScopeValues.length === 0) {
+      return allNetworks;
+    }
+
+    // Извлекаем коды сетей из scope_values
+    // Формат ID торговой точки: {networkCode}-azs-{stationCode}
+    const allowedNetworkCodes = new Set<string>();
+    userScopeValues.forEach(scopeValue => {
+      const parts = scopeValue.split('-azs-');
+      if (parts.length === 2) {
+        allowedNetworkCodes.add(parts[0]); // networkCode
+      }
+    });
+
+    // Фильтруем сети по коду
+    return allNetworks.filter(network => allowedNetworkCodes.has(network.code));
+  }, [allNetworks, user?.roles]);
 
   const selectedNetwork = networks.find(n => n.id === value);
 

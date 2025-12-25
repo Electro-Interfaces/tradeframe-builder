@@ -2,12 +2,13 @@
  * Хук для загрузки и управления данными о ценах по торговой сети
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { stsApiService, Price } from '@/services/stsApi';
 import { tradingPointsService } from '@/services/tradingPointsService';
 import { shiftsService } from '@/services/shiftsService';
 import { Network } from '@/types/network';
 import { Shift } from '@/types/shifts';
+import { useNewAuth } from '@/contexts/NewAuthContext';
 
 export interface NetworkPriceData {
   stationId: string;
@@ -65,6 +66,7 @@ interface UseNetworkPricesReturn {
 
 export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetworkPricesReturn {
   const { network, autoLoad = true, loadHistory = true, historyDays = 90, loadShiftSales = true, shiftsDays = 30, filterPeriod = 'all' } = options;
+  const { user } = useNewAuth();
 
   const [networkPrices, setNetworkPrices] = useState<NetworkPriceData[]>([]);
   const [statistics, setStatistics] = useState<PriceStatistics[]>([]);
@@ -72,6 +74,26 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
   const [salesByPrice, setSalesByPrice] = useState<SalesByPrice[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  // Вычисляем разрешенные ID торговых точек из scopeValues пользователя
+  const allowedTradingPointIds = useMemo(() => {
+    if (!user?.roles) return null; // null означает "нет ограничений"
+
+    const userScopeValues: string[] = [];
+    user.roles.forEach(role => {
+      if (role.scopeValues && role.scopeValues.length > 0) {
+        userScopeValues.push(...role.scopeValues);
+      }
+    });
+
+    // Если scopeValues пустой - нет ограничений (null)
+    if (userScopeValues.length === 0) {
+      return null;
+    }
+
+    // scopeValues содержит ID торговых точек напрямую
+    return new Set(userScopeValues);
+  }, [user?.roles]);
 
   /**
    * Вычисление даты начала периода на основе filterPeriod
@@ -253,9 +275,14 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
       const tradingPoints = await tradingPointsService.getByNetworkId(network.id);
 
       // Фильтруем только активные точки с external_id
-      const activePoints = tradingPoints.filter(
+      let activePoints = tradingPoints.filter(
         tp => !tp.isBlocked && tp.external_id && !isNaN(Number(tp.external_id))
       );
+
+      // Если есть ограничения по торговым точкам, фильтруем по разрешенным ID
+      if (allowedTradingPointIds) {
+        activePoints = activePoints.filter(tp => allowedTradingPointIds.has(tp.id));
+      }
 
       // Загружаем цены для каждой торговой точки
       const pricesPromises = activePoints.map(async (tp) => {
@@ -507,7 +534,7 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
     } finally {
       setLoading(false);
     }
-  }, [network, calculateStatistics, loadHistory, historyDays, loadShiftSales, shiftsDays, filterPeriod, getStartDate]);
+  }, [network, calculateStatistics, loadHistory, historyDays, loadShiftSales, shiftsDays, filterPeriod, getStartDate, allowedTradingPointIds]);
 
   /**
    * Обновление данных

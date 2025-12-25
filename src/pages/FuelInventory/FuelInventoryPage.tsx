@@ -67,9 +67,11 @@ export default function FuelInventory() {
   const [sortColumn, setSortColumn] = useState<'station' | 'fuel'>('station');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Фильтры дат - по умолчанию последние 90 дней
+  // Фильтры дат - по умолчанию последние 7 дней (оптимально для производительности)
   const [dateFrom, setDateFrom] = useState<string>(() => {
-    return '2025-09-03';
+    const date = new Date();
+    date.setDate(date.getDate() - 7);
+    return date.toISOString().split('T')[0];
   });
   const [dateTo, setDateTo] = useState<string>(() => {
     return new Date().toISOString().split('T')[0];

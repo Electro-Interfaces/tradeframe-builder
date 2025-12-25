@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
+import { useNewAuth } from "@/contexts/NewAuthContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DollarSign, Users, Fuel, Monitor, CreditCard, Loader2, RefreshCw, Activity, Calendar, Download, HelpCircle, FileText, FileSpreadsheet, Filter, ChevronDown, ChevronRight } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -31,6 +32,7 @@ import { loadPdfMake } from "@/utils/pdfMake";
 export default function NetworkOverview() {
   const isMobile = useIsMobile();
   const { selectedNetwork, selectedTradingPoint, isAllTradingPoints } = useSelection();
+  const { user } = useNewAuth();
   const { toast } = useToast();
   
   // Даты по умолчанию
@@ -71,7 +73,34 @@ export default function NetworkOverview() {
   const isNetworkOnly = selectedNetwork && !selectedTradingPoint;
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
   const canShowData = selectedNetwork && (selectedTradingPoint === 'all' || selectedTradingPoint || !selectedTradingPoint); // Показываем данные если выбрана сеть
-  
+
+  // Вычисляем разрешенные номера станций из scopeValues пользователя
+  const allowedStationNumbers = useMemo(() => {
+    if (!user?.roles) return null; // null означает "нет ограничений"
+
+    const userScopeValues: string[] = [];
+    user.roles.forEach(role => {
+      if (role.scopeValues && role.scopeValues.length > 0) {
+        userScopeValues.push(...role.scopeValues);
+      }
+    });
+
+    // Если scopeValues пустой - нет ограничений (null)
+    if (userScopeValues.length === 0) {
+      return null;
+    }
+
+    // Извлекаем номера станций из scopeValues (формат: {networkCode}-azs-{stationCode})
+    const stationNumbers = new Set<string>();
+    userScopeValues.forEach(scopeValue => {
+      const parts = scopeValue.split('-azs-');
+      if (parts.length === 2) {
+        stationNumbers.add(parts[1]); // stationCode
+      }
+    });
+
+    return stationNumbers.size > 0 ? stationNumbers : null;
+  }, [user?.roles]);
 
   // Функция загрузки транзакций
   const loadTransactions = async (signal?: AbortSignal) => {
@@ -1015,18 +1044,29 @@ export default function NetworkOverview() {
     return completed;
   }, [transactions, dateFrom, dateTo]);
 
-  // Фильтрованные транзакции по диапазону дат для итогов
+  // Фильтрованные транзакции по диапазону дат и разрешенным станциям
   const filteredTransactions = useMemo(() => {
     const startDate = new Date(dateFrom);
     startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(dateTo);
     endDate.setHours(23, 59, 59, 999);
-    
+
     const filtered = completedTransactions.filter(tx => {
       const txDate = new Date(tx.timestamp || tx.createdAt || tx.date);
-      return txDate >= startDate && txDate <= endDate;
+      const inDateRange = txDate >= startDate && txDate <= endDate;
+
+      // Если нет ограничений по станциям (allowedStationNumbers === null), показываем все
+      if (!allowedStationNumbers) {
+        return inDateRange;
+      }
+
+      // Проверяем, что станция транзакции входит в разрешенные
+      const stationNum = String(tx.stationNumber || tx.station_number || '');
+      const hasStationAccess = allowedStationNumbers.has(stationNum);
+
+      return inDateRange && hasStationAccess;
     });
-    
+
     // Диагностика фильтрации по датам
 
     // Проверяем онлайн заказы после фильтрации по датам
@@ -1040,13 +1080,13 @@ export default function NetworkOverview() {
       const txDate = new Date(tx.timestamp || tx.createdAt || tx.date);
       return txDate < startDate || txDate > endDate;
     });
-    
+
     if (outsideDateRange.length > 0) {
       // Транзакции вне диапазона дат найдены
     }
-    
+
     return filtered;
-  }, [completedTransactions, dateFrom, dateTo]);
+  }, [completedTransactions, dateFrom, dateTo, allowedStationNumbers]);
 
   const totalRevenue = useMemo(() => {
     return filteredTransactions.reduce((sum, tx) => 
@@ -1228,28 +1268,17 @@ export default function NetworkOverview() {
     return breakdown;
   }, [filteredTransactions]);
 
-  // Данные для графика суточной активности (с учетом фильтра по датам)
+  // Данные для графика суточной активности (с учетом фильтра по датам и разрешенным станциям)
   const dailyActivityData = useMemo(() => {
-    if (completedTransactions.length === 0) return [];
-    
-    const startDate = new Date(dateFrom);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(dateTo);
-    endDate.setHours(23, 59, 59, 999);
-    
-    // Фильтруем транзакции по диапазону дат
-    const filteredTransactions = completedTransactions.filter(tx => {
-      const txDate = new Date(tx.timestamp || tx.createdAt || tx.date);
-      return txDate >= startDate && txDate <= endDate;
-    });
-    
+    if (filteredTransactions.length === 0) return [];
+
     const hourlyActivity = Array(24).fill(0).map((_, hour) => ({
       hour: `${hour}:00`,
       hourNum: hour,
       operations: 0,
       revenue: 0
     }));
-    
+
     filteredTransactions.forEach(tx => {
       const txTime = tx.timestamp || tx.createdAt || tx.date || tx.apiData?.timestamp;
       if (txTime) {
@@ -1260,25 +1289,19 @@ export default function NetworkOverview() {
         }
       }
     });
-    
+
     return hourlyActivity;
-  }, [completedTransactions, dateFrom, dateTo]);
+  }, [filteredTransactions]);
 
   // Данные для группировки по дням с разбивкой по видам топлива
   const dailySalesData = useMemo(() => {
-    if (completedTransactions.length === 0) return { data: [], fuelTypes: [] };
-    
+    if (filteredTransactions.length === 0) return { data: [], fuelTypes: [] };
+
     const startDate = new Date(dateFrom);
     startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(dateTo);
     endDate.setHours(23, 59, 59, 999);
     const grouped = {};
-    
-    // Фильтруем транзакции по диапазону дат
-    const filteredTransactions = completedTransactions.filter(tx => {
-      const txDate = new Date(tx.timestamp || tx.createdAt || tx.date);
-      return txDate >= startDate && txDate <= endDate;
-    });
     
     // Функция для определения приоритета сортировки топлива (дублируем для консистентности)
     const getFuelPriority = (fuelType) => {
@@ -1357,13 +1380,21 @@ export default function NetworkOverview() {
         })),
       fuelTypes
     };
-  }, [completedTransactions, dateFrom, dateTo]);
+  }, [filteredTransactions, dateFrom, dateTo]);
 
   // Данные для тепловой карты активности по часам за последние 7 дней
   const heatmapData = useMemo(() => {
 
     if (!selectedNetwork || transactions.length === 0) return [];
-    
+
+    // Фильтруем транзакции по разрешенным станциям
+    const stationFilteredTransactions = allowedStationNumbers
+      ? transactions.filter(tx => {
+          const stationNum = String(tx.stationNumber || tx.station_number || '');
+          return allowedStationNumbers.has(stationNum);
+        })
+      : transactions;
+
     // Берем последние 7 дней от сегодняшней даты назад
     const today = new Date();
     today.setHours(23, 59, 59, 999); // Устанавливаем на конец дня
@@ -1371,7 +1402,7 @@ export default function NetworkOverview() {
     // Создаем сетку 7 дней × 24 часа (последние 7 дней)
     const heatmapGrid = [];
     const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-    
+
     // Генерируем последние 7 дней (от 6 дней назад до сегодня)
     for (let dayOffset = 6; dayOffset >= 0; dayOffset--) {
       const currentDate = new Date();
@@ -1379,17 +1410,17 @@ export default function NetworkOverview() {
       currentDate.setHours(0, 0, 0, 0); // Устанавливаем на начало дня
       const dateStr = currentDate.toISOString().split('T')[0];
       const dayOfWeek = currentDate.getDay(); // 0=воскресенье, 1=понедельник, etc.
-      
+
       const dayRow = {
         date: dateStr,
         dayName: dayNames[dayOfWeek],
         dayOfWeek: dayOfWeek,
         hours: []
       };
-      
+
       // Генерируем 24 часа для этого дня
       for (let hour = 0; hour < 24; hour++) {
-        const hourTransactions = transactions.filter(tx => {
+        const hourTransactions = stationFilteredTransactions.filter(tx => {
           const txDate = new Date(tx.timestamp || tx.createdAt || tx.date);
           const txHour = txDate.getHours();
           return txDate.getFullYear() === currentDate.getFullYear() &&
@@ -1418,9 +1449,9 @@ export default function NetworkOverview() {
       
       heatmapGrid.push(dayRow);
     }
-    
+
     return heatmapGrid;
-  }, [selectedNetwork, transactions]);
+  }, [selectedNetwork, transactions, allowedStationNumbers]);
 
   // Pull-to-refresh функционал
   const handleRefreshData = async () => {

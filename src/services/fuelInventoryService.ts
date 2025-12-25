@@ -15,6 +15,7 @@ export interface InventoryParams {
   station?: number;         // external_id ТТ (опционально)
   dt_beg?: string;
   dt_end?: string;
+  allowedStations?: Set<string> | null; // Разрешенные станции для фильтрации по ролям
   onProgress?: (loaded: number, total: number) => void; // Callback для отслеживания прогресса загрузки смен
 }
 
@@ -123,6 +124,10 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
       if (!point.external_id) return false;
       // Если выбрана конкретная ТТ - обрабатываем только её
       if (params.station && parseInt(point.external_id) !== params.station) {
+        return false;
+      }
+      // Фильтрация по разрешенным станциям (RBAC)
+      if (params.allowedStations && !params.allowedStations.has(point.external_id)) {
         return false;
       }
       return true;
