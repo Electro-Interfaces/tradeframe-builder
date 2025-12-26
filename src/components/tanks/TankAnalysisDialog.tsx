@@ -60,7 +60,7 @@ const PERIOD_FILTERS: { value: AnalysisPeriod; label: string }[] = [
 
 export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDialogProps) {
   const { selectedNetwork, selectedTradingPoint } = useSelection();
-  const [period, setPeriod] = useState<AnalysisPeriod>('24h');
+  const [period, setPeriod] = useState<AnalysisPeriod>('7d');
   const [history, setHistory] = useState<TankHistoryRecord[]>([]);
   const [stats, setStats] = useState<TankHistoryStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -142,12 +142,12 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
     }
   };
 
-  // Загрузка при открытии диалога или смене периода
+  // Загрузка при открытии диалога, смене периода или когда загрузился external_id
   useEffect(() => {
-    if (open) {
+    if (open && tradingPointExternalId) {
       loadHistory();
     }
-  }, [open, period]);
+  }, [open, period, tradingPointExternalId]);
 
   // ═══════════════════════════════════════════════════════════════════
   // НОВАЯ ЛОГИКА: Используем оптимизированные функции из tankAnalysisCalculations.ts
@@ -216,7 +216,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
         </DialogHeader>
 
         {/* Фильтры периода */}
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
           {PERIOD_FILTERS.map(filter => (
             <Button
               key={filter.value}
@@ -224,6 +224,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
               size="sm"
               onClick={() => setPeriod(filter.value)}
               disabled={loading}
+              className="min-w-[70px]"
             >
               {filter.label}
             </Button>
@@ -233,7 +234,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
             size="sm"
             onClick={loadHistory}
             disabled={loading}
-            className="ml-auto"
+            className="ml-auto min-w-[100px]"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Обновить
@@ -242,8 +243,8 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
 
         {/* Статистика */}
         {stats && (
-          <div className="mb-4">
-            <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+          <div className="mb-4 overflow-x-auto">
+            <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden min-w-[600px]">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-700 bg-slate-750">
@@ -420,13 +421,13 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
         {/* Графики */}
         {!loading && !error && chartData.length > 0 && (
           <Tabs defaultValue="release" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 bg-slate-800">
-              <TabsTrigger value="release">Реализация</TabsTrigger>
-              <TabsTrigger value="minusa">Погрешность</TabsTrigger>
-              <TabsTrigger value="volume">Остатки</TabsTrigger>
-              <TabsTrigger value="temperature">Температура</TabsTrigger>
-              <TabsTrigger value="density">Плотность</TabsTrigger>
-              <TabsTrigger value="water">Вода</TabsTrigger>
+            <TabsList className="flex flex-wrap gap-1 w-full bg-slate-800 h-auto p-1 md:grid md:grid-cols-6">
+              <TabsTrigger value="release" className="flex-1 min-w-[80px] text-xs md:text-sm">Реализация</TabsTrigger>
+              <TabsTrigger value="minusa" className="flex-1 min-w-[80px] text-xs md:text-sm">Погрешность</TabsTrigger>
+              <TabsTrigger value="volume" className="flex-1 min-w-[80px] text-xs md:text-sm">Остатки</TabsTrigger>
+              <TabsTrigger value="temperature" className="flex-1 min-w-[80px] text-xs md:text-sm">Температура</TabsTrigger>
+              <TabsTrigger value="density" className="flex-1 min-w-[80px] text-xs md:text-sm">Плотность</TabsTrigger>
+              <TabsTrigger value="water" className="flex-1 min-w-[80px] text-xs md:text-sm">Вода</TabsTrigger>
             </TabsList>
 
             {/* График остатков */}
