@@ -60,7 +60,8 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
   // React Query для загрузки данных с кэшированием
   const {
     data: inventory = [],
-    isLoading: loading,
+    isLoading,
+    isFetching,
     error: queryError,
     refetch: loadInventory
   } = useQuery<TankInventory[], Error>({
@@ -73,23 +74,32 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
         throw new Error('Не выбрана торговая сеть');
       }
 
-      const data = await getInventoryFromShiftReports({
-        system: parseInt(selectedNetwork.external_id),
-        networkId: selectedNetwork.id,
-        station: selectedStation ? parseInt(selectedStation.external_id) : undefined,
-        dt_beg: formatDateForApi(dateFrom, false),
-        dt_end: formatDateForApi(dateTo, true),
-        allowedStations: allowedStationNumbers, // Передаем разрешенные станции для фильтрации по ролям
-        onProgress: (loaded, total) => {
-          setLoadingProgress({ loaded, total });
+      try {
+        const data = await getInventoryFromShiftReports({
+          system: parseInt(selectedNetwork.external_id),
+          networkId: selectedNetwork.id,
+          station: selectedStation ? parseInt(selectedStation.external_id) : undefined,
+          dt_beg: formatDateForApi(dateFrom, false),
+          dt_end: formatDateForApi(dateTo, true),
+          allowedStations: allowedStationNumbers,
+          onProgress: (loaded, total) => {
+            setLoadingProgress({ loaded, total });
+          }
+        });
+
+        // Сбрасываем прогресс после завершения
+        setLoadingProgress({ loaded: 0, total: 0 });
+
+        if (data.length === 0) {
+          throw new Error('Нет данных об остатках топлива');
         }
-      });
 
-      if (data.length === 0) {
-        throw new Error('Нет данных об остатках топлива');
+        return data;
+      } catch (err) {
+        // Сбрасываем прогресс при ошибке
+        setLoadingProgress({ loaded: 0, total: 0 });
+        throw err;
       }
-
-      return data;
     },
     enabled: !!selectedNetwork,
     staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
@@ -97,6 +107,9 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
     retry: 1,
     refetchOnWindowFocus: false
   });
+
+  // Используем isFetching для отображения индикатора (работает и для refetch)
+  const loading = isLoading || isFetching;
 
   // Агрегируем данные по видам топлива (мемоизируем для производительности)
   const fuelSummaries: FuelInventorySummary[] = useMemo(() => {
