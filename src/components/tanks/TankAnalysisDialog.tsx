@@ -59,13 +59,21 @@ const PERIOD_FILTERS: { value: AnalysisPeriod; label: string }[] = [
 ];
 
 export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDialogProps) {
-  const { selectedNetwork, selectedTradingPoint } = useSelection();
+  // Используем selectedStation из контекста - там уже есть external_id
+  const { selectedNetwork, selectedStation } = useSelection();
   const [period, setPeriod] = useState<AnalysisPeriod>('7d');
   const [history, setHistory] = useState<TankHistoryRecord[]>([]);
   const [stats, setStats] = useState<TankHistoryStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tradingPointExternalId, setTradingPointExternalId] = useState<string | null>(null);
+
+  // Прогресс загрузки
+  const [loadingStage, setLoadingStage] = useState<string>('');
+  const [loadingProgress, setLoadingProgress] = useState<{
+    tankHistory: boolean;
+    transactions: boolean;
+    receipts: boolean;
+  }>({ tankHistory: false, transactions: false, receipts: false });
 
   // Данные для книжной реализации
   const [transactions, setTransactions] = useState<TransactionV2Response | null>(null);
@@ -74,23 +82,6 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
   const [bookReceipts, setBookReceipts] = useState<number>(0);
   const [periodDates, setPeriodDates] = useState<{ dt_beg: string; dt_end: string } | null>(null);
 
-  // Получаем external_id торговой точки
-  useEffect(() => {
-    const fetchTradingPointData = async () => {
-      if (!selectedTradingPoint) return;
-
-      try {
-        const { tradingPointsService } = await import('@/services/tradingPointsService');
-        const tradingPoint = await tradingPointsService.getById(selectedTradingPoint);
-        setTradingPointExternalId(tradingPoint?.external_id || null);
-      } catch (err) {
-        setError('Ошибка загрузки данных торговой точки');
-      }
-    };
-
-    fetchTradingPointData();
-  }, [selectedTradingPoint]);
-
   // Загрузка данных
   const loadHistory = async () => {
     if (!selectedNetwork?.external_id) {
@@ -98,7 +89,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
       return;
     }
 
-    if (!tradingPointExternalId) {
+    if (!selectedStation?.external_id) {
       setError('У торговой точки отсутствует external_id');
       return;
     }
@@ -108,6 +99,8 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
 
     setLoading(true);
     setError(null);
+    setLoadingStage('Подготовка запросов...');
+    setLoadingProgress({ tankHistory: false, transactions: false, receipts: false });
 
     try {
       // Вычисляем даты периода
@@ -116,16 +109,26 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
 
       const params = {
         system: parseInt(selectedNetwork.external_id),
-        station: parseInt(tradingPointExternalId),
+        station: parseInt(selectedStation.external_id),
         dt_beg: dates.dt_beg,
         dt_end: dates.dt_end
       };
 
+      setLoadingStage('Загрузка данных с сервера...');
+
       // Параллельно загружаем историю резервуара, транзакции и поступления
       const [historyResult, bookData] = await Promise.all([
-        getTankAnalysis(params, tankNumber, period),
-        getBookData(params, tankNumber)
+        getTankAnalysis(params, tankNumber, period).then(result => {
+          setLoadingProgress(prev => ({ ...prev, tankHistory: true }));
+          return result;
+        }),
+        getBookData(params, tankNumber).then(result => {
+          setLoadingProgress(prev => ({ ...prev, transactions: true, receipts: true }));
+          return result;
+        })
       ]);
+
+      setLoadingStage('Обработка данных...');
 
       setHistory(historyResult.history);
       setStats(historyResult.stats);
@@ -142,12 +145,13 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
     }
   };
 
-  // Загрузка при открытии диалога, смене периода или когда загрузился external_id
+  // Загрузка при открытии диалога, смене периода или станции
   useEffect(() => {
-    if (open && tradingPointExternalId) {
+    // Предотвращаем повторные вызовы если уже идет загрузка
+    if (open && selectedStation?.external_id && !loading) {
       loadHistory();
     }
-  }, [open, period, tradingPointExternalId]);
+  }, [open, period, selectedStation?.external_id]);
 
   // ═══════════════════════════════════════════════════════════════════
   // НОВАЯ ЛОГИКА: Используем оптимизированные функции из tankAnalysisCalculations.ts
@@ -407,8 +411,25 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
 
         {/* Состояние загрузки/ошибки */}
         {loading && (
-          <div className="flex justify-center items-center h-64">
+          <div className="flex flex-col justify-center items-center h-64 gap-4">
             <RefreshCw className="w-12 h-12 text-blue-500 animate-spin" />
+            <div className="text-center">
+              <p className="text-slate-300 text-sm mb-3">{loadingStage}</p>
+              <div className="flex gap-6 text-xs">
+                <div className={`flex items-center gap-2 ${loadingProgress.tankHistory ? 'text-green-400' : 'text-slate-500'}`}>
+                  <div className={`w-2 h-2 rounded-full ${loadingProgress.tankHistory ? 'bg-green-400' : 'bg-slate-600 animate-pulse'}`} />
+                  История резервуара
+                </div>
+                <div className={`flex items-center gap-2 ${loadingProgress.transactions ? 'text-green-400' : 'text-slate-500'}`}>
+                  <div className={`w-2 h-2 rounded-full ${loadingProgress.transactions ? 'bg-green-400' : 'bg-slate-600 animate-pulse'}`} />
+                  Транзакции
+                </div>
+                <div className={`flex items-center gap-2 ${loadingProgress.receipts ? 'text-green-400' : 'text-slate-500'}`}>
+                  <div className={`w-2 h-2 rounded-full ${loadingProgress.receipts ? 'bg-green-400' : 'bg-slate-600 animate-pulse'}`} />
+                  Поступления
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
