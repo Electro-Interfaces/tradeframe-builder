@@ -10,22 +10,76 @@ type SelectionContextValue = {
   setSelectedNetwork: (networkId: string) => void;
   selectedTradingPoint: string;
   setSelectedTradingPoint: (v: string) => void;
-  selectedStation: TradingPoint | null; // ✅ ДОБАВЛЕНО: Объект торговой точки
+  selectedStation: TradingPoint | null;
   isAllTradingPoints: boolean;
   isInitialized: boolean;
 };
 
 const SelectionContext = createContext<SelectionContextValue | undefined>(undefined);
 
+/**
+ * Вспомогательная функция для извлечения разрешенных сетей из ролей пользователя
+ * Учитывает два формата scope_values:
+ * 1. scope='network': UUID сетей напрямую
+ * 2. scope='trading_point'/'assigned': ID точек в формате {networkCode}-azs-{stationCode}
+ */
+function getAccessibleNetworks(
+  roles: Array<{ scope?: string; scopeValues?: string[] }> | undefined,
+  allNetworks: Network[]
+): { networkIds: Set<string>; networkCodes: Set<string>; hasRestrictions: boolean } {
+  const networkIds = new Set<string>(); // UUID сетей для scope='network'
+  const networkCodes = new Set<string>(); // Коды сетей из торговых точек
+
+  if (!roles) {
+    return { networkIds, networkCodes, hasRestrictions: false };
+  }
+
+  let hasRestrictions = false;
+
+  roles.forEach(role => {
+    if (role.scopeValues && role.scopeValues.length > 0) {
+      hasRestrictions = true;
+      if (role.scope === 'network') {
+        // Для scope='network' scopeValues содержат UUID сетей
+        role.scopeValues.forEach(id => networkIds.add(id));
+      } else if (role.scope === 'trading_point' || role.scope === 'assigned') {
+        // Для trading_point/assigned scopeValues содержат ID точек
+        role.scopeValues.forEach(scopeValue => {
+          const parts = scopeValue.split('-azs-');
+          if (parts.length === 2) {
+            networkCodes.add(parts[0]);
+          }
+        });
+      }
+    }
+  });
+
+  return { networkIds, networkCodes, hasRestrictions };
+}
+
+/**
+ * Проверяет, есть ли доступ к сети
+ * Проверяет network.id, network.code И network.external_id,
+ * т.к. scopeValues могут использовать любой из этих идентификаторов
+ */
+function hasNetworkAccess(
+  network: Network,
+  networkIds: Set<string>,
+  networkCodes: Set<string>,
+  hasRestrictions: boolean
+): boolean {
+  if (!hasRestrictions) return true;
+  return networkIds.has(network.id) ||
+         networkCodes.has(network.code) ||
+         networkCodes.has(network.external_id);
+}
+
 export function SelectionProvider({ children }: { children: React.ReactNode }) {
-  // ✅ ИСПРАВЛЕНИЕ: Инициализируем state из localStorage СРАЗУ (синхронно)
   const [selectedNetworkId, setSelectedNetworkId] = useState<string>(() => {
     if (typeof window === 'undefined') return "";
     const saved = localStorage.getItem("tc:selectedNetwork") || "";
-    // Проверяем что saved это UUID (формат: 8-4-4-4-12 символов с дефисами)
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved);
     if (saved && !isUUID) {
-      // Если в localStorage лежит не UUID (например старый external_id="15"), очищаем
       console.warn(`⚠️ Invalid network ID in localStorage: "${saved}", clearing...`);
       localStorage.removeItem("tc:selectedNetwork");
       return "";
@@ -45,29 +99,19 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!selectedNetworkId || !user?.roles) return;
 
-    // Собираем scopeValues из ролей пользователя
-    const userScopeValues: string[] = [];
-    user.roles.forEach(role => {
-      if (role.scopeValues && role.scopeValues.length > 0) {
-        userScopeValues.push(...role.scopeValues);
-      }
-    });
+    const { networkIds, networkCodes, hasRestrictions } = getAccessibleNetworks(user.roles, []);
 
     // Если нет ограничений - ничего не делаем
-    if (userScopeValues.length === 0) return;
-
-    // Извлекаем разрешенные коды сетей
-    const allowedNetworkCodes = new Set<string>();
-    userScopeValues.forEach(scopeValue => {
-      const parts = scopeValue.split('-azs-');
-      if (parts.length === 2) {
-        allowedNetworkCodes.add(parts[0]);
-      }
-    });
+    if (!hasRestrictions) return;
 
     // Проверяем, есть ли доступ к текущей сети
     networksService.getById(selectedNetworkId).then(network => {
-      if (network && !allowedNetworkCodes.has(network.code)) {
+      if (!network) {
+        setSelectedNetworkId("");
+        return;
+      }
+
+      if (!hasNetworkAccess(network, networkIds, networkCodes, hasRestrictions)) {
         // Нет доступа - сбрасываем выбор сети
         localStorage.removeItem("tc:selectedNetwork");
         localStorage.removeItem("tc:selectedTradingPoint");
@@ -83,37 +127,20 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
   // Получаем объект сети по ID
   const [selectedNetwork, setSelectedNetworkState] = useState<Network | null>(null);
 
-  // ✅ ДОБАВЛЕНО: Получаем объект торговой точки по ID
+  // Получаем объект торговой точки по ID
   const [selectedStation, setSelectedStation] = useState<TradingPoint | null>(null);
-  
+
   // Загружаем первую доступную сеть при старте
   useEffect(() => {
     if (!selectedNetworkId) {
       networksService.getAll().then(allNetworks => {
         if (allNetworks.length > 0) {
-          // Собираем scopeValues из ролей пользователя для фильтрации сетей
-          const userScopeValues: string[] = [];
-          if (user?.roles) {
-            user.roles.forEach(role => {
-              if (role.scopeValues && role.scopeValues.length > 0) {
-                userScopeValues.push(...role.scopeValues);
-              }
-            });
-          }
+          const { networkIds, networkCodes, hasRestrictions } = getAccessibleNetworks(user?.roles, allNetworks);
 
-          let availableNetworks = allNetworks;
-
-          // Если есть ограничения по scope_values - фильтруем сети
-          if (userScopeValues.length > 0) {
-            const allowedNetworkCodes = new Set<string>();
-            userScopeValues.forEach(scopeValue => {
-              const parts = scopeValue.split('-azs-');
-              if (parts.length === 2) {
-                allowedNetworkCodes.add(parts[0]);
-              }
-            });
-            availableNetworks = allNetworks.filter(n => allowedNetworkCodes.has(n.code));
-          }
+          // Фильтруем сети по доступу
+          const availableNetworks = hasRestrictions
+            ? allNetworks.filter(n => hasNetworkAccess(n, networkIds, networkCodes, hasRestrictions))
+            : allNetworks;
 
           if (availableNetworks.length > 0) {
             // По умолчанию выбираем сеть БТО (external_id === "15") если она доступна
@@ -131,7 +158,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [user]);
-  
+
   useEffect(() => {
     if (selectedNetworkId) {
       networksService.getById(selectedNetworkId)
@@ -144,19 +171,26 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
             if (!savedTradingPoint || savedTradingPoint.trim() === '') {
               tradingPointsService.getByNetworkId(selectedNetworkId)
                 .then(tradingPoints => {
-                  // Собираем scopeValues из ролей пользователя для фильтрации
-                  const userScopeValues: string[] = [];
-                  if (user?.roles) {
+                  // Собираем scopeValues из ролей пользователя для фильтрации точек
+                  // Для scope='network' - все точки сети доступны
+                  // Для scope='trading_point' - только конкретные точки
+                  const pointScopeValues: string[] = [];
+                  const hasNetworkScope = user?.roles?.some(role =>
+                    role.scope === 'network' && role.scopeValues?.includes(network?.id || '')
+                  );
+
+                  if (!hasNetworkScope && user?.roles) {
                     user.roles.forEach(role => {
-                      if (role.scopeValues && role.scopeValues.length > 0) {
-                        userScopeValues.push(...role.scopeValues);
+                      if ((role.scope === 'trading_point' || role.scope === 'assigned') &&
+                          role.scopeValues && role.scopeValues.length > 0) {
+                        pointScopeValues.push(...role.scopeValues);
                       }
                     });
                   }
 
-                  // Фильтруем торговые точки если есть ограничения
-                  const availablePoints = userScopeValues.length > 0
-                    ? tradingPoints.filter(p => userScopeValues.includes(p.id))
+                  // Фильтруем торговые точки если есть ограничения по точкам (не по сетям)
+                  const availablePoints = pointScopeValues.length > 0
+                    ? tradingPoints.filter(p => pointScopeValues.includes(p.id))
                     : tradingPoints;
 
                   // Ищем торговую точку "АЗС 4" среди доступных
@@ -214,7 +248,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedNetworkId]);
 
-  // ✅ ДОБАВЛЕНО: Загружаем объект торговой точки при изменении selectedTradingPoint
+  // Загружаем объект торговой точки при изменении selectedTradingPoint
   useEffect(() => {
     if (selectedTradingPoint && selectedTradingPoint !== 'all') {
       tradingPointsService.getById(selectedTradingPoint)
@@ -232,24 +266,31 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
   // Обертка для setSelectedNetwork, которая сбрасывает торговую точку при смене сети
   const handleSetSelectedNetwork = (networkId: string) => {
-    // Для МенеджерБТО разрешаем менять сеть только на БТО
-    if (user && user.role === 'bto_manager') {
-      // Проверяем, что новая сеть - это БТО
-      networksService.getById(networkId).then(network => {
-        if (network && (network.external_id === "15" || network.name?.toLowerCase().includes('бто'))) {
-          setSelectedNetworkId(networkId);
-          if (selectedTradingPoint) {
-            setSelectedTradingPoint("");
-          }
-        } else {
-          console.warn('BTO manager access denied for network:', network?.name);
-          // Не меняем сеть, остаемся на БТО
+    // Проверяем, есть ли у пользователя ограничения по сетям (через scope)
+    const hasNetworkRestrictions = user?.roles?.some(role =>
+      role.scope === 'network' && role.scopeValues && role.scopeValues.length > 0
+    );
+
+    if (user && hasNetworkRestrictions) {
+      // Собираем все разрешенные сети из всех ролей
+      const allowedNetworkIds = new Set<string>();
+      user.roles?.forEach(role => {
+        if (role.scope === 'network' && role.scopeValues) {
+          role.scopeValues.forEach(id => allowedNetworkIds.add(id));
         }
-      }).catch(error => {
-        console.error('Network validation error:', error);
       });
+
+      // Проверяем, разрешена ли выбранная сеть
+      if (allowedNetworkIds.has(networkId)) {
+        setSelectedNetworkId(networkId);
+        if (selectedTradingPoint) {
+          setSelectedTradingPoint("");
+        }
+      } else {
+        // Не меняем сеть, остаемся на текущей
+      }
     } else {
-      // Для остальных ролей - обычная логика
+      // Для пользователей без ограничений - обычная логика
       setSelectedNetworkId(networkId);
       // Сбрасываем торговую точку при смене сети
       if (selectedTradingPoint) {
@@ -257,8 +298,6 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
       }
     }
   };
-
-  // ✅ УДАЛЕНО: Hydrate from localStorage теперь происходит в useState(() => ...) выше
 
   // Persist to localStorage
   useEffect(() => {
@@ -288,7 +327,7 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
     setSelectedNetwork: handleSetSelectedNetwork,
     selectedTradingPoint,
     setSelectedTradingPoint,
-    selectedStation, // ✅ ДОБАВЛЕНО: Объект торговой точки
+    selectedStation,
     isAllTradingPoints,
     isInitialized,
   };
@@ -303,4 +342,3 @@ export function useSelection() {
   if (!ctx) throw new Error("useSelection must be used within SelectionProvider");
   return ctx;
 }
-
