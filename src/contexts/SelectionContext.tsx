@@ -96,31 +96,48 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
   const { user } = useNewAuth();
 
   // Проверяем, имеет ли пользователь доступ к сохраненной в localStorage сети
+  // И автоматически выбираем доступную сеть если текущая недоступна
   useEffect(() => {
-    if (!selectedNetworkId || !user?.roles) return;
+    if (!user?.roles) return;
 
     const { networkIds, networkCodes, hasRestrictions } = getAccessibleNetworks(user.roles, []);
 
     // Если нет ограничений - ничего не делаем
     if (!hasRestrictions) return;
 
+    // Функция для выбора первой доступной сети
+    const selectFirstAvailableNetwork = async () => {
+      const allNetworks = await networksService.getAll();
+      const availableNetworks = allNetworks.filter(n =>
+        hasNetworkAccess(n, networkIds, networkCodes, hasRestrictions)
+      );
+
+      if (availableNetworks.length > 0) {
+        // По умолчанию выбираем сеть БТО (external_id === "15") если она доступна
+        const defaultNetwork = availableNetworks.find(n => n.external_id === "15");
+        const networkToSelect = defaultNetwork || availableNetworks[0];
+        setSelectedNetworkId(networkToSelect.id);
+      }
+    };
+
+    // Если нет выбранной сети - выбираем первую доступную
+    if (!selectedNetworkId) {
+      selectFirstAvailableNetwork();
+      return;
+    }
+
     // Проверяем, есть ли доступ к текущей сети
     networksService.getById(selectedNetworkId).then(network => {
-      if (!network) {
-        setSelectedNetworkId("");
-        return;
-      }
-
-      if (!hasNetworkAccess(network, networkIds, networkCodes, hasRestrictions)) {
-        // Нет доступа - сбрасываем выбор сети
+      if (!network || !hasNetworkAccess(network, networkIds, networkCodes, hasRestrictions)) {
+        // Нет доступа - выбираем первую доступную сеть
         localStorage.removeItem("tc:selectedNetwork");
         localStorage.removeItem("tc:selectedTradingPoint");
-        setSelectedNetworkId("");
         setSelectedTradingPoint("");
+        selectFirstAvailableNetwork();
       }
     }).catch(() => {
-      // Сеть не найдена - сбрасываем
-      setSelectedNetworkId("");
+      // Сеть не найдена - выбираем первую доступную
+      selectFirstAvailableNetwork();
     });
   }, [user?.roles, selectedNetworkId]);
 
@@ -129,35 +146,6 @@ export function SelectionProvider({ children }: { children: React.ReactNode }) {
 
   // Получаем объект торговой точки по ID
   const [selectedStation, setSelectedStation] = useState<TradingPoint | null>(null);
-
-  // Загружаем первую доступную сеть при старте
-  useEffect(() => {
-    if (!selectedNetworkId) {
-      networksService.getAll().then(allNetworks => {
-        if (allNetworks.length > 0) {
-          const { networkIds, networkCodes, hasRestrictions } = getAccessibleNetworks(user?.roles, allNetworks);
-
-          // Фильтруем сети по доступу
-          const availableNetworks = hasRestrictions
-            ? allNetworks.filter(n => hasNetworkAccess(n, networkIds, networkCodes, hasRestrictions))
-            : allNetworks;
-
-          if (availableNetworks.length > 0) {
-            // По умолчанию выбираем сеть БТО (external_id === "15") если она доступна
-            const defaultNetwork = availableNetworks.find(n => n.external_id === "15");
-            if (defaultNetwork) {
-              setSelectedNetworkId(defaultNetwork.id);
-            } else {
-              // Иначе первую доступную
-              setSelectedNetworkId(availableNetworks[0].id);
-            }
-          }
-        }
-      }).catch(error => {
-        console.error('Failed to load networks at startup:', error);
-      });
-    }
-  }, [user]);
 
   useEffect(() => {
     if (selectedNetworkId) {
