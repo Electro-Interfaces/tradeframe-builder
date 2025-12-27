@@ -42,30 +42,61 @@ export function PointSelect({ value, onValueChange, className, disabled, network
   });
 
   // Фильтруем торговые точки по scope_values из роли пользователя
+  // Учитываем разные форматы scope_values:
+  // - scope='network': UUID сетей
+  // - scope='trading_point'/'assigned': ID точек в формате {networkCode}-azs-{stationCode}
   const tradingPoints = useMemo(() => {
-    // Собираем все scopeValues из всех ролей пользователя
-    const userScopeValues: string[] = [];
-    if (user?.roles) {
-      user.roles.forEach(role => {
-        if (role.scopeValues && role.scopeValues.length > 0) {
-          userScopeValues.push(...role.scopeValues);
-        }
-      });
-    }
+    if (!user?.roles) return allTradingPoints;
 
-    // Если scopeValues пустой - показываем все торговые точки (полный доступ)
-    if (userScopeValues.length === 0) {
+    const tradingPointIds = new Set<string>(); // UUID точек (если формат UUID)
+    const stationCodes = new Set<string>(); // external_id точек из формата {networkCode}-azs-{stationCode}
+    const networkIds = new Set<string>(); // UUID сетей для scope='network'
+    let hasRestrictions = false;
+
+    user.roles.forEach(role => {
+      if (role.scopeValues && role.scopeValues.length > 0) {
+        hasRestrictions = true;
+        if (role.scope === 'network') {
+          // Для scope='network' scopeValues содержат UUID сетей
+          role.scopeValues.forEach(id => networkIds.add(id));
+        } else if (role.scope === 'trading_point' || role.scope === 'assigned') {
+          // Для trading_point/assigned scopeValues могут быть:
+          // 1. UUID точки напрямую
+          // 2. Формат {networkCode}-azs-{stationCode} (например "65-azs-3")
+          role.scopeValues.forEach(scopeValue => {
+            const parts = scopeValue.split('-azs-');
+            if (parts.length === 2) {
+              // Формат {networkCode}-azs-{stationCode}
+              stationCodes.add(parts[1]); // stationCode = external_id точки
+            } else {
+              // Возможно UUID
+              tradingPointIds.add(scopeValue);
+            }
+          });
+        }
+      }
+    });
+
+    // Если нет ограничений - показываем все торговые точки (полный доступ)
+    if (!hasRestrictions) {
       return allTradingPoints;
     }
 
-    // Фильтруем торговые точки по ID из scopeValues
-    return allTradingPoints.filter(point => userScopeValues.includes(point.id));
+    // Фильтруем: по UUID точки, по external_id (stationCode) ИЛИ по принадлежности к разрешенной сети
+    return allTradingPoints.filter(point =>
+      tradingPointIds.has(point.id) ||
+      (point.external_id && stationCodes.has(point.external_id)) ||
+      networkIds.has(point.networkId)
+    );
   }, [allTradingPoints, user?.roles]);
 
-  // Проверяем, есть ли ограничения по торговым точкам
+  // Проверяем, есть ли ограничения по торговым точкам или сетям
   const hasRestrictedAccess = useMemo(() => {
     if (!user?.roles) return false;
-    return user.roles.some(role => role.scopeValues && role.scopeValues.length > 0);
+    return user.roles.some(role =>
+      (role.scope === 'network' || role.scope === 'trading_point' || role.scope === 'assigned') &&
+      role.scopeValues && role.scopeValues.length > 0
+    );
   }, [user?.roles]);
 
   const selectedPoint = tradingPoints.find(p => p.id === value);
