@@ -27,6 +27,7 @@ interface AuthContextType {
   // Проверки разрешений
   hasPermission: (permission: string) => boolean;
   isAdmin: () => boolean;
+  isSuperAdmin: () => boolean;
 
   // Специфические проверки (обратная совместимость)
   canManageTanks: () => boolean;
@@ -176,12 +177,30 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
         .filter((ur: any) => ur.role)
         .map((ur: any) => {
           const role = ur.role;
+          // ИСПРАВЛЕНО: берем scope_value из user_roles (персональные ограничения),
+          // а не scope_values из roles (дефолтные значения роли)
+          let userScopeValues: string[] = [];
+          if (ur.scope_value) {
+            try {
+              // scope_value хранится как JSON строка в user_roles
+              userScopeValues = typeof ur.scope_value === 'string'
+                ? JSON.parse(ur.scope_value)
+                : ur.scope_value;
+            } catch {
+              userScopeValues = [];
+            }
+          }
+          // Fallback на scope_values из roles если нет персональных
+          if (userScopeValues.length === 0 && role.scope_values) {
+            userScopeValues = role.scope_values;
+          }
+
           return {
             roleId: String(role.id),
             roleName: role.name,
             roleCode: role.code || roleNameToCode[role.name] || role.name,
             scope: role.scope,
-            scopeValues: role.scope_values || [],
+            scopeValues: userScopeValues,
             permissions: role.permissions || []
           };
         });
@@ -369,6 +388,14 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   };
 
   /**
+   * Проверка суперадминских прав
+   */
+  const isSuperAdmin = (): boolean => {
+    if (!user) return false;
+    return permissionService.isSuperAdmin(user);
+  };
+
+  /**
    * Видимость меню
    */
   const getMenuVisibility = (): MenuVisibility => {
@@ -427,6 +454,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     changePassword,
     hasPermission,
     isAdmin,
+    isSuperAdmin,
     canManageTanks,
     canCalibrate,
     canManagePrices,
