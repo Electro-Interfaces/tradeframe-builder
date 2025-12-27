@@ -17,7 +17,7 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
   const [open, setOpen] = useState(false);
   const { user } = useNewAuth();
 
-  // ✅ ИСПРАВЛЕНИЕ: Используем React Query для кэширования
+  // Используем React Query для кэширования
   const { data: allNetworks = [] } = useQuery({
     queryKey: ['networks', user?.role],
     queryFn: () => networksService.getAll(user?.role),
@@ -27,33 +27,41 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
 
   // Фильтруем сети по scope_values из ролей пользователя
   const networks = useMemo(() => {
-    // Собираем все scopeValues из всех ролей пользователя
-    const userScopeValues: string[] = [];
+    // Собираем scopeValues с учетом типа scope
+    const networkIds = new Set<string>(); // UUID сетей для scope='network'
+    const networkCodes = new Set<string>(); // Коды сетей из торговых точек
+    let hasRestrictions = false;
+
     if (user?.roles) {
       user.roles.forEach(role => {
         if (role.scopeValues && role.scopeValues.length > 0) {
-          userScopeValues.push(...role.scopeValues);
+          hasRestrictions = true;
+          if (role.scope === 'network') {
+            // Для scope='network' scopeValues содержат UUID сетей
+            role.scopeValues.forEach(id => networkIds.add(id));
+          } else if (role.scope === 'trading_point' || role.scope === 'assigned') {
+            // Для trading_point/assigned scopeValues содержат ID точек
+            // Формат: {networkCode}-azs-{stationCode}
+            role.scopeValues.forEach(scopeValue => {
+              const parts = scopeValue.split('-azs-');
+              if (parts.length === 2) {
+                networkCodes.add(parts[0]); // networkCode
+              }
+            });
+          }
         }
       });
     }
 
-    // Если scopeValues пустой - показываем все сети (полный доступ)
-    if (userScopeValues.length === 0) {
+    // Если нет ограничений - показываем все сети (полный доступ)
+    if (!hasRestrictions) {
       return allNetworks;
     }
 
-    // Извлекаем коды сетей из scope_values
-    // Формат ID торговой точки: {networkCode}-azs-{stationCode}
-    const allowedNetworkCodes = new Set<string>();
-    userScopeValues.forEach(scopeValue => {
-      const parts = scopeValue.split('-azs-');
-      if (parts.length === 2) {
-        allowedNetworkCodes.add(parts[0]); // networkCode
-      }
-    });
-
-    // Фильтруем сети по коду
-    return allNetworks.filter(network => allowedNetworkCodes.has(network.code));
+    // Фильтруем сети по UUID или коду
+    return allNetworks.filter(network =>
+      networkIds.has(network.id) || networkCodes.has(network.code)
+    );
   }, [allNetworks, user?.roles]);
 
   const selectedNetwork = networks.find(n => n.id === value);
@@ -61,12 +69,12 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
   };
-  
+
   const handleSelect = (networkId: string) => {
     onValueChange?.(networkId);
     setOpen(false); // Закрываем селектор после выбора
   };
-  
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -89,12 +97,12 @@ export function NetworkSelect({ value, onValueChange, className }: NetworkSelect
               className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded-md cursor-pointer"
               onClick={() => handleSelect(network.id)}
             >
-              <span 
+              <span
                 className={cn(
                   "h-2 w-2 rounded-full",
                   "bg-emerald-400"
-                )} 
-                aria-hidden 
+                )}
+                aria-hidden
               />
               <span className="truncate">{network.name}</span>
             </li>

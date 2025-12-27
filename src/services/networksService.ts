@@ -41,10 +41,8 @@ export const networksService = {
         updated_at: tenant.updated_at
       }));
 
-      // Фильтрация для МенеджерБТО - только сеть БТО
-      if (userRole === 'bto_manager') {
-        networks = networks.filter(network => network.code === 'bto');
-      }
+      // Фильтрация по ролям теперь происходит в NetworkSelect на основе scopeValues
+      // Здесь возвращаем все сети - компонент сам отфильтрует по правам пользователя
 
       return networks;
     } catch (error) {
