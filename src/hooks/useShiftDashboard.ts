@@ -4,7 +4,8 @@
  * Использует React Query для кэширования и автоматического обновления
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { shiftDashboardService } from '@/services/shiftDashboardService';
 import type { DashboardParams, DashboardData, PeriodSelection } from '@/types/shift-dashboard';
 import type { ShiftDetails } from '@/types/shift-reports-v2';
@@ -57,8 +58,22 @@ interface UseShiftDashboardReturn {
  */
 export function useShiftDashboard(options: UseShiftDashboardOptions): UseShiftDashboardReturn {
   const { system, station, stations, stationNames, period, selectedShifts, enabled = true } = options;
+  const queryClient = useQueryClient();
+  const prevPeriodRef = useRef<string>('');
 
-  // Формируем ключ запроса (v5 - добавлен фильтр смен)
+  // Формируем ключ периода для отслеживания изменений
+  const periodKey = `${period.dateFrom}-${period.dateTo}`;
+
+  // Инвалидируем кэш при смене периода - удаляем ВСЕ старые данные дашборда
+  useEffect(() => {
+    if (prevPeriodRef.current && prevPeriodRef.current !== periodKey) {
+      // Период изменился - полностью очищаем кэш дашборда
+      queryClient.removeQueries({ queryKey: ['shift-dashboard-v5'] });
+    }
+    prevPeriodRef.current = periodKey;
+  }, [periodKey, queryClient]);
+
+  // Формируем ключ запроса (v6 - инвалидация при смене периода)
   const queryKey = [
     'shift-dashboard-v5',
     system,
@@ -136,10 +151,11 @@ export function useShiftDashboard(options: UseShiftDashboardOptions): UseShiftDa
       };
     },
     enabled: enabled && system > 0 && (!!station || (stations && stations.length > 0)),
-    staleTime: 0, // Данные всегда считаются устаревшими - обновляем при каждом изменении периода
-    gcTime: 30 * 60 * 1000, // 30 минут - время хранения в кэше
+    staleTime: 0, // Данные всегда считаются устаревшими
+    gcTime: 0, // Не кэшируем данные - всегда загружаем заново при смене периода
     retry: 2,
     refetchOnWindowFocus: false,
+    refetchOnMount: 'always', // Всегда загружать при монтировании
   });
 
   return {
