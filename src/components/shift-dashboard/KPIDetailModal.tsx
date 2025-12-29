@@ -64,6 +64,16 @@ type SortField = 'shiftNumber' | 'openedAt' | 'revenue' | 'volume' | 'stationNam
 type SortDirection = 'asc' | 'desc';
 
 /**
+ * Данные по виду топлива
+ */
+interface FuelItem {
+  fuelCode: number;
+  fuelName: string;
+  volume: number;
+  revenue: number;
+}
+
+/**
  * Строка данных по смене
  */
 interface ShiftRowData {
@@ -72,9 +82,10 @@ interface ShiftRowData {
   closedAt: string | null;
   stationCode: number;
   stationName: string;
-  operator: string;
   revenue: number;
   volume: number;
+  /** Разбивка по видам топлива */
+  fuelBreakdown: FuelItem[];
 }
 
 export function KPIDetailModal({
@@ -93,6 +104,7 @@ export function KPIDetailModal({
   const shiftData: ShiftRowData[] = shifts.map(shift => {
     let revenue = 0;
     let volume = 0;
+    const fuelBreakdown: FuelItem[] = [];
 
     if (type === 'fuel') {
       // По топливу - ищем в fuelSales
@@ -101,11 +113,18 @@ export function KPIDetailModal({
       if (fuelSale) {
         revenue = fuelSale.cost;
         volume = fuelSale.quantity;
+        fuelBreakdown.push({
+          fuelCode: fuelSale.fuelCode,
+          fuelName: fuelSale.fuelName,
+          volume: fuelSale.quantity,
+          revenue: fuelSale.cost,
+        });
       }
     } else if (type === 'payment') {
       // По способу оплаты - ищем в salesRaw
       const salesRaw = (shift as any).salesRaw || [];
       const paymentType = String(code);
+      const fuelMap = new Map<number, FuelItem>();
 
       for (const sale of salesRaw) {
         const payTypeName = (sale.pay_type?.name || '').toLowerCase();
@@ -127,11 +146,36 @@ export function KPIDetailModal({
 
         if (matched && sale.fuel) {
           for (const fuel of sale.fuel) {
-            revenue += parseFloat(fuel.release?.cost || '0');
-            volume += parseFloat(fuel.release?.volume || '0');
+            // Купоны в API имеют отрицательные значения - берём абсолютное значение
+            const rawCost = parseFloat(fuel.release?.cost || '0');
+            const rawVolume = parseFloat(fuel.release?.volume || '0');
+            const fuelCost = paymentType === 'coupon' ? Math.abs(rawCost) : rawCost;
+            const fuelVolume = paymentType === 'coupon' ? Math.abs(rawVolume) : rawVolume;
+
+            revenue += fuelCost;
+            volume += fuelVolume;
+
+            // Группируем по виду топлива
+            const fuelCode = fuel.service?.service_code || 0;
+            const fuelName = fuel.service?.service_name || 'Неизвестно';
+            const existing = fuelMap.get(fuelCode);
+            if (existing) {
+              existing.volume += fuelVolume;
+              existing.revenue += fuelCost;
+            } else {
+              fuelMap.set(fuelCode, {
+                fuelCode,
+                fuelName,
+                volume: fuelVolume,
+                revenue: fuelCost,
+              });
+            }
           }
         }
       }
+
+      // Конвертируем Map в массив
+      fuelBreakdown.push(...Array.from(fuelMap.values()));
     } else if (type === 'receipt') {
       // Поступления - ищем в receiptsRaw
       const receiptsRaw = (shift as any).receiptsRaw || [];
@@ -139,7 +183,14 @@ export function KPIDetailModal({
 
       for (const receipt of receiptsRaw) {
         if (receipt.service?.service_code === fuelCode) {
-          volume += parseFloat(receipt.fact?.volume || '0');
+          const vol = parseFloat(receipt.fact?.volume || '0');
+          volume += vol;
+          fuelBreakdown.push({
+            fuelCode,
+            fuelName: receipt.service?.service_name || 'Неизвестно',
+            volume: vol,
+            revenue: 0,
+          });
         }
       }
     }
@@ -150,9 +201,9 @@ export function KPIDetailModal({
       closedAt: shift.closedAt,
       stationCode: shift.stationCode || 0,
       stationName: shift.stationName || `Станция ${shift.stationCode}`,
-      operator: shift.operator || '-',
       revenue,
       volume,
+      fuelBreakdown,
     };
   }).filter(row => row.revenue > 0 || row.volume > 0);
 
@@ -185,7 +236,7 @@ export function KPIDetailModal({
   );
 
   // Показывать ли колонку "Выручка"
-  // Для корп.карт и онлайн - только литры (отпуск топлива, не выручка в кассе)
+  // Для корп.карт, онлайн и купонов - только литры (отпуск топлива, не выручка в кассе)
   const showRevenue = type === 'fuel' ||
     (type === 'payment' && (code === 'cash' || code === 'card'));
 
@@ -254,7 +305,7 @@ export function KPIDetailModal({
                     </div>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
-                    Оператор
+                    Топливо
                   </th>
                   {showRevenue && (
                     <th
@@ -288,15 +339,29 @@ export function KPIDetailModal({
                     <td className="px-4 py-3 text-slate-300">
                       {row.stationName}
                     </td>
-                    <td className="px-4 py-3 text-slate-400">
-                      {row.operator}
+                    <td className="px-4 py-3">
+                      {row.fuelBreakdown.length > 0 ? (
+                        <div className="space-y-1">
+                          {row.fuelBreakdown.map((fuel, fIdx) => (
+                            <div key={`${fuel.fuelCode}-${fIdx}`} className="flex items-center gap-2 text-xs flex-wrap">
+                              <span className="text-slate-400">{fuel.fuelName}:</span>
+                              <span className="text-blue-400">{formatNumber(fuel.volume)} л</span>
+                              {showRevenue && fuel.revenue > 0 && (
+                                <span className="text-slate-300">({formatNumber(fuel.revenue)} ₽)</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-500">-</span>
+                      )}
                     </td>
                     {showRevenue && (
                       <td className="px-4 py-3 text-right text-slate-300">
                         {formatNumber(row.revenue)}
                       </td>
                     )}
-                    <td className="px-4 py-3 text-right text-blue-400">
+                    <td className="px-4 py-3 text-right text-blue-400 font-medium">
                       {formatNumber(row.volume)}
                     </td>
                   </tr>
@@ -304,9 +369,10 @@ export function KPIDetailModal({
               </tbody>
               <tfoot className="bg-slate-900/50 border-t border-slate-600">
                 <tr>
-                  <td colSpan={4} className="px-4 py-3 text-sm font-bold text-white">
+                  <td colSpan={3} className="px-4 py-3 text-sm font-bold text-white">
                     ИТОГО ({sortedData.length} смен)
                   </td>
+                  <td></td>
                   {showRevenue && (
                     <td className="px-4 py-3 text-right text-sm font-bold text-white">
                       {formatNumber(totals.revenue)}

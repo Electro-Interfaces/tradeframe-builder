@@ -336,11 +336,9 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
                     ТТН
                   </th>
-                  {selectedFuelCode === null && (
-                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
-                      Топливо
-                    </th>
-                  )}
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                    Топливо
+                  </th>
                   <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
                     Резерв.
                   </th>
@@ -373,17 +371,15 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-white font-medium">
                         {item.ttn}
                       </td>
-                      {selectedFuelCode === null && (
-                        <td className="px-2 sm:px-4 py-2 sm:py-3">
-                          <div className="flex items-center gap-1 sm:gap-2">
-                            <div
-                              className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: item.color || '#3b82f6' }}
-                            />
-                            <span className="text-slate-300 truncate max-w-[60px] sm:max-w-none">{item.fuelName}</span>
-                          </div>
-                        </td>
-                      )}
+                      <td className="px-2 sm:px-4 py-2 sm:py-3">
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <div
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: item.color || '#3b82f6' }}
+                          />
+                          <span className="text-slate-300 truncate max-w-[60px] sm:max-w-none">{item.fuelName}</span>
+                        </div>
+                      </td>
                       <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-center text-slate-400">
                         №{item.tankNumber}
                       </td>
@@ -430,11 +426,10 @@ export function ReceiptsKPIGrid({ receipts, isLoading, className }: ReceiptsKPIG
 
                   return (
                     <tr>
-                      <td colSpan={selectedFuelCode === null ? 2 : 1} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white">
+                      <td colSpan={3} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white">
                         <span className="hidden sm:inline">ИТОГО ({ttnCount} ТТН{selectedFuel ? ` - ${selectedFuel.fuelName}` : ''})</span>
                         <span className="sm:hidden">Σ {ttnCount}</span>
                       </td>
-                      <td className="hidden sm:table-cell"></td>
                       <td className="hidden md:table-cell"></td>
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white">
                         {formatVolume(totalDoc)}

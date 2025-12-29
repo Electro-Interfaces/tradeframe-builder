@@ -419,8 +419,12 @@ class ShiftDashboardService {
             for (const fuelItem of sale.fuel) {
               const fuelCode = fuelItem.service?.service_code || 0;
               const fuelName = fuelItem.service?.service_name || 'Неизвестно';
-              const fuelVolume = parseFloat(fuelItem.release?.volume || '0');
-              const fuelRevenue = parseFloat(fuelItem.release?.cost || '0');
+              // Купоны в API имеют отрицательные значения (выдача ранее оплаченного топлива)
+              // Берём абсолютное значение для корректного отображения объёма
+              const rawVolume = parseFloat(fuelItem.release?.volume || '0');
+              const rawRevenue = parseFloat(fuelItem.release?.cost || '0');
+              const fuelVolume = paymentType === 'coupon' ? Math.abs(rawVolume) : rawVolume;
+              const fuelRevenue = paymentType === 'coupon' ? Math.abs(rawRevenue) : rawRevenue;
 
               const existing = paymentFuels.get(fuelCode);
               if (existing) {
