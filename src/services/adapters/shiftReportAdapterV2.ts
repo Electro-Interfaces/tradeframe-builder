@@ -346,6 +346,8 @@ export class ShiftReportAdapterV2 {
               discountCost: 0,
               cashVolume: 0,
               cashCost: 0,
+              corporateVolume: 0,  // Корпоративные карты (КР)
+              corporateCost: 0,
               nonCashVolume: 0,
               totalVolume: 0,
               difference: 0,
@@ -359,6 +361,23 @@ export class ShiftReportAdapterV2 {
             // Купон на сдачу - корректировка объёма, попадает в "Безнал."
             // Скидку из купонов НЕ учитываем
             breakdown.nonCashVolume += volume;
+            breakdown.totalVolume += volume;
+          }
+          // Корпоративные карты (КР, корп.карты) - ВАЖНО: проверяем ПЕРЕД обычными картами!
+          else if (paymentTypeName === 'кр' ||
+                   paymentTypeName.includes('корпоратив') ||
+                   paymentTypeName.includes('корп.карт') ||
+                   paymentTypeName.includes('корп карт')) {
+            breakdown.corporateVolume += volume;
+            breakdown.corporateCost += cost;
+            breakdown.discountCost += discount;
+            breakdown.totalVolume += volume;
+          }
+          // Топливные карты - относим к корпоративным
+          else if (paymentTypeName.includes('топливн')) {
+            breakdown.corporateVolume += volume;
+            breakdown.corporateCost += cost;
+            breakdown.discountCost += discount;
             breakdown.totalVolume += volume;
           }
           // "По картам" = сбербанк, карты, и т.д.
@@ -378,16 +397,18 @@ export class ShiftReportAdapterV2 {
             breakdown.discountCost += discount; // Скидка из наличных
             breakdown.totalVolume += volume;
           }
-          // "Безнал." = топливные карты, мобильные приложения
+          // "Безнал." = мобильные приложения, онлайн заказы
           else if (paymentTypeName.includes('безнал') ||
-                   paymentTypeName.includes('топливн') ||
-                   paymentTypeName.includes('мобил')) {
+                   paymentTypeName.includes('мобил') ||
+                   paymentTypeName.includes('онлайн') ||
+                   paymentTypeName.includes('online')) {
             breakdown.nonCashVolume += volume;
             breakdown.discountCost += discount; // Скидка из безнала
             breakdown.totalVolume += volume;
           }
-          // Неизвестный тип - записываем в лог
+          // Неизвестный тип - записываем в безнал как fallback
           else {
+            breakdown.nonCashVolume += volume;
             breakdown.totalVolume += volume;
           }
         });

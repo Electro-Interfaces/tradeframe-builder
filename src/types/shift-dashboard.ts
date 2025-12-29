@@ -123,6 +123,7 @@ export interface FinancialMetrics {
     card: PaymentMethodDetails;
     online: PaymentMethodDetails;
     corporate: PaymentMethodDetails;
+    coupon: PaymentMethodDetails;
   };
 }
 

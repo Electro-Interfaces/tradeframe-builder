@@ -149,9 +149,9 @@ export function DashboardPeriodSelector({
   };
 
   return (
-    <div className={cn('flex flex-wrap items-center gap-3', className)}>
+    <div className={cn('flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3', className)}>
       {/* Пресеты периода */}
-      <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
+      <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1 overflow-x-auto">
         {presets.map((preset) => (
           <Button
             key={preset}
@@ -159,7 +159,7 @@ export function DashboardPeriodSelector({
             size="sm"
             onClick={() => handlePresetClick(preset)}
             className={cn(
-              'h-8 px-3 text-sm',
+              'h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm whitespace-nowrap',
               period.preset === preset
                 ? 'bg-blue-600 text-white hover:bg-blue-700'
                 : 'text-slate-300 hover:text-white hover:bg-slate-700'
@@ -171,7 +171,7 @@ export function DashboardPeriodSelector({
       </div>
 
       {/* Раздельный выбор дат */}
-      <div className="flex items-center gap-2 bg-slate-800 rounded-lg p-1">
+      <div className="flex items-center gap-1 sm:gap-2 bg-slate-800 rounded-lg p-1">
         {/* Начальная дата */}
         <Popover open={fromOpen} onOpenChange={setFromOpen}>
           <PopoverTrigger asChild>
@@ -179,13 +179,13 @@ export function DashboardPeriodSelector({
               variant={period.preset === 'custom' ? 'default' : 'ghost'}
               size="sm"
               className={cn(
-                'h-8 px-3 text-sm',
+                'h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm',
                 period.preset === 'custom'
                   ? 'bg-green-600 text-white hover:bg-green-700'
                   : 'text-slate-300 hover:text-white hover:bg-slate-700'
               )}
             >
-              <Calendar className="h-4 w-4 mr-1" />
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               {formatDateShort(period.dateFrom)}
             </Button>
           </PopoverTrigger>
@@ -204,7 +204,7 @@ export function DashboardPeriodSelector({
           </PopoverContent>
         </Popover>
 
-        <span className="text-slate-500">—</span>
+        <span className="text-slate-500 text-xs">—</span>
 
         {/* Конечная дата */}
         <Popover open={toOpen} onOpenChange={setToOpen}>
@@ -213,13 +213,13 @@ export function DashboardPeriodSelector({
               variant={period.preset === 'custom' ? 'default' : 'ghost'}
               size="sm"
               className={cn(
-                'h-8 px-3 text-sm',
+                'h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm',
                 period.preset === 'custom'
                   ? 'bg-orange-600 text-white hover:bg-orange-700'
                   : 'text-slate-300 hover:text-white hover:bg-slate-700'
               )}
             >
-              <Calendar className="h-4 w-4 mr-1" />
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
               {formatDateShort(period.dateTo)}
             </Button>
           </PopoverTrigger>
@@ -239,8 +239,8 @@ export function DashboardPeriodSelector({
         </Popover>
       </div>
 
-      {/* Отображение выбранного периода - более наглядно */}
-      <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-900/50 to-slate-800 rounded-lg border border-blue-700/30">
+      {/* Отображение выбранного периода - адаптивно */}
+      <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-900/50 to-slate-800 rounded-lg border border-blue-700/30">
         <CalendarDays className="h-5 w-5 text-blue-400" />
         <div className="flex flex-col">
           <span className="text-xs text-slate-400 uppercase tracking-wide">Период</span>
@@ -253,13 +253,30 @@ export function DashboardPeriodSelector({
         </div>
       </div>
 
-      {/* Кнопка обновления */}
+      {/* Мобильная версия периода */}
+      <div className="flex sm:hidden items-center justify-between px-3 py-2 bg-gradient-to-r from-blue-900/50 to-slate-800 rounded-lg border border-blue-700/30">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-blue-400" />
+          <span className="text-xs text-white font-medium">{calculateDays(period)} дн.</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRefresh}
+          disabled={isLoading}
+          className="h-7 px-2 text-slate-300 hover:text-white"
+        >
+          <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+        </Button>
+      </div>
+
+      {/* Кнопка обновления - только desktop */}
       <Button
         variant="outline"
         size="sm"
         onClick={onRefresh}
         disabled={isLoading}
-        className="h-8 px-3 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+        className="hidden sm:flex h-8 px-3 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
       >
         <RefreshCw className={cn('h-4 w-4 mr-1', isLoading && 'animate-spin')} />
         Обновить

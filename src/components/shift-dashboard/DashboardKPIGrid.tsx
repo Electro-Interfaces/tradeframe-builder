@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { Fuel, Banknote, CreditCard, Smartphone, Building2 } from 'lucide-react';
+import { Fuel, Banknote, CreditCard, Smartphone, Building2, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DashboardKPIs, DashboardTrends, FuelVolumeItem, PaymentFuelBreakdown } from '@/types/shift-dashboard';
 import type { ShiftDetails } from '@/types/shift-reports-v2';
@@ -60,32 +60,32 @@ interface FuelCardProps {
 function FuelCard({ fuel, isLoading, onClick }: FuelCardProps) {
   return (
     <div
-      className="bg-slate-800 rounded-xl p-4 border border-slate-700 cursor-pointer hover:border-slate-500 transition-colors"
+      className="bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-700 cursor-pointer hover:border-slate-500 transition-colors"
       onClick={onClick}
     >
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
         <div
-          className="w-3 h-3 rounded-full"
+          className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
           style={{ backgroundColor: fuel.color || '#3b82f6' }}
         />
-        <span className="text-sm font-medium text-white">{fuel.fuelName}</span>
-        <span className="text-xs text-slate-500 ml-auto">{fuel.percentOfTotal.toFixed(1)}%</span>
+        <span className="text-xs sm:text-sm font-medium text-white truncate">{fuel.fuelName}</span>
+        <span className="text-[10px] sm:text-xs text-slate-500 ml-auto flex-shrink-0">{fuel.percentOfTotal.toFixed(1)}%</span>
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">
-          <div className="h-6 w-24 bg-slate-700 rounded animate-pulse" />
-          <div className="h-4 w-20 bg-slate-700 rounded animate-pulse" />
+        <div className="space-y-1.5 sm:space-y-2">
+          <div className="h-5 sm:h-6 w-20 sm:w-24 bg-slate-700 rounded animate-pulse" />
+          <div className="h-4 w-16 sm:w-20 bg-slate-700 rounded animate-pulse" />
         </div>
       ) : (
-        <div className="space-y-1">
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold text-white">{formatCurrency(fuel.revenue)}</span>
-            <span className="text-xs text-slate-400">₽</span>
+        <div className="space-y-0.5 sm:space-y-1">
+          <div className="flex items-baseline gap-1 sm:gap-2">
+            <span className="text-base sm:text-xl font-bold text-white">{formatCurrency(fuel.revenue)}</span>
+            <span className="text-[10px] sm:text-xs text-slate-400">₽</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg text-blue-400">{formatVolume(fuel.volume)}</span>
-            <span className="text-xs text-slate-400">л</span>
+          <div className="flex items-baseline gap-1 sm:gap-2">
+            <span className="text-sm sm:text-lg text-blue-400">{formatVolume(fuel.volume)}</span>
+            <span className="text-[10px] sm:text-xs text-slate-400">л</span>
           </div>
         </div>
       )}
@@ -105,32 +105,33 @@ interface PaymentCardProps {
   iconBg: string;
   isLoading?: boolean;
   onClick?: () => void;
+  volumeOnly?: boolean; // Для корп.карт, онлайн и купонов - показывать только литры (без выручки)
 }
 
-function PaymentCard({ title, revenue, volume, byFuel, icon, iconBg, isLoading, onClick }: PaymentCardProps) {
+function PaymentCard({ title, revenue, volume, byFuel, icon, iconBg, isLoading, onClick, volumeOnly }: PaymentCardProps) {
   return (
     <div
-      className="bg-slate-800 rounded-xl p-4 border border-slate-700 cursor-pointer hover:border-slate-500 transition-colors"
+      className="bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-700 cursor-pointer hover:border-slate-500 transition-colors"
       onClick={onClick}
     >
       {/* Заголовок с иконкой */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className={cn('p-1.5 rounded-lg', iconBg)}>
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+        <div className={cn('p-1 sm:p-1.5 rounded-lg', iconBg)}>
           {icon}
         </div>
-        <span className="text-sm font-medium text-white">{title}</span>
+        <span className="text-xs sm:text-sm font-medium text-white truncate">{title}</span>
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">
-          <div className="h-6 w-24 bg-slate-700 rounded animate-pulse" />
-          <div className="h-4 w-20 bg-slate-700 rounded animate-pulse" />
+        <div className="space-y-1.5 sm:space-y-2">
+          <div className="h-5 sm:h-6 w-20 sm:w-24 bg-slate-700 rounded animate-pulse" />
+          <div className="h-4 w-16 sm:w-20 bg-slate-700 rounded animate-pulse" />
         </div>
       ) : (
-        <div className="space-y-3">
-          {/* Разбивка по топливам */}
+        <div className="space-y-2 sm:space-y-3">
+          {/* Разбивка по топливам - скрыта на мобильных */}
           {byFuel.length > 0 && (
-            <div className="space-y-1.5 pb-2 border-b border-slate-700">
+            <div className="hidden sm:block space-y-1.5 pb-2 border-b border-slate-700">
               {byFuel.map((fuel) => (
                 <div key={fuel.fuelCode} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5">
@@ -140,29 +141,44 @@ function PaymentCard({ title, revenue, volume, byFuel, icon, iconBg, isLoading, 
                     />
                     <span className="text-slate-400">{fuel.fuelName}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-300">{formatCurrency(fuel.revenue)} ₽</span>
-                    <span className="text-slate-500">|</span>
+                  {/* Для volumeOnly показываем только литры */}
+                  {volumeOnly ? (
                     <span className="text-blue-400">{formatVolume(fuel.volume)} л</span>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-300">{formatCurrency(fuel.revenue)} ₽</span>
+                      <span className="text-slate-500">|</span>
+                      <span className="text-blue-400">{formatVolume(fuel.volume)} л</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
           {/* Итого */}
-          <div className="pt-1">
-            <div className="text-xs text-slate-500 mb-1">ИТОГО</div>
-            <div className="flex items-baseline gap-3">
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg font-bold text-white">{formatCurrency(revenue)}</span>
-                <span className="text-xs text-slate-400">₽</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-base text-blue-400">{formatVolume(volume)}</span>
-                <span className="text-xs text-slate-400">л</span>
-              </div>
+          <div className="sm:pt-1">
+            <div className="text-[10px] sm:text-xs text-slate-500 mb-0.5 sm:mb-1">
+              {volumeOnly ? 'ОТПУЩЕНО' : 'ИТОГО'}
             </div>
+            {/* Для volumeOnly показываем только литры крупным шрифтом */}
+            {volumeOnly ? (
+              <div className="flex items-baseline gap-1">
+                <span className="text-base sm:text-lg font-bold text-blue-400">{formatVolume(volume)}</span>
+                <span className="text-[10px] sm:text-xs text-slate-400">л</span>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base sm:text-lg font-bold text-white">{formatCurrency(revenue)}</span>
+                  <span className="text-[10px] sm:text-xs text-slate-400">₽</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm sm:text-base text-blue-400">{formatVolume(volume)}</span>
+                  <span className="text-[10px] sm:text-xs text-slate-400">л</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -185,26 +201,26 @@ function TotalCard({
   isLoading?: boolean;
 }) {
   return (
-    <div className="bg-gradient-to-br from-blue-900/50 to-slate-800 rounded-xl p-4 border border-blue-700/50">
-      <div className="flex items-center gap-2 mb-3">
-        <Fuel className="w-5 h-5 text-blue-400" />
-        <span className="text-sm font-bold text-white">{title}</span>
+    <div className="bg-gradient-to-br from-blue-900/50 to-slate-800 rounded-xl p-3 sm:p-4 border border-blue-700/50">
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+        <Fuel className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+        <span className="text-xs sm:text-sm font-bold text-white">{title}</span>
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">
-          <div className="h-8 w-32 bg-slate-700 rounded animate-pulse" />
-          <div className="h-6 w-28 bg-slate-700 rounded animate-pulse" />
+        <div className="space-y-1.5 sm:space-y-2">
+          <div className="h-6 sm:h-8 w-24 sm:w-32 bg-slate-700 rounded animate-pulse" />
+          <div className="h-5 sm:h-6 w-20 sm:w-28 bg-slate-700 rounded animate-pulse" />
         </div>
       ) : (
-        <div className="space-y-1">
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-white">{formatCurrency(revenue)}</span>
-            <span className="text-sm text-slate-400">₽</span>
+        <div className="space-y-0.5 sm:space-y-1">
+          <div className="flex items-baseline gap-1 sm:gap-2">
+            <span className="text-lg sm:text-2xl font-bold text-white">{formatCurrency(revenue)}</span>
+            <span className="text-xs sm:text-sm text-slate-400">₽</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl text-blue-400">{formatVolume(volume)}</span>
-            <span className="text-sm text-slate-400">л</span>
+          <div className="flex items-baseline gap-1 sm:gap-2">
+            <span className="text-base sm:text-xl text-blue-400">{formatVolume(volume)}</span>
+            <span className="text-xs sm:text-sm text-slate-400">л</span>
           </div>
         </div>
       )}
@@ -292,6 +308,7 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
       byFuel: paymentDetails?.online?.byFuel ?? [],
       icon: <Smartphone className="w-4 h-4 text-white" />,
       iconBg: 'bg-purple-600',
+      volumeOnly: true, // Онлайн заказы - только отпуск топлива, не выручка
     },
     {
       title: 'Корп. карты',
@@ -301,6 +318,17 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
       byFuel: paymentDetails?.corporate?.byFuel ?? [],
       icon: <Building2 className="w-4 h-4 text-white" />,
       iconBg: 'bg-orange-600',
+      volumeOnly: true, // Корп. карты - отпуск по договорам, не выручка в кассе
+    },
+    {
+      title: 'Купоны',
+      paymentType: 'coupon',
+      revenue: paymentDetails?.coupon?.revenue ?? 0,
+      volume: paymentDetails?.coupon?.volume ?? 0,
+      byFuel: paymentDetails?.coupon?.byFuel ?? [],
+      icon: <Ticket className="w-4 h-4 text-white" />,
+      iconBg: 'bg-amber-600',
+      volumeOnly: true, // Купоны - отпуск по ранее оплаченным купонам, не выручка
     },
   ];
 
@@ -308,10 +336,10 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
     <div className={cn('space-y-6', className)}>
       {/* Секция: По видам топлива */}
       <div>
-        <h3 className="text-sm font-medium text-slate-400 mb-3 uppercase tracking-wide">
+        <h3 className="text-xs sm:text-sm font-medium text-slate-400 mb-2 sm:mb-3 uppercase tracking-wide">
           По видам топлива
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
           {/* Карточки по топливам */}
           {kpis.volume.byFuel.map((fuel) => (
             <FuelCard
@@ -334,10 +362,11 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
 
       {/* Секция: По способам оплаты */}
       <div>
-        <h3 className="text-sm font-medium text-slate-400 mb-3 uppercase tracking-wide">
+        <h3 className="text-xs sm:text-sm font-medium text-slate-400 mb-2 sm:mb-3 uppercase tracking-wide">
           По способам оплаты
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Наличные и Карты - широкие, Онлайн/Корп/Купоны - узкие */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
           {paymentMethods.map((method) => (
             <PaymentCard
               key={method.title}
@@ -349,6 +378,7 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
               iconBg={method.iconBg}
               isLoading={isLoading}
               onClick={() => shifts && shifts.length > 0 && openPaymentModal(method.title, method.paymentType)}
+              volumeOnly={method.volumeOnly}
             />
           ))}
         </div>

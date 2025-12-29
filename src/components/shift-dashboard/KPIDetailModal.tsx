@@ -112,6 +112,7 @@ export function KPIDetailModal({
         let matched = false;
 
         if (paymentType === 'cash' && payTypeName.includes('наличн')) matched = true;
+        if (paymentType === 'coupon' && payTypeName.includes('купон')) matched = true;
         if (paymentType === 'card' && (
           payTypeName.includes('карт') || payTypeName.includes('сбербанк') ||
           payTypeName.includes('сбп') || payTypeName.includes('эквайр')
@@ -121,7 +122,7 @@ export function KPIDetailModal({
         )) matched = true;
         if (paymentType === 'corporate' && (
           payTypeName === 'кр' || payTypeName.includes('корпоратив') ||
-          payTypeName.includes('корп.карт')
+          payTypeName.includes('корп.карт') || payTypeName.includes('топливн')
         )) matched = true;
 
         if (matched && sale.fuel) {
@@ -182,6 +183,11 @@ export function KPIDetailModal({
     }),
     { revenue: 0, volume: 0 }
   );
+
+  // Показывать ли колонку "Выручка"
+  // Для корп.карт и онлайн - только литры (отпуск топлива, не выручка в кассе)
+  const showRevenue = type === 'fuel' ||
+    (type === 'payment' && (code === 'cash' || code === 'card'));
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -250,7 +256,7 @@ export function KPIDetailModal({
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
                     Оператор
                   </th>
-                  {type !== 'receipt' && (
+                  {showRevenue && (
                     <th
                       className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase cursor-pointer hover:text-white"
                       onClick={() => handleSort('revenue')}
@@ -285,7 +291,7 @@ export function KPIDetailModal({
                     <td className="px-4 py-3 text-slate-400">
                       {row.operator}
                     </td>
-                    {type !== 'receipt' && (
+                    {showRevenue && (
                       <td className="px-4 py-3 text-right text-slate-300">
                         {formatNumber(row.revenue)}
                       </td>
@@ -301,7 +307,7 @@ export function KPIDetailModal({
                   <td colSpan={4} className="px-4 py-3 text-sm font-bold text-white">
                     ИТОГО ({sortedData.length} смен)
                   </td>
-                  {type !== 'receipt' && (
+                  {showRevenue && (
                     <td className="px-4 py-3 text-right text-sm font-bold text-white">
                       {formatNumber(totals.revenue)}
                     </td>

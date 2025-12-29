@@ -105,28 +105,28 @@ function KPICard({
   return (
     <div
       className={cn(
-        'bg-slate-800 rounded-xl p-4 border border-slate-700 transition-colors',
+        'bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-700 transition-colors',
         onClick && 'cursor-pointer hover:border-slate-500'
       )}
       onClick={onClick}
     >
-      <div className="flex items-center gap-2 mb-3">
-        <div className={cn('p-1.5 rounded-lg', iconBg)}>
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+        <div className={cn('p-1 sm:p-1.5 rounded-lg', iconBg)}>
           {icon}
         </div>
-        <span className="text-sm font-medium text-white">{title}</span>
+        <span className="text-xs sm:text-sm font-medium text-white truncate">{title}</span>
       </div>
 
       {isLoading ? (
-        <div className="h-7 w-28 bg-slate-700 rounded animate-pulse" />
+        <div className="h-6 sm:h-7 w-20 sm:w-28 bg-slate-700 rounded animate-pulse" />
       ) : (
         <div>
-          <div className="flex items-baseline gap-2">
-            <span className={cn('text-xl font-bold', valueColor)}>{value}</span>
-            <span className="text-xs text-slate-400">₽</span>
+          <div className="flex items-baseline gap-1 sm:gap-2">
+            <span className={cn('text-base sm:text-xl font-bold', valueColor)}>{value}</span>
+            <span className="text-[10px] sm:text-xs text-slate-400">₽</span>
           </div>
           {subtitle && (
-            <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
+            <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 hidden sm:block">{subtitle}</p>
           )}
         </div>
       )}
@@ -178,7 +178,7 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
       </div>
 
       {/* KPI карточки */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
         {/* Приход */}
         <KPICard
           title="Приход"

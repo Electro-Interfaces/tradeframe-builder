@@ -509,17 +509,12 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                     <table className="w-full text-sm border-collapse">
                       <thead className="bg-slate-700/80">
                         <tr className="border-b-2 border-slate-400">
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`} rowSpan={2}>Наименование</th>
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`} rowSpan={2}>Код</th>
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`} colSpan={2}>МобилПр.</th>
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`} colSpan={2}>Купон на сдачу</th>
-                          <th className={`${thClass} text-center text-slate-100`} rowSpan={2}>ИТОГО б/н<br/>л.</th>
-                        </tr>
-                        <tr className="border-b-2 border-slate-400">
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>л.</th>
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>руб.</th>
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>л.</th>
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>руб.</th>
+                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>Наименование</th>
+                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>Код</th>
+                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>МобилПр.<br/>л.</th>
+                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>Корп.карты<br/>л.</th>
+                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>Купон<br/>л.</th>
+                          <th className={`${thClass} text-center text-slate-100`}>ИТОГО б/н<br/>л.</th>
                         </tr>
                       </thead>
                       <tbody className="bg-slate-800">
@@ -532,6 +527,8 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                             fuelName: string;
                             mobilprVolume: number;
                             mobilprCost: number;
+                            corporateVolume: number;
+                            corporateCost: number;
                             couponVolume: number;
                             couponCost: number;
                           }>();
@@ -553,6 +550,8 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                                   fuelName,
                                   mobilprVolume: 0,
                                   mobilprCost: 0,
+                                  corporateVolume: 0,
+                                  corporateCost: 0,
                                   couponVolume: 0,
                                   couponCost: 0,
                                 });
@@ -560,14 +559,22 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
 
                               const group = fuelGroups.get(fuelCode)!;
 
-                              // МобилПр
-                              if (paymentName.includes('мобил')) {
+                              // МобилПр / онлайн заказы
+                              if (paymentName.includes('мобил') || paymentName.includes('онлайн') || paymentName.includes('online')) {
                                 group.mobilprVolume += volume;
                                 group.mobilprCost += cost;
                               }
-
+                              // Корпоративные карты (КР, корп.карты, топливные карты)
+                              else if (paymentName === 'кр' ||
+                                       paymentName.includes('корпоратив') ||
+                                       paymentName.includes('корп.карт') ||
+                                       paymentName.includes('корп карт') ||
+                                       paymentName.includes('топливн')) {
+                                group.corporateVolume += volume;
+                                group.corporateCost += cost;
+                              }
                               // Купон на сдачу
-                              if (paymentName.includes('купон')) {
+                              else if (paymentName.includes('купон')) {
                                 group.couponVolume += volume;
                                 group.couponCost += cost;
                               }
@@ -579,9 +586,11 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                           // Подсчитываем итоги
                           const totalMobilprVolume = rows.reduce((sum, r) => sum + r.mobilprVolume, 0);
                           const totalMobilprCost = rows.reduce((sum, r) => sum + r.mobilprCost, 0);
+                          const totalCorporateVolume = rows.reduce((sum, r) => sum + r.corporateVolume, 0);
+                          const totalCorporateCost = rows.reduce((sum, r) => sum + r.corporateCost, 0);
                           const totalCouponVolume = rows.reduce((sum, r) => sum + r.couponVolume, 0);
                           const totalCouponCost = rows.reduce((sum, r) => sum + r.couponCost, 0);
-                          const totalNonCashVolume = rows.reduce((sum, r) => sum + r.mobilprVolume + r.couponVolume, 0);
+                          const totalNonCashVolume = rows.reduce((sum, r) => sum + r.mobilprVolume + r.corporateVolume + r.couponVolume, 0);
 
                           return (
                             <>
@@ -590,19 +599,17 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                                   <td className={`${tdClass} text-white font-medium border-r-2 border-slate-600`}>{row.fuelName}</td>
                                   <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{row.fuelCode}</td>
                                   <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{row.mobilprVolume.toFixed(2)}</td>
-                                  <td className={`${tdClass} text-right text-white border-r-2 border-slate-600`}>{formatCurrency(row.mobilprCost)}</td>
+                                  <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{row.corporateVolume.toFixed(2)}</td>
                                   <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{row.couponVolume.toFixed(2)}</td>
-                                  <td className={`${tdClass} text-right text-white border-r-2 border-slate-600`}>{formatCurrency(row.couponCost)}</td>
-                                  <td className={`${tdClass} text-center text-white font-medium`}>{(row.mobilprVolume + row.couponVolume).toFixed(2)}</td>
+                                  <td className={`${tdClass} text-center text-white font-medium`}>{(row.mobilprVolume + row.corporateVolume + row.couponVolume).toFixed(2)}</td>
                                 </tr>
                               ))}
                               {/* Строка "Всего:" */}
                               <tr className="border-t-2 border-slate-400 bg-slate-700/50">
                                 <td className={`${tdClass} text-white font-bold text-right`} colSpan={2}>Всего:</td>
                                 <td className={`${tdClass} text-center text-white font-bold border-r-2 border-slate-600`}>{totalMobilprVolume.toFixed(2)}</td>
-                                <td className={`${tdClass} text-right text-white font-bold border-r-2 border-slate-600`}>{formatCurrency(totalMobilprCost)}</td>
+                                <td className={`${tdClass} text-center text-white font-bold border-r-2 border-slate-600`}>{totalCorporateVolume.toFixed(2)}</td>
                                 <td className={`${tdClass} text-center text-white font-bold border-r-2 border-slate-600`}>{totalCouponVolume.toFixed(2)}</td>
-                                <td className={`${tdClass} text-right text-white font-bold border-r-2 border-slate-600`}>{formatCurrency(totalCouponCost)}</td>
                                 <td className={`${tdClass} text-center text-white font-bold`}>{totalNonCashVolume.toFixed(2)}</td>
                               </tr>
                             </>

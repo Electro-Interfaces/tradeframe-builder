@@ -2,7 +2,7 @@
  * ShiftDashboard - Дашборд аналитики сменных отчетов
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useDashboardPeriod } from "@/hooks/useDashboardPeriod";
@@ -10,7 +10,13 @@ import { useShiftDashboard } from "@/hooks/useShiftDashboard";
 import { extractStationNumber } from "@/utils/tradingPointUtils";
 import { getSystemId } from "@/config/stsConfig";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ArrowLeft, AlertCircle, Filter, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import tradingPointsService from "@/services/tradingPointsService";
 
@@ -32,6 +38,10 @@ export default function ShiftDashboard() {
   const [allStations, setAllStations] = useState<number[]>([]);
   const [stationNames, setStationNames] = useState<Record<number, string>>({});
   const [loadingStations, setLoadingStations] = useState(false);
+
+  // Состояние для фильтра смен (только для одной станции)
+  const [selectedShifts, setSelectedShifts] = useState<number[]>([]); // Пустой = все смены
+  const [shiftsFilterOpen, setShiftsFilterOpen] = useState(false);
 
   // Хук управления периодом
   const {
@@ -93,6 +103,11 @@ export default function ShiftDashboard() {
   // Получаем system ID из external_id сети
   const systemId = getSystemId(selectedNetwork);
 
+  // Сброс фильтра смен при смене станции или периода
+  useEffect(() => {
+    setSelectedShifts([]);
+  }, [selectedStation?.id, period.dateFrom, period.dateTo]);
+
   // Загрузка данных дашборда
   const {
     data,
@@ -105,8 +120,42 @@ export default function ShiftDashboard() {
     stations,
     stationNames,
     period,
+    selectedShifts: selectedShifts.length > 0 ? selectedShifts : undefined,
     enabled: stations.length > 0 && !loadingStations,
   });
+
+  // Список всех смен для фильтра
+  const allShiftsForFilter = useMemo(() => {
+    const shifts = (data?.meta as any)?.allShifts || data?.shifts || [];
+    // Сортируем по номеру смены (новые сверху)
+    return [...shifts].sort((a: any, b: any) => b.shiftNumber - a.shiftNumber);
+  }, [data]);
+
+  // Автовыбор всех смен после загрузки данных
+  useEffect(() => {
+    if (allShiftsForFilter.length > 0 && selectedShifts.length === 0) {
+      setSelectedShifts(allShiftsForFilter.map((s: any) => s.shiftNumber));
+    }
+  }, [allShiftsForFilter]);
+
+  // Обработчик выбора/снятия смены
+  const handleShiftToggle = (shiftNumber: number) => {
+    setSelectedShifts(prev => {
+      if (prev.includes(shiftNumber)) {
+        return prev.filter(n => n !== shiftNumber);
+      }
+      return [...prev, shiftNumber];
+    });
+  };
+
+  // Выбрать/снять все смены
+  const handleSelectAllShifts = () => {
+    if (selectedShifts.length === allShiftsForFilter.length) {
+      setSelectedShifts([]);
+    } else {
+      setSelectedShifts(allShiftsForFilter.map((s: any) => s.shiftNumber));
+    }
+  };
 
   // Если не выбрана торговая точка
   if (!selectedStation && !isAllTradingPoints) {
@@ -127,22 +176,94 @@ export default function ShiftDashboard() {
     <MainLayout fullWidth={true}>
       <div className="w-full h-full px-4 md:px-6 lg:px-8">
         {/* Заголовок */}
-        <div className="mb-6 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="mb-4 sm:mb-6 pt-2 sm:pt-4 flex flex-col gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/point/shift-reports-v2')}
-              className="text-slate-400 hover:text-white"
+              className="text-slate-400 hover:text-white px-2 sm:px-3"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Назад к сменам
+              <ArrowLeft className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Назад к сменам</span>
             </Button>
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Дашборд аналитики по сменным отчетам</h1>
-              <p className="text-sm text-slate-400">
-                {selectedStation?.name || selectedNetwork?.name || 'Все точки'}
-              </p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl font-semibold text-white truncate">
+                <span className="hidden sm:inline">Дашборд аналитики по сменным отчетам</span>
+                <span className="sm:hidden">Аналитика смен</span>
+              </h1>
+              <div className="flex items-center gap-2">
+                <p className="text-xs sm:text-sm text-slate-400 truncate">
+                  {selectedStation?.name || selectedNetwork?.name || 'Все точки'}
+                </p>
+                {/* Фильтр по сменам - только для одной станции */}
+                {selectedStation && !isAllTradingPoints && allShiftsForFilter.length > 0 && (
+                  <Popover open={shiftsFilterOpen} onOpenChange={setShiftsFilterOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-slate-400 hover:text-white border border-slate-600 hover:border-slate-500"
+                      >
+                        <Filter className="w-3 h-3 mr-1" />
+                        {selectedShifts.length > 0
+                          ? `Смены: ${selectedShifts.length} из ${allShiftsForFilter.length}`
+                          : `Все смены (${allShiftsForFilter.length})`}
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-0 bg-slate-800 border-slate-700" align="start">
+                      <div className="p-3 border-b border-slate-700">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-white">Выбор смен</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleSelectAllShifts}
+                            className="h-6 px-2 text-xs text-blue-400 hover:text-blue-300"
+                          >
+                            {selectedShifts.length === allShiftsForFilter.length ? 'Снять все' : 'Выбрать все'}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto p-2">
+                        {allShiftsForFilter.map((shift: any) => (
+                          <label
+                            key={shift.shiftNumber}
+                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-700 rounded cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={selectedShifts.includes(shift.shiftNumber)}
+                              onCheckedChange={() => handleShiftToggle(shift.shiftNumber)}
+                            />
+                            <span className="text-sm text-slate-300">
+                              №{shift.shiftNumber}
+                            </span>
+                            <span className="text-xs text-slate-500 ml-auto">
+                              {new Date(shift.openedAt).toLocaleDateString('ru-RU', {
+                                day: '2-digit',
+                                month: '2-digit',
+                              })}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      {selectedShifts.length > 0 && (
+                        <div className="p-2 border-t border-slate-700">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedShifts([])}
+                            className="w-full h-7 text-xs text-slate-400 hover:text-white"
+                          >
+                            Сбросить фильтр
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
             </div>
           </div>
         </div>

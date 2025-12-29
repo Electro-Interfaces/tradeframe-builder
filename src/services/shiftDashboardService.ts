@@ -222,13 +222,18 @@ class ShiftDashboardService {
   /**
    * Определить тип способа оплаты
    */
-  private getPaymentType(payTypeName: string): 'cash' | 'card' | 'online' | 'corporate' | 'other' {
+  private getPaymentType(payTypeName: string): 'cash' | 'card' | 'online' | 'corporate' | 'coupon' | 'other' {
     const name = payTypeName.toLowerCase();
     if (name.includes('наличн')) return 'cash';
+    // Купоны на сдачу
+    if (name.includes('купон')) return 'coupon';
+    // ВАЖНО: проверяем корпоративные карты ПЕРЕД обычными картами!
+    // Иначе "корп.карты" попадет в категорию 'card' из-за includes('карт')
+    if (name === 'кр' || name.includes('корпоратив') || name.includes('корп.карт') ||
+        name.includes('корп карт') || name.includes('топливн')) return 'corporate';
     if (name.includes('карт') || name.includes('сбербанк') || name.includes('сбп') ||
         name.includes('visa') || name.includes('mastercard') || name.includes('эквайр')) return 'card';
     if (name.includes('мобил') || name.includes('онлайн') || name.includes('online')) return 'online';
-    if (name === 'кр' || name.includes('корпоратив') || name.includes('корп.карт') || name.includes('корп карт')) return 'corporate';
     return 'other';
   }
 
@@ -327,6 +332,7 @@ class ShiftDashboardService {
     paymentFuelMap.set('card', new Map());
     paymentFuelMap.set('online', new Map());
     paymentFuelMap.set('corporate', new Map());
+    paymentFuelMap.set('coupon', new Map());
 
     const financial = {
       totalRevenue: 0,
@@ -342,6 +348,7 @@ class ShiftDashboardService {
         card: { revenue: 0, volume: 0, byFuel: [] as PaymentFuelBreakdown[] },
         online: { revenue: 0, volume: 0, byFuel: [] as PaymentFuelBreakdown[] },
         corporate: { revenue: 0, volume: 0, byFuel: [] as PaymentFuelBreakdown[] },
+        coupon: { revenue: 0, volume: 0, byFuel: [] as PaymentFuelBreakdown[] },
       },
     };
 

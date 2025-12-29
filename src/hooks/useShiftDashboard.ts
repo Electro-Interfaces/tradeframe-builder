@@ -25,6 +25,9 @@ interface UseShiftDashboardOptions {
   /** Выбор периода */
   period: PeriodSelection;
 
+  /** Фильтр по номерам смен (пустой = все смены) */
+  selectedShifts?: number[];
+
   /** Включить запрос */
   enabled?: boolean;
 }
@@ -53,11 +56,11 @@ interface UseShiftDashboardReturn {
  * Хук для загрузки данных дашборда
  */
 export function useShiftDashboard(options: UseShiftDashboardOptions): UseShiftDashboardReturn {
-  const { system, station, stations, stationNames, period, enabled = true } = options;
+  const { system, station, stations, stationNames, period, selectedShifts, enabled = true } = options;
 
-  // Формируем ключ запроса (v4 - добавлены названия станций)
+  // Формируем ключ запроса (v5 - добавлен фильтр смен)
   const queryKey = [
-    'shift-dashboard-v4',
+    'shift-dashboard-v5',
     system,
     station,
     stations?.join(','),
@@ -66,6 +69,7 @@ export function useShiftDashboard(options: UseShiftDashboardOptions): UseShiftDa
     period.compareEnabled,
     period.compareDateFrom,
     period.compareDateTo,
+    selectedShifts?.join(',') || 'all',
   ];
 
   // Выполняем запрос
@@ -87,7 +91,49 @@ export function useShiftDashboard(options: UseShiftDashboardOptions): UseShiftDa
         period,
       };
 
-      return shiftDashboardService.getDashboardData(params);
+      const result = await shiftDashboardService.getDashboardData(params);
+
+      // Если указан фильтр смен - фильтруем и пересчитываем KPI
+      if (selectedShifts && selectedShifts.length > 0 && result.shifts) {
+        const filteredShifts = result.shifts.filter(s => selectedShifts.includes(s.shiftNumber));
+
+        // Пересчитываем KPI на основе отфильтрованных смен
+        const filteredKpis = shiftDashboardService.calculateKPIs(
+          filteredShifts,
+          result.kpis.cashout,
+          result.kpis.cashFlow
+        );
+
+        // Пересчитываем графики
+        const filteredCharts = shiftDashboardService.prepareChartData(filteredShifts, period);
+
+        // Пересчитываем детализацию
+        const filteredDetails = shiftDashboardService.prepareDetailsData(filteredShifts);
+
+        return {
+          ...result,
+          shifts: filteredShifts,
+          kpis: filteredKpis,
+          charts: filteredCharts,
+          details: filteredDetails,
+          meta: {
+            ...result.meta,
+            shiftsLoaded: filteredShifts.length,
+            shiftsFiltered: true,
+            totalShifts: result.shifts.length,
+            allShifts: result.shifts, // Все смены для списка фильтра
+          },
+        };
+      }
+
+      // Добавляем allShifts для списка фильтра
+      return {
+        ...result,
+        meta: {
+          ...result.meta,
+          allShifts: result.shifts,
+        },
+      };
     },
     enabled: enabled && system > 0 && (!!station || (stations && stations.length > 0)),
     staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
