@@ -636,28 +636,25 @@ git push test main  # GitHub Actions автоматически соберет �
 
 #### 3️⃣ PRODUCTION (Боевой сервер)
 - **URL**: https://prod.dataworker.ru/
-- **Server IP**: 194.135.36.195
-- **SSH Access**: root@194.135.36.195
-- **SSH Password**: n3cBMDPU2@N*Cd
 - **Git Remote**: `prod` (TradeControl repo)
+- **Деплой**: ✅ **АВТОМАТИЧЕСКИЙ через GitHub Actions**
 - **Service Worker**: ✅ ВКЛЮЧЕН
 - **PWA**: ✅ ПОЛНОСТЬЮ РАБОТАЕТ
 - **Данные**: РЕАЛЬНЫЕ (Supabase + STS API)
 - **Назначение**: Работа с реальными пользователями
 
 ```bash
-# SSH подключение к production серверу
-ssh root@194.135.36.195
-# Пароль: n3cBMDPU2@N*Cd
+# Деплой на PRODUCTION - автоматический через GitHub Actions
+git push prod main  # GitHub Actions автоматически соберет и задеплоит
 
-# Проверка статуса приложения на сервере
-cd /var/www/www-root/data/www/prod.dataworker.ru
-pm2 status
-pm2 logs
+# ИЛИ ручной запуск workflow:
+gh workflow run "Deploy to PRODUCTION Environment" --repo Electro-Interfaces/TradeControl --ref main
 
-# Деплой на PRODUCTION (ТОЛЬКО после успешного тестирования на TEST!)
-git push prod main
+# Проверка статуса деплоя:
+gh run list --repo Electro-Interfaces/TradeControl --limit 3
 ```
+
+> **⚠️ ВАЖНО**: НЕ ИСПОЛЬЗОВАТЬ SSH для деплоя! Деплой происходит ТОЛЬКО через GitHub Actions.
 
 ### Рекомендуемый Workflow
 

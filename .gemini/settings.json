@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "FilesystemMCP": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--with",
+        "fastmcp",
+        "fastmcp",
+        "run",
+        "D:\\Users\\magsp\\TF-project\\filesystem_mcp.py:mcp"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
+    }
+  }
+}

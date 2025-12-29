@@ -236,12 +236,21 @@ export class SupabaseAuthService {
 
   /**
    * Проверка разрешения
+   * Поддерживает динамические роли из базы данных
    */
   static hasPermission(user: AuthUser, permission: string): boolean {
-    return user.permissions.includes(permission) ||
-           user.permissions.includes('all') ||
-           user.role === 'system_admin' ||
-           user.role === 'super_admin';
+    // Проверяем наличие разрешения напрямую
+    if (user.permissions.includes(permission) || user.permissions.includes('all') || user.permissions.includes('*')) {
+      return true;
+    }
+
+    // Проверяем суперадминские роли (динамический список)
+    const superAdminRoles = ['super_admin', 'system_admin', 'Суперадминистратор'];
+    if (superAdminRoles.includes(user.role)) {
+      return true;
+    }
+
+    return false;
   }
 
   /**

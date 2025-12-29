@@ -23,7 +23,10 @@ import {
   Component,
   Receipt,
   Fuel,
-  Database
+  Database,
+  Building2,
+  History,
+  PackagePlus
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -141,7 +144,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Ценообразование", url: "/network/pricing", icon: DollarSign },
     { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
     { title: "Остатки", url: "/network/fuel-inventory", icon: Fuel },
-    { title: "Поступления", url: "/network/receipts", icon: Fuel },
+    { title: "Поступления", url: "/network/receipts", icon: PackagePlus },
     { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },
     { title: "Купоны", url: "/network/coupons", icon: Component },
   ];
@@ -153,13 +156,13 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   ];
 
   const adminMenuItems = [
-    { title: "Сети и ТТ", url: "/admin/networks", icon: Network },
+    { title: "Сети и ТТ", url: "/admin/networks", icon: Building2 },
     { title: "Пользователи", url: "/admin/users-and-roles", icon: Users },
     { title: "Роли", url: "/admin/roles", icon: Shield },
     { title: "Оповещения сети", url: "/network/notifications", icon: Bell },
     { title: "Рассылка сообщений", url: "/network/broadcast-messages", icon: MessageSquare },
     { title: "Правовые документы", url: "/admin/legal-documents", icon: FileText },
-    { title: "Журнал аудита", url: "/admin/audit", icon: FileText },
+    { title: "Журнал аудита", url: "/admin/audit", icon: History },
   ];
 
   const settingsMenuItems = [

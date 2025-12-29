@@ -34,6 +34,12 @@ interface UserRole {
   permissions: string[];
 }
 
+interface Permission {
+  section: string;
+  resource: string;
+  actions: string[];
+}
+
 interface AppUser {
   id: string;
   email: string;
@@ -42,7 +48,7 @@ interface AppUser {
   status: string;
   role: string;
   roleId: number;
-  permissions: string[];
+  permissions: (Permission | string)[];  // Массив разрешений (объекты или строки)
   roles: UserRole[];  // Массив ролей для отображения в профиле
 }
 
@@ -132,8 +138,9 @@ class AuthService {
     try {
 
       // НОВАЯ СХЕМА: получаем пользователя с ролями через джойн
+      // Также получаем scope_value из user_roles для индивидуальных ограничений
       const users = await this.makeRequest(
-        `users?select=*,user_roles(role:roles(*))&email=ilike.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
+        `users?select=*,user_roles(scope_value,role:roles(*))&email=ilike.${encodeURIComponent(email)}&deleted_at=is.null&limit=1`
       );
 
       if (users.length === 0) {
@@ -243,6 +250,7 @@ class AuthService {
 
   /**
    * Трансформирует пользователя из БД в формат приложения (НОВАЯ СХЕМА)
+   * РЕФАКТОРИНГ: Собираем ВСЕ разрешения из ВСЕХ ролей как объекты
    */
   private transformUser(dbUser: DatabaseUser): AppUser {
 
@@ -252,7 +260,6 @@ class AuthService {
 
     let userRole = 'user';
     let roleId = 0;
-    let permissions: string[] = [];
 
     // Маппинг имен ролей на коды для совместимости
     const roleNameToCode: Record<string, string> = {
@@ -267,20 +274,63 @@ class AuthService {
       // Используем код роли напрямую из БД или имя роли для маппинга
       userRole = primaryRole.code || roleNameToCode[primaryRole.name] || primaryRole.name;
       roleId = primaryRole.id;
-      permissions = primaryRole.permissions || [];
     }
 
+    // Собираем ВСЕ разрешения из ВСЕХ ролей пользователя
+    // Разрешения хранятся как объекты { section, resource, actions }
+    const allPermissions: (Permission | string)[] = [];
+    const permissionSet = new Set<string>(); // Для дедупликации
+
+    userRoles.forEach((ur: any) => {
+      const role = ur.role;
+      if (!role || !role.permissions) return;
+
+      role.permissions.forEach((perm: any) => {
+        // Создаём уникальный ключ для проверки дубликатов
+        const key = typeof perm === 'object'
+          ? `${perm.section}.${perm.resource}`
+          : String(perm);
+
+        if (!permissionSet.has(key)) {
+          permissionSet.add(key);
+          allPermissions.push(perm);
+        }
+      });
+    });
+
     // Формируем массив ролей для отображения в профиле
+    // Приоритет: scope_value из user_roles > scope_values из роли
     const roles: UserRole[] = userRoles
       .filter((ur: any) => ur.role)
       .map((ur: any) => {
         const role = ur.role;
+
+        // Парсим scope_value из user_roles (хранится как JSON-строка)
+        let userScopeValues: string[] = [];
+        if (ur.scope_value) {
+          try {
+            const parsed = JSON.parse(ur.scope_value);
+            if (Array.isArray(parsed)) {
+              userScopeValues = parsed;
+            }
+          } catch {
+            // Если не JSON - используем как одиночное значение для обратной совместимости
+            userScopeValues = [ur.scope_value];
+          }
+        }
+
+        // Используем scope_values из назначения (user_roles), если они есть
+        // Иначе используем scope_values из самой роли
+        const effectiveScopeValues = userScopeValues.length > 0
+          ? userScopeValues
+          : (role.scope_values || []);
+
         return {
           roleId: String(role.id),
           roleName: role.name,
           roleCode: role.code || roleNameToCode[role.name] || role.name,
           scope: role.scope,
-          scopeValues: role.scope_values || [],
+          scopeValues: effectiveScopeValues,
           permissions: role.permissions || []
         };
       });
@@ -293,7 +343,7 @@ class AuthService {
       status: dbUser.status,
       role: userRole,
       roleId: roleId,
-      permissions: permissions,
+      permissions: allPermissions,
       roles: roles
     };
 
@@ -380,4 +430,4 @@ class AuthService {
 }
 
 export const authService = new AuthService();
-export type { AppUser, UserRole };
+export type { AppUser, UserRole, Permission };

@@ -216,12 +216,24 @@ class ExternalUsersService {
           const roleData = rolesMap.get(ur.role_id);
           if (!roleData) return null;
 
+          // Парсим scope_value из JSON-строки в массив
+          let scopeValues: string[] = [];
+          if (ur.scope_value) {
+            try {
+              const parsed = JSON.parse(ur.scope_value);
+              scopeValues = Array.isArray(parsed) ? parsed : [ur.scope_value];
+            } catch {
+              scopeValues = [ur.scope_value];
+            }
+          }
+
           return {
             role_id: ur.role_id,
             role_code: roleData.code,
             role_name: roleData.name,
             scope: roleData.scope,
             scope_value: ur.scope_value,
+            scopeValues: scopeValues,  // Добавляем распарсенный массив для формы
             permissions: roleData.permissions || [],
             assigned_at: new Date(ur.assigned_at),
             expires_at: ur.expires_at ? new Date(ur.expires_at) : undefined
@@ -448,13 +460,25 @@ class ExternalUsersService {
           .map((ur: any) => {
             const roleData = rolesMap.get(ur.role_id);
             if (!roleData) return null;
-            
+
+            // Парсим scope_value из JSON-строки в массив
+            let scopeValues: string[] = [];
+            if (ur.scope_value) {
+              try {
+                const parsed = JSON.parse(ur.scope_value);
+                scopeValues = Array.isArray(parsed) ? parsed : [ur.scope_value];
+              } catch {
+                scopeValues = [ur.scope_value];
+              }
+            }
+
             return {
               role_id: ur.role_id,
               role_code: roleData.code,
               role_name: roleData.name,
               scope: roleData.scope,
               scope_value: ur.scope_value,
+              scopeValues: scopeValues,  // Добавляем распарсенный массив для формы
               permissions: roleData.permissions || [],
               assigned_at: new Date(ur.assigned_at),
               expires_at: ur.expires_at ? new Date(ur.expires_at) : undefined

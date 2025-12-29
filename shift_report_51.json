@@ -1,0 +1,344 @@
+{
+  "psm": {
+    "total": [
+      {
+        "service": {
+          "service_code": 2,
+          "service_name": "АИ-92"
+        },
+        "release": {
+          "quantity": 1138.11,
+          "cost": 848.91,
+          "amount": 65896.59
+        },
+        "tank": 3
+      },
+      {
+        "service": {
+          "service_code": 3,
+          "service_name": "АИ-95"
+        },
+        "release": {
+          "quantity": 1178.33,
+          "cost": 879.04,
+          "amount": 73292.1
+        },
+        "tank": 2
+      },
+      {
+        "service": {
+          "service_code": 5,
+          "service_name": "ДТ"
+        },
+        "release": {
+          "quantity": 305.74,
+          "cost": 252.17,
+          "amount": 21768.71
+        },
+        "tank": 1
+      }
+    ],
+    "data": [
+      {
+        "shift": 51,
+        "price": 71.2,
+        "tank": 1,
+        "density": 824.8,
+        "pump": 1,
+        "nozzle": "1-1",
+        "psm_beg": 3633.24,
+        "psm_end": 3794.63,
+        "release": {
+          "volume": "161.39",
+          "amount": "133.11",
+          "cost": "11490.98"
+        },
+        "accuracy": 0,
+        "dt": "2025-12-17T00:00:43",
+        "service": {
+          "service_code": 5,
+          "service_name": "ДТ"
+        }
+      },
+      {
+        "shift": 51,
+        "price": 71.2,
+        "tank": 1,
+        "density": 824.8,
+        "pump": 4,
+        "nozzle": "2-1",
+        "psm_beg": 24247.19,
+        "psm_end": 24391.54,
+        "release": {
+          "volume": "144.35",
+          "amount": "119.06",
+          "cost": "10277.73"
+        },
+        "accuracy": 0,
+        "dt": "2025-12-17T00:00:43",
+        "service": {
+          "service_code": 5,
+          "service_name": "ДТ"
+        }
+      },
+      {
+        "shift": 51,
+        "price": 62.2,
+        "tank": 2,
+        "density": 746,
+        "pump": 3,
+        "nozzle": "1-3",
+        "psm_beg": 32927.19,
+        "psm_end": 33639.84,
+        "release": {
+          "volume": "712.65",
+          "amount": "531.64",
+          "cost": "44326.82"
+        },
+        "accuracy": 0,
+        "dt": "2025-12-17T00:00:43",
+        "service": {
+          "service_code": 3,
+          "service_name": "АИ-95"
+        }
+      },
+      {
+        "shift": 51,
+        "price": 62.2,
+        "tank": 2,
+        "density": 746,
+        "pump": 6,
+        "nozzle": "2-3",
+        "psm_beg": 33729.48,
+        "psm_end": 34195.16,
+        "release": {
+          "volume": "465.68",
+          "amount": "347.40",
+          "cost": "28965.28"
+        },
+        "accuracy": 0,
+        "dt": "2025-12-17T00:00:43",
+        "service": {
+          "service_code": 3,
+          "service_name": "АИ-95"
+        }
+      },
+      {
+        "shift": 51,
+        "price": 57.9,
+        "tank": 3,
+        "density": 745.9,
+        "pump": 2,
+        "nozzle": "1-2",
+        "psm_beg": 27947.95,
+        "psm_end": 28540.62,
+        "release": {
+          "volume": "592.67",
+          "amount": "442.07",
+          "cost": "34315.58"
+        },
+        "accuracy": 0,
+        "dt": "2025-12-17T00:00:43",
+        "service": {
+          "service_code": 2,
+          "service_name": "АИ-92"
+        }
+      },
+      {
+        "shift": 51,
+        "price": 57.9,
+        "tank": 3,
+        "density": 745.9,
+        "pump": 5,
+        "nozzle": "2-2",
+        "psm_beg": 36238.05,
+        "psm_end": 36783.49,
+        "release": {
+          "volume": "545.44",
+          "amount": "406.84",
+          "cost": "31581.01"
+        },
+        "accuracy": 0,
+        "dt": "2025-12-17T00:00:43",
+        "service": {
+          "service_code": 2,
+          "service_name": "АИ-92"
+        }
+      }
+    ]
+  },
+  "release": [],
+  "receipt": [],
+  "sales": [
+    {
+      "pay_type": {
+        "id": 1,
+        "name": "Наличные"
+      },
+      "fuel": [
+        {
+          "service": {
+            "service_code": 2,
+            "service_name": "АИ-92"
+          },
+          "release": {
+            "volume": "181.400",
+            "cost": "10500.00",
+            "discount": 0
+          }
+        },
+        {
+          "service": {
+            "service_code": 3,
+            "service_name": "АИ-95"
+          },
+          "release": {
+            "volume": "178.490",
+            "cost": "11100.00",
+            "discount": 0
+          }
+        },
+        {
+          "service": {
+            "service_code": 5,
+            "service_name": "ДТ"
+          },
+          "release": {
+            "volume": "11.240",
+            "cost": "800.00",
+            "discount": 0
+          }
+        }
+      ]
+    },
+    {
+      "pay_type": {
+        "id": 26,
+        "name": "СберБанк"
+      },
+      "fuel": [
+        {
+          "service": {
+            "service_code": 2,
+            "service_name": "АИ-92"
+          },
+          "release": {
+            "volume": "757.490",
+            "cost": "43858.55",
+            "discount": 0.14
+          }
+        },
+        {
+          "service": {
+            "service_code": 3,
+            "service_name": "АИ-95"
+          },
+          "release": {
+            "volume": "758.150",
+            "cost": "47156.89",
+            "discount": 0.01
+          }
+        },
+        {
+          "service": {
+            "service_code": 5,
+            "service_name": "ДТ"
+          },
+          "release": {
+            "volume": "266.500",
+            "cost": "18974.75",
+            "discount": 0.07
+          }
+        }
+      ]
+    },
+    {
+      "pay_type": {
+        "id": 235,
+        "name": "МобилПр."
+      },
+      "fuel": [
+        {
+          "service": {
+            "service_code": 2,
+            "service_name": "АИ-92"
+          },
+          "release": {
+            "volume": "199.220",
+            "cost": "11534.85",
+            "discount": 0
+          }
+        },
+        {
+          "service": {
+            "service_code": 3,
+            "service_name": "АИ-95"
+          },
+          "release": {
+            "volume": "241.690",
+            "cost": "15033.10",
+            "discount": 0
+          }
+        },
+        {
+          "service": {
+            "service_code": 5,
+            "service_name": "ДТ"
+          },
+          "release": {
+            "volume": "28.000",
+            "cost": "1993.60",
+            "discount": 0
+          }
+        }
+      ]
+    }
+  ],
+  "money": [
+    {
+      "pos": 1,
+      "shift": 51,
+      "volume": 22400,
+      "operation": {
+        "id": 3,
+        "name": "Выручка"
+      }
+    },
+    {
+      "pos": 1,
+      "shift": 51,
+      "volume": 22400,
+      "operation": {
+        "id": 4,
+        "name": "Остаток на конец смены по раб.местам"
+      }
+    },
+    {
+      "pos": 1,
+      "shift": 51,
+      "volume": 41488913.71,
+      "operation": {
+        "id": 5,
+        "name": "Показания суммарных счётчиков ККТ на начало смены"
+      }
+    },
+    {
+      "pos": 1,
+      "shift": 51,
+      "volume": 41488913.71,
+      "operation": {
+        "id": 6,
+        "name": "Показания суммарных счётчиков ККТ на конец смены"
+      }
+    },
+    {
+      "pos": 1,
+      "shift": 51,
+      "volume": 91250,
+      "operation": {
+        "id": 7,
+        "name": "Остаток на конец смены по всей АЗС"
+      }
+    }
+  ]
+}

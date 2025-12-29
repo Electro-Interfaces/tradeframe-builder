@@ -13,7 +13,12 @@ interface FuelSummaryCardsProps {
 }
 
 export const FuelSummaryCards = ({ summaries, loading = false }: FuelSummaryCardsProps) => {
-  const getProgressColor = () => 'bg-slate-500';
+  // Цветовая индикация по уровню заполнения
+  const getProgressColor = (fillPercent: number) => {
+    if (fillPercent >= 20) return 'bg-green-500';  // >= 20% - зеленый (норма)
+    if (fillPercent >= 10) return 'bg-yellow-500'; // 10-20% - желтый (внимание)
+    return 'bg-red-500';                            // < 10% - красный (критический)
+  };
 
   if (summaries.length === 0 && !loading) {
     return (
@@ -52,9 +57,9 @@ export const FuelSummaryCards = ({ summaries, loading = false }: FuelSummaryCard
                 </span>
               </div>
               {/* Прогресс-бар */}
-              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-2.5 bg-slate-700 rounded-full overflow-hidden">
                 <div
-                  className={`h-full ${getProgressColor()}`}
+                  className={`h-full ${getProgressColor((summary.totalVolumeBook / summary.totalCapacity) * 100)}`}
                   style={{ width: `${(summary.totalVolumeBook / summary.totalCapacity) * 100}%` }}
                 ></div>
               </div>

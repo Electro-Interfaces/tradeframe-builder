@@ -77,7 +77,7 @@ export function PriceCard({
                   min="0"
                   value={editingValue}
                   onChange={(e) => onEditingValueChange(e.target.value)}
-                  className="w-24 h-8 text-right bg-slate-700 border-slate-600 text-white font-bold text-sm"
+                  className="w-28 h-11 md:h-9 text-right bg-slate-700 border-slate-600 text-white font-bold text-base md:text-sm"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       onSaveInlinePrice();

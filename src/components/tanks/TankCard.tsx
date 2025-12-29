@@ -16,7 +16,7 @@ import type { Tank, TankStatus } from "@/types/tanks";
 interface TankCardProps {
   tank: Tank;
   isMobile: boolean;
-  isSuperAdmin?: boolean;
+  canManageTanks?: boolean;
 }
 
 /**
@@ -35,7 +35,7 @@ function getTankStatus(percentage: number, minLevel: number, criticalLevel: numb
   return 'critical';
 }
 
-const TankCardComponent = ({ tank, isMobile, isSuperAdmin = false }: TankCardProps) => {
+const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardProps) => {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showCalibration, setShowCalibration] = useState(false);
   const currentLevel = tank.currentLevelLiters || 0;
@@ -47,8 +47,8 @@ const TankCardComponent = ({ tank, isMobile, isSuperAdmin = false }: TankCardPro
   return (
     <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
       <CardHeader className={isMobile ? 'pb-3 px-3 pt-3' : 'pb-4'}>
-        {/* Кнопки действий - доступны только супер-администраторам */}
-        {isSuperAdmin && (
+        {/* Кнопки действий - доступны пользователям с правами управления резервуарами */}
+        {canManageTanks && (
           <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'} mb-3`}>
             <Button
               variant="outline"

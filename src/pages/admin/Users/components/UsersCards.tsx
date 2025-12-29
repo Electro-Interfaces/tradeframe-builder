@@ -31,8 +31,8 @@ export function UsersCards({ users, onEdit, onDelete }: UsersCardsProps) {
                 >
                   {user.status === 'active' ? 'Активен' : 'Неактивен'}
                 </Badge>
-                {user.roles?.map(role => (
-                  <Badge key={role.role_id} variant="outline" className="text-xs border-slate-500">
+                {user.roles?.map((role, index) => (
+                  <Badge key={`${role.role_id}-${index}`} variant="outline" className="text-xs border-slate-500">
                     {role.role_name}
                   </Badge>
                 ))}

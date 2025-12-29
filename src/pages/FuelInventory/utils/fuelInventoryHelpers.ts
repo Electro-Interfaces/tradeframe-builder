@@ -60,7 +60,7 @@ export const filterInventory = (
  */
 export const sortInventory = (
   inventory: TankInventory[],
-  sortColumn: 'station' | 'fuel',
+  sortColumn: 'station' | 'fuel' | 'volumeBook',
   sortDirection: 'asc' | 'desc'
 ): TankInventory[] => {
   return [...inventory].sort((a, b) => {
@@ -70,6 +70,8 @@ export const sortInventory = (
       comparison = a.station - b.station;
     } else if (sortColumn === 'fuel') {
       comparison = a.fuelCode - b.fuelCode || a.station - b.station;
+    } else if (sortColumn === 'volumeBook') {
+      comparison = a.volumeBook - b.volumeBook;
     }
 
     return sortDirection === 'asc' ? comparison : -comparison;
@@ -87,6 +89,8 @@ export const calculateTotals = (inventory: TankInventory[]) => {
     volumeReceipts: inventory.reduce((sum, tank) => sum + tank.volumeReceipts, 0),
     volumeSales: inventory.reduce((sum, tank) => sum + tank.volumeSales, 0),
     volumeBook: inventory.reduce((sum, tank) => sum + tank.volumeBook, 0),
+    receiptCount: inventory.reduce((sum, tank) => sum + (tank.receiptCount || 0), 0),
+    shiftCount: inventory.reduce((sum, tank) => sum + (tank.shiftCount || 0), 0),
     capacity: inventory.reduce((sum, tank) => sum + tank.capacity, 0),
     tankCount: inventory.length
   };

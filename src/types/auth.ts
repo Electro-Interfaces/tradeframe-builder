@@ -41,7 +41,8 @@ export interface UserRole {
   role_code: string               // код роли для быстрого доступа
   role_name: string               // название роли для отображения
   scope: RoleScope                // область действия
-  scope_value?: string            // конкретное значение области
+  scope_value?: string            // конкретное значение области (JSON-строка в БД)
+  scopeValues?: string[]          // распарсенный массив значений для формы
   permissions: Permission[]       // кэшированные разрешения роли
   assigned_at: Date              // когда назначена
   assigned_by?: string           // кем назначена (user_id)

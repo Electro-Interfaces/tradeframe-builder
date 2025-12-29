@@ -302,12 +302,13 @@ class ExternalRolesService {
     }
   }
 
-  async assignRoleToUser(userId: string, roleId: string, scopeValue?: string, expiresAt?: Date): Promise<void> {
+  async assignRoleToUser(userId: string, roleId: string, scopeValues?: string[], expiresAt?: Date): Promise<void> {
     try {
+      // Поле scope_value в БД хранит JSON-массив как строку
       const assignment = {
         user_id: userId,
         role_id: roleId,
-        scope_value: scopeValue || null,
+        scope_value: scopeValues && scopeValues.length > 0 ? JSON.stringify(scopeValues) : null,
         expires_at: expiresAt ? expiresAt.toISOString() : null,
         assigned_by: '00000000-0000-0000-0000-000000000001' // Системный пользователь
       };
@@ -324,13 +325,9 @@ class ExternalRolesService {
 
   async removeRoleFromUser(userId: string, roleId: string, scopeValue?: string): Promise<void> {
     try {
-      let query = `user_roles?user_id=eq.${userId}&role_id=eq.${roleId}`;
-      
-      if (scopeValue) {
-        query += `&scope_value=eq.${encodeURIComponent(scopeValue)}`;
-      } else {
-        query += `&scope_value=is.null`;
-      }
+      // Удаляем ВСЕ назначения этой роли пользователю (независимо от scope_value)
+      // Это предотвращает создание дубликатов при редактировании
+      const query = `user_roles?user_id=eq.${userId}&role_id=eq.${roleId}`;
 
       await this.makeRequest(query, {
         method: 'DELETE'

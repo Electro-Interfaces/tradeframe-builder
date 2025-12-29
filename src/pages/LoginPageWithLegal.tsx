@@ -313,10 +313,8 @@ const LoginPageWithLegal = () => {
 
           // Проверяем результаты
           const failedCount = acceptanceResults.filter(r => r.status === 'rejected').length;
-          if (failedCount > 0) {
+          if (failedCount > 0 && import.meta.env.DEV) {
             console.warn(`⚠️ ${failedCount}/3 правовых документов не удалось принять, но логин продолжается`);
-          } else {
-            console.log('✅ Все правовые документы успешно приняты');
           }
         } catch (legalError) {
           // ВАЖНО: Выводим полную ошибку в консоль для диагностики

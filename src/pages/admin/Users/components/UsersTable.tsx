@@ -95,8 +95,8 @@ export function UsersTable({
               </td>
               <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-1">
-                  {user.roles?.map(role => (
-                    <Badge key={role.role_id} variant="outline" className="text-xs border-slate-500 text-slate-300">
+                  {user.roles?.map((role, index) => (
+                    <Badge key={`${role.role_id}-${index}`} variant="outline" className="text-xs border-slate-500 text-slate-300">
                       {role.role_name}
                     </Badge>
                   ))}

@@ -1,224 +1,246 @@
 /**
  * Хук для загрузки и управления данными графиков
- * Использует React Query для кэширования
+ *
+ * ЛОГИКА (аналогично TankAnalysisDialog):
+ * 1. Используем API /v1/tank_history для получения истории остатков
+ * 2. Группируем данные по виду топлива (fuel code)
+ * 3. Фактический остаток берем из поля `volume`
+ * 4. Каждая запись = точка на графике (данные приходят каждые ~10 минут)
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelection } from '@/contexts/SelectionContext';
 import { stsProxyRequest } from '@/services/stsProxyClient';
 import type { FuelInventorySummary } from '@/services/fuelInventoryService';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
 
-export const useChartData = (dateFrom: string, dateTo: string, summaries: FuelInventorySummary[]) => {
+// Интерфейс для точки данных на графике
+interface ChartDataPoint {
+  time: string;           // Метка времени для отображения
+  volume: number;         // Фактический остаток
+  sales: number;          // Продажа (изменение объема вниз)
+  receipts: number;       // Поступление (изменение объема вверх)
+  receiptCount: number;   // Счетчик поступлений
+  dateKey: string;        // ISO дата для сортировки
+}
+
+// Запись из API /v1/tank_history
+interface TankHistoryRecord {
+  number: number;         // Номер резервуара
+  fuel: number;           // Код топлива
+  fuel_name: string;      // Название топлива
+  volume: string;         // Текущий фактический объем
+  volume_begin: string;   // Объем на начало
+  volume_end: string;     // Объем на конец
+  release: {              // Реализация
+    volume: string;
+    amount: string;
+  };
+  dt: string;             // Метка времени
+}
+
+export const useChartData = (dateFrom: string, dateTo: string, summaries: FuelInventorySummary[], selectedStationFilter: string = 'all') => {
   const { selectedNetwork } = useSelection();
 
-  // Создаем ключ запроса на основе всех параметров
+  const [chartsRequested, setChartsRequested] = useState(false);
+
   const queryKey = useMemo(() => [
     'chartData',
     selectedNetwork?.id,
     dateFrom,
     dateTo,
-    summaries.map(s => s.fuelCode).join(',')
-  ], [selectedNetwork?.id, dateFrom, dateTo, summaries]);
+    summaries.map(s => s.fuelCode).join(','),
+    selectedStationFilter
+  ], [selectedNetwork?.id, dateFrom, dateTo, summaries, selectedStationFilter]);
 
-  // React Query для загрузки данных графиков с кэшированием
   const {
-    data: chartDataByFuel = new Map<number, any[]>(),
+    data: chartDataByFuel = new Map<number, ChartDataPoint[]>(),
     isLoading: loadingCharts,
-    refetch: loadChartData
-  } = useQuery<Map<number, any[]>, Error>({
+    refetch: refetchChartData,
+    isFetched: chartsLoaded
+  } = useQuery<Map<number, ChartDataPoint[]>, Error>({
     queryKey,
     queryFn: async () => {
-    if (!selectedNetwork || summaries.length === 0) {
-      return new Map<number, any[]>();
-    }
-
-    const chartData = new Map<number, any[]>();
-      // Получаем список всех ТТ сети
-      const { tradingPointsService } = await import('@/services/tradingPointsService');
-      const tradingPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
-
-      if (tradingPoints.length === 0) {
-        return new Map<number, any[]>();
+      if (!selectedNetwork || summaries.length === 0) {
+        return new Map<number, ChartDataPoint[]>();
       }
 
-      // Для каждой ТТ получаем список смен, затем shift_report для каждой смены
-      const allReports = await Promise.all(
-        tradingPoints.map(async tp => {
-          try {
-            const systemId = parseInt(selectedNetwork.external_id);
-            const stationId = parseInt(tp.external_id);
+      const chartData = new Map<number, ChartDataPoint[]>();
 
-            // 1. Получаем список смен за период
-            const shiftsResponse = await stsProxyRequest<any[]>(
-              '/v1/shifts',
-              {
-                method: 'GET',
-                params: {
-                  system: systemId,
-                  station: stationId
-                }
-              }
-            );
+      // Получаем список ТТ
+      const { tradingPointsService } = await import('@/services/tradingPointsService');
+      let tradingPoints = await tradingPointsService.getByNetworkId(selectedNetwork.id);
 
-            if (!shiftsResponse || shiftsResponse.length === 0) {
-              return [];
-            }
+      if (tradingPoints.length === 0) {
+        return new Map<number, ChartDataPoint[]>();
+      }
 
-            // 2. Фильтруем смены по периоду
-            const dtBegDate = new Date(formatDateForApi(dateFrom, false));
-            const dtEndDate = new Date(formatDateForApi(dateTo, true));
-
-            const validShifts = shiftsResponse.filter(shift => {
-              if (!shift.dt_open) return false;
-              const shiftDate = new Date(shift.dt_open);
-              return shiftDate >= dtBegDate && shiftDate <= dtEndDate;
-            });
-
-            // 3. Получаем shift_report для каждой смены (с батчингом по 10 запросов)
-            const BATCH_SIZE = 10;
-            const reports: any[] = [];
-
-            for (let i = 0; i < validShifts.length; i += BATCH_SIZE) {
-              const batch = validShifts.slice(i, i + BATCH_SIZE);
-              const batchReports = await Promise.all(
-                batch.map(async shift => {
-                  try {
-                    const report = await stsProxyRequest<any>(
-                      '/v1/report/shift_report',
-                      {
-                        method: 'GET',
-                        params: {
-                          system: systemId,
-                          station: stationId,
-                          shift: shift.shift
-                        }
-                      }
-                    );
-                    // Добавляем метаданные смены к отчету
-                    return report ? {
-                      ...report,
-                      dt_open: shift.dt_open,
-                      dt_close: shift.dt_close,
-                      station: stationId
-                    } : null;
-                  } catch (err) {
-                    return null;
-                  }
-                })
-              );
-              reports.push(...batchReports);
-            }
-
-            return reports.filter(r => r !== null);
-          } catch (err) {
-            return [];
-          }
-        })
-      );
-
-      // Собираем данные по видам топлива и датам
-      // Map<fuelCode, Map<dateKey, Map<tankKey, { volumeEnd, shiftDate, sales, receipts, receiptCount }>>>
-      const dataByFuel = new Map<number, Map<string, Map<string, {
-        volumeEnd: number;
-        shiftDate: string;
-        sales: number;
-        receipts: number;
-        receiptCount: number;
-      }>>>();
-
-      allReports.flat().forEach(report => {
-        // Пропускаем некорректные записи
-        if (!report?.release || !Array.isArray(report.release) || report.release.length === 0) {
-          return;
+      // Фильтрация по выбранной ТТ
+      if (selectedStationFilter !== 'all') {
+        tradingPoints = tradingPoints.filter(tp => tp.external_id === selectedStationFilter);
+        if (tradingPoints.length === 0) {
+          return new Map<number, ChartDataPoint[]>();
         }
+      }
 
-        report.release.forEach((tank: any) => {
-          if (!tank?.service?.service_code || tank.doc_end?.volume == null) {
-            return;
-          }
+      const systemId = parseInt(selectedNetwork.external_id);
+      const dtBeg = formatDateForApi(dateFrom, false);
+      const dtEnd = formatDateForApi(dateTo, true);
 
-          const fuelCode = tank.service.service_code;
-          const volumeEnd = parseFloat(tank.doc_end?.volume || '0');
-          // Используем dt_open для группировки по дате открытия смены
-          const shiftDate = report.dt_open || report.dt_close || new Date().toISOString();
-          const dateKey = shiftDate.split(' ')[0] || shiftDate.split('T')[0];
-          const tankKey = `${report.station}_${tank.tank}`;
+      // Структура для хранения истории по видам топлива
+      // Map<fuelCode, TankHistoryRecord[]>
+      const historyByFuel = new Map<number, TankHistoryRecord[]>();
 
-          // Извлекаем данные о продажах и поступлениях (из правильных полей)
-          const sales = parseFloat(tank.release?.volume || '0');
-          const receipts = parseFloat(tank.receipt?.volume || '0');
-          const receiptCount = receipts > 0 ? 1 : 0; // Если было поступление - считаем
-
-          // Инициализируем структуры данных
-          if (!dataByFuel.has(fuelCode)) {
-            dataByFuel.set(fuelCode, new Map());
-          }
-
-          const fuelData = dataByFuel.get(fuelCode)!;
-          if (!fuelData.has(dateKey)) {
-            fuelData.set(dateKey, new Map());
-          }
-
-          const dayData = fuelData.get(dateKey)!;
-          const existing = dayData.get(tankKey);
-
-          // Берем последнюю смену за день для этого резервуара
-          if (!existing || new Date(shiftDate) > new Date(existing.shiftDate)) {
-            dayData.set(tankKey, {
-              volumeEnd,
-              shiftDate,
-              sales,
-              receipts,
-              receiptCount
-            });
-          }
-        });
+      // Инициализируем структуры для каждого вида топлива
+      summaries.forEach(summary => {
+        historyByFuel.set(summary.fuelCode, []);
       });
 
-      // Для каждого вида топлива создаем данные графика
+      // Загружаем историю для каждой ТТ
+      for (const tp of tradingPoints) {
+        const stationId = parseInt(tp.external_id);
+
+        try {
+          // Используем API /v1/tank_history - как в TankAnalysisDialog
+          const historyResponse = await stsProxyRequest<TankHistoryRecord[]>('/v1/tank_history', {
+            method: 'GET',
+            params: {
+              system: systemId,
+              station: stationId,
+              dt_beg: dtBeg,
+              dt_end: dtEnd
+            }
+          });
+
+          if (Array.isArray(historyResponse)) {
+            // Группируем записи по виду топлива
+            historyResponse.forEach(record => {
+              const fuelCode = record.fuel;
+              const fuelHistory = historyByFuel.get(fuelCode);
+              if (fuelHistory) {
+                fuelHistory.push(record);
+              }
+            });
+          }
+        } catch (err) {
+          // Продолжаем без данных для этой станции
+        }
+      }
+
+      // Строим графики для каждого вида топлива
       summaries.forEach(summary => {
-        const fuelData = dataByFuel.get(summary.fuelCode);
+        const records = historyByFuel.get(summary.fuelCode);
+        if (!records || records.length === 0) return;
 
-        if (fuelData) {
-          const chartPoints = Array.from(fuelData.entries())
-            .map(([dateKey, tankRecords]) => {
-              const records = Array.from(tankRecords.values());
+        // Сортируем записи по времени
+        records.sort((a, b) => new Date(a.dt).getTime() - new Date(b.dt).getTime());
 
-              // Суммируем объемы всех резервуаров за день (берем последнюю смену каждого резервуара)
-              const totalVolume = records.reduce((sum, record) => sum + record.volumeEnd, 0);
-              const totalSales = records.reduce((sum, record) => sum + record.sales, 0);
-              const totalReceipts = records.reduce((sum, record) => sum + record.receipts, 0);
-              const receiptCount = records.reduce((sum, record) => sum + record.receiptCount, 0);
+        // Если выбраны все станции - нужно агрегировать по временным меткам
+        // Группируем записи с одинаковым временем (округляем до минуты)
+        const groupedByTime = new Map<string, number>();
 
-              return {
-                time: new Date(dateKey).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
-                volume: Math.round(totalVolume),
-                sales: Math.round(totalSales),
-                receipts: Math.round(totalReceipts),
-                receiptCount: receiptCount,
-                dateKey
-              };
-            })
-            .sort((a, b) => new Date(a.dateKey).getTime() - new Date(b.dateKey).getTime());
+        records.forEach(record => {
+          const dt = new Date(record.dt);
+          // Округляем до минуты для группировки
+          const timeKey = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(),
+            dt.getHours(), dt.getMinutes()).toISOString();
 
-          chartData.set(summary.fuelCode, chartPoints);
+          const volume = parseFloat(record.volume) || 0;
+          const existing = groupedByTime.get(timeKey) || 0;
+          groupedByTime.set(timeKey, existing + volume);
+        });
+
+        // Преобразуем в массив точек графика
+        const sortedTimes = Array.from(groupedByTime.keys()).sort();
+
+        let prevVolume = 0;
+        const chartPoints: ChartDataPoint[] = sortedTimes.map((timeKey, index) => {
+          const volume = groupedByTime.get(timeKey) || 0;
+          const dt = new Date(timeKey);
+
+          // Вычисляем изменение объема
+          let sales = 0;
+          let receipts = 0;
+
+          if (index > 0) {
+            const delta = volume - prevVolume;
+            if (delta < 0) {
+              sales = Math.abs(delta); // Уменьшение = продажи
+            } else if (delta > 0) {
+              receipts = delta; // Увеличение = поступления
+            }
+          }
+          prevVolume = volume;
+
+          // Форматируем время
+          const timeStr = dt.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          // Поступление считается только при значительном увеличении объёма (минимум 500 литров)
+          // Меньшие колебания - это погрешности датчиков или температурное расширение
+          const isRealReceipt = receipts >= 500;
+
+          return {
+            time: timeStr,
+            volume: Math.round(volume),
+            sales: Math.round(sales),
+            receipts: Math.round(receipts),
+            receiptCount: isRealReceipt ? 1 : 0,
+            dateKey: timeKey
+          };
+        });
+
+        // Прореживаем данные если слишком много точек (более 200)
+        let finalPoints = chartPoints;
+        if (chartPoints.length > 200) {
+          const step = Math.ceil(chartPoints.length / 200);
+          finalPoints = chartPoints.filter((_, index) => index % step === 0);
+          // Убеждаемся, что последняя точка включена
+          if (finalPoints[finalPoints.length - 1] !== chartPoints[chartPoints.length - 1]) {
+            finalPoints.push(chartPoints[chartPoints.length - 1]);
+          }
+        }
+
+        if (finalPoints.length > 0) {
+          chartData.set(summary.fuelCode, finalPoints);
         }
       });
 
       return chartData;
     },
-    enabled: !!selectedNetwork && summaries.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
-    gcTime: 10 * 60 * 1000, // 10 минут - хранение в кэше
+    enabled: chartsRequested && !!selectedNetwork && summaries.length > 0,
+    staleTime: 0,
+    gcTime: 10 * 60 * 1000,
     retry: 1,
     refetchOnWindowFocus: false
   });
 
+  const prevStationFilterRef = useRef(selectedStationFilter);
+
+  useEffect(() => {
+    if (prevStationFilterRef.current !== selectedStationFilter && chartsRequested) {
+      prevStationFilterRef.current = selectedStationFilter;
+      refetchChartData();
+    }
+  }, [selectedStationFilter, chartsRequested, refetchChartData]);
+
+  const loadChartData = useCallback(() => {
+    setChartsRequested(true);
+    if (chartsRequested) {
+      refetchChartData();
+    }
+  }, [chartsRequested, refetchChartData]);
+
   return {
     chartDataByFuel,
     loadingCharts,
-    loadChartData
+    loadChartData,
+    chartsLoaded: chartsRequested && chartsLoaded && !loadingCharts,
+    chartsRequested
   };
 };

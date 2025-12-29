@@ -3,25 +3,29 @@
  */
 
 /**
- * Код системы для STS API
- * Используется в запросах к STS API для идентификации системы
+ * Код системы по умолчанию для STS API (БТО)
+ * Используется как fallback если external_id сети не задан
  */
 export const STS_SYSTEM_ID = 15;
 
 /**
  * Получить system ID для выбранной сети
- * В будущем можно расширить логику для разных сетей
+ * Использует external_id из настроек сети
  *
- * @param networkId - ID сети (опционально)
+ * @param network - Объект сети с settings.external_id
  * @returns System ID для STS API
  */
-export function getSystemId(networkId?: string): number {
-  // В будущем можно добавить маппинг по networkId
-  // const systemMapping: Record<string, number> = {
-  //   'network-1': 15,
-  //   'network-2': 16,
-  // };
-  // return systemMapping[networkId] || STS_SYSTEM_ID;
+export function getSystemId(network?: { settings?: { external_id?: string }; external_id?: string } | null): number {
+  if (!network) {
+    return STS_SYSTEM_ID;
+  }
+
+  // Проверяем external_id в settings
+  const externalId = network.settings?.external_id || network.external_id;
+
+  if (externalId && !isNaN(parseInt(externalId))) {
+    return parseInt(externalId);
+  }
 
   return STS_SYSTEM_ID;
 }

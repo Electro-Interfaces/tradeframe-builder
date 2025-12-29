@@ -11,6 +11,7 @@ import { Plus, Users as UsersIcon, Search, Trash2 } from 'lucide-react';
 import { UserStatus } from '@/types/auth';
 import { externalUsersService } from '@/services/externalUsersService';
 import { externalRolesService } from '@/services/externalRolesService';
+import { permissionService } from '@/services/auth/permissionService';
 import { UserFormDialog } from '@/components/admin/users/UserFormDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { MainLayout } from '@/components/layout/MainLayout';
@@ -121,10 +122,8 @@ export default function Users() {
     }
   };
 
-  // Проверка прав администратора
-  const isAdmin = user?.role === 'super_admin' ||
-                  user?.role === 'system_admin' ||
-                  user?.role === 'network_admin';
+  // Проверка прав администратора через permissionService
+  const isAdmin = user ? permissionService.isAdmin(user) : false;
 
   return (
     <MainLayout>

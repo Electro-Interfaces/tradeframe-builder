@@ -47,6 +47,8 @@ export interface TankInventory {
   volumeBegin: number;           // Остаток на начало периода
   volumeReceipts: number;        // Поступления за период
   volumeSales: number;           // Реализация за период
+  receiptCount: number;          // Количество поступлений (ТТН)
+  shiftCount: number;            // Количество смен
   capacity: number;              // Вместимость
   freeVolume: number;            // Свободный объем
   fillPercent: number;           // Процент заполнения
@@ -278,7 +280,7 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
             return null;
           }
         },
-        5 // Размер пачки: 5 запросов одновременно (было неограниченно)
+        10 // Размер пачки: 10 запросов одновременно
       );
 
       const shiftReports = shiftReportsResults.filter(report => report !== null);
@@ -293,9 +295,12 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
         lastShift: any;
         receipts: number;
         sales: number;
+        receiptCount: number;
+        shiftCount: number;
         capacity: number;
         fuelCode: number;
         fuelName: string;
+        processedShifts: Set<number>;
       }>();
 
       shiftReports.forEach(report => {
@@ -308,9 +313,12 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
               lastShift: report,
               receipts: 0,
               sales: 0,
+              receiptCount: 0,
+              shiftCount: 0,
               capacity: tankCapacities.get(tankNumber) || 0, // Реальная емкость из tank_history
               fuelCode: tank.service?.service_code || tank.fuel || 0,
-              fuelName: tank.service?.service_name || 'Неизвестно'
+              fuelName: tank.service?.service_name || 'Неизвестно',
+              processedShifts: new Set()
             });
           }
 
@@ -324,8 +332,20 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
           }
 
           // Накапливаем поступления и реализацию
-          data.receipts += parseFloat(tank.receipt?.volume || '0');
+          const receiptVolume = parseFloat(tank.receipt?.volume || '0');
+          data.receipts += receiptVolume;
           data.sales += parseFloat(tank.release?.volume || '0');
+
+          // Считаем количество поступлений (ТТН) - только если объем > 0
+          if (receiptVolume > 0) {
+            data.receiptCount++;
+          }
+
+          // Считаем уникальные смены
+          if (!data.processedShifts.has(report.shiftNumber)) {
+            data.processedShifts.add(report.shiftNumber);
+            data.shiftCount++;
+          }
         });
       });
 
@@ -348,6 +368,8 @@ export async function getInventoryFromShiftReports(params: InventoryParams): Pro
           volumeBegin: volumeBegin,
           volumeReceipts: data.receipts,
           volumeSales: data.sales,
+          receiptCount: data.receiptCount,
+          shiftCount: data.shiftCount,
           capacity: data.capacity,
           freeVolume: data.capacity - volumeEnd,
           fillPercent: (volumeEnd / data.capacity) * 100,

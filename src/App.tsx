@@ -53,6 +53,7 @@ const NetworkPricing = lazy(() => import("./pages/NetworkPricing"));
 const NewUsersAndRoles = lazy(() => import("./pages/admin/UsersAndRoles"));
 const NetworksPage = lazy(() => import("./pages/NetworksPage"));
 const ShiftReportsV2 = lazy(() => import("./pages/ShiftReportsV2"));
+const ShiftDashboard = lazy(() => import("./pages/ShiftDashboard"));
 const SimpleProfile = lazy(() => import("./pages/SimpleProfile"));
 const TestServices = lazy(() => import("./pages/TestServices"));
 const TestServicesSimple = lazy(() => import("./pages/TestServicesSimple"));
@@ -229,6 +230,7 @@ const App = () => {
                   <Route path="/admin/users-and-roles-new" element={<ProtectedRoute><LazyLoader><NewUsersAndRoles /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/networks" element={<ProtectedRoute><LazyLoader><NetworksPage /></LazyLoader></ProtectedRoute>} />
                   <Route path="/point/shift-reports-v2" element={<ProtectedRoute><LazyLoader><ShiftReportsV2 /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/point/shift-dashboard" element={<ProtectedRoute><LazyLoader><ShiftDashboard /></LazyLoader></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><LazyLoader><SimpleProfile /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/test-services" element={<ProtectedRoute><LazyLoader><TestServices /></LazyLoader></ProtectedRoute>} />
                   <Route path="/admin/test-simple" element={<ProtectedRoute><LazyLoader><TestServicesSimple /></LazyLoader></ProtectedRoute>} />

@@ -9,9 +9,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { extractStationNumber } from "@/utils/tradingPointUtils";
-import { STS_SYSTEM_ID } from "@/config/stsConfig";
+import { getSystemId } from "@/config/stsConfig";
 import { Button } from "@/components/ui/button";
-import { FileText, FileCheck, Construction } from "lucide-react";
+import { LayoutDashboard, FileCheck, Construction } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -34,11 +35,11 @@ import MobileShiftsTable from "@/components/shift-reports/MobileShiftsTable";
 import ShiftDetailsModal from "@/components/shift-reports/ShiftDetailsModal";
 
 export default function ShiftReportsV2() {
+  const navigate = useNavigate();
   const { selectedNetwork, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints } = useSelection();
   const isMobile = useIsMobile();
 
   // Состояния модальных окон
-  const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
   const [isReconciliationModalOpen, setIsReconciliationModalOpen] = useState(false);
 
   // Загрузка объекта торговой точки (только если выбрана конкретная точка)
@@ -54,6 +55,7 @@ export default function ShiftReportsV2() {
   const { shifts, filteredShifts, loading, refresh } = useShiftReports({
     tradingPoint,
     networkId: selectedNetwork?.id || null,
+    network: selectedNetwork, // Передаем объект сети для получения external_id
     isAllTradingPoints,
     filters
   });
@@ -81,11 +83,11 @@ export default function ShiftReportsV2() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsReportsModalOpen(true)}
+              onClick={() => navigate('/point/shift-dashboard')}
               className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-200"
             >
-              <FileText className="w-4 h-4 mr-2" />
-              Отчеты
+              <LayoutDashboard className="w-4 h-4 mr-2" />
+              Дашборд
             </Button>
             <Button
               variant="outline"
@@ -145,35 +147,11 @@ export default function ShiftReportsV2() {
             isOpen={true}
             onClose={closeShiftDetails}
             shiftNumber={selectedShift.shiftNumber}
-            system={STS_SYSTEM_ID}
+            system={getSystemId(selectedNetwork)}
             station={selectedShift.station || (tradingPoint ? extractStationNumber(tradingPoint) || 0 : 0)}
             stationName={selectedShift.stationName || tradingPoint?.name || 'Неизвестная станция'}
           />
         )}
-
-        {/* Модальное окно "Отчеты" */}
-        <Dialog open={isReportsModalOpen} onOpenChange={setIsReportsModalOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700">
-            <DialogHeader>
-              <DialogTitle className="text-white flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-400" />
-                Отчеты
-              </DialogTitle>
-              <DialogDescription className="text-slate-400">
-                Формирование отчетов по сменам
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col items-center justify-center py-8 gap-4">
-              <Construction className="w-16 h-16 text-amber-500" />
-              <p className="text-slate-300 text-center">
-                Раздел находится в разработке
-              </p>
-              <p className="text-slate-500 text-sm text-center">
-                В ближайшее время здесь появится возможность формирования различных отчетов по сменам
-              </p>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Модальное окно "Сверки" */}
         <Dialog open={isReconciliationModalOpen} onOpenChange={setIsReconciliationModalOpen}>

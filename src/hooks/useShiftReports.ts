@@ -5,22 +5,26 @@
 import { useState, useEffect, useMemo } from 'react';
 import { shiftReportsV2Service } from '@/services/shiftReportsV2Service';
 import { extractStationNumber } from '@/utils/tradingPointUtils';
-import { STS_SYSTEM_ID } from '@/config/stsConfig';
+import { getSystemId } from '@/config/stsConfig';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import type { ShiftListItem, ShiftFilters } from '@/types/shift-reports-v2';
 
 interface UseShiftReportsOptions {
   tradingPoint: any | null;
   networkId: string | null;
+  network?: any | null; // Объект сети для получения external_id
   isAllTradingPoints: boolean;
   filters: ShiftFilters;
 }
 
-export function useShiftReports({ tradingPoint, networkId, isAllTradingPoints, filters }: UseShiftReportsOptions) {
+export function useShiftReports({ tradingPoint, networkId, network, isAllTradingPoints, filters }: UseShiftReportsOptions) {
   const [shifts, setShifts] = useState<ShiftListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useNewAuth();
+
+  // Получаем system ID из external_id сети
+  const systemId = getSystemId(network);
 
   // Вычисляем разрешенные номера станций из scopeValues ролей пользователя
   const allowedStationNumbers = useMemo(() => {
@@ -75,7 +79,7 @@ export function useShiftReports({ tradingPoint, networkId, isAllTradingPoints, f
             if (!stationNumber) return [];
 
             const requestParams: any = {
-              system: STS_SYSTEM_ID,
+              system: systemId,
               station: stationNumber,
             };
 
@@ -133,7 +137,7 @@ export function useShiftReports({ tradingPoint, networkId, isAllTradingPoints, f
 
         // Формируем параметры с датами из фильтров
         const requestParams: any = {
-          system: STS_SYSTEM_ID,
+          system: systemId,
           station: stationNumber,
         };
 
@@ -161,7 +165,7 @@ export function useShiftReports({ tradingPoint, networkId, isAllTradingPoints, f
     };
 
     loadShifts();
-  }, [tradingPoint, networkId, isAllTradingPoints, filters.dateFrom, filters.dateTo, allowedStationNumbers]);
+  }, [tradingPoint, networkId, isAllTradingPoints, filters.dateFrom, filters.dateTo, allowedStationNumbers, systemId]);
 
   // Фильтрация и сортировка смен (даты уже отфильтрованы на сервере)
   const filteredShifts = useMemo(() => {

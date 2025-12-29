@@ -11,6 +11,7 @@ import { Gauge, RefreshCw } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useNewAuth } from "@/contexts/NewAuthContext";
+import { permissionService } from "@/services/auth/permissionService";
 import { useTanks } from "@/hooks/useTanks";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { TankCard } from "@/components/tanks/TankCard";
@@ -21,10 +22,10 @@ import { LastDataTransfer } from "@/components/common/LastDataTransfer";
 import type { Tank } from "@/types/tanks";
 
 // Мемоизированный компонент списка резервуаров
-const TanksList = memo(({ tanks, isMobile, isSuperAdmin }: { tanks: Tank[]; isMobile: boolean; isSuperAdmin: boolean }) => (
+const TanksList = memo(({ tanks, isMobile, canManageTanks }: { tanks: Tank[]; isMobile: boolean; canManageTanks: boolean }) => (
   <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
     {tanks.map((tank) => (
-      <TankCard key={tank.id} tank={tank} isMobile={isMobile} isSuperAdmin={isSuperAdmin} />
+      <TankCard key={tank.id} tank={tank} isMobile={isMobile} canManageTanks={canManageTanks} />
     ))}
   </div>
 ));
@@ -34,8 +35,8 @@ export default function Tanks() {
   const { user } = useNewAuth();
   const isMobile = useIsMobile();
 
-  // Проверяем, является ли пользователь супер-администратором
-  const isSuperAdmin = user?.role === 'super_admin';
+  // Проверяем права на управление резервуарами (админы и роли с canCalibrate)
+  const canManageTanks = user ? (permissionService.isSuperAdmin(user) || permissionService.canCalibrate(user)) : false;
 
   // Хук для загрузки резервуаров
   const { tanks, loading, error, refreshTanks } = useTanks({
@@ -132,7 +133,7 @@ export default function Tanks() {
             </div>
           </div>
         ) : (
-          <TanksList tanks={tanks} isMobile={isMobile} isSuperAdmin={isSuperAdmin} />
+          <TanksList tanks={tanks} isMobile={isMobile} canManageTanks={canManageTanks} />
         )}
       </div>
     </MainLayout>

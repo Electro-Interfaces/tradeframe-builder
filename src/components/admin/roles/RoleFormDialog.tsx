@@ -34,6 +34,7 @@ import { PERMISSION_SECTIONS, PermissionHelpers } from '@/config/permissions'
 import type { Role, Permission, RoleScope, PermissionAction } from '@/types/auth'
 import { NetworkSelect } from '@/components/selects/NetworkSelect'
 import { MultiPointSelect } from '@/components/selects/MultiPointSelect'
+import { MultiNetworkSelect } from '@/components/selects/MultiNetworkSelect'
 
 interface RoleFormDialogProps {
   open: boolean
@@ -66,6 +67,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
     scope: 'trading_point' as RoleScope,
     is_active: true,
     scopeNetworkId: '',
+    scopeNetworkIds: [] as string[], // Для scope='network' - список выбранных сетей
     scopeValues: [] as string[]
   })
   const [permissions, setPermissions] = useState<Permission[]>([])
@@ -83,7 +85,8 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
         scope: role.scope,
         is_active: role.is_active,
         scopeNetworkId: '',
-        scopeValues: role.scope_values || []
+        scopeNetworkIds: role.scope === 'network' ? (role.scope_values || []) : [],
+        scopeValues: role.scope !== 'network' ? (role.scope_values || []) : []
       })
       setPermissions([...role.permissions])
     } else {
@@ -94,6 +97,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
         scope: 'trading_point',
         is_active: true,
         scopeNetworkId: '',
+        scopeNetworkIds: [],
         scopeValues: []
       })
       setPermissions([])
@@ -108,9 +112,12 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
       setLoading(true)
 
       // Определяем scope_values в зависимости от scope
-      const scopeValues = (formData.scope === 'trading_point' || formData.scope === 'assigned')
-        ? formData.scopeValues
-        : [];
+      let scopeValues: string[] = [];
+      if (formData.scope === 'network') {
+        scopeValues = formData.scopeNetworkIds;
+      } else if (formData.scope === 'trading_point' || formData.scope === 'assigned') {
+        scopeValues = formData.scopeValues;
+      }
 
       if (role) {
         // Редактирование роли
@@ -337,6 +344,36 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Выбор торговых сетей для scope='network' */}
+              {formData.scope === 'network' && (
+                <div className="space-y-4 p-4 bg-slate-800/50 border border-purple-700/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <h4 className="font-medium text-slate-200">Доступ к торговым сетям</h4>
+                  </div>
+
+                  <p className="text-sm text-slate-400">
+                    Выберите торговые сети, к которым будет предоставлен полный доступ пользователям с этой ролью.
+                    Пользователь получит доступ ко всем торговым точкам выбранных сетей.
+                  </p>
+
+                  <div className="space-y-2">
+                    <Label className="text-slate-300">Торговые сети</Label>
+                    <MultiNetworkSelect
+                      value={formData.scopeNetworkIds}
+                      onValueChange={(values) => setFormData(prev => ({ ...prev, scopeNetworkIds: values }))}
+                      placeholder="Выберите торговые сети"
+                    />
+                  </div>
+
+                  {formData.scopeNetworkIds.length > 0 && (
+                    <div className="text-sm text-purple-400">
+                      ✓ Выбрано сетей: {formData.scopeNetworkIds.length}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Выбор конкретных торговых точек */}
               {(formData.scope === 'trading_point' || formData.scope === 'assigned') && (

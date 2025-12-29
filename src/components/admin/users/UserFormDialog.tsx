@@ -27,9 +27,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
-import { User as UserIcon, Mail, KeyRound, Shield, Eye, EyeOff, Sparkles } from 'lucide-react'
+import { User as UserIcon, Mail, KeyRound, Shield, Eye, EyeOff, Sparkles, Network, MapPin } from 'lucide-react'
 import { externalUsersService } from '@/services/externalUsersService'
 import { externalRolesService } from '@/services/externalRolesService'
+import { networksService } from '@/services/networksService'
+import { MultiNetworkSelect } from '@/components/selects/MultiNetworkSelect'
+import { MultiPointSelect } from '@/components/selects/MultiPointSelect'
+import { NetworkSelect } from '@/components/selects/NetworkSelect'
 import type { User, Role, UserStatus } from '@/types/auth'
 
 interface UserFormDialogProps {
@@ -58,6 +62,9 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
     status: 'active' as UserStatus
   })
   const [selectedRole, setSelectedRole] = useState<string>('')
+  const [scopeNetworkIds, setScopeNetworkIds] = useState<string[]>([]) // Для scope='network'
+  const [scopeNetworkId, setScopeNetworkId] = useState<string>('') // Выбор сети для точек
+  const [scopePointIds, setScopePointIds] = useState<string[]>([]) // Для scope='trading_point'/'assigned'
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -71,7 +78,37 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         confirmPassword: '',
         status: user.status
       })
-      setSelectedRole(user.roles.length > 0 ? user.roles[0].role_id : '')
+      const userRole = user.roles.length > 0 ? user.roles[0] : null
+      setSelectedRole(userRole?.role_id || '')
+
+      // Инициализируем scopeValues из роли пользователя
+      if (userRole?.scopeValues && userRole.scopeValues.length > 0) {
+        if (userRole.scope === 'network') {
+          setScopeNetworkIds(userRole.scopeValues)
+          setScopePointIds([])
+          setScopeNetworkId('')
+        } else if (userRole.scope === 'trading_point' || userRole.scope === 'assigned') {
+          setScopePointIds(userRole.scopeValues)
+          setScopeNetworkIds([])
+
+          // Извлекаем код сети из первой точки (формат: {networkCode}-azs-{stationCode})
+          const firstPointId = userRole.scopeValues[0]
+          if (firstPointId && firstPointId.includes('-azs-')) {
+            const networkCode = firstPointId.split('-azs-')[0]
+            // Находим сеть по коду и устанавливаем её ID
+            networksService.getAll().then(networks => {
+              const network = networks.find(n => n.code === networkCode)
+              if (network) {
+                setScopeNetworkId(network.id)
+              }
+            })
+          }
+        }
+      } else {
+        setScopeNetworkIds([])
+        setScopePointIds([])
+        setScopeNetworkId('')
+      }
     } else {
       setFormData({
         email: '',
@@ -81,9 +118,34 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
         status: 'active'
       })
       setSelectedRole('')
+      setScopeNetworkIds([])
+      setScopePointIds([])
+      setScopeNetworkId('')
     }
     setShowPassword(false)
   }, [user, open])
+
+  // Получаем данные выбранной роли
+  const selectedRoleData = (roles || []).find(r => r.id === selectedRole)
+
+  // Сбрасываем scopeValues при смене роли
+  useEffect(() => {
+    if (selectedRoleData) {
+      // Если роль уже имеет scope_values - используем их как значения по умолчанию
+      if (selectedRoleData.scope_values && selectedRoleData.scope_values.length > 0) {
+        if (selectedRoleData.scope === 'network') {
+          setScopeNetworkIds(selectedRoleData.scope_values)
+        } else if (selectedRoleData.scope === 'trading_point' || selectedRoleData.scope === 'assigned') {
+          setScopePointIds(selectedRoleData.scope_values)
+        }
+      } else {
+        // Если роль не имеет scope_values - сбрасываем
+        setScopeNetworkIds([])
+        setScopePointIds([])
+        setScopeNetworkId('')
+      }
+    }
+  }, [selectedRole])
 
   const handleGeneratePassword = () => {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
@@ -172,14 +234,25 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
           status: formData.status
         })
 
+        // Определяем scopeValues для назначения
+        let scopeValues: string[] = []
+        if (selectedRoleData?.scope === 'network') {
+          scopeValues = scopeNetworkIds
+        } else if (selectedRoleData?.scope === 'trading_point' || selectedRoleData?.scope === 'assigned') {
+          scopeValues = scopePointIds
+        }
+
         // Обновление роли
         const currentRoleId = user.roles.length > 0 ? user.roles[0].role_id : null
-        if (currentRoleId !== selectedRole) {
+        const currentScopeValues = user.roles.length > 0 ? (user.roles[0].scopeValues || []) : []
+        const scopeValuesChanged = JSON.stringify(currentScopeValues.sort()) !== JSON.stringify(scopeValues.sort())
+
+        if (currentRoleId !== selectedRole || scopeValuesChanged) {
           if (currentRoleId) {
             await externalRolesService.removeRoleFromUser(user.id, currentRoleId)
           }
           if (selectedRole) {
-            await externalRolesService.assignRoleToUser(user.id, selectedRole)
+            await externalRolesService.assignRoleToUser(user.id, selectedRole, scopeValues)
           }
         }
 
@@ -198,14 +271,28 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
           description: "Данные пользователя обновлены"
         })
       } else {
+        // Определяем scopeValues для назначения
+        let scopeValues: string[] = []
+        if (selectedRoleData?.scope === 'network') {
+          scopeValues = scopeNetworkIds
+        } else if (selectedRoleData?.scope === 'trading_point' || selectedRoleData?.scope === 'assigned') {
+          scopeValues = scopePointIds
+        }
+
         // Создание
-        await externalUsersService.createUser({
+        const createdUser = await externalUsersService.createUser({
           email: formData.email,
           name: formData.name,
           password: formData.password,
           status: formData.status,
           roles: selectedRole ? [selectedRole] : []
         })
+
+        // Если есть scopeValues - обновляем назначение роли
+        if (selectedRole && scopeValues.length > 0 && createdUser?.id) {
+          await externalRolesService.removeRoleFromUser(createdUser.id, selectedRole)
+          await externalRolesService.assignRoleToUser(createdUser.id, selectedRole, scopeValues)
+        }
 
         toast({
           title: "Создано",
@@ -236,7 +323,6 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
   }
 
   const activeRoles = (roles || []).filter(r => r.is_active)
-  const selectedRoleData = activeRoles.find(r => r.id === selectedRole)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -404,6 +490,71 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSaved }: Use
                     </div>
                   </label>
                 ))}
+              </div>
+            )}
+
+            {/* Ограничение доступа для выбранной роли */}
+            {selectedRoleData && selectedRoleData.scope === 'network' && (
+              <div className="mt-4 p-4 bg-purple-900/20 border border-purple-700/50 rounded-lg space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-purple-300">
+                  <Network className="w-4 h-4" />
+                  Доступ к торговым сетям
+                </div>
+                <p className="text-xs text-slate-400">
+                  Выберите сети, к которым пользователь будет иметь доступ.
+                  {selectedRoleData.scope_values && selectedRoleData.scope_values.length > 0 &&
+                    " По умолчанию используются значения из настроек роли."}
+                </p>
+                <MultiNetworkSelect
+                  value={scopeNetworkIds}
+                  onValueChange={setScopeNetworkIds}
+                  placeholder="Выберите торговые сети"
+                />
+                {scopeNetworkIds.length > 0 && (
+                  <div className="text-xs text-purple-400">
+                    ✓ Выбрано сетей: {scopeNetworkIds.length}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {selectedRoleData && (selectedRoleData.scope === 'trading_point' || selectedRoleData.scope === 'assigned') && (
+              <div className="mt-4 p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-300">
+                  <MapPin className="w-4 h-4" />
+                  Доступ к торговым точкам
+                </div>
+                <p className="text-xs text-slate-400">
+                  Выберите сеть, затем укажите торговые точки.
+                  {selectedRoleData.scope_values && selectedRoleData.scope_values.length > 0 &&
+                    " По умолчанию используются значения из настроек роли."}
+                </p>
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-300">Сеть</Label>
+                  <NetworkSelect
+                    value={scopeNetworkId}
+                    onValueChange={(value) => {
+                      setScopeNetworkId(value)
+                      setScopePointIds([]) // Сброс точек при смене сети
+                    }}
+                    className="bg-slate-800 border-slate-700"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-300">Торговые точки</Label>
+                  <MultiPointSelect
+                    value={scopePointIds}
+                    onValueChange={setScopePointIds}
+                    networkId={scopeNetworkId}
+                    disabled={!scopeNetworkId}
+                    placeholder={scopeNetworkId ? "Выберите торговые точки" : "Сначала выберите сеть"}
+                  />
+                </div>
+                {scopePointIds.length > 0 && (
+                  <div className="text-xs text-blue-400">
+                    ✓ Выбрано точек: {scopePointIds.length}
+                  </div>
+                )}
               </div>
             )}
           </div>

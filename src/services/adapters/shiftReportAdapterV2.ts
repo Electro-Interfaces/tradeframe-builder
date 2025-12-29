@@ -103,11 +103,36 @@ export class ShiftReportAdapterV2 {
       transactionCount,
 
       // Разбивка по способам оплаты (базовые значения)
-      cashRevenue: paymentSales.find(p => p.paymentTypeName.toLowerCase().includes('наличн'))?.cost || 0,
-      cardRevenue: paymentSales.find(p => p.paymentTypeName.toLowerCase().includes('карт'))?.cost || 0,
-      sbpRevenue: paymentSales.find(p => p.paymentTypeName.toLowerCase().includes('сбп'))?.cost || 0,
-      fuelCardRevenue: paymentSales.find(p => p.paymentTypeName.toLowerCase().includes('топливн'))?.cost || 0,
-      corporateCardRevenue: paymentSales.find(p => p.paymentTypeName.toLowerCase() === 'кр')?.cost || 0,
+      // Наличные
+      cashRevenue: paymentSales
+        .filter(p => p.paymentTypeName.toLowerCase().includes('наличн'))
+        .reduce((sum, p) => sum + p.cost, 0),
+      // Банковские карты (включая СБП, СберБанк и т.д.)
+      cardRevenue: paymentSales
+        .filter(p => {
+          const name = p.paymentTypeName.toLowerCase();
+          return name.includes('карт') || name.includes('сбербанк') || name.includes('сбп') ||
+                 name.includes('visa') || name.includes('mastercard') || name.includes('эквайр');
+        })
+        .reduce((sum, p) => sum + p.cost, 0),
+      // Онлайн заказы (МобилПр. и т.д.) - НЕ СБП!
+      sbpRevenue: paymentSales
+        .filter(p => {
+          const name = p.paymentTypeName.toLowerCase();
+          return name.includes('мобил') || name.includes('онлайн') || name.includes('online');
+        })
+        .reduce((sum, p) => sum + p.cost, 0),
+      // Топливные карты
+      fuelCardRevenue: paymentSales
+        .filter(p => p.paymentTypeName.toLowerCase().includes('топливн'))
+        .reduce((sum, p) => sum + p.cost, 0),
+      // Корпоративные карты (КР, Корп.карты)
+      corporateCardRevenue: paymentSales
+        .filter(p => {
+          const name = p.paymentTypeName.toLowerCase();
+          return name === 'кр' || name.includes('корпоратив') || name.includes('корп.карт') || name.includes('корп карт');
+        })
+        .reduce((sum, p) => sum + p.cost, 0),
       otherRevenue: 0,
 
       // Флаги
@@ -131,7 +156,13 @@ export class ShiftReportAdapterV2 {
 
       // Сырые данные для дополнительных расчетов
       salesRaw: apiResponse.sales || [],
+      receiptsRaw: apiResponse.receipt || [],
     } as any;
+
+    // DEBUG: Проверяем передачу данных
+    console.log('📦 [Adapter] Смена', shiftNumber,
+      'salesRaw:', (apiResponse.sales || []).length,
+      'receiptsRaw:', (apiResponse.receipt || []).length);
     
     return result;
   }

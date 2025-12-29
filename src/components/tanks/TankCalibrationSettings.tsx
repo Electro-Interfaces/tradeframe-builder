@@ -902,30 +902,30 @@ export function TankCalibrationSettingsComponent({
 
       {/* Табы с параметрами */}
       <Tabs defaultValue="equipment" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 mb-4">
-          <TabsTrigger value="equipment" className="flex items-center gap-1">
-            <Settings className="h-3 w-3" />
-            <span className="hidden sm:inline">Оборудование</span>
+        <TabsList className="flex flex-wrap gap-1 w-full h-auto p-1 mb-4 md:grid md:grid-cols-6">
+          <TabsTrigger value="equipment" className="flex items-center gap-1 min-h-[40px] flex-1 min-w-[60px]">
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">Оборудование</span>
           </TabsTrigger>
-          <TabsTrigger value="accuracy" className="flex items-center gap-1">
-            <Gauge className="h-3 w-3" />
-            <span className="hidden sm:inline">Погрешности</span>
+          <TabsTrigger value="accuracy" className="flex items-center gap-1 min-h-[40px] flex-1 min-w-[60px]">
+            <Gauge className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">Погрешности</span>
           </TabsTrigger>
-          <TabsTrigger value="temperature" className="flex items-center gap-1">
-            <Thermometer className="h-3 w-3" />
-            <span className="hidden sm:inline">Температура</span>
+          <TabsTrigger value="temperature" className="flex items-center gap-1 min-h-[40px] flex-1 min-w-[60px]">
+            <Thermometer className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">Температура</span>
           </TabsTrigger>
-          <TabsTrigger value="losses" className="flex items-center gap-1">
-            <Droplets className="h-3 w-3" />
-            <span className="hidden sm:inline">Потери</span>
+          <TabsTrigger value="losses" className="flex items-center gap-1 min-h-[40px] flex-1 min-w-[60px]">
+            <Droplets className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">Потери</span>
           </TabsTrigger>
-          <TabsTrigger value="timing" className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span className="hidden sm:inline">Время</span>
+          <TabsTrigger value="timing" className="flex items-center gap-1 min-h-[40px] flex-1 min-w-[60px]">
+            <Clock className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">Время</span>
           </TabsTrigger>
-          <TabsTrigger value="thresholds" className="flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3" />
-            <span className="hidden sm:inline">Пороги</span>
+          <TabsTrigger value="thresholds" className="flex items-center gap-1 min-h-[40px] flex-1 min-w-[60px]">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs">Пороги</span>
           </TabsTrigger>
         </TabsList>
 
