@@ -2,7 +2,7 @@
  * ShiftDashboard - Дашборд аналитики сменных отчетов
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useDashboardPeriod } from "@/hooks/useDashboardPeriod";
@@ -42,6 +42,7 @@ export default function ShiftDashboard() {
   // Состояние для фильтра смен (только для одной станции)
   const [selectedShifts, setSelectedShifts] = useState<number[]>([]); // Пустой = все смены
   const [shiftsFilterOpen, setShiftsFilterOpen] = useState(false);
+  const initialShiftsSelected = useRef(false); // Флаг первоначального выбора смен
 
   // Хук управления периодом
   const {
@@ -106,6 +107,7 @@ export default function ShiftDashboard() {
   // Сброс фильтра смен при смене станции или периода
   useEffect(() => {
     setSelectedShifts([]);
+    initialShiftsSelected.current = false; // Разрешаем автовыбор для новых данных
   }, [selectedStation?.id, period.dateFrom, period.dateTo]);
 
   // Загрузка данных дашборда
@@ -131,10 +133,11 @@ export default function ShiftDashboard() {
     return [...shifts].sort((a: any, b: any) => b.shiftNumber - a.shiftNumber);
   }, [data]);
 
-  // Автовыбор всех смен после загрузки данных
+  // Автовыбор всех смен после загрузки данных (только один раз)
   useEffect(() => {
-    if (allShiftsForFilter.length > 0 && selectedShifts.length === 0) {
+    if (allShiftsForFilter.length > 0 && !initialShiftsSelected.current) {
       setSelectedShifts(allShiftsForFilter.map((s: any) => s.shiftNumber));
+      initialShiftsSelected.current = true;
     }
   }, [allShiftsForFilter]);
 

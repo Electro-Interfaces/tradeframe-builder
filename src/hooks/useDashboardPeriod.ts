@@ -9,10 +9,13 @@ import { useState, useCallback, useMemo } from 'react';
 import { PeriodSelection, PeriodPreset } from '@/types/shift-dashboard';
 
 /**
- * Форматирует дату в ISO формат (YYYY-MM-DD)
+ * Форматирует дату в ISO формат (YYYY-MM-DD) в локальном часовом поясе
  */
 const formatDate = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 /**
@@ -55,7 +58,7 @@ const calculatePresetDates = (preset: PeriodPreset): { dateFrom: string; dateTo:
 
     case 'week':
       dateFrom = new Date(today);
-      dateFrom.setDate(today.getDate() - 7);
+      dateFrom.setDate(today.getDate() - 6); // 6 предыдущих дней + сегодня = 7 дней
       dateFrom = startOfDay(dateFrom);
       break;
 
@@ -75,7 +78,7 @@ const calculatePresetDates = (preset: PeriodPreset): { dateFrom: string; dateTo:
     default:
       // Для custom возвращаем последние 7 дней по умолчанию
       dateFrom = new Date(today);
-      dateFrom.setDate(today.getDate() - 7);
+      dateFrom.setDate(today.getDate() - 6); // 6 предыдущих дней + сегодня = 7 дней
       dateFrom = startOfDay(dateFrom);
       break;
   }

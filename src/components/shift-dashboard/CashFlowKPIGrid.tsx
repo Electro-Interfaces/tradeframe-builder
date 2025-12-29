@@ -160,18 +160,20 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
   const hasDifference = Math.abs(safeCashFlow.difference) > 0.01;
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('space-y-3 sm:space-y-4', className)}>
       {/* Заголовок секции */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wide">
-          Движение наличных (сверка кассы)
+        <h3 className="text-xs sm:text-sm font-medium text-slate-400 uppercase tracking-wide">
+          <span className="hidden sm:inline">Движение наличных (сверка кассы)</span>
+          <span className="sm:hidden">Сверка кассы</span>
         </h3>
         {safeCashFlow.details.length > 0 && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
           >
-            {isExpanded ? 'Скрыть детали' : 'Показать детали'}
+            <span className="hidden sm:inline">{isExpanded ? 'Скрыть детали' : 'Показать детали'}</span>
+            <span className="sm:hidden">{isExpanded ? 'Скрыть' : 'Детали'}</span>
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         )}
@@ -225,7 +227,7 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
         {/* Разница */}
         <div
           className={cn(
-            'rounded-xl p-4 border transition-colors',
+            'rounded-xl p-3 sm:p-4 border transition-colors',
             hasDifference
               ? 'bg-gradient-to-br from-amber-900/50 to-slate-800 border-amber-700/50'
               : 'bg-slate-800 border-slate-700',
@@ -233,27 +235,27 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
           )}
           onClick={() => safeCashFlow.details.length > 0 && setIsExpanded(!isExpanded)}
         >
-          <div className="flex items-center gap-2 mb-3">
-            <div className={cn('p-1.5 rounded-lg', hasDifference ? 'bg-amber-600' : 'bg-slate-600')}>
-              <AlertTriangle className="w-4 h-4 text-white" />
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+            <div className={cn('p-1 sm:p-1.5 rounded-lg', hasDifference ? 'bg-amber-600' : 'bg-slate-600')}>
+              <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
             </div>
-            <span className="text-sm font-medium text-white">Разница</span>
+            <span className="text-xs sm:text-sm font-medium text-white">Разница</span>
           </div>
 
           {isLoading ? (
-            <div className="h-7 w-20 bg-slate-700 rounded animate-pulse" />
+            <div className="h-5 sm:h-7 w-16 sm:w-20 bg-slate-700 rounded animate-pulse" />
           ) : (
             <div>
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-1 sm:gap-2">
                 <span className={cn(
-                  'text-xl font-bold',
+                  'text-base sm:text-xl font-bold',
                   hasDifference ? 'text-amber-400' : 'text-green-400'
                 )}>
                   {safeCashFlow.difference > 0 && '+'}{formatCurrency(safeCashFlow.difference)}
                 </span>
-                <span className="text-xs text-slate-400">₽</span>
+                <span className="text-[10px] sm:text-xs text-slate-400">₽</span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 hidden sm:block">
                 {hasDifference ? 'Требует проверки' : 'Сходится'}
               </p>
             </div>
@@ -265,47 +267,47 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
       {isExpanded && safeCashFlow.details.length > 0 && (
         <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs sm:text-sm">
               <thead className="bg-slate-900/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
+                  <th className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
                     Дата/время
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
                     Тип
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">
+                  <th className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
                     Описание
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase">
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
                     Смена
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase">
-                    Сумма (₽)
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-slate-400 uppercase">
+                    Сумма
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
                 {safeCashFlow.details.map((item, idx) => (
                   <tr key={`${item.id}-${idx}`} className="hover:bg-slate-700/30">
-                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap">
+                    <td className="hidden sm:table-cell px-2 sm:px-4 py-2 sm:py-3 text-slate-300 whitespace-nowrap text-xs">
                       {formatDate(item.datetime)}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className={cn('flex items-center gap-2', getOperationTypeColor(item.operationType))}>
-                        {getOperationTypeIcon(item.operationType)}
-                        <span>{getOperationTypeName(item.operationType)}</span>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3">
+                      <div className={cn('flex items-center gap-1 sm:gap-2', getOperationTypeColor(item.operationType))}>
+                        <span className="hidden sm:inline">{getOperationTypeIcon(item.operationType)}</span>
+                        <span className="truncate max-w-[80px] sm:max-w-none">{getOperationTypeName(item.operationType)}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-300 max-w-[200px] truncate" title={item.description}>
+                    <td className="hidden md:table-cell px-2 sm:px-4 py-2 sm:py-3 text-slate-300 max-w-[200px] truncate" title={item.description}>
                       {item.description}
                     </td>
-                    <td className="px-4 py-3 text-center text-slate-400">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center text-slate-400">
                       {item.shiftNumber ? `№${item.shiftNumber}` : '-'}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
                       <span className={cn(
-                        'font-medium',
+                        'font-medium text-xs sm:text-sm',
                         item.operationType === 'income' && 'text-green-400',
                         item.operationType === 'expense' && 'text-red-400',
                         (item.operationType === 'opening' || item.operationType === 'closing') && 'text-white'
@@ -320,10 +322,13 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
               </tbody>
               <tfoot className="bg-slate-900/50 border-t border-slate-600">
                 <tr>
-                  <td colSpan={4} className="px-4 py-3 text-sm font-bold text-white">
-                    ИТОГО ({safeCashFlow.operationsCount} операций)
+                  <td className="hidden sm:table-cell"></td>
+                  <td colSpan={2} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white">
+                    <span className="hidden sm:inline">ИТОГО ({safeCashFlow.operationsCount} операций)</span>
+                    <span className="sm:hidden">Σ {safeCashFlow.operationsCount}</span>
                   </td>
-                  <td className="px-4 py-3 text-right text-sm font-bold text-white">
+                  <td className="hidden md:table-cell"></td>
+                  <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-bold text-white">
                     {formatCurrency(safeCashFlow.closingBalance)}
                   </td>
                 </tr>
