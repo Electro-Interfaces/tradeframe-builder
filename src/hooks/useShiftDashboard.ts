@@ -136,7 +136,7 @@ export function useShiftDashboard(options: UseShiftDashboardOptions): UseShiftDa
       };
     },
     enabled: enabled && system > 0 && (!!station || (stations && stations.length > 0)),
-    staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими
+    staleTime: 0, // Данные всегда считаются устаревшими - обновляем при каждом изменении периода
     gcTime: 30 * 60 * 1000, // 30 минут - время хранения в кэше
     retry: 2,
     refetchOnWindowFocus: false,
