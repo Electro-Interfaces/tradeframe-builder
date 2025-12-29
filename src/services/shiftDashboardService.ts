@@ -128,10 +128,21 @@ class ShiftDashboardService {
 
       const shiftsList = await shiftReportsV2Service.getShifts(shiftsParams, stationName);
 
-      // Загружаем детали для каждой смены параллельно (batch по 5)
+      // Фильтруем смены по выбранному периоду (API может вернуть все смены)
+      const dateFrom = new Date(params.period.dateFrom);
+      dateFrom.setHours(0, 0, 0, 0);
+      const dateTo = new Date(params.period.dateTo);
+      dateTo.setHours(23, 59, 59, 999);
+
+      const filteredShiftsList = shiftsList.filter(shift => {
+        const shiftDate = new Date(shift.openedAt);
+        return shiftDate >= dateFrom && shiftDate <= dateTo;
+      });
+
+      // Загружаем детали только для смен в выбранном периоде (batch по 5)
       const batchSize = 5;
-      for (let i = 0; i < shiftsList.length; i += batchSize) {
-        const batch = shiftsList.slice(i, i + batchSize);
+      for (let i = 0; i < filteredShiftsList.length; i += batchSize) {
+        const batch = filteredShiftsList.slice(i, i + batchSize);
         const detailsPromises = batch.map(async (shift) => {
           try {
             const detailsParams: GetShiftDetailsParams = {
