@@ -45,19 +45,43 @@ class EquipmentService {
   }
 
   /**
-   * Преобразование данных из TerminalInfo в формат для отображения
+   * Проверка, прошло ли более 15 минут с последнего обновления
    */
-  mapTerminalInfoToEquipment(info: TerminalInfo): TerminalEquipmentItem[] {
+  private isOfflineByTime(lastUpdate?: string): boolean {
+    if (!lastUpdate) return true;
+
+    const lastUpdateTime = new Date(lastUpdate).getTime();
+    const now = Date.now();
+    const fifteenMinutesMs = 15 * 60 * 1000; // 15 минут в миллисекундах
+
+    return (now - lastUpdateTime) > fifteenMinutesMs;
+  }
+
+  /**
+   * Преобразование данных из TerminalInfo в формат для отображения
+   * @param info - информация о терминале
+   * @param stationName - название станции из селектора (опционально)
+   */
+  mapTerminalInfoToEquipment(info: TerminalInfo, stationName?: string): TerminalEquipmentItem[] {
     const equipment: TerminalEquipmentItem[] = [];
 
-    // АЗС (основной терминал)
+    // Проверяем offline по времени (более 15 минут без связи)
+    const isOffline = this.isOfflineByTime(info.pos.lastUpdate);
+    const terminalStatus = isOffline ? 'offline' : info.terminal.status;
+
+    // Станция (основной терминал) - offline если нет связи более 15 минут
+    const stationCode = stationName || info.terminal.name || 'АЗС';
+    const shiftInfo = info.shift ? `№${info.shift.number}` : '';
+    // Объединяем название станции и номер смены в одну строку (компактно для mobile)
+    const stationDisplay = shiftInfo ? `${stationCode} • ${shiftInfo}` : stationCode;
     equipment.push({
-      id: 'azs',
-      name: 'АЗС',
-      code: info.terminal.name || 'АЗС',
+      id: 'station',
+      name: 'Станция',
+      code: stationDisplay,
       location: '',
-      status: info.terminal.status,
-      statusText: info.terminal.status === 'online' ? 'Онлайн' : 'Офлайн'
+      status: terminalStatus,
+      statusText: terminalStatus === 'online' ? 'Онлайн' : 'Офлайн',
+      lastUpdate: info.pos.lastUpdate
     });
 
     // POS терминал
@@ -66,18 +90,64 @@ class EquipmentService {
       name: 'POS',
       code: info.pos.version || 'POS 1',
       location: '',
-      status: info.pos.status,
-      statusText: info.pos.status === 'online' ? 'Онлайн' : 'Офлайн'
+      status: isOffline ? 'offline' : info.pos.status,
+      statusText: isOffline ? 'Офлайн' : (info.pos.status === 'online' ? 'Онлайн' : 'Офлайн'),
+      lastUpdate: info.pos.lastUpdate
     });
+
+    // ККТ - Фискальный регистратор
+    const cashSum = info.pos.cashSum || 0;
+    const bankSum = info.pos.bankSum || 0;
+    const hasUnpunchedReceipts = cashSum !== 0 || bankSum !== 0;
+    const isEmergencyMode = info.devices?.fiscalRegister?.isEmergencyMode || false;
+    const fiscalStatus = info.devices?.fiscalRegister?.status || 'offline';
+
+    equipment.push({
+      id: 'fiscal-register',
+      name: 'ККТ',
+      code: hasUnpunchedReceipts ? 'Есть чеки!' : 'Фиск. регистратор',
+      location: '',
+      status: isEmergencyMode ? 'error' : (fiscalStatus === 'online' ? 'online' : 'offline'),
+      statusText: isEmergencyMode ? 'Авария' : (fiscalStatus === 'online' ? 'ОК' : 'Ошибка'),
+      hasUnpunchedReceipts,
+      cashSum,
+      bankSum,
+      isEmergencyMode,
+      lastUpdate: info.pos.lastUpdate
+    });
+
+    // Картридер (считыватель топливных карт) - сразу после ККТ
+    if (info.devices?.cardReader) {
+      equipment.push({
+        id: 'card-reader',
+        name: 'Картридер',
+        code: 'Топливные карты',
+        location: '',
+        status: info.devices.cardReader.status,
+        statusText: info.devices.cardReader.status === 'online' ? 'ОК' : 'Ошибка'
+      });
+    }
+
+    // МПС-ридер - сразу после Картридера
+    if (info.devices?.mpsReader) {
+      equipment.push({
+        id: 'mps-reader',
+        name: 'МПС',
+        code: 'Банк. карты и СБП',
+        location: '',
+        status: info.devices.mpsReader.status,
+        statusText: info.devices.mpsReader.status === 'online' ? 'ОК' : 'Ошибка'
+      });
+    }
 
     // QR (на основе статуса смены)
     equipment.push({
       id: 'qr',
       name: 'QR',
-      code: 'Готов',
-      location: info.shift ? `Смена №${info.shift.number}` : '',
+      code: 'Штрих коды',
+      location: '',
       status: info.shift?.state === 'Открытая' ? 'online' : 'offline',
-      statusText: 'Готов'
+      statusText: info.shift?.state === 'Открытая' ? 'Активен' : 'Неактивен'
     });
 
     // Купюроприемник с данными о купюрах
@@ -94,30 +164,6 @@ class EquipmentService {
         statusText: isOnline ? 'Готов' : 'Ошибка',
         billCount: info.devices.billAcceptor.billCount,
         billAmount: info.devices.billAcceptor.billAmount
-      });
-    }
-
-    // Картридер
-    if (info.devices?.cardReader) {
-      equipment.push({
-        id: 'card-reader',
-        name: 'Картридер',
-        code: info.devices.cardReader.status === 'online' ? 'Готов' : 'Ошибка',
-        location: `ID: ${info.devices.cardReader.name}`,
-        status: info.devices.cardReader.status,
-        statusText: info.devices.cardReader.status === 'online' ? 'Готов' : 'Ошибка'
-      });
-    }
-
-    // МПС-ридер
-    if (info.devices?.mpsReader) {
-      equipment.push({
-        id: 'mps-reader',
-        name: 'МПС-ридер',
-        code: info.devices.mpsReader.status === 'online' ? 'Готов' : 'Ошибка',
-        location: `ID: ${info.devices.mpsReader.name}`,
-        status: info.devices.mpsReader.status,
-        statusText: info.devices.mpsReader.status === 'online' ? 'Готов' : 'Ошибка'
       });
     }
 

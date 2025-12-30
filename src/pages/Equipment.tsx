@@ -150,6 +150,13 @@ export default function Equipment() {
               <LoadingState message="Загрузка данных оборудования..." />
             ) : (
               <div className={isMobile ? 'space-y-3' : 'space-y-6'}>
+                {/* Оборудование в одну строку - сверху */}
+                <div className={`grid ${isMobile ? 'gap-2 grid-cols-3' : 'gap-3 grid-cols-6'}`}>
+                  {otherEquipment.map((eq) => (
+                    <EquipmentCard key={eq.id} equipment={eq} isMobile={isMobile} />
+                  ))}
+                </div>
+
                 {/* Купюроприемник - отдельная большая карточка */}
                 {billAcceptor && (
                   <BillAcceptorCard
@@ -173,13 +180,6 @@ export default function Equipment() {
                     stationCode={selectedTradingPoint}
                   />
                 )}
-
-                {/* Остальное оборудование в сетке */}
-                <div className={`grid ${isMobile ? 'gap-2.5 grid-cols-2' : 'gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5'}`}>
-                  {otherEquipment.map((eq) => (
-                    <EquipmentCard key={eq.id} equipment={eq} isMobile={isMobile} />
-                  ))}
-                </div>
               </div>
             )}
           </CardContent>

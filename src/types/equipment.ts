@@ -202,6 +202,13 @@ export interface TerminalEquipmentItem {
   // Дополнительные поля для купюроприемника
   billCount?: number;
   billAmount?: number;
+  // Дополнительные поля для ККТ (фискальный регистратор)
+  hasUnpunchedReceipts?: boolean;  // Есть не пробитые чеки
+  cashSum?: number;                 // Сумма наличных для пробития
+  bankSum?: number;                 // Сумма безнал для пробития
+  isEmergencyMode?: boolean;        // ККТ в аварийном режиме
+  // Время последнего обновления данных
+  lastUpdate?: string;
 }
 
 /**
@@ -216,6 +223,9 @@ export interface TerminalInfo {
     version: string;
     status: 'online' | 'offline';
     lastUpdate?: string; // Время последнего обновления данных от терминала (dt_info)
+    // Данные для чеков
+    cashSum?: number;     // Сумма наличных для пробития (cash_sum)
+    bankSum?: number;     // Сумма безнал для пробития (bank_sum)
   };
   shift: {
     number: number;
@@ -225,7 +235,15 @@ export interface TerminalInfo {
     billAcceptor?: TerminalDevice & BillAcceptorDetails;
     cardReader?: TerminalDevice;
     mpsReader?: TerminalDevice;
+    fiscalRegister?: TerminalDevice & FiscalRegisterDetails;
   };
+}
+
+/**
+ * Детали фискального регистратора (ККТ)
+ */
+export interface FiscalRegisterDetails {
+  isEmergencyMode: boolean;  // Аварийный режим (чеки не печатаются)
 }
 
 /**

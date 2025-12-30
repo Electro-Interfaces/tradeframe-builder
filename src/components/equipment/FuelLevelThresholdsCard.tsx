@@ -162,15 +162,15 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
         throw new Error(`У торговой точки "${tradingPoint.name}" отсутствует external_id. Настройте его в разделе администрирования.`);
       }
 
-      // Получаем дату 7 дней назад
+      // Получаем дату 3 дней назад (оптимизация: меньше период = быстрее запрос)
       const dateTo = new Date();
-      const dateFrom = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const dateFrom = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
-      // Загружаем транзакции за последние 7 дней
+      // Загружаем транзакции за последние 3 дня (оптимизировано для скорости)
       const allTransactions = await stsApiService.getTransactions(
         dateFrom.toISOString().split('T')[0],
         dateTo.toISOString().split('T')[0],
-        10000, // большой лимит для получения всех транзакций
+        2000, // уменьшенный лимит для быстрого ответа
         {
           networkId,
           tradingPointId: tradingPoint.external_id
@@ -210,7 +210,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
       Object.keys(fuelSales).forEach(fuelType => {
         const totalSales = fuelSales[fuelType];
         // ✅ ИСПРАВЛЕНИЕ: Используем реальное количество дней с продажами
-        const actualDays = fuelDates[fuelType]?.size || 7;
+        const actualDays = fuelDates[fuelType]?.size || 3;
         const avgDailySales = actualDays > 0 ? totalSales / actualDays : 0;
 
         // Находим текущий остаток по этому виду топлива

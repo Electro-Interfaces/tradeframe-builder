@@ -83,7 +83,8 @@ export function useEquipment(options: UseEquipmentOptions = {}): UseEquipmentRet
       if (terminalInfoResult.status === 'fulfilled') {
         const terminalInfoData = terminalInfoResult.value;
         setTerminalInfo(terminalInfoData);
-        const equipmentItems = equipmentService.mapTerminalInfoToEquipment(terminalInfoData);
+        // Передаем название станции из селектора для отображения в карточке
+        const equipmentItems = equipmentService.mapTerminalInfoToEquipment(terminalInfoData, tradingPoint.name);
         setEquipment(equipmentItems);
       } else {
         console.warn('Не удалось загрузить информацию о терминале:', terminalInfoResult.reason);

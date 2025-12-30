@@ -836,6 +836,15 @@ class STSApiService {
       return 'error';
     };
     
+    // Проверяем аварийный режим ККТ (фискальный регистратор)
+    // Аварийный режим = статус не 'online' или есть ошибки
+    const fiscalStatus = getDeviceStatus(fiscalDevice);
+    const isEmergencyMode = fiscalStatus !== 'online';
+
+    // Извлекаем данные для чеков из pos
+    const cashSum = parseFloat(posData?.cash_sum || '0') || 0;
+    const bankSum = parseFloat(posData?.bank_sum || '0') || 0;
+
     return {
       terminal: {
         id: `${data?.system || 0}-${data?.station || 0}`,
@@ -855,7 +864,7 @@ class STSApiService {
         },
         disk: {
           total: 250000,
-          used: 125000, 
+          used: 125000,
           free: 125000
         },
         network: {
@@ -871,10 +880,13 @@ class STSApiService {
         version: `POS ${posData?.number || 1}`,
         lastUpdate: posData?.dt_info, // Время последнего обновления данных от терминала
         lastTransaction: posData?.dt_info ? new Date(posData.dt_info).toLocaleTimeString('ru-RU') : '',
-        cashierConnected: shiftData?.state === 'Открытая'
+        cashierConnected: shiftData?.state === 'Открытая',
+        // Данные для чеков
+        cashSum,
+        bankSum
       },
       fiscal: {
-        status: getDeviceStatus(fiscalDevice) === 'online' ? 'ready' : 'error',
+        status: fiscalStatus === 'online' ? 'ready' : 'error',
         model: fiscalDevice ? 'Фискальный регистратор' : 'Unknown',
         serialNumber: `ID: ${fiscalDevice?.id || 0}`,
         documentNumber: shiftData?.number || 0
@@ -891,7 +903,7 @@ class STSApiService {
           status: getDeviceStatus(billAcceptor),
           name: billAcceptor?.name || 'Купюроприемник',
           // Извлекаем новые параметры для купюроприемника из V2 API
-          billCount: billAcceptor?.params?.find(p => p.name === 'Количество купюр')?.value ? 
+          billCount: billAcceptor?.params?.find(p => p.name === 'Количество купюр')?.value ?
             parseInt(billAcceptor.params.find(p => p.name === 'Количество купюр').value) : undefined,
           billAmount: billAcceptor?.params?.find(p => p.name === 'Сумма купюр')?.value ?
             parseFloat(billAcceptor.params.find(p => p.name === 'Сумма купюр').value) : undefined
@@ -903,6 +915,11 @@ class STSApiService {
         mpsReader: {
           status: getDeviceStatus(mpsReader),
           name: mpsReader?.name || 'МПС-ридер'
+        },
+        fiscalRegister: {
+          status: fiscalStatus,
+          name: fiscalDevice?.name || 'Фискальный регистратор',
+          isEmergencyMode
         }
       }
     };
