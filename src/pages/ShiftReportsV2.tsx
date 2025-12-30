@@ -11,7 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { extractStationNumber } from "@/utils/tradingPointUtils";
 import { getSystemId } from "@/config/stsConfig";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, FileCheck, Construction } from "lucide-react";
+import { LayoutDashboard, FileCheck, Receipt, Construction } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -33,6 +33,7 @@ import ShiftFilters from "@/components/shift-reports/ShiftFilters";
 import ShiftsTable from "@/components/shift-reports/ShiftsTable";
 import MobileShiftsTable from "@/components/shift-reports/MobileShiftsTable";
 import ShiftDetailsModal from "@/components/shift-reports/ShiftDetailsModal";
+import ReceiptsModal from "@/components/shift-reports/ReceiptsModal";
 
 export default function ShiftReportsV2() {
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ export default function ShiftReportsV2() {
 
   // Состояния модальных окон
   const [isReconciliationModalOpen, setIsReconciliationModalOpen] = useState(false);
+  const [isReceiptsModalOpen, setIsReceiptsModalOpen] = useState(false);
 
   // Загрузка объекта торговой точки (только если выбрана конкретная точка)
   const { tradingPoint } = useTradingPoint({
@@ -88,6 +90,15 @@ export default function ShiftReportsV2() {
             >
               <LayoutDashboard className="w-4 h-4 mr-2" />
               Дашборд
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsReceiptsModalOpen(true)}
+              className="bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-200"
+            >
+              <Receipt className="w-4 h-4 mr-2" />
+              Чеки
             </Button>
             <Button
               variant="outline"
@@ -188,6 +199,13 @@ export default function ShiftReportsV2() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Модальное окно "Чеки" */}
+        <ReceiptsModal
+          isOpen={isReceiptsModalOpen}
+          onClose={() => setIsReceiptsModalOpen(false)}
+          systemId={getSystemId(selectedNetwork)}
+        />
       </div>
     </MainLayout>
   );
