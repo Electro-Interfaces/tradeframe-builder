@@ -103,6 +103,12 @@ jobs:
             # Supabase Configuration
             SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             SUPABASE_SERVICE_KEY=${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+
+            # TradeCorp API Configuration
+            TRADECORP_API_URL=${{ secrets.TRADECORP_API_URL }}
+            TRADECORP_LOGIN=${{ secrets.TRADECORP_LOGIN }}
+            TRADECORP_PASSWORD=${{ secrets.TRADECORP_PASSWORD }}
+            TRADECORP_EMITENT_ID=${{ secrets.TRADECORP_EMITENT_ID }}
             ENV_EOF
 
             # Устанавливаем зависимости для backend

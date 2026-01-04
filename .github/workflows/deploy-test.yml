@@ -95,13 +95,19 @@ jobs:
             ALLOWED_ORIGINS=https://testtf.dataworker.ru
 
             # Telegram Bot Configuration
-            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-            TELEGRAM_BOT_NAME=TradeFrame Notifications
-            TELEGRAM_BOT_USERNAME=TradeFrameDW_Bot
+            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN_TEST }}
+            TELEGRAM_BOT_NAME=TradeFrame Test Notifications
+            TELEGRAM_BOT_USERNAME=TradeFrameTest_Bot
 
             # Supabase Configuration
             SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             SUPABASE_SERVICE_KEY=${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+
+            # TradeCorp API Configuration
+            TRADECORP_API_URL=${{ secrets.TRADECORP_API_URL }}
+            TRADECORP_LOGIN=${{ secrets.TRADECORP_LOGIN }}
+            TRADECORP_PASSWORD=${{ secrets.TRADECORP_PASSWORD }}
+            TRADECORP_EMITENT_ID=${{ secrets.TRADECORP_EMITENT_ID }}
             ENV_EOF
 
             # Устанавливаем зависимости для backend
