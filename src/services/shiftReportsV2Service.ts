@@ -87,6 +87,7 @@ class ShiftReportsV2Service {
       cardRevenue: 0,
       sbpRevenue: 0,
       fuelCardRevenue: 0,
+      corporateCardRevenue: 0,
       otherRevenue: 0,
 
       hasDiscrepancies: false,
