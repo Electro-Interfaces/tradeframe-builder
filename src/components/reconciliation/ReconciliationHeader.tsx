@@ -20,14 +20,14 @@ export function ReconciliationHeader({
   const { params } = result;
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-blue-600/20">
-          <FileSearch className="h-6 w-6 text-blue-400" />
+        <div className="p-2 rounded-lg bg-blue-600/20 shrink-0">
+          <FileSearch className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold text-white">Результаты сверки</h1>
-          <p className="text-slate-400 text-sm">
+          <h1 className="text-lg sm:text-2xl font-semibold text-white">Результаты сверки</h1>
+          <p className="text-slate-400 text-xs sm:text-sm">
             {formatDate(params.dateFrom)} — {formatDate(params.dateTo)}
           </p>
         </div>
@@ -37,18 +37,18 @@ export function ReconciliationHeader({
           variant="outline"
           size="sm"
           onClick={() => exportReconciliationToExcel(result)}
-          className="border-slate-600 text-slate-300 hover:bg-slate-700"
+          className="border-slate-600 text-slate-300 hover:bg-slate-700 flex-1 sm:flex-none"
         >
-          <Download className="h-4 w-4 mr-2" />
-          Экспорт Excel
+          <Download className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Экспорт Excel</span>
         </Button>
         <Button
           onClick={onNewReconciliation}
           size="sm"
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none"
         >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Новая сверка
+          <RefreshCw className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Новая сверка</span>
         </Button>
       </div>
     </div>
