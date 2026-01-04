@@ -32,9 +32,9 @@ export function exportReconciliationToExcel(result: ReconciliationResult): void 
   };
 
   // ========== Лист 1: Сводка ==========
-  const totalCorp = summary.totalCorpLiters ?? 0;
-  const totalTf = summary.totalTfLiters ?? 0;
-  const totalShift = summary.totalShiftLiters ?? 0;
+  const totalCorp = summary.totalCorpLiters || 0;
+  const totalTf = summary.totalTfLiters || 0;
+  const totalShift = summary.totalShiftLiters || 0;
 
   const summaryData = [
     ['ОТЧЁТ ПО СВЕРКЕ КОРПОРАТИВНОГО ПРОЦЕССИНГА'],

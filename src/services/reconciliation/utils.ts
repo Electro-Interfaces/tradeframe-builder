@@ -15,8 +15,10 @@ export function normalizeFuelName(name: string): string {
 
 /**
  * Округление до 2 знаков после запятой
+ * Защита от NaN/undefined/null
  */
 export function round(value: number): number {
+  if (value == null || !Number.isFinite(value)) return 0;
   return Math.round(value * 100) / 100;
 }
 

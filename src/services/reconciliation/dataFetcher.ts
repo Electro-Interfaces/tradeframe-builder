@@ -53,9 +53,10 @@ export async function getCorpTransactions(
       // Приводим имя станции к формату TF (АЗС N) для корректной группировки
       stationName: `АЗС ${normalizedStationNumber}`,
       operationName: t.operationName,
-      quantity: Math.abs(t.quantity),
-      cost: Math.abs(t.cost),
-      price: t.price,
+      // Защита от NaN/undefined
+      quantity: Math.abs(t.quantity || 0),
+      cost: Math.abs(t.cost || 0),
+      price: t.price || 0,
       productName: t.cheque?.[0]?.productName || t.operationName || 'Неизвестно',
       cheque: t.cheque || []
     };
@@ -129,9 +130,10 @@ export async function getTfTransactions(
     // Используем fuel_name как на странице операций, fallback на service.service_name
     fuelType: tx.fuel_name || tx.service?.service_name || '',
     // Используем quantity напрямую, как на странице операций
-    volume: Math.abs(parseFloat(tx.quantity || tx.release?.volume || '0')),
-    price: parseFloat(tx.price || tx.release?.price || '0'),
-    total: parseFloat(tx.cost || tx.release?.cost || '0'),
+    // parseFloat может вернуть NaN - защита через || 0
+    volume: Math.abs(parseFloat(tx.quantity || tx.release?.volume || '0') || 0),
+    price: parseFloat(tx.price || tx.release?.price || '0') || 0,
+    total: parseFloat(tx.cost || tx.release?.cost || '0') || 0,
     // card может быть строкой или объектом
     cardNumber: typeof tx.card === 'string' ? tx.card : (tx.card?.number || ''),
     paymentMethod: tx.pay_type?.name || ''
@@ -209,7 +211,8 @@ export async function getShiftsWithReports(
               if (sale.fuel && Array.isArray(sale.fuel)) {
                 for (const fuelItem of sale.fuel) {
                   const fuelName = fuelItem.service?.service_name || 'Топливо';
-                  const volume = parseFloat(fuelItem.release?.volume || '0');
+                  // parseFloat может вернуть NaN - защита через || 0
+                  const volume = parseFloat(fuelItem.release?.volume || '0') || 0;
 
                   if (volume > 0 || showAllShifts) {
                     fuelSales.push({

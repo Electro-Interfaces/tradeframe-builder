@@ -94,7 +94,8 @@ export default function ShiftReportsV2() {
       setIsReconciliationModalOpen(false);
       setIsCorpCardsResultOpen(true);
 
-      if (result.summary.difference === 0) {
+      // Показываем результат сверки на основе hasErrors
+      if (!result.summary.hasErrors) {
         toast({
           title: 'Сверка завершена',
           description: 'Расхождений не обнаружено!'
@@ -103,7 +104,7 @@ export default function ShiftReportsV2() {
         toast({
           variant: 'destructive',
           title: 'Обнаружены расхождения',
-          description: `Расхождение: ${result.summary.difference.toFixed(2)} руб.`
+          description: `Найдено ${result.summary.onlyCorp + result.summary.onlyTf + result.summary.mismatch} расхождений`
         });
       }
     } catch (error) {

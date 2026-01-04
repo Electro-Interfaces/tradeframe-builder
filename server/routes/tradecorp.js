@@ -166,14 +166,14 @@ router.post('/transactions', async (req, res) => {
       stationNumber: tx.station?.number,
       stationName: tx.station?.name,
       operationName: tx.operation_name,
-      quantity: tx.quantity / 100, // Конвертация сотые доли → литры
-      cost: tx.cost / 100, // Конвертация копейки → рубли
-      price: tx.price / 100,
+      quantity: (tx.quantity || 0) / 100, // Конвертация сотые доли → литры (защита от null/undefined)
+      cost: (tx.cost || 0) / 100, // Конвертация копейки → рубли (защита от null/undefined)
+      price: (tx.price || 0) / 100, // Защита от null/undefined
       cheque: tx.cheque?.map(c => ({
         productName: c.product_name,
-        quantity: c.quantity / 100, // Конвертация сотые доли → литры
-        cost: c.cost / 100,
-        price: c.price / 100
+        quantity: (c.quantity || 0) / 100, // Конвертация сотые доли → литры (защита от null/undefined)
+        cost: (c.cost || 0) / 100, // Защита от null/undefined
+        price: (c.price || 0) / 100 // Защита от null/undefined
       })) || []
     }));
 
@@ -264,10 +264,10 @@ router.post('/transactions/summary', async (req, res) => {
 
     transactions.forEach(tx => {
       const stationNum = tx.station?.number || 'unknown';
-      const cost = tx.cost / 100; // копейки → рубли
+      const cost = (tx.cost || 0) / 100; // копейки → рубли (защита от null/undefined)
 
       summary.totalCost += cost;
-      summary.totalQuantity += tx.quantity || 0;
+      summary.totalQuantity += (tx.quantity || 0) / 100; // сотые доли → литры (защита от null/undefined)
 
       if (!summary.byStation[stationNum]) {
         summary.byStation[stationNum] = {
@@ -281,7 +281,7 @@ router.post('/transactions/summary', async (req, res) => {
 
       summary.byStation[stationNum].count++;
       summary.byStation[stationNum].cost += cost;
-      summary.byStation[stationNum].quantity += tx.quantity || 0;
+      summary.byStation[stationNum].quantity += (tx.quantity || 0) / 100; // сотые доли → литры
     });
 
     // Округляем суммы

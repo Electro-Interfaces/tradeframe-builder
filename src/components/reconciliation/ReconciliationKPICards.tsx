@@ -3,18 +3,21 @@
  */
 
 import { Card, CardContent } from '@/components/ui/card';
-import { CreditCard, Fuel, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CreditCard, Fuel, Clock, CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
 import type { ReconciliationSummary } from '@/types/reconciliation';
 import { hasFuelDiscrepancy, type FuelTotal } from './reconciliationUtils';
 
 interface ReconciliationKPICardsProps {
   summary: ReconciliationSummary;
   fuelTotals: FuelTotal[];
+  onShowRecommendations?: () => void;
 }
 
 export function ReconciliationKPICards({
   summary,
-  fuelTotals
+  fuelTotals,
+  onShowRecommendations
 }: ReconciliationKPICardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -26,7 +29,7 @@ export function ReconciliationKPICards({
             <span className="text-slate-400 text-sm">Corp</span>
           </div>
           <div className="text-2xl font-bold text-white">
-            {(summary.totalCorpLiters ?? 0).toFixed(1)} л
+            {(summary.totalCorpLiters || 0).toFixed(1)} л
           </div>
           <div className="text-xs text-slate-500 mt-2 space-y-0.5">
             {fuelTotals.map(f => {
@@ -34,7 +37,7 @@ export function ReconciliationKPICards({
               return (
                 <div key={`corp-${f.name}`} className={`flex justify-between ${hasDiscrepancy ? 'text-red-400' : ''}`}>
                   <span>{f.name}:</span>
-                  <span>{(f.corp ?? 0).toFixed(1)}</span>
+                  <span>{(f.corp || 0).toFixed(1)}</span>
                 </div>
               );
             })}
@@ -50,7 +53,7 @@ export function ReconciliationKPICards({
             <span className="text-slate-400 text-sm">TF</span>
           </div>
           <div className="text-2xl font-bold text-white">
-            {(summary.totalTfLiters ?? 0).toFixed(1)} л
+            {(summary.totalTfLiters || 0).toFixed(1)} л
           </div>
           <div className="text-xs text-slate-500 mt-2 space-y-0.5">
             {fuelTotals.map(f => {
@@ -58,7 +61,7 @@ export function ReconciliationKPICards({
               return (
                 <div key={`tf-${f.name}`} className={`flex justify-between ${hasDiscrepancy ? 'text-red-400' : ''}`}>
                   <span>{f.name}:</span>
-                  <span>{(f.tf ?? 0).toFixed(1)}</span>
+                  <span>{(f.tf || 0).toFixed(1)}</span>
                 </div>
               );
             })}
@@ -74,7 +77,7 @@ export function ReconciliationKPICards({
             <span className="text-slate-400 text-sm">Смена</span>
           </div>
           <div className="text-2xl font-bold text-white">
-            {(summary.totalShiftLiters ?? 0).toFixed(1)} л
+            {(summary.totalShiftLiters || 0).toFixed(1)} л
           </div>
           <div className="text-xs text-slate-500 mt-2 space-y-0.5">
             {fuelTotals.map(f => {
@@ -82,7 +85,7 @@ export function ReconciliationKPICards({
               return (
                 <div key={`shift-${f.name}`} className={`flex justify-between ${hasDiscrepancy ? 'text-red-400' : ''}`}>
                   <span>{f.name}:</span>
-                  <span>{(f.shift ?? 0).toFixed(1)}</span>
+                  <span>{(f.shift || 0).toFixed(1)}</span>
                 </div>
               );
             })}
@@ -107,6 +110,17 @@ export function ReconciliationKPICards({
           <div className="text-xs text-slate-500 mt-1">
             {summary.matched} совпало, {summary.onlyCorp + summary.onlyTf + summary.mismatch} расхождений
           </div>
+          {onShowRecommendations && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onShowRecommendations}
+              className="mt-3 w-full bg-slate-800/50 border-slate-600 hover:bg-slate-700 text-slate-300"
+            >
+              <Lightbulb className="h-4 w-4 mr-2 text-yellow-400" />
+              Рекомендации
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
