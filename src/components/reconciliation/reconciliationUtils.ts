@@ -67,7 +67,8 @@ export function getStatusColorClass(status: ReconciliationTransactionStatus): st
 /**
  * Форматирование разницы литров
  */
-export function formatDiff(diff: number): string {
+export function formatDiff(diff: number | null | undefined): string {
+  if (diff == null || !Number.isFinite(diff)) return '—';
   if (Math.abs(diff) <= DIFF_TOLERANCE) return '—';
   return (diff > 0 ? '+' : '') + diff.toFixed(1);
 }
@@ -75,7 +76,8 @@ export function formatDiff(diff: number): string {
 /**
  * Проверка наличия расхождения
  */
-export function hasDiff(diff: number): boolean {
+export function hasDiff(diff: number | null | undefined): boolean {
+  if (diff == null || !Number.isFinite(diff)) return false;
   return Math.abs(diff) > DIFF_TOLERANCE;
 }
 

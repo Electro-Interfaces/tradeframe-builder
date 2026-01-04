@@ -91,9 +91,9 @@ export function useReconciliationFilters(result: ReconciliationResult): {
       station.byFuel.forEach(fuel => {
         const key = fuel.fuelName.trim().toUpperCase();
         const existing = totals.get(key) || { corp: 0, tf: 0, shift: 0 };
-        existing.corp += fuel.corpLitersTotal;
-        existing.tf += fuel.tfLitersTotal;
-        existing.shift += fuel.shiftLitersTotal;
+        existing.corp += fuel.corpLitersTotal ?? 0;
+        existing.tf += fuel.tfLitersTotal ?? 0;
+        existing.shift += fuel.shiftLitersTotal ?? 0;
         totals.set(key, existing);
       });
     });

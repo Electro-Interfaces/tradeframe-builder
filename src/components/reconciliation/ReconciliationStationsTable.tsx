@@ -60,8 +60,8 @@ function MobileStationCard({
   onToggleShift: (key: string) => void;
   transactions: ReconciliationTransaction[];
 }) {
-  const stationCorpVsTf = station.corpLitersTotal - station.tfLitersTotal;
-  const stationTfVsShift = station.tfLitersTotal - station.shiftLitersTotal;
+  const stationCorpVsTf = (station.corpLitersTotal ?? 0) - (station.tfLitersTotal ?? 0);
+  const stationTfVsShift = (station.tfLitersTotal ?? 0) - (station.shiftLitersTotal ?? 0);
 
   return (
     <div className="border border-slate-700 rounded-lg overflow-hidden">
@@ -122,8 +122,8 @@ function MobileStationCard({
         <div className="border-t border-slate-700 bg-slate-900/30 p-2 space-y-2">
           {station.byFuel.map((fuel, fuelIdx) => {
             const fuelKey = `${station.stationId}_fuel_${fuelIdx}`;
-            const corpVsTfDiff = fuel.corpLitersTotal - fuel.tfLitersTotal;
-            const tfVsShiftDiff = fuel.tfLitersTotal - fuel.shiftLitersTotal;
+            const corpVsTfDiff = (fuel.corpLitersTotal ?? 0) - (fuel.tfLitersTotal ?? 0);
+            const tfVsShiftDiff = (fuel.tfLitersTotal ?? 0) - (fuel.shiftLitersTotal ?? 0);
             const isFuelExpanded = expandedShifts.has(fuelKey);
 
             return (
@@ -148,9 +148,9 @@ function MobileStationCard({
                     )}
                   </div>
                   <div className="grid grid-cols-3 gap-1 mt-1 text-xs">
-                    <span className="text-purple-400">{fuel.corpLitersTotal}л</span>
-                    <span className="text-blue-400">{fuel.tfLitersTotal}л</span>
-                    <span className="text-green-400">{fuel.shiftLitersTotal}л</span>
+                    <span className="text-purple-400">{fuel.corpLitersTotal ?? '—'}л</span>
+                    <span className="text-blue-400">{fuel.tfLitersTotal ?? '—'}л</span>
+                    <span className="text-green-400">{fuel.shiftLitersTotal ?? '—'}л</span>
                   </div>
                   {(hasDiff(corpVsTfDiff) || hasDiff(tfVsShiftDiff)) && (
                     <div className="text-xs text-red-400 mt-1">
@@ -164,8 +164,8 @@ function MobileStationCard({
                 {isFuelExpanded && fuel.byShift.length > 0 && (
                   <div className="border-t border-slate-700/50 p-2 space-y-1 bg-slate-950/30">
                     {fuel.byShift.map((shift) => {
-                      const shiftCorpVsTf = shift.corpLiters - shift.tfLiters;
-                      const shiftTfVsShift = shift.tfLiters - shift.shiftLiters;
+                      const shiftCorpVsTf = (shift.corpLiters ?? 0) - (shift.tfLiters ?? 0);
+                      const shiftTfVsShift = (shift.tfLiters ?? 0) - (shift.shiftLiters ?? 0);
                       return (
                         <div key={`${station.stationId}-${fuel.fuelName}-${shift.shiftId}`} className="text-xs p-1 rounded bg-slate-800/50">
                           <div className="flex items-center justify-between">
@@ -180,9 +180,9 @@ function MobileStationCard({
                           </div>
                           <div className="flex justify-between mt-0.5">
                             <div className="flex gap-2">
-                              <span className="text-purple-400">{shift.corpLiters}</span>
-                              <span className="text-blue-400">{shift.tfLiters}</span>
-                              <span className="text-green-400">{shift.shiftLiters}</span>
+                              <span className="text-purple-400">{shift.corpLiters ?? '—'}</span>
+                              <span className="text-blue-400">{shift.tfLiters ?? '—'}</span>
+                              <span className="text-green-400">{shift.shiftLiters ?? '—'}</span>
                             </div>
                             {shift.status === 'error' ? (
                               <XCircle className="h-3 w-3 text-red-400" />
@@ -251,8 +251,8 @@ export function ReconciliationStationsTable({
           </div>
           <div className="space-y-1 mt-1">
             {filteredByStation.map((station, stationIndex) => {
-              const stationCorpVsTf = station.corpLitersTotal - station.tfLitersTotal;
-              const stationTfVsShift = station.tfLitersTotal - station.shiftLitersTotal;
+              const stationCorpVsTf = (station.corpLitersTotal ?? 0) - (station.tfLitersTotal ?? 0);
+              const stationTfVsShift = (station.tfLitersTotal ?? 0) - (station.shiftLitersTotal ?? 0);
               return (
                 <div key={`station_${station.stationId}_${stationIndex}`} className="border border-slate-700 rounded-lg overflow-hidden">
                   {/* Заголовок станции */}
@@ -308,8 +308,8 @@ export function ReconciliationStationsTable({
                           <TableBody>
                             {station.byFuel.map((fuel, fuelIdx) => {
                               const fuelKey = `${station.stationId}_fuel_${fuelIdx}`;
-                              const corpVsTfDiff = fuel.corpLitersTotal - fuel.tfLitersTotal;
-                              const tfVsShiftDiff = fuel.tfLitersTotal - fuel.shiftLitersTotal;
+                              const corpVsTfDiff = (fuel.corpLitersTotal ?? 0) - (fuel.tfLitersTotal ?? 0);
+                              const tfVsShiftDiff = (fuel.tfLitersTotal ?? 0) - (fuel.shiftLitersTotal ?? 0);
 
                               return (
                                 <>
@@ -328,9 +328,9 @@ export function ReconciliationStationsTable({
                                       )}
                                     </TableCell>
                                     <TableCell className="text-white text-xs py-1 font-medium">{fuel.fuelName}</TableCell>
-                                    <TableCell className="text-purple-400 text-xs py-1 text-right">{fuel.corpLitersTotal}</TableCell>
-                                    <TableCell className="text-blue-400 text-xs py-1 text-right">{fuel.tfLitersTotal}</TableCell>
-                                    <TableCell className="text-green-400 text-xs py-1 text-right">{fuel.shiftLitersTotal}</TableCell>
+                                    <TableCell className="text-purple-400 text-xs py-1 text-right">{fuel.corpLitersTotal ?? '—'}</TableCell>
+                                    <TableCell className="text-blue-400 text-xs py-1 text-right">{fuel.tfLitersTotal ?? '—'}</TableCell>
+                                    <TableCell className="text-green-400 text-xs py-1 text-right">{fuel.shiftLitersTotal ?? '—'}</TableCell>
                                     <TableCell className={`text-xs py-1 text-right ${hasDiff(corpVsTfDiff) ? 'text-red-400' : 'text-slate-500'}`}>
                                       {formatDiff(corpVsTfDiff)}
                                     </TableCell>
@@ -367,8 +367,8 @@ export function ReconciliationStationsTable({
                                             </TableHeader>
                                             <TableBody>
                                               {fuel.byShift.map((shift) => {
-                                                const shiftCorpVsTf = shift.corpLiters - shift.tfLiters;
-                                                const shiftTfVsShift = shift.tfLiters - shift.shiftLiters;
+                                                const shiftCorpVsTf = (shift.corpLiters ?? 0) - (shift.tfLiters ?? 0);
+                                                const shiftTfVsShift = (shift.tfLiters ?? 0) - (shift.shiftLiters ?? 0);
                                                 const shiftKey = `${station.stationId}-${fuel.fuelName}-${shift.shiftId}`;
                                                 return (
                                                   <TableRow key={shiftKey} className="border-slate-700/30">
@@ -385,9 +385,9 @@ export function ReconciliationStationsTable({
                                                         `${shift.shiftOpenedAt.substring(11, 16)}—${shift.shiftClosedAt.substring(11, 16)}`
                                                       ) : shift.shiftId === 0 ? '—' : 'открыта'}
                                                     </TableCell>
-                                                    <TableCell className="text-purple-400 text-xs py-1 text-right">{shift.corpLiters}</TableCell>
-                                                    <TableCell className="text-blue-400 text-xs py-1 text-right">{shift.tfLiters}</TableCell>
-                                                    <TableCell className="text-green-400 text-xs py-1 text-right">{shift.shiftLiters}</TableCell>
+                                                    <TableCell className="text-purple-400 text-xs py-1 text-right">{shift.corpLiters ?? '—'}</TableCell>
+                                                    <TableCell className="text-blue-400 text-xs py-1 text-right">{shift.tfLiters ?? '—'}</TableCell>
+                                                    <TableCell className="text-green-400 text-xs py-1 text-right">{shift.shiftLiters ?? '—'}</TableCell>
                                                     <TableCell className={`text-xs py-1 text-right ${hasDiff(shiftCorpVsTf) ? 'text-red-400' : 'text-slate-500'}`}>
                                                       {formatDiff(shiftCorpVsTf)}
                                                     </TableCell>

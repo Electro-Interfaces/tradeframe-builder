@@ -139,14 +139,14 @@ export function ReconciliationTransactionsTable({
                     {tx.shiftId ? `#${tx.shiftId}` : <span className="text-orange-400">—</span>}
                   </TableCell>
                   <TableCell className="text-right">
-                    {tx.corpLiters !== null ? (
+                    {tx.corpLiters != null ? (
                       <span className="text-purple-400">{tx.corpLiters}</span>
                     ) : (
                       <span className="text-slate-500">—</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {tx.tfLiters !== null ? (
+                    {tx.tfLiters != null ? (
                       <span className="text-blue-400">{tx.tfLiters}</span>
                     ) : (
                       <span className="text-slate-500">—</span>
