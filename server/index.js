@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const notificationScheduler = require('./services/notificationScheduler');
 const stsRoutes = require('./routes/sts');
+const tradecorpRoutes = require('./routes/tradecorp');
 const telegramRoutes = require('./routes/telegram');
 const messagesRoutes = require('./routes/messages');
 const supabaseRoutes = require('./routes/supabase');
@@ -61,6 +62,9 @@ app.get('/health', (req, res) => {
 
 // Подключаем роуты для STS API
 app.use('/api/sts', stsRoutes);
+
+// Подключаем роуты для TradeCorp API (корпоративный процессинг)
+app.use('/api/tradecorp', tradecorpRoutes);
 
 // Подключаем роуты для Telegram
 app.use('/api/telegram', telegramRoutes);

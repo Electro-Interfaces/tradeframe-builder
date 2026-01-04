@@ -11,8 +11,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { extractStationNumber } from "@/utils/tradingPointUtils";
 import { getSystemId } from "@/config/stsConfig";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, FileCheck, Receipt, Construction } from "lucide-react";
+import { LayoutDashboard, FileCheck, Receipt, Construction, CreditCard, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -34,15 +35,26 @@ import ShiftsTable from "@/components/shift-reports/ShiftsTable";
 import MobileShiftsTable from "@/components/shift-reports/MobileShiftsTable";
 import ShiftDetailsModal from "@/components/shift-reports/ShiftDetailsModal";
 import ReceiptsModal from "@/components/shift-reports/ReceiptsModal";
+import { ReconciliationParamsModal } from "@/components/reconciliation/ReconciliationParamsModal";
+import { ReconciliationResults } from "@/components/reconciliation/ReconciliationResults";
+import { executeReconciliation } from "@/services/reconciliation";
+import type { ReconciliationParams, ReconciliationResult } from "@/types/reconciliation";
 
 export default function ShiftReportsV2() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { selectedNetwork, selectedTradingPoint: selectedTradingPointId, isAllTradingPoints } = useSelection();
   const isMobile = useIsMobile();
 
   // Состояния модальных окон
   const [isReconciliationModalOpen, setIsReconciliationModalOpen] = useState(false);
   const [isReceiptsModalOpen, setIsReceiptsModalOpen] = useState(false);
+
+  // Состояния для сверки корпоративных карт
+  const [isCorpCardsParamsOpen, setIsCorpCardsParamsOpen] = useState(false);
+  const [isCorpCardsLoading, setIsCorpCardsLoading] = useState(false);
+  const [corpCardsResult, setCorpCardsResult] = useState<ReconciliationResult | null>(null);
+  const [isCorpCardsResultOpen, setIsCorpCardsResultOpen] = useState(false);
 
   // Загрузка объекта торговой точки (только если выбрана конкретная точка)
   const { tradingPoint } = useTradingPoint({
@@ -71,6 +83,46 @@ export default function ShiftReportsV2() {
     selectShift,
     closeShiftDetails
   } = useShiftSelection();
+
+  // Обработчик запуска сверки корпоративных карт
+  const handleCorpCardsReconciliation = async (params: ReconciliationParams) => {
+    setIsCorpCardsLoading(true);
+    try {
+      const result = await executeReconciliation(params);
+      setCorpCardsResult(result);
+      setIsCorpCardsParamsOpen(false);
+      setIsReconciliationModalOpen(false);
+      setIsCorpCardsResultOpen(true);
+
+      if (result.summary.difference === 0) {
+        toast({
+          title: 'Сверка завершена',
+          description: 'Расхождений не обнаружено!'
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Обнаружены расхождения',
+          description: `Расхождение: ${result.summary.difference.toFixed(2)} руб.`
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Ошибка сверки',
+        description: error instanceof Error ? error.message : 'Неизвестная ошибка'
+      });
+    } finally {
+      setIsCorpCardsLoading(false);
+    }
+  };
+
+  // Обработчик новой сверки
+  const handleNewCorpCardsReconciliation = () => {
+    setCorpCardsResult(null);
+    setIsCorpCardsResultOpen(false);
+    setIsCorpCardsParamsOpen(true);
+  };
 
   return (
     <MainLayout fullWidth={true}>
@@ -177,14 +229,34 @@ export default function ShiftReportsV2() {
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-3 py-4">
+              {/* Корпоративные карты - РАБОТАЕТ */}
+              <div
+                onClick={() => {
+                  setIsReconciliationModalOpen(false);
+                  setIsCorpCardsParamsOpen(true);
+                }}
+                className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-green-600/50 hover:bg-slate-700 hover:border-green-500 transition-colors cursor-pointer"
+              >
+                <div>
+                  <p className="text-slate-200 font-medium flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-green-400" />
+                    Корпоративные карты
+                  </p>
+                  <p className="text-slate-500 text-sm">Сверка операций по корпоративным картам с TradeCorp</p>
+                </div>
+                <Button variant="ghost" size="sm" className="text-green-400 hover:text-green-300 hover:bg-green-900/20">
+                  Открыть
+                </Button>
+              </div>
+
+              {/* Остальные - в разработке */}
               {[
-                { title: 'Корпоративные карты', description: 'Сверка операций по корпоративным картам' },
                 { title: 'Онлайн заказы', description: 'Сверка операций онлайн заказов' },
                 { title: 'Эквайринг', description: 'Сверка операций эквайринга' }
               ].map((item) => (
                 <div
                   key={item.title}
-                  className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:bg-slate-700 transition-colors cursor-pointer"
+                  className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600 opacity-60 cursor-not-allowed"
                 >
                   <div>
                     <p className="text-slate-200 font-medium">{item.title}</p>
@@ -197,6 +269,26 @@ export default function ShiftReportsV2() {
                 </div>
               ))}
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Модальное окно параметров сверки корп. карт */}
+        <ReconciliationParamsModal
+          open={isCorpCardsParamsOpen}
+          onOpenChange={setIsCorpCardsParamsOpen}
+          onSubmit={handleCorpCardsReconciliation}
+          isLoading={isCorpCardsLoading}
+        />
+
+        {/* Модальное окно результатов сверки корп. карт */}
+        <Dialog open={isCorpCardsResultOpen} onOpenChange={setIsCorpCardsResultOpen}>
+          <DialogContent className="bg-slate-800 border-slate-700 max-w-6xl max-h-[90vh] overflow-y-auto">
+            {corpCardsResult && (
+              <ReconciliationResults
+                result={corpCardsResult}
+                onNewReconciliation={handleNewCorpCardsReconciliation}
+              />
+            )}
           </DialogContent>
         </Dialog>
 

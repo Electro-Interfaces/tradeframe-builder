@@ -283,7 +283,7 @@ router.get('/v1/coupons', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для отчетов ===
 router.get('/v1/report/receipts', (req, res) => proxyRequest(req, res));
-router.post('/v1/report/shift_report', (req, res) => proxyRequest(req, res)); // POST для сменных отчетов
+router.get('/v1/report/shift_report', (req, res) => proxyRequest(req, res)); // GET для сменных отчетов
 
 // === Endpoints для цен ===
 router.get('/v1/prices', (req, res) => proxyRequest(req, res));
