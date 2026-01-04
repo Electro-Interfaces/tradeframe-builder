@@ -122,8 +122,6 @@ export async function getTradecorpTransactions(
   dateTo: string,
   stationIds?: number[]
 ): Promise<TradecorpTransaction[]> {
-  console.log('[TradeCorp] 📥 Запрос транзакций:', { dateFrom, dateTo, stationIds });
-
   const response = await tradecorpProxyRequest<TradecorpTransactionsResponse>(
     '/transactions',
     {
@@ -136,14 +134,7 @@ export async function getTradecorpTransactions(
     }
   );
 
-  console.log('[TradeCorp] 📦 Ответ:', {
-    success: response.success,
-    transactionsCount: response.transactions?.length || 0,
-    firstTransaction: response.transactions?.[0] || null
-  });
-
   if (!response.success) {
-    console.error('[TradeCorp] ❌ Ошибка: success=false');
     throw new Error('Не удалось получить транзакции TradeCorp');
   }
 

@@ -159,11 +159,6 @@ export class ShiftReportAdapterV2 {
       receiptsRaw: apiResponse.receipt || [],
     } as any;
 
-    // DEBUG: Проверяем передачу данных
-    console.log('📦 [Adapter] Смена', shiftNumber,
-      'salesRaw:', (apiResponse.sales || []).length,
-      'receiptsRaw:', (apiResponse.receipt || []).length);
-    
     return result;
   }
 

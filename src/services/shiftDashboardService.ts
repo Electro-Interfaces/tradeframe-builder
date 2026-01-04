@@ -413,12 +413,6 @@ class ShiftDashboardService {
 
       // Агрегация по способам оплаты с разбивкой по топливам из salesRaw
       const salesRaw = (shift as any).salesRaw;
-      // DEBUG: Проверяем наличие salesRaw
-      if (salesRaw && salesRaw.length > 0) {
-        console.log('📊 [Dashboard] salesRaw найден, элементов:', salesRaw.length, 'первый элемент:', JSON.stringify(salesRaw[0]).slice(0, 200));
-      } else {
-        console.log('⚠️ [Dashboard] salesRaw ПУСТОЙ или отсутствует для смены:', shift.shiftNumber);
-      }
       if (salesRaw && Array.isArray(salesRaw)) {
         for (const sale of salesRaw) {
           const payTypeName = sale.pay_type?.name || '';
@@ -523,9 +517,6 @@ class ShiftDashboardService {
       details.revenue = totalRevenue;
       details.volume = totalVolume;
     }
-
-    // DEBUG: Проверяем результат paymentDetails
-    console.log('📊 [Dashboard] paymentDetails результат:', JSON.stringify(financial.paymentDetails));
 
     // Вычисляем метрики поступлений
     const receipts = this.calculateReceipts(shifts);
