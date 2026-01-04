@@ -102,9 +102,9 @@ export function ReconciliationParamsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] p-0 gap-0 overflow-hidden bg-slate-900 border-slate-700">
+      <DialogContent className="sm:max-w-[480px] w-[calc(100%-2rem)] max-h-[90vh] p-0 gap-0 overflow-hidden bg-slate-900 border-slate-700 flex flex-col">
         {/* Заголовок с градиентом */}
-        <div className="relative px-6 pt-6 pb-5 bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-slate-900">
+        <div className="relative px-4 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-5 bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-slate-900 flex-shrink-0">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/20">
               <FileSearch className="h-6 w-6 text-white" />
@@ -131,7 +131,7 @@ export function ReconciliationParamsModal({
           </div>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5 flex-1 overflow-y-auto">
           {/* Период */}
           <div className="space-y-3">
             <Label className="flex items-center gap-2 text-sm font-medium text-slate-300">
@@ -199,7 +199,7 @@ export function ReconciliationParamsModal({
               <button
                 type="button"
                 onClick={() => !isLoading && setAllStations(true)}
-                className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left
+                className={`relative p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 text-left
                   ${allStations
                     ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10'
                     : 'border-slate-700 bg-slate-800/30 hover:border-slate-600 hover:bg-slate-800/50'
@@ -208,8 +208,8 @@ export function ReconciliationParamsModal({
                 {allStations && (
                   <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-blue-400" />
                 )}
-                <Layers className={`h-5 w-5 mb-2 ${allStations ? 'text-blue-400' : 'text-slate-500'}`} />
-                <div className={`font-medium ${allStations ? 'text-white' : 'text-slate-300'}`}>
+                <Layers className={`h-5 w-5 mb-1.5 sm:mb-2 ${allStations ? 'text-blue-400' : 'text-slate-500'}`} />
+                <div className={`text-sm sm:text-base font-medium ${allStations ? 'text-white' : 'text-slate-300'}`}>
                   Все станции
                 </div>
                 <div className="text-xs text-slate-500 mt-0.5">
@@ -220,7 +220,7 @@ export function ReconciliationParamsModal({
               <button
                 type="button"
                 onClick={() => !isLoading && setAllStations(false)}
-                className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left
+                className={`relative p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 text-left
                   ${!allStations
                     ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10'
                     : 'border-slate-700 bg-slate-800/30 hover:border-slate-600 hover:bg-slate-800/50'
@@ -229,8 +229,8 @@ export function ReconciliationParamsModal({
                 {!allStations && (
                   <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-blue-400" />
                 )}
-                <Building2 className={`h-5 w-5 mb-2 ${!allStations ? 'text-blue-400' : 'text-slate-500'}`} />
-                <div className={`font-medium ${!allStations ? 'text-white' : 'text-slate-300'}`}>
+                <Building2 className={`h-5 w-5 mb-1.5 sm:mb-2 ${!allStations ? 'text-blue-400' : 'text-slate-500'}`} />
+                <div className={`text-sm sm:text-base font-medium ${!allStations ? 'text-white' : 'text-slate-300'}`}>
                   Выбрать
                 </div>
                 <div className="text-xs text-slate-500 mt-0.5">
@@ -281,9 +281,9 @@ export function ReconciliationParamsModal({
           </div>
 
           {/* Опция показа всех смен */}
-          <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/30 border border-slate-700/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-500/20">
+          <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-slate-800/30 border border-slate-700/50">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-orange-500/20">
                 <Layers className="h-4 w-4 text-white" />
               </div>
               <div>
@@ -301,27 +301,27 @@ export function ReconciliationParamsModal({
         </div>
 
         {/* Футер */}
-        <div className="px-6 py-4 bg-slate-800/50 border-t border-slate-700/50 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-slate-400">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-800/50 border-t border-slate-700/50 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-2 flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-400">
             <Calendar className="h-4 w-4" />
             <span>{formatDisplayDate(dateFrom)}</span>
             <span>—</span>
             <span>{formatDisplayDate(dateTo)}</span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="ghost"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="text-slate-400 hover:text-white hover:bg-slate-700"
+              className="flex-1 sm:flex-initial text-slate-400 hover:text-white hover:bg-slate-700"
             >
               Отмена
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={isLoading || (!allStations && selectedStationIds.length === 0)}
-              className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400
-                       text-white shadow-lg shadow-blue-500/25 min-w-[140px]"
+              className="flex-1 sm:flex-initial bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400
+                       text-white shadow-lg shadow-blue-500/25 sm:min-w-[140px]"
             >
               {isLoading ? (
                 <>

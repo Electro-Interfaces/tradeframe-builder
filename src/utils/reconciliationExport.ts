@@ -161,11 +161,11 @@ export function exportReconciliationToExcel(result: ReconciliationResult): void 
       '',
       '',
       '',
-      summary.totalCorpLiters,
-      summary.totalTfLiters,
-      summary.totalShiftLiters,
-      summary.totalCorpLiters - summary.totalTfLiters,
-      summary.totalTfLiters - summary.totalShiftLiters,
+      totalCorp,
+      totalTf,
+      totalShift,
+      (totalCorp - totalTf).toFixed(2),
+      (totalTf - totalShift).toFixed(2),
     ]);
   }
 
