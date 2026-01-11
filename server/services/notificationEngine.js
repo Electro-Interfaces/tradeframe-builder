@@ -472,7 +472,7 @@ class NotificationEngine {
    * Отправить уведомление получателям
    */
   async sendNotification(notification, rule) {
-    const recipients = await this.getRecipients(rule, notification.tenant_id);
+    const recipients = await this.getRecipients(rule, notification.tenant_id, notification.type);
     const channels = notification.channels || ['telegram']; // ✅ Только Telegram
 
     for (const recipient of recipients) {
@@ -492,8 +492,11 @@ class NotificationEngine {
 
   /**
    * Получить список получателей для правила
+   * @param {Object} rule - Правило уведомления
+   * @param {string} tenantId - ID тенанта
+   * @param {string} notificationType - Тип уведомления (low_fuel_level, terminal_offline, и т.д.)
    */
-  async getRecipients(rule, tenantId) {
+  async getRecipients(rule, tenantId, notificationType) {
     const { recipients } = rule;
     const recipientList = [];
 
@@ -511,6 +514,19 @@ class NotificationEngine {
       if (allSettings) {
         // Для каждой настройки получаем данные пользователя
         for (const setting of allSettings) {
+          // ✅ Проверяем подписку пользователя на данный тип уведомления
+          const { data: subscription } = await this.supabase
+            .from('user_notification_subscriptions')
+            .select('is_enabled')
+            .eq('user_id', setting.user_id)
+            .eq('notification_type', notificationType)
+            .single();
+
+          // Пропускаем, если подписка отключена
+          if (subscription && !subscription.is_enabled) {
+            continue;
+          }
+
           const { data: user } = await this.supabase
             .from('users')
             .select('id, name')
@@ -586,6 +602,26 @@ class NotificationEngine {
 
         user.settings = settings;
       }
+
+      // ✅ Фильтруем получателей по подпискам на тип уведомления
+      const filteredRecipients = [];
+      for (const user of recipientList) {
+        const { data: subscription } = await this.supabase
+          .from('user_notification_subscriptions')
+          .select('is_enabled')
+          .eq('user_id', user.id)
+          .eq('notification_type', notificationType)
+          .single();
+
+        // Пропускаем, если подписка явно отключена
+        if (subscription && !subscription.is_enabled) {
+          continue;
+        }
+
+        filteredRecipients.push(user);
+      }
+
+      return filteredRecipients;
     }
 
     return recipientList;
