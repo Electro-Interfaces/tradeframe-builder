@@ -517,13 +517,13 @@ class NotificationEngine {
           // ✅ Проверяем подписку пользователя на данный тип уведомления
           const { data: subscription } = await this.supabase
             .from('user_notification_subscriptions')
-            .select('is_enabled')
+            .select('enabled')
             .eq('user_id', setting.user_id)
             .eq('notification_type', notificationType)
             .single();
 
           // Пропускаем, если подписка отключена
-          if (subscription && !subscription.is_enabled) {
+          if (subscription && !subscription.enabled) {
             continue;
           }
 
@@ -608,13 +608,13 @@ class NotificationEngine {
       for (const user of recipientList) {
         const { data: subscription } = await this.supabase
           .from('user_notification_subscriptions')
-          .select('is_enabled')
+          .select('enabled')
           .eq('user_id', user.id)
           .eq('notification_type', notificationType)
           .single();
 
         // Пропускаем, если подписка явно отключена
-        if (subscription && !subscription.is_enabled) {
+        if (subscription && !subscription.enabled) {
           continue;
         }
 
