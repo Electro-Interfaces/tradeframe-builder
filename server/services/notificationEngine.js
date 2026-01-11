@@ -96,6 +96,140 @@ class NotificationEngine {
   }
 
   /**
+   * Проверить активные правила конкретного типа
+   * @param {string} ruleType - тип правила (bill_acceptor_threshold, low_fuel_level, terminal_offline, etc.)
+   */
+  async processRulesByType(ruleType) {
+    try {
+      const { data: rules, error } = await this.supabase
+        .from('notification_rules')
+        .select('*')
+        .eq('is_active', true)
+        .eq('type', ruleType);
+
+      if (error) {
+        throw error;
+      }
+
+      let totalNotificationsSent = 0;
+
+      for (const rule of rules) {
+        const result = await this.processRule(rule);
+        if (result && result.notificationsSent) {
+          totalNotificationsSent += result.notificationsSent;
+        }
+      }
+
+      return { success: true, processedRules: rules.length, notificationsSent: totalNotificationsSent };
+    } catch (error) {
+      console.error(`❌ Ошибка обработки правил типа ${ruleType}:`, error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Универсальная проверка дедупликации уведомлений
+   * Проверяет, не было ли отправлено уведомление недавно для данного объекта
+   *
+   * @param {object} rule - правило уведомления
+   * @param {string} notificationType - тип уведомления
+   * @param {object} identifiers - идентификаторы объекта (stationCode, tankNumber и т.д.)
+   * @returns {boolean} - true если можно отправлять, false если нужно пропустить
+   */
+  async shouldSendNotification(rule, notificationType, identifiers) {
+    const notificationConfig = rule.notification_config || {};
+    const scheduleConfig = rule.schedule_config || {};
+
+    // Если дедупликация явно отключена
+    if (notificationConfig.suppressDuplicates === false) {
+      return true;
+    }
+
+    // Получаем интервал подавления из настроек
+    // suppressDuration в миллисекундах, или вычисляем из cron расписания
+    let suppressDurationMs = notificationConfig.suppressDuration;
+
+    if (!suppressDurationMs && scheduleConfig.cron) {
+      // Парсим cron и определяем интервал
+      suppressDurationMs = this.getCronIntervalMs(scheduleConfig.cron);
+    }
+
+    // Значение по умолчанию - 4 часа
+    if (!suppressDurationMs) {
+      suppressDurationMs = 4 * 60 * 60 * 1000;
+    }
+
+    try {
+      // Формируем запрос для поиска последнего уведомления
+      let query = this.supabase
+        .from('notifications')
+        .select('*')
+        .eq('type', notificationType);
+
+      // Добавляем фильтры по идентификаторам
+      for (const [key, value] of Object.entries(identifiers)) {
+        query = query.eq(`context->>${key}`, String(value));
+      }
+
+      const { data: lastNotification } = await query
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!lastNotification) {
+        return true; // Уведомлений еще не было
+      }
+
+      // Проверяем время с последнего уведомления
+      const lastSentTime = new Date(lastNotification.created_at);
+      const now = new Date();
+      const timeSinceLastNotification = now - lastSentTime;
+
+      if (timeSinceLastNotification < suppressDurationMs) {
+        const hoursRemaining = ((suppressDurationMs - timeSinceLastNotification) / (1000 * 60 * 60)).toFixed(1);
+        console.log(`   ℹ️ Пропуск уведомления (дедупликация): осталось ${hoursRemaining}ч до следующего`);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      // В случае ошибки (например, нет записей) - отправляем уведомление
+      return true;
+    }
+  }
+
+  /**
+   * Получить интервал в миллисекундах из cron выражения
+   */
+  getCronIntervalMs(cronExpression) {
+    // Простой парсинг основных паттернов cron
+    // Формат: minute hour day month weekday
+    const parts = cronExpression.split(' ');
+    if (parts.length < 5) return null;
+
+    const [minute, hour] = parts;
+
+    // */N в минутах
+    if (minute.startsWith('*/')) {
+      const interval = parseInt(minute.slice(2));
+      return interval * 60 * 1000;
+    }
+
+    // */N в часах (при minute = 0)
+    if (minute === '0' && hour.startsWith('*/')) {
+      const interval = parseInt(hour.slice(2));
+      return interval * 60 * 60 * 1000;
+    }
+
+    // Точные часы (0 8 * * * = каждый день в 8:00 = 24 часа)
+    if (minute === '0' && /^\d+$/.test(hour)) {
+      return 24 * 60 * 60 * 1000;
+    }
+
+    return null;
+  }
+
+  /**
    * Обработать конкретное правило
    */
   async processRule(rule) {
@@ -208,7 +342,8 @@ class NotificationEngine {
       const levelsToCheck = warningLevel === 'both' ? ['warning', 'critical'] : [warningLevel];
 
       for (const level of levelsToCheck) {
-        const shouldNotify = this.shouldSendBillAcceptorNotification(
+        const shouldNotify = await this.shouldSendBillAcceptorNotification(
+          rule,
           station,
           thresholds,
           checkType,
@@ -262,20 +397,29 @@ class NotificationEngine {
   }
 
   /**
-   * Проверить, нужно ли отправлять уведомление
+   * Проверить, нужно ли отправлять уведомление о купюроприемнике
+   * Проверяет порог и дедупликацию
    */
-  shouldSendBillAcceptorNotification(station, thresholds, checkType, warningLevel) {
+  async shouldSendBillAcceptorNotification(rule, station, thresholds, checkType, warningLevel) {
     const billCount = station.bill_acceptor_count || 0;
 
+    let thresholdExceeded = false;
     if (checkType === 'count') {
       if (warningLevel === 'warning') {
-        return billCount >= thresholds.billCountWarning;
+        thresholdExceeded = billCount >= thresholds.billCountWarning;
       } else if (warningLevel === 'critical') {
-        return billCount >= thresholds.billCountCritical;
+        thresholdExceeded = billCount >= thresholds.billCountCritical;
       }
     }
 
-    return false;
+    if (!thresholdExceeded) {
+      return false;
+    }
+
+    // Проверяем дедупликацию через универсальный метод
+    return await this.shouldSendNotification(rule, 'bill_acceptor_threshold', {
+      stationCode: station.code
+    });
   }
 
   /**
@@ -623,7 +767,8 @@ class NotificationEngine {
       const levelsToCheck = warningLevel === 'both' ? ['warning', 'critical'] : [warningLevel];
 
       for (const level of levelsToCheck) {
-        const shouldNotify = this.shouldSendFuelLevelNotification(
+        const shouldNotify = await this.shouldSendFuelLevelNotification(
+          rule,
           station,
           level
         );
@@ -662,17 +807,27 @@ class NotificationEngine {
 
   /**
    * Проверить, нужно ли отправлять уведомление о низком уровне топлива
+   * Проверяет порог и дедупликацию
    */
-  shouldSendFuelLevelNotification(station, warningLevel) {
+  async shouldSendFuelLevelNotification(rule, station, warningLevel) {
     const currentPercent = station.current_percent || 0;
 
+    let thresholdExceeded = false;
     if (warningLevel === 'warning') {
-      return currentPercent <= station.thresholds.levelWarning && currentPercent > station.thresholds.levelCritical;
+      thresholdExceeded = currentPercent <= station.thresholds.levelWarning && currentPercent > station.thresholds.levelCritical;
     } else if (warningLevel === 'critical') {
-      return currentPercent <= station.thresholds.levelCritical;
+      thresholdExceeded = currentPercent <= station.thresholds.levelCritical;
     }
 
-    return false;
+    if (!thresholdExceeded) {
+      return false;
+    }
+
+    // Проверяем дедупликацию через универсальный метод
+    return await this.shouldSendNotification(rule, 'low_fuel_level', {
+      stationCode: station.station_code,
+      tankNumber: station.tank_number
+    });
   }
 
   /**
@@ -796,9 +951,8 @@ class NotificationEngine {
 
           // Проверяем, не отправляли ли мы недавно уведомление об этой проблеме
           const shouldSend = await this.shouldSendTerminalOfflineNotification(
-            tenant.id,
-            stationCode,
-            delayMinutes
+            rule,
+            stationCode
           );
 
           if (shouldSend) {
@@ -831,35 +985,12 @@ class NotificationEngine {
 
   /**
    * Проверить, нужно ли отправлять уведомление о проблемах с терминалом
+   * Использует универсальную дедупликацию на основе настроек правила
    */
-  async shouldSendTerminalOfflineNotification(tenantId, stationCode, delayMinutes) {
-    try {
-      // Проверяем последнее уведомление
-      const { data: lastNotification } = await this.supabase
-        .from('notifications')
-        .select('*')
-        .eq('type', 'terminal_offline')
-        .eq('context->>stationCode', stationCode)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!lastNotification) {
-        return true; // Уведомлений еще не было
-      }
-
-      // Если последнее уведомление было отправлено менее часа назад, не отправляем повторно
-      const lastSentTime = new Date(lastNotification.created_at);
-      const now = new Date();
-      const timeSinceLastNotification = now - lastSentTime;
-      const hoursSinceLastNotification = timeSinceLastNotification / (1000 * 60 * 60);
-
-      return hoursSinceLastNotification >= 1; // Отправляем не чаще раза в час
-
-    } catch (error) {
-      console.error('❌ Ошибка проверки необходимости отправки уведомления:', error);
-      return true; // В случае ошибки отправляем
-    }
+  async shouldSendTerminalOfflineNotification(rule, stationCode) {
+    return await this.shouldSendNotification(rule, 'terminal_offline', {
+      stationCode: stationCode
+    });
   }
 
   /**

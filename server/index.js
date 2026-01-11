@@ -104,8 +104,13 @@ app.listen(PORT, () => {
   console.log(`Allowed Origins: ${allowedOrigins.join(', ')}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
 
-  notificationScheduler.start();
-  console.log('✅ Notification Scheduler started');
+  // Запуск планировщика уведомлений (можно отключить через DISABLE_NOTIFICATION_SCHEDULER=true)
+  if (process.env.DISABLE_NOTIFICATION_SCHEDULER === 'true') {
+    console.log('⚠️ Notification Scheduler DISABLED (DISABLE_NOTIFICATION_SCHEDULER=true)');
+  } else {
+    notificationScheduler.start();
+    console.log('✅ Notification Scheduler started');
+  }
 
   // Инициализация Telegram бота
   const bot = initTelegramBot();
