@@ -18,14 +18,15 @@ import {
   ChevronDown,
   ChevronRight,
   CheckCircle2,
-  XCircle
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 import type {
   ReconciliationByStation,
   ReconciliationTransaction,
   ReconciliationTransactionStatus
 } from '@/types/reconciliation';
-import { formatDate, formatDateTime, formatDiff, hasDiff, getStatusColorClass, getStatusText } from './reconciliationUtils';
+import { formatDate, formatDateTime, formatDiff, hasDiff, hasCorpTfDiff, hasShiftDiff, getStatusColorClass, getStatusText } from './reconciliationUtils';
 
 interface ReconciliationStationsTableProps {
   filteredByStation: ReconciliationByStation[];
@@ -63,12 +64,17 @@ function MobileStationCard({
   const stationCorpVsTf = (station.corpLitersTotal ?? 0) - (station.tfLitersTotal ?? 0);
   const stationTfVsShift = (station.tfLitersTotal ?? 0) - (station.shiftLitersTotal ?? 0);
 
+  // Статус определяется ТОЛЬКО по Corp-TF (основная сверка транзакций)
+  const hasTransactionError = hasCorpTfDiff(station.corpLitersTotal, station.tfLitersTotal);
+  // Расхождение со сменой - информационное (не влияет на статус)
+  const hasShiftDiscrepancy = hasShiftDiff(station.tfLitersTotal, station.shiftLitersTotal);
+
   return (
     <div className="border border-slate-700 rounded-lg overflow-hidden">
       {/* Заголовок станции */}
       <div
         className={`p-3 cursor-pointer transition-colors ${
-          station.status === 'error' ? 'bg-red-900/20' : 'bg-slate-700/30'
+          hasTransactionError ? 'bg-red-900/20' : 'bg-slate-700/30'
         }`}
         onClick={onToggle}
       >
@@ -81,11 +87,16 @@ function MobileStationCard({
             )}
             <span className="text-white font-medium text-sm">{station.stationName}</span>
           </div>
-          {station.status === 'error' ? (
-            <XCircle className="h-4 w-4 text-red-400" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4 text-green-400" />
-          )}
+          <div className="flex items-center gap-1">
+            {hasShiftDiscrepancy && !hasTransactionError && (
+              <AlertCircle className="h-4 w-4 text-yellow-400" title="Расхождение со сменным отчётом" />
+            )}
+            {hasTransactionError ? (
+              <XCircle className="h-4 w-4 text-red-400" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4 text-green-400" />
+            )}
+          </div>
         </div>
 
         {/* Компактная сводка */}
@@ -111,7 +122,7 @@ function MobileStationCard({
               <span className="text-red-400">Corp-TF: {formatDiff(stationCorpVsTf)}</span>
             )}
             {hasDiff(stationTfVsShift) && (
-              <span className="text-red-400">TF-Смена: {formatDiff(stationTfVsShift)}</span>
+              <span className="text-yellow-400">TF-Смена: {formatDiff(stationTfVsShift)} (инфо)</span>
             )}
           </div>
         )}
@@ -126,10 +137,14 @@ function MobileStationCard({
             const tfVsShiftDiff = (fuel.tfLitersTotal ?? 0) - (fuel.shiftLitersTotal ?? 0);
             const isFuelExpanded = expandedShifts.has(fuelKey);
 
+            // Статус топлива определяется ТОЛЬКО по Corp-TF
+            const fuelHasTransactionError = hasCorpTfDiff(fuel.corpLitersTotal, fuel.tfLitersTotal);
+            const fuelHasShiftDiscrepancy = hasShiftDiff(fuel.tfLitersTotal, fuel.shiftLitersTotal);
+
             return (
               <div key={fuelKey} className="border border-slate-700/50 rounded">
                 <div
-                  className={`p-2 cursor-pointer ${fuel.status === 'error' ? 'bg-red-900/10' : ''}`}
+                  className={`p-2 cursor-pointer ${fuelHasTransactionError ? 'bg-red-900/10' : ''}`}
                   onClick={() => onToggleShift(fuelKey)}
                 >
                   <div className="flex items-center justify-between">
@@ -141,11 +156,16 @@ function MobileStationCard({
                       )}
                       <span className="text-white text-xs font-medium">{fuel.fuelName}</span>
                     </div>
-                    {fuel.status === 'error' ? (
-                      <XCircle className="h-3 w-3 text-red-400" />
-                    ) : (
-                      <CheckCircle2 className="h-3 w-3 text-green-400" />
-                    )}
+                    <div className="flex items-center gap-1">
+                      {fuelHasShiftDiscrepancy && !fuelHasTransactionError && (
+                        <AlertCircle className="h-3 w-3 text-yellow-400" />
+                      )}
+                      {fuelHasTransactionError ? (
+                        <XCircle className="h-3 w-3 text-red-400" />
+                      ) : (
+                        <CheckCircle2 className="h-3 w-3 text-green-400" />
+                      )}
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 gap-1 mt-1 text-xs">
                     <span className="text-purple-400">{fuel.corpLitersTotal ?? '—'}л</span>
@@ -153,9 +173,9 @@ function MobileStationCard({
                     <span className="text-green-400">{fuel.shiftLitersTotal ?? '—'}л</span>
                   </div>
                   {(hasDiff(corpVsTfDiff) || hasDiff(tfVsShiftDiff)) && (
-                    <div className="text-xs text-red-400 mt-1">
-                      {hasDiff(corpVsTfDiff) && <span className="mr-2">Δ{formatDiff(corpVsTfDiff)}</span>}
-                      {hasDiff(tfVsShiftDiff) && <span>Δ{formatDiff(tfVsShiftDiff)}</span>}
+                    <div className="text-xs mt-1">
+                      {hasDiff(corpVsTfDiff) && <span className="text-red-400 mr-2">Δ{formatDiff(corpVsTfDiff)}</span>}
+                      {hasDiff(tfVsShiftDiff) && <span className="text-yellow-400">Δ{formatDiff(tfVsShiftDiff)} (инфо)</span>}
                     </div>
                   )}
                 </div>
@@ -166,6 +186,11 @@ function MobileStationCard({
                     {fuel.byShift.map((shift) => {
                       const shiftCorpVsTf = (shift.corpLiters ?? 0) - (shift.tfLiters ?? 0);
                       const shiftTfVsShift = (shift.tfLiters ?? 0) - (shift.shiftLiters ?? 0);
+
+                      // Статус смены определяется ТОЛЬКО по Corp-TF
+                      const shiftHasTransactionError = hasCorpTfDiff(shift.corpLiters, shift.tfLiters);
+                      const shiftHasShiftDiscrepancy = hasShiftDiff(shift.tfLiters, shift.shiftLiters);
+
                       return (
                         <div key={`${station.stationId}-${fuel.fuelName}-${shift.shiftId}`} className="text-xs p-1 rounded bg-slate-800/50">
                           <div className="flex items-center justify-between">
@@ -184,11 +209,16 @@ function MobileStationCard({
                               <span className="text-blue-400">{shift.tfLiters ?? '—'}</span>
                               <span className="text-green-400">{shift.shiftLiters ?? '—'}</span>
                             </div>
-                            {shift.status === 'error' ? (
-                              <XCircle className="h-3 w-3 text-red-400" />
-                            ) : (
-                              <CheckCircle2 className="h-3 w-3 text-green-400" />
-                            )}
+                            <div className="flex items-center gap-1">
+                              {shiftHasShiftDiscrepancy && !shiftHasTransactionError && (
+                                <AlertCircle className="h-3 w-3 text-yellow-400" />
+                              )}
+                              {shiftHasTransactionError ? (
+                                <XCircle className="h-3 w-3 text-red-400" />
+                              ) : (
+                                <CheckCircle2 className="h-3 w-3 text-green-400" />
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -253,12 +283,17 @@ export function ReconciliationStationsTable({
             {filteredByStation.map((station, stationIndex) => {
               const stationCorpVsTf = (station.corpLitersTotal ?? 0) - (station.tfLitersTotal ?? 0);
               const stationTfVsShift = (station.tfLitersTotal ?? 0) - (station.shiftLitersTotal ?? 0);
+
+              // Статус определяется ТОЛЬКО по Corp-TF (основная сверка транзакций)
+              const stationHasTransactionError = hasCorpTfDiff(station.corpLitersTotal, station.tfLitersTotal);
+              const stationHasShiftDiscrepancy = hasShiftDiff(station.tfLitersTotal, station.shiftLitersTotal);
+
               return (
                 <div key={`station_${station.stationId}_${stationIndex}`} className="border border-slate-700 rounded-lg overflow-hidden">
                   {/* Заголовок станции */}
                   <div
                     className={`grid grid-cols-[auto_1fr_80px_80px_80px_80px_80px_60px] gap-2 items-center px-3 py-2 cursor-pointer transition-colors ${
-                      station.status === 'error' ? 'bg-red-900/20 hover:bg-red-900/30' : 'bg-slate-700/30 hover:bg-slate-700/50'
+                      stationHasTransactionError ? 'bg-red-900/20 hover:bg-red-900/30' : 'bg-slate-700/30 hover:bg-slate-700/50'
                     }`}
                     onClick={() => onToggleStation(station.stationId)}
                   >
@@ -276,11 +311,14 @@ export function ReconciliationStationsTable({
                     <div className={`text-sm text-right ${hasDiff(stationCorpVsTf) ? 'text-red-400' : 'text-slate-500'}`}>
                       {formatDiff(stationCorpVsTf)}
                     </div>
-                    <div className={`text-sm text-right ${hasDiff(stationTfVsShift) ? 'text-red-400' : 'text-slate-500'}`}>
+                    <div className={`text-sm text-right ${hasDiff(stationTfVsShift) ? 'text-yellow-400' : 'text-slate-500'}`}>
                       {formatDiff(stationTfVsShift)}
                     </div>
-                    <div className="text-center">
-                      {station.status === 'error' ? (
+                    <div className="text-center flex items-center justify-center gap-1">
+                      {stationHasShiftDiscrepancy && !stationHasTransactionError && (
+                        <AlertCircle className="h-4 w-4 text-yellow-400 inline" title="Расхождение со сменным отчётом" />
+                      )}
+                      {stationHasTransactionError ? (
                         <XCircle className="h-4 w-4 text-red-400 inline" />
                       ) : (
                         <CheckCircle2 className="h-4 w-4 text-green-400 inline" />
@@ -311,12 +349,16 @@ export function ReconciliationStationsTable({
                               const corpVsTfDiff = (fuel.corpLitersTotal ?? 0) - (fuel.tfLitersTotal ?? 0);
                               const tfVsShiftDiff = (fuel.tfLitersTotal ?? 0) - (fuel.shiftLitersTotal ?? 0);
 
+                              // Статус топлива определяется ТОЛЬКО по Corp-TF
+                              const fuelHasTransactionError = hasCorpTfDiff(fuel.corpLitersTotal, fuel.tfLitersTotal);
+                              const fuelHasShiftDiscrepancy = hasShiftDiff(fuel.tfLitersTotal, fuel.shiftLitersTotal);
+
                               return (
                                 <>
                                   <TableRow
                                     key={fuelKey}
                                     className={`border-slate-700/50 cursor-pointer hover:bg-slate-800/50 ${
-                                      fuel.status === 'error' ? 'bg-red-900/10' : ''
+                                      fuelHasTransactionError ? 'bg-red-900/10' : ''
                                     }`}
                                     onClick={() => onToggleShift(fuelKey)}
                                   >
@@ -334,15 +376,20 @@ export function ReconciliationStationsTable({
                                     <TableCell className={`text-xs py-1 text-right ${hasDiff(corpVsTfDiff) ? 'text-red-400' : 'text-slate-500'}`}>
                                       {formatDiff(corpVsTfDiff)}
                                     </TableCell>
-                                    <TableCell className={`text-xs py-1 text-right ${hasDiff(tfVsShiftDiff) ? 'text-red-400' : 'text-slate-500'}`}>
+                                    <TableCell className={`text-xs py-1 text-right ${hasDiff(tfVsShiftDiff) ? 'text-yellow-400' : 'text-slate-500'}`}>
                                       {formatDiff(tfVsShiftDiff)}
                                     </TableCell>
                                     <TableCell className="text-center py-1">
-                                      {fuel.status === 'error' ? (
-                                        <XCircle className="h-3 w-3 text-red-400 inline" />
-                                      ) : (
-                                        <CheckCircle2 className="h-3 w-3 text-green-400 inline" />
-                                      )}
+                                      <div className="flex items-center justify-center gap-1">
+                                        {fuelHasShiftDiscrepancy && !fuelHasTransactionError && (
+                                          <AlertCircle className="h-3 w-3 text-yellow-400 inline" />
+                                        )}
+                                        {fuelHasTransactionError ? (
+                                          <XCircle className="h-3 w-3 text-red-400 inline" />
+                                        ) : (
+                                          <CheckCircle2 className="h-3 w-3 text-green-400 inline" />
+                                        )}
+                                      </div>
                                     </TableCell>
                                   </TableRow>
 
@@ -370,6 +417,11 @@ export function ReconciliationStationsTable({
                                                 const shiftCorpVsTf = (shift.corpLiters ?? 0) - (shift.tfLiters ?? 0);
                                                 const shiftTfVsShift = (shift.tfLiters ?? 0) - (shift.shiftLiters ?? 0);
                                                 const shiftKey = `${station.stationId}-${fuel.fuelName}-${shift.shiftId}`;
+
+                                                // Статус смены определяется ТОЛЬКО по Corp-TF
+                                                const shiftHasTransactionError = hasCorpTfDiff(shift.corpLiters, shift.tfLiters);
+                                                const shiftHasShiftDiscrepancy = hasShiftDiff(shift.tfLiters, shift.shiftLiters);
+
                                                 return (
                                                   <TableRow key={shiftKey} className="border-slate-700/30">
                                                     <TableCell className="text-slate-300 text-xs py-1">
@@ -391,15 +443,20 @@ export function ReconciliationStationsTable({
                                                     <TableCell className={`text-xs py-1 text-right ${hasDiff(shiftCorpVsTf) ? 'text-red-400' : 'text-slate-500'}`}>
                                                       {formatDiff(shiftCorpVsTf)}
                                                     </TableCell>
-                                                    <TableCell className={`text-xs py-1 text-right ${hasDiff(shiftTfVsShift) ? 'text-red-400' : 'text-slate-500'}`}>
+                                                    <TableCell className={`text-xs py-1 text-right ${hasDiff(shiftTfVsShift) ? 'text-yellow-400' : 'text-slate-500'}`}>
                                                       {formatDiff(shiftTfVsShift)}
                                                     </TableCell>
                                                     <TableCell className="text-center py-1">
-                                                      {shift.status === 'error' ? (
-                                                        <XCircle className="h-3 w-3 text-red-400 inline" />
-                                                      ) : (
-                                                        <CheckCircle2 className="h-3 w-3 text-green-400 inline" />
-                                                      )}
+                                                      <div className="flex items-center justify-center gap-1">
+                                                        {shiftHasShiftDiscrepancy && !shiftHasTransactionError && (
+                                                          <AlertCircle className="h-3 w-3 text-yellow-400 inline" />
+                                                        )}
+                                                        {shiftHasTransactionError ? (
+                                                          <XCircle className="h-3 w-3 text-red-400 inline" />
+                                                        ) : (
+                                                          <CheckCircle2 className="h-3 w-3 text-green-400 inline" />
+                                                        )}
+                                                      </div>
                                                     </TableCell>
                                                   </TableRow>
                                                 );

@@ -81,7 +81,7 @@ export const FuelSummaryCards = ({ summaries, loading = false }: FuelSummaryCard
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">- Реализация:</span>
-                <span className="text-red-400">-{formatNumber(summary.totalSales)} л</span>
+                <span className="text-blue-400">-{formatNumber(summary.totalSales)} л</span>
               </div>
               <div className="flex justify-between pt-1 border-t border-slate-700">
                 <span className="text-slate-400 font-medium">= Остаток:</span>

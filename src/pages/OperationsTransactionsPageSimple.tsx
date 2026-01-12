@@ -802,7 +802,7 @@ export default function OperationsTransactionsPageSimple() {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      loadData();
+                      loadFromStsApi();
                     }}
                     disabled={loading || loadingFromSTS}
                     className="border-slate-600 text-white hover:bg-slate-700"

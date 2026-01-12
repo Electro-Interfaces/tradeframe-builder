@@ -74,7 +74,7 @@ export function formatDiff(diff: number | null | undefined): string {
 }
 
 /**
- * Проверка наличия расхождения
+ * Проверка наличия расхождения (общая)
  */
 export function hasDiff(diff: number | null | undefined): boolean {
   if (diff == null || !Number.isFinite(diff)) return false;
@@ -82,7 +82,33 @@ export function hasDiff(diff: number | null | undefined): boolean {
 }
 
 /**
- * Проверка наличия расхождения по топливу
+ * Проверка расхождения транзакций Corp ↔ TF (ОСНОВНАЯ СВЕРКА)
+ * Это критическое расхождение - данные из разных систем должны совпадать
+ */
+export function hasCorpTfDiff(corp: number | null | undefined, tf: number | null | undefined): boolean {
+  const diff = Math.abs((corp ?? 0) - (tf ?? 0));
+  return diff > DIFF_TOLERANCE;
+}
+
+/**
+ * Проверка расхождения со сменным отчётом (ИНФОРМАЦИОННОЕ)
+ * Сменный отчёт может не содержать детализацию по картам - это нормально
+ */
+export function hasShiftDiff(tf: number | null | undefined, shift: number | null | undefined): boolean {
+  const diff = Math.abs((tf ?? 0) - (shift ?? 0));
+  return diff > DIFF_TOLERANCE;
+}
+
+/**
+ * Получить статус сверки ТОЛЬКО по транзакциям (Corp ↔ TF)
+ * Расхождение со сменой НЕ влияет на статус
+ */
+export function getTransactionStatus(corp: number | null | undefined, tf: number | null | undefined): 'ok' | 'error' {
+  return hasCorpTfDiff(corp, tf) ? 'error' : 'ok';
+}
+
+/**
+ * Проверка наличия расхождения по топливу (для совместимости)
  */
 export function hasFuelDiscrepancy(corp: number, tf: number, shift: number): boolean {
   const corpTfDiff = Math.abs((corp ?? 0) - (tf ?? 0));

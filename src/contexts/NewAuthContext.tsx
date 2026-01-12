@@ -55,9 +55,39 @@ const STORAGE_KEYS = {
   TOKEN: 'tradeframe_token_v2'
 } as const;
 
+/**
+ * Синхронно получает пользователя из localStorage при инициализации
+ * Это предотвращает "мигание" на страницу логина при обновлении
+ */
+function getInitialUserFromStorage(): AppUser | null {
+  try {
+    // Проверяем новые ключи
+    let savedUserJson = localStorage.getItem(STORAGE_KEYS.USER);
+    let savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
+
+    // Fallback на старые ключи
+    if (!savedUserJson || !savedToken) {
+      savedUserJson = localStorage.getItem('tradeframe_user');
+      savedToken = localStorage.getItem('authToken');
+    }
+
+    if (savedUserJson && savedToken) {
+      const savedUser = JSON.parse(savedUserJson) as AppUser;
+      if (savedUser && savedUser.id && savedUser.email) {
+        return savedUser;
+      }
+    }
+  } catch {
+    // Игнорируем ошибки парсинга
+  }
+  return null;
+}
+
 export function NewAuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Синхронная инициализация из localStorage - предотвращает logout при обновлении
+  const initialUser = getInitialUserFromStorage();
+  const [user, setUser] = useState<AppUser | null>(initialUser);
+  const [loading, setLoading] = useState(!initialUser); // Если есть пользователь - не показываем загрузку
 
   /**
    * Очищает все данные авторизации
@@ -72,6 +102,12 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
     localStorage.removeItem('auth_token');
+
+    // Ключи для httpClient
+    localStorage.removeItem('auth_login');
+    localStorage.removeItem('auth_password');
+    localStorage.removeItem('auth_token_expiry');
+    localStorage.removeItem('auth_user');
 
     // Очищаем IndexedDB
     await clearRememberedCredentials();
@@ -229,20 +265,28 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Сначала проверяем текущую сессию
+        // Если пользователь уже загружен синхронно из localStorage - пропускаем
+        if (initialUser) {
+          // Только обновляем sessionStorage для текущего сеанса
+          sessionStorage.setItem('current_user_email', initialUser.email);
+          sessionStorage.setItem('auth_timestamp', Date.now().toString());
+          return;
+        }
+
+        // 1. Проверяем sessionStorage (для того же сеанса браузера)
         const sessionEmail = getSessionEmail();
         if (sessionEmail) {
-
           const freshUser = await loadFreshUserData(sessionEmail);
           if (freshUser) {
             setUser(freshUser);
+            saveAuthSession(freshUser, generateAuthToken(freshUser));
             return; // Успешно восстановили сессию
           } else {
             await clearAuthData();
           }
         }
 
-        // Если нет активной сессии, проверяем "Запомнить меня" в IndexedDB
+        // 2. Проверяем "Запомнить меня" в IndexedDB
         try {
           const rememberedCreds = await getRememberedCredentials();
           if (rememberedCreds) {
@@ -263,7 +307,7 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
     };
 
     initializeAuth();
-  }, []);
+  }, [initialUser]);
 
   /**
    * Вход в систему
@@ -285,6 +329,13 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       // Сохраняем пользователя и токен
       setUser(authenticatedUser);
       saveAuthSession(authenticatedUser, token);
+
+      // Сохраняем credentials для httpClient (нужны для автоматического обновления токена)
+      localStorage.setItem('auth_login', email);
+      localStorage.setItem('auth_password', password);
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_token_expiry', new Date(Date.now() + 60 * 60 * 1000).toISOString());
+      localStorage.setItem('auth_user', JSON.stringify(authenticatedUser));
 
       // Если выбрано "Запомнить меня", сохраняем в IndexedDB
       if (rememberMe) {

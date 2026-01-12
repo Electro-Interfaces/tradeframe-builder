@@ -75,9 +75,9 @@ export const TankInventoryCard = ({ tank }: TankInventoryCardProps) => {
             </div>
           </div>
 
-          <div className="bg-red-900/20 rounded p-2 border border-red-700/30">
-            <div className="text-[10px] text-red-400 mb-0.5">Реализация</div>
-            <div className="text-sm font-mono text-red-400">
+          <div className="bg-blue-900/20 rounded p-2 border border-blue-700/30">
+            <div className="text-[10px] text-blue-400 mb-0.5">Реализация</div>
+            <div className="text-sm font-mono text-blue-400">
               -{formatNumber(tank.volumeSales)} л
             </div>
           </div>

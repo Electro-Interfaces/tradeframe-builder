@@ -184,6 +184,7 @@ async function handleAccountLinking(chatId, code, fromUser) {
         user_id: linkCode.user_id,
         telegram_chat_id: chatId.toString(),
         telegram_verified: true,
+        telegram_enabled: true, // ✅ Автоматически включаем уведомления при привязке
         telegram_username: fromUser.username || null,
         updated_at: new Date().toISOString()
       }, {

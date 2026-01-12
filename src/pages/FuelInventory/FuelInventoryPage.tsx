@@ -230,9 +230,9 @@ export default function FuelInventory() {
                             +{formatNumber(totals.volumeReceipts)} л
                           </div>
                         </div>
-                        <div className="bg-red-900/20 rounded p-2 border border-red-700/30">
-                          <div className="text-[10px] text-red-400 mb-0.5">Реализация</div>
-                          <div className="text-sm font-mono text-red-400 font-semibold">
+                        <div className="bg-blue-900/20 rounded p-2 border border-blue-700/30">
+                          <div className="text-[10px] text-blue-400 mb-0.5">Реализация</div>
+                          <div className="text-sm font-mono text-blue-400 font-semibold">
                             -{formatNumber(totals.volumeSales)} л
                           </div>
                         </div>
@@ -304,7 +304,7 @@ export default function FuelInventory() {
                         <TableCell className="text-right font-mono text-green-400 font-semibold">
                           +{formatNumber(totals.volumeReceipts)} л
                         </TableCell>
-                        <TableCell className="text-right font-mono text-red-400 font-semibold">
+                        <TableCell className="text-right font-mono text-blue-400 font-semibold">
                           -{formatNumber(totals.volumeSales)} л
                         </TableCell>
                         <TableCell className="text-right">
@@ -349,7 +349,7 @@ export default function FuelInventory() {
                         <TableCell className="text-right font-mono text-green-400">
                           +{formatNumber(tank.volumeReceipts)} л
                         </TableCell>
-                        <TableCell className="text-right font-mono text-red-400">
+                        <TableCell className="text-right font-mono text-blue-400">
                           -{formatNumber(tank.volumeSales)} л
                         </TableCell>
                         <TableCell className="text-right">
