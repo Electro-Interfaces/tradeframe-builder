@@ -43,7 +43,7 @@ import type { NotificationRule } from '@/types/notification';
 const ruleFormSchema = z.object({
   name: z.string().min(3, 'Название должно содержать минимум 3 символа'),
   description: z.string().optional(),
-  type: z.enum(['bill_acceptor_threshold', 'equipment_offline', 'low_fuel_level', 'shift_not_closed']),
+  type: z.enum(['bill_acceptor_threshold', 'equipment_offline', 'low_fuel_level', 'shift_not_closed', 'terminal_offline', 'unpunched_receipts']),
   is_active: z.boolean().default(true),
 
   // Конфигурация правила
