@@ -390,16 +390,20 @@ async function getRecipients(message) {
   }
 
   // Объединяем данные пользователя с настройками
-  return data.map(user => ({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    telegram_chat_id: user.settings?.telegram_chat_id,
-    telegram_verified: user.settings?.telegram_verified,
-    telegram_enabled: user.settings?.telegram_enabled,
-    email_enabled: user.settings?.email_enabled,
-    email_address: user.settings?.email_address
-  }));
+  // ВАЖНО: settings приходит как массив из-за join, берём первый элемент
+  return data.map(user => {
+    const settings = Array.isArray(user.settings) ? user.settings[0] : user.settings;
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      telegram_chat_id: settings?.telegram_chat_id,
+      telegram_verified: settings?.telegram_verified,
+      telegram_enabled: settings?.telegram_enabled,
+      email_enabled: settings?.email_enabled,
+      email_address: settings?.email_address
+    };
+  });
 }
 
 /**

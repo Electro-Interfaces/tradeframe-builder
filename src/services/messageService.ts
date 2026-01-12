@@ -14,6 +14,7 @@ import type {
   MessageTemplate
 } from '@/types/message';
 
+// ВАЖНО: trailing slash нужен для корректной работы с nginx на production (301 redirect)
 const API_BASE_URL = '/api/messages';
 
 class MessageService {
@@ -27,7 +28,7 @@ class MessageService {
     limit?: number;
     offset?: number;
   }): Promise<MessageListResponse> {
-    const response = await axios.get<MessageListResponse>(API_BASE_URL, { params });
+    const response = await axios.get<MessageListResponse>(`${API_BASE_URL}/`, { params });
     return response.data;
   }
 
@@ -35,7 +36,7 @@ class MessageService {
    * Получить конкретное сообщение
    */
   async getMessage(id: string): Promise<MessageResponse> {
-    const response = await axios.get<MessageResponse>(`${API_BASE_URL}/${id}`);
+    const response = await axios.get<MessageResponse>(`${API_BASE_URL}/${id}/`);
     return response.data;
   }
 
@@ -43,7 +44,7 @@ class MessageService {
    * Создать новое сообщение (черновик)
    */
   async createMessage(data: CreateMessageData): Promise<MessageResponse> {
-    const response = await axios.post<MessageResponse>(API_BASE_URL, data);
+    const response = await axios.post<MessageResponse>(`${API_BASE_URL}/`, data);
     return response.data;
   }
 
@@ -51,7 +52,7 @@ class MessageService {
    * Обновить сообщение
    */
   async updateMessage(id: string, data: UpdateMessageData): Promise<MessageResponse> {
-    const response = await axios.put<MessageResponse>(`${API_BASE_URL}/${id}`, data);
+    const response = await axios.put<MessageResponse>(`${API_BASE_URL}/${id}/`, data);
     return response.data;
   }
 
@@ -59,7 +60,7 @@ class MessageService {
    * Удалить сообщение (только черновики)
    */
   async deleteMessage(id: string): Promise<{ success: boolean }> {
-    const response = await axios.delete<{ success: boolean }>(`${API_BASE_URL}/${id}`);
+    const response = await axios.delete<{ success: boolean }>(`${API_BASE_URL}/${id}/`);
     return response.data;
   }
 
@@ -67,7 +68,7 @@ class MessageService {
    * Отправить сообщение
    */
   async sendMessage(id: string): Promise<SendMessageResponse> {
-    const response = await axios.post<SendMessageResponse>(`${API_BASE_URL}/${id}/send`);
+    const response = await axios.post<SendMessageResponse>(`${API_BASE_URL}/${id}/send/`);
     return response.data;
   }
 
@@ -75,7 +76,7 @@ class MessageService {
    * Получить статистику сообщения
    */
   async getMessageStats(id: string): Promise<MessageStatsResponse> {
-    const response = await axios.get<MessageStatsResponse>(`${API_BASE_URL}/${id}/stats`);
+    const response = await axios.get<MessageStatsResponse>(`${API_BASE_URL}/${id}/stats/`);
     return response.data;
   }
 
@@ -89,6 +90,11 @@ class MessageService {
     // Создаем сообщение
     const createResponse = await this.createMessage(data);
     const message = createResponse.data;
+
+    // Проверяем, что сообщение создано и имеет ID
+    if (!message || !message.id) {
+      throw new Error('Не удалось создать сообщение: ответ сервера не содержит данных');
+    }
 
     // Отправляем сообщение
     const sendResult = await this.sendMessage(message.id);
@@ -104,7 +110,7 @@ class MessageService {
     isActive?: boolean;
   }): Promise<{ success: boolean; data: MessageTemplate[] }> {
     const response = await axios.get<{ success: boolean; data: MessageTemplate[] }>(
-      `${API_BASE_URL}/templates`,
+      `${API_BASE_URL}/templates/`,
       { params }
     );
     return response.data;
@@ -115,7 +121,7 @@ class MessageService {
    */
   async createTemplate(data: Partial<MessageTemplate>): Promise<{ success: boolean; data: MessageTemplate }> {
     const response = await axios.post<{ success: boolean; data: MessageTemplate }>(
-      `${API_BASE_URL}/templates`,
+      `${API_BASE_URL}/templates/`,
       data
     );
     return response.data;
@@ -129,7 +135,7 @@ class MessageService {
     data: Partial<MessageTemplate>
   ): Promise<{ success: boolean; data: MessageTemplate }> {
     const response = await axios.put<{ success: boolean; data: MessageTemplate }>(
-      `${API_BASE_URL}/templates/${id}`,
+      `${API_BASE_URL}/templates/${id}/`,
       data
     );
     return response.data;
@@ -139,7 +145,7 @@ class MessageService {
    * Удалить шаблон
    */
   async deleteTemplate(id: string): Promise<{ success: boolean }> {
-    const response = await axios.delete<{ success: boolean }>(`${API_BASE_URL}/templates/${id}`);
+    const response = await axios.delete<{ success: boolean }>(`${API_BASE_URL}/templates/${id}/`);
     return response.data;
   }
 
@@ -151,7 +157,7 @@ class MessageService {
     authorId: string,
     variables?: Record<string, any>
   ): Promise<MessageResponse> {
-    const response = await axios.post<MessageResponse>(`${API_BASE_URL}/templates/${templateId}/create`, {
+    const response = await axios.post<MessageResponse>(`${API_BASE_URL}/templates/${templateId}/create/`, {
       authorId,
       variables
     });
