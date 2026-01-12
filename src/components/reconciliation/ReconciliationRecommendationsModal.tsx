@@ -129,7 +129,7 @@ export function ReconciliationRecommendationsModal({
                   {onlyCorpTx.slice(0, 5).map((tx, idx) => (
                     <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-slate-300 bg-slate-900/50 rounded px-2 py-1">
                       <span className="truncate">{tx.fuelType}: {(tx.corpLiters || 0).toFixed(1)} л</span>
-                      <span className="text-slate-500 text-xs sm:text-sm">карта ...{tx.cardNumber.slice(-4)}</span>
+                      <span className="text-slate-500 text-xs sm:text-sm">карта ...{String(tx.cardNumber || '').slice(-4)}</span>
                     </div>
                   ))}
                   {onlyCorpTx.length > 5 && (
@@ -165,7 +165,7 @@ export function ReconciliationRecommendationsModal({
                   {onlyTfTx.slice(0, 5).map((tx, idx) => (
                     <div key={idx} className="flex flex-col sm:flex-row sm:justify-between text-slate-300 bg-slate-900/50 rounded px-2 py-1">
                       <span className="truncate">{tx.fuelType}: {(tx.tfLiters || 0).toFixed(1)} л</span>
-                      <span className="text-slate-500 text-xs sm:text-sm">карта ...{tx.cardNumber.slice(-4)}</span>
+                      <span className="text-slate-500 text-xs sm:text-sm">карта ...{String(tx.cardNumber || '').slice(-4)}</span>
                     </div>
                   ))}
                   {onlyTfTx.length > 5 && (
@@ -281,7 +281,7 @@ export function ReconciliationRecommendationsModal({
                       <span className="text-purple-300">Проверьте привязку карт</span>
                       {problemCards.size > 0 && problemCards.size <= 5 && (
                         <span className="text-slate-500">
-                          {' '}(...{Array.from(problemCards).slice(0, 3).map(c => c.slice(-4)).join(', ...')})
+                          {' '}(...{Array.from(problemCards).slice(0, 3).map(c => String(c || '').slice(-4)).join(', ...')})
                         </span>
                       )}
                       <span> в системе TradeFrame. Если карты новые - дождитесь синхронизации.</span>

@@ -19,6 +19,7 @@ interface ExportOperation {
   actualAmount?: number;
   totalCost?: number;
   paymentMethod?: string;
+  cardNumber?: string;
   posNumber?: number;
   shiftNumber?: number;
   orderedQuantity?: number;
@@ -133,6 +134,7 @@ export async function exportToExcel(options: ExportOptions): Promise<void> {
         'Цена, ₽/л': price ? formatNumber(price) : '-',
         'Сумма, ₽': amount ? formatNumber(amount) : '-',
         'Оплата': normalizePaymentMethod(record.paymentMethod || ''),
+        'Карта': record.cardNumber || '-',
         'POS': record.posNumber ? String(record.posNumber) : '-',
         'Смена': record.shiftNumber ? String(record.shiftNumber) : '-',
         'Заказ, л': orderedLiters ? formatNumber(orderedLiters) : '-',
@@ -153,6 +155,7 @@ export async function exportToExcel(options: ExportOptions): Promise<void> {
       { wch: 12 },  // Цена, ₽/л
       { wch: 12 },  // Сумма, ₽
       { wch: 14 },  // Оплата
+      { wch: 16 },  // Карта
       { wch: 8 },   // POS
       { wch: 8 },   // Смена
       { wch: 12 },  // Заказ, л
@@ -268,6 +271,7 @@ export async function exportToPdf(options: ExportOptions): Promise<void> {
         { text: 'Цена, ₽/л', style: 'tableHeader', alignment: 'right' },
         { text: 'Сумма, ₽', style: 'tableHeader', alignment: 'right' },
         { text: 'Оплата', style: 'tableHeader' },
+        { text: 'Карта', style: 'tableHeader' },
         { text: 'POS', style: 'tableHeader', alignment: 'center' },
         { text: 'Смена', style: 'tableHeader', alignment: 'center' },
         { text: 'Заказ, л', style: 'tableHeader', alignment: 'right' },
@@ -298,6 +302,7 @@ export async function exportToPdf(options: ExportOptions): Promise<void> {
           { text: price ? formatNumber(price) : '-', style: 'tableCell', alignment: 'right' },
           { text: amount ? formatNumber(amount) : '-', style: 'tableCell', alignment: 'right' },
           { text: normalizePaymentMethod(record.paymentMethod || ''), style: 'tableCell' },
+          { text: record.cardNumber || '-', style: 'tableCellMono' },
           { text: record.posNumber ? String(record.posNumber) : '-', style: 'tableCell', alignment: 'center' },
           { text: record.shiftNumber ? String(record.shiftNumber) : '-', style: 'tableCell', alignment: 'center' },
           { text: orderedLiters ? formatNumber(orderedLiters) : '-', style: 'tableCell', alignment: 'right' },
@@ -414,7 +419,7 @@ export async function exportToPdf(options: ExportOptions): Promise<void> {
     content.push({
       table: {
         headerRows: 1,
-        widths: [40, 45, 75, 26, 60, 38, 38, 45, 50, 24, 24, 65, 50],
+        widths: [40, 45, 75, 26, 50, 38, 38, 45, 45, 50, 24, 24, 40, 45],
         body: tableBody,
       },
       layout: {

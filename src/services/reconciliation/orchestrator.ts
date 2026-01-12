@@ -58,14 +58,17 @@ export async function executeReconciliation(
     showAllShifts
   );
 
-  // Подсчёт итогов
-  const totalCorpLiters = corpTransactions.reduce((sum, t) => sum + Math.abs(t.quantity), 0);
-  const totalTfLiters = tfTransactions.reduce((sum, t) => sum + Math.abs(t.volume), 0);
+  // Подсчёт итогов (исключаем нулевые транзакции - авторизации без заправки)
+  const filteredCorpTransactions = corpTransactions.filter(t => Math.abs(t.quantity) > 0);
+  const filteredTfTransactions = tfTransactions.filter(t => Math.abs(t.volume) > 0);
+
+  const totalCorpLiters = filteredCorpTransactions.reduce((sum, t) => sum + Math.abs(t.quantity), 0);
+  const totalTfLiters = filteredTfTransactions.reduce((sum, t) => sum + Math.abs(t.volume), 0);
   const totalShiftLiters = shiftsInfo.reduce((sum, s) =>
     sum + s.fuelSales.reduce((fsum, f) => fsum + Math.abs(f.quantity), 0), 0
   );
 
-  const hasErrors = matched < corpTransactions.length + tfTransactions.length ||
+  const hasErrors = matched < filteredCorpTransactions.length + filteredTfTransactions.length ||
                     onlyCorp > 0 || onlyTf > 0 || mismatch > 0 ||
                     byStation.some(s => s.status === 'error');
 

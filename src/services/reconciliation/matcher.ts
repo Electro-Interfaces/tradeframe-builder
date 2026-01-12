@@ -48,8 +48,11 @@ export function performLineByLineReconciliation(
   let onlyTf = 0;
   let mismatch = 0;
 
+  // Фильтруем нулевые транзакции Corp (авторизации без заправки, отмены)
+  const filteredCorpTransactions = corpTransactions.filter(tx => Math.abs(tx.quantity) > 0);
+
   // Для каждой Corp транзакции ищем соответствие в TF
-  for (const corp of corpTransactions) {
+  for (const corp of filteredCorpTransactions) {
     const corpDate = new Date(corp.date);
     const corpFuel = normalizeFuelName(corp.productName);
 
@@ -126,9 +129,10 @@ export function performLineByLineReconciliation(
     }
   }
 
-  // TF транзакции без соответствия в Corp
+  // TF транзакции без соответствия в Corp (также пропускаем нулевые)
   for (const tf of tfTransactions) {
     if (matchedTfIds.has(tf.id)) continue;
+    if (Math.abs(tf.volume) <= 0) continue; // Пропускаем нулевые транзакции
 
     onlyTf++;
     const tfDate = new Date(tf.date);
