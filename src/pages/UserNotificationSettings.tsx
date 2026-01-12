@@ -47,7 +47,8 @@ export default function UserNotificationSettingsPage() {
   const [subscriptions, setSubscriptions] = useState({
     bill_acceptor_threshold: true,
     terminal_offline: true,
-    low_fuel_level: true
+    low_fuel_level: true,
+    unpunched_receipts: true
   });
 
   useEffect(() => {
@@ -375,6 +376,21 @@ export default function UserNotificationSettingsPage() {
                 checked={subscriptions.low_fuel_level}
                 onCheckedChange={(checked) =>
                   setSubscriptions(prev => ({ ...prev, low_fuel_level: checked }))
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-slate-900 rounded-lg hover:bg-slate-900/70">
+              <div>
+                <Label className="text-slate-300">Непробитые чеки</Label>
+                <p className="text-xs text-slate-500">
+                  Сводка по непробитым чекам, требующим пробития для корректировки кассы
+                </p>
+              </div>
+              <Switch
+                checked={subscriptions.unpunched_receipts}
+                onCheckedChange={(checked) =>
+                  setSubscriptions(prev => ({ ...prev, unpunched_receipts: checked }))
                 }
               />
             </div>

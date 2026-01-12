@@ -378,7 +378,9 @@ function formatNotificationType(type) {
     bill_acceptor_threshold: 'Пороги купюроприемника',
     equipment_offline: 'Оборудование офлайн',
     low_fuel_level: 'Низкий уровень топлива',
-    shift_not_closed: 'Незакрытая смена'
+    shift_not_closed: 'Незакрытая смена',
+    terminal_offline: 'Терминал офлайн',
+    unpunched_receipts: 'Непробитые чеки'
   };
   return types[type] || type;
 }

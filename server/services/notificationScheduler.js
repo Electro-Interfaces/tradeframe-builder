@@ -44,6 +44,12 @@ class NotificationScheduler {
       () => this.runTerminalOfflineChecks()
     );
 
+    this.scheduleTask(
+      'checkUnpunchedReceipts',
+      '0 */2 * * *', // Каждые 2 часа
+      () => this.runUnpunchedReceiptsChecks()
+    );
+
     this.isRunning = true;
   }
 
@@ -120,6 +126,17 @@ class NotificationScheduler {
   }
 
   /**
+   * Выполнить проверку непробитых чеков
+   * Вызывает ТОЛЬКО правила типа unpunched_receipts
+   */
+  async runUnpunchedReceiptsChecks() {
+    console.log('🧾 [Scheduler] Запуск проверки непробитых чеков...');
+    const result = await notificationEngine.processRulesByType('unpunched_receipts');
+    console.log(`✅ [Scheduler] Проверка непробитых чеков завершена. Обработано правил: ${result.processedRules}, отправлено уведомлений: ${result.notificationsSent || 0}`);
+    return result;
+  }
+
+  /**
    * Запустить проверку вручную
    */
   async runManualCheck(taskName) {
@@ -132,6 +149,8 @@ class NotificationScheduler {
         return await this.runLowFuelLevelChecks();
       case 'checkTerminalOffline':
         return await this.runTerminalOfflineChecks();
+      case 'checkUnpunchedReceipts':
+        return await this.runUnpunchedReceiptsChecks();
       default:
         throw new Error(`Unknown task: ${taskName}`);
     }

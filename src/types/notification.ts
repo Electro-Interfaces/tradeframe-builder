@@ -7,6 +7,7 @@ export type NotificationRuleType =
   | 'bill_acceptor_threshold'  // ✅ Пороги купюроприемника (РЕАЛИЗОВАНО)
   | 'terminal_offline'         // ✅ Проблемы с терминалом (РЕАЛИЗОВАНО)
   | 'low_fuel_level'           // ✅ Низкий уровень топлива (РЕАЛИЗОВАНО)
+  | 'unpunched_receipts'       // ✅ Непробитые чеки (РЕАЛИЗОВАНО)
   | 'equipment_offline'         // ❌ Оборудование офлайн (ЗАГЛУШКА - не использовать)
   | 'shift_not_closed'         // ❌ Незакрытая смена (ЗАГЛУШКА - не использовать)
   | 'custom';                  // Пользовательское правило

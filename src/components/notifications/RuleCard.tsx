@@ -137,6 +137,7 @@ function getRuleTypeLabel(type: string): string {
     case 'equipment_offline': return 'Оборудование офлайн';
     case 'low_fuel_level': return 'Низкий уровень топлива';
     case 'terminal_offline': return 'Проблемы с терминалом';
+    case 'unpunched_receipts': return 'Непробитые чеки';
     default: return type;
   }
 }

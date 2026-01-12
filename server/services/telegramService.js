@@ -217,6 +217,63 @@ ${emoji} <b>${levelText}</b>
   }
 
   /**
+   * Отправить уведомление о непробитых чеках (сводка по сети)
+   */
+  async sendUnpunchedReceiptsAlert(options) {
+    const {
+      chatId,
+      networkName,
+      totalCash,
+      totalBank,
+      stations // массив { stationName, stationCode, cashSum, bankSum }
+    } = options;
+
+    // Форматируем суммы
+    const formatSum = (sum) => {
+      return Math.round(sum).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    };
+
+    // Формируем детали по станциям
+    const stationLines = [];
+    for (const station of stations) {
+      if (station.cashSum > 0 || station.bankSum > 0) {
+        const parts = [];
+        if (station.cashSum > 0) parts.push('нал: ' + formatSum(station.cashSum) + ' руб');
+        if (station.bankSum > 0) parts.push('безнал: ' + formatSum(station.bankSum) + ' руб');
+        stationLines.push('• ' + station.stationName + ': ' + parts.join(', '));
+      }
+    }
+
+    const totalSum = totalCash + totalBank;
+    const stationsText = stationLines.length > 0 ? stationLines.join('\n') : 'Нет данных';
+
+    const text = [
+      '🧾 <b>ВНИМАНИЕ</b>',
+      '',
+      '<b>Непробитые чеки</b>',
+      '',
+      '<b>Сеть:</b> ' + networkName,
+      '<b>Наличные:</b> ' + formatSum(totalCash) + ' руб',
+      '<b>Безнал:</b> ' + formatSum(totalBank) + ' руб',
+      '<b>Итого:</b> ' + formatSum(totalSum) + ' руб',
+      '',
+      '<b>По станциям:</b>',
+      stationsText,
+      '',
+      '<b>Рекомендация:</b> Пробейте чеки для корректировки кассы.',
+      '',
+      '<i>Автоматическое уведомление TradeFrame Builder</i>'
+    ].join('\n');
+
+    return this.sendMessage({
+      chatId,
+      text,
+      parseMode: 'HTML',
+      disableNotification: false
+    });
+  }
+
+  /**
    * Получить информацию о чате
    */
   async getChat(chatId) {

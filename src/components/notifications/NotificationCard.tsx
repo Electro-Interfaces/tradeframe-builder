@@ -120,6 +120,7 @@ function getTypeLabel(type: string): string {
     case 'low_fuel_level': return 'Низкий уровень топлива';
     case 'shift_not_closed': return 'Незакрытая смена';
     case 'terminal_offline': return 'Проблемы с терминалом';
+    case 'unpunched_receipts': return 'Непробитые чеки';
     default: return type;
   }
 }

@@ -250,6 +250,8 @@ class NotificationEngine {
           return await this.checkShiftNotClosed(rule);
         case 'terminal_offline':
           return await this.checkTerminalOffline(rule);
+        case 'unpunched_receipts':
+          return await this.checkUnpunchedReceipts(rule);
         default:
           console.warn(`⚠️ Неизвестный тип правила: ${rule.type}`);
           return { success: false, error: 'Unknown rule type' };
@@ -671,6 +673,14 @@ class NotificationEngine {
             delayMinutes: notification.context.delayMinutes,
             maxDelayMinutes: notification.context.maxDelayMinutes
           });
+        } else if (notification.type === 'unpunched_receipts') {
+          deliveryResult = await telegramService.sendUnpunchedReceiptsAlert({
+            chatId: recipient.settings.telegram_chat_id,
+            networkName: notification.context.networkName,
+            totalCash: notification.context.totalCash,
+            totalBank: notification.context.totalBank,
+            stations: notification.context.stations
+          });
         }
       }
 
@@ -1077,6 +1087,168 @@ class NotificationEngine {
    */
   async checkShiftNotClosed(rule) {
     return { success: true, notificationsSent: 0 };
+  }
+
+  /**
+   * Проверка непробитых чеков по всем станциям сети
+   * Отправляет сводку если есть хотя бы одна станция с непробитыми чеками
+   */
+  async checkUnpunchedReceipts(rule) {
+    try {
+      console.log('🧾 Проверка непробитых чеков...');
+
+      // Получаем тенанта
+      const { data: tenant, error: tenantError } = await this.supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', rule.tenant_id)
+        .single();
+
+      if (tenantError || !tenant) {
+        console.error('❌ Ошибка получения тенанта:', tenantError);
+        return { success: false, error: 'Tenant not found' };
+      }
+
+      const networkId = tenant.settings?.external_id || tenant.external_id;
+      const networkName = tenant.name || `Сеть ${networkId}`;
+      const stations = tenant.settings?.stations || [];
+
+      if (!stations || stations.length === 0) {
+        console.log('⚠️ Нет станций для проверки');
+        return { success: true, notificationsSent: 0 };
+      }
+
+      const stationsWithReceipts = [];
+      let totalCash = 0;
+      let totalBank = 0;
+
+      // Проверяем каждую станцию
+      for (const station of stations) {
+        // Пропускаем неактивные станции
+        if (station.active === false) {
+          continue;
+        }
+
+        const stationCode = station.code || station.external_id;
+        const stationName = station.name || `АЗС ${stationCode}`;
+
+        // Получаем данные терминала
+        const terminalInfo = await this.getTerminalInfo(networkId, stationCode);
+
+        if (!terminalInfo || !terminalInfo.pos || !terminalInfo.pos[0]) {
+          continue;
+        }
+
+        const posData = terminalInfo.pos[0];
+        const cashSum = parseFloat(posData.cash_sum || '0') || 0;
+        const bankSum = parseFloat(posData.bank_sum || '0') || 0;
+
+        if (cashSum > 0 || bankSum > 0) {
+          stationsWithReceipts.push({
+            stationCode,
+            stationName,
+            cashSum,
+            bankSum
+          });
+          totalCash += cashSum;
+          totalBank += bankSum;
+        }
+      }
+
+      // Если нет непробитых чеков - ничего не делаем
+      if (stationsWithReceipts.length === 0) {
+        console.log('✅ Непробитых чеков не обнаружено');
+        return { success: true, notificationsSent: 0 };
+      }
+
+      console.log(`📋 Найдено станций с непробитыми чеками: ${stationsWithReceipts.length}`);
+      console.log(`   💵 Наличные: ${totalCash.toLocaleString('ru-RU')} ₽`);
+      console.log(`   💳 Безнал: ${totalBank.toLocaleString('ru-RU')} ₽`);
+
+      // Проверяем дедупликацию (не отправлять слишком часто)
+      const shouldSend = await this.shouldSendNotification(rule, 'unpunched_receipts', {
+        networkId: networkId
+      });
+
+      if (!shouldSend) {
+        console.log('   ℹ️ Уведомление уже было отправлено недавно');
+        return { success: true, notificationsSent: 0 };
+      }
+
+      // Создаем уведомление
+      const notification = await this.createUnpunchedReceiptsNotification(
+        rule,
+        tenant,
+        networkName,
+        totalCash,
+        totalBank,
+        stationsWithReceipts
+      );
+
+      if (notification) {
+        console.log('✅ Уведомление о непробитых чеках отправлено');
+        return { success: true, notificationsSent: 1 };
+      }
+
+      return { success: true, notificationsSent: 0 };
+
+    } catch (error) {
+      console.error('❌ Ошибка проверки непробитых чеков:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Создать уведомление о непробитых чеках
+   */
+  async createUnpunchedReceiptsNotification(rule, tenant, networkName, totalCash, totalBank, stations) {
+    try {
+      const data = {
+        tenant_id: tenant.id,
+        rule_id: rule.id,
+        type: 'unpunched_receipts',
+        title: `Непробитые чеки: ${networkName}`,
+        message: `Требуется пробить чеки. Наличные: ${totalCash.toLocaleString('ru-RU')} ₽, Безнал: ${totalBank.toLocaleString('ru-RU')} ₽`,
+        priority: 'medium',
+        status: 'pending',
+        channels: ['telegram'],
+        context: {
+          networkId: tenant.settings?.external_id || tenant.external_id,
+          networkName,
+          totalCash,
+          totalBank,
+          stations,
+          stationCount: stations.length
+        }
+      };
+
+      const { data: notification, error } = await this.supabase
+        .from('notifications')
+        .insert(data)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Ошибка создания уведомления:', error);
+        return null;
+      }
+
+      await this.sendNotification(notification, rule);
+
+      // Обновляем статистику правила
+      await this.supabase
+        .from('notification_rules')
+        .update({
+          last_notification_at: new Date().toISOString(),
+          total_notifications_sent: (rule.total_notifications_sent || 0) + 1
+        })
+        .eq('id', rule.id);
+
+      return notification;
+    } catch (error) {
+      console.error('❌ Ошибка создания уведомления о непробитых чеках:', error);
+      return null;
+    }
   }
 }
 

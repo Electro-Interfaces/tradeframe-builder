@@ -228,8 +228,10 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
                       </FormControl>
                       <SelectContent className="bg-slate-800 border-slate-700">
                         <SelectItem value="bill_acceptor_threshold">Пороги купюроприемника</SelectItem>
-                        <SelectItem value="equipment_offline">Оборудование офлайн</SelectItem>
+                        <SelectItem value="terminal_offline">Проблемы с терминалом</SelectItem>
                         <SelectItem value="low_fuel_level">Низкий уровень топлива</SelectItem>
+                        <SelectItem value="unpunched_receipts">Непробитые чеки</SelectItem>
+                        <SelectItem value="equipment_offline">Оборудование офлайн</SelectItem>
                         <SelectItem value="shift_not_closed">Незакрытая смена</SelectItem>
                       </SelectContent>
                     </Select>
