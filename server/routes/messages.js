@@ -445,7 +445,7 @@ async function sendMessageAsync(message, recipientRecords) {
         success = result.success;
       }
 
-      // Обновляем статус получателя
+      // Обновляем статус получателя (идентификация по message_id + user_id + channel)
       if (success) {
         await supabase
           .from('message_recipients')
@@ -453,7 +453,9 @@ async function sendMessageAsync(message, recipientRecords) {
             delivery_status: 'sent',
             sent_at: new Date().toISOString()
           })
-          .eq('id', recipient.id);
+          .eq('message_id', recipient.message_id)
+          .eq('user_id', recipient.user_id)
+          .eq('channel', recipient.channel);
 
         sentCount++;
         deliveredCount++;
@@ -464,13 +466,15 @@ async function sendMessageAsync(message, recipientRecords) {
             delivery_status: 'failed',
             error_message: 'Delivery failed'
           })
-          .eq('id', recipient.id);
+          .eq('message_id', recipient.message_id)
+          .eq('user_id', recipient.user_id)
+          .eq('channel', recipient.channel);
 
         failedCount++;
       }
 
     } catch (error) {
-      console.error(`[Messages API] Failed to send to recipient ${recipient.id}:`, error);
+      console.error(`[Messages API] Failed to send to recipient:`, error.message);
 
       await supabase
         .from('message_recipients')
@@ -478,7 +482,9 @@ async function sendMessageAsync(message, recipientRecords) {
           delivery_status: 'failed',
           error_message: error.message
         })
-        .eq('id', recipient.id);
+        .eq('message_id', recipient.message_id)
+        .eq('user_id', recipient.user_id)
+        .eq('channel', recipient.channel);
 
       failedCount++;
     }
