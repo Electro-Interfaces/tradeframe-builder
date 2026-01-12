@@ -121,6 +121,7 @@ export function RuleDialog({ open, onOpenChange, rule, tenantId, onSave }: RuleD
       console.log('[RuleDialog] values:', values);
 
       const ruleData: Partial<NotificationRule> = {
+        ...(rule?.id && { id: rule.id }), // Добавляем id при редактировании
         tenant_id: tenantId,
         name: values.name,
         description: values.description,
