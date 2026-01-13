@@ -68,8 +68,11 @@ export async function executeReconciliation(
     sum + s.fuelSales.reduce((fsum, f) => fsum + Math.abs(f.quantity), 0), 0
   );
 
-  const hasErrors = matched < filteredCorpTransactions.length + filteredTfTransactions.length ||
-                    onlyCorp > 0 || onlyTf > 0 || mismatch > 0 ||
+  // Есть расхождения если:
+  // - есть транзакции только в Corp или только в TF
+  // - есть транзакции с несовпадением литров (mismatch)
+  // - есть ошибки в агрегации по станциям
+  const hasErrors = onlyCorp > 0 || onlyTf > 0 || mismatch > 0 ||
                     byStation.some(s => s.status === 'error');
 
   const summary: ReconciliationSummary = {
