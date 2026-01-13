@@ -54,6 +54,44 @@ export function getStationName(stationId: number, stationNameMap: Map<number, st
 }
 
 /**
+ * Нормализация номера карты для сопоставления
+ * Извлекает последние 4 цифры из номера карты
+ * Примеры:
+ * - "1000745" -> "0745"
+ * - "МПС ****6880" -> "6880"
+ * - "****1234" -> "1234"
+ * - "1234****5678" -> "5678"
+ */
+export function normalizeCardNumber(cardNumber: string | undefined | null): string {
+  if (!cardNumber) return '';
+
+  // Убираем все символы кроме цифр
+  const digitsOnly = cardNumber.replace(/\D/g, '');
+
+  // Берём последние 4 цифры
+  if (digitsOnly.length >= 4) {
+    return digitsOnly.slice(-4);
+  }
+
+  // Если цифр меньше 4, возвращаем все что есть
+  return digitsOnly;
+}
+
+/**
+ * Проверка совпадения номеров карт
+ * Сравнивает последние 4 цифры
+ */
+export function cardNumbersMatch(card1: string | undefined | null, card2: string | undefined | null): boolean {
+  const normalized1 = normalizeCardNumber(card1);
+  const normalized2 = normalizeCardNumber(card2);
+
+  // Если оба номера пусты - не считаем совпадением
+  if (!normalized1 || !normalized2) return false;
+
+  return normalized1 === normalized2;
+}
+
+/**
  * Построение карты имён станций из данных
  * Приоритет: TradeCorp > TF > Shifts > generic
  */

@@ -1,11 +1,13 @@
 /**
  * Модуль построчной сверки Corp ↔ TF
  *
- * Алгоритм сопоставления:
- * - По станции (exact match)
- * - По времени (±1 минута)
- * - По топливу (нормализованные имена)
- * - Проверка литров для определения статуса (matched/mismatch)
+ * Алгоритм сопоставления (улучшенный):
+ * 1. По станции (exact match)
+ * 2. По времени (±90 секунд)
+ * 3. По топливу (нормализованные имена)
+ * 4. По номеру карты (последние 4 цифры) - дополнительный критерий
+ * 5. По сумме (±1 рубль) - дополнительный критерий
+ * 6. Проверка литров для определения статуса (matched/mismatch)
  */
 
 import type {
@@ -16,8 +18,8 @@ import type {
   ShiftInfo
 } from '@/types/reconciliation';
 
-import { TIME_TOLERANCE_MS, LITERS_TOLERANCE, TRANSACTION_STATUS_ORDER } from './constants';
-import { normalizeFuelName, getStationName } from './utils';
+import { TIME_TOLERANCE_MS, LITERS_TOLERANCE, COST_TOLERANCE, TRANSACTION_STATUS_ORDER } from './constants';
+import { normalizeFuelName, getStationName, cardNumbersMatch } from './utils';
 
 /**
  * Результат построчной сверки
@@ -28,6 +30,58 @@ export interface MatchingResult {
   onlyCorp: number;
   onlyTf: number;
   mismatch: number;
+}
+
+/**
+ * Вычисление очков соответствия между транзакциями
+ * Чем выше очки - тем лучше соответствие
+ */
+function calculateMatchScore(
+  corp: CorpTransaction,
+  tf: TfTransaction,
+  corpDate: Date,
+  tfDate: Date,
+  corpFuel: string,
+  tfFuel: string
+): number {
+  let score = 0;
+
+  // Базовые критерии (обязательные)
+  if (tf.stationId !== corp.stationNumber) return -1;
+  if (tfFuel !== corpFuel) return -1;
+
+  const timeDiff = Math.abs(corpDate.getTime() - tfDate.getTime());
+  if (timeDiff > TIME_TOLERANCE_MS) return -1;
+
+  // Базовые очки за прохождение обязательных критериев
+  score += 100;
+
+  // Бонус за близость по времени (макс 50 очков)
+  const timeScore = Math.max(0, 50 - (timeDiff / 1000));
+  score += timeScore;
+
+  // Бонус за совпадение номера карты (50 очков)
+  if (cardNumbersMatch(corp.cardNumber, tf.cardNumber)) {
+    score += 50;
+  }
+
+  // Бонус за совпадение суммы (30 очков)
+  const costDiff = Math.abs(corp.cost - tf.total);
+  if (costDiff <= COST_TOLERANCE) {
+    score += 30;
+  } else if (costDiff <= COST_TOLERANCE * 5) {
+    score += 15;
+  }
+
+  // Бонус за совпадение литров (20 очков)
+  const litersDiff = Math.abs(corp.quantity - tf.volume);
+  if (litersDiff <= LITERS_TOLERANCE) {
+    score += 20;
+  } else if (litersDiff <= LITERS_TOLERANCE * 10) {
+    score += 10;
+  }
+
+  return score;
 }
 
 /**
@@ -56,29 +110,27 @@ export function performLineByLineReconciliation(
     const corpDate = new Date(corp.date);
     const corpFuel = normalizeFuelName(corp.productName);
 
-    // Ищем TF по: станция + время (±1 мин) + топливо
+    // Ищем TF с наилучшим соответствием
     let bestMatch: TfTransaction | null = null;
-    let bestTimeDiff = Infinity;
+    let bestScore = -1;
 
     for (const tf of tfTransactions) {
       if (matchedTfIds.has(tf.id)) continue;
-      if (tf.stationId !== corp.stationNumber) continue;
-
-      const tfFuel = normalizeFuelName(tf.fuelType);
-      if (tfFuel !== corpFuel) continue;
 
       const tfDate = new Date(tf.date);
-      const timeDiff = Math.abs(corpDate.getTime() - tfDate.getTime());
+      const tfFuel = normalizeFuelName(tf.fuelType);
 
-      if (timeDiff <= TIME_TOLERANCE_MS && timeDiff < bestTimeDiff) {
+      const score = calculateMatchScore(corp, tf, corpDate, tfDate, corpFuel, tfFuel);
+
+      if (score > bestScore) {
         bestMatch = tf;
-        bestTimeDiff = timeDiff;
+        bestScore = score;
       }
     }
 
     const shiftId = findShiftForTransaction(corp.stationNumber, corpDate, shiftsInfo);
 
-    if (bestMatch) {
+    if (bestMatch && bestScore > 0) {
       matchedTfIds.add(bestMatch.id);
       matchedCorpIds.add(corp.id);
 

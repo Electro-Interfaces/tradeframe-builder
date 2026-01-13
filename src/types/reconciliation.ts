@@ -223,11 +223,7 @@ export interface TradecorpTransactionsResponse {
 export type NormalizedFuelName = string;
 
 // ============================================
-// Константы
+// Константы (реэкспорт из constants.ts)
 // ============================================
 
-/**
- * Допуск по времени для сопоставления транзакций (мс)
- * ±1 минута
- */
-export const TIME_TOLERANCE_MS = 60 * 1000;
+export { TIME_TOLERANCE_MS, COST_TOLERANCE, LITERS_TOLERANCE } from '@/services/reconciliation/constants';

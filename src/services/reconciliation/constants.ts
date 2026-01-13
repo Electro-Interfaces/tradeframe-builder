@@ -4,9 +4,9 @@
 
 /**
  * Допуск по времени для сопоставления транзакций (мс)
- * ±1 минута
+ * ±1.5 минуты (90 секунд)
  */
-export const TIME_TOLERANCE_MS = 60 * 1000;
+export const TIME_TOLERANCE_MS = 90 * 1000;
 
 /**
  * Код системы БТО в STS API
@@ -24,6 +24,12 @@ export const LITERS_TOLERANCE = 0.01;
  * 0.1 литра
  */
 export const UI_DISCREPANCY_TOLERANCE = 0.1;
+
+/**
+ * Допуск по сумме для сопоставления транзакций (рубли)
+ * 1 рубль
+ */
+export const COST_TOLERANCE = 1;
 
 /**
  * Паттерны для извлечения номера станции из названия TradeCorp
