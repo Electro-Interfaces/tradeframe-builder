@@ -82,7 +82,7 @@ export async function exportToExcel(options: ExportOptions): Promise<void> {
   }
 
   try {
-    const formatNumber = (value: number) =>
+    const formatNumberDisplay = (value: number) =>
       value.toLocaleString('ru-RU', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -112,6 +112,7 @@ export async function exportToExcel(options: ExportOptions): Promise<void> {
       { liters: 0, amount: 0, orderedLiters: 0, orderedAmount: 0 }
     );
 
+    // Записываем числа как числа для дальнейшей обработки в Excel
     const data = operations.map((record) => {
       const liters = Number(record.actualQuantity ?? record.quantity ?? 0) || 0;
       const amount = Number(record.actualAmount ?? record.totalCost ?? 0) || 0;
@@ -128,22 +129,36 @@ export async function exportToExcel(options: ExportOptions): Promise<void> {
           hour: '2-digit',
           minute: '2-digit',
         }),
-        'Пистолет': record.nozzleNumber ? String(record.nozzleNumber) : '-',
+        'Пистолет': record.nozzleNumber ? record.nozzleNumber : null,
         'Топливо': record.fuelType || '-',
-        'Кол-во, л': liters ? formatNumber(liters) : '-',
-        'Цена, ₽/л': price ? formatNumber(price) : '-',
-        'Сумма, ₽': amount ? formatNumber(amount) : '-',
+        'Кол-во, л': liters || null,
+        'Цена, ₽/л': price || null,
+        'Сумма, ₽': amount || null,
         'Оплата': normalizePaymentMethod(record.paymentMethod || ''),
         'Карта': record.cardNumber || '-',
-        'POS': record.posNumber ? String(record.posNumber) : '-',
-        'Смена': record.shiftNumber ? String(record.shiftNumber) : '-',
-        'Заказ, л': orderedLiters ? formatNumber(orderedLiters) : '-',
+        'POS': record.posNumber ? record.posNumber : null,
+        'Смена': record.shiftNumber ? record.shiftNumber : null,
+        'Заказ, л': orderedLiters || null,
         'Статус': statusMap[record.status || ''] || record.status || '-',
       };
     });
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
+
+    // Применяем числовой формат к числовым колонкам
+    const numericColumns = [3, 5, 6, 7, 10, 11, 12]; // Пистолет, Кол-во, Цена, Сумма, POS, Смена, Заказ
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+
+    for (let row = range.s.r + 1; row <= range.e.r; row++) {
+      numericColumns.forEach(col => {
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+        const cell = ws[cellAddress];
+        if (cell && typeof cell.v === 'number') {
+          cell.z = '#,##0.00'; // Числовой формат с 2 знаками после запятой
+        }
+      });
+    }
 
     ws['!cols'] = [
       { wch: 12 },  // Чек
@@ -172,9 +187,9 @@ export async function exportToExcel(options: ExportOptions): Promise<void> {
         [`Дата формирования: ${new Date().toLocaleString('ru-RU')}`],
         [],
         [`Количество операций: ${operations.length}`],
-        [`Отпуск: ${formatNumber(totals.liters)} л`],
-        [`Сумма: ${formatNumber(totals.amount)} ₽`],
-        [`Заказано: ${formatNumber(totals.orderedLiters)} л на ${formatNumber(totals.orderedAmount)} ₽`],
+        [`Отпуск: ${formatNumberDisplay(totals.liters)} л`],
+        [`Сумма: ${formatNumberDisplay(totals.amount)} ₽`],
+        [`Заказано: ${formatNumberDisplay(totals.orderedLiters)} л на ${formatNumberDisplay(totals.orderedAmount)} ₽`],
         [],
       ],
       { origin: 'A1' }

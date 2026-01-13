@@ -7,6 +7,14 @@ import { format as formatDate } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { FlatReceipt } from '@/types/receipts';
 
+// Числовые форматы для Excel
+const NUM_FORMATS = {
+  decimal2: '#,##0.00',
+  decimal3: '#,##0.000',
+  integer: '#,##0',
+  percent: '0.00%',
+};
+
 /**
  * Экспорт поступлений топлива в Excel
  */
@@ -158,63 +166,79 @@ export async function exportReceiptsToExcel(
     totalFactVolume += factVolume;
     totalFactAmount += factAmount;
 
-    const row = [
-      formatDate(new Date(receipt.dt), 'dd.MM.yyyy HH:mm', { locale: ru }),
-      receipt.stationNumber,
-      receipt.shiftNumber,
-      receipt.ttn,
-      receipt.service.service_name,
-      receipt.tank,
-      receipt.base.name || `База ${receipt.base.id}`,
-      docVolume.toFixed(2),
-      docAmount.toFixed(2),
-      receipt.doc.density.toFixed(3),
-      receipt.doc.temp,
-      factVolume.toFixed(2),
-      factAmount.toFixed(2),
-      receipt.fact.density.toFixed(3),
-      receipt.fact.temp,
-      receipt.volumeDiff.toFixed(2),
-      receipt.volumeDiffPercent.toFixed(2) + '%',
-      receipt.amountDiff.toFixed(2),
-      receipt.amountDiffPercent.toFixed(2) + '%',
+    // Определяем данные и форматы для каждой колонки
+    const receiptRowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
+      { value: formatDate(new Date(receipt.dt), 'dd.MM.yyyy HH:mm', { locale: ru }) },
+      { value: receipt.stationNumber },
+      { value: receipt.shiftNumber },
+      { value: receipt.ttn },
+      { value: receipt.service.service_name },
+      { value: receipt.tank },
+      { value: receipt.base.name || `База ${receipt.base.id}` },
+      { value: docVolume, format: 'decimal2' },
+      { value: docAmount, format: 'decimal2' },
+      { value: receipt.doc.density, format: 'decimal3' },
+      { value: receipt.doc.temp, format: 'decimal2' },
+      { value: factVolume, format: 'decimal2' },
+      { value: factAmount, format: 'decimal2' },
+      { value: receipt.fact.density, format: 'decimal3' },
+      { value: receipt.fact.temp, format: 'decimal2' },
+      { value: receipt.volumeDiff, format: 'decimal2' },
+      { value: receipt.volumeDiffPercent / 100, format: 'percent' },
+      { value: receipt.amountDiff, format: 'decimal2' },
+      { value: receipt.amountDiffPercent / 100, format: 'percent' },
     ];
 
-    row.forEach((value, colIdx) => {
+    receiptRowData.forEach((item, colIdx) => {
       const cell = worksheet.getCell(currentRow, colIdx + 1);
-      cell.value = value;
       cell.style = dataStyle;
+      if (item.format && typeof item.value === 'number') {
+        cell.value = item.value;
+        cell.numFmt = NUM_FORMATS[item.format];
+      } else {
+        cell.value = item.value;
+      }
     });
     currentRow++;
   });
 
   // Итоговая строка
-  const totalsRow = [
-    'ИТОГО:',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    totalDocVolume.toFixed(2),
-    totalDocAmount.toFixed(2),
-    '',
-    '',
-    totalFactVolume.toFixed(2),
-    totalFactAmount.toFixed(2),
-    '',
-    '',
-    (totalFactVolume - totalDocVolume).toFixed(2),
-    totalDocVolume > 0 ? (((totalFactVolume - totalDocVolume) / totalDocVolume) * 100).toFixed(2) + '%' : '0.00%',
-    (totalFactAmount - totalDocAmount).toFixed(2),
-    totalDocAmount > 0 ? (((totalFactAmount - totalDocAmount) / totalDocAmount) * 100).toFixed(2) + '%' : '0.00%',
+  const volumeDiffTotal = totalFactVolume - totalDocVolume;
+  const volumeDiffPercentTotal = totalDocVolume > 0 ? volumeDiffTotal / totalDocVolume : 0;
+  const amountDiffTotal = totalFactAmount - totalDocAmount;
+  const amountDiffPercentTotal = totalDocAmount > 0 ? amountDiffTotal / totalDocAmount : 0;
+
+  const totalsRowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
+    { value: 'ИТОГО:' },
+    { value: '' },
+    { value: '' },
+    { value: '' },
+    { value: '' },
+    { value: '' },
+    { value: '' },
+    { value: totalDocVolume, format: 'decimal2' },
+    { value: totalDocAmount, format: 'decimal2' },
+    { value: '' },
+    { value: '' },
+    { value: totalFactVolume, format: 'decimal2' },
+    { value: totalFactAmount, format: 'decimal2' },
+    { value: '' },
+    { value: '' },
+    { value: volumeDiffTotal, format: 'decimal2' },
+    { value: volumeDiffPercentTotal, format: 'percent' },
+    { value: amountDiffTotal, format: 'decimal2' },
+    { value: amountDiffPercentTotal, format: 'percent' },
   ];
 
-  totalsRow.forEach((value, colIdx) => {
+  totalsRowData.forEach((item, colIdx) => {
     const cell = worksheet.getCell(currentRow, colIdx + 1);
-    cell.value = value;
     cell.style = totalsStyle;
+    if (item.format && typeof item.value === 'number') {
+      cell.value = item.value;
+      cell.numFmt = NUM_FORMATS[item.format];
+    } else {
+      cell.value = item.value;
+    }
   });
 
   // Установка ширины колонок

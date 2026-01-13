@@ -14,6 +14,43 @@ function formatCurrency(value: number): string {
   }) + ' ₽';
 }
 
+// Числовые форматы для Excel
+const NUM_FORMATS = {
+  decimal2: '#,##0.00',      // 2 знака после запятой
+  decimal3: '#,##0.000',     // 3 знака после запятой
+  decimal4: '#,##0.0000',    // 4 знака после запятой
+  currency: '#,##0.00" ₽"', // Валюта с символом рубля
+  integer: '#,##0',          // Целое число
+  percent: '0.00%',          // Проценты
+};
+
+// Вспомогательная функция для записи числового значения в ячейку
+function setNumericCell(
+  cell: ExcelJS.Cell,
+  value: number | string | null | undefined,
+  format: keyof typeof NUM_FORMATS = 'decimal2',
+  style?: Partial<ExcelJS.Style>
+): void {
+  if (value === null || value === undefined || value === '' || value === '—') {
+    cell.value = '—';
+    if (style) cell.style = style;
+    return;
+  }
+
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(numValue)) {
+    cell.value = '—';
+    if (style) cell.style = style;
+    return;
+  }
+
+  cell.value = numValue;
+  cell.numFmt = NUM_FORMATS[format];
+  if (style) {
+    cell.style = { ...style };
+  }
+}
+
 /**
  * Экспорт сменного отчета в Excel с полным форматированием
  */
@@ -143,26 +180,34 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
 
   worksheet.getCell(currentRow, 1).value = 'Общая выручка:';
   worksheet.getCell(currentRow, 1).font = labelStyle;
-  worksheet.getCell(currentRow, 2).value = formatCurrency(details.totalRevenue);
-  worksheet.getCell(currentRow, 2).font = valueStyle;
+  const revenueCell = worksheet.getCell(currentRow, 2);
+  revenueCell.value = details.totalRevenue;
+  revenueCell.numFmt = NUM_FORMATS.currency;
+  revenueCell.font = valueStyle;
   currentRow++;
 
   worksheet.getCell(currentRow, 1).value = 'Общий отпуск топлива (л):';
   worksheet.getCell(currentRow, 1).font = labelStyle;
-  worksheet.getCell(currentRow, 2).value = details.totalVolume.toFixed(2);
-  worksheet.getCell(currentRow, 2).font = valueStyle;
+  const volumeCell = worksheet.getCell(currentRow, 2);
+  volumeCell.value = details.totalVolume;
+  volumeCell.numFmt = NUM_FORMATS.decimal2;
+  volumeCell.font = valueStyle;
   currentRow++;
 
   worksheet.getCell(currentRow, 1).value = 'Количество транзакций:';
   worksheet.getCell(currentRow, 1).font = labelStyle;
-  worksheet.getCell(currentRow, 2).value = details.transactionCount;
-  worksheet.getCell(currentRow, 2).font = valueStyle;
+  const txCountCell = worksheet.getCell(currentRow, 2);
+  txCountCell.value = details.transactionCount;
+  txCountCell.numFmt = NUM_FORMATS.integer;
+  txCountCell.font = valueStyle;
   currentRow++;
 
   worksheet.getCell(currentRow, 1).value = 'Средний чек:';
   worksheet.getCell(currentRow, 1).font = labelStyle;
-  worksheet.getCell(currentRow, 2).value = formatCurrency(details.averageCheck);
-  worksheet.getCell(currentRow, 2).font = valueStyle;
+  const avgCheckCell = worksheet.getCell(currentRow, 2);
+  avgCheckCell.value = details.averageCheck;
+  avgCheckCell.numFmt = NUM_FORMATS.currency;
+  avgCheckCell.font = valueStyle;
   currentRow += 3;
 
   // ========== СОСТАВ СМЕНЫ - ТРК ==========
@@ -207,24 +252,67 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       const tank = details.tanks.find(t => t.fuelCode === parseInt(fuelCode));
 
       nozzles.forEach((nozzle, idx) => {
-        const row = [
-          idx === 0 ? nozzle.fuelName : '',
-          idx === 0 ? (tank?.tankNumber || '—') : '',
-          idx === 0 ? (tank?.density?.toFixed(3) || '—') : '',
-          nozzle.nozzle, // Номер пистолета в формате "1-2"
-          nozzle.endCounter.toFixed(2),
-          nozzle.startCounter.toFixed(2),
-          nozzle.volume.toFixed(2),
-          nozzle.amount.toFixed(2),
-          nozzle.price.toFixed(2),
-          nozzle.cost.toFixed(2)
-        ];
+        // Колонка 1: Наименование нефтепродуктов
+        const cell1 = worksheet.getCell(currentRow, 1);
+        cell1.value = idx === 0 ? nozzle.fuelName : '';
+        cell1.style = dataStyle;
 
-        row.forEach((value, colIdx) => {
-          const cell = worksheet.getCell(currentRow, colIdx + 1);
-          cell.value = value;
-          cell.style = dataStyle;
-        });
+        // Колонка 2: N Резервуара
+        const cell2 = worksheet.getCell(currentRow, 2);
+        cell2.value = idx === 0 ? (tank?.tankNumber || '—') : '';
+        cell2.style = dataStyle;
+
+        // Колонка 3: Плотность
+        const cell3 = worksheet.getCell(currentRow, 3);
+        if (idx === 0 && tank?.density) {
+          cell3.value = tank.density;
+          cell3.numFmt = NUM_FORMATS.decimal3;
+        } else {
+          cell3.value = idx === 0 ? '—' : '';
+        }
+        cell3.style = dataStyle;
+
+        // Колонка 4: № ТРК
+        const cell4 = worksheet.getCell(currentRow, 4);
+        cell4.value = nozzle.nozzle;
+        cell4.style = dataStyle;
+
+        // Колонка 5: на конец смены (л)
+        const cell5 = worksheet.getCell(currentRow, 5);
+        cell5.value = nozzle.endCounter;
+        cell5.numFmt = NUM_FORMATS.decimal2;
+        cell5.style = dataStyle;
+
+        // Колонка 6: на начало смены (л)
+        const cell6 = worksheet.getCell(currentRow, 6);
+        cell6.value = nozzle.startCounter;
+        cell6.numFmt = NUM_FORMATS.decimal2;
+        cell6.style = dataStyle;
+
+        // Колонка 7: Расход (л)
+        const cell7 = worksheet.getCell(currentRow, 7);
+        cell7.value = nozzle.volume;
+        cell7.numFmt = NUM_FORMATS.decimal2;
+        cell7.style = dataStyle;
+
+        // Колонка 8: Расход (кг)
+        const cell8 = worksheet.getCell(currentRow, 8);
+        cell8.value = nozzle.amount;
+        cell8.numFmt = NUM_FORMATS.decimal2;
+        cell8.style = dataStyle;
+
+        // Колонка 9: Цена за литр (руб)
+        const cell9 = worksheet.getCell(currentRow, 9);
+        cell9.value = nozzle.price;
+        cell9.numFmt = NUM_FORMATS.decimal2;
+        cell9.style = dataStyle;
+
+        // Колонка 10: Сумма (руб)
+        const cell10 = worksheet.getCell(currentRow, 10);
+        cell10.value = nozzle.cost;
+        cell10.numFmt = NUM_FORMATS.decimal2;
+        cell10.style = dataStyle;
+
         currentRow++;
       });
 
@@ -233,24 +321,26 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       const totalAmount = nozzles.reduce((sum, n) => sum + n.amount, 0);
       const totalCost = nozzles.reduce((sum, n) => sum + n.cost, 0);
 
-      const totalsRow = [
-        'ВСЕГО:',
-        '',
-        '',
-        '',
-        '',
-        '',
-        totalVolume.toFixed(2),
-        totalAmount.toFixed(2),
-        '',
-        totalCost.toFixed(2)
-      ];
-
-      totalsRow.forEach((value, colIdx) => {
-        const cell = worksheet.getCell(currentRow, colIdx + 1);
-        cell.value = value;
+      // Заполнение итоговой строки
+      for (let col = 1; col <= 10; col++) {
+        const cell = worksheet.getCell(currentRow, col);
         cell.style = totalsStyle;
-      });
+
+        if (col === 1) {
+          cell.value = 'ВСЕГО:';
+        } else if (col === 7) {
+          cell.value = totalVolume;
+          cell.numFmt = NUM_FORMATS.decimal2;
+        } else if (col === 8) {
+          cell.value = totalAmount;
+          cell.numFmt = NUM_FORMATS.decimal2;
+        } else if (col === 10) {
+          cell.value = totalCost;
+          cell.numFmt = NUM_FORMATS.decimal2;
+        } else {
+          cell.value = '';
+        }
+      }
       currentRow++;
     });
 
@@ -259,24 +349,25 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
     const grandTotalAmount = details.nozzleReadings.reduce((sum, n) => sum + n.amount, 0);
     const grandTotalCost = details.nozzleReadings.reduce((sum, n) => sum + n.cost, 0);
 
-    const grandTotalsRow = [
-      'ИТОГО:',
-      '',
-      '',
-      '',
-      '',
-      '',
-      grandTotalVolume.toFixed(2),
-      grandTotalAmount.toFixed(2),
-      '',
-      grandTotalCost.toFixed(2)
-    ];
+    for (let col = 1; col <= 10; col++) {
+      const cell = worksheet.getCell(currentRow, col);
+      cell.style = totalsStyle;
 
-    grandTotalsRow.forEach((value, colIdx) => {
-      const cell = worksheet.getCell(currentRow, colIdx + 1);
-      cell.value = value;
-      cell.style = totalsStyle; // Такой же стиль, как у промежуточных итогов "Всего:"
-    });
+      if (col === 1) {
+        cell.value = 'ИТОГО:';
+      } else if (col === 7) {
+        cell.value = grandTotalVolume;
+        cell.numFmt = NUM_FORMATS.decimal2;
+      } else if (col === 8) {
+        cell.value = grandTotalAmount;
+        cell.numFmt = NUM_FORMATS.decimal2;
+      } else if (col === 10) {
+        cell.value = grandTotalCost;
+        cell.numFmt = NUM_FORMATS.decimal2;
+      } else {
+        cell.value = '';
+      }
+    }
     currentRow++;
   }
   currentRow += 2;
@@ -325,32 +416,41 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       const volumeDispensed = t.volumeDispensed ?? 0;
       const volumeCalculated = t.volumeCalculated ?? volumeEnd;
 
-      const row = [
-        tank.fuelName || '—',
-        tank.tankNumber || '—',
-        density.toFixed(4),
-        volumeBegin.toFixed(2),
-        (volumeBegin * density).toFixed(2),
-        volumeReceived.toFixed(2),
-        (volumeReceived * density).toFixed(2),
-        volumeDispensed.toFixed(2),
-        (volumeDispensed * density).toFixed(2),
-        density.toFixed(4),
-        t.temperature?.toFixed(1) || '—',
-        t.level?.toFixed(2) || '—',
-        volumeEnd.toFixed(2),
-        t.waterLevel?.toFixed(2) || '0.00',
-        t.waterVolume?.toFixed(2) || '0.00',
-        volumeEnd.toFixed(2),
-        (volumeEnd * density).toFixed(2),
-        volumeCalculated.toFixed(2),
-        (volumeCalculated * density).toFixed(2)
+      // Определяем значения и форматы для каждой колонки
+      const tankRowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
+        { value: tank.fuelName || '—' },                    // 1: Наименование
+        { value: tank.tankNumber || '—' },                  // 2: N Резервуара
+        { value: density, format: 'decimal4' },             // 3: Плотн. на начало
+        { value: volumeBegin, format: 'decimal2' },         // 4: Книжный остаток (л)
+        { value: volumeBegin * density, format: 'decimal2' }, // 5: Книжный остаток (кг)
+        { value: volumeReceived, format: 'decimal2' },      // 6: Поступление (л)
+        { value: volumeReceived * density, format: 'decimal2' }, // 7: Поступление (кг)
+        { value: volumeDispensed, format: 'decimal2' },     // 8: Расход (л)
+        { value: volumeDispensed * density, format: 'decimal2' }, // 9: Расход (кг)
+        { value: density, format: 'decimal4' },             // 10: Плотн. г/см3
+        { value: t.temperature ?? null, format: 'decimal2' }, // 11: Темп C
+        { value: t.level ?? null, format: 'decimal2' },     // 12: общий уров. см
+        { value: volumeEnd, format: 'decimal2' },           // 13: общий объем л
+        { value: t.waterLevel ?? 0, format: 'decimal2' },   // 14: уров. воды см
+        { value: t.waterVolume ?? 0, format: 'decimal2' },  // 15: объем воды л
+        { value: volumeEnd, format: 'decimal2' },           // 16: Факт.остаток (л)
+        { value: volumeEnd * density, format: 'decimal2' }, // 17: Факт.остаток (кг)
+        { value: volumeCalculated, format: 'decimal2' },    // 18: расчетн.кн.ост. (л)
+        { value: volumeCalculated * density, format: 'decimal2' } // 19: расчетн.кн.ост. (кг)
       ];
 
-      row.forEach((value, colIdx) => {
+      tankRowData.forEach((item, colIdx) => {
         const cell = worksheet.getCell(currentRow, colIdx + 1);
-        cell.value = value;
         cell.style = dataStyle;
+
+        if (item.value === null || item.value === undefined) {
+          cell.value = '—';
+        } else if (item.format && typeof item.value === 'number') {
+          cell.value = item.value;
+          cell.numFmt = NUM_FORMATS[item.format];
+        } else {
+          cell.value = item.value;
+        }
       });
       currentRow++;
     });
@@ -390,27 +490,35 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
     details.receipts.forEach(receipt => {
       const r = receipt as any;
 
-      const row = [
-        receipt.fuelName || '—',
-        r.fuelCode || '—',
-        r.supplier || '—',
-        '1', // Код поставщика (обычно 1)
-        r.documentNumber || receipt.waybillNumber || '—',
-        receipt.tankNumber || '—',
-        receipt.volume ? receipt.volume.toFixed(0) : '0',
-        r.density?.toFixed(4) || '—',
-        r.amount?.toFixed(0) || '0',
-        r.temperature?.toFixed(1) || '—',
-        r.actualVolume?.toFixed(0) || receipt.volume?.toFixed(0) || '0',
-        r.actualDensity?.toFixed(2) || r.density?.toFixed(2) || '—',
-        r.actualAmount?.toFixed(0) || r.amount?.toFixed(0) || '0',
-        r.actualTemperature?.toFixed(0) || r.temperature?.toFixed(0) || '—'
+      const receiptRowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
+        { value: receipt.fuelName || '—' },                         // 1: Наименование
+        { value: r.fuelCode || '—' },                               // 2: Код
+        { value: r.supplier || '—' },                               // 3: Поставщик
+        { value: '1' },                                             // 4: Код поставщика
+        { value: r.documentNumber || receipt.waybillNumber || '—' }, // 5: № Докум.
+        { value: receipt.tankNumber || '—' },                       // 6: № рез
+        { value: receipt.volume ?? 0, format: 'integer' },          // 7: По документу (Объем л)
+        { value: r.density ?? null, format: 'decimal4' },           // 8: По документу (Плотн)
+        { value: r.amount ?? 0, format: 'integer' },                // 9: По документу (Масса кг)
+        { value: r.temperature ?? null, format: 'decimal2' },       // 10: По документу (Темп)
+        { value: r.actualVolume ?? receipt.volume ?? 0, format: 'integer' }, // 11: Фактически (Объем л)
+        { value: r.actualDensity ?? r.density ?? null, format: 'decimal2' }, // 12: Фактически (Плотн)
+        { value: r.actualAmount ?? r.amount ?? 0, format: 'integer' },       // 13: Фактически (Масса кг)
+        { value: r.actualTemperature ?? r.temperature ?? null, format: 'integer' } // 14: Фактически (Темп)
       ];
 
-      row.forEach((value, colIdx) => {
+      receiptRowData.forEach((item, colIdx) => {
         const cell = worksheet.getCell(currentRow, colIdx + 1);
-        cell.value = value;
         cell.style = dataStyle;
+
+        if (item.value === null || item.value === undefined) {
+          cell.value = '—';
+        } else if (item.format && typeof item.value === 'number') {
+          cell.value = item.value;
+          cell.numFmt = NUM_FORMATS[item.format];
+        } else {
+          cell.value = item.value;
+        }
       });
       currentRow++;
     });
@@ -477,47 +585,58 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       totalVolume += totalVol;
       totalDifference += difference;
 
-      const row = [
-        sale.fuelName || '—',
-        s.fuelCode || '—',
-        pumpVolume.toFixed(2),
-        cardVolume.toFixed(2),
-        cardCost.toFixed(2) + ' ₽',
-        discount.toFixed(2),
-        cashVolume.toFixed(2),
-        cashCost.toFixed(2) + ' ₽',
-        nonCashVolume.toFixed(2),
-        totalVol.toFixed(2),
-        difference.toFixed(2)
+      // Записываем данные строки с числовыми форматами
+      const salesRowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
+        { value: sale.fuelName || '—' },
+        { value: s.fuelCode || '—' },
+        { value: pumpVolume, format: 'decimal2' },
+        { value: cardVolume, format: 'decimal2' },
+        { value: cardCost, format: 'currency' },
+        { value: discount, format: 'decimal2' },
+        { value: cashVolume, format: 'decimal2' },
+        { value: cashCost, format: 'currency' },
+        { value: nonCashVolume, format: 'decimal2' },
+        { value: totalVol, format: 'decimal2' },
+        { value: difference, format: 'decimal2' }
       ];
 
-      row.forEach((value, colIdx) => {
+      salesRowData.forEach((item, colIdx) => {
         const cell = worksheet.getCell(currentRow, colIdx + 1);
-        cell.value = value;
         cell.style = dataStyle;
+        if (item.format && typeof item.value === 'number') {
+          cell.value = item.value;
+          cell.numFmt = NUM_FORMATS[item.format];
+        } else {
+          cell.value = item.value;
+        }
       });
       currentRow++;
     });
 
     // Итоговая строка
-    const totalsRow = [
-      'Всего:',
-      '',
-      totalPumpVolume.toFixed(2),
-      totalCardVolume.toFixed(2),
-      totalCardCost.toFixed(2) + ' ₽',
-      totalDiscount.toFixed(2),
-      totalCashVolume.toFixed(2),
-      totalCashCost.toFixed(2) + ' ₽',
-      totalNonCashVolume.toFixed(2),
-      totalVolume.toFixed(2),
-      totalDifference.toFixed(2)
+    const salesTotalsData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
+      { value: 'Всего:' },
+      { value: '' },
+      { value: totalPumpVolume, format: 'decimal2' },
+      { value: totalCardVolume, format: 'decimal2' },
+      { value: totalCardCost, format: 'currency' },
+      { value: totalDiscount, format: 'decimal2' },
+      { value: totalCashVolume, format: 'decimal2' },
+      { value: totalCashCost, format: 'currency' },
+      { value: totalNonCashVolume, format: 'decimal2' },
+      { value: totalVolume, format: 'decimal2' },
+      { value: totalDifference, format: 'decimal2' }
     ];
 
-    totalsRow.forEach((value, colIdx) => {
+    salesTotalsData.forEach((item, colIdx) => {
       const cell = worksheet.getCell(currentRow, colIdx + 1);
-      cell.value = value;
       cell.style = totalsStyle;
+      if (item.format && typeof item.value === 'number') {
+        cell.value = item.value;
+        cell.numFmt = NUM_FORMATS[item.format];
+      } else {
+        cell.value = item.value;
+      }
     });
     currentRow++;
 
@@ -605,39 +724,49 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       totalCouponVolume += group.couponVolume;
       totalCouponCost += group.couponCost;
 
-      const row = [
-        group.fuelName,
-        group.fuelCode,
-        group.mobilPrVolume.toFixed(2),
-        group.mobilPrCost.toFixed(2) + ' ₽',
-        group.couponVolume.toFixed(2),
-        group.couponCost.toFixed(2) + ' ₽',
-        total.toFixed(2)
+      const nonCashRowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
+        { value: group.fuelName },
+        { value: group.fuelCode },
+        { value: group.mobilPrVolume, format: 'decimal2' },
+        { value: group.mobilPrCost, format: 'currency' },
+        { value: group.couponVolume, format: 'decimal2' },
+        { value: group.couponCost, format: 'currency' },
+        { value: total, format: 'decimal2' }
       ];
 
-      row.forEach((value, colIdx) => {
+      nonCashRowData.forEach((item, colIdx) => {
         const cell = worksheet.getCell(currentRow, colIdx + 1);
-        cell.value = value;
         cell.style = dataStyle;
+        if (item.format && typeof item.value === 'number') {
+          cell.value = item.value;
+          cell.numFmt = NUM_FORMATS[item.format];
+        } else {
+          cell.value = item.value;
+        }
       });
       currentRow++;
     });
 
     // Итоговая строка
-    const totalsRow = [
-      'Всего:',
-      '',
-      totalMobilPrVolume.toFixed(2),
-      totalMobilPrCost.toFixed(2) + ' ₽',
-      totalCouponVolume.toFixed(2),
-      totalCouponCost.toFixed(2) + ' ₽',
-      (totalMobilPrVolume + totalCouponVolume).toFixed(2)
+    const nonCashTotalsData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
+      { value: 'Всего:' },
+      { value: '' },
+      { value: totalMobilPrVolume, format: 'decimal2' },
+      { value: totalMobilPrCost, format: 'currency' },
+      { value: totalCouponVolume, format: 'decimal2' },
+      { value: totalCouponCost, format: 'currency' },
+      { value: totalMobilPrVolume + totalCouponVolume, format: 'decimal2' }
     ];
 
-    totalsRow.forEach((value, colIdx) => {
+    nonCashTotalsData.forEach((item, colIdx) => {
       const cell = worksheet.getCell(currentRow, colIdx + 1);
-      cell.value = value;
       cell.style = totalsStyle;
+      if (item.format && typeof item.value === 'number') {
+        cell.value = item.value;
+        cell.numFmt = NUM_FORMATS[item.format];
+      } else {
+        cell.value = item.value;
+      }
     });
     currentRow++;
 
@@ -667,39 +796,56 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
 
   // Приход
   worksheet.getCell(currentRow, 1).value = 'Принято по смене';
-  worksheet.getCell(currentRow, 2).value = formatCurrency(openingAmount);
+  const openingCell = worksheet.getCell(currentRow, 2);
+  openingCell.value = openingAmount;
+  openingCell.numFmt = NUM_FORMATS.currency;
   currentRow++;
 
   worksheet.getCell(currentRow, 1).value = 'Внесено за смену';
-  worksheet.getCell(currentRow, 2).value = formatCurrency(incomeAmount);
+  const incomeCell = worksheet.getCell(currentRow, 2);
+  incomeCell.value = incomeAmount;
+  incomeCell.numFmt = NUM_FORMATS.currency;
   currentRow++;
 
   worksheet.getCell(currentRow, 1).value = 'Выручка за смену';
-  worksheet.getCell(currentRow, 2).value = formatCurrency(revenue);
+  const revenueShiftCell = worksheet.getCell(currentRow, 2);
+  revenueShiftCell.value = revenue;
+  revenueShiftCell.numFmt = NUM_FORMATS.currency;
   currentRow++;
 
   worksheet.getCell(currentRow, 1).value = 'Итого:';
   worksheet.getCell(currentRow, 1).font = { bold: true };
-  worksheet.getCell(currentRow, 2).value = formatCurrency(totalIncome);
-  worksheet.getCell(currentRow, 2).font = { bold: true };
+  const totalIncomeCell = worksheet.getCell(currentRow, 2);
+  totalIncomeCell.value = totalIncome;
+  totalIncomeCell.numFmt = NUM_FORMATS.currency;
+  totalIncomeCell.font = { bold: true };
   currentRow += 2;
 
   // Расход
   worksheet.getCell(currentRow, 1).value = 'Сдано в банк';
-  worksheet.getCell(currentRow, 2).value = formatCurrency(toBankAmount);
+  const toBankCell = worksheet.getCell(currentRow, 2);
+  toBankCell.value = toBankAmount;
+  toBankCell.numFmt = NUM_FORMATS.currency;
   currentRow++;
 
   worksheet.getCell(currentRow, 1).value = 'Выдано наличными';
-  worksheet.getCell(currentRow, 2).value = formatCurrency(cashOutAmount);
+  const cashOutCell = worksheet.getCell(currentRow, 2);
+  cashOutCell.value = cashOutAmount;
+  cashOutCell.numFmt = NUM_FORMATS.currency;
   currentRow++;
 
   worksheet.getCell(currentRow, 1).value = 'Передано по смене';
-  worksheet.getCell(currentRow, 2).value = formatCurrency(closingAmount);
+  const closingCell = worksheet.getCell(currentRow, 2);
+  closingCell.value = closingAmount;
+  closingCell.numFmt = NUM_FORMATS.currency;
   currentRow++;
 
   worksheet.getCell(currentRow, 1).value = 'Итого:';
   worksheet.getCell(currentRow, 1).font = { bold: true };
-  worksheet.getCell(currentRow, 2).value = formatCurrency(totalExpense);
+  const totalExpenseCell = worksheet.getCell(currentRow, 2);
+  totalExpenseCell.value = totalExpense;
+  totalExpenseCell.numFmt = NUM_FORMATS.currency;
+  totalExpenseCell.font = { bold: true };
   worksheet.getCell(currentRow, 2).font = { bold: true };
   currentRow++;
 
