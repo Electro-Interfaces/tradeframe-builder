@@ -62,11 +62,14 @@ export function getStationName(stationId: number, stationNameMap: Map<number, st
  * - "****1234" -> "1234"
  * - "1234****5678" -> "5678"
  */
-export function normalizeCardNumber(cardNumber: string | undefined | null): string {
-  if (!cardNumber) return '';
+export function normalizeCardNumber(cardNumber: string | number | undefined | null): string {
+  if (cardNumber == null) return '';
+
+  // Приводим к строке (может прийти число)
+  const cardStr = String(cardNumber);
 
   // Убираем все символы кроме цифр
-  const digitsOnly = cardNumber.replace(/\D/g, '');
+  const digitsOnly = cardStr.replace(/\D/g, '');
 
   // Берём последние 4 цифры
   if (digitsOnly.length >= 4) {
@@ -81,7 +84,7 @@ export function normalizeCardNumber(cardNumber: string | undefined | null): stri
  * Проверка совпадения номеров карт
  * Сравнивает последние 4 цифры
  */
-export function cardNumbersMatch(card1: string | undefined | null, card2: string | undefined | null): boolean {
+export function cardNumbersMatch(card1: string | number | undefined | null, card2: string | number | undefined | null): boolean {
   const normalized1 = normalizeCardNumber(card1);
   const normalized2 = normalizeCardNumber(card2);
 
