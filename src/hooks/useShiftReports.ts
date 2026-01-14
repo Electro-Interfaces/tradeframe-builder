@@ -82,13 +82,8 @@ export function useShiftReports({ tradingPoint, networkId, network, isAllTrading
               system: systemId,
               station: stationNumber,
             };
-
-            if (filters.dateFrom) {
-              requestParams.dt_beg = new Date(filters.dateFrom).toISOString();
-            }
-            if (filters.dateTo) {
-              requestParams.dt_end = new Date(filters.dateTo).toISOString();
-            }
+            // Примечание: dt_beg/dt_end не передаем, т.к. API /v1/shifts их игнорирует
+            // Фильтрация по датам выполняется на клиенте в filteredShifts
 
             try {
               return await shiftReportsV2Service.getShifts(requestParams, tp.name);
@@ -135,19 +130,13 @@ export function useShiftReports({ tradingPoint, networkId, network, isAllTrading
           return;
         }
 
-        // Формируем параметры с датами из фильтров
+        // Формируем параметры запроса
         const requestParams: any = {
           system: systemId,
           station: stationNumber,
         };
-
-        // Добавляем даты в запрос, если они заданы в фильтрах
-        if (filters.dateFrom) {
-          requestParams.dt_beg = new Date(filters.dateFrom).toISOString();
-        }
-        if (filters.dateTo) {
-          requestParams.dt_end = new Date(filters.dateTo).toISOString();
-        }
+        // Примечание: dt_beg/dt_end не передаем, т.к. API /v1/shifts их игнорирует
+        // Фильтрация по датам выполняется на клиенте в filteredShifts
 
         const data = await shiftReportsV2Service.getShifts(
           requestParams,
@@ -165,14 +154,35 @@ export function useShiftReports({ tradingPoint, networkId, network, isAllTrading
     };
 
     loadShifts();
-  }, [tradingPoint, networkId, isAllTradingPoints, filters.dateFrom, filters.dateTo, allowedStationNumbers, systemId]);
+  }, [tradingPoint, networkId, isAllTradingPoints, allowedStationNumbers, systemId]);
+  // Примечание: filters.dateFrom/dateTo убраны из зависимостей, т.к. фильтрация по датам
+  // выполняется на клиенте в filteredShifts, а не на сервере
 
-  // Фильтрация и сортировка смен (даты уже отфильтрованы на сервере)
+  // Фильтрация и сортировка смен
+  // ВАЖНО: API /v1/shifts игнорирует параметры dt_beg/dt_end, поэтому фильтруем на клиенте
   const filteredShifts = useMemo(() => {
     let filtered = shiftReportsV2Service.filterShifts(shifts, {
       status: filters.status !== 'all' ? filters.status : undefined,
       shiftNumber: filters.shiftNumber,
     });
+
+    // Фильтрация по датам (клиентская, т.к. API не поддерживает)
+    if (filters.dateFrom) {
+      const dateFrom = new Date(filters.dateFrom);
+      dateFrom.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(shift => {
+        const shiftDate = new Date(shift.openedAt);
+        return shiftDate >= dateFrom;
+      });
+    }
+    if (filters.dateTo) {
+      const dateTo = new Date(filters.dateTo);
+      dateTo.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(shift => {
+        const shiftDate = new Date(shift.openedAt);
+        return shiftDate <= dateTo;
+      });
+    }
 
     // Фильтрация по разрешенным станциям (RBAC) - дополнительная защита
     if (allowedStationNumbers) {
@@ -190,7 +200,7 @@ export function useShiftReports({ tradingPoint, networkId, network, isAllTrading
     });
 
     return filtered;
-  }, [shifts, filters.status, filters.shiftNumber, allowedStationNumbers]);
+  }, [shifts, filters.status, filters.shiftNumber, filters.dateFrom, filters.dateTo, allowedStationNumbers]);
 
   // Функция обновления данных
   const refresh = () => {

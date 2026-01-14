@@ -39,8 +39,8 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
               </div>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300">{volume.toFixed(0)} л</span>
-              <span className="text-slate-200 font-semibold">{cost.toLocaleString('ru-RU')} ₽</span>
+              <span className="text-slate-300">{volume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</span>
+              <span className="text-slate-200 font-semibold">{cost.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</span>
             </div>
           </div>
         </CardContent>
@@ -69,8 +69,8 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
             </div>
           </div>
           <div className="text-right flex-shrink-0">
-            <div className="text-slate-200 text-sm font-semibold">{volume.toFixed(0)} л</div>
-            <div className="text-slate-200 text-sm font-semibold">{cost.toLocaleString()} ₽</div>
+            <div className="text-slate-200 text-sm font-semibold">{volume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
+            <div className="text-slate-200 text-sm font-semibold">{cost.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
           </div>
         </div>
       </CardContent>

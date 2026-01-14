@@ -39,8 +39,8 @@ const KPIFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, cost, tran
                 </div>
               </div>
               <div className="text-right flex-shrink-0 ml-3">
-                <div className="text-slate-200 text-sm font-semibold">{volume.toFixed(0)} л</div>
-                <div className="text-slate-200 text-sm font-semibold">{cost.toLocaleString()} ₽</div>
+                <div className="text-slate-200 text-sm font-semibold">{volume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
+                <div className="text-slate-200 text-sm font-semibold">{cost.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
               </div>
             </div>
           </div>
@@ -70,8 +70,8 @@ const KPIFuelCard = React.memo(({ fuel, isSelected, isMobile, volume, cost, tran
             </div>
           </div>
           <div className="text-right flex-shrink-0">
-            <div className="text-slate-200 text-sm font-semibold">{volume.toFixed(0)} л</div>
-            <div className="text-slate-200 text-sm font-semibold">{cost.toLocaleString()} ₽</div>
+            <div className="text-slate-200 text-sm font-semibold">{volume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
+            <div className="text-slate-200 text-sm font-semibold">{cost.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
           </div>
         </div>
       </CardContent>
