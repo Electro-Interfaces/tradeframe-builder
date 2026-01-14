@@ -1447,7 +1447,9 @@ class STSApiService {
       case 'mobile_payment':
         return 'online_order';
       default:
-        return 'cash'; // по умолчанию наличные
+        // Возвращаем оригинальное значение для нераспознанных способов оплаты
+        // чтобы они отображались отдельно и были видны в статистике
+        return apiMethod;
     }
   }
 

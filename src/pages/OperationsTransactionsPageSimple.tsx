@@ -227,8 +227,8 @@ export default function OperationsTransactionsPageSimple() {
           actualAmount: parseFloat(rawTx.cost || tx.total || '0'), // Фактический отпуск в рублях
           totalCost: parseFloat(rawTx.cost || tx.total || '0'),
 
-          // Оплата и POS - ИСПРАВЛЕНО согласно реальной структуре API
-          paymentMethod: rawTx.pay_type?.name || tx.paymentMethod || '-',
+          // Оплата и POS - используем трансформированное значение для единообразия с NetworkOverview
+          paymentMethod: tx.paymentMethod || rawTx.pay_type?.name || '-',
           posNumber: rawTx.pos?.toString() || '-', // Номер POS из реального API
           cardNumber: rawTx.card || tx.cardNumber || '-',
 
@@ -421,7 +421,15 @@ export default function OperationsTransactionsPageSimple() {
           'coupon': ['coupon', 'купон', 'купон на сдачу']
         };
 
+        // Все известные значения для определения "Другое"
+        const allKnownValues = Object.values(paymentKeyMapping).flat();
+
         const matchesKpiPayment = Array.from(selectedKpiPayments).some(selectedKey => {
+          if (selectedKey === 'other') {
+            // Для "Другое" - проверяем что метод НЕ входит в известные
+            const method = record.paymentMethod?.toLowerCase();
+            return method && !allKnownValues.includes(method);
+          }
           return paymentKeyMapping[selectedKey]?.includes(record.paymentMethod?.toLowerCase());
         });
 
@@ -1076,25 +1084,59 @@ export default function OperationsTransactionsPageSimple() {
                 <span className="text-xs text-slate-500">выберите один или несколько элементов</span>
               </div>
               <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-3' : 'grid-cols-3 lg:grid-cols-6'}`}>
-                {[
-                  { key: 'cash', values: ['cash', 'наличные'], display: 'Наличные' },
-                  { key: 'bank_card', values: ['bank_card', 'карта', 'сбербанк'], display: 'Банк. карты' },
-                  { key: 'fuel_card', values: ['fuel_card', 'топливная_карта'], display: 'Топл. карты' },
-                  { key: 'corporate_card', values: ['corporate_card', 'кр'], display: 'Корп. карты' },
-                  { key: 'online_order', values: ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата'], display: 'Онлайн' },
-                  { key: 'coupon', values: ['coupon', 'купон', 'купон на сдачу'], display: 'Купон' }
-                ]
-                  .map(({ key, values, display }) => {
-                    const allPaymentOps = operations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
-                    const filteredPaymentOps = filteredOperations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
-                    const filteredRevenue = filteredPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
-                    const filteredVolume = filteredPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                    const isSelected = selectedKpiPayments.has(key);
+                {(() => {
+                  // Известные способы оплаты
+                  const knownPaymentMethods = [
+                    { key: 'cash', values: ['cash', 'наличные'], display: 'Наличные' },
+                    { key: 'bank_card', values: ['bank_card', 'карта', 'сбербанк'], display: 'Банк. карты' },
+                    { key: 'fuel_card', values: ['fuel_card', 'топливная_карта'], display: 'Топл. карты' },
+                    { key: 'corporate_card', values: ['corporate_card', 'кр'], display: 'Корп. карты' },
+                    { key: 'online_order', values: ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата'], display: 'Онлайн' },
+                    { key: 'coupon', values: ['coupon', 'купон', 'купон на сдачу'], display: 'Купон' }
+                  ];
 
-                    return { key, values, display, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected };
-                  })
-                  .filter(item => item.allPaymentOps.length > 0)
-                  .map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected }) => (
+                  // Все известные значения для определения "Другое"
+                  const allKnownValues = knownPaymentMethods.flatMap(m => m.values);
+
+                  // Карточки для известных способов оплаты
+                  const knownCards = knownPaymentMethods
+                    .map(({ key, values, display }) => {
+                      const allPaymentOps = operations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
+                      const filteredPaymentOps = filteredOperations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
+                      const filteredRevenue = filteredPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+                      const filteredVolume = filteredPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
+                      const isSelected = selectedKpiPayments.has(key);
+                      return { key, display, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected };
+                    })
+                    .filter(item => item.allPaymentOps.length > 0);
+
+                  // Карточка "Другое" для нераспознанных способов оплаты
+                  const otherOps = operations.filter(op => {
+                    const method = op.paymentMethod?.toLowerCase();
+                    return method && !allKnownValues.includes(method) && op.status === 'completed';
+                  });
+                  const otherFilteredOps = filteredOperations.filter(op => {
+                    const method = op.paymentMethod?.toLowerCase();
+                    return method && !allKnownValues.includes(method) && op.status === 'completed';
+                  });
+
+                  // Собираем уникальные нераспознанные методы для tooltip
+                  const unknownMethods = [...new Set(otherOps.map(op => op.paymentMethod).filter(Boolean))];
+
+                  // Показываем карточку "Другое" только если есть операции после фильтрации
+                  if (otherFilteredOps.length > 0) {
+                    knownCards.push({
+                      key: 'other',
+                      display: `Другое (${unknownMethods.length})`,
+                      allPaymentOps: otherOps,
+                      filteredPaymentOps: otherFilteredOps,
+                      filteredRevenue: otherFilteredOps.reduce((sum, op) => sum + (op.totalCost || 0), 0),
+                      filteredVolume: otherFilteredOps.reduce((sum, op) => sum + (op.quantity || 0), 0),
+                      isSelected: selectedKpiPayments.has('other')
+                    });
+                  }
+
+                  return knownCards.map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected }) => (
                     <KPIPaymentCard
                       key={key}
                       paymentKey={key}
@@ -1106,7 +1148,8 @@ export default function OperationsTransactionsPageSimple() {
                       transactionCount={filteredPaymentOps.length}
                       onClick={handleKpiPaymentClick}
                     />
-                  ))}
+                  ));
+                })()}
               </div>
             </div>
 
@@ -1165,8 +1208,8 @@ export default function OperationsTransactionsPageSimple() {
                                   </div>
                                 </div>
                                 <div className="text-right flex-shrink-0 ml-2">
-                                  <div className="text-slate-200 text-xs font-semibold">{Math.round(totalVolume).toLocaleString('ru-RU')} л</div>
-                                  <div className="text-slate-200 text-xs font-semibold">{Math.round(totalRevenue).toLocaleString('ru-RU')} ₽</div>
+                                  <div className="text-slate-200 text-xs font-semibold">{totalVolume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
+                                  <div className="text-slate-200 text-xs font-semibold">{totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
                                 </div>
                               </div>
                             </div>
@@ -1180,8 +1223,8 @@ export default function OperationsTransactionsPageSimple() {
                                 </div>
                               </div>
                               <div className="text-right flex-shrink-0">
-                                <div className="text-slate-200 text-sm font-semibold">{Math.round(totalVolume).toLocaleString('ru-RU')} л</div>
-                                <div className="text-slate-200 text-sm font-semibold">{Math.round(totalRevenue).toLocaleString('ru-RU')} ₽</div>
+                                <div className="text-slate-200 text-sm font-semibold">{totalVolume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
+                                <div className="text-slate-200 text-sm font-semibold">{totalRevenue.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
                               </div>
                             </div>
                           )}
