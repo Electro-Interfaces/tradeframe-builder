@@ -7,8 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Fuel, Settings, Loader2, Save, AlertTriangle, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
+import { Fuel, Settings, Loader2, Save, AlertTriangle, Calculator, ChevronDown, ChevronUp, Lock, CheckCircle2, Ban } from 'lucide-react';
 import { useState, useEffect } from 'react';
+
+/**
+ * Порог блокировки отпуска топлива (литры)
+ * При уровне ниже этого значения отпуск топлива должен быть заблокирован
+ */
+const BLOCK_THRESHOLD_LITERS = 800;
 import type { Tank } from '@/types/tanks';
 import type { FuelLevelThresholds, FuelLevelThreshold } from '@/types/tradingpoint';
 import { stsApiService } from '@/services/stsApi';
@@ -95,6 +101,9 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
 
     setThresholdForm(initialForm);
   }, [fuelTypes, thresholds, thresholdForm]);
+
+  // Проверяем есть ли заблокированные резервуары (< 800 литров)
+  const blockedTanks = tanks.filter(tank => tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS);
 
   // Проверяем есть ли критические уровни
   const criticalTanks = tanks.filter(tank => {
@@ -353,6 +362,27 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
         )}
       </div>
 
+      {/* Баннер БЛОКИРОВКИ отпуска топлива (< 800 литров) */}
+      {blockedTanks.length > 0 && (
+        <div className="mb-4 p-3 rounded-lg border-l-4 bg-red-900/30 border-red-600">
+          <div className="flex items-start gap-2">
+            <Ban className="w-5 h-5 flex-shrink-0 text-red-500" />
+            <div>
+              <p className="text-sm font-semibold text-red-200">
+                ВНИМАНИЕ: Отпуск топлива заблокирован для {blockedTanks.length} {blockedTanks.length === 1 ? 'резервуара' : 'резервуаров'} (уровень &lt; 800 л)
+              </p>
+              <ul className="mt-1 text-xs text-red-300">
+                {blockedTanks.map((tank, idx) => (
+                  <li key={idx}>
+                    {tank.name} ({tank.fuelType}): {tank.currentLevelLiters.toLocaleString()} л
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Предупреждающее сообщение */}
       {(criticalTanks.length > 0 || warningTanks.length > 0) && (
         <div className={`mb-4 p-3 rounded-lg border-l-4 ${
@@ -398,12 +428,21 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
               const threshold = thresholds?.thresholds?.find(t => t.fuelType === tank.fuelType);
               const warning = threshold?.levelWarning || 20;
               const critical = threshold?.levelCritical || 10;
+              const isBlocked = tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS;
 
               return (
                 <div
                   key={index}
-                  className={`rounded-lg p-4 border-2 ${getBorderColor(currentPercent, warning, critical)} ${getBgColor(currentPercent, warning, critical)}`}
+                  className={`rounded-lg p-4 border-2 ${isBlocked ? 'border-red-600 bg-red-900/20' : `${getBorderColor(currentPercent, warning, critical)} ${getBgColor(currentPercent, warning, critical)}`}`}
                 >
+                  {/* Баннер блокировки для мобильного вида */}
+                  {isBlocked && (
+                    <div className="mb-3 p-2 rounded bg-red-600/30 border border-red-500 flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-red-400" />
+                      <span className="text-xs font-semibold text-red-200">ОТПУСК ЗАБЛОКИРОВАН</span>
+                    </div>
+                  )}
+
                   {/* Заголовок резервуара */}
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -413,8 +452,21 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                         <div className="text-xs text-slate-400">{tank.fuelType}</div>
                       </div>
                     </div>
-                    <div className={`text-xl font-bold ${getFuelLevelColor(currentPercent, warning, critical)}`}>
-                      {Math.round(currentPercent)}%
+                    <div className="flex flex-col items-end gap-1">
+                      <div className={`text-xl font-bold ${getFuelLevelColor(currentPercent, warning, critical)}`}>
+                        {Math.round(currentPercent)}%
+                      </div>
+                      {isBlocked ? (
+                        <Badge className="bg-red-600 text-white text-[10px] px-1.5 py-0">
+                          <Lock className="w-2.5 h-2.5 mr-0.5" />
+                          Блок
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-green-600 text-white text-[10px] px-1.5 py-0">
+                          <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
+                          Активен
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
@@ -512,6 +564,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                 <th className="text-left pb-2 px-2 text-slate-300 font-medium">Топливо</th>
                 <th className="text-left pb-2 px-2 text-slate-300 font-medium">Объем емкости</th>
                 <th className="text-left pb-2 px-2 text-slate-300 font-medium">Факт</th>
+                <th className="text-center pb-2 px-2 text-slate-300 font-medium">Статус</th>
                 <th className="text-left pb-2 px-2 text-slate-300 font-medium">Заполнение</th>
                 <th className="text-center pb-2 px-2 text-slate-300 font-medium">Порог ⚠️ (%)</th>
                 <th className="text-center pb-2 px-2 text-slate-300 font-medium">Порог 🔴 (%)</th>
@@ -541,9 +594,10 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                 const threshold = thresholds?.thresholds?.find(t => t.fuelType === tank.fuelType);
                 const warning = threshold?.levelWarning || 20;
                 const critical = threshold?.levelCritical || 10;
+                const isBlocked = tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS;
 
                 return (
-                  <tr key={index} className="border-b border-slate-700 hover:bg-slate-700/30">
+                  <tr key={index} className={`border-b border-slate-700 hover:bg-slate-700/30 ${isBlocked ? 'bg-red-900/20' : ''}`}>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-2">
                         <Fuel className="w-4 h-4 text-blue-400" />
@@ -553,6 +607,20 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                     <td className="py-2 px-2 text-slate-300">{tank.fuelType}</td>
                     <td className="py-2 px-2 text-slate-300">{tank.capacityLiters.toLocaleString()} л</td>
                     <td className="py-2 px-2 text-blue-400 font-bold">{tank.currentLevelLiters.toLocaleString()} л</td>
+                    {/* Колонка статуса */}
+                    <td className="py-2 px-2 text-center">
+                      {isBlocked ? (
+                        <Badge className="bg-red-600 text-white hover:bg-red-700 text-xs">
+                          <Lock className="w-3 h-3 mr-1" />
+                          Блокировка
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-green-600 text-white hover:bg-green-700 text-xs">
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Активен
+                        </Badge>
+                      )}
+                    </td>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-3">
                         <div className="flex-1 bg-slate-600 rounded-full h-2 min-w-[60px]">

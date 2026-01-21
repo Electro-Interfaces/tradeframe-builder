@@ -177,6 +177,42 @@ ${emoji} <b>${levelText}</b>
   }
 
   /**
+   * Отправка уведомления о БЛОКИРОВКЕ отпуска топлива (уровень < 800 л)
+   */
+  async sendFuelBlockAlert(options) {
+    const {
+      chatId,
+      stationName,
+      tankNumber,
+      fuelType,
+      currentPercent,
+      currentVolume,
+      maxVolume,
+      blockThreshold
+    } = options;
+
+    const text = `
+🚫 <b>БЛОКИРОВКА ОТПУСКА ТОПЛИВА</b>
+
+📍 <b>АЗС:</b> ${stationName}
+⛽ <b>Резервуар:</b> №${tankNumber} (${fuelType})
+📊 <b>Уровень:</b> ${currentVolume.toLocaleString('ru-RU')} л (${currentPercent.toFixed(1)}%)
+⚠️ <b>Порог блокировки:</b> ${blockThreshold} л
+
+<b>Отпуск данного вида топлива заблокирован</b> до поступления следующей партии нефтепродуктов.
+
+<i>Автоматическое уведомление TradeFrame Builder</i>
+    `.trim();
+
+    return this.sendMessage({
+      chatId,
+      text,
+      parseMode: 'HTML',
+      disableNotification: false // Всегда со звуком - критическое уведомление
+    });
+  }
+
+  /**
    * Отправить уведомление о проблемах с работой терминала
    */
   async sendTerminalOfflineAlert(options) {

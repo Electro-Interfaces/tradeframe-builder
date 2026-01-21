@@ -13,6 +13,12 @@ const STS_API_URL = process.env.STS_API_URL;
 const STS_API_USERNAME = process.env.STS_API_USERNAME;
 const STS_API_PASSWORD = process.env.STS_API_PASSWORD;
 
+/**
+ * Порог блокировки отпуска топлива (литры)
+ * При уровне ниже этого значения отпуск топлива должен быть заблокирован
+ */
+const BLOCK_THRESHOLD_LITERS = 800;
+
 class NotificationEngine {
   constructor() {
     this.supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -681,6 +687,17 @@ class NotificationEngine {
             totalBank: notification.context.totalBank,
             stations: notification.context.stations
           });
+        } else if (notification.type === 'fuel_block_threshold') {
+          deliveryResult = await telegramService.sendFuelBlockAlert({
+            chatId: recipient.settings.telegram_chat_id,
+            stationName: notification.context.stationName,
+            tankNumber: notification.context.tankNumber,
+            fuelType: notification.context.fuelType,
+            currentPercent: notification.context.currentPercent,
+            currentVolume: notification.context.currentVolume,
+            maxVolume: notification.context.maxVolume,
+            blockThreshold: notification.context.blockThreshold
+          });
         }
       }
 
@@ -809,7 +826,25 @@ class NotificationEngine {
         continue;
       }
 
-      // Определяем какие уровни проверять
+      // ✅ ПРОВЕРКА ПОРОГА БЛОКИРОВКИ (800 литров) - абсолютный порог
+      // Если уровень ниже 800л - отправляем критическое уведомление о блокировке
+      if (station.current_volume < BLOCK_THRESHOLD_LITERS) {
+        const shouldNotifyBlock = await this.shouldSendNotification(rule, 'fuel_block_threshold', {
+          stationCode: station.station_code,
+          tankNumber: station.tank_number
+        });
+
+        if (shouldNotifyBlock) {
+          const blockNotification = await this.createFuelBlockNotification(rule, station);
+          if (blockNotification) {
+            notificationsSent.push(blockNotification);
+          }
+        }
+        // Блокировка - более критична чем процентные пороги, пропускаем остальные проверки
+        continue;
+      }
+
+      // Определяем какие уровни проверять (процентные пороги)
       const levelsToCheck = warningLevel === 'both' ? ['warning', 'critical'] : [warningLevel];
 
       for (const level of levelsToCheck) {
@@ -920,6 +955,55 @@ class NotificationEngine {
       return data;
     } catch (error) {
       console.error('❌ Ошибка создания уведомления о низком уровне топлива:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Создать уведомление о БЛОКИРОВКЕ отпуска топлива (уровень < 800 л)
+   * Приоритет: critical
+   */
+  async createFuelBlockNotification(rule, station) {
+    try {
+      const tenantId = station.tenant_id || rule.tenant_id;
+
+      const notification = {
+        tenant_id: tenantId,
+        rule_id: rule.id,
+        type: 'fuel_block_threshold',
+        title: `🚫 БЛОКИРОВКА ОТПУСКА: ${station.station_name}`,
+        message: `Резервуар №${station.tank_number} (${station.fuel_type}): уровень ${station.current_volume.toLocaleString('ru-RU')} л (${station.current_percent.toFixed(1)}%). Отпуск топлива заблокирован (порог блокировки: ${BLOCK_THRESHOLD_LITERS} л).`,
+        priority: 'critical',
+        context: {
+          stationCode: station.station_code,
+          stationName: station.station_name,
+          tankNumber: station.tank_number,
+          fuelType: station.fuel_type,
+          currentPercent: station.current_percent,
+          currentVolume: station.current_volume,
+          maxVolume: station.max_volume,
+          blockThreshold: BLOCK_THRESHOLD_LITERS,
+          level: 'block'
+        },
+        status: 'pending',
+        channels: ['telegram']
+      };
+
+      const { data, error } = await this.supabase
+        .from('notifications')
+        .insert(notification)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      await this.sendNotification(data, rule);
+
+      return data;
+    } catch (error) {
+      console.error('❌ Ошибка создания уведомления о блокировке отпуска топлива:', error);
       return null;
     }
   }

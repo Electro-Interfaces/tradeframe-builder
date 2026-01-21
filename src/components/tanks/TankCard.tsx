@@ -7,7 +7,13 @@ import { memo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Thermometer, Gauge, Droplets, Fuel, LineChart, Settings } from "lucide-react";
+import { Thermometer, Gauge, Droplets, Fuel, LineChart, Settings, Lock } from "lucide-react";
+
+/**
+ * Порог блокировки отпуска топлива (литры)
+ * При уровне ниже этого значения отпуск топлива должен быть заблокирован
+ */
+const BLOCK_THRESHOLD_LITERS = 800;
 import { TankProgressIndicator } from "./TankProgressIndicator";
 import { TankAnalysisDialog } from "./TankAnalysisDialog";
 import { TankCalibrationDialog } from "./TankCalibrationDialog";
@@ -43,9 +49,10 @@ const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardP
   const percentage = getPercentage(currentLevel, capacity);
   const freeSpace = capacity - currentLevel;
   const tankStatus = getTankStatus(percentage, tank.minLevelPercent || 20, tank.criticalLevelPercent || 10);
+  const isBlocked = currentLevel < BLOCK_THRESHOLD_LITERS;
 
   return (
-    <Card className="bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-600/50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
+    <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm ${isBlocked ? 'border-2 border-red-500 ring-2 ring-red-500/30' : 'border border-slate-600/50'}`}>
       <CardHeader className={isMobile ? 'pb-3 px-3 pt-3' : 'pb-4'}>
         {/* Кнопки действий - доступны пользователям с правами управления резервуарами */}
         {canManageTanks && (
@@ -73,28 +80,45 @@ const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardP
           </div>
         )}
 
+        {/* Баннер блокировки отпуска */}
+        {isBlocked && (
+          <div className={`flex items-center gap-2 bg-red-900/40 border border-red-500/50 rounded-lg mb-3 ${isMobile ? 'p-2' : 'p-3'}`}>
+            <Lock className={`text-red-400 flex-shrink-0 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <div className="min-w-0 flex-1">
+              <span className={`text-red-400 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                ОТПУСК ЗАБЛОКИРОВАН
+              </span>
+              <p className={`text-red-300/80 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                Уровень {currentLevel.toLocaleString()} л &lt; 800 л
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Заголовок резервуара */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-3 h-8 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-md flex-shrink-0"></div>
+            <div className={`w-3 h-8 rounded-full shadow-md flex-shrink-0 ${isBlocked ? 'bg-gradient-to-b from-red-400 to-red-600' : 'bg-gradient-to-b from-blue-400 to-blue-600'}`}></div>
             <div className="min-w-0 flex-1">
               <CardTitle className={`text-white font-bold truncate ${isMobile ? 'text-base' : 'text-lg'}`}>
                 {tank.name}
               </CardTitle>
               <p
                 className={`font-semibold truncate ${isMobile ? 'text-xs' : 'text-sm'} ${
-                  tankStatus === 'normal'
+                  isBlocked
+                    ? 'text-red-400'
+                    : tankStatus === 'normal'
                     ? 'text-green-400'
                     : tankStatus === 'warning'
                     ? 'text-yellow-400'
                     : 'text-red-400'
                 }`}
               >
-                {tankStatus === 'normal' ? 'Активно' : tankStatus === 'warning' ? 'Низкий' : 'Критично'}
+                {isBlocked ? '🔒 Блокировка' : tankStatus === 'normal' ? 'Активно' : tankStatus === 'warning' ? 'Низкий' : 'Критично'}
               </p>
             </div>
           </div>
-          <Badge className={`font-bold rounded-lg shadow-md bg-gradient-to-r from-slate-600 to-slate-700 text-white border border-slate-500/50 shadow-slate-500/25 transition-all flex-shrink-0 whitespace-nowrap ${isMobile ? 'px-2 py-1 text-xs' : 'px-4 py-2 text-sm'}`}>
+          <Badge className={`font-bold rounded-lg shadow-md ${isBlocked ? 'bg-gradient-to-r from-red-600 to-red-700 border-red-500/50' : 'bg-gradient-to-r from-slate-600 to-slate-700 border-slate-500/50'} text-white border shadow-slate-500/25 transition-all flex-shrink-0 whitespace-nowrap ${isMobile ? 'px-2 py-1 text-xs' : 'px-4 py-2 text-sm'}`}>
             {tank.fuelType}
           </Badge>
         </div>

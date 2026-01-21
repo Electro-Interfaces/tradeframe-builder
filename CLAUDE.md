@@ -679,9 +679,246 @@ gh run list --repo Electro-Interfaces/TradeControl --limit 3
 - **Backend Proxy обязателен**: Для работы системы уведомлений и STS API необходим запущенный `server/index.js`
 - **RLS политики Supabase**: Backend использует SERVICE_KEY для обхода RLS, frontend использует ANON_KEY с JWT токенами пользователей
 
+## 📋 YouTrack - Управление задачами
+
+Проект использует **YouTrack** для управления задачами и отслеживания прогресса.
+
+**URL:** https://mag.youtrack.cloud/
+**MCP:** Официальный YouTrack Remote MCP (JetBrains) — основной способ работы
+**REST API:** https://mag.youtrack.cloud/api — для операций, не поддерживаемых MCP
+**Token:** Permanent Token (Bearer auth)
+
+> **⚠️ ВАЖНО ДЛЯ CLAUDE:** MCP YouTrack НЕ поддерживает управление досками и спринтами!
+> Для работы с досками, спринтами, добавления задач на доску — **ВСЕГДА используй REST API через curl**.
+> Не пытайся искать MCP инструменты для этих операций — их нет. Сразу используй curl.
+> Токен для REST API находится в `~/.claude.json` → `mcpServers.youtrack.headers.Authorization`.
+
+### 🎯 Проект для этого репозитория
+
+> **ВАЖНО:** Этот репозиторий (TF-project / TradeFrame Builder) использует проект **TradeFrame (TF)** в YouTrack.
+> - Код проекта: **TF**
+> - Задачи: **TF-XXX** (например, TF-123)
+> - Доска: **TradeFrame Builder**
+> - Задач в проекте: ~34
+
+### Структура проектов YouTrack
+
+```
+YouTrack (mag.youtrack.cloud)
+│
+├── TradeFrame (TF) ✅           — ЭТОТ ПРОЕКТ (34 задачи)
+│   └── Доска: TradeFrame Builder (147-35, спринт 148-47)
+│
+├── TradeCorp (TC)               — Корпоративный модуль
+│   └── Доска: TradeCorp (147-36, спринт 148-48)
+│
+├── TradeGate (TG)               — Шлюз, интеграции
+│   └── Доска: TradeGate (147-37)
+│
+├── TradeBonus (TB)              — Бонусная система
+│   └── Доска: TradeBonus (147-38)
+│
+├── TradeSuite (TS)              — Зонтичный проект (общие задачи)
+│   └── Доска: TradeSuite Main (147-26)
+│
+├── Бизнес (BIZ)                 — Бизнес-задачи
+│   └── Доска: Бизнес (147-31)
+│
+├── SQL Процессинг (SP)          — Доска: SQL Процессинг (147-29)
+├── Автооплата (AO)              — Доска: Автооплата Разработка (147-10)
+├── Агрегатор (POS)              — Доска: Агрегатор (147-12)
+└── ОФ ПТК (OF)                  — Доска: ОФ ПТК (147-16)
+```
+
+### Доступ через MCP
+
+Официальный YouTrack Remote MCP (JetBrains) настроен глобально в `~/.claude.json`.
+
+| Операция | Инструмент |
+|----------|------------|
+| Просмотр задач | `youtrack_search_issues`, `youtrack_get_issue` |
+| Обновление задач | `youtrack_update_issue` |
+| Поиск по критериям | `youtrack_find_issues_by_criteria` |
+| Доски и спринты | `youtrack_list_boards`, `youtrack_find_sprints` |
+| Проекты | `youtrack_list_projects`, `youtrack_find_projects_by_name` |
+| Статьи | `youtrack_list_articles`, `youtrack_get_article` |
+
+### REST API для расширенных операций
+
+**⚠️ ВАЖНО:** MCP не поддерживает управление досками, спринтами и добавление задач на доску.
+**ВСЕГДА используй REST API через curl для этих операций!**
+
+#### Авторизация
+
+Токен хранится в `~/.claude.json` в секции `mcpServers.youtrack.headers.Authorization`:
+
+```bash
+# Получить токен из конфига
+TOKEN=$(cat ~/.claude.json | grep -A3 '"youtrack"' | grep 'Bearer' | sed 's/.*Bearer //' | sed 's/".*//')
+
+# Или использовать напрямую:
+TOKEN="perm:0JzQkNCT.NjEtMg==.k7kcK9PlqWzhHbVwW1aQxofvw2LIl8"
+
+# Базовый URL
+BASE_URL="https://mag.youtrack.cloud/api"
+```
+
+#### Работа с досками (Agile)
+
+```bash
+# Список всех досок
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "$BASE_URL/agiles?fields=id,name,projects(shortName)"
+
+# Детали доски (включая спринты и колонки)
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "$BASE_URL/agiles/{AGILE_ID}?fields=id,name,sprints(id,name,issues(idReadable)),columnSettings(columns(presentation))"
+
+# Удалить доску
+curl -s -X DELETE -H "Authorization: Bearer $TOKEN" \
+  "$BASE_URL/agiles/{AGILE_ID}"
+```
+
+#### Добавление задач на доску (в спринт)
+
+**⚠️ КРИТИЧНО:** Задачи НЕ появляются на доске автоматически! Их нужно добавить в спринт.
+
+```bash
+# 1. Получить ID задач проекта
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "$BASE_URL/issues?query=project:TF&fields=id,idReadable"
+
+# 2. Добавить задачу в спринт (одну)
+curl -s -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"2-728"}' \
+  "$BASE_URL/agiles/{AGILE_ID}/sprints/{SPRINT_ID}/issues"
+
+# 3. Добавить несколько задач (цикл)
+for ID in 2-728 2-726 2-724; do
+  curl -s -X POST \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"id\":\"$ID\"}" \
+    "$BASE_URL/agiles/{AGILE_ID}/sprints/{SPRINT_ID}/issues"
+done
+
+# 4. Проверить задачи в спринте
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "$BASE_URL/agiles/{AGILE_ID}/sprints/{SPRINT_ID}?fields=name,issues(idReadable)"
+```
+
+#### Актуальные ID досок и спринтов
+
+| Проект | Доска ID | Спринт ID | Название |
+|--------|----------|-----------|----------|
+| TF | 147-35 | 148-47 | TradeFrame Builder |
+| TC | 147-36 | 148-48 | TradeCorp |
+| TG | 147-37 | — | TradeGate |
+| TB | 147-38 | — | TradeBonus |
+| TS | 147-26 | — | TradeSuite Main |
+| BIZ | 147-31 | — | Бизнес |
+
+#### Создание проектов и досок
+
+```bash
+# Создание проекта
+curl -s -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Название","shortName":"CODE","leader":{"id":"1-1"}}' \
+  "$BASE_URL/admin/projects"
+
+# Создание доски
+curl -s -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Название доски","projects":[{"id":"PROJECT_ID"}]}' \
+  "$BASE_URL/agiles"
+```
+
+### Полезные запросы
+
+```bash
+# Нерешённые задачи TradeFrame (ЭТОТ ПРОЕКТ)
+project: TF #Unresolved
+
+# Мои задачи в работе
+project: TF assignee: me State: {In Progress}
+
+# Все задачи проекта
+project: TF
+
+# Задачи TradeSuite (зонтичный проект)
+project: TS #Unresolved
+
+# Задачи проекта Бизнес
+project: BIZ #Unresolved
+```
+
+### 🔄 Схема работы с задачами
+
+```
+┌─────────────────────────────────────────────────────┐
+│  1. ВЫБОР ЗАДАЧИ                                    │
+│     "мои задачи" / "открытые задачи"                │
+└─────────────────────┬───────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│  2. ВЗЯТИЕ В РАБОТУ                                 │
+│     "работаю над TF-XXX"                            │
+│     → Claude читает задачу, предлагает план         │
+│     → Статус → In Progress                          │
+└─────────────────────┬───────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│  3. РАЗРАБОТКА                                      │
+│     → Коммиты: feat(TF-XXX): описание               │
+└─────────────────────┬───────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│  4. ЗАВЕРШЕНИЕ                                      │
+│     "задача готова" → комментарий + статус Done     │
+└─────────────────────────────────────────────────────┘
+```
+
+### Workflow при работе с задачами
+
+1. **Взятие задачи:** "работаю над TF-XXX" → Claude читает задачу и предлагает план
+2. **Разработка:** Claude помогает с реализацией, следуя шаблонам проекта
+3. **Коммит:** Формат `тип(TF-XXX): описание на русском`
+4. **Завершение:** "задача готова" → обновление статуса
+
+### Формат коммитов с задачами
+
+```bash
+feat(TF-48): добавлен мониторинг операций онлайн
+fix(TF-64): исправлено отображение списка карт
+refactor(TF-30): переход на V2 API транзакций
+docs(TF-13): обновлена инструкция пользователя
+```
+
+### Статусы задач
+
+| Статус | Описание |
+|--------|----------|
+| **Open** | Новая задача |
+| **Подготовка** | Анализ требований |
+| **In Progress** | Активная разработка |
+| **To Verify** | Тестирование |
+| **Done** | Выполнено |
+
+📖 **План реорганизации:** `~/.claude/plans/tender-cooking-orbit.md`
+
 ## Рабочий язык
 
-**ОБЯЗАТЕЛЬНО**: Все взаимодействие с агентами Claude Code ведется на **русском языке**. Планы, отчеты, комментарии, коммиты - все на русском.
+**ОБЯЗАТЕЛЬНО**: Все взаимодействие с агентами Claude Code ведется на **русском языке**:
+- Планы и отчёты — на русском
+- Комментарии в коде — на русском (где уместно)
+- Git коммиты — на русском
+- Описания задач YouTrack — на русском
+- Документация — на русском
 
 ## 📱 PWA (Progressive Web App)
 
