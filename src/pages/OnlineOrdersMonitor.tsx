@@ -703,26 +703,29 @@ export default function OnlineOrdersMonitor() {
                         {order.price.toFixed(2)} ₽/л
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="text-gray-400">
-                        <span>Заказ: {order.orderVolume.toFixed(2)} л</span>
-                        {order.volume > 0 && (
-                          <span className="ml-2">→ Факт: {order.volume.toFixed(2)} л</span>
-                        )}
-                      </div>
-                      <div className="text-right">
+                    <div className="text-sm space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Заказ: {order.orderVolume.toFixed(2)} л</span>
                         <span className="font-medium text-amber-400">
                           {onlineOrdersService.formatCurrency(order.orderTotal)}
                         </span>
-                        {order.total > 0 && (
-                          <span className="ml-1 font-medium text-green-400">
-                            → {onlineOrdersService.formatCurrency(order.total)}
-                          </span>
-                        )}
                       </div>
+                      {order.volume > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-400">Факт: {order.volume.toFixed(2)} л</span>
+                          <span className="font-medium text-green-400">
+                            {onlineOrdersService.formatCurrency(order.total)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
+                {filteredOrders.length > 50 && (
+                  <div className="p-3 text-center text-xs text-gray-500">
+                    Показано 50 из {filteredOrders.length}
+                  </div>
+                )}
               </div>
             ) : (
               // Десктопное представление - таблица

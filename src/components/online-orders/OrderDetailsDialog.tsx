@@ -241,7 +241,7 @@ export function OrderDetailsDialog({
 
   return (
     <Dialog open={!!order} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] bg-slate-900 border-slate-700 overflow-hidden">
+      <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] bg-slate-900 border-slate-700 overflow-hidden p-4 sm:p-6">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-white flex items-center gap-2">
