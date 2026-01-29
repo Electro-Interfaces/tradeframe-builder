@@ -1,38 +1,259 @@
-# Repository Guidelines
+# Repository Guidelines for AI Agents
 
-## Project Structure & Module Organization
-- `src/` contains the Vite + React TypeScript client; key subfolders include `components` for reusable UI blocks, `pages` for routed views, `hooks` for shared state, and `utils` for cross-cutting helpers.
-- `server/` runs the Express services and scheduled scripts; keep route logic under `server/routes` and isolate integrations in `server/services`.
-- `scripts/` holds Node and shell automation, including version sync and multi-agent orchestration.
-- Data assets and schema changes live in `database/`, `migrations/`, and `supabase/`; treat these as the single source of truth for production data shape.
-- Documentation and static assets reside in `docs/` and `public/`; update them whenever user-facing behaviour shifts.
+## Project Overview
+**TradeFrame Builder** — платформа управления торговыми сетями АЗС.
+- **Frontend:** Vite + React 18 + TypeScript
+- **Backend:** Express.js (server/)
+- **Database:** Supabase (PostgreSQL)
+- **UI:** Tailwind CSS + shadcn/ui (Radix)
 
-## Build, Test & Development Commands
-- `npm run dev` starts the Vite dev server with hot reload.
-- `npm run build` generates the GitHub Pages bundle; use `npm run build:prod` for production-mode builds and `build:dev` for staging profiles.
-- `npm run preview` serves the latest build locally.
-- `npm run lint`, `npm run lint:fix`, and `npm run type-check` enforce ESLint and TypeScript standards.
-- Backend utilities live under `server/`; run `npm install && npm run start` there when working on Express routes, and rely on PM2 via `npm run start:prod` when you need the long-running setup.
+## Project Structure
+```
+src/
+├── components/     # UI компоненты (PascalCase.tsx)
+├── pages/          # Роутинговые страницы
+├── hooks/          # React хуки (use*.ts)
+├── services/       # API и бизнес-логика (*Service.ts)
+├── contexts/       # React контексты (*Context.tsx)
+├── types/          # TypeScript типы (*.ts)
+├── config/         # Конфигурация
+└── utils/          # Утилиты (camelCase.ts)
 
-## Coding Style & Naming Conventions
-- Follow `.editorconfig` defaults: UTF-8, LF endings, 2-space indentation for web files.
-- React components are PascalCase (`FuelGaugePanel.tsx`), hooks start with `use`, utilities stay camelCase, and TypeScript types/interfaces use PascalCase with the `Props` or `Dto` suffix where relevant.
-- Tailwind utility classes should stay declarative; shared design tokens live in `styles/` and `src/config/theme`.
-- Run `npm run lint:fix` before submitting to keep ESLint, react-hooks, and Tailwind ordering rules consistent.
+server/
+├── routes/         # Express роуты (*.js)
+├── services/       # Backend сервисы
+└── index.js        # Entry point
+```
 
-## Testing Guidelines
-- No automated test runner ships with the repo yet (`npm test` is a placeholder); add new tests with Vitest or Playwright and place them under `src/__tests__` or alongside components as `*.test.tsx`.
-- Prefer descriptive test names aligned with user journeys (e.g., `renders fuel trend chart for active station`).
-- When adding backend scripts, provide reproducible checks in `server/test-*.js` style and document manual verification steps in the related PR.
+## Build, Lint & Test Commands
 
-## Commit & Pull Request Guidelines
-- Follow Conventional Commits with scopes drawn from domain areas (`feat(tanks): …`, `fix(notifications): …`); keep the subject in the imperative mood.
-- Group related changes per commit and keep messages bilingual only when necessary—English summaries help reviewers outside the core team.
-- Pull requests need a short summary, linked issue or task ID, screenshots or GIFs for UI changes, and notes on data migrations or manual steps.
-- Ensure linting and type-checks pass locally; mention any intentionally skipped validations in the PR description.
+### Development
+```bash
+npm run dev              # Vite dev server (localhost:3000)
+npm run dev:host         # Dev с внешним доступом
+```
 
-## Agent Workflow Notes
-- Multi-agent pipelines use the provided scripts: `npm run agent1:setup`, `npm run agent2:migrate`, and `npm run agent3:api`. Compose them with `npm run agents:run` when orchestrating full deployments.
-- Keep agent scripts idempotent; store configuration overrides in `.env` or scoped `.env.<mode>` files and avoid hardcoding secrets.
-- Все внешние сообщения и ответы для команды оформляйте по-русски, включая логи и уведомления.
-- When extending agent behaviour, mirror the existing script structure and add usage notes to `docs/` for future operators.
+### Build
+```bash
+npm run build            # GitHub Pages (test environment)
+npm run build:prod       # Production build
+npm run build:dev        # Development build
+```
+
+### Linting & Type Checking
+```bash
+npm run lint             # ESLint проверка
+npm run lint:fix         # ESLint с автофиксом
+npm run type-check       # TypeScript проверка (tsc --noEmit)
+```
+
+### Testing
+```bash
+npm test                 # Placeholder (тесты не настроены)
+# Будущие тесты: Vitest для unit, Playwright для e2e
+# Размещение: src/__tests__/*.test.tsx или рядом с компонентами
+```
+
+### Backend (server/)
+```bash
+cd server && npm install && npm start   # Запуск Express
+npm run start:prod                       # PM2 production
+```
+
+## Code Style Guidelines
+
+### EditorConfig
+- **Indent:** 2 spaces (JS/TS/JSON/CSS), 4 spaces (Python)
+- **Line endings:** LF
+- **Charset:** UTF-8
+- **Trailing whitespace:** trim (кроме .md)
+- **Final newline:** yes
+
+### Naming Conventions
+| Type | Convention | Example |
+|------|------------|---------|
+| React компоненты | PascalCase | `TankCard.tsx` |
+| Хуки | use* camelCase | `useTanks.ts` |
+| Сервисы | *Service camelCase | `tanksService.ts` |
+| Утилиты | camelCase | `formatDate.ts` |
+| Types/Interfaces | PascalCase | `Tank`, `TankProps` |
+| Constants | UPPER_SNAKE | `CACHE_TTL`, `API_URL` |
+| CSS classes | kebab-case (Tailwind) | `text-slate-400` |
+
+### Import Order (группировать с пустой строкой между)
+```typescript
+// 1. React/external libraries
+import { useState, useEffect, memo, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
+// 2. Internal aliases (@/)
+import { Button } from '@/components/ui/button';
+import { tanksService } from '@/services/tanksService';
+import type { Tank } from '@/types/tanks';
+
+// 3. Relative imports
+import { LocalComponent } from './LocalComponent';
+```
+
+### TypeScript Patterns
+```typescript
+// Интерфейсы для props
+interface UseTanksOptions {
+  networkId?: string;
+  tradingPointId?: string;
+  autoLoad?: boolean;
+}
+
+// Явные return types для публичных функций
+async function getTanks(id: string): Promise<Tank[]> { ... }
+
+// Type imports отдельно
+import type { Tank, TankEvent } from '@/types/tanks';
+
+// Избегать any, но проект допускает (noImplicitAny: false)
+// Предпочитать unknown + type guards
+```
+
+### React Patterns
+```typescript
+// Мемоизация для производительности
+const TanksList = memo(({ tanks }: Props) => ( ... ));
+
+// Хуки с options object
+export function useTanks(options: UseTanksOptions = {}): UseTanksReturn {
+  const { networkId, autoLoad = true } = options;
+  // ...
+}
+
+// Параллельные запросы вместо последовательных
+const [network, point] = await Promise.all([
+  networksService.getById(networkId),
+  tradingPointsService.getById(pointId)
+]);
+```
+
+### Error Handling
+```typescript
+// Frontend: try-catch + toast уведомления
+try {
+  const data = await tanksService.getTanks(networkId, tradingPointId);
+  setTanks(data);
+} catch (err) {
+  const error = err instanceof Error ? err : new Error('Неизвестная ошибка');
+  setError(error);
+  toast({ title: 'Ошибка', description: error.message, variant: 'destructive' });
+}
+
+// Backend: конкретные сообщения об ошибках
+if (!STS_API_URL || !STS_API_USERNAME) {
+  throw new Error('Missing required STS API environment variables');
+}
+```
+
+### Service Class Pattern
+```typescript
+/**
+ * Сервис для работы с резервуарами
+ * JSDoc комментарии на русском
+ */
+class TanksService {
+  /**
+   * Получить резервуары через Backend Proxy
+   */
+  async getTanks(networkId: string, tradingPointId: string): Promise<Tank[]> {
+    // Валидация параметров
+    if (!networkId || !tradingPointId) {
+      throw new Error('Не указаны сеть или торговая точка');
+    }
+    // ...
+  }
+}
+
+export const tanksService = new TanksService();
+```
+
+## Commit Guidelines (Conventional Commits)
+```bash
+feat(tanks): добавить калибровку резервуаров
+fix(notifications): исправить дублирование уведомлений
+refactor(auth): упростить проверку прав
+docs: обновить README
+chore: обновить зависимости
+```
+
+**Scopes:** tanks, auth, notifications, prices, shifts, equipment, api, ui
+
+## Environment Variables
+- `VITE_*` — доступны в браузере
+- Без префикса — только backend (server/)
+- Секреты НЕ коммитить, использовать `.env.local`
+
+## Agent-Specific Notes
+- **Язык:** Комментарии, сообщения, коммиты — на русском
+- **Lint перед коммитом:** `npm run lint:fix && npm run type-check`
+- **API:** Все запросы через Backend Proxy (server/routes/sts.js)
+- **Кэширование:** NodeCache на backend, React Query на frontend
+- **PWA:** Service Worker отключен в dev mode
+
+## Строгие запреты
+
+### Код
+- **НЕ добавлять `console.log()`, `console.info()`, `console.warn()`** в код
+- Отладочные выводы только по явному запросу пользователя
+- После отладки — удалять все console.*
+
+### Серверы и терминалы
+- **Запускать серверы по запросу пользователя** в фоновом режиме
+- Порядок запуска: СНАЧАЛА backend (3001), ПОТОМ frontend (3000)
+- Использовать `start /B` для фонового запуска без новых окон
+
+### Архитектура (два сервера)
+```
+Backend (порт 3001)  →  cd server && node index.js
+Frontend (порт 3000) →  npm run dev
+
+Порядок: СНАЧАЛА backend, ПОТОМ frontend
+```
+- Frontend проксирует `/api/*` на backend через Vite proxy
+- Без backend — ошибки 500 на всех API запросах
+
+### Запуск серверов (команды для агента)
+
+**1. Запуск backend (порт 3001):**
+```powershell
+powershell -Command "Start-Process -NoNewWindow -FilePath 'node' -ArgumentList 'index.js' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TF-project\server'"
+```
+
+**2. Запуск frontend (порт 3000):**
+```powershell
+powershell -Command "Start-Process -NoNewWindow -FilePath 'cmd' -ArgumentList '/c','npm run dev' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TF-project'"
+```
+
+**3. Проверка портов:**
+```powershell
+powershell -Command "Get-NetTCPConnection -LocalPort 3000,3001 -ErrorAction SilentlyContinue | Select-Object LocalPort,State,OwningProcess"
+```
+
+**4. После запуска — вывести кликабельные ссылки:**
+```markdown
+- **Frontend:** [http://localhost:3000](http://localhost:3000)
+- **Backend API:** [http://localhost:3001](http://localhost:3001)
+```
+
+### Перезапуск серверов с очисткой кэша
+
+**1. Остановить процессы на портах:**
+```powershell
+powershell -Command "Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"
+powershell -Command "Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"
+```
+
+**2. Очистить кэш Vite:**
+```bash
+rm -rf node_modules/.vite
+```
+(Backend NodeCache сбрасывается при рестарте автоматически)
+
+**3. Запустить серверы заново** (команды выше)
+
+**4. Вывести ссылки** (см. выше)

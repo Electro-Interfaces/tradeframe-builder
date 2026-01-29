@@ -11,7 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { extractStationNumber } from "@/utils/tradingPointUtils";
 import { getSystemId } from "@/config/stsConfig";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, FileCheck, Receipt, Construction, CreditCard, Loader2 } from "lucide-react";
+import { LayoutDashboard, FileCheck, Receipt, Construction, CreditCard, Loader2, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -37,8 +37,12 @@ import ShiftDetailsModal from "@/components/shift-reports/ShiftDetailsModal";
 import ReceiptsModal from "@/components/shift-reports/ReceiptsModal";
 import { ReconciliationParamsModal } from "@/components/reconciliation/ReconciliationParamsModal";
 import { ReconciliationResults } from "@/components/reconciliation/ReconciliationResults";
+import { MSTOReconciliationParamsModal } from "@/components/reconciliation/MSTOReconciliationParamsModal";
+import { MSTOReconciliationResults } from "@/components/reconciliation/MSTOReconciliationResults";
 import { executeReconciliation } from "@/services/reconciliation";
+import { executeMstoReconciliation } from "@/services/mstoReconciliation";
 import type { ReconciliationParams, ReconciliationResult } from "@/types/reconciliation";
+import type { MSTOReconciliationParams, MSTOReconciliationResult } from "@/types/mstoReconciliation";
 
 export default function ShiftReportsV2() {
   const navigate = useNavigate();
@@ -55,6 +59,12 @@ export default function ShiftReportsV2() {
   const [isCorpCardsLoading, setIsCorpCardsLoading] = useState(false);
   const [corpCardsResult, setCorpCardsResult] = useState<ReconciliationResult | null>(null);
   const [isCorpCardsResultOpen, setIsCorpCardsResultOpen] = useState(false);
+
+  // Состояния для сверки MSTO онлайн-заказов
+  const [isMstoParamsOpen, setIsMstoParamsOpen] = useState(false);
+  const [isMstoLoading, setIsMstoLoading] = useState(false);
+  const [mstoResult, setMstoResult] = useState<MSTOReconciliationResult | null>(null);
+  const [isMstoResultOpen, setIsMstoResultOpen] = useState(false);
 
   // Загрузка объекта торговой точки (только если выбрана конкретная точка)
   const { tradingPoint } = useTradingPoint({
@@ -123,6 +133,46 @@ export default function ShiftReportsV2() {
     setCorpCardsResult(null);
     setIsCorpCardsResultOpen(false);
     setIsCorpCardsParamsOpen(true);
+  };
+
+  // Обработчик запуска сверки MSTO онлайн-заказов
+  const handleMstoReconciliation = async (params: MSTOReconciliationParams) => {
+    setIsMstoLoading(true);
+    try {
+      const result = await executeMstoReconciliation(params);
+      setMstoResult(result);
+      setIsMstoParamsOpen(false);
+      setIsReconciliationModalOpen(false);
+      setIsMstoResultOpen(true);
+
+      if (!result.summary.hasErrors) {
+        toast({
+          title: 'Сверка завершена',
+          description: 'Расхождений не обнаружено!'
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Обнаружены расхождения',
+          description: `Найдено ${result.summary.onlyMsto + result.summary.onlyShift + result.summary.mismatch} расхождений`
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Ошибка сверки MSTO',
+        description: error instanceof Error ? error.message : 'Неизвестная ошибка'
+      });
+    } finally {
+      setIsMstoLoading(false);
+    }
+  };
+
+  // Обработчик новой сверки MSTO
+  const handleNewMstoReconciliation = () => {
+    setMstoResult(null);
+    setIsMstoResultOpen(false);
+    setIsMstoParamsOpen(true);
   };
 
   return (
@@ -250,25 +300,39 @@ export default function ShiftReportsV2() {
                 </Button>
               </div>
 
-              {/* Остальные - в разработке */}
-              {[
-                { title: 'Онлайн заказы', description: 'Сверка операций онлайн заказов' },
-                { title: 'Эквайринг', description: 'Сверка операций эквайринга' }
-              ].map((item) => (
-                <div
-                  key={item.title}
-                  className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600 opacity-60 cursor-not-allowed"
-                >
-                  <div>
-                    <p className="text-slate-200 font-medium">{item.title}</p>
-                    <p className="text-slate-500 text-sm">{item.description}</p>
-                  </div>
-                  <div className="flex items-center gap-2 text-amber-500">
-                    <Construction className="w-5 h-5" />
-                    <span className="text-xs">В разработке</span>
-                  </div>
+              {/* Онлайн заказы MSTO - РАБОТАЕТ */}
+              <div
+                onClick={() => {
+                  setIsReconciliationModalOpen(false);
+                  setIsMstoParamsOpen(true);
+                }}
+                className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-cyan-600/50 hover:bg-slate-700 hover:border-cyan-500 transition-colors cursor-pointer"
+              >
+                <div>
+                  <p className="text-slate-200 font-medium flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-cyan-400" />
+                    Онлайн заказы
+                  </p>
+                  <p className="text-slate-500 text-sm">Сверка операций Яндекс, FuelUp и др. с MSTO</p>
                 </div>
-              ))}
+                <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20">
+                  Открыть
+                </Button>
+              </div>
+
+              {/* Эквайринг - в разработке */}
+              <div
+                className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600 opacity-60 cursor-not-allowed"
+              >
+                <div>
+                  <p className="text-slate-200 font-medium">Эквайринг</p>
+                  <p className="text-slate-500 text-sm">Сверка операций эквайринга</p>
+                </div>
+                <div className="flex items-center gap-2 text-amber-500">
+                  <Construction className="w-5 h-5" />
+                  <span className="text-xs">В разработке</span>
+                </div>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -288,6 +352,26 @@ export default function ShiftReportsV2() {
               <ReconciliationResults
                 result={corpCardsResult}
                 onNewReconciliation={handleNewCorpCardsReconciliation}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Модальное окно параметров сверки MSTO */}
+        <MSTOReconciliationParamsModal
+          open={isMstoParamsOpen}
+          onOpenChange={setIsMstoParamsOpen}
+          onSubmit={handleMstoReconciliation}
+          isLoading={isMstoLoading}
+        />
+
+        {/* Модальное окно результатов сверки MSTO */}
+        <Dialog open={isMstoResultOpen} onOpenChange={setIsMstoResultOpen}>
+          <DialogContent className="bg-slate-800 border-slate-700 max-w-6xl max-h-[90vh] overflow-y-auto">
+            {mstoResult && (
+              <MSTOReconciliationResults
+                result={mstoResult}
+                onNewReconciliation={handleNewMstoReconciliation}
               />
             )}
           </DialogContent>

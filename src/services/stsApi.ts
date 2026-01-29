@@ -1440,7 +1440,8 @@ class STSApiService {
       case 'online':
       case 'online_order':
       case 'digital':
-      case 'мобил.п':      // Добавляем "Мобил.П" из реальных данных STS API
+      case 'онлайн':       // "Онлайн" из STS API (некоторые станции)
+      case 'мобил.п':      // "Мобил.П" из реальных данных STS API
       case 'мобильная':
       case 'мобильная оплата':
       case 'mobile':

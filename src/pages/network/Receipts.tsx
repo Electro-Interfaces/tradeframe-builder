@@ -19,7 +19,7 @@ import { exportReceiptsToExcel } from '@/services/receiptsExportService';
 import { extractStationNumber } from '@/utils/tradingPointUtils';
 import type { ReceiptsQueryParams, FlatReceipt } from '@/types/receipts';
 import type { Network } from '@/types/network';
-import type { TradingPoint } from '@/types/tradingPoint';
+import type { TradingPoint } from '@/types/tradingpoint';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

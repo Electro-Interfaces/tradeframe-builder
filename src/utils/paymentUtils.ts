@@ -29,7 +29,7 @@ export function normalizePaymentMethod(paymentMethod: string): string {
   }
 
   // Онлайн заказы и мобильные платежи
-  if (['online_order', 'мобил.п', 'мобильная', 'мобильная оплата', 'mobile', 'qr'].includes(method)) {
+  if (['online_order', 'мобил.п', 'мобильная', 'мобильная оплата', 'mobile', 'qr', 'онлайн', 'online'].includes(method)) {
     return 'Онлайн';
   }
 

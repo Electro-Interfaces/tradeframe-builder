@@ -20,7 +20,7 @@ import { format, subDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useSelection } from '@/contexts/SelectionContext';
 import { tradingPointsService } from '@/services/tradingPointsService';
-import type { TradingPoint } from '@/types/tradingPoint';
+import type { TradingPoint } from '@/types/tradingpoint';
 import type { ReconciliationParams } from '@/types/reconciliation';
 
 interface ReconciliationParamsModalProps {

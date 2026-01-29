@@ -26,7 +26,8 @@ import {
   Database,
   Building2,
   History,
-  PackagePlus
+  PackagePlus,
+  Smartphone
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -143,6 +144,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Обзор", url: "/network/overview", icon: Network },
     { title: "Ценообразование", url: "/network/pricing", icon: DollarSign },
     { title: "Операции", url: "/network/operations-transactions", icon: Receipt },
+    { title: "Онлайн-заказы", url: "/network/online-orders", icon: Smartphone },
     { title: "Остатки", url: "/network/fuel-inventory", icon: Fuel },
     { title: "Поступления", url: "/network/receipts", icon: PackagePlus },
     { title: "Сменные отчеты", url: "/point/shift-reports-v2", icon: Clock },

@@ -15,11 +15,14 @@ import { NetworksSection } from "./NetworksPage/components/NetworksSection";
 import { TradingPointsSection } from "./NetworksPage/components/TradingPointsSection";
 import { NetworkInput } from "@/types/network";
 import { TradingPointInput, TradingPointUpdateInput } from "@/types/tradingpoint";
+import { tradingPointsService } from "@/services/tradingPointsService";
+import { useToast } from "@/hooks/use-toast";
 
 export default function NetworksPage() {
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
   const { selectedTradingPoint, setSelectedTradingPoint } = useSelection();
+  const { toast } = useToast();
 
   // Custom hooks для управления состоянием
   const networksState = useNetworks();
@@ -97,17 +100,81 @@ export default function NetworksPage() {
     }
   };
 
-  // Заглушки для функций внешних кодов (не реализованы в сервисе)
-  const handlePointAddExternalCode = async () => {
-    throw new Error('External codes functionality not implemented in service yet');
+  // Обработчики для внешних кодов торговых точек
+  const handlePointAddExternalCode = async (
+    pointId: string,
+    system: string,
+    code: string,
+    description?: string
+  ) => {
+    try {
+      await tradingPointsService.addExternalCode(pointId, system, code, description);
+      // Перезагружаем торговые точки для обновления данных
+      if (networksState.selectedNetworkId) {
+        await tradingPointsState.loadTradingPoints(networksState.selectedNetworkId);
+      }
+      toast({
+        title: 'Код добавлен',
+        description: `Внешний код ${code} (${system}) успешно добавлен`
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      toast({
+        title: 'Ошибка',
+        description: message,
+        variant: 'destructive'
+      });
+      throw error;
+    }
   };
 
-  const handlePointUpdateExternalCode = async () => {
-    throw new Error('External codes functionality not implemented in service yet');
+  const handlePointUpdateExternalCode = async (
+    pointId: string,
+    codeId: string,
+    system: string,
+    code: string,
+    description?: string,
+    isActive?: boolean
+  ) => {
+    try {
+      await tradingPointsService.updateExternalCode(pointId, codeId, system, code, description, isActive);
+      if (networksState.selectedNetworkId) {
+        await tradingPointsState.loadTradingPoints(networksState.selectedNetworkId);
+      }
+      toast({
+        title: 'Код обновлён',
+        description: `Внешний код ${code} (${system}) успешно обновлён`
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      toast({
+        title: 'Ошибка',
+        description: message,
+        variant: 'destructive'
+      });
+      throw error;
+    }
   };
 
-  const handlePointRemoveExternalCode = async () => {
-    throw new Error('External codes functionality not implemented in service yet');
+  const handlePointRemoveExternalCode = async (pointId: string, codeId: string) => {
+    try {
+      await tradingPointsService.removeExternalCode(pointId, codeId);
+      if (networksState.selectedNetworkId) {
+        await tradingPointsState.loadTradingPoints(networksState.selectedNetworkId);
+      }
+      toast({
+        title: 'Код удалён',
+        description: 'Внешний код успешно удалён'
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      toast({
+        title: 'Ошибка',
+        description: message,
+        variant: 'destructive'
+      });
+      throw error;
+    }
   };
 
   if (networksState.loading) {

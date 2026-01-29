@@ -115,10 +115,23 @@ export interface TradingPointInput {
   services?: TradingPointServices;
 }
 
-export interface TradingPointUpdateInput extends TradingPointInput {
+/**
+ * Тип для обновления торговой точки
+ * networkId опционален, т.к. точка уже существует
+ */
+export interface TradingPointUpdateInput {
+  networkId?: NetworkId;
   external_id?: string;
+  name: string;
+  description?: string;
+  geolocation?: Partial<TradingPointGeolocation>;
+  phone?: string;
+  email?: string;
+  website?: string;
   isBlocked?: boolean;
   blockReason?: string;
+  schedule?: TradingPointSchedule;
+  services?: TradingPointServices;
 }
 
 export type TradingPointWithNetwork = TradingPoint & {

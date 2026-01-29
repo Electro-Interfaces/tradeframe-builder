@@ -54,7 +54,7 @@ export function ExternalCodesManager({
   };
 
   const handleSave = () => {
-    if (!editingCode || !editingCode.system.trim() || !editingCode.code.trim()) return;
+    if (!editingCode || !editingCode.system?.trim() || !editingCode.code?.trim()) return;
 
     if (editingCode.id) {
       // Update existing code
@@ -167,7 +167,7 @@ export function ExternalCodesManager({
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={!editingCode?.system.trim() || !editingCode?.code.trim()}
+              disabled={!editingCode?.system?.trim() || !editingCode?.code?.trim()}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Check className="h-4 w-4 mr-2" />

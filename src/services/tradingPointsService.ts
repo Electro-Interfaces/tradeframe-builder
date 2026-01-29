@@ -5,8 +5,55 @@
  */
 
 import { NetworkId } from '@/types/network';
-import { TradingPoint, TradingPointId, TradingPointInput } from '@/types/tradingpoint';
+import { TradingPoint, TradingPointId, TradingPointInput, TradingPointExternalCode, TradingPointUpdateInput } from '@/types/tradingpoint';
 import { supabaseService as supabase } from './supabaseServiceClient';
+
+/**
+ * Структура external code в БД (внутри station)
+ */
+interface StationExternalCode {
+  id: string;
+  system: string;
+  code: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+/**
+ * Преобразует external codes из формата БД в формат TradingPointExternalCode
+ */
+function mapExternalCodes(stationCode: string, dbCodes?: StationExternalCode[]): TradingPointExternalCode[] {
+  // Если нет external_codes в БД, возвращаем дефолтный код станции
+  if (!dbCodes || dbCodes.length === 0) {
+    return [{
+      id: `default-${stationCode}`,
+      system: 'sts',
+      code: stationCode,
+      description: 'Код станции STS (по умолчанию)',
+      isActive: true,
+      createdAt: new Date()
+    }];
+  }
+  
+  return dbCodes.map(ec => ({
+    id: ec.id,
+    system: ec.system,
+    code: ec.code,
+    description: ec.description,
+    isActive: ec.isActive,
+    createdAt: new Date(ec.createdAt),
+    updatedAt: ec.updatedAt ? new Date(ec.updatedAt) : undefined
+  }));
+}
+
+/**
+ * Генерирует уникальный ID для external code
+ */
+function generateExternalCodeId(): string {
+  return `ec-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
 
 // Функция для генерации уникального ID торговой точки
 function generateStationId(networkCode: string, stationCode: string): string {
@@ -60,6 +107,8 @@ export const tradingPointsService = {
             name: station.name || `АЗС №${station.code}`,
             description: `${tenant.name} - ${station.name}`,
             geolocation: {
+              latitude: station.latitude || 0,
+              longitude: station.longitude || 0,
               address: station.address || ''
             },
             phone: '',
@@ -70,7 +119,7 @@ export const tradingPointsService = {
             schedule: {},
             services: {},
             billAcceptorThresholds: station.billAcceptorThresholds,
-            externalCodes: [station.code],
+            externalCodes: mapExternalCodes(station.code, station.external_codes),
             createdAt: new Date(tenant.created_at),
             updatedAt: new Date(tenant.updated_at)
           });
@@ -116,8 +165,8 @@ export const tradingPointsService = {
           name: station.name || `АЗС №${station.code}`,
           description: station.description || `${tenant.name} - ${station.name}`,
           geolocation: {
-            latitude: station.latitude,
-            longitude: station.longitude,
+            latitude: station.latitude || 0,
+            longitude: station.longitude || 0,
             region: station.region || '',
             city: station.city || '',
             address: station.address || ''
@@ -129,7 +178,7 @@ export const tradingPointsService = {
           blockReason: station.blockReason || '',
           schedule: station.schedule || {},
           services: station.services || {},
-          externalCodes: [station.code],
+          externalCodes: mapExternalCodes(station.code, station.external_codes),
           createdAt: new Date(tenant.created_at),
           updatedAt: new Date(tenant.updated_at)
         }));
@@ -179,8 +228,8 @@ export const tradingPointsService = {
         name: station.name || `АЗС №${station.code}`,
         description: station.description || `${tenant.name} - ${station.name}`,
         geolocation: {
-          latitude: station.latitude,
-          longitude: station.longitude,
+          latitude: station.latitude || 0,
+          longitude: station.longitude || 0,
           region: station.region || '',
           city: station.city || '',
           address: station.address || ''
@@ -194,7 +243,7 @@ export const tradingPointsService = {
         services: station.services || {},
         billAcceptorThresholds: station.billAcceptorThresholds,
         fuelLevelThresholds: station.fuelLevelThresholds,
-        externalCodes: [station.code],
+        externalCodes: mapExternalCodes(station.code, station.external_codes),
         createdAt: new Date(tenant.created_at),
         updatedAt: new Date(tenant.updated_at)
       };
@@ -269,6 +318,8 @@ export const tradingPointsService = {
         name: newStation.name,
         description: `${tenant.name} - ${newStation.name}`,
         geolocation: {
+          latitude: input.geolocation?.latitude || 0,
+          longitude: input.geolocation?.longitude || 0,
           address: newStation.address
         },
         phone: '',
@@ -278,7 +329,7 @@ export const tradingPointsService = {
         blockReason: '',
         schedule: {},
         services: {},
-        externalCodes: [newCode],
+        externalCodes: mapExternalCodes(newCode, undefined),
         createdAt: new Date(updated.created_at),
         updatedAt: new Date(updated.updated_at)
       };
@@ -289,7 +340,7 @@ export const tradingPointsService = {
   },
 
   // Обновить торговую точку (обновить станцию в tenant.settings.stations)
-  async update(id: TradingPointId, input: TradingPointInput & { external_id?: string }): Promise<TradingPoint | null> {
+  async update(id: TradingPointId, input: TradingPointUpdateInput): Promise<TradingPoint | null> {
     try {
       const parsed = parseStationId(id);
       if (!parsed) {
@@ -366,8 +417,8 @@ export const tradingPointsService = {
         name: updatedStation.name,
         description: updatedStation.description || `${tenant.name} - ${updatedStation.name}`,
         geolocation: {
-          latitude: updatedStation.latitude,
-          longitude: updatedStation.longitude,
+          latitude: updatedStation.latitude || 0,
+          longitude: updatedStation.longitude || 0,
           region: updatedStation.region || '',
           city: updatedStation.city || '',
           address: updatedStation.address || ''
@@ -379,7 +430,7 @@ export const tradingPointsService = {
         blockReason: updatedStation.blockReason || '',
         schedule: updatedStation.schedule || {},
         services: updatedStation.services || {},
-        externalCodes: [updatedStation.code],
+        externalCodes: mapExternalCodes(updatedStation.code, updatedStation.external_codes),
         createdAt: new Date(updated.created_at),
         updatedAt: new Date(updated.updated_at)
       };
@@ -503,6 +554,8 @@ export const tradingPointsService = {
             name: station.name || `АЗС №${station.code}`,
             description: `${tenant.name} - ${station.name}`,
             geolocation: {
+              latitude: station.latitude || 0,
+              longitude: station.longitude || 0,
               address: station.address || ''
             },
             phone: '',
@@ -512,7 +565,7 @@ export const tradingPointsService = {
             blockReason: '',
             schedule: {},
             services: {},
-            externalCodes: [station.code],
+            externalCodes: mapExternalCodes(station.code, station.external_codes),
             createdAt: new Date(tenant.created_at),
             updatedAt: new Date(tenant.updated_at)
           });
@@ -691,6 +744,247 @@ export const tradingPointsService = {
       console.error('💥 Critical error updating fuel level thresholds:', error);
       throw error;
     }
+  },
+
+  /**
+   * Добавить внешний код для торговой точки
+   * @param pointId - ID торговой точки
+   * @param system - Система (sts, msto, fuelup и т.д.)
+   * @param code - Код в системе
+   * @param description - Описание (опционально)
+   */
+  async addExternalCode(
+    pointId: TradingPointId,
+    system: string,
+    code: string,
+    description?: string
+  ): Promise<TradingPointExternalCode> {
+    const parsed = parseStationId(pointId);
+    if (!parsed) {
+      throw new Error(`Неверный формат ID торговой точки: ${pointId}`);
+    }
+
+    const { networkCode, stationCode } = parsed;
+
+    // Находим tenant по коду сети
+    const { data: tenant, error: findError } = await supabase
+      .from('tenants')
+      .select('*')
+      .eq('code', networkCode)
+      .eq('type', 'network')
+      .single();
+
+    if (findError || !tenant) {
+      throw new Error(`Сеть с кодом ${networkCode} не найдена`);
+    }
+
+    // Получаем текущие станции
+    const stations = tenant.settings?.stations || [];
+    const stationIndex = stations.findIndex((s: any) => s.code === stationCode);
+
+    if (stationIndex === -1) {
+      throw new Error(`Станция с кодом ${stationCode} не найдена в сети ${networkCode}`);
+    }
+
+    // Создаём новый external code
+    const newCode: StationExternalCode = {
+      id: generateExternalCodeId(),
+      system: system.toLowerCase(),
+      code,
+      description,
+      isActive: true,
+      createdAt: new Date().toISOString()
+    };
+
+    // Добавляем код к станции
+    const station = stations[stationIndex];
+    const existingCodes: StationExternalCode[] = station.external_codes || [];
+    
+    // Проверяем на дубликат
+    const duplicate = existingCodes.find(
+      ec => ec.system === newCode.system && ec.code === newCode.code && ec.isActive
+    );
+    if (duplicate) {
+      throw new Error(`Код ${code} для системы ${system} уже существует`);
+    }
+
+    stations[stationIndex] = {
+      ...station,
+      external_codes: [...existingCodes, newCode]
+    };
+
+    // Сохраняем изменения
+    const { error: updateError } = await supabase
+      .from('tenants')
+      .update({
+        settings: {
+          ...tenant.settings,
+          stations
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', tenant.id);
+
+    if (updateError) {
+      throw new Error(`Ошибка добавления внешнего кода: ${updateError.message}`);
+    }
+
+    return {
+      id: newCode.id,
+      system: newCode.system,
+      code: newCode.code,
+      description: newCode.description,
+      isActive: newCode.isActive,
+      createdAt: new Date(newCode.createdAt)
+    };
+  },
+
+  /**
+   * Обновить внешний код торговой точки
+   */
+  async updateExternalCode(
+    pointId: TradingPointId,
+    codeId: string,
+    system: string,
+    code: string,
+    description?: string,
+    isActive?: boolean
+  ): Promise<TradingPointExternalCode> {
+    const parsed = parseStationId(pointId);
+    if (!parsed) {
+      throw new Error(`Неверный формат ID торговой точки: ${pointId}`);
+    }
+
+    const { networkCode, stationCode } = parsed;
+
+    const { data: tenant, error: findError } = await supabase
+      .from('tenants')
+      .select('*')
+      .eq('code', networkCode)
+      .eq('type', 'network')
+      .single();
+
+    if (findError || !tenant) {
+      throw new Error(`Сеть с кодом ${networkCode} не найдена`);
+    }
+
+    const stations = tenant.settings?.stations || [];
+    const stationIndex = stations.findIndex((s: any) => s.code === stationCode);
+
+    if (stationIndex === -1) {
+      throw new Error(`Станция с кодом ${stationCode} не найдена`);
+    }
+
+    const station = stations[stationIndex];
+    const existingCodes: StationExternalCode[] = station.external_codes || [];
+    const codeIndex = existingCodes.findIndex(ec => ec.id === codeId);
+
+    if (codeIndex === -1) {
+      throw new Error(`Внешний код с ID ${codeId} не найден`);
+    }
+
+    // Обновляем код
+    const updatedCode: StationExternalCode = {
+      ...existingCodes[codeIndex],
+      system: system.toLowerCase(),
+      code,
+      description,
+      isActive: isActive ?? existingCodes[codeIndex].isActive,
+      updatedAt: new Date().toISOString()
+    };
+
+    existingCodes[codeIndex] = updatedCode;
+    stations[stationIndex] = {
+      ...station,
+      external_codes: existingCodes
+    };
+
+    const { error: updateError } = await supabase
+      .from('tenants')
+      .update({
+        settings: {
+          ...tenant.settings,
+          stations
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', tenant.id);
+
+    if (updateError) {
+      throw new Error(`Ошибка обновления внешнего кода: ${updateError.message}`);
+    }
+
+    return {
+      id: updatedCode.id,
+      system: updatedCode.system,
+      code: updatedCode.code,
+      description: updatedCode.description,
+      isActive: updatedCode.isActive,
+      createdAt: new Date(updatedCode.createdAt),
+      updatedAt: updatedCode.updatedAt ? new Date(updatedCode.updatedAt) : undefined
+    };
+  },
+
+  /**
+   * Удалить внешний код торговой точки
+   */
+  async removeExternalCode(pointId: TradingPointId, codeId: string): Promise<boolean> {
+    const parsed = parseStationId(pointId);
+    if (!parsed) {
+      throw new Error(`Неверный формат ID торговой точки: ${pointId}`);
+    }
+
+    const { networkCode, stationCode } = parsed;
+
+    const { data: tenant, error: findError } = await supabase
+      .from('tenants')
+      .select('*')
+      .eq('code', networkCode)
+      .eq('type', 'network')
+      .single();
+
+    if (findError || !tenant) {
+      throw new Error(`Сеть с кодом ${networkCode} не найдена`);
+    }
+
+    const stations = tenant.settings?.stations || [];
+    const stationIndex = stations.findIndex((s: any) => s.code === stationCode);
+
+    if (stationIndex === -1) {
+      throw new Error(`Станция с кодом ${stationCode} не найдена`);
+    }
+
+    const station = stations[stationIndex];
+    const existingCodes: StationExternalCode[] = station.external_codes || [];
+    
+    // Фильтруем, удаляя код с указанным ID
+    const filteredCodes = existingCodes.filter(ec => ec.id !== codeId);
+
+    if (filteredCodes.length === existingCodes.length) {
+      throw new Error(`Внешний код с ID ${codeId} не найден`);
+    }
+
+    stations[stationIndex] = {
+      ...station,
+      external_codes: filteredCodes
+    };
+
+    const { error: updateError } = await supabase
+      .from('tenants')
+      .update({
+        settings: {
+          ...tenant.settings,
+          stations
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', tenant.id);
+
+    if (updateError) {
+      throw new Error(`Ошибка удаления внешнего кода: ${updateError.message}`);
+    }
+
+    return true;
   }
 };
 

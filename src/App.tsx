@@ -47,6 +47,7 @@ const BroadcastMessages = lazy(() => import("./pages/BroadcastMessages"));
 const Receipts = lazy(() => import("./pages/network/Receipts"));
 const NetworkPricing = lazy(() => import("./pages/NetworkPricing"));
 const ReconciliationPage = lazy(() => import("./pages/ReconciliationPage"));
+const OnlineOrdersMonitor = lazy(() => import("./pages/OnlineOrdersMonitor"));
 
 // Equipment и остальные страницы - ленивая загрузка (приоритет 3)
 
@@ -224,6 +225,7 @@ const App = () => {
                   <Route path="/network/broadcast-messages" element={<ProtectedRoute><LazyLoader><BroadcastMessages /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/receipts" element={<ProtectedRoute><LazyLoader><Receipts /></LazyLoader></ProtectedRoute>} />
                   <Route path="/network/reconciliation" element={<ProtectedRoute><LazyLoader><ReconciliationPage /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/online-orders" element={<ProtectedRoute><LazyLoader><OnlineOrdersMonitor /></LazyLoader></ProtectedRoute>} />
 
                   {/* Equipment страницы - приоритет 3 */}
                   <Route path="/point/equipment" element={<ProtectedRoute><Equipment /></ProtectedRoute>} />

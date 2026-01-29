@@ -643,9 +643,9 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
     currentRow += 2;
   }
 
-  // ========== БЕЗНАЛИЧНАЯ РЕАЛИЗАЦИЯ ==========
+  // ========== РАСШИФРОВКА БЕЗНАЛИЧНОЙ РЕАЛИЗАЦИИ ==========
   if (details.salesRaw && details.salesRaw.length > 0) {
-    worksheet.getCell(currentRow, 1).value = 'БЕЗНАЛИЧНАЯ РЕАЛИЗАЦИЯ';
+    worksheet.getCell(currentRow, 1).value = 'РАСШИФРОВКА БЕЗНАЛИЧНОЙ РЕАЛИЗАЦИИ';
     worksheet.getCell(currentRow, 1).style = sectionTitleStyle;
     currentRow += 2;
 
@@ -654,6 +654,8 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       'Код',
       'МобилПр. (л.)',
       'МобилПр. (руб.)',
+      'Корп.карты (л.)',
+      'Корп.карты (руб.)',
       'Купон на сдачу (л.)',
       'Купон на сдачу (руб.)',
       'ИТОГО б/н'
@@ -672,16 +674,23 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       fuelCode: number;
       mobilPrVolume: number;
       mobilPrCost: number;
+      corporateVolume: number;
+      corporateCost: number;
       couponVolume: number;
       couponCost: number;
     }> = {};
 
     details.salesRaw.forEach((payGroup: any) => {
       const paymentName = payGroup.pay_type?.name?.toLowerCase() || '';
-      const isMobilPr = paymentName.includes('мобилпр');
+      const isMobilPr = paymentName.includes('мобил') || paymentName.includes('онлайн') || paymentName.includes('online');
+      const isCorporate = paymentName === 'кр' ||
+                          paymentName.includes('корпоратив') ||
+                          paymentName.includes('корп.карт') ||
+                          paymentName.includes('корп карт') ||
+                          paymentName.includes('топливн');
       const isCoupon = paymentName.includes('купон');
 
-      if (isMobilPr || isCoupon) {
+      if (isMobilPr || isCorporate || isCoupon) {
         payGroup.fuel?.forEach((fuelItem: any) => {
           const fuelCode = fuelItem.service?.service_code;
           const fuelName = fuelItem.service?.service_name;
@@ -695,6 +704,8 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
                 fuelCode,
                 mobilPrVolume: 0,
                 mobilPrCost: 0,
+                corporateVolume: 0,
+                corporateCost: 0,
                 couponVolume: 0,
                 couponCost: 0
               };
@@ -703,6 +714,9 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
             if (isMobilPr) {
               groupedSales[fuelCode].mobilPrVolume += volume;
               groupedSales[fuelCode].mobilPrCost += cost;
+            } else if (isCorporate) {
+              groupedSales[fuelCode].corporateVolume += volume;
+              groupedSales[fuelCode].corporateCost += cost;
             } else if (isCoupon) {
               groupedSales[fuelCode].couponVolume += volume;
               groupedSales[fuelCode].couponCost += cost;
@@ -714,13 +728,17 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
 
     let totalMobilPrVolume = 0;
     let totalMobilPrCost = 0;
+    let totalCorpVolume = 0;
+    let totalCorpCost = 0;
     let totalCouponVolume = 0;
     let totalCouponCost = 0;
 
     Object.values(groupedSales).forEach(group => {
-      const total = group.mobilPrVolume + group.couponVolume;
+      const total = group.mobilPrVolume + group.corporateVolume + group.couponVolume;
       totalMobilPrVolume += group.mobilPrVolume;
       totalMobilPrCost += group.mobilPrCost;
+      totalCorpVolume += group.corporateVolume;
+      totalCorpCost += group.corporateCost;
       totalCouponVolume += group.couponVolume;
       totalCouponCost += group.couponCost;
 
@@ -729,6 +747,8 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
         { value: group.fuelCode },
         { value: group.mobilPrVolume, format: 'decimal2' },
         { value: group.mobilPrCost, format: 'currency' },
+        { value: group.corporateVolume, format: 'decimal2' },
+        { value: group.corporateCost, format: 'currency' },
         { value: group.couponVolume, format: 'decimal2' },
         { value: group.couponCost, format: 'currency' },
         { value: total, format: 'decimal2' }
@@ -753,9 +773,11 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
       { value: '' },
       { value: totalMobilPrVolume, format: 'decimal2' },
       { value: totalMobilPrCost, format: 'currency' },
+      { value: totalCorpVolume, format: 'decimal2' },
+      { value: totalCorpCost, format: 'currency' },
       { value: totalCouponVolume, format: 'decimal2' },
       { value: totalCouponCost, format: 'currency' },
-      { value: totalMobilPrVolume + totalCouponVolume, format: 'decimal2' }
+      { value: totalMobilPrVolume + totalCorpVolume + totalCouponVolume, format: 'decimal2' }
     ];
 
     nonCashTotalsData.forEach((item, colIdx) => {

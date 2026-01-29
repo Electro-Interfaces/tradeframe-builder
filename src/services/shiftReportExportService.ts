@@ -391,7 +391,7 @@ export async function exportToExcel(details: ShiftDetails): Promise<Blob> {
 
         const group = fuelGroups.get(fuelCode)!;
 
-        if (paymentName.includes('мобил')) {
+        if (paymentName.includes('мобил') || paymentName.includes('онлайн') || paymentName.includes('online')) {
           group.mobilprVolume += volume;
           group.mobilprCost += cost;
         }
