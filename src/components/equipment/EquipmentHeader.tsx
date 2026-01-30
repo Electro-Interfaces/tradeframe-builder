@@ -41,6 +41,18 @@ export function EquipmentHeader({
 }: EquipmentHeaderProps) {
   return (
     <div className={`${isMobile ? 'mb-3' : 'mb-6 pt-4'}`}>
+      {/* Баннер предупреждения о состоянии терминала */}
+      {terminalInfo?.terminalState && terminalInfo.terminalState.code !== 0 && (
+        <div className={`flex items-center gap-2 bg-red-900/50 border border-red-600 rounded-lg mb-3 ${
+          isMobile ? 'px-3 py-2' : 'px-4 py-3'
+        }`}>
+          <AlertTriangle className={`flex-shrink-0 text-red-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          <span className={`text-red-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            {terminalInfo.terminalState.description}
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
           <h1 className={`font-semibold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>

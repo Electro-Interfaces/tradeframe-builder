@@ -212,6 +212,14 @@ export interface TerminalEquipmentItem {
 }
 
 /**
+ * Состояние терминала (state_trm из /v2/info)
+ */
+export interface TerminalState {
+  code: number;             // Код состояния (0 - online, иначе - ошибка)
+  description: string;      // Описание состояния
+}
+
+/**
  * Информация о терминале из STS API
  */
 export interface TerminalInfo {
@@ -219,6 +227,7 @@ export interface TerminalInfo {
     name: string;
     status: 'online' | 'offline';
   };
+  terminalState?: TerminalState;
   pos: {
     version: string;
     status: 'online' | 'offline';

@@ -15,6 +15,21 @@ export interface CouponState {
   name: string;             // Наименование состояния
 }
 
+// Тип купона (способ создания)
+export interface CouponType {
+  id: number;               // 0 - Терминал, 1 - Ручной
+  name: string;             // Наименование типа
+}
+
+// Запрос на создание купона
+export interface CreateCouponRequest {
+  service_code: number;     // Код продукта/услуги (конкретный вид топлива)
+  amount: number;           // Объём в литрах
+  lifetime: number;         // Срок действия (дней)
+  fiscal: boolean;          // Фискальный чек
+  author?: string;          // Автор создания купона
+}
+
 // Основной интерфейс купона (по реальному API)
 export interface Coupon {
   number: string;           // Номер купона
@@ -29,6 +44,7 @@ export interface Coupon {
   price: number;           // Цена
   service: CouponService;  // Информация о продукте/топливе
   state: CouponState;      // Статус талона
+  type?: CouponType;       // Тип купона (Терминал / Ручной)
   rest_summ: number;       // Остаток суммы
   rest_qty: number;        // Остаток количества
 }

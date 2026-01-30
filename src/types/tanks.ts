@@ -93,6 +93,7 @@ export interface Tank {
   linkedPumps: LinkedPump[];
   notifications: TankNotifications;
   thresholds: TankThresholds;
+  noSensorData?: boolean;  // Нет данных от уровнемера, используется книжный остаток
   stsData?: STSApiData;
   apiData?: TankApiData;
 }

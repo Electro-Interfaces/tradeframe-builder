@@ -102,19 +102,24 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
     setThresholdForm(initialForm);
   }, [fuelTypes, thresholds, thresholdForm]);
 
-  // Проверяем есть ли заблокированные резервуары (< 800 литров)
-  const blockedTanks = tanks.filter(tank => tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS);
+  // Проверяем есть ли резервуары без данных уровнемера
+  const noSensorTanks = tanks.filter(tank => tank.noSensorData);
 
-  // Проверяем есть ли критические уровни
+  // Проверяем есть ли заблокированные резервуары (< 800 литров) — только при наличии данных уровнемера
+  const blockedTanks = tanks.filter(tank => !tank.noSensorData && tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS);
+
+  // Проверяем есть ли критические уровни — только при наличии данных уровнемера
   const criticalTanks = tanks.filter(tank => {
-    const currentPercent = (tank.currentLevelLiters / tank.capacityLiters) * 100;
+    if (tank.noSensorData) return false;
+    const currentPercent = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
     const threshold = thresholds?.thresholds?.find(t => t.fuelType === tank.fuelType);
     const critical = threshold?.levelCritical || 10;
     return currentPercent <= critical;
   });
 
   const warningTanks = tanks.filter(tank => {
-    const currentPercent = (tank.currentLevelLiters / tank.capacityLiters) * 100;
+    if (tank.noSensorData) return false;
+    const currentPercent = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
     const threshold = thresholds?.thresholds?.find(t => t.fuelType === tank.fuelType);
     const warning = threshold?.levelWarning || 20;
     const critical = threshold?.levelCritical || 10;
@@ -383,6 +388,23 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
         </div>
       )}
 
+      {/* Баннер: нет данных от уровнемеров */}
+      {noSensorTanks.length > 0 && (
+        <div className="mb-4 p-3 rounded-lg border-l-4 bg-yellow-900/20 border-yellow-500">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 text-yellow-500" />
+            <div>
+              <p className="text-sm font-semibold text-yellow-200">
+                Нет данных от уровнемеров для {noSensorTanks.length} {noSensorTanks.length === 1 ? 'резервуара' : 'резервуаров'}
+              </p>
+              <p className="text-xs text-yellow-300/80 mt-0.5">
+                Отображается книжный остаток (начало смены минус отпуск)
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Предупреждающее сообщение */}
       {(criticalTanks.length > 0 || warningTanks.length > 0) && (
         <div className={`mb-4 p-3 rounded-lg border-l-4 ${
@@ -424,22 +446,30 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
           )}
 
           {tanks.map((tank, index) => {
-              const currentPercent = (tank.currentLevelLiters / tank.capacityLiters) * 100;
+              const currentPercent = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
               const threshold = thresholds?.thresholds?.find(t => t.fuelType === tank.fuelType);
               const warning = threshold?.levelWarning || 20;
               const critical = threshold?.levelCritical || 10;
-              const isBlocked = tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS;
+              const isBlocked = !tank.noSensorData && tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS;
 
               return (
                 <div
                   key={index}
-                  className={`rounded-lg p-4 border-2 ${isBlocked ? 'border-red-600 bg-red-900/20' : `${getBorderColor(currentPercent, warning, critical)} ${getBgColor(currentPercent, warning, critical)}`}`}
+                  className={`rounded-lg p-4 border-2 ${isBlocked ? 'border-red-600 bg-red-900/20' : tank.noSensorData ? 'border-yellow-600 bg-yellow-900/10' : `${getBorderColor(currentPercent, warning, critical)} ${getBgColor(currentPercent, warning, critical)}`}`}
                 >
                   {/* Баннер блокировки для мобильного вида */}
                   {isBlocked && (
                     <div className="mb-3 p-2 rounded bg-red-600/30 border border-red-500 flex items-center gap-2">
                       <Lock className="w-4 h-4 text-red-400" />
                       <span className="text-xs font-semibold text-red-200">ОТПУСК ЗАБЛОКИРОВАН</span>
+                    </div>
+                  )}
+
+                  {/* Баннер: нет данных уровнемера */}
+                  {tank.noSensorData && (
+                    <div className="mb-3 p-2 rounded bg-yellow-900/30 border border-yellow-600 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                      <span className="text-xs font-semibold text-yellow-200">Книжный остаток (нет данных уровнемера)</span>
                     </div>
                   )}
 
@@ -453,13 +483,21 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <div className={`text-xl font-bold ${getFuelLevelColor(currentPercent, warning, critical)}`}>
-                        {Math.round(currentPercent)}%
-                      </div>
+                      {tank.noSensorData ? (
+                        <div className="text-xl font-bold text-yellow-400">—</div>
+                      ) : (
+                        <div className={`text-xl font-bold ${getFuelLevelColor(currentPercent, warning, critical)}`}>
+                          {Math.round(currentPercent)}%
+                        </div>
+                      )}
                       {isBlocked ? (
                         <Badge className="bg-red-600 text-white text-[10px] px-1.5 py-0">
                           <Lock className="w-2.5 h-2.5 mr-0.5" />
                           Блок
+                        </Badge>
+                      ) : tank.noSensorData ? (
+                        <Badge className="bg-yellow-600 text-white text-[10px] px-1.5 py-0">
+                          книжный
                         </Badge>
                       ) : (
                         <Badge className="bg-green-600 text-white text-[10px] px-1.5 py-0">
@@ -470,25 +508,32 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                     </div>
                   </div>
 
-                  {/* Прогресс-бар */}
-                  <div className="mb-3">
-                    <div className="flex-1 bg-slate-600 rounded-full h-3">
-                      <div
-                        className={`h-3 rounded-full transition-all ${getFillLevelColor(currentPercent, warning, critical)}`}
-                        style={{ width: `${Math.max(currentPercent, 2)}%` }}
-                      />
+                  {/* Прогресс-бар (скрываем при отсутствии данных уровнемера) */}
+                  {!tank.noSensorData && (
+                    <div className="mb-3">
+                      <div className="flex-1 bg-slate-600 rounded-full h-3">
+                        <div
+                          className={`h-3 rounded-full transition-all ${getFillLevelColor(currentPercent, warning, critical)}`}
+                          style={{ width: `${Math.max(currentPercent, 2)}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Объемы */}
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div className="bg-slate-700/50 p-2 rounded">
-                      <div className="text-xs text-slate-400">Факт</div>
+                      <div className="text-xs text-slate-400">{tank.noSensorData ? 'Расчётный остаток' : 'Факт'}</div>
                       <div className="text-sm font-bold text-blue-400">{tank.currentLevelLiters.toLocaleString()} л</div>
                     </div>
                     <div className="bg-slate-700/50 p-2 rounded">
-                      <div className="text-xs text-slate-400">Емкость</div>
-                      <div className="text-sm font-bold text-slate-300">{tank.capacityLiters.toLocaleString()} л</div>
+                      <div className="text-xs text-slate-400">{tank.noSensorData ? 'Книжный нач.' : 'Емкость'}</div>
+                      <div className="text-sm font-bold text-slate-300">
+                        {tank.noSensorData
+                          ? `${(tank.apiData?.volume_begin || 0).toLocaleString()} л`
+                          : `${tank.capacityLiters.toLocaleString()} л`
+                        }
+                      </div>
                     </div>
                   </div>
 
@@ -590,14 +635,14 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
             </thead>
             <tbody>
               {tanks.map((tank, index) => {
-                const currentPercent = (tank.currentLevelLiters / tank.capacityLiters) * 100;
+                const currentPercent = tank.capacityLiters > 0 ? (tank.currentLevelLiters / tank.capacityLiters) * 100 : 0;
                 const threshold = thresholds?.thresholds?.find(t => t.fuelType === tank.fuelType);
                 const warning = threshold?.levelWarning || 20;
                 const critical = threshold?.levelCritical || 10;
-                const isBlocked = tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS;
+                const isBlocked = !tank.noSensorData && tank.currentLevelLiters < BLOCK_THRESHOLD_LITERS;
 
                 return (
-                  <tr key={index} className={`border-b border-slate-700 hover:bg-slate-700/30 ${isBlocked ? 'bg-red-900/20' : ''}`}>
+                  <tr key={index} className={`border-b border-slate-700 hover:bg-slate-700/30 ${isBlocked ? 'bg-red-900/20' : tank.noSensorData ? 'bg-yellow-900/10' : ''}`}>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-2">
                         <Fuel className="w-4 h-4 text-blue-400" />
@@ -605,14 +650,24 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                       </div>
                     </td>
                     <td className="py-2 px-2 text-slate-300">{tank.fuelType}</td>
-                    <td className="py-2 px-2 text-slate-300">{tank.capacityLiters.toLocaleString()} л</td>
-                    <td className="py-2 px-2 text-blue-400 font-bold">{tank.currentLevelLiters.toLocaleString()} л</td>
+                    <td className="py-2 px-2 text-slate-300">
+                      {tank.noSensorData ? '—' : `${tank.capacityLiters.toLocaleString()} л`}
+                    </td>
+                    <td className="py-2 px-2 text-blue-400 font-bold">
+                      {tank.currentLevelLiters.toLocaleString()} л
+                      {tank.noSensorData && <span className="text-yellow-400 text-xs ml-1">(книж.)</span>}
+                    </td>
                     {/* Колонка статуса */}
                     <td className="py-2 px-2 text-center">
                       {isBlocked ? (
                         <Badge className="bg-red-600 text-white hover:bg-red-700 text-xs">
                           <Lock className="w-3 h-3 mr-1" />
                           Блокировка
+                        </Badge>
+                      ) : tank.noSensorData ? (
+                        <Badge className="bg-yellow-600 text-white hover:bg-yellow-700 text-xs">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Книжный
                         </Badge>
                       ) : (
                         <Badge className="bg-green-600 text-white hover:bg-green-700 text-xs">
@@ -622,15 +677,19 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                       )}
                     </td>
                     <td className="py-2 px-2">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 bg-slate-600 rounded-full h-2 min-w-[60px]">
-                          <div
-                            className={`h-2 rounded-full ${getFillLevelColor(currentPercent, warning, critical)}`}
-                            style={{ width: `${Math.max(currentPercent, 2)}%` }}
-                          />
+                      {tank.noSensorData ? (
+                        <span className="text-sm text-yellow-400">—</span>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 bg-slate-600 rounded-full h-2 min-w-[60px]">
+                            <div
+                              className={`h-2 rounded-full ${getFillLevelColor(currentPercent, warning, critical)}`}
+                              style={{ width: `${Math.max(currentPercent, 2)}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-slate-300 min-w-[35px]">{Math.round(currentPercent)}%</span>
                         </div>
-                        <span className="text-sm text-slate-300 min-w-[35px]">{Math.round(currentPercent)}%</span>
-                      </div>
+                      )}
                     </td>
                     <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                       {isSettingsExpanded ? (

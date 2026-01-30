@@ -20,6 +20,7 @@ interface Tank {
   fuelType: string;
   currentLevelLiters: number;
   capacityLiters: number;
+  noSensorData?: boolean;
   minLevelPercent: number;
   criticalLevelPercent: number;
   temperature: number;
@@ -96,6 +97,10 @@ interface Sale {
 }
 
 interface TerminalInfo {
+  terminalState?: {
+    code: number;
+    description: string;
+  };
   terminal: {
     id: string;
     name: string;
@@ -574,18 +579,31 @@ class STSApiService {
    * Преобразует данные резервуара из API в формат приложения
    */
   private mapApiTankToTank(apiTank: any): Tank {
-    
+
     // ID и название на основе реальной структуры API
     const id = parseInt(apiTank.number || apiTank.id || Math.floor(Math.random() * 1000));
     const name = `Резервуар №${apiTank.number || id}`;
-    
+
     // Тип топлива из реального API
     const fuelType = apiTank.fuel_name || 'Неизвестно';
-    
+
     // Объемы из реального API (в литрах)
-    const currentLevelLiters = parseFloat(apiTank.volume || '0');
-    const capacityLiters = parseFloat(apiTank.volume_max || '50000');
-    
+    const volume = parseFloat(apiTank.volume || '0');
+    const volumeMax = parseFloat(apiTank.volume_max || '0');
+    const level = parseFloat(apiTank.level || '0');
+    const volumeBegin = parseFloat(apiTank.volume_begin || '0');
+    const releaseVolume = parseFloat(apiTank.release?.volume || '0');
+
+    // Определяем отсутствие данных уровнемера:
+    // volume=0, volume_max=0, level=0, но книжный остаток есть
+    const noSensorData = volume === 0 && volumeMax === 0 && level === 0 && volumeBegin > 0;
+
+    // Fallback: если уровнемер не работает — расчётный остаток из книжных данных
+    const currentLevelLiters = noSensorData
+      ? Math.max(0, volumeBegin - releaseVolume)
+      : volume;
+    const capacityLiters = noSensorData ? 0 : (volumeMax || 50000);
+
     // Рассчитываем проценты
     const currentPercent = capacityLiters > 0 ? (currentLevelLiters / capacityLiters) * 100 : 0;
     const minLevelPercent = 20; // Стандартные пороги
@@ -623,6 +641,7 @@ class STSApiService {
       fuelType,
       currentLevelLiters,
       capacityLiters,
+      noSensorData,
       minLevelPercent,
       criticalLevelPercent,
       temperature,
@@ -803,7 +822,18 @@ class STSApiService {
   private mapApiTerminalInfo(apiData: any): TerminalInfo {
     // Данные станции уже отфильтрованы в getTerminalInfo
     const data = apiData;
-    
+
+    // Извлекаем state_trm (состояние терминала)
+    // state_trm может быть на верхнем уровне или внутри pos[0]
+    const posData0 = data?.pos?.[0] || {};
+    const stateTrm = data?.state_trm || posData0?.state_trm;
+    let terminalState = stateTrm !== undefined ? {
+      code: typeof stateTrm === 'number' ? stateTrm : (typeof stateTrm === 'object' ? stateTrm?.code ?? 0 : 0),
+      description: typeof stateTrm === 'object' && stateTrm?.description
+        ? stateTrm.description
+        : (stateTrm === 0 ? 'Терминал работает нормально' : `Ошибка терминала — код состояния ${stateTrm}, требуется проверка оборудования`)
+    } : undefined;
+
     // Извлекаем информацию о POS терминале
     const posData = data?.pos?.[0] || {};
     const shiftData = data?.shift || posData?.shift || {};
@@ -846,6 +876,7 @@ class STSApiService {
     const bankSum = parseFloat(posData?.bank_sum || '0') || 0;
 
     return {
+      terminalState,
       terminal: {
         id: `${data?.system || 0}-${data?.station || 0}`,
         name: `АЗС ${data?.station || 0}`,

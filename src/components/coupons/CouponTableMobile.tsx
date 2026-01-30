@@ -75,7 +75,16 @@ export function CouponTableMobile({
                     </div>
                   </td>
                   <td className="px-2 py-3 text-center">
-                    <CouponStatusBadge stateName={coupon.state.name} variant="compact" />
+                    <div className="flex flex-col items-center gap-0.5">
+                      <CouponStatusBadge stateName={coupon.state.name} variant="compact" />
+                      {coupon.type && (
+                        <span className={`text-[9px] ${
+                          coupon.type.id === 0 ? 'text-slate-400' : 'text-purple-400'
+                        }`}>
+                          {coupon.type.name}
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

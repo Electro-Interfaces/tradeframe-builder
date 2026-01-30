@@ -3,13 +3,13 @@
  * Рефакторинг: разделение на компоненты и хуки
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSelection } from '@/contexts/SelectionContext';
-import { Download } from 'lucide-react';
+import { Download, Plus } from 'lucide-react';
 
 // Хуки
 import { useCouponsData } from '@/hooks/useCouponsData';
@@ -24,6 +24,7 @@ import { CouponKpiCards } from '@/components/coupons/CouponKpiCards';
 import { CouponTable } from '@/components/coupons/CouponTable';
 import { CouponTableMobile } from '@/components/coupons/CouponTableMobile';
 import { CouponDetailsModal } from '@/components/coupons/CouponDetailsModal';
+import { CreateCouponModal } from '@/components/coupons/CreateCouponModal';
 
 // Сервисы
 import { couponsExportService } from '@/services/couponsExportService';
@@ -32,7 +33,7 @@ import type { Coupon } from '@/types/coupons';
 
 export default function CouponsPage() {
   const isMobile = useIsMobile();
-  const { selectedTradingPoint, selectedNetwork } = useSelection();
+  const { selectedTradingPoint, selectedNetwork, selectedStation } = useSelection();
 
   // Хуки для управления данными и фильтрами
   const { searchResult, loading, error, loadCouponsData } = useCouponsData();
@@ -60,6 +61,20 @@ export default function CouponsPage() {
   // Модальное окно деталей
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  // Модальное окно создания купона
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  // Виды топлива на данной АЗС (из загруженных купонов)
+  const stationFuelOptions = useMemo(() => {
+    const fuelMap = new Map<number, string>();
+    allCoupons.forEach(c => {
+      if (!fuelMap.has(c.service.service_code)) {
+        fuelMap.set(c.service.service_code, c.service.service_name);
+      }
+    });
+    return Array.from(fuelMap.entries()).map(([code, label]) => ({ code, label }));
+  }, [allCoupons]);
 
   
   // Загрузка данных при изменении сети или точки
@@ -99,6 +114,17 @@ export default function CouponsPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-white">Купоны</h1>
             <div className="flex items-center gap-2">
+              {selectedNetwork?.external_id && selectedStation?.external_id && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCreateOpen(true)}
+                  className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Создать купон
+                </Button>
+              )}
               {filteredCoupons.length > 0 && (
                 <Button
                   variant="outline"
@@ -184,6 +210,20 @@ export default function CouponsPage() {
         onOpenChange={setIsDetailsOpen}
         coupon={selectedCoupon}
       />
+
+      {/* Модальное окно создания купона */}
+      {selectedNetwork?.external_id && selectedStation?.external_id && (
+        <CreateCouponModal
+          isOpen={isCreateOpen}
+          onOpenChange={setIsCreateOpen}
+          systemId={Number(selectedNetwork.external_id)}
+          stationId={Number(selectedStation.external_id)}
+          fuelOptions={stationFuelOptions}
+          networkName={selectedNetwork.name}
+          stationName={selectedStation.name}
+          onSuccess={() => loadCouponsData(filters)}
+        />
+      )}
     </MainLayout>
   );
 }

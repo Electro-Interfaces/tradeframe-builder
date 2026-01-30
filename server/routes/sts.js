@@ -280,6 +280,7 @@ router.get('/v1/shifts', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для купонов ===
 router.get('/v1/coupons', (req, res) => proxyRequest(req, res));
+router.post('/v1/control/coupon', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для отчетов ===
 router.get('/v1/report/receipts', (req, res) => proxyRequest(req, res));

@@ -16,7 +16,8 @@ import {
   CouponsFilter,
   CouponsApiError,
   CouponsAlert,
-  CouponPriority
+  CouponPriority,
+  CreateCouponRequest
 } from '../types/coupons';
 
 class CouponsApiService {
@@ -50,10 +51,28 @@ class CouponsApiService {
         queryParams.dt_end = dtEnd;
       }
 
+      // Cache-busting: добавляем timestamp чтобы браузер не возвращал 304
+      queryParams._t = Date.now().toString();
+
       return stsProxyClient.get<CouponsApiResponse>('/v1/coupons', queryParams);
     } catch (error) {
       console.error('❌ Ошибка загрузки купонов:', error);
       throw this.createApiError('FETCH_ERROR', 'Ошибка загрузки данных с сервера', error);
+    }
+  }
+
+  /**
+   * Создание купона через API
+   * POST /v1/control/coupon
+   */
+  async createCoupon(system: number, station: number, request: CreateCouponRequest): Promise<any> {
+    try {
+      return stsProxyClient.post<any>('/v1/control/coupon', request, {
+        system: system.toString(),
+        station: station.toString()
+      });
+    } catch (error) {
+      throw this.createApiError('CREATE_ERROR', 'Ошибка создания купона', error);
     }
   }
 

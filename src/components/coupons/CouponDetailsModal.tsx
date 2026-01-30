@@ -66,6 +66,17 @@ export function CouponDetailsModal({ isOpen, onOpenChange, coupon }: CouponDetai
               </span>
             </div>
 
+            {coupon.type && (
+              <div className="flex justify-between py-2 border-b border-slate-700">
+                <span className="text-slate-400">Тип создания:</span>
+                <span className={`font-medium text-sm ${
+                  coupon.type.id === 0 ? 'text-slate-300' : 'text-purple-300'
+                }`}>
+                  {coupon.type.name}
+                </span>
+              </div>
+            )}
+
             <div className="flex justify-between py-2 border-b border-slate-700">
               <span className="text-slate-400">Номер смены:</span>
               <span className="text-white font-mono text-sm">

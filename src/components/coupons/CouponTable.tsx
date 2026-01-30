@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { CouponStatusBadge } from './CouponStatusBadge';
 import { formatCouponDate, formatCouponTime } from '@/utils/couponFormatters';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 import { Copy, Loader2 } from 'lucide-react';
 import type { CouponWithAge } from '@/types/coupons';
 
@@ -34,6 +35,7 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
             <TableHead className="text-slate-300 min-w-[120px]">Остаток (л)</TableHead>
             <TableHead className="text-slate-300 min-w-[100px]">Остаток (₽)</TableHead>
             <TableHead className="text-slate-300 min-w-[100px]">Статус</TableHead>
+            <TableHead className="text-slate-300 min-w-[80px]">Тип</TableHead>
             <TableHead className="text-slate-300 min-w-[120px]">Смена</TableHead>
             <TableHead className="text-slate-300 min-w-[100px]">Действия</TableHead>
           </TableRow>
@@ -90,6 +92,19 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
               </TableCell>
               <TableCell className="min-w-[100px]">
                 <CouponStatusBadge stateName={coupon.state.name} />
+              </TableCell>
+              <TableCell className="min-w-[80px]">
+                {coupon.type ? (
+                  <Badge className={`text-[10px] px-1.5 py-0.5 ${
+                    coupon.type.id === 0
+                      ? 'bg-slate-600 text-slate-200 hover:bg-slate-500'
+                      : 'bg-purple-600 text-white hover:bg-purple-500'
+                  }`}>
+                    {coupon.type.name}
+                  </Badge>
+                ) : (
+                  <span className="text-slate-500 text-xs">—</span>
+                )}
               </TableCell>
               <TableCell className="text-slate-300 text-sm min-w-[120px]">
                 <div className="flex flex-col">

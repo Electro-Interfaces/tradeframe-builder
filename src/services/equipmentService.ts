@@ -70,17 +70,23 @@ class EquipmentService {
     const terminalStatus = isOffline ? 'offline' : info.terminal.status;
 
     // Станция (основной терминал) - offline если нет связи более 15 минут
+    // state_trm: code !== 0 означает ошибку терминала
+    const hasTerminalError = info.terminalState && info.terminalState.code !== 0;
     const stationCode = stationName || info.terminal.name || 'АЗС';
     const shiftInfo = info.shift ? `№${info.shift.number}` : '';
     // Объединяем название станции и номер смены в одну строку (компактно для mobile)
     const stationDisplay = shiftInfo ? `${stationCode} • ${shiftInfo}` : stationCode;
+    const stationStatus = hasTerminalError ? 'error' : terminalStatus;
+    const stationStatusText = hasTerminalError
+      ? info.terminalState!.description
+      : (terminalStatus === 'online' ? 'Онлайн' : 'Офлайн');
     equipment.push({
       id: 'station',
       name: 'Станция',
       code: stationDisplay,
       location: '',
-      status: terminalStatus,
-      statusText: terminalStatus === 'online' ? 'Онлайн' : 'Офлайн',
+      status: stationStatus,
+      statusText: stationStatusText,
       lastUpdate: info.pos.lastUpdate
     });
 

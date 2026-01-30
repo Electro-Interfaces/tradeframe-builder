@@ -7,7 +7,7 @@ import { memo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Thermometer, Gauge, Droplets, Fuel, LineChart, Settings, Lock } from "lucide-react";
+import { Thermometer, Gauge, Droplets, Fuel, LineChart, Settings, Lock, AlertTriangle } from "lucide-react";
 
 /**
  * Порог блокировки отпуска топлива (литры)
@@ -46,10 +46,10 @@ const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardP
   const [showCalibration, setShowCalibration] = useState(false);
   const currentLevel = tank.currentLevelLiters || 0;
   const capacity = tank.capacityLiters || 0;
-  const percentage = getPercentage(currentLevel, capacity);
+  const percentage = capacity > 0 ? getPercentage(currentLevel, capacity) : 0;
   const freeSpace = capacity - currentLevel;
   const tankStatus = getTankStatus(percentage, tank.minLevelPercent || 20, tank.criticalLevelPercent || 10);
-  const isBlocked = currentLevel < BLOCK_THRESHOLD_LITERS;
+  const isBlocked = !tank.noSensorData && currentLevel < BLOCK_THRESHOLD_LITERS;
 
   return (
     <Card className={`bg-gradient-to-br from-slate-800 to-slate-850 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm ${isBlocked ? 'border-2 border-red-500 ring-2 ring-red-500/30' : 'border border-slate-600/50'}`}>
@@ -95,10 +95,25 @@ const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardP
           </div>
         )}
 
+        {/* Баннер: нет данных уровнемера */}
+        {tank.noSensorData && (
+          <div className={`flex items-center gap-2 bg-yellow-900/40 border border-yellow-500/50 rounded-lg mb-3 ${isMobile ? 'p-2' : 'p-3'}`}>
+            <AlertTriangle className={`text-yellow-400 flex-shrink-0 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <div className="min-w-0 flex-1">
+              <span className={`text-yellow-400 font-bold ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                Нет данных уровнемера
+              </span>
+              <p className={`text-yellow-300/80 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                Книжный остаток: {(tank.apiData?.volume_begin || 0).toLocaleString()} л − отпуск {(tank.apiData?.release?.volume || 0).toLocaleString()} л = {currentLevel.toLocaleString()} л
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Заголовок резервуара */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className={`w-3 h-8 rounded-full shadow-md flex-shrink-0 ${isBlocked ? 'bg-gradient-to-b from-red-400 to-red-600' : 'bg-gradient-to-b from-blue-400 to-blue-600'}`}></div>
+            <div className={`w-3 h-8 rounded-full shadow-md flex-shrink-0 ${isBlocked ? 'bg-gradient-to-b from-red-400 to-red-600' : tank.noSensorData ? 'bg-gradient-to-b from-yellow-400 to-yellow-600' : 'bg-gradient-to-b from-blue-400 to-blue-600'}`}></div>
             <div className="min-w-0 flex-1">
               <CardTitle className={`text-white font-bold truncate ${isMobile ? 'text-base' : 'text-lg'}`}>
                 {tank.name}
@@ -107,6 +122,8 @@ const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardP
                 className={`font-semibold truncate ${isMobile ? 'text-xs' : 'text-sm'} ${
                   isBlocked
                     ? 'text-red-400'
+                    : tank.noSensorData
+                    ? 'text-yellow-400'
                     : tankStatus === 'normal'
                     ? 'text-green-400'
                     : tankStatus === 'warning'
@@ -114,7 +131,7 @@ const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardP
                     : 'text-red-400'
                 }`}
               >
-                {isBlocked ? '🔒 Блокировка' : tankStatus === 'normal' ? 'Активно' : tankStatus === 'warning' ? 'Низкий' : 'Критично'}
+                {isBlocked ? '🔒 Блокировка' : tank.noSensorData ? '📖 Книжный остаток' : tankStatus === 'normal' ? 'Активно' : tankStatus === 'warning' ? 'Низкий' : 'Критично'}
               </p>
             </div>
           </div>
@@ -132,25 +149,37 @@ const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardP
               <span className={`font-bold text-white truncate ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                 {currentLevel.toLocaleString()} л
               </span>
-              <span className={`font-bold text-slate-300 flex-shrink-0 ${isMobile ? 'text-xs' : 'text-lg'}`}>
-                ({percentage}%)
-              </span>
+              {tank.noSensorData ? (
+                <span className={`font-bold text-yellow-400 flex-shrink-0 ${isMobile ? 'text-xs' : 'text-lg'}`}>
+                  (книж.)
+                </span>
+              ) : (
+                <span className={`font-bold text-slate-300 flex-shrink-0 ${isMobile ? 'text-xs' : 'text-lg'}`}>
+                  ({percentage}%)
+                </span>
+              )}
             </div>
             <div className="flex justify-between text-xs text-slate-400">
-              <span className="truncate">Макс: {capacity.toLocaleString()} л</span>
+              {tank.noSensorData ? (
+                <span className="truncate">Книжный нач: {(tank.apiData?.volume_begin || 0).toLocaleString()} л</span>
+              ) : (
+                <span className="truncate">Макс: {capacity.toLocaleString()} л</span>
+              )}
             </div>
           </div>
 
-          {/* Vertical Progress Bar */}
-          <div className="flex flex-col items-center gap-2 flex-shrink-0">
-            <TankProgressIndicator
-              percentage={percentage}
-              minLevel={tank.minLevelPercent}
-              criticalLevel={tank.criticalLevelPercent}
-              isMobile={isMobile}
-            />
-            <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{percentage}%</span>
-          </div>
+          {/* Vertical Progress Bar (скрываем при отсутствии данных уровнемера) */}
+          {!tank.noSensorData && (
+            <div className="flex flex-col items-center gap-2 flex-shrink-0">
+              <TankProgressIndicator
+                percentage={percentage}
+                minLevel={tank.minLevelPercent}
+                criticalLevel={tank.criticalLevelPercent}
+                isMobile={isMobile}
+              />
+              <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{percentage}%</span>
+            </div>
+          )}
         </div>
 
         {/* Key Metrics Grid */}
@@ -317,6 +346,7 @@ export const TankCard = memo(TankCardComponent, (prevProps, nextProps) => {
     prevProps.tank.currentLevelLiters === nextProps.tank.currentLevelLiters &&
     prevProps.tank.capacityLiters === nextProps.tank.capacityLiters &&
     prevProps.tank.temperature === nextProps.tank.temperature &&
+    prevProps.tank.noSensorData === nextProps.tank.noSensorData &&
     prevProps.tank.apiData?.dt === nextProps.tank.apiData?.dt
   );
 });

@@ -670,7 +670,7 @@ gh run list --repo Electro-Interfaces/TradeControl --limit 3
 
 ## Важные заметки
 
-- Текущая версия: **v1.5.16** (управляется через `src/config/version.ts`)
+- Текущая версия: **v1.9.0** (управляется через `src/config/version.ts`)
 - Независимый проект (больше не связан с Lovable.dev)
 - Компонентный таггер активен в режиме разработки
 - Поддерживает PM2 деплой с `ecosystem.config.js` и `server/ecosystem.config.cjs`

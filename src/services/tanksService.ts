@@ -67,12 +67,30 @@ class TanksService {
       }
 
       // Преобразуем данные от API в формат Tank
-      const tanks: Tank[] = apiTanks.map(apiTank => ({
+      const tanks: Tank[] = apiTanks.map(apiTank => {
+        const volume = parseFloat(apiTank.volume || '0');
+        const volumeMax = parseFloat(apiTank.volume_max || '0');
+        const level = parseFloat(apiTank.level || '0');
+        const volumeBegin = parseFloat(apiTank.volume_begin || '0');
+        const releaseVolume = parseFloat(apiTank.release?.volume || '0');
+
+        // Определяем отсутствие данных уровнемера:
+        // volume=0, volume_max=0, level=0, но книжный остаток есть
+        const noSensorData = volume === 0 && volumeMax === 0 && level === 0 && volumeBegin > 0;
+
+        // Fallback: если уровнемер не работает — расчётный остаток из книжных данных
+        const currentLevelLiters = noSensorData
+          ? Math.max(0, volumeBegin - releaseVolume)
+          : parseFloat(apiTank.volume || apiTank.volume_end || '0');
+        const capacityLiters = noSensorData ? 0 : volumeMax;
+
+        return ({
         id: apiTank.number || apiTank.id,
         name: `Резервуар №${apiTank.number}`,
         fuelType: apiTank.fuel_name || 'Неизвестно',
-        currentLevelLiters: parseFloat(apiTank.volume || apiTank.volume_end || '0'),
-        capacityLiters: parseFloat(apiTank.volume_max || '0'),
+        currentLevelLiters,
+        capacityLiters,
+        noSensorData,
         minLevelPercent: 20,
         criticalLevelPercent: 10,
         temperature: parseFloat(apiTank.temperature || '0'),
@@ -116,7 +134,7 @@ class TanksService {
           state: apiTank.state,
           fuel: apiTank.fuel
         }
-      }));
+      })});
 
       return tanks;
     } catch (error) {
