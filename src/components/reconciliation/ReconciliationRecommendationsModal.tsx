@@ -289,7 +289,7 @@ export function ReconciliationRecommendationsModal({
 
             {/* Рекомендации по транзакциям */}
             {hasTransactionErrors && (
-              <section className="bg-green-900/20 border border-green-800 rounded-lg p-3 sm:p-4">
+              <section className="bg-emerald-900/20 border border-green-800 rounded-lg p-3 sm:p-4">
                 <h3 className="text-sm font-medium text-green-400 mb-3 flex items-center gap-2">
                   <Lightbulb className="h-4 w-4" />
                   Рекомендации по транзакциям
@@ -352,7 +352,7 @@ export function ReconciliationRecommendationsModal({
 
             {/* Нет расхождений транзакций */}
             {!hasTransactionErrors && (
-              <section className="bg-green-900/20 border border-green-800 rounded-lg p-3 sm:p-4">
+              <section className="bg-emerald-900/20 border border-green-800 rounded-lg p-3 sm:p-4">
                 <div className="flex items-center gap-2 text-green-400">
                   <CheckCircle2 className="h-5 w-5" />
                   <span className="font-medium">Все транзакции сходятся!</span>

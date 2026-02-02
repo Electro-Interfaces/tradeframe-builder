@@ -267,7 +267,7 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
             </TabsTrigger>
             <TabsTrigger 
               value="trends"
-              className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+              className="text-white text-sm py-3 px-2 font-medium data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
             >
               📈 Тренды
             </TabsTrigger>
@@ -298,7 +298,7 @@ export function SalesAnalysis({ selectedNetwork, selectedTradingPoint }: SalesAn
             </TabsTrigger>
             <TabsTrigger 
               value="trends" 
-              className="text-white font-medium px-6 py-3 data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
+              className="text-white font-medium px-6 py-3 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 hover:bg-slate-600"
             >
               📈 Динамика (Тренды)
             </TabsTrigger>

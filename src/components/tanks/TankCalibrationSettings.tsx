@@ -1974,7 +1974,7 @@ export function TankCalibrationSettingsComponent({
 
             {/* Результаты расчета */}
             {calculationResult && (
-              <div className={`mt-4 p-4 rounded-lg border ${calculationResult.success ? 'bg-green-900/20 border-green-600/50' : 'bg-red-900/20 border-red-600/50'}`}>
+              <div className={`mt-4 p-4 rounded-lg border ${calculationResult.success ? 'bg-emerald-900/20 border-green-600/50' : 'bg-red-900/20 border-red-600/50'}`}>
                 {calculationResult.success ? (
                   <>
                     <h4 className="font-semibold text-green-400 flex items-center gap-2 mb-3">

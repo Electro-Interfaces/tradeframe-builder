@@ -289,7 +289,7 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
       volume: paymentDetails?.cash?.volume ?? 0,
       byFuel: paymentDetails?.cash?.byFuel ?? [],
       icon: <Banknote className="w-4 h-4 text-white" />,
-      iconBg: 'bg-green-600',
+      iconBg: 'bg-emerald-600',
     },
     {
       title: 'Банковские карты',

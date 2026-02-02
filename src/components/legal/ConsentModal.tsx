@@ -223,7 +223,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                             Версия {doc.version}
                           </Badge>
                           {state.read && (
-                            <Badge className="bg-green-600 text-white text-xs">
+                            <Badge className="bg-emerald-600 text-white text-xs">
                               <CheckCircle2 className="w-3 h-3 mr-1" />
                               Прочитано
                             </Badge>
@@ -298,7 +298,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                     <Button
                       onClick={() => handleAcceptDocument(doc.type)}
                       disabled={!state.read || !state.agreed || state.accepting}
-                      className="w-full bg-green-600 hover:bg-green-500 text-white disabled:bg-slate-600 disabled:text-slate-400"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white disabled:bg-slate-600 disabled:text-slate-400"
                       loading={state.accepting}
                     >
                       {state.accepting ? (
@@ -326,7 +326,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                   </h4>
                   <div className="space-y-2">
                     {completedDocuments.map(doc => (
-                      <div key={doc.type} className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                      <div key={doc.type} className="bg-emerald-500/10 border border-green-500/20 rounded-lg p-3">
                         <div className="flex items-center gap-3">
                           <CheckCircle2 className="w-5 h-5 text-green-400" />
                           <div>
@@ -346,7 +346,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
         <DialogFooter className="mt-4">
           <div className="w-full">
             {allCompleted ? (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+              <div className="bg-emerald-500/10 border border-green-500/20 rounded-lg p-4">
                 <div className="flex items-center justify-center gap-2 text-green-400">
                   <CheckCircle2 className="w-5 h-5" />
                   <span className="font-medium">Все согласия получены!</span>

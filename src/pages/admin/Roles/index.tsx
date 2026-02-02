@@ -117,7 +117,7 @@ export default function RolesPage() {
                 </Button>
                 <Button
                   onClick={rolesState.createPredefinedRoles}
-                  className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-initial"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-initial"
                   size="sm"
                   disabled={rolesState.loading}
                 >

@@ -181,7 +181,7 @@ export function DashboardPeriodSelector({
               className={cn(
                 'h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm',
                 period.preset === 'custom'
-                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                   : 'text-slate-300 hover:text-white hover:bg-slate-700'
               )}
             >

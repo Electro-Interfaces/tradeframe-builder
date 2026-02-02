@@ -456,7 +456,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                       </Button>
                       {formData.name && formData.code && permissions.length > 0 && (
                         <div className="flex items-center space-x-2 text-green-400">
-                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
                           <span className="text-xs">Готово к сохранению</span>
                         </div>
                       )}
@@ -476,7 +476,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                 </p>
                 <div className={`grid gap-4 text-xs ${isMobile ? 'grid-cols-2' : 'grid-cols-5'}`}>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-green-800 border border-green-600 rounded"></div>
+                    <div className="w-3 h-3 bg-emerald-800 border border-green-600 rounded"></div>
                     <span className="text-green-300 font-medium">Чтение</span> - просмотр данных
                   </div>
                   <div className="flex items-center space-x-1">
@@ -575,7 +575,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSaved }: RoleFormDi
                               ).map(action => {
                                 const isChecked = hasPermission(section.code, resource.code, action)
                                 const colorClasses = {
-                                  read: isChecked ? 'border-green-500 bg-green-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-400',
+                                  read: isChecked ? 'border-green-500 bg-emerald-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-400',
                                   write: isChecked ? 'border-blue-500 bg-blue-900 text-blue-300' : 'border-slate-600 bg-slate-700 text-slate-400', 
                                   delete: isChecked ? 'border-red-500 bg-red-900 text-red-300' : 'border-slate-600 bg-slate-700 text-slate-400',
                                   manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-600 bg-slate-700 text-slate-400',

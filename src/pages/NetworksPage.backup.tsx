@@ -720,7 +720,7 @@ export default function NetworksPage() {
                         <div className="text-sm text-slate-400 mb-2">{point.phone}</div>
                       )}
                       <div className="flex items-center gap-3 text-xs mb-2">
-                        <Badge className={point.isBlocked ? "bg-red-600 text-white" : point.isActive ? "bg-green-600 text-white" : "bg-yellow-600 text-white"}>
+                        <Badge className={point.isBlocked ? "bg-red-600 text-white" : point.isActive ? "bg-emerald-600 text-white" : "bg-yellow-600 text-white"}>
                           {point.isBlocked ? "Заблокирован" : point.isActive ? "Активный" : "Неактивный"}
                         </Badge>
                         <span className="text-slate-400">

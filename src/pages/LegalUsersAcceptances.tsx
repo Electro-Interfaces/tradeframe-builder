@@ -166,7 +166,7 @@ export default function LegalUsersAcceptances() {
 
   const getStatusBadge = (percentage: number) => {
     if (percentage === 100) {
-      return <Badge className="bg-green-600 text-white">Завершено</Badge>;
+      return <Badge className="bg-emerald-600 text-white">Завершено</Badge>;
     }
     if (percentage > 0) {
       return <Badge className="bg-yellow-600 text-white">Частично</Badge>;
@@ -395,7 +395,7 @@ export default function LegalUsersAcceptances() {
                                   <div
                                     key={docType}
                                     className={`w-2 h-2 rounded-full ${
-                                      hasAcceptance ? 'bg-green-400' : 'bg-slate-600'
+                                      hasAcceptance ? 'bg-emerald-400' : 'bg-slate-600'
                                     }`}
                                     title={`${DOCUMENT_TYPES[docType as DocumentType]} - ${hasAcceptance ? 'Подписано' : 'Не подписано'}`}
                                   />

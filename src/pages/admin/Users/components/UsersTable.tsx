@@ -88,7 +88,7 @@ export function UsersTable({
               <td className="px-4 py-3">
                 <Badge
                   variant={user.status === 'active' ? 'default' : 'secondary'}
-                  className={user.status === 'active' ? 'bg-green-600 text-xs' : 'bg-slate-600 text-xs'}
+                  className={user.status === 'active' ? 'bg-emerald-600 text-xs' : 'bg-slate-600 text-xs'}
                 >
                   {user.status === 'active' ? 'Активен' : 'Неактивен'}
                 </Badge>

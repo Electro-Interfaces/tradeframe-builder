@@ -217,7 +217,7 @@ export default function RolesPage() {
                       alert('Ошибка создания ролей: ' + error);
                     }
                   }}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium flex-shrink-0"
                   disabled={loading}
                 >
                   <Shield className="w-4 h-4 mr-2" />
@@ -345,7 +345,7 @@ export default function RolesPage() {
                               variant="outline" 
                               className={`text-xs ${
                                 role.is_active 
-                                  ? 'text-green-400 border-green-500 bg-green-500/10'
+                                  ? 'text-green-400 border-green-500 bg-emerald-500/10'
                                   : 'text-slate-400 border-slate-500 bg-slate-500/10'
                               }`}
                             >

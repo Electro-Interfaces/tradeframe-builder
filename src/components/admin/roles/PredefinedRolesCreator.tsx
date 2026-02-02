@@ -264,7 +264,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
   const getStatusBadge = (status: RoleCreationStatus) => {
     switch (status.status) {
       case 'success':
-        return <Badge className="bg-green-600">Создана</Badge>;
+        return <Badge className="bg-emerald-600">Создана</Badge>;
       case 'creating':
         return <Badge variant="secondary">Создается...</Badge>;
       case 'error':
@@ -328,7 +328,7 @@ export const PredefinedRolesCreator: React.FC<PredefinedRolesCreatorProps> = ({ 
                 key={role.code}
                 className={`p-4 border rounded-lg transition-all ${
                   status === 'creating' ? 'border-blue-500 bg-blue-950/20' :
-                  status === 'success' ? 'border-green-500 bg-green-950/20' :
+                  status === 'success' ? 'border-green-500 bg-emerald-950/20' :
                   status === 'error' ? 'border-red-500 bg-red-950/20' :
                   'border-slate-600 hover:border-slate-500'
                 }`}

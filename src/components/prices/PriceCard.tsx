@@ -112,7 +112,7 @@ export function PriceCard({
               size="sm"
               onClick={onSaveInlinePrice}
               disabled={!hasChanges}
-              className="flex-1 text-green-400 hover:text-green-300 hover:bg-green-500/10 disabled:text-slate-500 disabled:hover:text-slate-500"
+              className="flex-1 text-green-400 hover:text-green-300 hover:bg-emerald-500/10 disabled:text-slate-500 disabled:hover:text-slate-500"
             >
               <Save className="w-4 h-4 mr-1" />
               Сохранить

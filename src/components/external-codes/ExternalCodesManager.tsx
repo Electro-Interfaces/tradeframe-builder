@@ -199,7 +199,7 @@ export function ExternalCodesManager({
                     {externalCode.code}
                   </Badge>
                   <Badge 
-                    className={externalCode.isActive ? "bg-green-600 text-white" : "bg-gray-600 text-white"}
+                    className={externalCode.isActive ? "bg-emerald-600 text-white" : "bg-gray-600 text-white"}
                   >
                     {externalCode.isActive ? "Активен" : "Неактивен"}
                   </Badge>

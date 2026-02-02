@@ -56,7 +56,7 @@ export function getStatusText(status: ReconciliationTransactionStatus): string {
  */
 export function getStatusColorClass(status: ReconciliationTransactionStatus): string {
   switch (status) {
-    case 'matched': return 'bg-green-600';
+    case 'matched': return 'bg-emerald-600';
     case 'only_corp': return 'bg-orange-600';
     case 'only_tf': return 'bg-orange-600';
     case 'mismatch': return 'bg-red-600';

@@ -81,7 +81,7 @@ class ErrorBoundary extends Component<Props, State> {
                 {/* Кнопка повторной попытки */}
                 <button
                   onClick={this.handleRetry}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded"
                 >
                   {this.state.retryCount < 2 ? 'Повторить попытку' : 'Принудительная перезагрузка'}
                 </button>

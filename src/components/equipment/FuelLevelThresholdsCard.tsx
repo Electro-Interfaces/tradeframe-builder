@@ -69,7 +69,7 @@ function getBgColor(currentPercent: number, warning: number = 20, critical: numb
 function getFillLevelColor(level: number, warning: number = 20, critical: number = 10) {
   if (level <= critical) return 'bg-red-500';
   if (level <= warning) return 'bg-yellow-500';
-  return 'bg-green-500';
+  return 'bg-emerald-500';
 }
 
 export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThresholds, networkId, stationCode }: FuelLevelThresholdsCardProps) {
@@ -500,7 +500,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                           книжный
                         </Badge>
                       ) : (
-                        <Badge className="bg-green-600 text-white text-[10px] px-1.5 py-0">
+                        <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0">
                           <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
                           Активен
                         </Badge>
@@ -670,7 +670,7 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
                           Книжный
                         </Badge>
                       ) : (
-                        <Badge className="bg-green-600 text-white hover:bg-green-700 text-xs">
+                        <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs">
                           <CheckCircle2 className="w-3 h-3 mr-1" />
                           Активен
                         </Badge>

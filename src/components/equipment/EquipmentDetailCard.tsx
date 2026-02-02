@@ -93,7 +93,7 @@ const getStatusText = (status: EquipmentStatus) => {
 
 const getStatusColor = (status: EquipmentStatus) => {
   switch (status) {
-    case 'online': return 'bg-green-500';
+    case 'online': return 'bg-emerald-500';
     case 'offline': return 'bg-yellow-500';
     case 'error': return 'bg-red-500';
     case 'disabled': return 'bg-gray-500';

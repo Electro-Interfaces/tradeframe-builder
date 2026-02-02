@@ -223,7 +223,7 @@ getStatusBadgeColor(true);              // CSS классы для статус�
 ```tsx
 <Button
   onClick={rolesState.createPredefinedRoles}
-  className="bg-green-600 hover:bg-green-700 text-white"
+  className="bg-emerald-600 hover:bg-emerald-700 text-white"
   disabled={rolesState.loading}
 >
   <Shield className="w-4 h-4 mr-2" />
@@ -386,9 +386,9 @@ import Roles from '@/pages/admin/Roles';
 ### Scope Badge
 - **Global**: `text-purple-400 border-purple-500 bg-purple-500/10`
 - **Network**: `text-blue-400 border-blue-500 bg-blue-500/10`
-- **Trading Point**: `text-green-400 border-green-500 bg-green-500/10`
+- **Trading Point**: `text-green-400 border-green-500 bg-emerald-500/10`
 - **Assigned**: `text-orange-400 border-orange-500 bg-orange-500/10`
 
 ### Status Badge
-- **Активна**: `text-green-400 border-green-500 bg-green-500/10`
+- **Активна**: `text-green-400 border-green-500 bg-emerald-500/10`
 - **Неактивна**: `text-slate-400 border-slate-500 bg-slate-500/10`

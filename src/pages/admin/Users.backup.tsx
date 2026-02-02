@@ -315,7 +315,7 @@ export default function Users() {
                         <td className="px-4 md:px-6 py-4">
                           <Badge 
                             variant={user.status === 'active' ? 'default' : 'secondary'}
-                            className={user.status === 'active' ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-600 hover:bg-slate-700'}
+                            className={user.status === 'active' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-600 hover:bg-slate-700'}
                           >
                             {user.status === 'active' ? 'Активен' : 'Неактивен'}
                           </Badge>

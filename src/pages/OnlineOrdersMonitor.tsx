@@ -89,7 +89,7 @@ function getAllMstoServicePointIds(tradingPoints: TradingPoint[]): number[] {
 
 // Цвета для статусов (палитра как на странице оборудования)
 const STATUS_COLORS: Record<string, string> = {
-  completed: 'bg-green-600 text-white',
+  completed: 'bg-emerald-600 text-white',
   pending: 'bg-amber-600 text-white',
   failed: 'bg-red-600 text-white',
   cancelled: 'bg-slate-600 text-white'
@@ -111,7 +111,7 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
 
 // Цвета для топлива
 const FUEL_COLORS: Record<string, string> = {
-  'АИ-92': 'bg-green-500',
+  'АИ-92': 'bg-emerald-500',
   'АИ-95': 'bg-blue-500',
   'АИ-98': 'bg-purple-500',
   'ДТ': 'bg-amber-500',
@@ -444,7 +444,7 @@ export default function OnlineOrdersMonitor() {
           <div className="flex items-center gap-2">
             {/* Статус мониторинга */}
             <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-800 rounded-lg">
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isMonitoring ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isMonitoring ? 'bg-emerald-500 animate-pulse' : 'bg-gray-500'}`} />
               <span className="text-xs sm:text-sm text-gray-300 hidden sm:inline">
                 {isMonitoring ? 'Активен' : 'Остановлен'}
               </span>

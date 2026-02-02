@@ -310,7 +310,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
-            <div className="bg-green-500/20 p-2 rounded-full">
+            <div className="bg-emerald-500/20 p-2 rounded-full">
               <Smartphone className="h-6 w-6 text-green-400" />
             </div>
           </div>
@@ -376,7 +376,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
                 onClick={handleDismiss}
                 size="sm"
                 variant="ghost"
-                className="text-green-300 hover:text-green-200 hover:bg-green-900/30"
+                className="text-green-300 hover:text-green-200 hover:bg-emerald-900/30"
               >
                 Позже
               </Button>
@@ -387,7 +387,7 @@ export const PWAInstaller: React.FC<PWAInstallerProps> = ({ onInstalled, onDismi
             onClick={handleDismiss}
             size="sm"
             variant="ghost"
-            className="flex-shrink-0 h-6 w-6 p-0 text-green-400 hover:text-green-200 hover:bg-green-900/30"
+            className="flex-shrink-0 h-6 w-6 p-0 text-green-400 hover:text-green-200 hover:bg-emerald-900/30"
           >
             <X className="h-4 w-4" />
           </Button>

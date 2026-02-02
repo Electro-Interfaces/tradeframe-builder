@@ -295,7 +295,7 @@ export default function ShiftReportsV2() {
                   </p>
                   <p className="text-slate-500 text-sm">Сверка операций по корпоративным картам с TradeCorp</p>
                 </div>
-                <Button variant="ghost" size="sm" className="text-green-400 hover:text-green-300 hover:bg-green-900/20">
+                <Button variant="ghost" size="sm" className="text-green-400 hover:text-green-300 hover:bg-emerald-900/20">
                   Открыть
                 </Button>
               </div>

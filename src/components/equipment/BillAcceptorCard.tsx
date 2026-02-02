@@ -110,7 +110,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
               <Badge
                 className={`${
                   billAcceptor.status === 'online'
-                    ? 'bg-green-600 text-white hover:bg-green-700 text-xs px-2 py-0.5'
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 text-xs px-2 py-0.5'
                     : 'bg-red-600 text-white hover:bg-red-700 text-xs px-2 py-0.5'
                 }`}
               >
@@ -127,7 +127,7 @@ export function BillAcceptorCard({ billAcceptor, isMobile, thresholds, onSaveThr
             <Badge
               className={`${
                 billAcceptor.status === 'online'
-                  ? 'bg-green-600 text-white hover:bg-green-700 text-sm px-3 py-1'
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 text-sm px-3 py-1'
                   : 'bg-red-600 text-white hover:bg-red-700 text-sm px-3 py-1'
               }`}
             >

@@ -241,7 +241,7 @@ export default function Prices() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "active": return "bg-green-500/20 text-green-400 border-green-500/30";
+      case "active": return "bg-emerald-500/20 text-green-400 border-green-500/30";
       case "scheduled": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
       case "expired": return "bg-red-500/20 text-red-400 border-red-500/30";
       default: return "bg-slate-500/20 text-slate-400 border-slate-500/30";
@@ -269,7 +269,7 @@ export default function Prices() {
   const getSourceColor = (source: string) => {
     switch (source) {
       case "manual": return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-      case "import": return "bg-green-500/20 text-green-400 border-green-500/30";
+      case "import": return "bg-emerald-500/20 text-green-400 border-green-500/30";
       case "api": return "bg-purple-500/20 text-purple-400 border-purple-500/30";
       default: return "bg-slate-500/20 text-slate-400 border-slate-500/30";
     }
@@ -952,7 +952,7 @@ export default function Prices() {
                   variant="outline"
                   size="sm"
                   disabled={isSettingPrices || !selectedTradingPoint || selectedTradingPoint === 'all'}
-                  className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                  className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white"
                 >
                   <Edit className={`h-4 w-4 ${isMobile ? '' : 'mr-2'}`} />
                   {!isMobile && "Изменить цены"}
@@ -1263,7 +1263,7 @@ export default function Prices() {
                               </Badge>
                             </td>
                             <td className="px-4 py-3">
-                              <Badge variant="secondary" className={`text-xs ${entry.status === 'applied' ? 'bg-green-500/20 text-green-400' : entry.status === 'scheduled' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                              <Badge variant="secondary" className={`text-xs ${entry.status === 'applied' ? 'bg-emerald-500/20 text-green-400' : entry.status === 'scheduled' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
                                 {entry.status === 'applied' ? 'Применено' : entry.status === 'scheduled' ? 'Запланировано' : 'Отменено'}
                               </Badge>
                             </td>

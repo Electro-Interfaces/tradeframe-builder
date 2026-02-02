@@ -68,11 +68,11 @@ const generateMockData = (): DayData[] => {
 
 const getIntensityColor = (value: number): string => {
   if (value === 0) return "bg-slate-700";
-  if (value < 0.2) return "bg-green-900/40";
-  if (value < 0.4) return "bg-green-700/60";
-  if (value < 0.6) return "bg-green-600/70";
-  if (value < 0.8) return "bg-green-500/80";
-  return "bg-green-400";
+  if (value < 0.2) return "bg-emerald-900/40";
+  if (value < 0.4) return "bg-emerald-700/60";
+  if (value < 0.6) return "bg-emerald-600/70";
+  if (value < 0.8) return "bg-emerald-500/80";
+  return "bg-emerald-400";
 };
 
 const formatDate = (dateStr: string): string => {
@@ -187,11 +187,11 @@ export function ActivityHeatmap({ title = "Активность торговых
             <span className="text-slate-400">Меньше</span>
             <div className="flex gap-1">
               <div className="w-3 h-3 bg-slate-700 rounded-sm border border-slate-600"></div>
-              <div className="w-3 h-3 bg-green-900/40 rounded-sm border border-slate-600"></div>
-              <div className="w-3 h-3 bg-green-700/60 rounded-sm border border-slate-600"></div>
-              <div className="w-3 h-3 bg-green-600/70 rounded-sm border border-slate-600"></div>
-              <div className="w-3 h-3 bg-green-500/80 rounded-sm border border-slate-600"></div>
-              <div className="w-3 h-3 bg-green-400 rounded-sm border border-slate-600"></div>
+              <div className="w-3 h-3 bg-emerald-900/40 rounded-sm border border-slate-600"></div>
+              <div className="w-3 h-3 bg-emerald-700/60 rounded-sm border border-slate-600"></div>
+              <div className="w-3 h-3 bg-emerald-600/70 rounded-sm border border-slate-600"></div>
+              <div className="w-3 h-3 bg-emerald-500/80 rounded-sm border border-slate-600"></div>
+              <div className="w-3 h-3 bg-emerald-400 rounded-sm border border-slate-600"></div>
             </div>
             <span className="text-slate-400">Больше</span>
           </div>
@@ -325,11 +325,11 @@ export function ActivityHeatmap({ title = "Активность торговых
           <span className="text-slate-400">Меньше</span>
           <div className="flex gap-1">
             <div className="w-3 h-3 bg-slate-700 rounded-sm border border-slate-600"></div>
-            <div className="w-3 h-3 bg-green-900/40 rounded-sm border border-slate-600"></div>
-            <div className="w-3 h-3 bg-green-700/60 rounded-sm border border-slate-600"></div>
-            <div className="w-3 h-3 bg-green-600/70 rounded-sm border border-slate-600"></div>
-            <div className="w-3 h-3 bg-green-500/80 rounded-sm border border-slate-600"></div>
-            <div className="w-3 h-3 bg-green-400 rounded-sm border border-slate-600"></div>
+            <div className="w-3 h-3 bg-emerald-900/40 rounded-sm border border-slate-600"></div>
+            <div className="w-3 h-3 bg-emerald-700/60 rounded-sm border border-slate-600"></div>
+            <div className="w-3 h-3 bg-emerald-600/70 rounded-sm border border-slate-600"></div>
+            <div className="w-3 h-3 bg-emerald-500/80 rounded-sm border border-slate-600"></div>
+            <div className="w-3 h-3 bg-emerald-400 rounded-sm border border-slate-600"></div>
           </div>
           <span className="text-slate-400">Больше</span>
         </div>

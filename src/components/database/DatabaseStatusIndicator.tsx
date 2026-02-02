@@ -61,7 +61,7 @@ export const DatabaseStatusIndicator: React.FC = () => {
   const getStatusBadge = () => {
     if (status.connected) {
       return (
-        <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+        <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700">
           <CheckCircle className="w-3 h-3 mr-1" />
           Подключено к внешней БД
         </Badge>

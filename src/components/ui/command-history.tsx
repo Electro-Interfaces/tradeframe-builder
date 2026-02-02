@@ -45,7 +45,7 @@ export function CommandHistory({ history, equipmentId, equipmentName }: CommandH
   const getStatusColor = (status: string) => {
     switch (status) {
       case "success":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-emerald-100 text-green-800 border-green-200";
       case "error":
         return "bg-red-100 text-red-800 border-red-200";
       case "pending":

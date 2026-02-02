@@ -27,7 +27,7 @@ export function RuleCard({ rule, onToggle, onEdit, onDelete, isMobile = false }:
               {rule.notification_config?.priority || 'medium'}
             </Badge>
             {rule.is_active ? (
-              <Badge className="bg-green-600 text-white text-xs">Активно</Badge>
+              <Badge className="bg-emerald-600 text-white text-xs">Активно</Badge>
             ) : (
               <Badge variant="outline" className="text-slate-400 text-xs">Отключено</Badge>
             )}

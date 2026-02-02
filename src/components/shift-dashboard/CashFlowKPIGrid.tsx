@@ -186,7 +186,7 @@ export function CashFlowKPIGrid({ cashFlow, isLoading, className }: CashFlowKPIG
           title="Приход"
           value={formatCurrency(safeCashFlow.totalIncome)}
           icon={<ArrowUpCircle className="w-4 h-4 text-white" />}
-          iconBg="bg-green-600"
+          iconBg="bg-emerald-600"
           valueColor="text-green-400"
           isLoading={isLoading}
           onClick={() => safeCashFlow.details.length > 0 && setIsExpanded(!isExpanded)}

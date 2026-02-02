@@ -45,7 +45,7 @@ interface UserFormDialogProps {
 }
 
 const STATUS_OPTIONS: Array<{ value: UserStatus; label: string; description: string; color: string }> = [
-  { value: 'active', label: 'Активен', description: 'Может входить в систему', color: 'bg-green-600' },
+  { value: 'active', label: 'Активен', description: 'Может входить в систему', color: 'bg-emerald-600' },
   { value: 'inactive', label: 'Неактивен', description: 'Вход временно запрещен', color: 'bg-yellow-600' },
   { value: 'blocked', label: 'Заблокирован', description: 'Доступ полностью запрещен', color: 'bg-red-600' }
 ]

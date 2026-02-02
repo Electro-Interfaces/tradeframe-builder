@@ -14,7 +14,7 @@ interface TankInventoryCardProps {
 export const TankInventoryCard = ({ tank }: TankInventoryCardProps) => {
   // Цветовая индикация по уровню заполнения
   const getProgressColor = (fillPercent: number) => {
-    if (fillPercent >= 20) return 'bg-green-500';  // >= 20% - зеленый (норма)
+    if (fillPercent >= 20) return 'bg-emerald-500';  // >= 20% - зеленый (норма)
     if (fillPercent >= 10) return 'bg-yellow-500'; // 10-20% - желтый (внимание)
     return 'bg-red-500';                            // < 10% - красный (критический)
   };
@@ -68,7 +68,7 @@ export const TankInventoryCard = ({ tank }: TankInventoryCardProps) => {
             </div>
           </div>
 
-          <div className="bg-green-900/20 rounded p-2 border border-green-700/30">
+          <div className="bg-emerald-900/20 rounded p-2 border border-green-700/30">
             <div className="text-[10px] text-green-400 mb-0.5">Поступления</div>
             <div className="text-sm font-mono text-green-400">
               +{formatNumber(tank.volumeReceipts)} л

@@ -67,7 +67,7 @@ export default function LegalDocumentHistory() {
 
   const getStatusBadge = (status: DocumentStatus, isCurrent: boolean) => {
     if (isCurrent && status === 'published') {
-      return <Badge className="bg-green-600 text-white">Текущая</Badge>;
+      return <Badge className="bg-emerald-600 text-white">Текущая</Badge>;
     }
 
     switch (status) {

@@ -109,7 +109,7 @@ function formatDate(isoDate: string): string {
 function getStatusColorClass(status: MSTOReconciliationTransactionStatus): string {
   switch (status) {
     case 'matched':
-      return 'bg-green-600';
+      return 'bg-emerald-600';
     case 'msto_wait_done':
       return 'bg-amber-600';  // Оранжевый - требует внимания
     case 'only_msto':
@@ -442,7 +442,7 @@ export function MSTOReconciliationResults({
         </Card>
 
         {/* Статус */}
-        <Card className={`border col-span-2 sm:col-span-1 ${summary.hasErrors ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+        <Card className={`border col-span-2 sm:col-span-1 ${summary.hasErrors ? 'bg-red-500/10 border-red-500/30' : 'bg-emerald-500/10 border-green-500/30'}`}>
           <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium text-slate-400 flex items-center gap-1.5 sm:gap-2">
               {summary.hasErrors ? (

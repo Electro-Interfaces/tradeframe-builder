@@ -87,9 +87,9 @@ const getStatusConfig = (status: ComponentStatus) => {
       return {
         icon: CircleCheck,
         color: 'text-green-500',
-        bgColor: 'bg-green-50',
+        bgColor: 'bg-emerald-50',
         borderColor: 'border-green-200',
-        badgeColor: 'bg-green-500/20 text-green-400',
+        badgeColor: 'bg-emerald-500/20 text-green-400',
         text: 'Работает'
       };
     case 'error':
@@ -673,7 +673,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-8 w-8 p-0 text-slate-400 hover:text-green-400 hover:bg-green-500/10"
+                    className="h-8 w-8 p-0 text-slate-400 hover:text-green-400 hover:bg-emerald-500/10"
                     onClick={(e) => {
                       e.stopPropagation();
                       onEditComponent(component);
@@ -789,7 +789,7 @@ export const EquipmentComponentsList: React.FC<EquipmentComponentsListProps> = (
               {editingCommand ? (
                 <Button 
                   onClick={handleUpdateCommand}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   Обновить
                 </Button>

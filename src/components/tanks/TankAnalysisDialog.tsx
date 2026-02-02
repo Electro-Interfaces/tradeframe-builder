@@ -417,15 +417,15 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
               <p className="text-slate-300 text-sm mb-3">{loadingStage}</p>
               <div className="flex gap-6 text-xs">
                 <div className={`flex items-center gap-2 ${loadingProgress.tankHistory ? 'text-green-400' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${loadingProgress.tankHistory ? 'bg-green-400' : 'bg-slate-600 animate-pulse'}`} />
+                  <div className={`w-2 h-2 rounded-full ${loadingProgress.tankHistory ? 'bg-emerald-400' : 'bg-slate-600 animate-pulse'}`} />
                   История резервуара
                 </div>
                 <div className={`flex items-center gap-2 ${loadingProgress.transactions ? 'text-green-400' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${loadingProgress.transactions ? 'bg-green-400' : 'bg-slate-600 animate-pulse'}`} />
+                  <div className={`w-2 h-2 rounded-full ${loadingProgress.transactions ? 'bg-emerald-400' : 'bg-slate-600 animate-pulse'}`} />
                   Транзакции
                 </div>
                 <div className={`flex items-center gap-2 ${loadingProgress.receipts ? 'text-green-400' : 'text-slate-500'}`}>
-                  <div className={`w-2 h-2 rounded-full ${loadingProgress.receipts ? 'bg-green-400' : 'bg-slate-600 animate-pulse'}`} />
+                  <div className={`w-2 h-2 rounded-full ${loadingProgress.receipts ? 'bg-emerald-400' : 'bg-slate-600 animate-pulse'}`} />
                   Поступления
                 </div>
               </div>
@@ -706,7 +706,7 @@ export function TankAnalysisDialog({ tank, open, onOpenChange }: TankAnalysisDia
                     <span className="text-slate-400">Погрешность = Книжная реализация - Фактическая реализация</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    <div className="w-3 h-3 bg-emerald-500 rounded"></div>
                     <span className="text-slate-400">Положительные значения - недоучет, отрицательные - переучет</span>
                   </div>
                 </div>

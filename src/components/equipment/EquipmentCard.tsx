@@ -84,7 +84,7 @@ export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
             isKKT && isEmergencyMode
               ? 'bg-red-600 text-white hover:bg-red-700'
               : equipment.status === 'online'
-              ? 'bg-green-600 text-white hover:bg-green-700'
+              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
               : 'bg-red-600 text-white hover:bg-red-700'
           }`}
         >

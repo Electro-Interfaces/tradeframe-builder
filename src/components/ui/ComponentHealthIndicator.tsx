@@ -47,7 +47,7 @@ export const ComponentHealthIndicator: React.FC<ComponentHealthIndicatorProps> =
         return {
           icon: CircleCheck,
           color: 'text-green-500',
-          bgColor: 'bg-green-50',
+          bgColor: 'bg-emerald-50',
           borderColor: 'border-green-200',
           description: 'Все компоненты работают нормально'
         };

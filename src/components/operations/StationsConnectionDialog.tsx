@@ -174,7 +174,7 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
     switch (status) {
       case 'online':
         return (
-          <Badge className={`bg-green-600 text-white flex items-center gap-1 ${baseClass}`}>
+          <Badge className={`bg-emerald-600 text-white flex items-center gap-1 ${baseClass}`}>
             <Wifi className={compact ? "w-2.5 h-2.5" : "w-3 h-3"} />
             {!compact && "Онлайн"}
           </Badge>
@@ -274,7 +274,7 @@ export function StationsConnectionDialog({ open, onOpenChange }: StationsConnect
                     key={station.id}
                     className={`p-3 rounded-lg border ${
                       station.status === 'online'
-                        ? 'border-green-600/30 bg-green-900/10'
+                        ? 'border-green-600/30 bg-emerald-900/10'
                         : station.status === 'offline'
                         ? 'border-red-600/30 bg-red-900/10'
                         : 'border-slate-700 bg-slate-800/50'

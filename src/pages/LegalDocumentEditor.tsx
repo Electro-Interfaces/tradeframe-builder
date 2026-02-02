@@ -360,7 +360,7 @@ export default function LegalDocumentEditor() {
                   <Button
                     onClick={handlePublish}
                     disabled={isPublishing}
-                    className="bg-green-600 hover:bg-green-500 text-white"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white"
                   >
                     <Upload className="w-4 h-4 mr-2" />
                     {isPublishing ? 'Публикация...' : 'Опубликовать'}
@@ -382,7 +382,7 @@ export default function LegalDocumentEditor() {
         )}
         
         {success && (
-          <Alert className="bg-green-500/10 border-green-500/20">
+          <Alert className="bg-emerald-500/10 border-green-500/20">
             <CheckCircle className="h-4 w-4 text-green-400" />
             <AlertDescription className="text-green-300">
               {success}
@@ -472,7 +472,7 @@ export default function LegalDocumentEditor() {
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">Статус:</span>
                     <Badge className={
-                      currentVersion.status === 'published' ? 'bg-green-600' :
+                      currentVersion.status === 'published' ? 'bg-emerald-600' :
                       currentVersion.status === 'draft' ? 'bg-yellow-600' :
                       'bg-slate-600'
                     }>

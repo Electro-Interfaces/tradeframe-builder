@@ -94,7 +94,7 @@ export function ReconciliationKPICards({
       </Card>
 
       {/* Status Card */}
-      <Card className={`border-slate-700 ${summary.hasErrors ? 'bg-red-900/30' : 'bg-green-900/30'}`}>
+      <Card className={`border-slate-700 ${summary.hasErrors ? 'bg-red-900/30' : 'bg-emerald-900/30'}`}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3 mb-2">
             {summary.hasErrors ? (

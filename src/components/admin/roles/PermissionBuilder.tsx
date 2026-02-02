@@ -295,7 +295,7 @@ export function PermissionBuilder() {
                               const typedAction = action as PermissionAction
                               const isChecked = hasPermission(section.code, resource.code, typedAction)
                               const colorClasses: Record<PermissionAction, string> = {
-                                read: isChecked ? 'border-green-500 bg-green-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-green-400',
+                                read: isChecked ? 'border-green-500 bg-emerald-900 text-green-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-green-400',
                                 write: isChecked ? 'border-blue-500 bg-blue-900 text-blue-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-blue-400',
                                 delete: isChecked ? 'border-red-500 bg-red-900 text-red-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-red-400',
                                 manage: isChecked ? 'border-purple-500 bg-purple-900 text-purple-300' : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-purple-400',

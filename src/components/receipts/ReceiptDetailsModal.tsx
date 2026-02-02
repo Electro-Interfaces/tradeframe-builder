@@ -35,7 +35,7 @@ export const ReceiptDetailsModal: React.FC<ReceiptDetailsModalProps> = ({
   // Получение цвета индикатора отклонения
   const getDeviationColor = (percent: number) => {
     const absPercent = Math.abs(percent);
-    if (absPercent < 1) return 'text-green-600 bg-green-50';
+    if (absPercent < 1) return 'text-green-600 bg-emerald-50';
     if (absPercent < 3) return 'text-yellow-600 bg-yellow-50';
     return 'text-red-600 bg-red-50';
   };

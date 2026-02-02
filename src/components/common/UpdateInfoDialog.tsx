@@ -56,7 +56,7 @@ export const UpdateInfoDialog: React.FC<UpdateInfoDialogProps> = ({
                 Обновление найдено
               </Badge>
             ) : (
-              <Badge className="bg-green-500/10 text-green-400 border-green-500/20">
+              <Badge className="bg-emerald-500/10 text-green-400 border-green-500/20">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Актуальная версия
               </Badge>

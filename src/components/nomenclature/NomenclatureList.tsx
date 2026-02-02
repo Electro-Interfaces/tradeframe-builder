@@ -246,7 +246,7 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
                                 </code>
                               )}
                               <Badge className={
-                                item.networkApiSettings.syncStatus === 'success' ? "bg-green-600 text-white" :
+                                item.networkApiSettings.syncStatus === 'success' ? "bg-emerald-600 text-white" :
                                 item.networkApiSettings.syncStatus === 'error' ? "bg-red-600 text-white" :
                                 "bg-yellow-600 text-white"
                               }>
@@ -288,7 +288,7 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <Badge className={item.status === 'active' ? "bg-green-600 text-white" : "bg-yellow-600 text-white"}>
+                          <Badge className={item.status === 'active' ? "bg-emerald-600 text-white" : "bg-yellow-600 text-white"}>
                             {item.status === 'active' ? 'Активен' : 'Архив'}
                           </Badge>
                         </td>
@@ -359,7 +359,7 @@ export const NomenclatureList: React.FC<NomenclatureListProps> = ({ onEdit, onCr
                         <div className="text-sm text-slate-400 mb-2">{item.description}</div>
                       )}
                       <div className="flex items-center gap-3 text-xs mb-2">
-                        <Badge className={item.status === 'active' ? "bg-green-600 text-white" : "bg-yellow-600 text-white"}>
+                        <Badge className={item.status === 'active' ? "bg-emerald-600 text-white" : "bg-yellow-600 text-white"}>
                           {item.status === 'active' ? 'Активен' : 'Архив'}
                         </Badge>
                         <span className="text-slate-400">{formatDate(item.updatedAt)}</span>

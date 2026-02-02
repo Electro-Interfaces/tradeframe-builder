@@ -166,7 +166,7 @@ export function MSTOReconciliationParamsModal({
               MSTO
             </Badge>
             <ArrowRight className="h-3 w-3 text-slate-500" />
-            <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30">
+            <Badge className="bg-emerald-500/20 text-green-300 border-green-500/30 hover:bg-emerald-500/30">
               Смена
             </Badge>
           </div>
@@ -230,7 +230,7 @@ export function MSTOReconciliationParamsModal({
           {/* Станции */}
           <div className="space-y-3">
             <Label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-              <div className="p-1.5 rounded-md bg-green-500/20">
+              <div className="p-1.5 rounded-md bg-emerald-500/20">
                 <Building2 className="h-4 w-4 text-white" />
               </div>
               Станции

@@ -145,7 +145,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
     switch (status) {
       case 'open':
         return (
-          <Badge className="bg-green-500/10 text-green-400 border-green-500 flex items-center gap-1">
+          <Badge className="bg-emerald-500/10 text-green-400 border-green-500 flex items-center gap-1">
             <Clock className="w-3 h-3" />
             Открыта
           </Badge>
@@ -186,7 +186,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                     size="sm"
                     onClick={() => setExportDialogOpen(true)}
                     disabled={isExporting}
-                    className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white mr-2"
+                    className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white mr-2"
                   >
                     <FileDown className="h-4 w-4 mr-2" />
                     Экспорт
@@ -203,7 +203,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                 size="sm"
                 onClick={() => setExportDialogOpen(true)}
                 disabled={isExporting}
-                className="w-full border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                className="w-full border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white"
               >
                 <FileDown className="h-4 w-4 mr-2" />
                 Экспорт
@@ -232,7 +232,7 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                 <div className={`text-slate-400 ${isMobile ? 'text-[10px]' : 'text-xs'} mb-0.5`}>Статус</div>
                 <div className={isMobile ? 'mt-0.5' : 'mt-1'}>
                   {details.status === 'open' ? (
-                    <Badge className={`bg-green-500/10 text-green-400 border-green-500 flex items-center gap-1 w-fit ${isMobile ? 'text-xs' : ''}`}>
+                    <Badge className={`bg-emerald-500/10 text-green-400 border-green-500 flex items-center gap-1 w-fit ${isMobile ? 'text-xs' : ''}`}>
                       <Clock className={isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
                       Открыта
                     </Badge>

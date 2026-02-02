@@ -122,7 +122,7 @@ export function CashoutKPIGrid({ cashout, isLoading, className }: CashoutKPIGrid
           title="Общая сумма"
           value={formatCurrency(safeCashout.totalAmount)}
           icon={<Wallet className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
-          iconBg="bg-green-600"
+          iconBg="bg-emerald-600"
           isLoading={isLoading}
           onClick={() => safeCashout.count > 0 && setIsExpanded(!isExpanded)}
         />

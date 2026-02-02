@@ -14,7 +14,7 @@ interface EquipmentFiltersProps {
 }
 
 const statusOptions: Array<{ value: EquipmentStatus; label: string; color: string }> = [
-  { value: "online", label: "Онлайн", color: "bg-green-500" },
+  { value: "online", label: "Онлайн", color: "bg-emerald-500" },
   { value: "offline", label: "Офлайн", color: "bg-yellow-500" },
   { value: "error", label: "Ошибка", color: "bg-red-500" },
   { value: "disabled", label: "Отключено", color: "bg-gray-500" },

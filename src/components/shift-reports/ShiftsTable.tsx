@@ -36,7 +36,7 @@ const ShiftsTable: React.FC<ShiftsTableProps> = ({
     switch (status) {
       case 'open':
         return (
-          <Badge className="bg-green-500/10 text-green-400 border-green-500 flex items-center gap-1">
+          <Badge className="bg-emerald-500/10 text-green-400 border-green-500 flex items-center gap-1">
             <ClockIcon className="w-3 h-3" />
             Открыта
           </Badge>

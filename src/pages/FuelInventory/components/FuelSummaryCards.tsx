@@ -15,7 +15,7 @@ interface FuelSummaryCardsProps {
 export const FuelSummaryCards = ({ summaries, loading = false }: FuelSummaryCardsProps) => {
   // Цветовая индикация по уровню заполнения
   const getProgressColor = (fillPercent: number) => {
-    if (fillPercent >= 20) return 'bg-green-500';  // >= 20% - зеленый (норма)
+    if (fillPercent >= 20) return 'bg-emerald-500';  // >= 20% - зеленый (норма)
     if (fillPercent >= 10) return 'bg-yellow-500'; // 10-20% - желтый (внимание)
     return 'bg-red-500';                            // < 10% - красный (критический)
   };

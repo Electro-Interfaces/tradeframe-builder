@@ -202,7 +202,7 @@ export default function ReconciliationPage() {
                 </Button>
 
                 {apiStatus === 'ok' && (
-                  <Badge variant="outline" className="bg-green-900/30 text-green-400 border-green-700">
+                  <Badge variant="outline" className="bg-emerald-900/30 text-green-400 border-green-700">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     API доступен
                   </Badge>

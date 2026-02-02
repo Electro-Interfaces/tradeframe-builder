@@ -162,7 +162,7 @@ export function MobileBrowserTester() {
 
   const getStatusColor = (status: TestResult['status']) => {
     switch (status) {
-      case 'pass': return 'bg-green-500/10 text-green-400 border-green-500/20';
+      case 'pass': return 'bg-emerald-500/10 text-green-400 border-green-500/20';
       case 'fail': return 'bg-red-500/10 text-red-400 border-red-500/20';
       case 'warning': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
     }
@@ -237,7 +237,7 @@ export function MobileBrowserTester() {
             <CardTitle className="flex items-center justify-between">
               <span>Результаты тестов</span>
               <div className="flex gap-2">
-                <Badge className="bg-green-500/10 text-green-400 border-green-500/20">
+                <Badge className="bg-emerald-500/10 text-green-400 border-green-500/20">
                   ✓ {passCount}
                 </Badge>
                 <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20">

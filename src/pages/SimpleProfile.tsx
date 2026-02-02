@@ -199,7 +199,7 @@ export default function SimpleProfile() {
                       onClick={handleSaveName}
                       disabled={isLoading}
                       size="sm"
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-emerald-600 hover:bg-emerald-700"
                     >
                       <Save className="w-4 h-4" />
                     </Button>
@@ -235,7 +235,7 @@ export default function SimpleProfile() {
                 <p className="text-slate-300">{user?.email}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge variant={user?.status === 'active' ? 'default' : 'secondary'}
-                         className={user?.status === 'active' ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-600 hover:bg-slate-700'}>
+                         className={user?.status === 'active' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-600 hover:bg-slate-700'}>
                     {user?.status === 'active' ? 'Активен' : 'Неактивен'}
                   </Badge>
                   {user?.roles && user.roles.length > 0 && (

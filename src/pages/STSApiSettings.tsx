@@ -719,7 +719,7 @@ export default function STSApiSettings() {
 
   const getMethodColor = (method: string) => {
     switch (method) {
-      case 'GET': return 'bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400 dark:border-green-400/20';
+      case 'GET': return 'bg-emerald-500/10 text-green-600 border-green-500/20 dark:text-green-400 dark:border-green-400/20';
       case 'POST': return 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400 dark:border-blue-400/20';
       case 'PUT': return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400 dark:border-yellow-400/20';
       case 'DELETE': return 'bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400 dark:border-red-400/20';
@@ -910,7 +910,7 @@ export default function STSApiSettings() {
             <CardContent>
               <div className="text-sm font-bold">
                 {config.token ? (
-                  <Badge variant="default" className="bg-green-600">
+                  <Badge variant="default" className="bg-emerald-600">
                     АКТИВЕН
                   </Badge>
                 ) : (

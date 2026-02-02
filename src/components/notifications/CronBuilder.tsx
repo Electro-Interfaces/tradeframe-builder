@@ -129,7 +129,7 @@ export function CronBuilder({ value, onChange }: CronBuilderProps) {
           {/* Расшифровка */}
           <div className={`p-3 rounded-lg border ${
             isValid
-              ? 'bg-green-900/20 border-green-700'
+              ? 'bg-emerald-900/20 border-green-700'
               : 'bg-red-900/20 border-red-700'
           }`}>
             <div className="flex items-start gap-2">

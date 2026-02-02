@@ -41,7 +41,7 @@ import type { MSTOOrderDetailsResponse, MSTOTimelineEvent } from '@/types/mstoOr
 
 /** Цвета статусов */
 const STATUS_COLORS: Record<string, string> = {
-  completed: 'bg-green-500/20 text-green-400 border-green-500/30',
+  completed: 'bg-emerald-500/20 text-green-400 border-green-500/30',
   pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   failed: 'bg-red-500/20 text-red-400 border-red-500/30',
   cancelled: 'bg-gray-500/20 text-gray-400 border-gray-500/30'
@@ -65,7 +65,7 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
 
 /** Цвета топлива */
 const FUEL_COLORS: Record<string, string> = {
-  'АИ-92': 'bg-green-500',
+  'АИ-92': 'bg-emerald-500',
   'АИ-95': 'bg-blue-500',
   'АИ-98': 'bg-purple-500',
   'ДТ': 'bg-amber-500',
@@ -486,7 +486,7 @@ export function OrderDetailsDialog({
                         <div className="flex flex-col items-center">
                           <div className={`w-3 h-3 rounded-full ${
                             item.isError ? 'bg-red-500' :
-                            item.status === 'completed' ? 'bg-green-500' :
+                            item.status === 'completed' ? 'bg-emerald-500' :
                             item.status === 'active' ? 'bg-yellow-500 animate-pulse' :
                             'bg-gray-500'
                           }`} />

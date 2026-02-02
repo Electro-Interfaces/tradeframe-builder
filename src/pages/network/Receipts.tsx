@@ -408,7 +408,7 @@ export default function Receipts() {
                 size="sm"
                 onClick={handleExport}
                 disabled={filteredReceipts.length === 0}
-                className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Экспорт

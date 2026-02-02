@@ -119,7 +119,7 @@ export function NetworksDebugSimple() {
   const getApiModeBadge = () => {
     switch (apiMode) {
       case 'supabase':
-        return <Badge className="bg-green-600">Supabase</Badge>;
+        return <Badge className="bg-emerald-600">Supabase</Badge>;
       case 'mock':
         return <Badge className="bg-yellow-600">Mock</Badge>;
       case 'http':

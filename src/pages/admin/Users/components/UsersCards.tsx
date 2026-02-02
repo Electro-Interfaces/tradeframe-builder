@@ -27,7 +27,7 @@ export function UsersCards({ users, onEdit, onDelete }: UsersCardsProps) {
               <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
                 <Badge
                   variant={user.status === 'active' ? 'default' : 'secondary'}
-                  className={user.status === 'active' ? 'bg-green-600 text-xs' : 'bg-slate-600 text-xs'}
+                  className={user.status === 'active' ? 'bg-emerald-600 text-xs' : 'bg-slate-600 text-xs'}
                 >
                   {user.status === 'active' ? 'Активен' : 'Неактивен'}
                 </Badge>

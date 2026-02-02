@@ -193,7 +193,7 @@ export function NotificationHistory({ ruleId, onClose }: NotificationHistoryProp
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'sent':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Отправлено</Badge>;
+        return <Badge className="bg-emerald-100 text-green-800 border-green-200">Отправлено</Badge>;
       case 'partial':
         return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Частично</Badge>;
       case 'failed':

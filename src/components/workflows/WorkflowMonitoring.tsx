@@ -202,7 +202,7 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
                   {stats.successful_executions} из {stats.total_executions}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+              <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
                 <CheckCircle className="w-6 h-6 text-green-400" />
               </div>
             </div>
@@ -307,7 +307,7 @@ export function WorkflowMonitoring({ workflows, onRefresh }: WorkflowMonitoringP
                     return (
                       <div key={workflow.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${workflow.status === 'active' ? 'bg-green-400' : 'bg-gray-400'}`} />
+                          <div className={`w-3 h-3 rounded-full ${workflow.status === 'active' ? 'bg-emerald-400' : 'bg-gray-400'}`} />
                           <div>
                             <p className="font-medium text-white">{workflow.name}</p>
                             <p className="text-sm text-slate-400">

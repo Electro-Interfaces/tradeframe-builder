@@ -18,7 +18,7 @@ export function UserInfo() {
       case 'Network':
         return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'Trading Point':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
+        return 'bg-emerald-500/20 text-green-400 border-green-500/30';
       case 'Assigned':
         return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       default:
@@ -29,7 +29,7 @@ export function UserInfo() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
+        return 'bg-emerald-500/20 text-green-400 border-green-500/30';
       case 'inactive':
         return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       case 'blocked':
