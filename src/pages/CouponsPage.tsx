@@ -36,7 +36,7 @@ export default function CouponsPage() {
   const { selectedTradingPoint, selectedNetwork, selectedStation } = useSelection();
 
   // Хуки для управления данными и фильтрами
-  const { searchResult, loading, error, loadCouponsData } = useCouponsData();
+  const { searchResult, loading, error, loadCouponsData, addOptimisticCoupon } = useCouponsData();
   const {
     filters,
     setFilters,
@@ -69,6 +69,8 @@ export default function CouponsPage() {
   const stationFuelOptions = useMemo(() => {
     const fuelMap = new Map<number, string>();
     allCoupons.forEach(c => {
+      // Пропускаем рублёвые позиции — они не являются видами топлива
+      if (c.service.service_name.toLowerCase().includes('руб')) return;
       if (!fuelMap.has(c.service.service_code)) {
         fuelMap.set(c.service.service_code, c.service.service_name);
       }
@@ -78,9 +80,12 @@ export default function CouponsPage() {
 
   
   // Загрузка данных при изменении сети или точки
+  // ВАЖНО: передаём system напрямую из selectedNetwork, т.к. filters.system
+  // обновляется асинхронно через отдельный useEffect и может быть устаревшим
   useEffect(() => {
-    if (selectedNetwork?.external_id) {
-      loadCouponsData(filters);
+    if (selectedNetwork?.external_id && !isNaN(Number(selectedNetwork.external_id))) {
+      const systemId = Number(selectedNetwork.external_id);
+      loadCouponsData({ ...filters, system: systemId });
     }
   }, [selectedTradingPoint, selectedNetwork]);
 
@@ -130,7 +135,7 @@ export default function CouponsPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleExport}
-                  className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                  className="border-green-600 text-green-600 hover:bg-emerald-600 hover:text-white"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Экспорт
@@ -222,6 +227,7 @@ export default function CouponsPage() {
           networkName={selectedNetwork.name}
           stationName={selectedStation.name}
           onSuccess={() => loadCouponsData(filters)}
+          onCouponCreated={addOptimisticCoupon}
         />
       )}
     </MainLayout>
