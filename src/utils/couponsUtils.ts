@@ -303,7 +303,7 @@ export function formatPercentage(value: number, total: number): string {
 export function getCouponStateClasses(state: CouponState): string {
   switch (state) {
     case 'Активен':
-      return 'bg-green-100 text-green-800 border-green-200';
+      return 'bg-emerald-100 text-green-800 border-green-200';
     case 'Погашен':
       return 'bg-gray-100 text-gray-800 border-gray-200';
     default:

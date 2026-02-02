@@ -16,7 +16,7 @@ export function CouponStatusBadge({ stateName, variant = 'default' }: CouponStat
   switch (stateName) {
     case 'Активный':
       return (
-        <Badge className={`bg-green-600 text-white ${compactClass}`}>
+        <Badge className={`bg-emerald-600 text-white ${compactClass}`}>
           Активный
         </Badge>
       );

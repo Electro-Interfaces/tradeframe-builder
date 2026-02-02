@@ -62,15 +62,87 @@ class CouponsApiService {
   }
 
   /**
+   * Получение ручных купонов с API
+   * GET /v1/coupons_manual
+   */
+  async getManualCoupons(params: CouponsApiParams): Promise<CouponsApiResponse> {
+    try {
+      const queryParams: Record<string, any> = {
+        system: params.system.toString(),
+      };
+
+      if (params.station) {
+        queryParams.station = params.station.toString();
+      }
+
+      if (params.dt_beg) {
+        const dtBeg = params.dt_beg.includes('T')
+          ? new Date(params.dt_beg).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '')
+          : `${params.dt_beg} 00:00:00`;
+        queryParams.dt_beg = dtBeg;
+      }
+      if (params.dt_end) {
+        const dtEnd = params.dt_end.includes('T')
+          ? new Date(params.dt_end).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '')
+          : `${params.dt_end} 23:59:59`;
+        queryParams.dt_end = dtEnd;
+      }
+
+      queryParams._t = Date.now().toString();
+
+      return stsProxyClient.get<CouponsApiResponse>('/v1/coupons_manual', queryParams);
+    } catch (error) {
+      throw this.createApiError('FETCH_ERROR', 'Ошибка загрузки ручных купонов', error);
+    }
+  }
+
+  /**
+   * Обогащение купонов из /v1/coupons данными comment и user из /v1/coupons_manual
+   * + fallback из localStorage (для купонов, созданных до деплоя обновления API)
+   */
+  enrichWithManualData(primary: CouponsApiResponse, manual: any[]): CouponsApiResponse {
+    // Строим Map ручных купонов по номеру: number → { comment, user }
+    const manualMap = new Map<string, { comment?: string; user?: { id: string; name: string } }>();
+
+    // Данные из API /v1/coupons_manual
+    if (manual && manual.length > 0) {
+      for (const station of manual) {
+        if (station.coupons) {
+          for (const coupon of station.coupons) {
+            manualMap.set(String(coupon.number), {
+              comment: coupon.comment,
+              user: coupon.user,
+            });
+          }
+        }
+      }
+    }
+
+    // Обогащаем купоны из primary данными из manual
+    return primary.map(stationData => ({
+      ...stationData,
+      coupons: stationData.coupons.map(coupon => {
+        const manualData = manualMap.get(coupon.number);
+        if (manualData) {
+          return { ...coupon, ...manualData };
+        }
+        return coupon;
+      })
+    }));
+  }
+
+
+  /**
    * Создание купона через API
    * POST /v1/control/coupon
    */
   async createCoupon(system: number, station: number, request: CreateCouponRequest): Promise<any> {
     try {
-      return stsProxyClient.post<any>('/v1/control/coupon', request, {
+      const result = await stsProxyClient.post<any>('/v1/control/coupon', request, {
         system: system.toString(),
         station: station.toString()
       });
+      return result;
     } catch (error) {
       throw this.createApiError('CREATE_ERROR', 'Ошибка создания купона', error);
     }

@@ -2,7 +2,7 @@
  * Хук для загрузки и управления данными купонов
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSelection } from '@/contexts/SelectionContext';
 import { couponsApiService } from '@/services/couponsApiService';
@@ -10,7 +10,8 @@ import { tradingPointsService } from '@/services/tradingPointsService';
 import type {
   CouponsSearchResult,
   CouponsFilter,
-  CouponsApiParams
+  CouponsApiParams,
+  CouponWithAge
 } from '@/types/coupons';
 
 export function useCouponsData() {
@@ -20,6 +21,7 @@ export function useCouponsData() {
   const [searchResult, setSearchResult] = useState<CouponsSearchResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const optimisticRef = useRef<CouponWithAge[]>([]);
 
   /**
    * Загрузка данных купонов с API
@@ -50,14 +52,35 @@ export function useCouponsData() {
         ...(filters.dateTo && { dt_end: filters.dateTo })
       };
 
-      // Загружаем данные с API
-      const apiResponse = await couponsApiService.getCoupons(apiParams);
+      // Загружаем обычные и ручные купоны параллельно
+      const [apiResponse, manualResponse] = await Promise.all([
+        couponsApiService.getCoupons(apiParams),
+        couponsApiService.getManualCoupons(apiParams).catch(() => [])
+      ]);
+
+      // Обогащаем обычные купоны данными comment/user из ручных
+      const enrichedResponse = couponsApiService.enrichWithManualData(apiResponse, manualResponse);
 
       // Обрабатываем ответ API, передаем название ТТ
       const processedResult = await couponsApiService.processRawCoupons(
-        apiResponse,
+        enrichedResponse,
         tradingPointName
       );
+
+      // Вставляем оптимистичные купоны, которых API ещё не вернул
+      if (optimisticRef.current.length > 0 && processedResult.groups.length > 0) {
+        const group = processedResult.groups[0];
+        const apiNumbers = new Set(group.coupons.map(c => c.number));
+        const missing = optimisticRef.current.filter(c => !apiNumbers.has(c.number));
+        if (missing.length > 0) {
+          group.coupons = [...missing, ...group.coupons];
+          processedResult.stats.totalCoupons += missing.length;
+          processedResult.stats.activeCoupons += missing.length;
+          processedResult.totalFound += missing.length;
+        }
+        // Убираем из ref купоны, которые уже пришли из API
+        optimisticRef.current = missing;
+      }
 
       // Применяем дополнительные фильтры
       const filteredResult = couponsApiService.filterCoupons(processedResult, filters);
@@ -101,10 +124,38 @@ export function useCouponsData() {
     }
   };
 
+  /**
+   * Оптимистичное добавление купона в UI сразу после создания.
+   * Купон сохраняется в отдельный список и добавляется в UI.
+   * При обновлении из API — если купон уже есть, удаляется из оптимистичных.
+   */
+  const addOptimisticCoupon = useCallback((coupon: CouponWithAge) => {
+    optimisticRef.current = [...optimisticRef.current, coupon];
+    setSearchResult(prev => {
+      if (!prev || prev.groups.length === 0) return prev;
+      const group = { ...prev.groups[0] };
+      if (group.coupons.some(c => c.number === coupon.number)) return prev;
+      group.coupons = [coupon, ...group.coupons];
+      return {
+        ...prev,
+        groups: [group, ...prev.groups.slice(1)],
+        stats: {
+          ...prev.stats,
+          totalCoupons: prev.stats.totalCoupons + 1,
+          activeCoupons: prev.stats.activeCoupons + 1,
+          totalAmount: prev.stats.totalAmount + coupon.rest_summ,
+          totalDebt: prev.stats.totalDebt + coupon.rest_summ,
+        },
+        totalFound: prev.totalFound + 1,
+      };
+    });
+  }, []);
+
   return {
     searchResult,
     loading,
     error,
-    loadCouponsData
+    loadCouponsData,
+    addOptimisticCoupon
   };
 }

@@ -43,7 +43,7 @@ export function CouponTableMobile({
                 <tr
                   key={coupon.number}
                   className={`hover:bg-slate-600 active:bg-slate-500 cursor-pointer transition-colors border-b border-slate-700 ${
-                    index % 2 === 0 ? 'bg-slate-800' : 'bg-slate-750'
+                    coupon.isOptimistic ? 'bg-amber-900/20 border-l-2 border-l-amber-500' : (index % 2 === 0 ? 'bg-slate-800' : 'bg-slate-750')
                   }`}
                   onClick={() => onCouponClick(coupon)}
                 >
@@ -55,9 +55,11 @@ export function CouponTableMobile({
                       <span className="text-slate-400 text-[10px] font-mono whitespace-nowrap">
                         {formatCouponDateTime(coupon.dt)}
                       </span>
-                      {coupon.state.id === 0 && coupon.qty_used === 0 && (
+                      {coupon.isOptimistic ? (
+                        <span className="text-amber-400 text-[10px] whitespace-nowrap animate-pulse">⏳ Ожидает подтверждения</span>
+                      ) : coupon.state.id === 0 && coupon.qty_used === 0 ? (
                         <span className="text-yellow-400 text-[10px] whitespace-nowrap">🔄 Не использован</span>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                   <td className="px-2 py-3 text-center">
@@ -79,9 +81,14 @@ export function CouponTableMobile({
                       <CouponStatusBadge stateName={coupon.state.name} variant="compact" />
                       {coupon.type && (
                         <span className={`text-[9px] ${
-                          coupon.type.id === 0 ? 'text-slate-400' : 'text-purple-400'
+                          coupon.type.id === 0 ? 'text-slate-400' : 'text-blue-400'
                         }`}>
                           {coupon.type.name}
+                        </span>
+                      )}
+                      {coupon.user && (
+                        <span className="text-[9px] text-slate-400 truncate max-w-[60px]" title={coupon.user.name}>
+                          {coupon.user.name}
                         </span>
                       )}
                     </div>

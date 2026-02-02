@@ -36,24 +36,30 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
             <TableHead className="text-slate-300 min-w-[100px]">Остаток (₽)</TableHead>
             <TableHead className="text-slate-300 min-w-[100px]">Статус</TableHead>
             <TableHead className="text-slate-300 min-w-[80px]">Тип</TableHead>
+            <TableHead className="text-slate-300 min-w-[100px]">Автор</TableHead>
+            <TableHead className="text-slate-300 min-w-[140px]">Комментарий</TableHead>
             <TableHead className="text-slate-300 min-w-[120px]">Смена</TableHead>
             <TableHead className="text-slate-300 min-w-[100px]">Действия</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {coupons.map((coupon) => (
-            <TableRow key={coupon.number} className="border-slate-700 hover:bg-slate-800">
+            <TableRow key={coupon.number} className={`border-slate-700 hover:bg-slate-800 ${coupon.isOptimistic ? 'bg-amber-900/20 border-l-2 border-l-amber-500' : ''}`}>
               <TableCell className="text-slate-300 text-sm min-w-[120px]">
                 <span>{coupon.stationName || `ТТ ${coupon.stationCode}`}</span>
               </TableCell>
               <TableCell className="text-slate-300 font-mono text-sm min-w-[120px]">
                 <div className="flex flex-col">
                   <span>{coupon.number}</span>
-                  {coupon.state.id === 0 && coupon.qty_used === 0 && (
+                  {coupon.isOptimistic ? (
+                    <span className="text-amber-400 text-xs flex items-center gap-1 animate-pulse">
+                      ⏳ Ожидает подтверждения
+                    </span>
+                  ) : coupon.state.id === 0 && coupon.qty_used === 0 ? (
                     <span className="text-yellow-400 text-xs flex items-center gap-1">
                       🔄 Не использован
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </TableCell>
               <TableCell className="text-slate-300 text-sm min-w-[140px]">
@@ -81,14 +87,14 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
               </TableCell>
               <TableCell className="text-slate-300 text-sm min-w-[120px] text-right font-bold">
                 <div className="flex flex-col items-end">
-                  <span className="text-green-400 font-bold">{coupon.rest_qty.toFixed(1)} л</span>
+                  <span className="text-blue-400 font-bold">{coupon.rest_qty.toFixed(1)} л</span>
                   <span className="text-xs text-slate-400">
                     из {coupon.qty_total.toFixed(1)} л
                   </span>
                 </div>
               </TableCell>
               <TableCell className="text-slate-300 text-sm min-w-[100px] text-right font-bold">
-                <span className="text-green-400">{coupon.rest_summ.toFixed(2)} ₽</span>
+                <span className="text-blue-400">{coupon.rest_summ.toFixed(2)} ₽</span>
               </TableCell>
               <TableCell className="min-w-[100px]">
                 <CouponStatusBadge stateName={coupon.state.name} />
@@ -98,10 +104,26 @@ export function CouponTable({ coupons, currentPage, totalPages, onPageChange, lo
                   <Badge className={`text-[10px] px-1.5 py-0.5 ${
                     coupon.type.id === 0
                       ? 'bg-slate-600 text-slate-200 hover:bg-slate-500'
-                      : 'bg-purple-600 text-white hover:bg-purple-500'
+                      : 'bg-blue-600 text-white hover:bg-blue-500'
                   }`}>
                     {coupon.type.name}
                   </Badge>
+                ) : (
+                  <span className="text-slate-500 text-xs">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-slate-300 text-sm min-w-[100px]">
+                {coupon.user ? (
+                  <span className="text-xs">{coupon.user.name}</span>
+                ) : (
+                  <span className="text-slate-500 text-xs">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-slate-300 text-sm min-w-[140px]">
+                {coupon.comment ? (
+                  <span className="text-xs truncate max-w-[140px] block" title={coupon.comment}>
+                    {coupon.comment}
+                  </span>
                 ) : (
                   <span className="text-slate-500 text-xs">—</span>
                 )}

@@ -44,7 +44,7 @@ export function CouponDetailsModal({ isOpen, onOpenChange, coupon }: CouponDetai
               <span className="text-white font-mono text-sm">{coupon.price.toFixed(2)} ₽/л</span>
             </div>
 
-            <div className="flex justify-between py-2 border-b border-slate-700 bg-green-900/30 px-2 -mx-2 rounded">
+            <div className="flex justify-between py-2 border-b border-slate-700 bg-emerald-900/30 px-2 -mx-2 rounded">
               <span className="text-slate-300 font-medium">Остаток:</span>
               <div className="text-right">
                 <div className="text-green-300 font-bold text-lg">{coupon.rest_qty.toFixed(1)} литров</div>
@@ -74,6 +74,20 @@ export function CouponDetailsModal({ isOpen, onOpenChange, coupon }: CouponDetai
                 }`}>
                   {coupon.type.name}
                 </span>
+              </div>
+            )}
+
+            {coupon.user && (
+              <div className="flex justify-between py-2 border-b border-slate-700">
+                <span className="text-slate-400">Автор:</span>
+                <span className="text-slate-200 text-sm">{coupon.user.name}</span>
+              </div>
+            )}
+
+            {coupon.comment && (
+              <div className="flex justify-between py-2 border-b border-slate-700">
+                <span className="text-slate-400">Комментарий:</span>
+                <span className="text-slate-200 text-sm text-right max-w-[200px]">{coupon.comment}</span>
               </div>
             )}
 

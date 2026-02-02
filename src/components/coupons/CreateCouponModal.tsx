@@ -1,5 +1,6 @@
 /**
  * Модальное окно создания купона
+ * Поддерживает два режима: Рубли (сумма) и Литры (топливо + объём)
  */
 
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { couponsApiService } from '@/services/couponsApiService';
-import type { CreateCouponRequest } from '@/types/coupons';
+import type { CreateCouponRequest, CouponCreateMode, CouponWithAge } from '@/types/coupons';
 
 export interface FuelOption {
   code: number;
@@ -29,6 +30,7 @@ interface CreateCouponModalProps {
   networkName?: string;
   stationName?: string;
   onSuccess?: () => void;
+  onCouponCreated?: (coupon: CouponWithAge) => void;
 }
 
 export function CreateCouponModal({
@@ -40,24 +42,47 @@ export function CreateCouponModal({
   networkName,
   stationName,
   onSuccess,
+  onCouponCreated,
 }: CreateCouponModalProps) {
   const { toast } = useToast();
   const { user } = useNewAuth();
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<CouponCreateMode>('liters');
   const [serviceCode, setServiceCode] = useState<string | undefined>(undefined);
-  const [volume, setVolume] = useState<string>('');
+  const [amount, setAmount] = useState<string>('');
   const [lifetime, setLifetime] = useState<string>('7');
   const [fiscal, setFiscal] = useState(false);
+  const [comment, setComment] = useState<string>('');
 
   // Валидация
-  const volumeNum = parseFloat(volume);
+  const amountNum = parseFloat(amount);
   const lifetimeNum = parseInt(lifetime, 10);
   const isFuelSelected = serviceCode !== undefined && serviceCode !== '';
-  const isVolumeValid = !isNaN(volumeNum) && volumeNum > 0;
+  const isAmountValid = !isNaN(amountNum) && amountNum > 0;
   const isLifetimeValid = !isNaN(lifetimeNum) && lifetimeNum >= 1;
-  const isFormValid = isFuelSelected && isVolumeValid && isLifetimeValid;
+  const isCommentValid = comment.trim().length > 0;
+
+  const isFormValid = mode === 'liters'
+    ? isFuelSelected && isAmountValid && isLifetimeValid && isCommentValid
+    : isAmountValid && isLifetimeValid && isCommentValid;
 
   const selectedFuelLabel = fuelOptions.find(o => String(o.code) === serviceCode)?.label || '';
+
+  const handleModeChange = (newMode: CouponCreateMode) => {
+    setMode(newMode);
+    // Сбрасываем специфичные для режима поля
+    setServiceCode(undefined);
+    setAmount('');
+  };
+
+  const resetForm = () => {
+    setMode('liters');
+    setServiceCode(undefined);
+    setAmount('');
+    setLifetime('7');
+    setFiscal(false);
+    setComment('');
+  };
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
@@ -67,31 +92,72 @@ export function CreateCouponModal({
       const authorName = user?.name || user?.email || 'Неизвестный';
 
       const request: CreateCouponRequest = {
-        service_code: Number(serviceCode),
-        amount: volumeNum,
+        amount: amountNum,
         lifetime: lifetimeNum,
         fiscal,
-        author: authorName,
+        comment: comment.trim(),
+        ...(mode === 'liters' && { service_code: Number(serviceCode) }),
       };
 
-      await couponsApiService.createCoupon(systemId, stationId, request);
+      const result = await couponsApiService.createCoupon(systemId, stationId, request);
+      const couponNumber = result?.number || '—';
+
+      // Оптимистичное добавление — показываем купон сразу, не ждём STS API
+      const fuelOption = fuelOptions.find(f => f.code === Number(serviceCode));
+      const totalQty = mode === 'liters' ? amountNum : 0;
+      // Цену не знаем — API вернёт точное значение позже
+      const totalSum = mode === 'liters' ? 0 : amountNum;
+
+      const optimisticCoupon: CouponWithAge = {
+        number: couponNumber,
+        dt: new Date().toISOString(),
+        pos: stationId,
+        shift: 0,
+        opernum: 0,
+        summ_total: totalSum,
+        qty_total: totalQty,
+        qty_used: 0,
+        summ_used: 0,
+        price: 0,
+        service: {
+          service_code: mode === 'liters' ? Number(serviceCode) : 0,
+          service_name: mode === 'liters' ? (fuelOption?.label || '—') : 'Рубли',
+        },
+        state: { id: 0, name: 'Активный' },
+        type: { id: 1, name: 'Вручную' },
+        rest_summ: totalSum,
+        rest_qty: totalQty,
+        comment: comment.trim(),
+        user: { id: user?.id || '', name: authorName },
+        // Поля CouponWithAge
+        ageInDays: 0,
+        ageInHours: 0,
+        isOld: false,
+        isCritical: false,
+        priority: 'normal',
+        isActive: true,
+        isRedeemed: false,
+        isExpired: false,
+        stationName: stationName || `ТТ ${stationId}`,
+        stationCode: stationId,
+        isOptimistic: true,
+      };
+      onCouponCreated?.(optimisticCoupon);
+
+      const description = mode === 'liters'
+        ? `${selectedFuelLabel} — ${amountNum} л, купон #${couponNumber}`
+        : `${amountNum} ₽, купон #${couponNumber}`;
 
       toast({
         title: 'Купон создан',
-        description: `${selectedFuelLabel} — ${volumeNum} л, автор: ${authorName}`,
+        description,
       });
 
-      // Сбрасываем форму
-      setServiceCode(undefined);
-      setVolume('');
-      setLifetime('7');
-      setFiscal(false);
-
+      resetForm();
       onOpenChange(false);
-      // Задержка перед обновлением списка — API может не сразу вернуть новый купон
-      setTimeout(() => {
-        onSuccess?.();
-      }, 1500);
+      // Обновляем данные из API — оптимистичные купоны сохранятся если API их ещё не вернул
+      setTimeout(() => onSuccess?.(), 3000);
+      setTimeout(() => onSuccess?.(), 10000);
     } catch (error: any) {
       toast({
         title: 'Ошибка создания купона',
@@ -125,12 +191,51 @@ export function CreateCouponModal({
             </div>
           </div>
 
-          {/* Вид топлива */}
+          {/* Переключатель режима: Литры / Рубли */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Вид топлива</Label>
-            <Select value={serviceCode} onValueChange={setServiceCode}>
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                <SelectValue placeholder="Выберите топливо" />
+            <Label className="text-slate-300">Тип купона</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={mode === 'liters' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleModeChange('liters')}
+                className={mode === 'liters'
+                  ? 'flex-1 bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'flex-1 border-slate-600 text-slate-300 hover:bg-slate-700'
+                }
+              >
+                ⛽ Литры
+              </Button>
+              <Button
+                type="button"
+                variant={mode === 'rubles' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleModeChange('rubles')}
+                className={mode === 'rubles'
+                  ? 'flex-1 bg-emerald-600 hover:bg-emerald-700 text-white'
+                  : 'flex-1 border-slate-600 text-slate-300 hover:bg-slate-700'
+                }
+              >
+                ₽ Рубли
+              </Button>
+            </div>
+          </div>
+
+          {/* Вид топлива — активно только в режиме Литры */}
+          <div className="space-y-2">
+            <Label className={mode === 'liters' ? 'text-slate-300' : 'text-slate-500'}>
+              Вид топлива
+            </Label>
+            <Select
+              value={serviceCode}
+              onValueChange={setServiceCode}
+              disabled={mode === 'rubles'}
+            >
+              <SelectTrigger className={`bg-slate-700 border-slate-600 ${
+                mode === 'rubles' ? 'text-slate-500 opacity-50 cursor-not-allowed' : 'text-white'
+              }`}>
+                <SelectValue placeholder={mode === 'rubles' ? 'Не требуется' : 'Выберите топливо'} />
               </SelectTrigger>
               <SelectContent className="bg-slate-700 border-slate-600">
                 {fuelOptions.map((opt) => (
@@ -144,26 +249,30 @@ export function CreateCouponModal({
                 ))}
               </SelectContent>
             </Select>
-            {!isFuelSelected && (
-              <p className="text-xs text-slate-400">Выберите конкретный вид топлива</p>
-            )}
+            <p className="text-xs text-slate-400 h-4">
+              {mode === 'liters' && !isFuelSelected ? 'Выберите конкретный вид топлива' : '\u00A0'}
+            </p>
           </div>
 
-          {/* Объём в литрах */}
+          {/* Количество / Сумма */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Объём (литры)</Label>
+            <Label className="text-slate-300">
+              {mode === 'liters' ? 'Объём (литры)' : 'Сумма (рубли)'}
+            </Label>
             <Input
               type="number"
               min="0.1"
-              step="0.1"
-              value={volume}
-              onChange={(e) => setVolume(e.target.value)}
-              placeholder="Введите объём в литрах"
+              step={mode === 'liters' ? '0.1' : '1'}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder={mode === 'liters' ? 'Введите объём в литрах' : 'Введите сумму в рублях'}
               className="bg-slate-700 border-slate-600 text-white"
             />
-            {volume && !isVolumeValid && (
-              <p className="text-xs text-red-400">Объём должен быть больше 0</p>
-            )}
+            <p className="text-xs text-red-400 h-4">
+              {amount && !isAmountValid
+                ? (mode === 'liters' ? 'Объём должен быть больше 0' : 'Сумма должна быть больше 0')
+                : '\u00A0'}
+            </p>
           </div>
 
           {/* Срок действия */}
@@ -181,13 +290,36 @@ export function CreateCouponModal({
             )}
           </div>
 
+          {/* Комментарий (обязательное поле) */}
+          <div className="space-y-2">
+            <Label className="text-slate-300">
+              Комментарий <span className="text-red-400">*</span>
+            </Label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Укажите причину выдачи купона"
+              maxLength={200}
+              rows={2}
+              className="w-full rounded-md bg-slate-700 border border-slate-600 text-white text-sm px-3 py-2 placeholder:text-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex justify-between">
+              {!isCommentValid && comment.length === 0 && (
+                <p className="text-xs text-slate-400">Обязательное поле</p>
+              )}
+              {comment.length > 0 && (
+                <p className="text-xs text-slate-500 ml-auto">{comment.length}/200</p>
+              )}
+            </div>
+          </div>
+
           {/* Фискальный чек */}
           <div className="flex items-center justify-between">
             <Label className="text-slate-300">Фискальный чек</Label>
             <Switch
               checked={fiscal}
               onCheckedChange={setFiscal}
-              className="data-[state=unchecked]:bg-slate-500 data-[state=checked]:bg-green-600"
+              className="data-[state=unchecked]:bg-slate-500 data-[state=checked]:bg-emerald-600"
             />
           </div>
 

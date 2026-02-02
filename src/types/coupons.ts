@@ -21,13 +21,22 @@ export interface CouponType {
   name: string;             // Наименование типа
 }
 
+// Автор купона (из v2 API)
+export interface CouponUser {
+  id: string;               // ID пользователя
+  name: string;             // Имя пользователя
+}
+
+// Режим создания купона
+export type CouponCreateMode = 'liters' | 'rubles';
+
 // Запрос на создание купона
 export interface CreateCouponRequest {
-  service_code: number;     // Код продукта/услуги (конкретный вид топлива)
-  amount: number;           // Объём в литрах
+  service_code?: number;    // Код продукта/услуги (только для режима «Литры»)
+  amount: number;           // Объём в литрах или сумма в рублях (зависит от режима)
   lifetime: number;         // Срок действия (дней)
   fiscal: boolean;          // Фискальный чек
-  author?: string;          // Автор создания купона
+  comment: string;          // Комментарий к купону (обязательное поле)
 }
 
 // Основной интерфейс купона (по реальному API)
@@ -45,6 +54,8 @@ export interface Coupon {
   service: CouponService;  // Информация о продукте/топливе
   state: CouponState;      // Статус талона
   type?: CouponType;       // Тип купона (Терминал / Ручной)
+  comment?: string;        // Комментарий к купону
+  user?: CouponUser;       // Автор купона (id + name)
   rest_summ: number;       // Остаток суммы
   rest_qty: number;        // Остаток количества
 }
@@ -90,6 +101,7 @@ export interface CouponWithAge extends Coupon {
   isExpired: boolean;       // Истек ли купон
   stationName?: string;     // Название торговой точки
   stationCode?: number;     // Код торговой точки
+  isOptimistic?: boolean;   // Оптимистичный купон (ещё не подтверждён API)
 }
 
 // Приоритеты купонов для мониторинга

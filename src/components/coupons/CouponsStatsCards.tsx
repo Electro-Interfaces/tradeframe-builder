@@ -176,7 +176,7 @@ export default function CouponsStatsCards({
         subtitle={`${formatPercentage(stats.activeCoupons, stats.totalCoupons)} от общего`}
         icon={CheckCircle}
         color="text-green-600"
-        bgColor="bg-green-100"
+        bgColor="bg-emerald-100"
         progress={showProgress ? activePercentage : undefined}
         compact={compact}
       />

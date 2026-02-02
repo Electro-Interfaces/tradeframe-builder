@@ -22,6 +22,7 @@ const CACHE_TTL = {
   '/v1/transactions': 180,       // 3 минуты - увеличено для производительности (было 30 сек)
   '/v2/transactions': 300,       // 5 минут - увеличено для производительности (самый медленный endpoint)
   '/v1/coupons': 0,              // БЕЗ КЭША - купоны должны обновляться мгновенно
+  '/v1/coupons_manual': 0,       // БЕЗ КЭША - ручные купоны
   '/v1/shifts': 300,             // 5 минут - список смен меняется редко
   '/v1/report/shift_report': 7200,// 2 часа - исторические данные не меняются (было 10 минут)
   '/v1/report/receipts': 300,    // 5 минут - поступления
@@ -40,8 +41,9 @@ let cacheStats = {
 let stsClient = null;
 let jwtToken = null;
 let tokenExpiry = null;
+let tokenRefreshPromise = null; // Блокировка параллельных refresh
 
-async function getStsClient() {
+async function getStsClient(req) {
   if (!stsClient) {
     // Получаем конфигурацию STS API из переменных окружения
     const STS_API_URL = process.env.STS_API_URL;
@@ -65,26 +67,81 @@ async function getStsClient() {
     console.log('[STS Proxy] Client initialized with URL:', STS_API_URL);
   }
 
-  // Проверяем JWT токен
-  if (!jwtToken || (tokenExpiry && Date.now() >= tokenExpiry)) {
-    await refreshJwtToken();
+  // Проверяем JWT токен: истёк или сменился пользователь
+  const needsRefresh = !jwtToken || (tokenExpiry && Date.now() >= tokenExpiry) || isUserChanged(req);
+  if (needsRefresh) {
+    if (tokenRefreshPromise) {
+      // Другой запрос уже обновляет токен — ждём его
+      await tokenRefreshPromise;
+    } else {
+      // Первый запрос — запускаем refresh и сохраняем promise
+      tokenRefreshPromise = refreshJwtToken(req).finally(() => {
+        tokenRefreshPromise = null;
+      });
+      await tokenRefreshPromise;
+    }
   }
 
   return stsClient;
 }
 
-async function refreshJwtToken() {
+// Хранение данных текущего пользователя для v2/login
+let currentUser = null;
+let tokenUserId = null; // ID пользователя, для которого выпущен текущий JWT
+
+function updateCurrentUser(req) {
+  const userId = req?.headers?.['x-user-id'];
+  const userName = req?.headers?.['x-user-name'];
+  console.log('[STS Proxy] User headers:', { userId: userId || 'none', userName: userName || 'none' });
+  if (userId || userName) {
+    currentUser = {
+      id: userId || process.env.STS_USER_ID || '00000000-0000-0000-0000-000000000000',
+      name: userName ? decodeURIComponent(userName) : (process.env.STS_USER_NAME || 'System')
+    };
+  } else if (!currentUser) {
+    currentUser = {
+      id: process.env.STS_USER_ID || '00000000-0000-0000-0000-000000000000',
+      name: process.env.STS_USER_NAME || 'System'
+    };
+  }
+}
+
+// Проверка, изменился ли пользователь с момента последнего выпуска JWT
+function isUserChanged(req) {
+  const userId = req?.headers?.['x-user-id'];
+  if (!userId) return false; // Нет заголовка — не меняем
+  return userId !== tokenUserId;
+}
+
+async function refreshJwtToken(req) {
   const STS_API_USERNAME = process.env.STS_API_USERNAME;
   const STS_API_PASSWORD = process.env.STS_API_PASSWORD;
 
-  console.log('[STS Proxy] Refreshing JWT token...');
+  // Обновляем данные пользователя из заголовков запроса
+  updateCurrentUser(req);
+
+  console.log('[STS Proxy] Refreshing JWT token via /v2/login, user:', currentUser?.name || 'System');
 
   try {
-    // Получаем JWT токен через /v1/login с JSON body (username и password)
-    const response = await stsClient.post('/v1/login', {
-      username: STS_API_USERNAME,
-      password: STS_API_PASSWORD
+    let response;
+
+    // Используем отдельный axios instance для login (не stsClient), чтобы избежать
+    // проблем с зависшими соединениями после таймаута
+    const loginClient = axios.create({
+      baseURL: process.env.STS_API_URL,
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000
     });
+
+    // Авторизация через /v2/login с данными пользователя
+    const defaultUser = { id: '00000000-0000-0000-0000-000000000000', name: 'System' };
+    const loginBody = {
+      login: STS_API_USERNAME,
+      password: STS_API_PASSWORD,
+      user: (currentUser && currentUser.id !== '0') ? currentUser : defaultUser
+    };
+    response = await loginClient.post('/v2/login', loginBody);
+    console.log('[STS Proxy] JWT token refreshed successfully via v2/login, user:', currentUser?.name || 'System');
 
     // STS API возвращает токен как строку в кавычках, убираем их
     const rawToken = response.data;
@@ -92,11 +149,11 @@ async function refreshJwtToken() {
 
     // Токен действителен 20 минут, обновляем за 2 минуты до истечения
     tokenExpiry = Date.now() + (18 * 60 * 1000);
+    // Запоминаем, для какого пользователя выпущен токен
+    tokenUserId = currentUser?.id || null;
 
     // Обновляем заголовок для всех будущих запросов
     stsClient.defaults.headers['Authorization'] = `Bearer ${jwtToken}`;
-
-    console.log('[STS Proxy] JWT token refreshed successfully');
   } catch (error) {
     console.error('[STS Proxy] Failed to refresh JWT token:', error.message);
     throw new Error('Failed to authenticate with STS API');
@@ -171,13 +228,19 @@ async function proxyRequest(req, res) {
 
     console.log('[STS Proxy] Request params:', query);
 
+    // Обновляем данные пользователя из заголовков frontend-запроса
+    updateCurrentUser(req);
+
     // Выполняем запрос к STS API
-    const client = await getStsClient();
+    const client = await getStsClient(req);
     const response = await client.request(requestConfig);
 
     // Логируем ответ для отладки
     if (urlPath === '/v1/tanks') {
       console.log('[STS Proxy] Tanks response:', JSON.stringify(response.data).substring(0, 200));
+    }
+    if (urlPath === '/v1/control/coupon') {
+      console.log('[STS Proxy] Coupon create response:', response.status, JSON.stringify(response.data).substring(0, 300));
     }
 
     // Сохраняем в кэш только GET запросы с успешным ответом
@@ -280,6 +343,7 @@ router.get('/v1/shifts', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для купонов ===
 router.get('/v1/coupons', (req, res) => proxyRequest(req, res));
+router.get('/v1/coupons_manual', (req, res) => proxyRequest(req, res));
 router.post('/v1/control/coupon', (req, res) => proxyRequest(req, res));
 
 // === Endpoints для отчетов ===
