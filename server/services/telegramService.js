@@ -188,15 +188,18 @@ ${emoji} <b>${levelText}</b>
       currentPercent,
       currentVolume,
       maxVolume,
-      blockThreshold
+      blockThreshold,
+      dataSource
     } = options;
+
+    const dataSourceLabel = dataSource ? ` [${dataSource}]` : '';
 
     const text = `
 🚫 <b>БЛОКИРОВКА ОТПУСКА ТОПЛИВА</b>
 
 📍 <b>АЗС:</b> ${stationName}
 ⛽ <b>Резервуар:</b> №${tankNumber} (${fuelType})
-📊 <b>Уровень:</b> ${currentVolume.toLocaleString('ru-RU')} л (${currentPercent.toFixed(1)}%)
+📊 <b>Уровень:</b> ${currentVolume.toLocaleString('ru-RU')} л (${currentPercent.toFixed(1)}%)${dataSourceLabel}
 ⚠️ <b>Порог блокировки:</b> ${blockThreshold} л
 
 <b>Отпуск данного вида топлива заблокирован</b> до поступления следующей партии нефтепродуктов.

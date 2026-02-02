@@ -696,7 +696,8 @@ class NotificationEngine {
             currentPercent: notification.context.currentPercent,
             currentVolume: notification.context.currentVolume,
             maxVolume: notification.context.maxVolume,
-            blockThreshold: notification.context.blockThreshold
+            blockThreshold: notification.context.blockThreshold,
+            dataSource: notification.context.dataSource
           });
         }
       }
@@ -784,8 +785,20 @@ class NotificationEngine {
             }
 
             const fuelType = tank.fuel_name;
-            const currentVolume = parseFloat(tank.volume || tank.volume_end || 0);
-            const maxVolume = parseFloat(tank.volume_max || 1);
+
+            // Определяем отсутствие данных уровнемера (аналогично tanksService.ts)
+            const volumeRaw = parseFloat(tank.volume || '0');
+            const volumeMaxRaw = parseFloat(tank.volume_max || '0');
+            const levelRaw = parseFloat(tank.level || '0');
+            const volumeBegin = parseFloat(tank.volume_begin || '0');
+            const releaseVolume = parseFloat(tank.release?.volume || '0');
+            const noSensorData = volumeRaw === 0 && volumeMaxRaw === 0 && levelRaw === 0 && volumeBegin > 0;
+
+            // Используем книжный остаток если нет данных уровнемера
+            const currentVolume = noSensorData
+              ? Math.max(0, volumeBegin - releaseVolume)
+              : parseFloat(tank.volume || tank.volume_end || 0);
+            const maxVolume = noSensorData ? volumeBegin : parseFloat(tank.volume_max || 1);
             const currentPercent = maxVolume > 0 ? (currentVolume / maxVolume) * 100 : 0;
 
             // Получаем пороги для этого вида топлива из настроек станции
@@ -807,6 +820,7 @@ class NotificationEngine {
               current_percent: currentPercent,
               current_volume: currentVolume,
               max_volume: maxVolume,
+              no_sensor_data: noSensorData,
               thresholds: {
                 levelWarning,
                 levelCritical
@@ -828,6 +842,7 @@ class NotificationEngine {
 
       // ✅ ПРОВЕРКА ПОРОГА БЛОКИРОВКИ (800 литров) - абсолютный порог
       // Если уровень ниже 800л - отправляем критическое уведомление о блокировке
+      console.log(`   🔍 Проверка блокировки: ${station.station_name} | Резервуар №${station.tank_number} (${station.fuel_type}) | Объём: ${station.current_volume.toFixed(2)} л | noSensor: ${station.no_sensor_data} | Порог: ${BLOCK_THRESHOLD_LITERS} л`);
       if (station.current_volume < BLOCK_THRESHOLD_LITERS) {
         const shouldNotifyBlock = await this.shouldSendNotification(rule, 'fuel_block_threshold', {
           stationCode: station.station_code,
@@ -983,7 +998,9 @@ class NotificationEngine {
           currentVolume: station.current_volume,
           maxVolume: station.max_volume,
           blockThreshold: BLOCK_THRESHOLD_LITERS,
-          level: 'block'
+          level: 'block',
+          noSensorData: station.no_sensor_data,
+          dataSource: station.no_sensor_data ? 'книжный остаток' : 'уровнемер'
         },
         status: 'pending',
         channels: ['telegram']
