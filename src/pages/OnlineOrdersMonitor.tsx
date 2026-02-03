@@ -639,8 +639,12 @@ export default function OnlineOrdersMonitor() {
           <CardContent className="p-0">
             {loading && orders.length === 0 ? (
               <div className="p-8 text-center">
-                <RefreshCw className="w-8 h-8 text-gray-500 animate-spin mx-auto mb-2" />
-                <p className="text-gray-400">Загрузка данных из MSTO...</p>
+                <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
+                <p className="text-lg font-medium text-gray-300 mb-2">Загрузка онлайн-заказов...</p>
+                <p className="text-sm text-gray-500">
+                  Первая загрузка может занять несколько секунд.<br />
+                  Последующие обновления будут мгновенными.
+                </p>
               </div>
             ) : error ? (
               <div className="p-8 text-center">

@@ -96,6 +96,8 @@ export function CreateCouponModal({
         lifetime: lifetimeNum,
         fiscal,
         comment: comment.trim(),
+        user_id: user?.id || undefined,
+        user_name: authorName,
         ...(mode === 'liters' && { service_code: Number(serviceCode) }),
       };
 
@@ -314,13 +316,39 @@ export function CreateCouponModal({
           </div>
 
           {/* Фискальный чек */}
-          <div className="flex items-center justify-between">
-            <Label className="text-slate-300">Фискальный чек</Label>
-            <Switch
-              checked={fiscal}
-              onCheckedChange={setFiscal}
-              className="data-[state=unchecked]:bg-slate-500 data-[state=checked]:bg-emerald-600"
-            />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-slate-300">Фискальный чек</Label>
+              <Switch
+                checked={fiscal}
+                onCheckedChange={setFiscal}
+                className="data-[state=unchecked]:bg-slate-500 data-[state=checked]:bg-emerald-600"
+              />
+            </div>
+            {fiscal && (
+              <div className="bg-amber-900/30 border border-amber-600/50 rounded-md p-2">
+                <p className="text-xs text-amber-200">
+                  ⚠️ С фискальным чеком операция будет отражена в налоговой отчетности
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Важное предупреждение */}
+          <div className="bg-red-900/20 border border-red-600/50 rounded-lg p-3 space-y-2">
+            <div className="flex items-start gap-2">
+              <div className="text-red-400 mt-0.5">⚠️</div>
+              <div className="text-xs text-red-200 space-y-1">
+                <p className="font-semibold">Ответственная операция!</p>
+                <p>Создание купона влияет на:</p>
+                <ul className="list-disc list-inside space-y-0.5 ml-2">
+                  <li>Товарный учет топлива</li>
+                  <li>Финансовую отчетность</li>
+                  <li>Баланс станции</li>
+                </ul>
+                <p className="mt-1">Комментарий обязателен для аудита операций</p>
+              </div>
+            </div>
           </div>
 
           {/* Автор */}

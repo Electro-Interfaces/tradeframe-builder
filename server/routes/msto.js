@@ -22,10 +22,10 @@ const cache = new NodeCache({
 
 // Конфигурация TTL для разных endpoint'ов (в секундах)
 const CACHE_TTL = {
-  '/servicePoints': 3600,      // 1 час - список станций меняется редко
-  '/transactions': 300,        // 5 минут - транзакции
+  '/servicePoints': 7200,      // 2 часа - список станций меняется редко
+  '/transactions': 600,        // 10 минут - транзакции (увеличено для снижения нагрузки)
   '/tariffs': 3600,            // 1 час - тарифы (агрегаторы)
-  'default': 300
+  'default': 600
 };
 
 // JWT токен MSTO (кэшируется на 24 часа или до ошибки 401)
@@ -337,9 +337,9 @@ function convertTransactionParams(req, res, next) {
     delete req.query.servicePointIds;
   }
 
-  // Устанавливаем размер страницы по умолчанию (больше, чтобы получить все транзакции)
+  // Устанавливаем размер страницы по умолчанию (оптимизировано для баланса скорости и полноты)
   if (!req.query.size) {
-    req.query.size = '10000';
+    req.query.size = '2000';
   }
 
   // DEBUG: Логируем преобразованные параметры
@@ -378,7 +378,7 @@ let servicePointsMap = null;
 let servicePointsMapExpiry = null;
 
 async function getServicePointsMap() {
-  // Кэш на 1 час
+  // Кэш на 2 часа (список станций меняется редко)
   if (servicePointsMap && servicePointsMapExpiry && Date.now() < servicePointsMapExpiry) {
     return servicePointsMap;
   }
@@ -395,8 +395,8 @@ async function getServicePointsMap() {
       }
     });
 
-    servicePointsMapExpiry = Date.now() + (60 * 60 * 1000); // 1 час
-    console.log(`[MSTO Proxy] ServicePoints map loaded: ${Object.keys(servicePointsMap).length} stations`);
+    servicePointsMapExpiry = Date.now() + (2 * 60 * 60 * 1000); // 2 часа
+    console.log(`[MSTO Proxy] ServicePoints map loaded: ${Object.keys(servicePointsMap).length} stations (TTL: 2h)`);
     return servicePointsMap;
   } catch (error) {
     console.error('[MSTO Proxy] Failed to load servicePoints map:', error.message);
@@ -564,4 +564,19 @@ router.all('*', (req, res) => {
   proxyRequest(req, res, targetPath);
 });
 
+/**
+ * Прогрев кэша при старте сервера
+ * Загружает servicePoints map заранее, чтобы первый запрос был быстрее
+ */
+async function warmupCache() {
+  try {
+    console.log('[MSTO Proxy] 🔥 Warming up cache...');
+    await getServicePointsMap();
+    console.log('[MSTO Proxy] ✅ Cache warmup completed');
+  } catch (error) {
+    console.error('[MSTO Proxy] ⚠️ Cache warmup failed:', error.message);
+  }
+}
+
 module.exports = router;
+module.exports.warmupCache = warmupCache;

@@ -294,6 +294,29 @@ export default function CouponCard({
             <span>Остаток: {formatCurrency(coupon.rest)}</span>
           </div>
         </div>
+
+        {/* Автор и комментарий (если есть) */}
+        {(coupon.user || coupon.comment) && (
+          <>
+            <Separator />
+            <div className="space-y-2 text-sm">
+              {coupon.user && (
+                <div>
+                  <div className="font-medium text-muted-foreground">Автор</div>
+                  <div className="text-foreground">{coupon.user.name}</div>
+                </div>
+              )}
+              {coupon.comment && (
+                <div>
+                  <div className="font-medium text-muted-foreground">Комментарий</div>
+                  <div className="text-foreground bg-muted/50 rounded p-2 text-xs">
+                    {coupon.comment}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

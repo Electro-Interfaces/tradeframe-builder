@@ -240,7 +240,14 @@ async function proxyRequest(req, res) {
       console.log('[STS Proxy] Tanks response:', JSON.stringify(response.data).substring(0, 200));
     }
     if (urlPath === '/v1/control/coupon') {
+      console.log('[STS Proxy] 📝 Coupon create REQUEST body:', JSON.stringify(body));
+      console.log('[STS Proxy] 📝 Coupon create REQUEST params:', JSON.stringify(query));
       console.log('[STS Proxy] Coupon create response:', response.status, JSON.stringify(response.data).substring(0, 300));
+    }
+    if (urlPath === '/v1/coupons_manual') {
+      const dataStr = JSON.stringify(response.data);
+      console.log('[STS Proxy] 📋 coupons_manual response (system=' + query.system + ', station=' + query.station + '):',
+        dataStr.substring(0, 500), '... (total length:', dataStr.length, ')');
     }
 
     // Сохраняем в кэш только GET запросы с успешным ответом

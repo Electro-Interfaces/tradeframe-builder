@@ -123,6 +123,13 @@ app.listen(PORT, () => {
   } else {
     console.warn('⚠️ Telegram Bot not initialized (check configuration)');
   }
+
+  // Прогрев кэша MSTO (асинхронно, не блокирует запуск)
+  if (mstoRoutes.warmupCache) {
+    mstoRoutes.warmupCache().catch(err => {
+      console.error('[Server] MSTO cache warmup failed:', err.message);
+    });
+  }
 });
 
 // Graceful shutdown

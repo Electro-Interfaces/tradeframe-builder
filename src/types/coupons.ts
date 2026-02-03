@@ -37,6 +37,8 @@ export interface CreateCouponRequest {
   lifetime: number;         // Срок действия (дней)
   fiscal: boolean;          // Фискальный чек
   comment: string;          // Комментарий к купону (обязательное поле)
+  user_id?: string;         // ID автора купона
+  user_name?: string;       // Имя автора купона
 }
 
 // Основной интерфейс купона (по реальному API)

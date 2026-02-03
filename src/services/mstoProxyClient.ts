@@ -315,7 +315,7 @@ export async function getMstoTransactions(
   const queryParams: Record<string, any> = {
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
-    size: 10000, // Увеличиваем лимит для получения всех транзакций
+    size: 2000, // Оптимизировано для баланса скорости и полноты данных
   };
 
   // MSTO API принимает фильтры в единственном числе
