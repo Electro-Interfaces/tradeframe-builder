@@ -15,11 +15,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { RefreshCw, Power, Loader2, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Power, Loader2, AlertTriangle, Gauge } from 'lucide-react';
 import type { TerminalInfo } from '@/types/equipment';
+import type { Tank } from '@/types/tanks';
 
 interface EquipmentHeaderProps {
   terminalInfo: TerminalInfo | null;
+  tanks?: Tank[];
   isMobile: boolean;
   loading: boolean;
   restartingTerminal: boolean;
@@ -31,6 +33,7 @@ interface EquipmentHeaderProps {
 
 export function EquipmentHeader({
   terminalInfo,
+  tanks,
   isMobile,
   loading,
   restartingTerminal,
@@ -39,6 +42,13 @@ export function EquipmentHeader({
   onRefresh,
   onRestartTerminal
 }: EquipmentHeaderProps) {
+  // Находим самое свежее dt среди резервуаров
+  const latestTankDt = tanks?.reduce<string | null>((latest, tank) => {
+    const dt = tank.apiData?.dt;
+    if (!dt) return latest;
+    if (!latest) return dt;
+    return new Date(dt) > new Date(latest) ? dt : latest;
+  }, null);
   return (
     <div className={`${isMobile ? 'mb-3' : 'mb-6 pt-4'}`}>
       {/* Баннер предупреждения о состоянии терминала */}
@@ -61,7 +71,6 @@ export function EquipmentHeader({
           {terminalInfo?.pos?.lastUpdate && (
             <p className={`text-slate-400 ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
               {isMobile ? (
-                // Мобильная версия - компактный формат
                 <>
                   {new Date(terminalInfo.pos.lastUpdate).toLocaleTimeString('ru-RU', {
                     hour: '2-digit',
@@ -81,7 +90,6 @@ export function EquipmentHeader({
                   })()}
                 </>
               ) : (
-                // Десктопная версия - полный формат
                 <>
                   Последняя передача данных: {new Date(terminalInfo.pos.lastUpdate).toLocaleString('ru-RU')}
                   {(() => {
@@ -95,6 +103,32 @@ export function EquipmentHeader({
                     } else {
                       return <span className="text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
                     }
+                  })()}
+                </>
+              )}
+            </p>
+          )}
+          {latestTankDt && (
+            <p className={`text-slate-400 flex items-center gap-1.5 ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-0.5'}`}>
+              <Gauge className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-blue-400`} />
+              {isMobile ? (
+                <>
+                  Резервуары: {new Date(latestTankDt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                  {(() => {
+                    const diffMinutes = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000);
+                    return diffMinutes < 11
+                      ? <span className="text-green-400 ml-1.5">✓</span>
+                      : <span className="text-red-400 ml-1.5">⚠ {diffMinutes}м</span>;
+                  })()}
+                </>
+              ) : (
+                <>
+                  Данные резервуаров: {new Date(latestTankDt).toLocaleString('ru-RU')}
+                  {(() => {
+                    const diffMinutes = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000);
+                    return diffMinutes < 11
+                      ? <span className="text-green-400 ml-2">(✓ актуально)</span>
+                      : <span className="text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
                   })()}
                 </>
               )}

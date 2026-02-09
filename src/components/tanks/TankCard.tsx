@@ -305,8 +305,8 @@ const TankCardComponent = ({ tank, isMobile, canManageTanks = false }: TankCardP
               <span className="text-slate-400">Обновлено:</span>
               <span className="text-slate-300 font-medium">
                 {tank.apiData?.dt
-                  ? new Date(tank.apiData.dt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-                  : '21:37'}
+                  ? new Date(tank.apiData.dt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                  : '—'}
               </span>
             </div>
             <div className="flex justify-between">

@@ -128,6 +128,7 @@ export default function Equipment() {
         {/* Заголовок страницы */}
         <EquipmentHeader
           terminalInfo={terminalInfo}
+          tanks={tanks}
           isMobile={isMobile}
           loading={loading}
           restartingTerminal={restartingTerminal}
