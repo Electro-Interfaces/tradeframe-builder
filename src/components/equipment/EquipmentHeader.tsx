@@ -72,37 +72,25 @@ export function EquipmentHeader({
             <p className={`text-slate-400 ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
               {isMobile ? (
                 <>
-                  {new Date(terminalInfo.pos.lastUpdate).toLocaleTimeString('ru-RU', {
-                    hour: '2-digit',
-                    minute: '2-digit'
+                  Передача данных: {new Date(terminalInfo.pos.lastUpdate).toLocaleString('ru-RU', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
                   })}
                   {(() => {
-                    const now = new Date();
-                    const lastUpdate = new Date(terminalInfo.pos.lastUpdate);
-                    const diffMs = now.getTime() - lastUpdate.getTime();
-                    const diffMinutes = Math.floor(diffMs / 60000);
-
-                    if (diffMinutes < 11) {
-                      return <span className="text-green-400 ml-1.5">✓</span>;
-                    } else {
-                      return <span className="text-red-400 ml-1.5">⚠ {diffMinutes}м</span>;
-                    }
+                    const diffMinutes = Math.floor((Date.now() - new Date(terminalInfo.pos.lastUpdate).getTime()) / 60000);
+                    return diffMinutes < 11
+                      ? <span className="text-green-400 ml-1">(✓)</span>
+                      : <span className="text-red-400 ml-1">(⚠ {diffMinutes}м)</span>;
                   })()}
                 </>
               ) : (
                 <>
                   Последняя передача данных: {new Date(terminalInfo.pos.lastUpdate).toLocaleString('ru-RU')}
                   {(() => {
-                    const now = new Date();
-                    const lastUpdate = new Date(terminalInfo.pos.lastUpdate);
-                    const diffMs = now.getTime() - lastUpdate.getTime();
-                    const diffMinutes = Math.floor(diffMs / 60000);
-
-                    if (diffMinutes < 11) {
-                      return <span className="text-green-400 ml-2">(✓ актуально)</span>;
-                    } else {
-                      return <span className="text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
-                    }
+                    const diffMinutes = Math.floor((Date.now() - new Date(terminalInfo.pos.lastUpdate).getTime()) / 60000);
+                    return diffMinutes < 11
+                      ? <span className="text-green-400 ml-2">(✓ актуально)</span>
+                      : <span className="text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;
                   })()}
                 </>
               )}
@@ -112,12 +100,15 @@ export function EquipmentHeader({
             <p className={`text-slate-400 ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-0.5'}`}>
               {isMobile ? (
                 <>
-                  Резервуары: {new Date(latestTankDt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                  Резервуары: {new Date(latestTankDt).toLocaleString('ru-RU', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                  })}
                   {(() => {
                     const diffMinutes = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000);
                     return diffMinutes < 11
-                      ? <span className="text-green-400 ml-1.5">✓</span>
-                      : <span className="text-red-400 ml-1.5">⚠ {diffMinutes}м</span>;
+                      ? <span className="text-green-400 ml-1">(✓)</span>
+                      : <span className="text-red-400 ml-1">(⚠ {diffMinutes}м)</span>;
                   })()}
                 </>
               ) : (
