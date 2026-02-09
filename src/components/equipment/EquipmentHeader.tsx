@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { RefreshCw, Power, Loader2, AlertTriangle, Gauge } from 'lucide-react';
+import { RefreshCw, Power, Loader2, AlertTriangle } from 'lucide-react';
 import type { TerminalInfo } from '@/types/equipment';
 import type { Tank } from '@/types/tanks';
 
@@ -109,8 +109,7 @@ export function EquipmentHeader({
             </p>
           )}
           {latestTankDt && (
-            <p className={`text-slate-400 flex items-center gap-1.5 ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-0.5'}`}>
-              <Gauge className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} text-blue-400`} />
+            <p className={`text-slate-400 ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-0.5'}`}>
               {isMobile ? (
                 <>
                   Резервуары: {new Date(latestTankDt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
@@ -123,7 +122,7 @@ export function EquipmentHeader({
                 </>
               ) : (
                 <>
-                  Данные резервуаров: {new Date(latestTankDt).toLocaleString('ru-RU')}
+                  Факт. данные резервуаров: {new Date(latestTankDt).toLocaleString('ru-RU')}
                   {(() => {
                     const diffMinutes = Math.floor((Date.now() - new Date(latestTankDt).getTime()) / 60000);
                     return diffMinutes < 11
