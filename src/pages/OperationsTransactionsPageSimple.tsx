@@ -1486,7 +1486,7 @@ export default function OperationsTransactionsPageSimple() {
               Операция #{selectedOperation?.id?.slice(-8)}
             </DialogTitle>
             <DialogDescription className="text-slate-400 text-sm">
-              Подробная информация о транзакции
+              {selectedNetwork?.name || 'Сеть'}{selectedOperation?.stationNumber ? ` • АЗС ${selectedOperation.stationNumber}` : ''}
             </DialogDescription>
           </DialogHeader>
 
