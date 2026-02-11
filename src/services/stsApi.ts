@@ -255,6 +255,8 @@ interface Transaction {
   startTime: string;
   endTime?: string;
   duration?: number;
+  orderedQuantity?: number;  // заказанное количество литров (order)
+  orderedAmount?: number;    // заказанная сумма в рублях (order_cost)
   apiData?: {
     // Сырые данные от API СТС
     [key: string]: any;
@@ -1268,6 +1270,8 @@ class STSApiService {
       tradingPointId: tradingPointId?.toString(),
       operatorName,
       duration,
+      orderedQuantity: apiTransaction.order ? parseFloat(apiTransaction.order) : undefined,
+      orderedAmount: apiTransaction.order_cost ? parseFloat(apiTransaction.order_cost) : undefined,
       // Сохраняем все исходные данные от API
       apiData: apiTransaction
     };

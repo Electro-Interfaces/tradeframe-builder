@@ -232,9 +232,9 @@ export default function OperationsTransactionsPageSimple() {
           posNumber: rawTx.pos?.toString() || '-', // Номер POS из реального API
           cardNumber: rawTx.card || tx.cardNumber || '-',
 
-          // Заказанное количество
-          orderedQuantity: parseFloat(rawTx.order || rawTx.quantity || tx.volume || '0'),
-          orderedAmount: parseFloat(rawTx.cost || tx.total || '0'),
+          // Заказанное количество (order - литры, order_cost - рубли)
+          orderedQuantity: parseFloat(rawTx.order || '0'),
+          orderedAmount: parseFloat(rawTx.order_cost || '0'),
 
           // Дополнительные поля - ИСПРАВЛЕНО согласно реальной структуре API
           shiftNumber: rawTx.shift?.toString() || '-', // Смена из реальных данных API
@@ -445,13 +445,69 @@ export default function OperationsTransactionsPageSimple() {
     let filtered = kpiFilteredOperations;
 
     // Применяем поиск если есть запрос
+    // Поддерживает запросы вида: "9 смена 6 азс", "смена 125", "азс 3", "чек 42", "карта 1234"
     if (debouncedSearchQuery) {
-      const query = debouncedSearchQuery.toLowerCase();
-      filtered = filtered.filter(record => (
-        record.id.toLowerCase().includes(query) ||
-        (record.details && record.details.toLowerCase().includes(query)) ||
-        (record.tradingPointName && record.tradingPointName.toLowerCase().includes(query))
-      ));
+      const query = debouncedSearchQuery.toLowerCase().trim();
+
+      // Извлекаем именованные фильтры: "смена X", "X смена", "азс X", "X азс", "чек X", "карта X"
+      const fieldFilters: { field: string; value: string }[] = [];
+      let remainingQuery = query;
+
+      // Паттерны: ключевое_слово + число ИЛИ число + ключевое_слово
+      // Важно: каждый паттерн работает по remainingQuery чтобы избежать перекрытий
+      // (например "смена 9 азс 6" — "9 азс" не должно матчиться как станция)
+      const patterns = [
+        { regex: /(?:смена|shift)\s+(\d+)/i, field: 'shiftNumber' },
+        { regex: /(\d+)\s+(?:смена|shift)/i, field: 'shiftNumber' },
+        { regex: /(?:азс|станция|station|тт)\s+(\d+)/i, field: 'stationNumber' },
+        { regex: /(\d+)\s+(?:азс|станция|station|тт)/i, field: 'stationNumber' },
+        { regex: /(?:чек|receipt)\s+(\d+)/i, field: 'receiptNumber' },
+        { regex: /(\d+)\s+(?:чек|receipt)/i, field: 'receiptNumber' },
+        { regex: /(?:карта|card)\s+(\S+)/i, field: 'cardNumber' },
+        { regex: /(?:pos|пос)\s+(\d+)/i, field: 'posNumber' },
+      ];
+
+      for (const { regex, field } of patterns) {
+        const match = remainingQuery.match(regex);
+        if (match) {
+          fieldFilters.push({ field, value: match[1] });
+          remainingQuery = remainingQuery.replace(match[0], ' ');
+        }
+      }
+
+      // Оставшийся текст после удаления распознанных паттернов
+      const remainingTokens = remainingQuery.trim().split(/\s+/).filter(t => t.length > 0);
+
+      if (fieldFilters.length > 0) {
+        // Если есть именованные фильтры — используем точное сравнение по полям
+        filtered = filtered.filter(record => {
+          for (const { field, value } of fieldFilters) {
+            const recordValue = record[field]?.toString() || '';
+            if (recordValue !== value && !recordValue.includes(value)) return false;
+          }
+          // Оставшиеся токены ищем как подстроку по всем полям
+          for (const token of remainingTokens) {
+            const matchesAny =
+              record.id?.toLowerCase().includes(token) ||
+              record.fuelType?.toLowerCase().includes(token) ||
+              record.cardNumber?.toLowerCase().includes(token) ||
+              record.tradingPointName?.toLowerCase().includes(token);
+            if (!matchesAny) return false;
+          }
+          return true;
+        });
+      } else {
+        // Обычный поиск подстрокой по всем полям
+        filtered = filtered.filter(record => (
+          record.id?.toLowerCase().includes(query) ||
+          (record.details && record.details.toLowerCase().includes(query)) ||
+          (record.tradingPointName && record.tradingPointName.toLowerCase().includes(query)) ||
+          (record.shiftNumber && record.shiftNumber.toString().includes(query)) ||
+          (record.cardNumber && record.cardNumber.toLowerCase().includes(query)) ||
+          (record.receiptNumber && record.receiptNumber.toString().includes(query)) ||
+          (record.stationNumber && record.stationNumber.toString().includes(query))
+        ));
+      }
     }
 
     // Сортировка по дате (свежие сверху)
@@ -877,7 +933,7 @@ export default function OperationsTransactionsPageSimple() {
                     <Input
                       id="search"
                       type="text"
-                      placeholder="ID, устройство..."
+                      placeholder="смена 9 азс 6, ID, карта..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="mt-1"
@@ -1519,6 +1575,20 @@ export default function OperationsTransactionsPageSimple() {
                   <div className="flex justify-between py-2 border-b border-slate-700">
                     <span className="text-slate-400">Номер чека:</span>
                     <span className="text-white font-mono">{selectedOperation.receiptNumber}</span>
+                  </div>
+                )}
+
+                {selectedOperation.orderedQuantity > 0 && (
+                  <div className="flex justify-between py-2 border-b border-slate-700">
+                    <span className="text-slate-400">Заказ (литры):</span>
+                    <span className="text-white font-mono">{selectedOperation.orderedQuantity.toFixed(2)} л</span>
+                  </div>
+                )}
+
+                {selectedOperation.orderedAmount > 0 && (
+                  <div className="flex justify-between py-2 border-b border-slate-700">
+                    <span className="text-slate-400">Заказ (сумма):</span>
+                    <span className="text-white font-mono">{selectedOperation.orderedAmount.toFixed(2)} ₽</span>
                   </div>
                 )}
 
