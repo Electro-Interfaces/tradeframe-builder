@@ -82,13 +82,25 @@ export function ReceiptsModal({ isOpen, onClose, systemId, stationNames = {} }: 
       const receiptsData: ReceiptData[] = response
         .filter(station => station.pos && station.pos.length > 0)
         .map(station => {
-          const pos = station.pos[0];
+          // Суммируем cash_sum и bank_sum по всем постам станции
+          let totalCashSum = 0;
+          let totalBankSum = 0;
+          let latestDtInfo = '';
+
+          for (const pos of station.pos) {
+            totalCashSum += pos.cash_sum || 0;
+            totalBankSum += pos.bank_sum || 0;
+            if (pos.dt_info && (!latestDtInfo || new Date(pos.dt_info) > new Date(latestDtInfo))) {
+              latestDtInfo = pos.dt_info;
+            }
+          }
+
           return {
             station: station.station,
             stationName: stationNames[station.station] || `Станция ${station.station}`,
-            cashSum: pos.cash_sum || 0,
-            bankSum: pos.bank_sum || 0,
-            lastUpdate: pos.dt_info || '',
+            cashSum: totalCashSum,
+            bankSum: totalBankSum,
+            lastUpdate: latestDtInfo,
           };
         })
         .sort((a, b) => a.station - b.station);

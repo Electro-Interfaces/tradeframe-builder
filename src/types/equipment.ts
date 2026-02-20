@@ -209,6 +209,8 @@ export interface TerminalEquipmentItem {
   isEmergencyMode?: boolean;        // ККТ в аварийном режиме
   // Время последнего обновления данных
   lastUpdate?: string;
+  // Номер поста (для многопостовых станций)
+  posNumber?: number;
 }
 
 /**
@@ -220,6 +222,25 @@ export interface TerminalState {
 }
 
 /**
+ * Информация о POS-терминале (посте) станции
+ * Станция может иметь несколько постов, каждый со своим набором устройств
+ */
+export interface PosTerminalInfo {
+  number: number;              // Номер поста (1, 2, ...)
+  status: 'online' | 'offline';
+  version?: string;
+  lastUpdate?: string;         // Время последнего обновления данных (dt_info)
+  cashSum?: number;            // Сумма наличных для пробития (cash_sum)
+  bankSum?: number;            // Сумма безнал для пробития (bank_sum)
+  devices?: {
+    billAcceptor?: TerminalDevice & BillAcceptorDetails;
+    cardReader?: TerminalDevice;
+    mpsReader?: TerminalDevice;
+    fiscalRegister?: TerminalDevice & FiscalRegisterDetails;
+  };
+}
+
+/**
  * Информация о терминале из STS API
  */
 export interface TerminalInfo {
@@ -228,24 +249,11 @@ export interface TerminalInfo {
     status: 'online' | 'offline';
   };
   terminalState?: TerminalState;
-  pos: {
-    version: string;
-    status: 'online' | 'offline';
-    lastUpdate?: string; // Время последнего обновления данных от терминала (dt_info)
-    // Данные для чеков
-    cashSum?: number;     // Сумма наличных для пробития (cash_sum)
-    bankSum?: number;     // Сумма безнал для пробития (bank_sum)
-  };
+  pos: PosTerminalInfo[];
   shift: {
     number: number;
     state: string;
   } | null;
-  devices?: {
-    billAcceptor?: TerminalDevice & BillAcceptorDetails;
-    cardReader?: TerminalDevice;
-    mpsReader?: TerminalDevice;
-    fiscalRegister?: TerminalDevice & FiscalRegisterDetails;
-  };
 }
 
 /**

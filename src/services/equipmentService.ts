@@ -58,23 +58,127 @@ class EquipmentService {
   }
 
   /**
+   * Получить самый свежий lastUpdate из всех постов
+   */
+  private getLatestPosUpdate(pos: TerminalInfo['pos']): string | undefined {
+    return pos.reduce<string | undefined>((latest, p) => {
+      if (!p.lastUpdate) return latest;
+      if (!latest) return p.lastUpdate;
+      return new Date(p.lastUpdate) > new Date(latest) ? p.lastUpdate : latest;
+    }, undefined);
+  }
+
+  /**
+   * Генерирует элементы оборудования для одного поста
+   */
+  private mapPosDevicesToEquipment(
+    pos: TerminalInfo['pos'][0],
+    isOffline: boolean,
+    suffix: string,
+    posNumber?: number
+  ): TerminalEquipmentItem[] {
+    const items: TerminalEquipmentItem[] = [];
+
+    // POS терминал
+    items.push({
+      id: `pos${suffix}`,
+      name: 'POS',
+      code: pos.version || `POS ${pos.number}`,
+      location: '',
+      status: isOffline ? 'offline' : pos.status,
+      statusText: isOffline ? 'Офлайн' : (pos.status === 'online' ? 'Онлайн' : 'Офлайн'),
+      lastUpdate: pos.lastUpdate,
+      posNumber
+    });
+
+    // ККТ - Фискальный регистратор
+    const cashSum = pos.cashSum || 0;
+    const bankSum = pos.bankSum || 0;
+    const hasUnpunchedReceipts = cashSum !== 0 || bankSum !== 0;
+    const isEmergencyMode = pos.devices?.fiscalRegister?.isEmergencyMode || false;
+    const fiscalStatus = pos.devices?.fiscalRegister?.status || 'offline';
+
+    items.push({
+      id: `fiscal-register${suffix}`,
+      name: 'ККТ',
+      code: hasUnpunchedReceipts ? 'Есть чеки!' : 'Фиск. регистратор',
+      location: '',
+      status: isEmergencyMode ? 'error' : (fiscalStatus === 'online' ? 'online' : 'offline'),
+      statusText: isEmergencyMode ? 'Авария' : (fiscalStatus === 'online' ? 'ОК' : 'Ошибка'),
+      hasUnpunchedReceipts,
+      cashSum,
+      bankSum,
+      isEmergencyMode,
+      lastUpdate: pos.lastUpdate,
+      posNumber
+    });
+
+    // Картридер
+    if (pos.devices?.cardReader) {
+      items.push({
+        id: `card-reader${suffix}`,
+        name: 'Картридер',
+        code: 'Топливные карты',
+        location: '',
+        status: pos.devices.cardReader.status,
+        statusText: pos.devices.cardReader.status === 'online' ? 'ОК' : 'Ошибка',
+        posNumber
+      });
+    }
+
+    // МПС-ридер
+    if (pos.devices?.mpsReader) {
+      items.push({
+        id: `mps-reader${suffix}`,
+        name: 'МПС',
+        code: 'Банк. карты и СБП',
+        location: '',
+        status: pos.devices.mpsReader.status,
+        statusText: pos.devices.mpsReader.status === 'online' ? 'ОК' : 'Ошибка',
+        posNumber
+      });
+    }
+
+    // Купюроприемник
+    if (pos.devices?.billAcceptor) {
+      const deviceStatus = pos.devices.billAcceptor.status;
+      const isOnline = deviceStatus === 'online';
+      items.push({
+        id: `bill-acceptor${suffix}`,
+        name: 'Купюроприемник',
+        code: `ID: ${pos.devices.billAcceptor.name}`,
+        location: `Устройство ${pos.devices.billAcceptor.name}`,
+        status: deviceStatus,
+        statusText: isOnline ? 'Готов' : 'Ошибка',
+        billCount: pos.devices.billAcceptor.billCount,
+        billAmount: pos.devices.billAcceptor.billAmount,
+        posNumber
+      });
+    }
+
+    return items;
+  }
+
+  /**
    * Преобразование данных из TerminalInfo в формат для отображения
+   * Поддерживает многопостовые станции (несколько POS)
    * @param info - информация о терминале
    * @param stationName - название станции из селектора (опционально)
    */
   mapTerminalInfoToEquipment(info: TerminalInfo, stationName?: string): TerminalEquipmentItem[] {
     const equipment: TerminalEquipmentItem[] = [];
 
+    // Самый свежий lastUpdate из всех постов
+    const latestLastUpdate = this.getLatestPosUpdate(info.pos);
+
     // Проверяем offline по времени (более 15 минут без связи)
-    const isOffline = this.isOfflineByTime(info.pos.lastUpdate);
+    const isOffline = this.isOfflineByTime(latestLastUpdate);
     const terminalStatus = isOffline ? 'offline' : info.terminal.status;
 
-    // Станция (основной терминал) - offline если нет связи более 15 минут
-    // state_trm: code !== 0 означает ошибку терминала
+    // Станция (основной терминал) - общий элемент
     const hasTerminalError = info.terminalState && info.terminalState.code !== 0;
     const stationCode = stationName || info.terminal.name || 'АЗС';
     const shiftInfo = info.shift ? `№${info.shift.number}` : '';
-    // Объединяем название станции и номер смены в одну строку (компактно для mobile)
     const stationDisplay = shiftInfo ? `${stationCode} • ${shiftInfo}` : stationCode;
     const stationStatus = hasTerminalError ? 'error' : terminalStatus;
     const stationStatusText = hasTerminalError
@@ -87,90 +191,57 @@ class EquipmentService {
       location: '',
       status: stationStatus,
       statusText: stationStatusText,
-      lastUpdate: info.pos.lastUpdate
+      lastUpdate: latestLastUpdate
     });
 
-    // POS терминал
-    equipment.push({
-      id: 'pos',
-      name: 'POS',
-      code: info.pos.version || 'POS 1',
-      location: '',
-      status: isOffline ? 'offline' : info.pos.status,
-      statusText: isOffline ? 'Офлайн' : (info.pos.status === 'online' ? 'Онлайн' : 'Офлайн'),
-      lastUpdate: info.pos.lastUpdate
-    });
+    if (info.pos.length <= 1) {
+      // === Один пост — текущее поведение без изменений ===
+      const pos = info.pos[0];
+      if (!pos) return equipment;
 
-    // ККТ - Фискальный регистратор
-    const cashSum = info.pos.cashSum || 0;
-    const bankSum = info.pos.bankSum || 0;
-    const hasUnpunchedReceipts = cashSum !== 0 || bankSum !== 0;
-    const isEmergencyMode = info.devices?.fiscalRegister?.isEmergencyMode || false;
-    const fiscalStatus = info.devices?.fiscalRegister?.status || 'offline';
+      const posIsOffline = this.isOfflineByTime(pos.lastUpdate);
 
-    equipment.push({
-      id: 'fiscal-register',
-      name: 'ККТ',
-      code: hasUnpunchedReceipts ? 'Есть чеки!' : 'Фиск. регистратор',
-      location: '',
-      status: isEmergencyMode ? 'error' : (fiscalStatus === 'online' ? 'online' : 'offline'),
-      statusText: isEmergencyMode ? 'Авария' : (fiscalStatus === 'online' ? 'ОК' : 'Ошибка'),
-      hasUnpunchedReceipts,
-      cashSum,
-      bankSum,
-      isEmergencyMode,
-      lastUpdate: info.pos.lastUpdate
-    });
+      // POS, ККТ, Картридер, МПС (без суффикса)
+      const posDevices = this.mapPosDevicesToEquipment(pos, posIsOffline, '');
 
-    // Картридер (считыватель топливных карт) - сразу после ККТ
-    if (info.devices?.cardReader) {
+      // Вставляем POS и ККТ
+      equipment.push(...posDevices.filter(eq => eq.name === 'POS' || eq.name === 'ККТ'));
+
+      // Картридер и МПС
+      equipment.push(...posDevices.filter(eq => eq.name === 'Картридер' || eq.name === 'МПС'));
+
+      // QR (общий)
       equipment.push({
-        id: 'card-reader',
-        name: 'Картридер',
-        code: 'Топливные карты',
+        id: 'qr',
+        name: 'QR',
+        code: 'Штрих коды',
         location: '',
-        status: info.devices.cardReader.status,
-        statusText: info.devices.cardReader.status === 'online' ? 'ОК' : 'Ошибка'
+        status: info.shift?.state === 'Открытая' ? 'online' : 'offline',
+        statusText: info.shift?.state === 'Открытая' ? 'Активен' : 'Неактивен'
       });
-    }
 
-    // МПС-ридер - сразу после Картридера
-    if (info.devices?.mpsReader) {
+      // Купюроприемник
+      equipment.push(...posDevices.filter(eq => eq.name === 'Купюроприемник'));
+    } else {
+      // === Несколько постов — группировка по постам ===
+
+      // QR (общий, перед блоками постов)
       equipment.push({
-        id: 'mps-reader',
-        name: 'МПС',
-        code: 'Банк. карты и СБП',
+        id: 'qr',
+        name: 'QR',
+        code: 'Штрих коды',
         location: '',
-        status: info.devices.mpsReader.status,
-        statusText: info.devices.mpsReader.status === 'online' ? 'ОК' : 'Ошибка'
+        status: info.shift?.state === 'Открытая' ? 'online' : 'offline',
+        statusText: info.shift?.state === 'Открытая' ? 'Активен' : 'Неактивен'
       });
-    }
 
-    // QR (на основе статуса смены)
-    equipment.push({
-      id: 'qr',
-      name: 'QR',
-      code: 'Штрих коды',
-      location: '',
-      status: info.shift?.state === 'Открытая' ? 'online' : 'offline',
-      statusText: info.shift?.state === 'Открытая' ? 'Активен' : 'Неактивен'
-    });
-
-    // Купюроприемник с данными о купюрах
-    if (info.devices?.billAcceptor) {
-      const deviceStatus = info.devices.billAcceptor.status;
-      const isOnline = deviceStatus === 'online';
-
-      equipment.push({
-        id: 'bill-acceptor',
-        name: 'Купюроприемник',
-        code: `ID: ${info.devices.billAcceptor.name}`,
-        location: `Устройство ${info.devices.billAcceptor.name}`,
-        status: deviceStatus,
-        statusText: isOnline ? 'Готов' : 'Ошибка',
-        billCount: info.devices.billAcceptor.billCount,
-        billAmount: info.devices.billAcceptor.billAmount
-      });
+      // Для каждого поста — свой набор устройств
+      for (const pos of info.pos) {
+        const posNum = pos.number;
+        const posIsOffline = this.isOfflineByTime(pos.lastUpdate);
+        const posDevices = this.mapPosDevicesToEquipment(pos, posIsOffline, `-${posNum}`, posNum);
+        equipment.push(...posDevices);
+      }
     }
 
     return equipment;

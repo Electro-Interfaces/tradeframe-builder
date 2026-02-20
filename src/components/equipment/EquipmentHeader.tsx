@@ -42,6 +42,18 @@ export function EquipmentHeader({
   onRefresh,
   onRestartTerminal
 }: EquipmentHeaderProps) {
+  // Самый свежий lastUpdate из всех постов
+  const latestPosUpdate = terminalInfo?.pos?.reduce<string | undefined>((latest, p) => {
+    if (!p.lastUpdate) return latest;
+    if (!latest) return p.lastUpdate;
+    return new Date(p.lastUpdate) > new Date(latest) ? p.lastUpdate : latest;
+  }, undefined);
+
+  // Предупреждение если статусы постов различаются (multi-pos)
+  const posStatuses = terminalInfo?.pos?.map(p => p.status) || [];
+  const hasMultiPos = (terminalInfo?.pos?.length || 0) > 1;
+  const hasMixedPosStatuses = hasMultiPos && new Set(posStatuses).size > 1;
+
   // Находим самое свежее dt среди резервуаров
   const latestTankDt = tanks?.reduce<string | null>((latest, tank) => {
     const dt = tank.apiData?.dt;
@@ -63,21 +75,33 @@ export function EquipmentHeader({
         </div>
       )}
 
+      {/* Предупреждение о разных статусах постов */}
+      {hasMixedPosStatuses && (
+        <div className={`flex items-center gap-2 bg-yellow-900/50 border border-yellow-600 rounded-lg mb-3 ${
+          isMobile ? 'px-3 py-2' : 'px-4 py-3'
+        }`}>
+          <AlertTriangle className={`flex-shrink-0 text-yellow-400 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          <span className={`text-yellow-200 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            Статусы постов различаются: {terminalInfo!.pos.map(p => `Пост ${p.number} — ${p.status === 'online' ? 'онлайн' : 'офлайн'}`).join(', ')}
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
           <h1 className={`font-semibold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
             Оборудование
           </h1>
-          {terminalInfo?.pos?.lastUpdate && (
+          {latestPosUpdate && (
             <p className={`text-slate-400 ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
               {isMobile ? (
                 <>
-                  Передача данных: {new Date(terminalInfo.pos.lastUpdate).toLocaleString('ru-RU', {
+                  Передача данных: {new Date(latestPosUpdate).toLocaleString('ru-RU', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
                     hour: '2-digit', minute: '2-digit'
                   })}
                   {(() => {
-                    const diffMinutes = Math.floor((Date.now() - new Date(terminalInfo.pos.lastUpdate).getTime()) / 60000);
+                    const diffMinutes = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000);
                     return diffMinutes < 11
                       ? <span className="text-green-400 ml-1">(✓)</span>
                       : <span className="text-red-400 ml-1">(⚠ {diffMinutes}м)</span>;
@@ -85,9 +109,9 @@ export function EquipmentHeader({
                 </>
               ) : (
                 <>
-                  Последняя передача данных: {new Date(terminalInfo.pos.lastUpdate).toLocaleString('ru-RU')}
+                  Последняя передача данных: {new Date(latestPosUpdate).toLocaleString('ru-RU')}
                   {(() => {
-                    const diffMinutes = Math.floor((Date.now() - new Date(terminalInfo.pos.lastUpdate).getTime()) / 60000);
+                    const diffMinutes = Math.floor((Date.now() - new Date(latestPosUpdate).getTime()) / 60000);
                     return diffMinutes < 11
                       ? <span className="text-green-400 ml-2">(✓ актуально)</span>
                       : <span className="text-red-400 ml-2">(⚠️ {diffMinutes} мин назад)</span>;

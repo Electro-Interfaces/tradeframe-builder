@@ -147,12 +147,37 @@ interface TerminalInfo {
     temperature: number;
     status: 'normal' | 'low' | 'critical' | 'error';
   }>;
-  pos: {
+  pos: Array<{
+    number: number;
     status: 'online' | 'offline' | 'error';
     version: string;
+    lastUpdate?: string;
     lastTransaction: string;
     cashierConnected: boolean;
-  };
+    cashSum?: number;
+    bankSum?: number;
+    devices?: {
+      billAcceptor?: {
+        status: 'online' | 'error';
+        name: string;
+        billCount?: number;
+        billAmount?: number;
+      };
+      cardReader?: {
+        status: 'online' | 'error';
+        name: string;
+      };
+      mpsReader?: {
+        status: 'online' | 'error';
+        name: string;
+      };
+      fiscalRegister?: {
+        status: 'online' | 'error';
+        name: string;
+        isEmergencyMode: boolean;
+      };
+    };
+  }>;
   fiscal: {
     status: 'ready' | 'error' | 'maintenance';
     model: string;
@@ -163,22 +188,6 @@ interface TerminalInfo {
     number: number;
     state: string;
     openedAt?: string;
-  };
-  devices?: {
-    billAcceptor?: {
-      status: 'online' | 'error';
-      name: string;
-      billCount?: number;
-      billAmount?: number;
-    };
-    cardReader?: {
-      status: 'online' | 'error';
-      name: string;
-    };
-    mpsReader?: {
-      status: 'online' | 'error';
-      name: string;
-    };
   };
 }
 
@@ -820,9 +829,9 @@ class STSApiService {
 
   /**
    * Преобразует данные о терминале из API в формат приложения
+   * Поддерживает многопостовые станции (несколько POS)
    */
   private mapApiTerminalInfo(apiData: any): TerminalInfo {
-    // Данные станции уже отфильтрованы в getTerminalInfo
     const data = apiData;
 
     // Извлекаем state_trm (состояние терминала)
@@ -836,46 +845,79 @@ class STSApiService {
         : (stateTrm === 0 ? 'Терминал работает нормально' : `Ошибка терминала — код состояния ${stateTrm}, требуется проверка оборудования`)
     } : undefined;
 
-    // Извлекаем информацию о POS терминале
-    const posData = data?.pos?.[0] || {};
-    const shiftData = data?.shift || posData?.shift || {};
-    const devices = posData?.devices || [];
-    
-    // Находим устройства по имени
-    const fiscalDevice = devices.find(d => d.name === 'Фискальный регистратор');
-    const billAcceptor = devices.find(d => d.name === 'Купюроприемник');
-    const cardReader = devices.find(d => d.name === 'Картридер');
-    const mpsReader = devices.find(d => d.name === 'МПС-ридер');
-    
+    // Shift data (общие для станции)
+    const shiftData = data?.shift || posData0?.shift || {};
+
     // Определяем статус устройства
     const getDeviceStatus = (device: any) => {
-      // Проверяем различные возможные варианты статуса в API
-      const stateParam = device?.params?.find(p => p.name === 'Состояние');
+      const stateParam = device?.params?.find((p: any) => p.name === 'Состояние');
       const directValue = device?.value;
       const directStatus = device?.status;
-      
-      // Извлекаем значение статуса из разных источников
       const statusValue = stateParam?.value || directValue || directStatus;
-      
-      // Проверяем различные варианты положительного статуса
-      if (statusValue === 'OK' || statusValue === 'ok' || 
+
+      if (statusValue === 'OK' || statusValue === 'ok' ||
           statusValue === 'online' || statusValue === 'active' ||
           statusValue === 'ready' || statusValue === 'working' ||
           statusValue === 'normal' || statusValue === 1 || statusValue === '1') {
         return 'online';
       }
-      
       return 'error';
     };
-    
-    // Проверяем аварийный режим ККТ (фискальный регистратор)
-    // Аварийный режим = статус не 'online' или есть ошибки
-    const fiscalStatus = getDeviceStatus(fiscalDevice);
-    const isEmergencyMode = fiscalStatus !== 'online';
 
-    // Извлекаем данные для чеков из pos
-    const cashSum = parseFloat(posData?.cash_sum || '0') || 0;
-    const bankSum = parseFloat(posData?.bank_sum || '0') || 0;
+    // Строим массив POS-терминалов (постов)
+    const posArray = (data?.pos || []).map((posItem: any, index: number) => {
+      const devices = posItem?.devices || [];
+
+      const fiscalDevice = devices.find((d: any) => d.name === 'Фискальный регистратор');
+      const billAcceptor = devices.find((d: any) => d.name === 'Купюроприемник');
+      const cardReader = devices.find((d: any) => d.name === 'Картридер');
+      const mpsReader = devices.find((d: any) => d.name === 'МПС-ридер');
+
+      const fiscalStatus = getDeviceStatus(fiscalDevice);
+      const isEmergencyMode = fiscalStatus !== 'online';
+      const cashSum = parseFloat(posItem?.cash_sum || '0') || 0;
+      const bankSum = parseFloat(posItem?.bank_sum || '0') || 0;
+      const posShift = posItem?.shift || shiftData;
+
+      return {
+        number: posItem?.number || (index + 1),
+        status: posItem?.dt_info ? 'online' as const : 'offline' as const,
+        version: `POS ${posItem?.number || (index + 1)}`,
+        lastUpdate: posItem?.dt_info,
+        lastTransaction: posItem?.dt_info ? new Date(posItem.dt_info).toLocaleTimeString('ru-RU') : '',
+        cashierConnected: posShift?.state === 'Открытая',
+        cashSum,
+        bankSum,
+        devices: {
+          billAcceptor: {
+            status: getDeviceStatus(billAcceptor),
+            name: billAcceptor?.name || 'Купюроприемник',
+            billCount: billAcceptor?.params?.find((p: any) => p.name === 'Количество купюр')?.value ?
+              parseInt(billAcceptor.params.find((p: any) => p.name === 'Количество купюр').value) : undefined,
+            billAmount: billAcceptor?.params?.find((p: any) => p.name === 'Сумма купюр')?.value ?
+              parseFloat(billAcceptor.params.find((p: any) => p.name === 'Сумма купюр').value) : undefined
+          },
+          cardReader: {
+            status: getDeviceStatus(cardReader),
+            name: cardReader?.name || 'Картридер'
+          },
+          mpsReader: {
+            status: getDeviceStatus(mpsReader),
+            name: mpsReader?.name || 'МПС-ридер'
+          },
+          fiscalRegister: {
+            status: fiscalStatus,
+            name: fiscalDevice?.name || 'Фискальный регистратор',
+            isEmergencyMode
+          }
+        }
+      };
+    });
+
+    // Данные первого поста для общих полей
+    const firstPosData = data?.pos?.[0] || {};
+    const firstPosResult = posArray[0];
+    const firstFiscalStatus = firstPosResult?.devices?.fiscalRegister?.status;
 
     return {
       terminalState,
@@ -883,77 +925,27 @@ class STSApiService {
         id: `${data?.system || 0}-${data?.station || 0}`,
         name: `АЗС ${data?.station || 0}`,
         version: '2.1.4',
-        status: posData?.dt_info ? 'online' : 'offline',
-        uptime: posData?.uptime ? new Date(posData.uptime).getTime() : 0,
-        lastHeartbeat: posData?.dt_info || new Date().toISOString(),
-        cpu: {
-          usage: 25, // Заглушка, так как в API нет этих данных
-          temperature: 42
-        },
-        memory: {
-          total: 8192,
-          used: 3456,
-          free: 4736
-        },
-        disk: {
-          total: 250000,
-          used: 125000,
-          free: 125000
-        },
-        network: {
-          ip: '192.168.1.100',
-          connected: true,
-          speed: 1000
-        }
+        status: firstPosData?.dt_info ? 'online' : 'offline',
+        uptime: firstPosData?.uptime ? new Date(firstPosData.uptime).getTime() : 0,
+        lastHeartbeat: firstPosData?.dt_info || new Date().toISOString(),
+        cpu: { usage: 25, temperature: 42 },
+        memory: { total: 8192, used: 3456, free: 4736 },
+        disk: { total: 250000, used: 125000, free: 125000 },
+        network: { ip: '192.168.1.100', connected: true, speed: 1000 }
       },
-      pumps: [], // ТРК отображаются отдельно через getTanks
-      tanks: [], // Резервуары отображаются отдельно через getTanks
-      pos: {
-        status: posData?.number ? 'online' : 'offline',
-        version: `POS ${posData?.number || 1}`,
-        lastUpdate: posData?.dt_info, // Время последнего обновления данных от терминала
-        lastTransaction: posData?.dt_info ? new Date(posData.dt_info).toLocaleTimeString('ru-RU') : '',
-        cashierConnected: shiftData?.state === 'Открытая',
-        // Данные для чеков
-        cashSum,
-        bankSum
-      },
+      pumps: [],
+      tanks: [],
+      pos: posArray,
       fiscal: {
-        status: fiscalStatus === 'online' ? 'ready' : 'error',
-        model: fiscalDevice ? 'Фискальный регистратор' : 'Unknown',
-        serialNumber: `ID: ${fiscalDevice?.id || 0}`,
+        status: firstFiscalStatus === 'online' ? 'ready' : 'error',
+        model: firstPosResult?.devices?.fiscalRegister?.name || 'Unknown',
+        serialNumber: `ID: ${firstPosData?.devices?.find((d: any) => d.name === 'Фискальный регистратор')?.id || 0}`,
         documentNumber: shiftData?.number || 0
       },
-      // Добавляем информацию о смене
       shift: {
         number: shiftData?.number || 0,
         state: shiftData?.state || 'Неизвестно',
-        openedAt: shiftData?.dt_open || posData?.shift?.dt_open
-      },
-      // Добавляем информацию об устройствах
-      devices: {
-        billAcceptor: {
-          status: getDeviceStatus(billAcceptor),
-          name: billAcceptor?.name || 'Купюроприемник',
-          // Извлекаем новые параметры для купюроприемника из V2 API
-          billCount: billAcceptor?.params?.find(p => p.name === 'Количество купюр')?.value ?
-            parseInt(billAcceptor.params.find(p => p.name === 'Количество купюр').value) : undefined,
-          billAmount: billAcceptor?.params?.find(p => p.name === 'Сумма купюр')?.value ?
-            parseFloat(billAcceptor.params.find(p => p.name === 'Сумма купюр').value) : undefined
-        },
-        cardReader: {
-          status: getDeviceStatus(cardReader),
-          name: cardReader?.name || 'Картридер'
-        },
-        mpsReader: {
-          status: getDeviceStatus(mpsReader),
-          name: mpsReader?.name || 'МПС-ридер'
-        },
-        fiscalRegister: {
-          status: fiscalStatus,
-          name: fiscalDevice?.name || 'Фискальный регистратор',
-          isEmergencyMode
-        }
+        openedAt: shiftData?.dt_open || firstPosData?.shift?.dt_open
       }
     };
   }
@@ -983,7 +975,13 @@ class STSApiService {
         { id: 1, name: 'Резервуар №1', fuelType: 'АИ-92', level: 15000, capacity: 25000, temperature: 18, status: 'normal' },
         { id: 2, name: 'Резервуар №2', fuelType: 'АИ-95', level: 8500, capacity: 25000, temperature: 17, status: 'low' }
       ],
-      pos: { status: 'online', version: '3.2.1', lastTransaction: new Date().toISOString(), cashierConnected: true },
+      pos: [{
+        number: 1,
+        status: 'online',
+        version: '3.2.1',
+        lastTransaction: new Date().toISOString(),
+        cashierConnected: true
+      }],
       fiscal: { status: 'ready', model: 'АТОЛ 91Ф', serialNumber: 'FP123456789', documentNumber: 45123 }
     };
   }

@@ -107,9 +107,20 @@ export default function Equipment() {
     );
   }
 
-  // Разделяем купюроприемник и остальное оборудование
-  const billAcceptor = equipment.find(eq => eq.name === 'Купюроприемник');
-  const otherEquipment = equipment.filter(eq => eq.name !== 'Купюроприемник');
+  // Определяем многопостовость
+  const isMultiPos = (terminalInfo?.pos?.length || 0) > 1;
+
+  // Для однопостовой станции — текущее поведение
+  const billAcceptor = !isMultiPos ? equipment.find(eq => eq.name === 'Купюроприемник') : null;
+  const otherEquipment = !isMultiPos ? equipment.filter(eq => eq.name !== 'Купюроприемник') : [];
+
+  // Для многопостовой станции — группировка
+  const commonEquipment = isMultiPos ? equipment.filter(eq => !eq.posNumber) : [];
+  const posNumbers = isMultiPos
+    ? [...new Set(equipment.filter(eq => eq.posNumber).map(eq => eq.posNumber!))].sort((a, b) => a - b)
+    : [];
+  const getPosBillAcceptor = (posNum: number) => equipment.find(eq => eq.posNumber === posNum && eq.name === 'Купюроприемник');
+  const getPosOtherEquipment = (posNum: number) => equipment.filter(eq => eq.posNumber === posNum && eq.name !== 'Купюроприемник');
 
   return (
     <MainLayout fullWidth={true}>
@@ -149,16 +160,79 @@ export default function Equipment() {
           <CardContent className={`${isMobile ? 'px-3 pb-3' : ''}`}>
             {loading && equipment.length === 0 ? (
               <LoadingState message="Загрузка данных оборудования..." />
-            ) : (
+            ) : isMultiPos ? (
+              /* === Многопостовая станция === */
               <div className={isMobile ? 'space-y-3' : 'space-y-6'}>
-                {/* Оборудование в одну строку - сверху */}
+                {/* Общие элементы (Станция, QR) */}
+                {commonEquipment.length > 0 && (
+                  <div className={`grid ${isMobile ? 'gap-2 grid-cols-3' : 'gap-3 grid-cols-6'}`}>
+                    {commonEquipment.map((eq) => (
+                      <EquipmentCard key={eq.id} equipment={eq} isMobile={isMobile} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Блоки по постам */}
+                {posNumbers.map((posNum) => {
+                  const posOther = getPosOtherEquipment(posNum);
+                  const posBill = getPosBillAcceptor(posNum);
+
+                  return (
+                    <div key={`pos-block-${posNum}`} className={isMobile ? 'space-y-2' : 'space-y-4'}>
+                      {/* Заголовок поста */}
+                      <div className={`flex items-center gap-2 ${isMobile ? 'px-1' : 'px-2'}`}>
+                        <div className={`h-px flex-1 bg-slate-600`} />
+                        <span className={`text-slate-400 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          Пост {posNum}
+                        </span>
+                        <div className={`h-px flex-1 bg-slate-600`} />
+                      </div>
+
+                      {/* Устройства поста */}
+                      <div className={`grid ${isMobile ? 'gap-2 grid-cols-3' : 'gap-3 grid-cols-5'}`}>
+                        {posOther.map((eq) => (
+                          <EquipmentCard key={eq.id} equipment={eq} isMobile={isMobile} />
+                        ))}
+                      </div>
+
+                      {/* Купюроприемник поста */}
+                      {posBill && (
+                        <BillAcceptorCard
+                          billAcceptor={posBill}
+                          isMobile={isMobile}
+                          thresholds={billAcceptorThresholds}
+                          onSaveThresholds={saveBillAcceptorThresholds}
+                          cashoutRecords={cashoutRecords}
+                          cashoutLoading={cashoutLoading}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Пороги уровня топлива */}
+                {tanks.length > 0 && (
+                  <FuelLevelThresholdsCard
+                    tanks={tanks}
+                    isMobile={isMobile}
+                    thresholds={fuelLevelThresholds}
+                    onSaveThresholds={saveFuelLevelThresholds}
+                    networkId={selectedNetwork?.external_id}
+                    stationCode={selectedTradingPoint}
+                  />
+                )}
+              </div>
+            ) : (
+              /* === Однопостовая станция — текущее поведение === */
+              <div className={isMobile ? 'space-y-3' : 'space-y-6'}>
+                {/* Оборудование в одну строку */}
                 <div className={`grid ${isMobile ? 'gap-2 grid-cols-3' : 'gap-3 grid-cols-6'}`}>
                   {otherEquipment.map((eq) => (
                     <EquipmentCard key={eq.id} equipment={eq} isMobile={isMobile} />
                   ))}
                 </div>
 
-                {/* Купюроприемник - отдельная большая карточка */}
+                {/* Купюроприемник */}
                 {billAcceptor && (
                   <BillAcceptorCard
                     billAcceptor={billAcceptor}
@@ -170,7 +244,7 @@ export default function Equipment() {
                   />
                 )}
 
-                {/* Пороги уровня топлива - отдельная карточка */}
+                {/* Пороги уровня топлива */}
                 {tanks.length > 0 && (
                   <FuelLevelThresholdsCard
                     tanks={tanks}

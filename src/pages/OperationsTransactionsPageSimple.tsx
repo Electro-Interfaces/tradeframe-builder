@@ -110,6 +110,9 @@ export default function OperationsTransactionsPageSimple() {
   const [selectedOperation, setSelectedOperation] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
+  // Фильтр по номеру поста (POS)
+  const [selectedPosNumber, setSelectedPosNumber] = useState("Все");
+
   // Состояние раскрытия фильтров
   const [filtersOpen, setFiltersOpen] = useState(true);
 
@@ -342,6 +345,18 @@ export default function OperationsTransactionsPageSimple() {
   }, [selectedTradingPoint, selectedNetwork, isAllTradingPoints]);
 
 
+  // Уникальные номера постов для фильтра (показывать только если > 1)
+  const uniquePosNumbers = useMemo(() => {
+    const posNums = new Set(
+      operations
+        .map(op => op.posNumber)
+        .filter(p => p && p !== '-')
+    );
+    return Array.from(posNums).sort();
+  }, [operations]);
+
+  const showPosFilter = uniquePosNumbers.length > 1;
+
   // Базовая фильтрация (исключения и базовые фильтры)
   const baseFilteredOperations = useMemo(() => {
     return operations.filter(record => {
@@ -372,9 +387,15 @@ export default function OperationsTransactionsPageSimple() {
       // Фильтр по статусу
       if (selectedStatus !== "Все" && record.status !== selectedStatus) return false;
 
+      // Фильтр по номеру поста (POS)
+      if (selectedPosNumber !== "Все") {
+        const recordPos = record.posNumber?.toString() || '-';
+        if (recordPos !== selectedPosNumber) return false;
+      }
+
       return true;
     });
-  }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus, allowedStationNumbers]);
+  }, [operations, selectedFuelType, selectedPaymentMethod, selectedStatus, selectedPosNumber, allowedStationNumbers]);
 
   // Фильтрация по датам (отдельный useMemo с debounced значениями)
   const dateFilteredOperations = useMemo(() => {
@@ -678,7 +699,7 @@ export default function OperationsTransactionsPageSimple() {
   // Сброс страницы при изменении фильтров
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedFuelType, selectedPaymentMethod, selectedStatus, debouncedDateFrom, debouncedDateTo, debouncedSearchQuery, selectedKpiFuels, selectedKpiPayments]);
+  }, [selectedFuelType, selectedPaymentMethod, selectedStatus, selectedPosNumber, debouncedDateFrom, debouncedDateTo, debouncedSearchQuery, selectedKpiFuels, selectedKpiPayments]);
 
   // Списки для селекторов
   const fuelTypes = useMemo(() => {
@@ -850,6 +871,7 @@ export default function OperationsTransactionsPageSimple() {
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedStatus("Все");
+                      setSelectedPosNumber("Все");
                       setSearchQuery("");
                       setDateFrom(() => {
                         const yesterday = new Date();
@@ -926,6 +948,24 @@ export default function OperationsTransactionsPageSimple() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Пост (POS) — показывается только для многопостовых станций */}
+                  {showPosFilter && (
+                    <div>
+                      <Label htmlFor="pos-number" className="text-xs text-slate-400">Пост</Label>
+                      <Select value={selectedPosNumber} onValueChange={setSelectedPosNumber}>
+                        <SelectTrigger id="pos-number" className="mt-1">
+                          <SelectValue placeholder="Все" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Все">Все</SelectItem>
+                          {uniquePosNumbers.map((pos) => (
+                            <SelectItem key={pos} value={pos}>Пост {pos}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   {/* Поиск */}
                   <div>

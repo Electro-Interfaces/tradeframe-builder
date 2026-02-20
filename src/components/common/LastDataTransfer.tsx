@@ -23,12 +23,19 @@ export function LastDataTransfer({ className = '' }: LastDataTransferProps) {
     showToasts: false
   });
 
+  // Самый свежий lastUpdate из всех постов
+  const latestPosUpdate = terminalInfo?.pos?.reduce<string | undefined>((latest, p) => {
+    if (!p.lastUpdate) return latest;
+    if (!latest) return p.lastUpdate;
+    return new Date(p.lastUpdate) > new Date(latest) ? p.lastUpdate : latest;
+  }, undefined);
+
   // Не показываем ничего если нет данных или идет загрузка
-  if (loading || !terminalInfo?.pos?.lastUpdate) {
+  if (loading || !latestPosUpdate) {
     return null;
   }
 
-  const lastUpdate = new Date(terminalInfo.pos.lastUpdate);
+  const lastUpdate = new Date(latestPosUpdate);
   const now = new Date();
   const diffMs = now.getTime() - lastUpdate.getTime();
   const diffMinutes = Math.floor(diffMs / 60000);
