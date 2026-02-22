@@ -3,7 +3,7 @@
  * Распознаёт речь на русском, добавляет текст в textarea
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff } from 'lucide-react';
 import { toast } from 'sonner';
@@ -68,6 +68,13 @@ export default function VoiceInputButton({ onResult, disabled, className }: Voic
     recognition.start();
     setIsRecording(true);
   }, [isRecording, onResult]);
+
+  // Cleanup recognition on unmount
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   // Скрываем кнопку если API не поддерживается
   if (!SpeechRecognition) return null;

@@ -281,6 +281,12 @@ export async function markChatRead(roomId: string): Promise<void> {
   await supportRequest<{ ok: boolean }>(`/chat/rooms/${roomId}/read`, { method: 'POST' });
 }
 
+// === Прочитано ===
+
+export async function markTicketRead(ticketId: string): Promise<void> {
+  await supportRequest<{ ok: boolean }>(`/tickets/${ticketId}/read`, { method: 'POST' });
+}
+
 // === Непрочитанные ===
 
 export async function getUnreadCounts(): Promise<UnreadCounts> {

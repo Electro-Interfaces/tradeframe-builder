@@ -177,47 +177,36 @@ function checkSdkConfig(req, res, next) {
 /**
  * Прокси-запрос к TSupport SDK API
  */
+/**
+ * Выполнить запрос к TSupport SDK API (с retry при 401)
+ */
+async function makeRequest(token, method, sdkPath, query, data) {
+  const config = {
+    method,
+    url: `${TSUPPORT_API_URL}${sdkPath}`,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    timeout: 30000,
+  };
+  if (method === 'GET') config.params = query;
+  else if (data) config.data = data;
+  return axios(config);
+}
+
 async function proxyToTSupport(req, res, method, sdkPath, data) {
   try {
     const token = await getToken(req.tfUserInfo);
-
-    const config = {
-      method,
-      url: `${TSUPPORT_API_URL}${sdkPath}`,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: 30000,
-    };
-
-    if (method === 'GET') {
-      config.params = req.query;
-    } else if (data) {
-      config.data = data;
-    }
-
-    const response = await axios(config);
+    const response = await makeRequest(token, method, sdkPath, req.query, data);
     res.status(response.status).json(response.data);
   } catch (error) {
-    // Если 401 — сбросить кэш и повторить
+    // Если 401 — сбросить кэш и повторить один раз
     if (error.response?.status === 401) {
       tokenCache.delete(req.tfUserInfo.userId);
       try {
         const token = await getToken(req.tfUserInfo);
-        const config = {
-          method,
-          url: `${TSUPPORT_API_URL}${sdkPath}`,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          timeout: 30000,
-        };
-        if (method === 'GET') config.params = req.query;
-        else if (data) config.data = data;
-
-        const response = await axios(config);
+        const response = await makeRequest(token, method, sdkPath, req.query, data);
         return res.status(response.status).json(response.data);
       } catch (retryError) {
         console.error('[Support Proxy] Retry failed:', retryError.message);
@@ -272,16 +261,24 @@ router.patch('/tickets/:id', (req, res) => proxyToTSupport(req, res, 'PATCH', `/
 router.get('/tickets/:id/messages', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/tickets/${req.params.id}/messages`));
 router.post('/tickets/:id/messages', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/tickets/${req.params.id}/messages`, req.body));
 router.get('/tickets/:id/activity', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/tickets/${req.params.id}/activity`));
+router.post('/tickets/:id/read', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/tickets/${req.params.id}/read`));
 
 // === Upload файлов к заявке ===
+const MAX_UPLOAD_SIZE = 60 * 1024 * 1024; // 60 МБ
+
 router.post('/upload/:ticketId', async (req, res) => {
   try {
     const token = await getToken(req.tfUserInfo);
     const contentType = req.headers['content-type'];
 
-    // Собираем raw body (multipart form-data)
+    // Собираем raw body (multipart form-data) с лимитом
     const chunks = [];
+    let totalSize = 0;
     for await (const chunk of req) {
+      totalSize += chunk.length;
+      if (totalSize > MAX_UPLOAD_SIZE) {
+        return res.status(413).json({ error: `Размер загрузки превышает ${MAX_UPLOAD_SIZE / 1024 / 1024} МБ` });
+      }
       chunks.push(chunk);
     }
     const body = Buffer.concat(chunks);
@@ -354,21 +351,25 @@ router.get('/files/:folder/:filename', async (req, res) => {
 router.get('/unread', async (req, res) => {
   try {
     const token = await getToken(req.tfUserInfo);
+    const headers = { Authorization: `Bearer ${token}` };
 
-    // Считаем: тикеты «ожидает ответа» (есть непрочитанное от поддержки) + непрочитанные чаты
+    // Считаем: тикеты с unread_count > 0 (активные статусы) + непрочитанные чаты
     const [ticketsResp, chatResp] = await Promise.allSettled([
       axios.get(`${TSUPPORT_API_URL}/api/v2/sdk/tickets`, {
-        params: { status: 'waiting_customer', limit: 0 },
-        headers: { Authorization: `Bearer ${token}` },
+        params: { limit: 200 },
+        headers,
         timeout: 10000,
       }),
       axios.get(`${TSUPPORT_API_URL}/api/v2/sdk/chat/rooms`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
         timeout: 10000,
       }),
     ]);
 
-    const ticketCount = ticketsResp.status === 'fulfilled' ? (ticketsResp.value.data.total || 0) : 0;
+    // Считаем тикеты с реальным unread_count > 0
+    const ticketCount = ticketsResp.status === 'fulfilled'
+      ? (ticketsResp.value.data.data || []).filter(t => (t.unread_count || 0) > 0).length
+      : 0;
     const chatUnread = chatResp.status === 'fulfilled'
       ? (chatResp.value.data || []).reduce((sum, room) => sum + (room.unread_count || 0), 0)
       : 0;

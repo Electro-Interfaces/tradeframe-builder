@@ -28,9 +28,11 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useSupportContext } from '@/contexts/SupportContext';
 import {
   getTickets, getTicket, getTicketActivity, sendTicketMessage, uploadFiles, updateTicket,
+  markTicketRead, getTSupportMe,
   type TicketListResponse,
 } from '@/services/supportService';
 import type { SupportTicket, TicketActivity, TicketStatus, AppContext } from '@/types/support';
+import { MAX_FILE_SIZE, MAX_FILES_TICKET } from '@/types/support';
 import {
   TICKET_STATUS_LABELS,
   TICKET_STATUS_COLORS,
@@ -46,6 +48,8 @@ const STATUS_ICONS: Record<TicketStatus, typeof Clock> = {
   escalated: ArrowUpCircle,
   resolved: CheckCircle2,
   closed: CheckCircle2,
+  cancelled: X,
+  reopened: RefreshCw,
 };
 
 const PRIORITY_DOT: Record<string, string> = {
@@ -78,12 +82,7 @@ export default function TicketsPage() {
   const [sending, setSending] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-  const [readTickets, setReadTickets] = useState<Set<string>>(() => {
-    try {
-      const saved = localStorage.getItem('tf:tickets:read');
-      return saved ? new Set(JSON.parse(saved) as string[]) : new Set();
-    } catch { return new Set(); }
-  });
+  const [tsupportUserId, setTsupportUserId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval>>();
   const sendingRef = useRef(false);
@@ -159,12 +158,10 @@ export default function TicketsPage() {
 
   useEffect(() => { loadTickets(); }, [loadTickets]);
 
-  // Синхронизация readTickets с localStorage
+  // Получить TSupport userId для определения своих сообщений
   useEffect(() => {
-    try {
-      localStorage.setItem('tf:tickets:read', JSON.stringify([...readTickets]));
-    } catch { /* quota exceeded */ }
-  }, [readTickets]);
+    getTSupportMe().then(data => setTsupportUserId(data.tsupportUserId)).catch(() => {});
+  }, []);
 
   // При заходе на страницу заявок — сбрасываем бейдж (пользователь видит список)
   useEffect(() => {
@@ -184,18 +181,16 @@ export default function TicketsPage() {
         setSelectedTicket(ticket);
         setActivity(acts);
 
-        // Пометить заявку как прочитанную (без автосмены статуса)
-        if (ticket.status === 'waiting_customer') {
-          setReadTickets(prev => new Set(prev).add(selectedId));
-        }
+        // Пометить заявку как прочитанную на сервере
+        markTicketRead(selectedId).catch(() => {});
         refreshUnreadCounts();
       })
       .catch(() => toast.error('Не удалось загрузить заявку'))
       .finally(() => setLoadingDetail(false));
 
-    // Polling активности каждые 15 сек (пропускаем при отправке)
+    // Polling активности каждые 15 сек (пропускаем при отправке или если вкладка неактивна)
     pollingRef.current = setInterval(async () => {
-      if (sendingRef.current) return;
+      if (sendingRef.current || document.visibilityState === 'hidden') return;
       try {
         const acts = await getTicketActivity(selectedId);
         setActivity(acts);
@@ -246,24 +241,21 @@ export default function TicketsPage() {
     }
   };
 
-  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 МБ
-  const MAX_FILES = 5;
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
     const oversized = files.filter(f => f.size > MAX_FILE_SIZE);
     if (oversized.length > 0) {
-      toast.error(`Файл "${oversized[0].name}" превышает 50 МБ`);
+      toast.error(`Файл "${oversized[0].name}" превышает ${MAX_FILE_SIZE / (1024 * 1024)} МБ`);
       return;
     }
 
     setAttachedFiles(prev => {
       const combined = [...prev, ...files];
-      if (combined.length > MAX_FILES) {
-        toast.error(`Максимум ${MAX_FILES} файлов`);
-        return combined.slice(0, MAX_FILES);
+      if (combined.length > MAX_FILES_TICKET) {
+        toast.error(`Максимум ${MAX_FILES_TICKET} файлов`);
+        return combined.slice(0, MAX_FILES_TICKET);
       }
       return combined;
     });
@@ -364,6 +356,8 @@ export default function TicketsPage() {
                 <SelectItem value="escalated" className="text-white text-sm">Эскалация</SelectItem>
                 <SelectItem value="resolved" className="text-white text-sm">Решены</SelectItem>
                 <SelectItem value="closed" className="text-white text-sm">Закрыты</SelectItem>
+                <SelectItem value="cancelled" className="text-white text-sm">Отменены</SelectItem>
+                <SelectItem value="reopened" className="text-white text-sm">Переоткрыты</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -392,6 +386,7 @@ export default function TicketsPage() {
                   <SelectItem value="incident" className="text-white text-sm">Инцидент</SelectItem>
                   <SelectItem value="request" className="text-white text-sm">Запрос</SelectItem>
                   <SelectItem value="question" className="text-white text-sm">Вопрос</SelectItem>
+                  <SelectItem value="problem" className="text-white text-sm">Проблема</SelectItem>
                 </SelectContent>
               </Select>
               {(priorityFilter !== 'all' || typeFilter !== 'all') && (
@@ -426,7 +421,7 @@ export default function TicketsPage() {
               {tickets.map(ticket => {
                 const isSelected = selectedId === ticket.id;
                 const StatusIcon = STATUS_ICONS[ticket.status] || AlertCircle;
-                const hasUnread = ticket.status === 'waiting_customer' && !readTickets.has(ticket.id);
+                const hasUnread = (ticket.unread_count ?? 0) > 0;
                 return (
                   <button
                     key={ticket.id}
@@ -726,7 +721,7 @@ export default function TicketsPage() {
                     if (act.event_type === 'message') {
                       const isSystem = act.user_role === 'system' || act.message_type === 'system';
                       const isAi = act.ai_generated || act.message_type === 'ai';
-                      const isCustomer = act.user_role === 'customer';
+                      const isCustomer = tsupportUserId ? act.user_id === tsupportUserId : act.user_role === 'customer';
 
                       if (isSystem) {
                         return (
@@ -836,7 +831,7 @@ export default function TicketsPage() {
             </div>
 
             {/* Поле ответа */}
-            {selectedTicket.status !== 'closed' && (
+            {!['closed', 'cancelled'].includes(selectedTicket.status) && (
               <div className="px-4 py-2.5 border-t border-slate-700/50 bg-slate-900/80">
                 {/* Превью прикреплённых файлов */}
                 {attachedFiles.length > 0 && (
@@ -910,7 +905,7 @@ export default function TicketsPage() {
                     {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>
-                <p className="text-xs text-slate-600 mt-1 pl-0.5">Ctrl+Enter — отправить · Файлы до 50 МБ</p>
+                <p className="text-xs text-slate-600 mt-1 pl-0.5">Ctrl+Enter — отправить · Файлы до {MAX_FILE_SIZE / (1024 * 1024)} МБ</p>
               </div>
             )}
           </>

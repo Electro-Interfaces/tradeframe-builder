@@ -26,6 +26,7 @@ import {
   getChatRooms, getChatMessages, sendChatMessage, markChatRead, createChatRoom, getChatRoom, uploadChatFiles, getTSupportMe,
 } from '@/services/supportService';
 import type { ChatRoom, ChatMessage, ChatParticipant } from '@/types/support';
+import { MAX_FILE_SIZE, MAX_FILES_CHAT } from '@/types/support';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -56,9 +57,9 @@ function RoomListPanel({
   const [filter, setFilter] = useState<'all' | 'direct' | 'company'>('all');
 
   const filteredRooms = rooms.filter(r => {
-    const isCompany = r.type === 'company' || r.type === 'group';
-    if (filter === 'direct' && isCompany) return false;
-    if (filter === 'company' && !isCompany) return false;
+    const isGroup = r.type === 'company' || r.type === 'group' || r.type === 'ticket';
+    if (filter === 'direct' && isGroup) return false;
+    if (filter === 'company' && !isGroup) return false;
     if (search && !(r.name || '').toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -122,7 +123,7 @@ function RoomListPanel({
           <div className="divide-y divide-slate-700/30">
             {filteredRooms.map(room => {
               const isSelected = selectedRoomId === room.id;
-              const isCompany = room.type === 'company' || room.type === 'group';
+              const isCompany = room.type === 'company' || room.type === 'group' || room.type === 'ticket';
               return (
                 <button
                   key={room.id}
@@ -412,7 +413,7 @@ function ChatInfoPanel({
   loadingInfo: boolean;
   onClose: () => void;
 }) {
-  const isCompany = room.type === 'company' || room.type === 'group';
+  const isCompany = room.type === 'company' || room.type === 'group' || room.type === 'ticket';
   const typeLabel = isCompany ? 'Чат компании' : 'Личный чат';
 
   return (
@@ -621,7 +622,7 @@ function MessagePanel({
     );
   }
 
-  const isCompany = room.type === 'company' || room.type === 'group';
+  const isCompany = room.type === 'company' || room.type === 'group' || room.type === 'ticket';
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -793,15 +794,19 @@ export default function ChatPage() {
 
   // Load TSupport user ID (maps TradeFrame ID → TSupport internal ID)
   useEffect(() => {
-    getTSupportMe().then(data => setTsupportUserId(data.tsupportUserId)).catch(() => {});
+    getTSupportMe()
+      .then(data => setTsupportUserId(data.tsupportUserId))
+      .catch(() => toast.error('Не удалось получить ID пользователя'));
   }, []);
 
   useEffect(() => {
     loadRooms();
     clearChatBadge();
 
-    // Poll rooms every 30 sec
-    pollingRoomsRef.current = setInterval(loadRooms, 30_000);
+    // Poll rooms every 30 sec (skip when tab is hidden)
+    pollingRoomsRef.current = setInterval(() => {
+      if (document.visibilityState !== 'hidden') loadRooms();
+    }, 30_000);
     return () => {
       if (pollingRoomsRef.current) clearInterval(pollingRoomsRef.current);
     };
@@ -827,12 +832,14 @@ export default function ChatPage() {
       .finally(() => setLoadingMessages(false));
 
     // Poll messages every 10 sec (markChatRead только при новых сообщениях)
-    let prevMsgCount = 0;
+    let prevLastId = '';
     pollingMsgsRef.current = setInterval(async () => {
+      if (document.visibilityState === 'hidden') return;
       try {
         const msgs = await getChatMessages(selectedRoomId);
-        if (msgs.length !== prevMsgCount) {
-          prevMsgCount = msgs.length;
+        const lastId = msgs.length > 0 ? msgs[msgs.length - 1].id : '';
+        if (lastId !== prevLastId) {
+          prevLastId = lastId;
           setMessages(msgs);
           await markChatRead(selectedRoomId);
           refreshUnreadCounts();
@@ -950,18 +957,16 @@ export default function ChatPage() {
     participantCount: roomDetail?.participants?.length,
     pendingFiles,
     onAddFiles: (files: File[]) => {
-      const MAX_FILE_SIZE = 50 * 1024 * 1024;
-      const MAX_FILES = 10;
       const oversized = files.filter(f => f.size > MAX_FILE_SIZE);
       if (oversized.length > 0) {
-        toast.error(`Файл "${oversized[0].name}" превышает 50 МБ`);
+        toast.error(`Файл "${oversized[0].name}" превышает ${MAX_FILE_SIZE / (1024 * 1024)} МБ`);
         return;
       }
       setPendingFiles(prev => {
         const combined = [...prev, ...files];
-        if (combined.length > MAX_FILES) {
-          toast.error(`Максимум ${MAX_FILES} файлов`);
-          return combined.slice(0, MAX_FILES);
+        if (combined.length > MAX_FILES_CHAT) {
+          toast.error(`Максимум ${MAX_FILES_CHAT} файлов`);
+          return combined.slice(0, MAX_FILES_CHAT);
         }
         return combined;
       });

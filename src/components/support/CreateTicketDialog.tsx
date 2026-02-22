@@ -19,6 +19,7 @@ import { useSupportContext } from '@/contexts/SupportContext';
 import { createTicket, getCategories, uploadFiles } from '@/services/supportService';
 import VoiceInputButton from './VoiceInputButton';
 import type { TicketCategory, TicketPriority, TicketType } from '@/types/support';
+import { MAX_FILE_SIZE, MAX_FILES_TICKET } from '@/types/support';
 
 const selectCls = "h-10 w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 appearance-none cursor-pointer";
 
@@ -37,14 +38,14 @@ export default function CreateTicketDialog() {
   const [contextOpen, setContextOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Загрузить категории при открытии
+  // Загрузить категории при каждом открытии (инвалидация кэша)
   useEffect(() => {
-    if (isCreateDialogOpen && categories.length === 0) {
+    if (isCreateDialogOpen) {
       getCategories().then(setCategories).catch((err) => {
         toast.error(`Категории: ${err.message}`);
       });
     }
-  }, [isCreateDialogOpen, categories.length]);
+  }, [isCreateDialogOpen]);
 
   // Reset при закрытии
   useEffect(() => {
@@ -174,7 +175,13 @@ export default function CreateTicketDialog() {
                 className="hidden"
                 onChange={e => {
                   const newFiles = Array.from(e.target.files || []);
-                  setFiles(prev => [...prev, ...newFiles].slice(0, 5));
+                  const oversized = newFiles.filter(f => f.size > MAX_FILE_SIZE);
+                  if (oversized.length > 0) {
+                    toast.error(`Файл "${oversized[0].name}" превышает ${MAX_FILE_SIZE / (1024 * 1024)} МБ`);
+                    e.target.value = '';
+                    return;
+                  }
+                  setFiles(prev => [...prev, ...newFiles].slice(0, MAX_FILES_TICKET));
                   e.target.value = '';
                 }}
               />
@@ -199,8 +206,8 @@ export default function CreateTicketDialog() {
                     </button>
                   </div>
                 ))}
-                {files.length >= 5 && (
-                  <div className="text-[10px] text-slate-500">Максимум 5 файлов</div>
+                {files.length >= MAX_FILES_TICKET && (
+                  <div className="text-[10px] text-slate-500">Максимум {MAX_FILES_TICKET} файлов</div>
                 )}
               </div>
             )}
@@ -264,6 +271,7 @@ export default function CreateTicketDialog() {
                 <option value="incident">Инцидент</option>
                 <option value="request">Запрос</option>
                 <option value="question">Вопрос</option>
+                <option value="problem">Проблема</option>
               </select>
             </div>
           </div>

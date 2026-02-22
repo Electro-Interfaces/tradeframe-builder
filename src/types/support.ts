@@ -4,9 +4,15 @@
 
 // === Тикеты ===
 
-export type TicketStatus = 'new' | 'in_progress' | 'waiting_customer' | 'escalated' | 'resolved' | 'closed';
+export type TicketStatus = 'new' | 'in_progress' | 'waiting_customer' | 'escalated' | 'resolved' | 'closed' | 'cancelled' | 'reopened';
 export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
-export type TicketType = 'incident' | 'request' | 'question';
+export type TicketType = 'incident' | 'request' | 'question' | 'problem';
+export type MessageType = 'comment' | 'status_change' | 'assignment' | 'internal_note' | 'ai_suggestion';
+
+// Общие константы файлов
+export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 МБ
+export const MAX_FILES_TICKET = 5;
+export const MAX_FILES_CHAT = 10;
 
 export interface SupportTicket {
   id: string;
@@ -49,6 +55,12 @@ export interface SupportTicket {
   sla_breached?: boolean;
   resolved_at?: string;
   closed_at?: string;
+  cancelled_at?: string;
+  cancel_reason?: string;
+  reopen_count?: number;
+  customer_rating?: number;
+  customer_feedback?: string;
+  unread_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -60,7 +72,7 @@ export interface TicketMessage {
   user_name: string;
   user_role: string;
   content: string;
-  message_type: 'comment' | 'note' | 'system' | 'ai';
+  message_type: MessageType;
   internal: boolean;
   ai_generated?: boolean;
   media_urls?: string[];
@@ -212,6 +224,8 @@ export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
   escalated: 'Эскалация',
   resolved: 'Решена',
   closed: 'Закрыта',
+  cancelled: 'Отменена',
+  reopened: 'Переоткрыта',
 };
 
 export const TICKET_STATUS_COLORS: Record<TicketStatus, string> = {
@@ -221,6 +235,8 @@ export const TICKET_STATUS_COLORS: Record<TicketStatus, string> = {
   escalated: 'bg-red-500/20 text-red-400 border-red-500/30',
   resolved: 'bg-green-500/20 text-green-400 border-green-500/30',
   closed: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+  cancelled: 'bg-slate-500/20 text-orange-400 border-orange-500/30',
+  reopened: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
 };
 
 export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = {
@@ -241,4 +257,5 @@ export const TICKET_TYPE_LABELS: Record<TicketType, string> = {
   incident: 'Инцидент',
   request: 'Запрос',
   question: 'Вопрос',
+  problem: 'Проблема',
 };
