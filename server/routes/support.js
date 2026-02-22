@@ -1,0 +1,383 @@
+/**
+ * TSupport SDK Proxy Router
+ *
+ * Прокси для TSupport SDK API v2
+ * TradeFrame backend подписывает HMAC → TSupport upsert-ит пользователя → выдаёт JWT
+ *
+ * Эндпоинты:
+ *   GET    /api/support/categories          → категории заявок
+ *   GET    /api/support/tickets             → список заявок
+ *   GET    /api/support/tickets/:id         → детали заявки
+ *   POST   /api/support/tickets             → создание заявки
+ *   PATCH  /api/support/tickets/:id         → обновление заявки
+ *   GET    /api/support/tickets/:id/messages → сообщения заявки
+ *   POST   /api/support/tickets/:id/messages → отправить сообщение
+ *   GET    /api/support/tickets/:id/activity → таймлайн
+ *   GET    /api/support/chat/rooms          → список чат-комнат
+ *   GET    /api/support/chat/rooms/:id/messages → сообщения комнаты
+ *   POST   /api/support/chat/rooms/:id/messages → отправить в чат
+ *   POST   /api/support/chat/rooms/:id/read     → отметить прочитанным
+ *   GET    /api/support/unread              → счётчик непрочитанных
+ */
+
+const express = require('express');
+const axios = require('axios');
+const crypto = require('crypto');
+
+const router = express.Router();
+
+// JWT-токен TSupport (кэшируется per userId, LRU-лимит 500 записей)
+const TOKEN_CACHE_MAX = 500;
+const tokenCache = new Map(); // userId → { accessToken, refreshToken, expiresAt }
+
+// Очистка просроченных записей и LRU-лимит
+function cleanTokenCache() {
+  const now = Date.now();
+  for (const [key, val] of tokenCache) {
+    if (val.expiresAt < now) tokenCache.delete(key);
+  }
+  // LRU: если превышен лимит — удаляем самые старые (первые в Map)
+  while (tokenCache.size > TOKEN_CACHE_MAX) {
+    const firstKey = tokenCache.keys().next().value;
+    tokenCache.delete(firstKey);
+  }
+}
+
+const TSUPPORT_API_URL = process.env.TSUPPORT_API_URL || 'http://81.200.148.35:3003';
+const TSUPPORT_SDK_API_KEY = process.env.TSUPPORT_SDK_API_KEY;
+const TSUPPORT_SDK_SECRET = process.env.TSUPPORT_SDK_SECRET;
+
+/**
+ * Создать HMAC-подпись для SDK auth
+ */
+function createHmacSignature(userId, companyId, timestamp) {
+  const message = `${userId}:${companyId}:${timestamp}`;
+  return crypto.createHmac('sha256', TSUPPORT_SDK_SECRET).update(message).digest('hex');
+}
+
+/**
+ * Получить или обновить JWT-токен TSupport для пользователя
+ */
+async function getToken(userInfo) {
+  cleanTokenCache();
+  const cacheKey = userInfo.userId;
+  const cached = tokenCache.get(cacheKey);
+
+  // Возвращаем кэшированный токен если до истечения больше 5 минут
+  if (cached && cached.expiresAt > Date.now() + 5 * 60 * 1000) {
+    return cached.accessToken;
+  }
+
+  // Если есть refresh token — пробуем обновить
+  if (cached?.refreshToken) {
+    try {
+      const refreshResp = await axios.post(`${TSUPPORT_API_URL}/api/v2/sdk/auth/refresh`, {
+        refreshToken: cached.refreshToken,
+      }, { timeout: 10000 });
+
+      const newTokens = refreshResp.data;
+      tokenCache.set(cacheKey, {
+        accessToken: newTokens.accessToken,
+        refreshToken: newTokens.refreshToken,
+        companyId: cached.companyId, // сохраняем company_id из первоначальной auth
+        expiresAt: Date.now() + 110 * 60 * 1000, // ~2ч (access token TTL)
+      });
+
+      return newTokens.accessToken;
+    } catch {
+      // Refresh failed — полная re-auth
+      tokenCache.delete(cacheKey);
+    }
+  }
+
+  // Полная аутентификация через HMAC
+  const timestamp = Date.now().toString();
+  // companyId НЕ передаём из TradeFrame — TSupport сам резолвит по email
+  // (UUID компаний в Supabase ≠ UUID в TSupport PostgreSQL)
+  const companyId = '';
+  const signature = createHmacSignature(userInfo.userId, companyId, timestamp);
+
+  const authResp = await axios.post(`${TSUPPORT_API_URL}/api/v2/sdk/auth/token`, {
+    apiKey: TSUPPORT_SDK_API_KEY,
+    userId: userInfo.userId,
+    companyId,
+    userName: userInfo.userName || '',
+    userEmail: userInfo.userEmail || '',
+    userRole: userInfo.userRole || 'operator',
+    timestamp,
+    signature,
+  }, { timeout: 10000 });
+
+  const tokens = authResp.data;
+  tokenCache.set(cacheKey, {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    companyId: tokens.user?.company_id || '',
+    tsupportUserId: tokens.user?.id || '',
+    expiresAt: Date.now() + 110 * 60 * 1000,
+  });
+
+  return tokens.accessToken;
+}
+
+/**
+ * Получить company_id пользователя в TSupport (из кэша токенов)
+ */
+function getTSupportCompanyId(userId) {
+  const cached = tokenCache.get(userId);
+  return cached?.companyId || '';
+}
+
+/**
+ * Извлечь информацию о пользователе из заголовков X-TF-User-*
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ALLOWED_ROLES = new Set(['super_admin', 'admin', 'manager', 'operator', 'user', 'customer']);
+
+function getUserInfoFromHeaders(req) {
+  const rawName = req.headers['x-tf-user-name'] || '';
+  let userName;
+  try { userName = decodeURIComponent(rawName); } catch { userName = rawName; }
+
+  const userId = req.headers['x-tf-user-id'] || '';
+  const userRole = req.headers['x-tf-user-role'] || 'operator';
+
+  return {
+    userId: UUID_RE.test(userId) ? userId : '',
+    companyId: req.headers['x-tf-company-id'] || '',
+    userName,
+    userEmail: req.headers['x-tf-user-email'] || '',
+    userRole: ALLOWED_ROLES.has(userRole) ? userRole : 'operator',
+  };
+}
+
+/**
+ * Middleware: проверка конфигурации SDK
+ */
+function checkSdkConfig(req, res, next) {
+  if (!TSUPPORT_SDK_API_KEY || !TSUPPORT_SDK_SECRET) {
+    return res.status(503).json({
+      error: 'TSupport SDK не настроен',
+      message: 'Отсутствуют TSUPPORT_SDK_API_KEY или TSUPPORT_SDK_SECRET',
+    });
+  }
+
+  const userInfo = getUserInfoFromHeaders(req);
+  console.log('[Support] Headers:', { userId: userInfo.userId, email: userInfo.userEmail, role: userInfo.userRole });
+  if (!userInfo.userId) {
+    return res.status(400).json({
+      error: 'Заголовок X-TF-User-Id обязателен',
+    });
+  }
+
+  req.tfUserInfo = userInfo;
+  next();
+}
+
+/**
+ * Прокси-запрос к TSupport SDK API
+ */
+async function proxyToTSupport(req, res, method, sdkPath, data) {
+  try {
+    const token = await getToken(req.tfUserInfo);
+
+    const config = {
+      method,
+      url: `${TSUPPORT_API_URL}${sdkPath}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 30000,
+    };
+
+    if (method === 'GET') {
+      config.params = req.query;
+    } else if (data) {
+      config.data = data;
+    }
+
+    const response = await axios(config);
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    // Если 401 — сбросить кэш и повторить
+    if (error.response?.status === 401) {
+      tokenCache.delete(req.tfUserInfo.userId);
+      try {
+        const token = await getToken(req.tfUserInfo);
+        const config = {
+          method,
+          url: `${TSUPPORT_API_URL}${sdkPath}`,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000,
+        };
+        if (method === 'GET') config.params = req.query;
+        else if (data) config.data = data;
+
+        const response = await axios(config);
+        return res.status(response.status).json(response.data);
+      } catch (retryError) {
+        console.error('[Support Proxy] Retry failed:', retryError.message);
+        const retryStatus = retryError.response?.status || 500;
+        const retryData = retryError.response?.data || { error: retryError.message };
+        return res.status(retryStatus).json(retryData);
+      }
+    }
+
+    const status = error.response?.status || 500;
+    const errorData = error.response?.data || { error: error.message };
+    console.error(`[Support Proxy] ${method} ${sdkPath}:`, status, errorData);
+    res.status(status).json(errorData);
+  }
+}
+
+// Все эндпоинты требуют SDK-конфиг + user headers
+router.use(checkSdkConfig);
+
+// === Текущий пользователь (TSupport user_id) ===
+router.get('/me', async (req, res) => {
+  try {
+    await getToken(req.tfUserInfo);
+    const cached = tokenCache.get(req.tfUserInfo.userId);
+    res.json({ tsupportUserId: cached?.tsupportUserId || '' });
+  } catch (err) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
+// === Категории (проксируется с JWT-токеном) ===
+router.get('/categories', (req, res) => proxyToTSupport(req, res, 'GET', '/api/v2/sdk/tickets/categories'));
+
+// === Тикеты ===
+router.get('/tickets', (req, res) => proxyToTSupport(req, res, 'GET', '/api/v2/sdk/tickets'));
+router.get('/tickets/:id', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/tickets/${req.params.id}`));
+router.post('/tickets', async (req, res) => {
+  // Убедимся что токен получен (чтобы company_id был в кэше)
+  try {
+    await getToken(req.tfUserInfo);
+  } catch (err) {
+    return res.status(401).json({ error: `Ошибка авторизации TSupport: ${err.message}` });
+  }
+  const companyId = getTSupportCompanyId(req.tfUserInfo.userId);
+  if (!companyId) {
+    return res.status(400).json({ error: 'company_id пользователя не найден в TSupport' });
+  }
+  const body = { ...req.body, company_id: companyId };
+  proxyToTSupport(req, res, 'POST', '/api/v2/sdk/tickets', body);
+});
+router.patch('/tickets/:id', (req, res) => proxyToTSupport(req, res, 'PATCH', `/api/v2/sdk/tickets/${req.params.id}`, req.body));
+router.get('/tickets/:id/messages', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/tickets/${req.params.id}/messages`));
+router.post('/tickets/:id/messages', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/tickets/${req.params.id}/messages`, req.body));
+router.get('/tickets/:id/activity', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/tickets/${req.params.id}/activity`));
+
+// === Upload файлов к заявке ===
+router.post('/upload/:ticketId', async (req, res) => {
+  try {
+    const token = await getToken(req.tfUserInfo);
+    const contentType = req.headers['content-type'];
+
+    // Собираем raw body (multipart form-data)
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(chunk);
+    }
+    const body = Buffer.concat(chunks);
+
+    const response = await axios.post(
+      `${TSUPPORT_API_URL}/api/v2/sdk/upload/${req.params.ticketId}`,
+      body,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': contentType,
+          'Content-Length': body.length,
+        },
+        timeout: 60000,
+        maxContentLength: 60 * 1024 * 1024,
+        maxBodyLength: 60 * 1024 * 1024,
+      }
+    );
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    const status = error.response?.status || 500;
+    const errorData = error.response?.data || { error: error.message };
+    console.error('[Support Proxy] Upload error:', status, errorData);
+    res.status(status).json(errorData);
+  }
+});
+
+// === Чат ===
+// Примечание: upload чат-файлов обрабатывается через /upload/:ticketId (ticketId = "chat-{roomId}")
+router.get('/chat/rooms', (req, res) => proxyToTSupport(req, res, 'GET', '/api/v2/sdk/chat/rooms'));
+router.post('/chat/rooms', async (req, res) => {
+  try {
+    await getToken(req.tfUserInfo);
+  } catch (err) {
+    return res.status(401).json({ error: `Ошибка авторизации: ${err.message}` });
+  }
+  const companyId = getTSupportCompanyId(req.tfUserInfo.userId);
+  if (!companyId) {
+    return res.status(400).json({ error: 'company_id не найден в TSupport' });
+  }
+  proxyToTSupport(req, res, 'POST', '/api/v2/sdk/chat/rooms', { ...req.body, company_id: companyId });
+});
+router.get('/chat/rooms/:id', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/chat/rooms/${req.params.id}`));
+router.get('/chat/rooms/:id/messages', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/chat/rooms/${req.params.id}/messages`));
+router.post('/chat/rooms/:id/messages', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/chat/rooms/${req.params.id}/messages`, req.body));
+router.post('/chat/rooms/:id/read', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/chat/rooms/${req.params.id}/read`));
+
+// === Proxy файлов (uploads) ===
+router.get('/files/:folder/:filename', async (req, res) => {
+  try {
+    const token = await getToken(req.tfUserInfo);
+    const filePath = `${req.params.folder}/${req.params.filename}`;
+    const response = await axios.get(`${TSUPPORT_API_URL}/uploads/${filePath}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'stream',
+      timeout: 30000,
+    });
+    res.set('Content-Type', response.headers['content-type']);
+    if (response.headers['content-length']) res.set('Content-Length', response.headers['content-length']);
+    res.set('Content-Disposition', `inline; filename="${req.params.filename}"`);
+    response.data.pipe(res);
+  } catch (error) {
+    const status = error.response?.status || 500;
+    console.error('[Support Proxy] File proxy error:', status);
+    res.status(status).json({ error: 'File not found' });
+  }
+});
+
+// === Непрочитанные ===
+router.get('/unread', async (req, res) => {
+  try {
+    const token = await getToken(req.tfUserInfo);
+
+    // Считаем: тикеты «ожидает ответа» (есть непрочитанное от поддержки) + непрочитанные чаты
+    const [ticketsResp, chatResp] = await Promise.allSettled([
+      axios.get(`${TSUPPORT_API_URL}/api/v2/sdk/tickets`, {
+        params: { status: 'waiting_customer', limit: 0 },
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
+      }),
+      axios.get(`${TSUPPORT_API_URL}/api/v2/sdk/chat/rooms`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
+      }),
+    ]);
+
+    const ticketCount = ticketsResp.status === 'fulfilled' ? (ticketsResp.value.data.total || 0) : 0;
+    const chatUnread = chatResp.status === 'fulfilled'
+      ? (chatResp.value.data || []).reduce((sum, room) => sum + (room.unread_count || 0), 0)
+      : 0;
+
+    res.json({ tickets: ticketCount, chat: chatUnread, total: ticketCount + chatUnread });
+  } catch (error) {
+    console.error('[Support Proxy] Unread count error:', error.message);
+    res.json({ tickets: 0, chat: 0, total: 0 });
+  }
+});
+
+module.exports = router;
