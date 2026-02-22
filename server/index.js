@@ -12,6 +12,7 @@ const messagesRoutes = require('./routes/messages');
 const supabaseRoutes = require('./routes/supabase');
 const tankCalibrationRoutes = require('./routes/tankCalibration');
 const mstoRoutes = require('./routes/msto');
+const supportRoutes = require('./routes/support');
 const { initTelegramBot } = require('./telegram-bot');
 
 const app = express();
@@ -81,6 +82,9 @@ app.use('/api/tank-calibration', tankCalibrationRoutes);
 
 // Подключаем роуты для MSTO IntegratorService API
 app.use('/api/msto', mstoRoutes);
+
+// Подключаем роуты для TSupport SDK (заявки + чат)
+app.use('/api/support', supportRoutes);
 
 // Обработка несуществующих роутов
 app.use((req, res) => {

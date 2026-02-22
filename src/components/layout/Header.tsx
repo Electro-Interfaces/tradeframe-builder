@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Menu, Bell, Wifi } from "lucide-react";
+import { LogOut, User, Menu, Bell, Wifi, LifeBuoy } from "lucide-react";
 import UpdateChecker from "@/components/common/UpdateChecker";
 import UpdateInfoDialog from "@/components/common/UpdateInfoDialog";
 import { NetworkSelect } from "@/components/selects/NetworkSelect";
@@ -17,6 +17,7 @@ import { PointSelect } from "@/components/selects/PointSelect";
 import { useNewAuth } from "@/contexts/NewAuthContext";
 import { useMobile, mobileUtils } from "@/hooks/useMobile";
 import StationsConnectionDialog from "@/components/operations/StationsConnectionDialog";
+import { useSupportContext } from "@/contexts/SupportContext";
 
 interface HeaderProps {
   selectedNetwork: string;
@@ -37,6 +38,7 @@ export function Header({
 }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useNewAuth();
+  const { openCreateDialog } = useSupportContext();
   const mobileInfo = useMobile();
 
   // Состояние для диалога информации об обновлениях
@@ -130,6 +132,17 @@ export function Header({
           >
             <Wifi className="h-4 w-4" />
           </Button>
+
+          {/* Mobile Support Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={openCreateDialog}
+            className="shrink-0 h-10 w-10 bg-slate-800/80 hover:bg-green-600 text-green-400 hover:text-white border border-slate-600/50 rounded-lg transition-all duration-200"
+            title="Создать заявку"
+          >
+            <LifeBuoy className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Desktop Left Section: Logo + Brand */}
@@ -163,6 +176,17 @@ export function Header({
           >
             <Wifi className="h-4 w-4 mr-1.5" />
             Связь
+          </Button>
+          {/* Desktop Support Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openCreateDialog}
+            className="h-9 px-3 bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white border border-green-500/50 hover:border-green-500 rounded-lg transition-all duration-200 font-medium"
+            title="Создать заявку в поддержку"
+          >
+            <LifeBuoy className="h-4 w-4 mr-1.5" />
+            Заявка
           </Button>
         </div>
 

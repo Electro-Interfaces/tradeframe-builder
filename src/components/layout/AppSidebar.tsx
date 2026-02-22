@@ -27,9 +27,13 @@ import {
   Building2,
   History,
   PackagePlus,
-  Smartphone
+  Smartphone,
+  LifeBuoy,
+  Ticket,
+  MessageCircleMore
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSupportContext } from "@/contexts/SupportContext";
 
 interface AppSidebarProps {
   selectedTradingPoint: string;
@@ -76,6 +80,15 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
   
   const [openGroups, setOpenGroups] = useState<string[]>(getInitialOpenGroups);
   const menuVisibility = useMenuVisibility();
+
+  // Support context (safe — если провайдер отсутствует, не ломаем)
+  let unreadCounts = { tickets: 0, chat: 0, total: 0 };
+  try {
+    const supportCtx = useSupportContext();
+    unreadCounts = supportCtx.unreadCounts;
+  } catch {
+    // SupportProvider может быть не обёрнут (e.g. login page)
+  }
   
   // Сохраняем состояние в localStorage при изменении
   useEffect(() => {
@@ -172,6 +185,10 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Внешняя БД", url: "/settings/external-database", icon: Database },
   ];
 
+  const supportMenuItems = [
+    { title: "Заявки", url: "/support/tickets", icon: Ticket },
+    { title: "Чат", url: "/support/chat", icon: MessageCircleMore },
+  ];
 
   const databaseMenuItems = [
   ];
@@ -243,6 +260,56 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
         </div>
         )}
 
+        {/* ПОДДЕРЖКА */}
+        <div className="border-t border-slate-600 px-4 py-3">
+          <button
+            className="w-full text-slate-200 text-xs font-semibold tracking-wider hover:text-white hover:bg-slate-700/50 active:bg-slate-700 transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleGroup("support");
+            }}
+            type="button"
+          >
+            <LifeBuoy className="w-4 h-4 flex-shrink-0" />
+            <span className="flex-1 text-left">ПОДДЕРЖКА</span>
+            {unreadCounts.total > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-1">
+                {unreadCounts.total}
+              </span>
+            )}
+            <ChevronRight
+              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
+                openGroups.includes("support") ? "rotate-90" : ""
+              }`}
+            />
+          </button>
+          {openGroups.includes("support") && (
+            <div className="space-y-1">
+              {supportMenuItems.map((item) => {
+                const badge = item.url === '/support/tickets' ? unreadCounts.tickets : unreadCounts.chat;
+                return (
+                  <div key={item.title}>
+                    <NavLink
+                      to={item.url}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
+                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                    >
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate flex-1">{item.title}</span>
+                      {badge > 0 && (
+                        <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                          {badge}
+                        </span>
+                      )}
+                    </NavLink>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* АДМИНИСТРИРОВАНИЕ */}
         {menuVisibility.admin && (
         <div className="border-t border-slate-600 px-4 py-3">
@@ -267,8 +334,8 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
             <div className="space-y-1">
               {adminMenuItems.map((item) => (
                 <div key={item.title}>
-                  <NavLink 
-                    to={item.url} 
+                  <NavLink
+                    to={item.url}
                     className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
                     onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                   >
@@ -308,8 +375,8 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
               <div className="space-y-1">
                 {settingsMenuItems.map((item) => (
                   <div key={item.title}>
-                    <NavLink 
-                      to={item.url} 
+                    <NavLink
+                      to={item.url}
                       className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
                       onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                     >
@@ -325,6 +392,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
           )}
         </div>
         )}
+
       </>
     );
   }

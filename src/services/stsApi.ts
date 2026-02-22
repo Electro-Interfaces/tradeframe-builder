@@ -889,22 +889,28 @@ class STSApiService {
         cashSum,
         bankSum,
         devices: {
-          billAcceptor: {
-            status: getDeviceStatus(billAcceptor),
-            name: billAcceptor?.name || 'Купюроприемник',
-            billCount: billAcceptor?.params?.find((p: any) => p.name === 'Количество купюр')?.value ?
-              parseInt(billAcceptor.params.find((p: any) => p.name === 'Количество купюр').value) : undefined,
-            billAmount: billAcceptor?.params?.find((p: any) => p.name === 'Сумма купюр')?.value ?
-              parseFloat(billAcceptor.params.find((p: any) => p.name === 'Сумма купюр').value) : undefined
-          },
-          cardReader: {
-            status: getDeviceStatus(cardReader),
-            name: cardReader?.name || 'Картридер'
-          },
-          mpsReader: {
-            status: getDeviceStatus(mpsReader),
-            name: mpsReader?.name || 'МПС-ридер'
-          },
+          ...(billAcceptor ? {
+            billAcceptor: {
+              status: getDeviceStatus(billAcceptor),
+              name: billAcceptor.name || 'Купюроприемник',
+              billCount: billAcceptor.params?.find((p: any) => p.name === 'Количество купюр')?.value ?
+                parseInt(billAcceptor.params.find((p: any) => p.name === 'Количество купюр').value) : undefined,
+              billAmount: billAcceptor.params?.find((p: any) => p.name === 'Сумма купюр')?.value ?
+                parseFloat(billAcceptor.params.find((p: any) => p.name === 'Сумма купюр').value) : undefined
+            }
+          } : {}),
+          ...(cardReader ? {
+            cardReader: {
+              status: getDeviceStatus(cardReader),
+              name: cardReader.name || 'Картридер'
+            }
+          } : {}),
+          ...(mpsReader ? {
+            mpsReader: {
+              status: getDeviceStatus(mpsReader),
+              name: mpsReader.name || 'МПС-ридер'
+            }
+          } : {}),
           fiscalRegister: {
             status: fiscalStatus,
             name: fiscalDevice?.name || 'Фискальный регистратор',

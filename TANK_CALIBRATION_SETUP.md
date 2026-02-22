@@ -83,7 +83,7 @@ INSERT INTO tank_calibration_settings (
 ## 📂 Структура файлов
 
 ```
-D:\Users\magsp\TF-project\
+D:\Users\magsp\ELSYPLUS\TradeFrame\
 ├── database/migrations/
 │   ├── create_tank_calibration_settings_full.sql    ← Применить это!
 │   ├── alter_tank_calibration_settings_add_missing_fields.sql

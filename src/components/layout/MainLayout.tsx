@@ -34,7 +34,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-background text-foreground w-full max-w-none">
+      <div className={`bg-background text-foreground w-full max-w-none ${fullWidth ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
         <Header
           selectedNetwork={selectedNetwork?.id || ""}
           selectedTradingPoint={selectedTradingPoint}
@@ -80,11 +80,11 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
           </>
         ) : (
           // Desktop Layout
-          <div className={`flex w-full max-w-none ${isMobile ? 'pt-0' : 'pt-header'}`}>
+          <div className={`flex w-full max-w-none ${isMobile ? 'pt-0' : 'pt-header'} ${fullWidth ? 'h-full overflow-hidden' : ''}`}>
             <AppSidebar selectedTradingPoint={selectedTradingPoint} />
             
-            <main className="flex-1 min-w-0 w-full max-w-none">
-              <div className={fullWidth ? "w-full max-w-none" : "px-4 md:px-6 lg:px-8 w-full max-w-none"}>
+            <main className="flex-1 min-w-0 w-full max-w-none overflow-hidden">
+              <div className={fullWidth ? "w-full max-w-none h-full" : "px-4 md:px-6 lg:px-8 w-full max-w-none"}>
                 {children}
               </div>
             </main>

@@ -24,7 +24,7 @@
 
 ### Шаг 1: Скопировать workflow в PROD репозиторий
 
-У вас есть файл: `D:\Users\magsp\TF-project\.github\workflows\deploy-prod.yml`
+У вас есть файл: `D:\Users\magsp\ELSYPLUS\TradeFrame\.github\workflows\deploy-prod.yml`
 
 **Вариант 1: Через локальную копию**
 
@@ -38,7 +38,7 @@ cd /path/to/TradeControl
 mkdir -p .github/workflows
 
 # Скопируйте файл
-cp /d/Users/magsp/TF-project/.github/workflows/deploy-prod.yml .github/workflows/
+cp /d/Users/magsp/ELSYPLUS/TradeFrame/.github/workflows/deploy-prod.yml .github/workflows/
 
 # Коммит
 git add .github/workflows/deploy-prod.yml
@@ -51,7 +51,7 @@ git push origin main
 1. Откройте: https://github.com/Electro-Interfaces/TradeControl
 2. Создайте папку: `.github/workflows/`
 3. Создайте файл: `deploy-prod.yml`
-4. Скопируйте содержимое из `D:\Users\magsp\TF-project\.github\workflows\deploy-prod.yml`
+4. Скопируйте содержимое из `D:\Users\magsp\ELSYPLUS\TradeFrame\.github\workflows\deploy-prod.yml`
 5. Commit changes
 
 ---
@@ -135,7 +135,7 @@ git push origin main
 ## 📁 Содержимое deploy-prod.yml
 
 Файл уже создан и готов к использованию:
-`D:\Users\magsp\TF-project\.github\workflows\deploy-prod.yml`
+`D:\Users\magsp\ELSYPLUS\TradeFrame\.github\workflows\deploy-prod.yml`
 
 Просто скопируйте его в PROD репозиторий.
 

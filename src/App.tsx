@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import SafeRender from "@/components/common/SafeRender";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -7,6 +8,8 @@ import { queryClient } from "./lib/supabase/queryClient";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SelectionProvider } from "./contexts/SelectionContext";
 import { NewAuthProvider } from "./contexts/NewAuthContext";
+import { SupportProvider } from "./contexts/SupportContext";
+import CreateTicketDialog from "./components/support/CreateTicketDialog";
 import { lazy, useEffect, useState } from "react";
 import LazyLoader from "./components/LazyLoader";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -66,6 +69,10 @@ const LegalDocumentEditor = lazy(() => import("./pages/LegalDocumentEditor"));
 const LegalDocumentHistory = lazy(() => import("./pages/LegalDocumentHistory"));
 const LegalUsersAcceptances = lazy(() => import("./pages/LegalUsersAcceptances"));
 const LogoVariants = lazy(() => import("./pages/LogoVariants"));
+
+// Support страницы
+const TicketsPage = lazy(() => import("./pages/support/TicketsPage"));
+const ChatPage = lazy(() => import("./pages/support/ChatPage"));
 
 // Используем предварительно настроенный queryClient из lib/supabase/queryClient
 
@@ -181,6 +188,7 @@ const App = () => {
         <TooltipProvider>
           <SafeRender>
             <Toaster />
+            <SonnerToaster position="top-right" theme="dark" richColors />
           </SafeRender>
           <NewAuthProvider>
             <SelectionProvider>
@@ -192,6 +200,8 @@ const App = () => {
                 }}
               >
                 <div data-testid="router-ready" style={{ display: 'none' }}></div>
+                <SupportProvider>
+                <CreateTicketDialog />
                 <Routes>
                   {/* Критически важные страницы - без lazy loading */}
                   <Route path="/login" element={<LoginPageWithLegal />} />
@@ -248,9 +258,14 @@ const App = () => {
                   <Route path="/admin/legal-documents/:docType/view" element={<ProtectedRoute><LazyLoader><LegalDocumentEditor /></LazyLoader></ProtectedRoute>} />
                   <Route path="/logos" element={<LazyLoader><LogoVariants /></LazyLoader>} />
 
+                  {/* Support страницы */}
+                  <Route path="/support/tickets" element={<ProtectedRoute><LazyLoader><TicketsPage /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/support/chat" element={<ProtectedRoute><LazyLoader><ChatPage /></LazyLoader></ProtectedRoute>} />
+
                   {/* Fallback routes */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                </SupportProvider>
               </BrowserRouter>
 
               {/* PWA Installers: общий для Chrome/Edge + специальный для Safari */}

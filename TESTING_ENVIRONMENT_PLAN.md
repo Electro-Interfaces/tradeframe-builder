@@ -208,7 +208,7 @@ BACKEND_PORT=3002
 ### Структура на локальной машине
 
 ```
-D:\Users\magsp\TF-project/
+D:\Users\magsp\ELSYPLUS\TradeFrame/
 ├── src/                         # Исходный код (общий)
 ├── server/                      # Backend proxy (общий)
 ├── public/                      # Статические файлы (общие)
@@ -542,7 +542,7 @@ sudo systemctl reload nginx
 
 **Шаг 3.1: Создать .env.test локально**
 ```bash
-# В D:\Users\magsp\TF-project\
+# В D:\Users\magsp\ELSYPLUS\TradeFrame\
 # Скопировать .env.production → .env.test
 # Изменить все переменные на test значения
 ```
@@ -566,7 +566,7 @@ sudo systemctl reload nginx
 
 **Шаг 4.1: Сборка локально**
 ```bash
-cd D:\Users\magsp\TF-project
+cd D:\Users\magsp\ELSYPLUS\TradeFrame
 npm run build:test
 ```
 
@@ -670,7 +670,7 @@ echo "🧪 Starting deployment to TESTING environment..."
 # Configuration
 SERVER="root@194.135.36.195"
 REMOTE_DIR="/var/www/www-root/data/www/test.dataworker.ru"
-LOCAL_DIR="D:/Users/magsp/TF-project"
+LOCAL_DIR="D:/Users/magsp/ELSYPLUS/TradeFrame"
 
 # Colors
 GREEN='\033[0;32m'

@@ -221,12 +221,12 @@ Frontend (порт 3000) →  npm run dev
 
 **1. Запуск backend (порт 3001):**
 ```powershell
-powershell -Command "Start-Process -NoNewWindow -FilePath 'node' -ArgumentList 'index.js' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TF-project\server'"
+powershell -Command "Start-Process -NoNewWindow -FilePath 'node' -ArgumentList 'index.js' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TradeFrame\server'"
 ```
 
 **2. Запуск frontend (порт 3000):**
 ```powershell
-powershell -Command "Start-Process -NoNewWindow -FilePath 'cmd' -ArgumentList '/c','npm run dev' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TF-project'"
+powershell -Command "Start-Process -NoNewWindow -FilePath 'cmd' -ArgumentList '/c','npm run dev' -WorkingDirectory 'D:\Users\magsp\ELSYPLUS\TradeFrame'"
 ```
 
 **3. Проверка портов:**
