@@ -71,7 +71,7 @@ function RoomListPanel({
   ];
 
   return (
-    <div className="flex flex-col h-full bg-slate-900">
+    <div className="flex flex-col h-full bg-slate-900 relative">
       {/* Header */}
       <div className="px-3 pt-3 pb-2.5 border-b border-slate-700/50 shrink-0">
         <div className="flex items-center gap-1.5 mb-2.5">
@@ -90,9 +90,6 @@ function RoomListPanel({
               </button>
             ))}
           </div>
-          <Button size="sm" onClick={onNewChat} className="h-10 w-10 p-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full touch-manipulation" aria-label="Новый чат">
-            <Plus className="h-5 w-5" />
-          </Button>
           <Button size="sm" variant="outline" onClick={onRefresh} className="h-10 w-10 p-0 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full touch-manipulation" aria-label="Обновить">
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -173,6 +170,15 @@ function RoomListPanel({
           </div>
         )}
       </ScrollArea>
+
+      {/* FAB — Новый чат */}
+      <button
+        onClick={onNewChat}
+        className="absolute bottom-5 right-5 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center touch-manipulation transition-colors z-10"
+        aria-label="Новый чат"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
     </div>
   );
 }
