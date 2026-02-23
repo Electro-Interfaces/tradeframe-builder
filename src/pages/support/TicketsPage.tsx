@@ -295,7 +295,7 @@ export default function TicketsPage() {
 
   return (
     <MainLayout fullWidth>
-    <div ref={containerRef} className="flex h-[calc(100dvh-var(--header-height,3.5rem))] overflow-hidden">
+    <div ref={containerRef} className="flex h-full overflow-hidden">
       {/* === Левая панель: список === */}
       <div className={`flex flex-col bg-slate-900 shrink-0 overflow-hidden ${isMobile && selectedId ? 'hidden' : ''}`} style={isMobile ? { width: '100%' } : { width: `${listWidth}px` }}>
         {/* Header */}
@@ -826,17 +826,17 @@ export default function TicketsPage() {
                     // History event
                     return (
                       <div key={act.id} className="flex items-center gap-2 py-2">
-                        <div className="flex-1 border-t border-slate-700/30" />
-                        <div className="flex items-center gap-1.5 text-xs text-slate-600 shrink-0">
-                          <History className="h-3.5 w-3.5" />
+                        <div className="flex-1 border-t border-slate-700/30 hidden md:block" />
+                        <div className="flex items-start gap-1.5 text-xs text-slate-600 flex-wrap min-w-0">
+                          <History className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                           <span className="font-medium text-slate-500">{act.user_name || 'Система'}</span>
                           <span>изменил</span>
-                          <span className="text-slate-400">«{act.field}»</span>
-                          <span>{act.old_value || '—'} → {act.new_value || '—'}</span>
+                          <span className="text-slate-400 break-all">«{act.field}»</span>
+                          <span className="break-all">{act.old_value || '—'} → {act.new_value || '—'}</span>
                           <span className="text-slate-700">·</span>
-                          <span>{formatDate(act.created_at)}</span>
+                          <span className="whitespace-nowrap">{formatDate(act.created_at)}</span>
                         </div>
-                        <div className="flex-1 border-t border-slate-700/30" />
+                        <div className="flex-1 border-t border-slate-700/30 hidden md:block" />
                       </div>
                     );
                   })}
