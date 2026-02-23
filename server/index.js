@@ -38,7 +38,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-TF-User-Id', 'X-TF-User-Email', 'X-TF-User-Name', 'X-TF-User-Role', 'X-TF-Company-Id']
 }));
 
 // Парсинг JSON тела запросов

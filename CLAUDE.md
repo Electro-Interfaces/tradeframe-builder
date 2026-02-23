@@ -9,15 +9,22 @@
 - **Frontend:** React 18 + Vite + Tailwind + shadcn/ui
 - **Backend:** Node.js (Express) + Supabase
 
+## Dev-окружение — порты
+
+| Сервис | Порт | URL |
+|--------|------|-----|
+| TradeFrame frontend | 3000 | http://localhost:3000 |
+| TradeFrame backend | 3001 | http://localhost:3001 |
+| TSupport frontend | 3002 | http://localhost:3002 |
+| TSupport backend | 3003 | http://localhost:3003 |
+
 ## Запуск dev-окружения
 
 **Порядок запуска: сначала бэкенд, потом фронтенд.**
 
-Если порты 3001/3000 заняты — убить процессы перед запуском:
+Если порты заняты — убить процессы перед запуском:
 ```powershell
-# Проверить занятые порты
-netstat -ano | findstr ":3000 :3001" | findstr "LISTENING"
-# Убить процесс по PID
+netstat -ano | findstr ":3000 :3001 :3002 :3003" | findstr "LISTENING"
 taskkill //PID <PID> //F
 ```
 
@@ -25,7 +32,7 @@ taskkill //PID <PID> //F
 ```bash
 cd server && node index.js
 ```
-- Express-сервер, прокси для STS/TradeCorp/MSTO API
+- Express-сервер, прокси для STS/TradeCorp/MSTO/TSupport API
 - Telegram-бот, планировщик уведомлений
 - Конфиг: `server/.env`
 
