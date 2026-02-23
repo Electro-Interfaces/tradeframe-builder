@@ -81,6 +81,7 @@ export default function TicketsPage() {
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(!isMobile);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [tsupportUserId, setTsupportUserId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -294,7 +295,7 @@ export default function TicketsPage() {
 
   return (
     <MainLayout fullWidth>
-    <div ref={containerRef} className="flex h-[calc(100vh-var(--header-height,5rem))] overflow-hidden">
+    <div ref={containerRef} className="flex h-[calc(100dvh-var(--header-height,3.5rem))] overflow-hidden">
       {/* === Левая панель: список === */}
       <div className={`flex flex-col bg-slate-900 shrink-0 overflow-hidden ${isMobile && selectedId ? 'hidden' : ''}`} style={isMobile ? { width: '100%' } : { width: `${listWidth}px` }}>
         {/* Header */}
@@ -541,7 +542,7 @@ export default function TicketsPage() {
         ) : selectedTicket ? (
           <>
             {/* Header заявки */}
-            <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-900/80 shrink-0 overflow-y-auto max-h-[40%]">
+            <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-900/80 shrink-0 overflow-y-auto">
               {/* Кнопка "Назад" на мобильном */}
               {isMobile && (
                 <Button
@@ -587,50 +588,62 @@ export default function TicketsPage() {
                 </p>
               )}
 
-              {/* Основная информация — сетка */}
-              <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-slate-500 shrink-0" />
-                  <span className="text-slate-500">Сеть:</span>
-                  <span className="text-white font-medium">{selectedTicket.company_name || '—'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <UserCircle className="h-4 w-4 text-slate-500 shrink-0" />
-                  <span className="text-slate-500">Автор:</span>
-                  <span className="text-white font-medium">{selectedTicket.customer_name || selectedTicket.customer_email || '—'}</span>
-                </div>
-                {selectedTicket.location_name && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-slate-500 shrink-0" />
-                    <span className="text-slate-500">ТТ:</span>
-                    <span className="text-white font-medium">{selectedTicket.location_name}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-slate-500 shrink-0" />
-                  <span className="text-slate-500">Исполнитель:</span>
-                  <span className="text-white font-medium">{selectedTicket.assignee_name || 'Не назначен'}</span>
-                </div>
-                {getCategoryDisplay(selectedTicket) && (
-                  <div className="flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-slate-500 shrink-0" />
-                    <span className="text-slate-500">Категория:</span>
-                    <span className="text-white font-medium">{getCategoryDisplay(selectedTicket)}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-slate-500 shrink-0" />
-                  <span className="text-slate-500">Создана:</span>
-                  <span className="text-white font-medium">{formatFullDate(selectedTicket.created_at)}</span>
-                </div>
-                {selectedTicket.sla_deadline && (
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-slate-500 shrink-0" />
-                    <span className="text-slate-500">SLA:</span>
-                    <span className={`font-medium ${selectedTicket.sla_breached ? 'text-red-400' : 'text-white'}`}>
-                      {formatFullDate(selectedTicket.sla_deadline)}
-                      {selectedTicket.sla_breached && ' (просрочен)'}
-                    </span>
+              {/* Основная информация — сворачиваемый блок */}
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => setDetailsOpen(!detailsOpen)}
+                  className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors mb-2"
+                >
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${detailsOpen ? '' : '-rotate-90'}`} />
+                  Подробности
+                </button>
+                {detailsOpen && (
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-slate-500 shrink-0" />
+                      <span className="text-slate-500">Сеть:</span>
+                      <span className="text-white font-medium">{selectedTicket.company_name || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <UserCircle className="h-4 w-4 text-slate-500 shrink-0" />
+                      <span className="text-slate-500">Автор:</span>
+                      <span className="text-white font-medium">{selectedTicket.customer_name || selectedTicket.customer_email || '—'}</span>
+                    </div>
+                    {selectedTicket.location_name && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-slate-500 shrink-0" />
+                        <span className="text-slate-500">ТТ:</span>
+                        <span className="text-white font-medium">{selectedTicket.location_name}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-slate-500 shrink-0" />
+                      <span className="text-slate-500">Исполнитель:</span>
+                      <span className="text-white font-medium">{selectedTicket.assignee_name || 'Не назначен'}</span>
+                    </div>
+                    {getCategoryDisplay(selectedTicket) && (
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-slate-500 shrink-0" />
+                        <span className="text-slate-500">Категория:</span>
+                        <span className="text-white font-medium">{getCategoryDisplay(selectedTicket)}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-slate-500 shrink-0" />
+                      <span className="text-slate-500">Создана:</span>
+                      <span className="text-white font-medium">{formatFullDate(selectedTicket.created_at)}</span>
+                    </div>
+                    {selectedTicket.sla_deadline && (
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-slate-500 shrink-0" />
+                        <span className="text-slate-500">SLA:</span>
+                        <span className={`font-medium ${selectedTicket.sla_breached ? 'text-red-400' : 'text-white'}`}>
+                          {formatFullDate(selectedTicket.sla_deadline)}
+                          {selectedTicket.sla_breached && ' (просрочен)'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
