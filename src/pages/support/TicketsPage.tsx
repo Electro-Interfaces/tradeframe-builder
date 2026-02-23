@@ -81,7 +81,7 @@ export default function TicketsPage() {
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(!isMobile);
+  const [detailsOpen, setDetailsOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 768 : false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [tsupportUserId, setTsupportUserId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
