@@ -11,7 +11,7 @@
     "minimal-ui",
     "fullscreen"
   ],
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "scope": "/",
   "start_url": "/?utm_source=pwa&utm_medium=app",
   "id": "/",

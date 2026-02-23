@@ -111,9 +111,10 @@ export function Header({
             variant="ghost"
             size="icon"
             onClick={handleMobileMenuClick}
-            className={`shrink-0 h-10 w-10 bg-slate-800/80 hover:bg-slate-700 text-white border border-slate-600/50 rounded-lg transition-all duration-200 ${mobileInfo.isTouchDevice ? 'mobile-touch-target mobile-button mobile-no-highlight' : ''}`}
+            aria-label="Открыть меню"
+            className={`shrink-0 h-11 w-11 bg-slate-800/80 hover:bg-slate-700 text-white border border-slate-600/50 rounded-lg transition-all duration-200 ${mobileInfo.isTouchDevice ? 'mobile-touch-target mobile-button mobile-no-highlight' : ''}`}
           >
-            <Menu className="h-4 w-4" />
+            <Menu className="h-5 w-5" />
           </Button>
 
           <NetworkSelect
@@ -127,10 +128,11 @@ export function Header({
             variant="ghost"
             size="icon"
             onClick={() => setIsConnectionDialogOpen(true)}
-            className="shrink-0 h-10 w-10 bg-slate-800/80 hover:bg-blue-600 text-blue-400 hover:text-white border border-slate-600/50 rounded-lg transition-all duration-200"
+            aria-label="Проверить связь со станциями"
+            className="shrink-0 h-11 w-11 bg-slate-800/80 hover:bg-blue-600 text-blue-400 hover:text-white border border-slate-600/50 rounded-lg transition-all duration-200"
             title="Проверить связь со станциями"
           >
-            <Wifi className="h-4 w-4" />
+            <Wifi className="h-5 w-5" />
           </Button>
 
           {/* Mobile Support Button */}
@@ -138,10 +140,11 @@ export function Header({
             variant="ghost"
             size="icon"
             onClick={openCreateDialog}
-            className="shrink-0 h-10 w-10 bg-slate-800/80 hover:bg-green-600 text-green-400 hover:text-white border border-slate-600/50 rounded-lg transition-all duration-200"
+            aria-label="Создать заявку"
+            className="shrink-0 h-11 w-11 bg-slate-800/80 hover:bg-green-600 text-green-400 hover:text-white border border-slate-600/50 rounded-lg transition-all duration-200"
             title="Создать заявку"
           >
-            <LifeBuoy className="h-4 w-4" />
+            <LifeBuoy className="h-5 w-5" />
           </Button>
         </div>
 

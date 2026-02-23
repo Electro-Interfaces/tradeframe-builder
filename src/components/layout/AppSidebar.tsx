@@ -28,7 +28,6 @@ import {
   History,
   PackagePlus,
   Smartphone,
-  LifeBuoy,
   Ticket,
   MessageCircleMore
 } from "lucide-react";
@@ -56,7 +55,7 @@ const TradingPointMenuItem = ({ item, selectedTradingPoint, isMobile, setMobileM
       <NavLink
         to={item.url}
         onClick={handleNavigate}
-        className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isLinkActive)}`}
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 touch-manipulation ${getNavCls(isLinkActive)}`}
       >
         <item.icon className="w-4 h-4 flex-shrink-0" />
         <span className="truncate">{item.title}</span>
@@ -178,16 +177,13 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
     { title: "Рассылка сообщений", url: "/network/broadcast-messages", icon: MessageSquare },
     { title: "Правовые документы", url: "/admin/legal-documents", icon: FileText },
     { title: "Журнал аудита", url: "/admin/audit", icon: History },
+    { title: "Заявки", url: "/support/tickets", icon: Ticket },
+    { title: "Чат", url: "/support/chat", icon: MessageCircleMore },
   ];
 
   const settingsMenuItems = [
     { title: "API CTC настройки", url: "/settings/api-cts", icon: Cog },
     { title: "Внешняя БД", url: "/settings/external-database", icon: Database },
-  ];
-
-  const supportMenuItems = [
-    { title: "Заявки", url: "/support/tickets", icon: Ticket },
-    { title: "Чат", url: "/support/chat", icon: MessageCircleMore },
   ];
 
   const databaseMenuItems = [
@@ -209,7 +205,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
                 <div key={item.title}>
                   <NavLink 
                     to={item.url} 
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 touch-manipulation ${getNavCls(isActive(item.url))}`}
                     onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                   >
                     <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -260,56 +256,6 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
         </div>
         )}
 
-        {/* ПОДДЕРЖКА */}
-        <div className="border-t border-slate-600 px-4 py-3">
-          <button
-            className="w-full text-slate-200 text-xs font-semibold tracking-wider hover:text-white hover:bg-slate-700/50 active:bg-slate-700 transition-all duration-200 ease-in-out flex items-center gap-2 mb-3 uppercase px-2 py-2 rounded-md -mx-2"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggleGroup("support");
-            }}
-            type="button"
-          >
-            <LifeBuoy className="w-4 h-4 flex-shrink-0" />
-            <span className="flex-1 text-left">ПОДДЕРЖКА</span>
-            {unreadCounts.total > 0 && (
-              <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-1">
-                {unreadCounts.total}
-              </span>
-            )}
-            <ChevronRight
-              className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
-                openGroups.includes("support") ? "rotate-90" : ""
-              }`}
-            />
-          </button>
-          {openGroups.includes("support") && (
-            <div className="space-y-1">
-              {supportMenuItems.map((item) => {
-                const badge = item.url === '/support/tickets' ? unreadCounts.tickets : unreadCounts.chat;
-                return (
-                  <div key={item.title}>
-                    <NavLink
-                      to={item.url}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
-                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                    >
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate flex-1">{item.title}</span>
-                      {badge > 0 && (
-                        <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                          {badge}
-                        </span>
-                      )}
-                    </NavLink>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
         {/* АДМИНИСТРИРОВАНИЕ */}
         {menuVisibility.admin && (
         <div className="border-t border-slate-600 px-4 py-3">
@@ -332,18 +278,27 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
           </button>
           {openGroups.includes("admin") && (
             <div className="space-y-1">
-              {adminMenuItems.map((item) => (
-                <div key={item.title}>
-                  <NavLink
-                    to={item.url}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
-                    onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
-                  >
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">{item.title}</span>
-                  </NavLink>
-                </div>
-              ))}
+              {adminMenuItems.map((item) => {
+                const badge = item.url === '/support/tickets' ? unreadCounts.tickets
+                  : item.url === '/support/chat' ? unreadCounts.chat : 0;
+                return (
+                  <div key={item.title}>
+                    <NavLink
+                      to={item.url}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 touch-manipulation ${getNavCls(isActive(item.url))}`}
+                      onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
+                    >
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate flex-1">{item.title}</span>
+                      {badge > 0 && (
+                        <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                          {badge}
+                        </span>
+                      )}
+                    </NavLink>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -377,7 +332,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
                   <div key={item.title}>
                     <NavLink
                       to={item.url}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${getNavCls(isActive(item.url))}`}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 touch-manipulation ${getNavCls(isActive(item.url))}`}
                       onClick={() => isMobile && setMobileMenuOpen && setMobileMenuOpen(false)}
                     >
                       <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -402,7 +357,7 @@ const AppSidebarComponent = ({ selectedTradingPoint, isMobile = false, setMobile
       {isMobile ? (
         // Mobile version without Sidebar wrapper
         <div
-          className="scrollbar-hide h-full overflow-y-auto bg-slate-800 text-slate-100 overscroll-contain touch-auto pt-12 mobile-safe-top"
+          className="scrollbar-hide h-full overflow-y-auto bg-slate-800 text-slate-100 overscroll-contain touch-auto pt-14 pb-6 mobile-safe-top mobile-safe-bottom"
           onScroll={handleScroll}
           ref={scrollContainerRef}
         >

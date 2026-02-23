@@ -48,7 +48,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
           // Mobile Layout with Sheet
           <>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetContent side="left" className="p-0 w-80">
+              <SheetContent side="left" className="p-0 w-80 mobile-safe-left">
                 <SheetTitle className="sr-only">Меню навигации</SheetTitle>
                 <SheetDescription className="sr-only">
                   Навигационное меню с разделами торговых сетей, точек и администрирования
@@ -60,7 +60,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
             <div className={`${isMobile ? 'pt-0' : 'pt-20'} bg-gray-900`}>
               {/* Mobile Trading Point Selector - отдельно от верхнего бара */}
               {selectedNetwork && (
-                <div className="mx-4 pt-3 pb-4 px-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg mt-3">
+                <div className="mx-4 pt-3 pb-4 px-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg mt-3 mobile-safe-left mobile-safe-right">
                   <PointSelect
                     value={selectedTradingPoint}
                     onValueChange={handleTradingPointChange}

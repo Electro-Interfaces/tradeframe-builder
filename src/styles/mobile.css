@@ -174,6 +174,17 @@
   /* JavaScript обработка вибрации будет добавлена отдельно */
 }
 
+/* Landscape на телефонах — компактный header */
+@media (orientation: landscape) and (max-height: 500px) {
+  header {
+    min-height: 48px !important;
+  }
+
+  header .min-h-header {
+    min-height: 48px !important;
+  }
+}
+
 /* Скрываем элементы интерфейса браузера */
 @media screen and (max-width: 768px) {
   html {
