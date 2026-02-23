@@ -57,20 +57,18 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
               </SheetContent>
             </Sheet>
             
-            {/* Mobile Trading Point Selector — скрыт для fullWidth страниц (чат, заявки) */}
-            {!fullWidth && (
-              <div className={`${isMobile ? 'pt-0' : 'pt-20'} bg-gray-900`}>
-                {selectedNetwork && (
-                  <div className="mx-4 pt-3 pb-4 px-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg mt-3 mobile-safe-left mobile-safe-right">
-                    <PointSelect
-                      value={selectedTradingPoint}
-                      onValueChange={handleTradingPointChange}
-                      disabled={!selectedNetwork}
-                      networkId={selectedNetwork.id}
-                      className="w-full"
-                    />
-                  </div>
-                )}
+            {/* Mobile Trading Point Selector */}
+            {selectedNetwork && (
+              <div className="pt-0 bg-gray-900">
+                <div className="mx-4 pt-3 pb-4 px-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg mt-3 mobile-safe-left mobile-safe-right">
+                  <PointSelect
+                    value={selectedTradingPoint}
+                    onValueChange={handleTradingPointChange}
+                    disabled={!selectedNetwork}
+                    networkId={selectedNetwork.id}
+                    className="w-full"
+                  />
+                </div>
               </div>
             )}
 
