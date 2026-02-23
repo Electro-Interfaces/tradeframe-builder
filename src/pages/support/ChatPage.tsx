@@ -105,83 +105,81 @@ function RoomListPanel({
         </div>
       </div>
 
-      {/* Room list + FAB wrapper */}
-      <div className="flex-1 relative overflow-hidden">
-        <ScrollArea className="h-full">
-          {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
-            </div>
-          ) : filteredRooms.length === 0 ? (
-            <div className="p-8 text-center text-sm text-slate-500">
-              {search ? 'Ничего не найдено' : 'Нет диалогов'}
-            </div>
-          ) : (
-            <div>
-              {filteredRooms.map(room => {
-                const isSelected = selectedRoomId === room.id;
-                const isCompany = room.type === 'company' || room.type === 'group' || room.type === 'ticket';
-                const hasUnread = (room.unread_count ?? 0) > 0;
-                return (
-                  <button
-                    key={room.id}
-                    onClick={() => onSelectRoom(room.id)}
-                    className={`w-full text-left px-3 py-3 transition-colors touch-manipulation border-b border-slate-700/20 ${
-                      isSelected ? 'bg-slate-800' : 'hover:bg-slate-800/40 active:bg-slate-800/60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isCompany ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
-                        {isCompany ? (
-                          <Users className="h-5 w-5 text-emerald-400" />
-                        ) : (
-                          <User className="h-5 w-5 text-blue-400" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className={`text-sm truncate ${hasUnread ? 'text-white font-semibold' : 'text-slate-200 font-medium'}`}>
-                            {room.name || (isCompany ? 'Чат компании' : 'Личный чат')}
-                          </span>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {room.last_message_at && (
-                              <span className={`text-[11px] ${hasUnread ? 'text-blue-400' : 'text-slate-500'}`}>
-                                {formatTime(room.last_message_at)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 mt-0.5">
-                          <p className={`text-xs truncate ${hasUnread ? 'text-slate-300' : 'text-slate-500'}`}>
-                            {room.last_message
-                              ? `${room.last_message_by ? `${room.last_message_by}: ` : ''}${room.last_message}`
-                              : 'Нет сообщений'}
-                          </p>
-                          {hasUnread && (
-                            <span className="inline-flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full min-w-[20px] h-[20px] px-1.5 shrink-0">
-                              {room.unread_count}
+      {/* Room list */}
+      <ScrollArea className="flex-1">
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+          </div>
+        ) : filteredRooms.length === 0 ? (
+          <div className="p-8 text-center text-sm text-slate-500">
+            {search ? 'Ничего не найдено' : 'Нет диалогов'}
+          </div>
+        ) : (
+          <div>
+            {filteredRooms.map(room => {
+              const isSelected = selectedRoomId === room.id;
+              const isCompany = room.type === 'company' || room.type === 'group' || room.type === 'ticket';
+              const hasUnread = (room.unread_count ?? 0) > 0;
+              return (
+                <button
+                  key={room.id}
+                  onClick={() => onSelectRoom(room.id)}
+                  className={`w-full text-left px-3 py-3 transition-colors touch-manipulation border-b border-slate-700/20 ${
+                    isSelected ? 'bg-slate-800' : 'hover:bg-slate-800/40 active:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isCompany ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
+                      {isCompany ? (
+                        <Users className="h-5 w-5 text-emerald-400" />
+                      ) : (
+                        <User className="h-5 w-5 text-blue-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`text-sm truncate ${hasUnread ? 'text-white font-semibold' : 'text-slate-200 font-medium'}`}>
+                          {room.name || (isCompany ? 'Чат компании' : 'Личный чат')}
+                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {room.last_message_at && (
+                            <span className={`text-[11px] ${hasUnread ? 'text-blue-400' : 'text-slate-500'}`}>
+                              {formatTime(room.last_message_at)}
                             </span>
                           )}
                         </div>
                       </div>
+                      <div className="flex items-center justify-between gap-2 mt-0.5">
+                        <p className={`text-xs truncate ${hasUnread ? 'text-slate-300' : 'text-slate-500'}`}>
+                          {room.last_message
+                            ? `${room.last_message_by ? `${room.last_message_by}: ` : ''}${room.last_message}`
+                            : 'Нет сообщений'}
+                        </p>
+                        {hasUnread && (
+                          <span className="inline-flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full min-w-[20px] h-[20px] px-1.5 shrink-0">
+                            {room.unread_count}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </ScrollArea>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </ScrollArea>
 
-        {/* FAB — Новый чат */}
-        <button
-          onClick={onNewChat}
-          className="absolute bottom-5 right-5 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center touch-manipulation transition-colors"
-          style={{ zIndex: 50 }}
-          aria-label="Новый чат"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
-      </div>
+      {/* FAB — Новый чат (поверх всего, привязан к корневому relative) */}
+      <button
+        onClick={onNewChat}
+        className="absolute bottom-6 right-4 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center touch-manipulation transition-colors"
+        style={{ zIndex: 50 }}
+        aria-label="Новый чат"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
     </div>
   );
 }
