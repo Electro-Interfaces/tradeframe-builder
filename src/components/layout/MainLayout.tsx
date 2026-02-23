@@ -34,7 +34,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
 
   return (
     <SidebarProvider>
-      <div className={`bg-background text-foreground w-full max-w-none ${fullWidth ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+      <div className={`bg-background text-foreground w-full max-w-none ${fullWidth ? 'h-screen overflow-hidden' : 'min-h-screen'} ${isMobile ? 'flex flex-col' : ''}`}>
         <Header
           selectedNetwork={selectedNetwork?.id || ""}
           selectedTradingPoint={selectedTradingPoint}
