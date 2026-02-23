@@ -74,6 +74,7 @@ async function supportRequest<T>(
   const fetchOptions: RequestInit = {
     method,
     headers: getUserHeaders(),
+    cache: 'no-store',
   };
 
   if (body && method !== 'GET') {

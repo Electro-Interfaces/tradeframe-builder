@@ -143,11 +143,18 @@ function RoomListPanel({
                         <span className="text-sm text-white font-medium truncate">
                           {room.name || (isCompany ? 'Чат компании' : 'Личный чат')}
                         </span>
-                        {room.last_message_at && (
-                          <span className="text-xs text-slate-500 shrink-0 ml-2">
-                            {formatTime(room.last_message_at)}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {(room.unread_count ?? 0) > 0 && (
+                            <span className="inline-flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1">
+                              {room.unread_count}
+                            </span>
+                          )}
+                          {room.last_message_at && (
+                            <span className="text-xs text-slate-500">
+                              {formatTime(room.last_message_at)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {room.last_message && (
                         <p className="text-xs text-slate-500 truncate mt-0.5">
@@ -155,11 +162,6 @@ function RoomListPanel({
                         </p>
                       )}
                     </div>
-                    {room.unread_count > 0 && (
-                      <span className="mt-1.5 bg-blue-600 text-white text-xs font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1.5">
-                        {room.unread_count}
-                      </span>
-                    )}
                   </div>
                 </button>
               );
@@ -821,12 +823,17 @@ export default function ChatPage() {
       return;
     }
 
+    // Оптимистично обнуляем unread у выбранной комнаты
+    setRooms(prev => prev.map(r => r.id === selectedRoomId ? { ...r, unread_count: 0 } : r));
+
     setLoadingMessages(true);
     getChatMessages(selectedRoomId)
-      .then(msgs => {
+      .then(async (msgs) => {
         setMessages(msgs);
-        markChatRead(selectedRoomId).catch(() => {});
+        await markChatRead(selectedRoomId).catch(() => {});
+        // Обновляем и sidebar, и список комнат
         refreshUnreadCounts();
+        loadRooms();
       })
       .catch(() => toast.error('Не удалось загрузить сообщения'))
       .finally(() => setLoadingMessages(false));
@@ -843,6 +850,7 @@ export default function ChatPage() {
           setMessages(msgs);
           await markChatRead(selectedRoomId);
           refreshUnreadCounts();
+          loadRooms();
         }
       } catch {/* silent */}
     }, 10_000);
@@ -850,7 +858,7 @@ export default function ChatPage() {
     return () => {
       if (pollingMsgsRef.current) clearInterval(pollingMsgsRef.current);
     };
-  }, [selectedRoomId, refreshUnreadCounts]);
+  }, [selectedRoomId, refreshUnreadCounts, loadRooms]);
 
   // Send message (with optional file attachments)
   const handleSend = async () => {

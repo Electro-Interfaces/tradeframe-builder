@@ -23,6 +23,12 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   : ['http://localhost:3000'];
+// Автоматически добавляем 127.0.0.1 варианты для localhost (CORS различает их)
+for (const o of [...allowedOrigins]) {
+  if (o.includes('localhost')) allowedOrigins.push(o.replace('localhost', '127.0.0.1'));
+  else if (o.includes('127.0.0.1')) allowedOrigins.push(o.replace('127.0.0.1', 'localhost'));
+}
+const uniqueOrigins = [...new Set(allowedOrigins)];
 
 // Настройка CORS
 app.use(cors({
@@ -30,7 +36,7 @@ app.use(cors({
     // Разрешаем запросы без origin (например, curl, Postman)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
+    if (uniqueOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error(`Origin ${origin} not allowed by CORS`));

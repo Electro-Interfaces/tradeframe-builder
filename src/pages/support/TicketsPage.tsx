@@ -233,8 +233,9 @@ export default function TicketsPage() {
       setActivity(acts);
       refreshUnreadCounts();
       toast.success('Сообщение отправлено');
-    } catch {
-      toast.error('Не удалось отправить');
+    } catch (err) {
+      console.error('[TicketsPage] Ошибка отправки:', err);
+      toast.error(`Не удалось отправить: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSending(false);
       sendingRef.current = false;
@@ -766,9 +767,10 @@ export default function TicketsPage() {
                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                   {act.media_attachments.map((att, i) => {
                                     const cleanUrl = att.url.split('?')[0];
-                                    const proxyUrl = cleanUrl.startsWith('/uploads/')
+                                    const proxyBase = cleanUrl.startsWith('/uploads/')
                                       ? `/api/support/files/${cleanUrl.slice('/uploads/'.length)}`
                                       : cleanUrl;
+                                    const proxyUrl = att.name ? `${proxyBase}?name=${encodeURIComponent(att.name)}` : proxyBase;
                                     const isImg = /\.(jpe?g|png|gif|webp|heic|heif|svg)$/i.test(att.name);
                                     return isImg ? (
                                       <a key={i} href={proxyUrl} target="_blank" rel="noopener noreferrer" className="block">

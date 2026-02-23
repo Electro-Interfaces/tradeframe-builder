@@ -223,8 +223,39 @@ async function proxyToTSupport(req, res, method, sdkPath, data) {
   }
 }
 
-// Все эндпоинты требуют SDK-конфиг + user headers
+// === Proxy файлов (uploads) — до auth middleware, файлы защищены UUID-именем ===
+router.get('/files/:folder/:filename', async (req, res) => {
+  try {
+    const { folder, filename } = req.params;
+    // Валидация: запрет path traversal
+    if (/[\/\\]|\.\./.test(folder) || /[\/\\]|\.\./.test(filename)) {
+      return res.status(400).json({ error: 'Invalid path' });
+    }
+    const response = await axios.get(`${TSUPPORT_API_URL}/uploads/${folder}/${filename}`, {
+      responseType: 'stream',
+      timeout: 30000,
+    });
+    res.set('Content-Type', response.headers['content-type']);
+    if (response.headers['content-length']) res.set('Content-Length', response.headers['content-length']);
+    const originalName = req.query.name || filename;
+    res.set('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"; filename*=UTF-8''${encodeURIComponent(originalName)}`);
+    res.set('Cache-Control', 'private, max-age=604800');
+    response.data.pipe(res);
+  } catch (error) {
+    const status = error.response?.status || 500;
+    console.error('[Support Proxy] File proxy error:', status);
+    res.status(status).json({ error: 'File not found' });
+  }
+});
+
+// Все эндпоинты ниже требуют SDK-конфиг + user headers
 router.use(checkSdkConfig);
+
+// Запрет HTTP-кэширования для API-ответов (файлы — выше, с max-age)
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 
 // === Текущий пользователь (TSupport user_id) ===
 router.get('/me', async (req, res) => {
@@ -332,26 +363,7 @@ router.get('/chat/rooms/:id/messages', (req, res) => proxyToTSupport(req, res, '
 router.post('/chat/rooms/:id/messages', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/chat/rooms/${req.params.id}/messages`, req.body));
 router.post('/chat/rooms/:id/read', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/chat/rooms/${req.params.id}/read`));
 
-// === Proxy файлов (uploads) ===
-router.get('/files/:folder/:filename', async (req, res) => {
-  try {
-    const token = await getToken(req.tfUserInfo);
-    const filePath = `${req.params.folder}/${req.params.filename}`;
-    const response = await axios.get(`${TSUPPORT_API_URL}/uploads/${filePath}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      responseType: 'stream',
-      timeout: 30000,
-    });
-    res.set('Content-Type', response.headers['content-type']);
-    if (response.headers['content-length']) res.set('Content-Length', response.headers['content-length']);
-    res.set('Content-Disposition', `inline; filename="${req.params.filename}"`);
-    response.data.pipe(res);
-  } catch (error) {
-    const status = error.response?.status || 500;
-    console.error('[Support Proxy] File proxy error:', status);
-    res.status(status).json({ error: 'File not found' });
-  }
-});
+// (proxy файлов перенесён до checkSdkConfig middleware выше)
 
 // === Непрочитанные ===
 router.get('/unread', async (req, res) => {
