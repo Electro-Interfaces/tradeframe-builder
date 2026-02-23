@@ -71,17 +71,16 @@ function RoomListPanel({
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-slate-900">
       {/* Header */}
-      <div className="p-3 border-b border-slate-700/50">
-        <div className="flex items-center gap-2 mb-2">
-          {/* Filter tabs inline with title */}
-          <div className="flex gap-1 flex-1">
+      <div className="px-3 pt-3 pb-2.5 border-b border-slate-700/50 shrink-0">
+        <div className="flex items-center gap-1.5 mb-2.5">
+          <div className="flex gap-1.5 flex-1">
             {TABS.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key)}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-colors touch-manipulation ${
                   filter === tab.key
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
@@ -91,20 +90,20 @@ function RoomListPanel({
               </button>
             ))}
           </div>
-          <Button size="sm" variant="ghost" onClick={onNewChat} className="h-9 w-9 p-0 text-slate-400 hover:text-white">
-            <Plus className="h-4 w-4" />
+          <Button size="sm" variant="ghost" onClick={onNewChat} className="h-10 w-10 p-0 text-slate-400 hover:text-white touch-manipulation" aria-label="Новый чат">
+            <Plus className="h-5 w-5" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={onRefresh} className="h-9 w-9 p-0 text-slate-400 hover:text-white">
+          <Button size="sm" variant="ghost" onClick={onRefresh} className="h-10 w-10 p-0 text-slate-400 hover:text-white touch-manipulation" aria-label="Обновить">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
           <Input
             value={search}
             onChange={e => onSearchChange(e.target.value)}
             placeholder="Поиск..."
-            className="!h-9 pl-8 text-sm bg-slate-800 border-slate-600 text-white"
+            className="!h-10 pl-9 text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
           />
         </div>
       </div>
@@ -120,47 +119,52 @@ function RoomListPanel({
             {search ? 'Ничего не найдено' : 'Нет диалогов'}
           </div>
         ) : (
-          <div className="divide-y divide-slate-700/30">
+          <div>
             {filteredRooms.map(room => {
               const isSelected = selectedRoomId === room.id;
               const isCompany = room.type === 'company' || room.type === 'group' || room.type === 'ticket';
+              const hasUnread = (room.unread_count ?? 0) > 0;
               return (
                 <button
                   key={room.id}
                   onClick={() => onSelectRoom(room.id)}
-                  className={`w-full text-left p-3 hover:bg-slate-800/50 transition-colors ${isSelected ? 'bg-slate-800' : ''}`}
+                  className={`w-full text-left px-3 py-3 transition-colors touch-manipulation border-b border-slate-700/20 ${
+                    isSelected ? 'bg-slate-800' : 'hover:bg-slate-800/40 active:bg-slate-800/60'
+                  }`}
                 >
-                  <div className="flex items-start gap-2.5">
-                    <div className={`mt-0.5 w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isCompany ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isCompany ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
                       {isCompany ? (
-                        <Users className="h-4 w-4 text-emerald-400" />
+                        <Users className="h-5 w-5 text-emerald-400" />
                       ) : (
-                        <User className="h-4 w-4 text-blue-400" />
+                        <User className="h-5 w-5 text-blue-400" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-white font-medium truncate">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`text-sm truncate ${hasUnread ? 'text-white font-semibold' : 'text-slate-200 font-medium'}`}>
                           {room.name || (isCompany ? 'Чат компании' : 'Личный чат')}
                         </span>
-                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                          {(room.unread_count ?? 0) > 0 && (
-                            <span className="inline-flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1">
-                              {room.unread_count}
-                            </span>
-                          )}
+                        <div className="flex items-center gap-2 shrink-0">
                           {room.last_message_at && (
-                            <span className="text-xs text-slate-500">
+                            <span className={`text-[11px] ${hasUnread ? 'text-blue-400' : 'text-slate-500'}`}>
                               {formatTime(room.last_message_at)}
                             </span>
                           )}
                         </div>
                       </div>
-                      {room.last_message && (
-                        <p className="text-xs text-slate-500 truncate mt-0.5">
-                          {room.last_message_by ? `${room.last_message_by}: ` : ''}{room.last_message}
+                      <div className="flex items-center justify-between gap-2 mt-0.5">
+                        <p className={`text-xs truncate ${hasUnread ? 'text-slate-300' : 'text-slate-500'}`}>
+                          {room.last_message
+                            ? `${room.last_message_by ? `${room.last_message_by}: ` : ''}${room.last_message}`
+                            : 'Нет сообщений'}
                         </p>
-                      )}
+                        {hasUnread && (
+                          <span className="inline-flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full min-w-[20px] h-[20px] px-1.5 shrink-0">
+                            {room.unread_count}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -987,7 +991,7 @@ export default function ChatPage() {
       <div className="flex h-[calc(100dvh-var(--header-height,3.5rem))] overflow-hidden">
         {/* Desktop: fixed left panel */}
         {!isMobile && (
-          <div className="w-[420px] border-r border-slate-700/50 flex flex-col shrink-0">
+          <div className="w-[340px] xl:w-[380px] border-r border-slate-700/50 flex flex-col shrink-0">
             {roomListPanel}
           </div>
         )}
@@ -1005,26 +1009,27 @@ export default function ChatPage() {
               <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <div className="flex-1 flex flex-col min-h-0">
                   {/* Mobile chat header with back button */}
-                  <div className="p-2 border-b border-slate-700/50 flex items-center gap-2 shrink-0">
-                    <SheetTrigger asChild>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-400">
-                        <Menu className="h-4 w-4" />
-                      </Button>
-                    </SheetTrigger>
+                  <div className="px-2 py-1.5 border-b border-slate-700/50 flex items-center gap-1 shrink-0">
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => setSelectedRoomId(null)}
-                      className="text-xs text-slate-400"
+                      className="h-10 px-2 text-sm text-slate-400 hover:text-white touch-manipulation"
                     >
-                      Назад
+                      ← Назад
                     </Button>
+                    <div className="flex-1" />
+                    <SheetTrigger asChild>
+                      <Button size="sm" variant="ghost" className="h-10 w-10 p-0 text-slate-400 hover:text-white touch-manipulation" aria-label="Список чатов">
+                        <Menu className="h-5 w-5" />
+                      </Button>
+                    </SheetTrigger>
                   </div>
 
                   <MessagePanel {...messagePanelProps} />
                 </div>
 
-                <SheetContent side="left" className="w-[300px] p-0 bg-slate-900 border-slate-700">
+                <SheetContent side="left" className="w-[85vw] max-w-[340px] p-0 bg-slate-900 border-slate-700">
                   {roomListPanel}
                 </SheetContent>
               </Sheet>
