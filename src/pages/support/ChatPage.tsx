@@ -996,7 +996,7 @@ export default function ChatPage() {
 
   return (
     <MainLayout fullWidth>
-      <div className="flex h-[calc(100dvh-var(--header-height,3.5rem))] overflow-hidden">
+      <div className="flex h-full overflow-hidden">
         {/* Desktop: fixed left panel */}
         {!isMobile && (
           <div className="w-[340px] xl:w-[380px] border-r border-slate-700/50 flex flex-col shrink-0">
