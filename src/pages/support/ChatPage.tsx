@@ -90,10 +90,10 @@ function RoomListPanel({
               </button>
             ))}
           </div>
-          <Button size="sm" variant="ghost" onClick={onNewChat} className="h-10 w-10 p-0 text-slate-400 hover:text-white touch-manipulation" aria-label="Новый чат">
+          <Button size="sm" onClick={onNewChat} className="h-10 w-10 p-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full touch-manipulation" aria-label="Новый чат">
             <Plus className="h-5 w-5" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={onRefresh} className="h-10 w-10 p-0 text-slate-400 hover:text-white touch-manipulation" aria-label="Обновить">
+          <Button size="sm" variant="outline" onClick={onRefresh} className="h-10 w-10 p-0 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full touch-manipulation" aria-label="Обновить">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
