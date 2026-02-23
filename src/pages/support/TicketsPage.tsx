@@ -22,15 +22,19 @@ import {
   Calendar, ChevronRight, ChevronLeft, Inbox, FileText, Globe,
   Monitor, MapPin, Route, ChevronDown, UserCircle,
   Shield, Paperclip, X, Image as ImageIcon, File, SlidersHorizontal,
+  Pencil, Trash2, AlarmClock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSupportContext } from '@/contexts/SupportContext';
 import {
   getTickets, getTicket, getTicketActivity, sendTicketMessage, uploadFiles, updateTicket,
-  markTicketRead, getTSupportMe,
+  markTicketRead, getTSupportMe, editTicketMessage, deleteTicketMessage, searchUsers,
   type TicketListResponse,
 } from '@/services/supportService';
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
 import type { SupportTicket, TicketActivity, TicketStatus, AppContext } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_TICKET } from '@/types/support';
 import {
@@ -55,6 +59,106 @@ const STATUS_ICONS: Record<TicketStatus, typeof Clock> = {
 const PRIORITY_DOT: Record<string, string> = {
   low: 'bg-slate-400', medium: 'bg-blue-400', high: 'bg-amber-400', critical: 'bg-red-400',
 };
+
+// ========== SLA Indicator ==========
+function SlaIndicator({ deadline, breached }: { deadline?: string; breached?: boolean }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!deadline) return null;
+
+  const dl = new Date(deadline).getTime();
+  const diffMs = dl - now;
+  const diffH = diffMs / (1000 * 60 * 60);
+
+  if (breached || diffMs <= 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded animate-pulse">
+        <AlarmClock className="h-3 w-3" /> SLA!
+      </span>
+    );
+  }
+  if (diffH > 4) return null;
+
+  const hours = Math.floor(diffH);
+  const mins = Math.floor((diffMs / (1000 * 60)) % 60);
+  const label = hours > 0 ? `${hours}ч ${mins}м` : `${mins}м`;
+  const color = diffH <= 2 ? 'text-red-400 bg-red-500/10' : 'text-amber-400 bg-amber-500/10';
+
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium ${color} px-2 py-0.5 rounded`}>
+      <AlarmClock className="h-3 w-3" /> {label}
+    </span>
+  );
+}
+
+// ========== Assignee Selector ==========
+function AssigneeSelector({ ticket, onAssign }: { ticket: SupportTicket; onAssign: (userId: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const doSearch = useCallback(async (q: string) => {
+    setSearching(true);
+    try {
+      const data = await searchUsers(q, 10);
+      setResults(data);
+    } catch { setResults([]); }
+    finally { setSearching(false); }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    doSearch('');
+  }, [open, doSearch]);
+
+  const handleInput = (v: string) => {
+    setQuery(v);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => doSearch(v), 300);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="text-left text-white font-medium hover:text-blue-400 transition-colors">
+          {ticket.assignee_name || 'Не назначен'}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-2 bg-slate-800 border-slate-700" align="start">
+        <Input
+          value={query}
+          onChange={e => handleInput(e.target.value)}
+          placeholder="Поиск..."
+          className="h-8 text-xs mb-2 bg-slate-900 border-slate-600 text-white"
+          autoFocus
+        />
+        <div className="max-h-48 overflow-y-auto space-y-0.5">
+          {searching ? (
+            <div className="flex justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-slate-500" /></div>
+          ) : results.length === 0 ? (
+            <p className="text-xs text-slate-500 text-center py-2">Никого не найдено</p>
+          ) : results.map(u => (
+            <button
+              key={u.id}
+              onClick={() => { onAssign(u.id); setOpen(false); }}
+              className="w-full text-left px-2 py-1.5 rounded text-xs text-slate-300 hover:bg-slate-700 transition-colors flex items-center gap-2"
+            >
+              <User className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+              <span className="truncate">{u.name}</span>
+              <span className="text-slate-600 ml-auto text-[10px]">{u.role}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function TicketsPage() {
   const isMobile = useIsMobile();
@@ -473,6 +577,7 @@ export default function TicketsPage() {
                             </span>
                           ) : (
                             <>
+                              <SlaIndicator deadline={ticket.sla_deadline} breached={ticket.sla_breached} />
                               <span className={`w-1.5 h-1.5 rounded-full ${PRIORITY_DOT[ticket.priority] || 'bg-slate-500'}`} />
                               <span className={`text-xs ${TICKET_PRIORITY_COLORS[ticket.priority] || 'text-slate-500'}`}>
                                 {TICKET_PRIORITY_LABELS[ticket.priority] || ''}
@@ -620,7 +725,16 @@ export default function TicketsPage() {
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-slate-500 shrink-0" />
                       <span className="text-slate-500">Исполнитель:</span>
-                      <span className="text-white font-medium">{selectedTicket.assignee_name || 'Не назначен'}</span>
+                      <AssigneeSelector
+                        ticket={selectedTicket}
+                        onAssign={async (userId) => {
+                          try {
+                            const updated = await updateTicket(selectedTicket.id, { current_assignee_id: userId } as Partial<SupportTicket>);
+                            setSelectedTicket(updated);
+                            toast.success('Исполнитель назначен');
+                          } catch { toast.error('Не удалось назначить'); }
+                        }}
+                      />
                     </div>
                     {getCategoryDisplay(selectedTicket) && (
                       <div className="flex items-center gap-2">
@@ -640,8 +754,8 @@ export default function TicketsPage() {
                         <span className="text-slate-500">SLA:</span>
                         <span className={`font-medium ${selectedTicket.sla_breached ? 'text-red-400' : 'text-white'}`}>
                           {formatFullDate(selectedTicket.sla_deadline)}
-                          {selectedTicket.sla_breached && ' (просрочен)'}
                         </span>
+                        <SlaIndicator deadline={selectedTicket.sla_deadline} breached={selectedTicket.sla_breached} />
                       </div>
                     )}
                   </div>
@@ -748,7 +862,7 @@ export default function TicketsPage() {
                       }
 
                       return (
-                        <div key={act.id} className={`flex ${isCustomer ? 'justify-end' : 'justify-start'} py-1`}>
+                        <div key={act.id} className={`flex ${isCustomer ? 'justify-end' : 'justify-start'} py-1 group/msg`}>
                           <div className={`max-w-[75%] ${isCustomer ? 'order-1' : ''}`}>
                             <div className={`flex items-center gap-1.5 mb-0.5 ${isCustomer ? 'justify-end' : ''}`}>
                               <span className="text-xs font-medium text-slate-400">
@@ -762,7 +876,45 @@ export default function TicketsPage() {
                                   {isAi ? 'AI' : act.user_role}
                                 </span>
                               )}
+                              {act.is_edited && <span className="text-[10px] text-slate-600">ред.</span>}
                               <span className="text-xs text-slate-600">{formatDate(act.created_at)}</span>
+                              {/* Edit/Delete buttons for own messages */}
+                              {isCustomer && act.event_type === 'message' && (
+                                <span className="opacity-0 group-hover/msg:opacity-100 transition-opacity flex items-center gap-0.5 ml-1">
+                                  <button
+                                    onClick={async () => {
+                                      const newContent = prompt('Редактировать сообщение:', act.content || '');
+                                      if (newContent !== null && newContent.trim() && newContent !== act.content) {
+                                        try {
+                                          await editTicketMessage(selectedId!, act.id, newContent.trim());
+                                          const acts = await getTicketActivity(selectedId!);
+                                          setActivity(acts);
+                                          toast.success('Сообщение отредактировано');
+                                        } catch { toast.error('Не удалось отредактировать'); }
+                                      }
+                                    }}
+                                    className="p-0.5 rounded hover:bg-slate-700 text-slate-500 hover:text-white transition-colors"
+                                    title="Редактировать"
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (!confirm('Удалить сообщение?')) return;
+                                      try {
+                                        await deleteTicketMessage(selectedId!, act.id);
+                                        const acts = await getTicketActivity(selectedId!);
+                                        setActivity(acts);
+                                        toast.success('Сообщение удалено');
+                                      } catch { toast.error('Не удалось удалить'); }
+                                    }}
+                                    className="p-0.5 rounded hover:bg-red-600/50 text-slate-500 hover:text-red-400 transition-colors"
+                                    title="Удалить"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              )}
                             </div>
                             <div className={`rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
                               isCustomer

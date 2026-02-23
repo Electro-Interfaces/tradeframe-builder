@@ -100,6 +100,8 @@ export interface TicketActivity {
   ai_generated?: boolean;
   media_urls?: string[];
   media_attachments?: { url: string; name: string; size?: number; type?: string }[];
+  is_edited?: boolean;
+  edited_at?: string;
   created_at: string;
 }
 
@@ -203,7 +205,12 @@ export interface ChatMessage {
   file_name?: string;
   file_size?: number;
   reply_to?: string;
+  reply_to_content?: string | null;
+  reply_to_user_name?: string | null;
+  reply_to_deleted?: boolean;
   is_edited: boolean;
+  edited_at?: string;
+  is_deleted?: boolean;
   created_at: string;
 }
 

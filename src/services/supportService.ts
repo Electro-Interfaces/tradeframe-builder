@@ -266,15 +266,42 @@ export async function sendChatMessage(roomId: string, content: string, fileData?
   file_url: string;
   file_name: string;
   file_size: number;
-}): Promise<ChatMessage> {
+}, replyTo?: string): Promise<ChatMessage> {
   return supportRequest<ChatMessage>(`/chat/rooms/${roomId}/messages`, {
     method: 'POST',
     body: {
       content,
       type: fileData?.type || 'text',
       ...(fileData ? { file_url: fileData.file_url, file_name: fileData.file_name, file_size: fileData.file_size } : {}),
+      ...(replyTo ? { reply_to: replyTo } : {}),
     },
   });
+}
+
+export async function editChatMessage(roomId: string, messageId: string, content: string): Promise<ChatMessage> {
+  return supportRequest<ChatMessage>(`/chat/rooms/${roomId}/messages/${messageId}`, {
+    method: 'PATCH',
+    body: { content },
+  });
+}
+
+export async function deleteChatMessage(roomId: string, messageId: string): Promise<void> {
+  await supportRequest<{ ok: boolean }>(`/chat/rooms/${roomId}/messages/${messageId}`, { method: 'DELETE' });
+}
+
+export async function editTicketMessage(ticketId: string, messageId: string, content: string): Promise<unknown> {
+  return supportRequest(`/tickets/${ticketId}/messages/${messageId}`, {
+    method: 'PATCH',
+    body: { content },
+  });
+}
+
+export async function deleteTicketMessage(ticketId: string, messageId: string): Promise<void> {
+  await supportRequest<{ ok: boolean }>(`/tickets/${ticketId}/messages/${messageId}`, { method: 'DELETE' });
+}
+
+export async function searchUsers(q: string, limit = 20): Promise<{ id: string; name: string; email: string; role: string }[]> {
+  return supportRequest(`/users/search`, { params: { q, limit: String(limit) } });
 }
 
 export async function uploadChatFiles(roomId: string, files: File[]): Promise<UploadedFile[]> {

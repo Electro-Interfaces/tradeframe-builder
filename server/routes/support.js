@@ -363,6 +363,17 @@ router.get('/chat/rooms/:id/messages', (req, res) => proxyToTSupport(req, res, '
 router.post('/chat/rooms/:id/messages', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/chat/rooms/${req.params.id}/messages`, req.body));
 router.post('/chat/rooms/:id/read', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/chat/rooms/${req.params.id}/read`));
 
+// === Edit/Delete сообщений чата ===
+router.patch('/chat/rooms/:id/messages/:msgId', (req, res) => proxyToTSupport(req, res, 'PATCH', `/api/v2/sdk/chat/rooms/${req.params.id}/messages/${req.params.msgId}`, req.body));
+router.delete('/chat/rooms/:id/messages/:msgId', (req, res) => proxyToTSupport(req, res, 'DELETE', `/api/v2/sdk/chat/rooms/${req.params.id}/messages/${req.params.msgId}`));
+
+// === Edit/Delete сообщений заявок ===
+router.patch('/tickets/:id/messages/:msgId', (req, res) => proxyToTSupport(req, res, 'PATCH', `/api/v2/sdk/tickets/${req.params.id}/messages/${req.params.msgId}`, req.body));
+router.delete('/tickets/:id/messages/:msgId', (req, res) => proxyToTSupport(req, res, 'DELETE', `/api/v2/sdk/tickets/${req.params.id}/messages/${req.params.msgId}`));
+
+// === Поиск пользователей (для переназначения) ===
+router.get('/users/search', (req, res) => proxyToTSupport(req, res, 'GET', '/api/v2/sdk/chat/users/search'));
+
 // (proxy файлов перенесён до checkSdkConfig middleware выше)
 
 // === Непрочитанные ===

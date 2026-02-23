@@ -18,12 +18,13 @@ import {
 import {
   Search, Send, Loader2, RefreshCw, MessageCircle, Users, Plus,
   User, Building2, X, Calendar, Shield, Eye, Crown,
-  Paperclip, FileText, Download,
+  Paperclip, FileText, Download, Reply, Pencil, Trash2, Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSupportContext } from '@/contexts/SupportContext';
 import {
   getChatRooms, getChatMessages, sendChatMessage, markChatRead, createChatRoom, getChatRoom, uploadChatFiles, getTSupportMe,
+  editChatMessage, deleteChatMessage,
 } from '@/services/supportService';
 import type { ChatRoom, ChatMessage, ChatParticipant } from '@/types/support';
 import { MAX_FILE_SIZE, MAX_FILES_CHAT } from '@/types/support';
@@ -292,12 +293,31 @@ function MessageBubble({
   isOwn,
   isFirstInGroup,
   isLastInGroup,
+  onReply,
+  onEdit,
+  onDelete,
 }: {
   message: ChatMessage;
   isOwn: boolean;
   isFirstInGroup: boolean;
   isLastInGroup: boolean;
+  onReply?: (msg: ChatMessage) => void;
+  onEdit?: (msg: ChatMessage) => void;
+  onDelete?: (msg: ChatMessage) => void;
 }) {
+  const [hovered, setHovered] = useState(false);
+
+  // Deleted placeholder
+  if (message.is_deleted) {
+    return (
+      <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'}`}>
+        <div className="max-w-[75%] px-3 py-1.5 rounded-xl bg-slate-800/30 border border-slate-700/30">
+          <p className="text-xs text-slate-600 italic">Сообщение удалено</p>
+        </div>
+      </div>
+    );
+  }
+
   // Системное сообщение
   if (message.type === 'system') {
     return (
@@ -329,7 +349,30 @@ function MessageBubble({
   })();
 
   return (
-    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'}`}>
+    <div
+      className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${isFirstInGroup ? 'mt-2' : 'mt-0.5'} group relative`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Action buttons (hover) */}
+      {hovered && (
+        <div className={`absolute top-0 ${isOwn ? 'left-0 -translate-x-full pr-1' : 'right-0 translate-x-full pl-1'} flex items-center gap-0.5 z-10`}>
+          <button onClick={() => onReply?.(message)} className="p-1 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-white transition-colors" title="Ответить">
+            <Reply className="h-3.5 w-3.5" />
+          </button>
+          {isOwn && (
+            <button onClick={() => onEdit?.(message)} className="p-1 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-white transition-colors" title="Редактировать">
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {isOwn && (
+            <button onClick={() => onDelete?.(message)} className="p-1 rounded bg-slate-700/80 hover:bg-red-600/80 text-slate-400 hover:text-white transition-colors" title="Удалить">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
       <div
         className={`max-w-[75%] px-3 py-1.5 ${radius} ${
           isOwn
@@ -342,6 +385,16 @@ function MessageBubble({
           <p className={`text-xs font-semibold mb-0.5 ${colorClass}`}>
             {message.user_name}
           </p>
+        )}
+
+        {/* Reply-to quote */}
+        {message.reply_to && (
+          <div className={`border-l-2 pl-2 mb-1.5 ${isOwn ? 'border-blue-400/50' : 'border-slate-500/50'}`}>
+            <p className="text-[11px] font-medium text-blue-400/80">{message.reply_to_user_name || ''}</p>
+            <p className="text-xs text-slate-400 truncate">
+              {message.reply_to_deleted ? 'Сообщение удалено' : (message.reply_to_content || '')}
+            </p>
+          </div>
         )}
 
         {/* File attachment */}
@@ -562,6 +615,12 @@ function MessagePanel({
   pendingFiles,
   onAddFiles,
   onRemoveFile,
+  replyingTo,
+  onSetReplyingTo,
+  editingMessage,
+  onSetEditingMessage,
+  onEditConfirm,
+  onDeleteMessage,
 }: {
   room: ChatRoom | undefined;
   messages: ChatMessage[];
@@ -576,6 +635,12 @@ function MessagePanel({
   pendingFiles: File[];
   onAddFiles: (files: File[]) => void;
   onRemoveFile: (index: number) => void;
+  replyingTo: ChatMessage | null;
+  onSetReplyingTo: (msg: ChatMessage | null) => void;
+  editingMessage: ChatMessage | null;
+  onSetEditingMessage: (msg: ChatMessage | null) => void;
+  onEditConfirm: (msgId: string, content: string) => void;
+  onDeleteMessage: (msg: ChatMessage) => void;
 }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -689,6 +754,9 @@ function MessagePanel({
                     isOwn={isOwn}
                     isFirstInGroup={g.isFirstInGroup}
                     isLastInGroup={g.isLastInGroup}
+                    onReply={onSetReplyingTo}
+                    onEdit={onSetEditingMessage}
+                    onDelete={onDeleteMessage}
                   />
                 </div>
               );
@@ -697,6 +765,33 @@ function MessagePanel({
           </div>
         )}
       </ScrollArea>
+
+      {/* Reply bar */}
+      {replyingTo && (
+        <div className="px-3 pt-2 border-t border-slate-700/50 shrink-0 flex items-center gap-2">
+          <div className="flex-1 border-l-2 border-blue-500 pl-2 min-w-0">
+            <p className="text-xs font-medium text-blue-400">{replyingTo.user_name}</p>
+            <p className="text-xs text-slate-400 truncate">{replyingTo.content || 'Файл'}</p>
+          </div>
+          <button onClick={() => onSetReplyingTo(null)} className="p-1 text-slate-500 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Edit bar */}
+      {editingMessage && (
+        <div className="px-3 pt-2 border-t border-slate-700/50 shrink-0 flex items-center gap-2">
+          <Pencil className="h-4 w-4 text-amber-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-amber-400 font-medium">Редактирование</p>
+            <p className="text-xs text-slate-400 truncate">{editingMessage.content}</p>
+          </div>
+          <button onClick={() => onSetEditingMessage(null)} className="p-1 text-slate-500 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Pending files preview */}
       {pendingFiles.length > 0 && (
@@ -753,11 +848,17 @@ function MessagePanel({
           />
           <Button
             size="icon"
-            onClick={onSend}
+            onClick={() => {
+              if (editingMessage) {
+                onEditConfirm(editingMessage.id, messageText.trim());
+              } else {
+                onSend();
+              }
+            }}
             disabled={sending || (!messageText.trim() && pendingFiles.length === 0)}
-            className="h-9 w-9 bg-blue-600 hover:bg-blue-700 shrink-0"
+            className={`h-9 w-9 shrink-0 ${editingMessage ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : editingMessage ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
       </div>
@@ -784,6 +885,10 @@ export default function ChatPage() {
   // sheetOpen removed — mobile uses back button
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [tsupportUserId, setTsupportUserId] = useState('');
+
+  // Reply/Edit state
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
 
   // Chat info panel state
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
@@ -878,6 +983,7 @@ export default function ChatPage() {
     if (!selectedRoomId || (!messageText.trim() && pendingFiles.length === 0)) return;
     setSending(true);
     try {
+      const replyId = replyingTo?.id;
       if (pendingFiles.length > 0) {
         // Upload files first, then send each as a message
         const uploaded = await uploadChatFiles(selectedRoomId, pendingFiles);
@@ -885,22 +991,23 @@ export default function ChatPage() {
         for (let i = 0; i < uploaded.length; i++) {
           const file = uploaded[i];
           const isImg = file.type.startsWith('image/');
-          // Текст прикрепляем только к первому файлу
+          // Текст и reply прикрепляем только к первому файлу
           const msg = await sendChatMessage(selectedRoomId, i === 0 ? text : '', {
             type: isImg ? 'image' : 'file',
             file_url: file.url,
             file_name: file.name,
             file_size: file.size,
-          });
+          }, i === 0 ? replyId : undefined);
           setMessages(prev => [...prev, msg]);
         }
         setMessageText('');
         setPendingFiles([]);
       } else {
-        const msg = await sendChatMessage(selectedRoomId, messageText.trim());
+        const msg = await sendChatMessage(selectedRoomId, messageText.trim(), undefined, replyId);
         setMessages(prev => [...prev, msg]);
         setMessageText('');
       }
+      setReplyingTo(null);
       refreshUnreadCounts();
       loadRooms();
     } catch {
@@ -908,6 +1015,40 @@ export default function ChatPage() {
     } finally {
       setSending(false);
     }
+  };
+
+  // Edit message
+  const handleEditConfirm = async (msgId: string, content: string) => {
+    if (!selectedRoomId || !content) return;
+    setSending(true);
+    try {
+      await editChatMessage(selectedRoomId, msgId, content);
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content, is_edited: true } : m));
+      setEditingMessage(null);
+      setMessageText('');
+    } catch {
+      toast.error('Не удалось отредактировать');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Delete message
+  const handleDeleteMessage = async (msg: ChatMessage) => {
+    if (!selectedRoomId || !confirm('Удалить сообщение?')) return;
+    try {
+      await deleteChatMessage(selectedRoomId, msg.id);
+      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_deleted: true, content: '' } : m));
+    } catch {
+      toast.error('Не удалось удалить');
+    }
+  };
+
+  // Start editing — put content in textarea
+  const handleStartEdit = (msg: ChatMessage) => {
+    setEditingMessage(msg);
+    setReplyingTo(null);
+    setMessageText(msg.content);
   };
 
   // Create chat room
@@ -975,6 +1116,12 @@ export default function ChatPage() {
     sending,
     onHeaderClick: handleToggleInfo,
     participantCount: roomDetail?.participants?.length,
+    replyingTo,
+    onSetReplyingTo: setReplyingTo,
+    editingMessage,
+    onSetEditingMessage: handleStartEdit,
+    onEditConfirm: handleEditConfirm,
+    onDeleteMessage: handleDeleteMessage,
     pendingFiles,
     onAddFiles: (files: File[]) => {
       const oversized = files.filter(f => f.size > MAX_FILE_SIZE);
