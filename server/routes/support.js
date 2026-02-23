@@ -263,6 +263,12 @@ router.post('/tickets/:id/messages', (req, res) => proxyToTSupport(req, res, 'PO
 router.get('/tickets/:id/activity', (req, res) => proxyToTSupport(req, res, 'GET', `/api/v2/sdk/tickets/${req.params.id}/activity`));
 router.post('/tickets/:id/read', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/tickets/${req.params.id}/read`));
 
+// === Archive / Delete / Restore ===
+router.post('/tickets/:id/archive', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/tickets/${req.params.id}/archive`));
+router.post('/tickets/:id/unarchive', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/tickets/${req.params.id}/unarchive`));
+router.delete('/tickets/:id', (req, res) => proxyToTSupport(req, res, 'DELETE', `/api/v2/sdk/tickets/${req.params.id}`));
+router.post('/tickets/:id/restore', (req, res) => proxyToTSupport(req, res, 'POST', `/api/v2/sdk/tickets/${req.params.id}/restore`));
+
 // === Upload файлов к заявке ===
 const MAX_UPLOAD_SIZE = 60 * 1024 * 1024; // 60 МБ
 

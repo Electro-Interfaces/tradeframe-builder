@@ -103,10 +103,13 @@ export async function getTickets(filters?: {
   priority?: string;
   type?: string;
   category?: string;
+  direction?: string;
   search?: string;
   created_by?: string;
   assigned_to?: string;
   sla_breached?: boolean;
+  archived?: string; // 'true' | 'all'
+  show_deleted?: boolean;
   limit?: number;
   offset?: number;
 }): Promise<TicketListResponse> {
@@ -115,10 +118,13 @@ export async function getTickets(filters?: {
   if (filters?.priority) params.priority = filters.priority;
   if (filters?.type) params.type = filters.type;
   if (filters?.category) params.category = filters.category;
+  if (filters?.direction) params.direction = filters.direction;
   if (filters?.search) params.search = filters.search;
   if (filters?.created_by) params.created_by = filters.created_by;
   if (filters?.assigned_to) params.assigned_to = filters.assigned_to;
   if (filters?.sla_breached) params.sla_breached = 'true';
+  if (filters?.archived) params.archived = filters.archived;
+  if (filters?.show_deleted) params.show_deleted = 'true';
   if (filters?.limit) params.limit = String(filters.limit);
   if (filters?.offset) params.offset = String(filters.offset);
 
@@ -141,6 +147,22 @@ export async function updateTicket(id: string, data: Partial<SupportTicket>): Pr
     method: 'PATCH',
     body: data,
   });
+}
+
+export async function archiveTicket(id: string): Promise<void> {
+  await supportRequest<{ ok: boolean }>(`/tickets/${id}/archive`, { method: 'POST' });
+}
+
+export async function unarchiveTicket(id: string): Promise<void> {
+  await supportRequest<{ ok: boolean }>(`/tickets/${id}/unarchive`, { method: 'POST' });
+}
+
+export async function deleteTicket(id: string): Promise<void> {
+  await supportRequest<{ ok: boolean }>(`/tickets/${id}`, { method: 'DELETE' });
+}
+
+export async function restoreTicket(id: string): Promise<void> {
+  await supportRequest<{ ok: boolean }>(`/tickets/${id}/restore`, { method: 'POST' });
 }
 
 // === Сообщения тикетов ===
