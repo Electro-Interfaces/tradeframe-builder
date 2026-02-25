@@ -110,7 +110,7 @@ export default function CouponsPage() {
   return (
     <MainLayout fullWidth={true}>
       <div
-        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${
           isMobile ? 'pt-4' : 'pt-6'
         } min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}
       >

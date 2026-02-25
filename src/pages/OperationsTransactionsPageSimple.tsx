@@ -777,7 +777,7 @@ export default function OperationsTransactionsPageSimple() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
-        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobileForced ? 'pt-4' : 'pt-6'} min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${isMobileForced ? 'pt-4' : 'pt-6'} min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

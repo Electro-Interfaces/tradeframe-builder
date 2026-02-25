@@ -1576,7 +1576,7 @@ export default function NetworkOverview() {
     <MainLayout fullWidth={true}>
       <div
         ref={scrollContainerRef}
-        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-hidden ${isMobile ? 'pt-4' : 'pt-6'}`}
+        className={`w-full space-y-6 px-4 md:px-6 lg:px-8 relative overflow-x-hidden ${isMobile ? 'pt-4' : 'pt-6'}`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

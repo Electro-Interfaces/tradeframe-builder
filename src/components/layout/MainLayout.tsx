@@ -34,7 +34,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
 
   return (
     <SidebarProvider>
-      <div className={`bg-background text-foreground w-full max-w-none ${fullWidth ? 'h-screen overflow-hidden' : 'min-h-screen'} ${isMobile ? 'flex flex-col' : ''}`}>
+      <div className={`bg-background text-foreground w-full max-w-none ${fullWidth ? 'h-screen' : 'min-h-screen'} ${isMobile ? 'flex flex-col' : ''}`}>
         <Header
           selectedNetwork={selectedNetwork?.id || ""}
           selectedTradingPoint={selectedTradingPoint}
@@ -74,7 +74,7 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
               )}
 
               <main className="flex-1 min-h-0 min-w-0 w-full max-w-none overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-                <div className={fullWidth ? "w-full max-w-none h-full" : "px-0 md:px-6 lg:px-8 w-full max-w-none pt-4"}>
+                <div className={fullWidth ? "w-full max-w-none min-h-full" : "px-0 md:px-6 lg:px-8 w-full max-w-none pt-4"}>
                   {children}
                 </div>
               </main>
@@ -82,11 +82,11 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
           </>
         ) : (
           // Desktop Layout
-          <div className={`flex w-full max-w-none ${isMobile ? 'pt-0' : 'pt-header'} ${fullWidth ? 'h-full overflow-hidden' : ''}`}>
+          <div className={`flex w-full max-w-none ${isMobile ? 'pt-0' : 'pt-header'} ${fullWidth ? 'h-full' : ''}`}>
             <AppSidebar selectedTradingPoint={selectedTradingPoint} />
             
-            <main className="flex-1 min-w-0 w-full max-w-none overflow-hidden">
-              <div className={fullWidth ? "w-full max-w-none h-full" : "px-4 md:px-6 lg:px-8 w-full max-w-none"}>
+            <main className="flex-1 min-w-0 w-full max-w-none overflow-y-auto">
+              <div className={fullWidth ? "w-full max-w-none min-h-full" : "px-4 md:px-6 lg:px-8 w-full max-w-none"}>
                 {children}
               </div>
             </main>

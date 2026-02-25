@@ -127,7 +127,7 @@ export default function Equipment() {
       <div
         ref={scrollContainerRef}
         data-pull-to-refresh="true"
-        className={`w-full ${isMobile ? 'space-y-3 px-3 py-3' : 'space-y-6 px-4 md:px-6 lg:px-8 py-6'} relative overflow-hidden`}
+        className={`w-full ${isMobile ? 'space-y-3 px-3 py-3' : 'space-y-6 px-4 md:px-6 lg:px-8 py-6'} relative overflow-x-hidden`}
         style={{
           transform: isMobile && pullState !== 'idle' ? `translateY(${pullDistance * 0.5}px)` : 'translateY(0)',
           transition: pullState === 'idle' ? 'transform 0.3s ease-out' : 'none'
