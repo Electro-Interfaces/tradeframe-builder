@@ -2,7 +2,7 @@
  * Excel экспорт для поступлений топлива
  */
 
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
 import { format as formatDate } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { FlatReceipt } from '@/types/receipts';
@@ -26,7 +26,9 @@ export async function exportReceiptsToExcel(
     dateTo?: string;
   }
 ): Promise<Blob> {
-  const workbook = new ExcelJS.Workbook();
+  const ExcelJSModule = await import('exceljs');
+  const ExcelJSLib = ExcelJSModule.default;
+  const workbook = new ExcelJSLib.Workbook();
   const worksheet = workbook.addWorksheet('Поступления топлива');
 
   // Базовые стили

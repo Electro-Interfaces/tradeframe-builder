@@ -59,16 +59,6 @@ class OperationsServiceUpdated {
       const currentConnection = apiConfigService.getCurrentConnection();
       const currentApiUrl = apiConfigService.getCurrentApiUrl();
       
-      console.log('🔍 OperationsService.getOperations debug:', {
-        isMockMode,
-        currentApiUrl,
-        hasConnection: !!currentConnection,
-        connectionId: currentConnection?.id,
-        connectionType: currentConnection?.type,
-        filters,
-        pagination
-      });
-      
       if (isMockMode) {
         return this.getMockOperations(filters, pagination);
       }
@@ -316,12 +306,6 @@ class OperationsServiceUpdated {
   
   
   private transformOperationsResponse(apiResponse: any): PaginatedOperations {
-    console.log('🔄 Transforming API response:', { 
-      dataCount: apiResponse?.data?.length,
-      pagination: apiResponse?.pagination,
-      summaryExists: !!apiResponse?.summary
-    });
-    
     const result = {
       data: apiResponse.data.map((item: any) => this.transformOperationFromApi(item)),
       pagination: apiResponse.pagination,

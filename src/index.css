@@ -332,30 +332,9 @@
 
 /* Мобильные браузер-специфичные стили */
 @layer utilities {
-  /* Защита от pull-to-refresh */
+  /* Защита от pull-to-refresh (основные правила в mobile.css) */
   .no-pull-refresh {
-    overscroll-behavior: none;
-    overscroll-behavior-y: none;
-    -webkit-overflow-scrolling: auto;
-  }
-  
-  body.mobile-no-refresh {
-    overscroll-behavior: none;
-    overscroll-behavior-y: none;
-    -webkit-overflow-scrolling: auto;
-    touch-action: pan-x pan-y;
-  }
-  
-  html.mobile-no-refresh {
-    overscroll-behavior: none;
-    overscroll-behavior-y: none;
-  }
-
-  /* Защита от pull-to-refresh — только overscroll-behavior, без блокировки скролла */
-  @media (hover: none) and (pointer: coarse) {
-    html, body {
-      overscroll-behavior-y: contain;
-    }
+    overscroll-behavior-y: contain;
   }
 
   /* Универсальные мобильные классы */
@@ -369,7 +348,7 @@
 
   .mobile-scroll-fix {
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: none;
+    overscroll-behavior-y: contain;
   }
 
   .mobile-safe-top {

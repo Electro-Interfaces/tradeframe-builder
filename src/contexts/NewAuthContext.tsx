@@ -105,7 +105,6 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
 
     // Ключи для httpClient
     localStorage.removeItem('auth_login');
-    localStorage.removeItem('auth_password');
     localStorage.removeItem('auth_token_expiry');
     localStorage.removeItem('auth_user');
 
@@ -330,11 +329,10 @@ export function NewAuthProvider({ children }: AuthProviderProps) {
       setUser(authenticatedUser);
       saveAuthSession(authenticatedUser, token);
 
-      // Сохраняем credentials для httpClient (нужны для автоматического обновления токена)
+      // Сохраняем данные для httpClient (без пароля — при истечении токена редирект на логин)
       localStorage.setItem('auth_login', email);
-      localStorage.setItem('auth_password', password);
       localStorage.setItem('auth_token', token);
-      localStorage.setItem('auth_token_expiry', new Date(Date.now() + 60 * 60 * 1000).toISOString());
+      localStorage.setItem('auth_token_expiry', new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString());
       localStorage.setItem('auth_user', JSON.stringify(authenticatedUser));
 
       // Если выбрано "Запомнить меня", сохраняем в IndexedDB

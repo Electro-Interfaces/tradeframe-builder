@@ -88,3 +88,12 @@ ngrok.zip
 
 SECRETS_VALUES.txt
 ADD_TO_GITHUB_SECRETS.txt
+
+# Temporary debug/test files
+tmp_*.json
+tmp_*.js
+tmp_*.cjs
+shift_*.json
+shift_report_*.json
+msto_*.json
+D:Users*

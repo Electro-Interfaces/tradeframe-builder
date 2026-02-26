@@ -18,23 +18,9 @@ interface TradecorpProxyRequestOptions {
   body?: any;
 }
 
-/**
- * Базовый URL для Backend Proxy
- */
-const getProxyBaseUrl = (): string => {
-  const origin = window.location.origin;
+import { getBackendOrigin } from '@/utils/backendUrl';
 
-  if (!origin || origin === 'null' || origin === 'undefined') {
-    throw new Error('Cannot determine origin for TradeCorp Proxy');
-  }
-
-  // GitHub Pages использует TEST backend
-  if (origin.includes('github.io')) {
-    return 'https://testtf.dataworker.ru';
-  }
-
-  return origin;
-};
+const getProxyBaseUrl = getBackendOrigin;
 
 /**
  * Выполнить запрос к TradeCorp API через Backend Proxy

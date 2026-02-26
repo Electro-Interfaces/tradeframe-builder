@@ -16,6 +16,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import type { FuelChartData } from '../hooks/useShiftChartData';
+import { getFuelColor } from '@/types/shift-dashboard';
 
 interface FuelBalanceChartsProps {
   chartData: FuelChartData[];
@@ -24,24 +25,8 @@ interface FuelBalanceChartsProps {
   onLoad: () => void;
 }
 
-// Цвета для разных видов топлива
-const FUEL_COLORS: Record<string, string> = {
-  'ДТ': '#f59e0b',
-  'АИ-92': '#22c55e',
-  'АИ-95': '#3b82f6',
-  'АИ-98': '#a855f7',
-  'АИ-100': '#ec4899',
-  'default': '#64748b'
-};
-
-const getColor = (fuelName: string) => {
-  for (const key of Object.keys(FUEL_COLORS)) {
-    if (fuelName.includes(key)) {
-      return FUEL_COLORS[key];
-    }
-  }
-  return FUEL_COLORS.default;
-};
+// FUEL_COLORS удалён — используется getFuelColor() из shift-dashboard
+const getColor = (fuelName: string) => getFuelColor(fuelName);
 
 // Форматирование числа с разделителями
 const formatVolume = (value: number) => {

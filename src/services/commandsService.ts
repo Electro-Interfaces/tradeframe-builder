@@ -604,7 +604,7 @@ export const commandsAPI = {
     
     // В реальной реализации здесь был бы DELETE-запрос к API
     // Для мок-данных просто возвращаем успешный результат
-    console.log(`Command ${commandId} deleted (mock)`);
+    // mock: command deleted
   },
 
   async getHistory(params: {

@@ -219,6 +219,7 @@ async function proxyToTSupport(req, res, method, sdkPath, data) {
     const status = error.response?.status || 500;
     const errorData = error.response?.data || { error: error.message };
     console.error(`[Support Proxy] ${method} ${sdkPath}:`, status, errorData);
+    console.error(`[Support Proxy] Full error:`, error.code, error.cause || error.stack?.split('\n').slice(0, 3).join('\n'));
     res.status(status).json(errorData);
   }
 }

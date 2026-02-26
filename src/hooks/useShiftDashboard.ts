@@ -151,11 +151,11 @@ export function useShiftDashboard(options: UseShiftDashboardOptions): UseShiftDa
       };
     },
     enabled: enabled && system > 0 && (!!station || (stations && stations.length > 0)),
-    staleTime: 0, // Данные всегда считаются устаревшими
-    gcTime: 0, // Не кэшируем данные - всегда загружаем заново при смене периода
+    staleTime: 5 * 60 * 1000, // 5 минут — данные смен не меняются часто
+    gcTime: 10 * 60 * 1000, // 10 минут — хранить в памяти для быстрого возврата
     retry: 2,
     refetchOnWindowFocus: false,
-    refetchOnMount: 'always', // Всегда загружать при монтировании
+    refetchOnMount: false, // Не перезагружать при монтировании если данные свежие
   });
 
   return {

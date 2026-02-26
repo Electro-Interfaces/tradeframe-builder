@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { Plus, Shield, Users, Edit, Trash2, UserPlus, Settings } from 'lucide-react'
+import { Plus, Shield, Users, Edit, Trash2, UserPlus, Settings, MoreVertical } from 'lucide-react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -23,8 +24,15 @@ import type { User, Role } from '@/types/auth'
 import { RoleFormDialog } from '@/components/admin/roles/RoleFormDialog'
 import { UserFormDialog } from '@/components/admin/users/UserFormDialog'
 import { PermissionBuilder } from '@/components/admin/roles/PermissionBuilder'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export default function UsersAndRoles() {
+  const isMobile = useIsMobile()
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>([])
   const [statistics, setStatistics] = useState<UserStatistics | null>(null)
@@ -131,21 +139,21 @@ export default function UsersAndRoles() {
   return (
     <div className="space-y-6">
       {/* Заголовок */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Пользователи и роли</h1>
-          <p className="text-muted-foreground">
-            Управление пользователями системы и настройка ролей с разрешениями
+          <h1 className="text-2xl sm:text-3xl font-bold">Пользователи и роли</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Управление пользователями и настройка ролей
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleCreateUser}>
+          <Button onClick={handleCreateUser} size={isMobile ? "sm" : "default"}>
             <UserPlus className="h-4 w-4 mr-2" />
-            Новый пользователь
+            {isMobile ? "Пользователь" : "Новый пользователь"}
           </Button>
-          <Button onClick={handleCreateRole}>
+          <Button onClick={handleCreateRole} size={isMobile ? "sm" : "default"}>
             <Plus className="h-4 w-4 mr-2" />
-            Новая роль
+            {isMobile ? "Роль" : "Новая роль"}
           </Button>
         </div>
       </div>
@@ -230,76 +238,120 @@ export default function UsersAndRoles() {
                 Управление учетными записями пользователей системы
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Имя</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Роли</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead>Последний вход</TableHead>
-                    <TableHead className="text-right">Действия</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <CardContent className="p-0 sm:p-6">
+              {/* Мобильные карточки пользователей */}
+              {isMobile ? (
+                <div className="divide-y">
                   {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
+                    <div key={user.id} className="p-3 flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{user.name}</div>
+                        <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                        <div className="flex flex-wrap gap-1 mt-1">
                           {user.roles.map((role) => (
-                            <Badge 
-                              key={role.role_id} 
+                            <Badge
+                              key={role.role_id}
                               variant={role.role_code === 'super_admin' ? 'destructive' : 'secondary'}
                               className="text-xs"
                             >
                               {role.role_name}
                             </Badge>
                           ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={
-                            user.status === 'active' ? 'default' : 
-                            user.status === 'blocked' ? 'destructive' : 'secondary'
-                          }
-                        >
-                          {user.status === 'active' ? 'Активен' : 
-                           user.status === 'blocked' ? 'Заблокирован' : 'Неактивен'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.last_login 
-                          ? new Date(user.last_login).toLocaleDateString('ru-RU')
-                          : 'Никогда'
-                        }
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
+                          <Badge
+                            variant={user.status === 'active' ? 'default' : user.status === 'blocked' ? 'destructive' : 'secondary'}
+                            className="text-xs"
                           >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                            {user.status === 'active' ? 'Активен' : user.status === 'blocked' ? 'Заблокирован' : 'Неактивен'}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Вход: {user.last_login ? new Date(user.last_login).toLocaleDateString('ru-RU') : 'Никогда'}
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm"><MoreVertical className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                            <Edit className="h-4 w-4 mr-2" />Редактировать
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             onClick={() => handleDeleteUser(user.id)}
                             disabled={user.roles.some(r => r.role_code === 'super_admin')}
+                            className="text-destructive"
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                            <Trash2 className="h-4 w-4 mr-2" />Удалить
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Имя</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Роли</TableHead>
+                        <TableHead>Статус</TableHead>
+                        <TableHead>Последний вход</TableHead>
+                        <TableHead className="text-right">Действия</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">{user.name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {user.roles.map((role) => (
+                                <Badge
+                                  key={role.role_id}
+                                  variant={role.role_code === 'super_admin' ? 'destructive' : 'secondary'}
+                                  className="text-xs"
+                                >
+                                  {role.role_name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                user.status === 'active' ? 'default' :
+                                user.status === 'blocked' ? 'destructive' : 'secondary'
+                              }
+                            >
+                              {user.status === 'active' ? 'Активен' :
+                               user.status === 'blocked' ? 'Заблокирован' : 'Неактивен'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {user.last_login
+                              ? new Date(user.last_login).toLocaleDateString('ru-RU')
+                              : 'Никогда'
+                            }
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.id)} disabled={user.roles.some(r => r.role_code === 'super_admin')}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -313,75 +365,109 @@ export default function UsersAndRoles() {
                 Настройка ролей и их разрешений в системе
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Название</TableHead>
-                    <TableHead>Код</TableHead>
-                    <TableHead>Область действия</TableHead>
-                    <TableHead>Разрешения</TableHead>
-                    <TableHead>Тип</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead className="text-right">Действия</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <CardContent className="p-0 sm:p-6">
+              {/* Мобильные карточки ролей */}
+              {isMobile ? (
+                <div className="divide-y">
                   {roles.map((role) => (
-                    <TableRow key={role.id}>
-                      <TableCell className="font-medium">{role.name}</TableCell>
-                      <TableCell>
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                          {role.code}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {role.scope === 'global' ? 'Глобальная' :
-                           role.scope === 'network' ? 'Сеть' :
-                           role.scope === 'trading_point' ? 'Торговая точка' :
-                           role.scope === 'assigned' ? 'Назначенная' : role.scope}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {role.permissions.length} разрешений
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={role.is_system ? 'secondary' : 'default'}>
-                          {role.is_system ? 'Системная' : 'Пользовательская'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={role.is_active ? 'default' : 'secondary'}>
-                          {role.is_active ? 'Активна' : 'Неактивна'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditRole(role)}
-                            disabled={role.is_system}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteRole(role.id)}
-                            disabled={role.is_system}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                    <div key={role.id} className="p-3 flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">{role.name}</span>
+                          <code className="text-xs bg-muted px-1 py-0.5 rounded">{role.code}</code>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {role.scope === 'global' ? 'Глобальная' :
+                             role.scope === 'network' ? 'Сеть' :
+                             role.scope === 'trading_point' ? 'ТТ' :
+                             role.scope === 'assigned' ? 'Назначенная' : role.scope}
+                          </Badge>
+                          <Badge variant={role.is_system ? 'secondary' : 'default'} className="text-xs">
+                            {role.is_system ? 'Системная' : 'Пользов.'}
+                          </Badge>
+                          <Badge variant={role.is_active ? 'default' : 'secondary'} className="text-xs">
+                            {role.is_active ? 'Активна' : 'Неактивна'}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {role.permissions.length} разрешений
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm"><MoreVertical className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditRole(role)} disabled={role.is_system}>
+                            <Edit className="h-4 w-4 mr-2" />Редактировать
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDeleteRole(role.id)} disabled={role.is_system} className="text-destructive">
+                            <Trash2 className="h-4 w-4 mr-2" />Удалить
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Название</TableHead>
+                        <TableHead>Код</TableHead>
+                        <TableHead>Область действия</TableHead>
+                        <TableHead>Разрешения</TableHead>
+                        <TableHead>Тип</TableHead>
+                        <TableHead>Статус</TableHead>
+                        <TableHead className="text-right">Действия</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {roles.map((role) => (
+                        <TableRow key={role.id}>
+                          <TableCell className="font-medium">{role.name}</TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-1 py-0.5 rounded">{role.code}</code>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {role.scope === 'global' ? 'Глобальная' :
+                               role.scope === 'network' ? 'Сеть' :
+                               role.scope === 'trading_point' ? 'Торговая точка' :
+                               role.scope === 'assigned' ? 'Назначенная' : role.scope}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">{role.permissions.length} разрешений</span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={role.is_system ? 'secondary' : 'default'}>
+                              {role.is_system ? 'Системная' : 'Пользовательская'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={role.is_active ? 'default' : 'secondary'}>
+                              {role.is_active ? 'Активна' : 'Неактивна'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => handleEditRole(role)} disabled={role.is_system}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteRole(role.id)} disabled={role.is_system}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

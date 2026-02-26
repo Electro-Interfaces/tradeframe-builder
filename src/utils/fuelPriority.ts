@@ -17,11 +17,11 @@ export const getFuelPriority = (fuelType: string): number => {
   if (fuel.includes('аи-80') || fuel.includes('80')) return 5;
   if (fuel.includes('бензин') || fuel.includes('gasoline') || fuel.includes('petrol')) return 6;
 
-  // Дизельное топливо
-  if (fuel.includes('дт зимнее') || fuel.includes('зимний дизель')) return 11;
-  if (fuel.includes('дт летнее') || fuel.includes('летний дизель')) return 12;
-  if (fuel.includes('дт арктический') || fuel.includes('арктический дизель')) return 13;
-  if (fuel.includes('дт') || fuel.includes('дизель') || fuel.includes('diesel')) return 10;
+  // Дизельное топливо (включая "Диз. топливо", "Диз.топливо зимн" и т.д.)
+  if ((fuel.includes('дт') || fuel.includes('диз')) && (fuel.includes('зимн') || fuel.includes('зимний'))) return 11;
+  if ((fuel.includes('дт') || fuel.includes('диз')) && (fuel.includes('летн') || fuel.includes('летний'))) return 12;
+  if ((fuel.includes('дт') || fuel.includes('диз')) && (fuel.includes('аркт') || fuel.includes('арктический'))) return 13;
+  if (fuel.includes('дт') || fuel.includes('дизель') || fuel.includes('диз') || fuel.includes('diesel')) return 10;
 
   // Прочие виды топлива
   if (fuel.includes('газ') || fuel.includes('газовый') || fuel.includes('gas')) return 20;

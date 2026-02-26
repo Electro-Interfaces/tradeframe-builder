@@ -509,7 +509,7 @@ export class RoleService {
     details?: any
   }): Promise<void> {
     try {
-      console.log('Audit event:', event)
+      // TODO: записать в таблицу аудита
       // Здесь можно добавить запись в таблицу аудита, если она есть
     } catch (error) {
       console.error('Failed to log audit event:', error)

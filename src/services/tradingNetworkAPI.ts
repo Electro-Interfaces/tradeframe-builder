@@ -53,14 +53,6 @@ async function getFuelTypesFromTanks(stationNumber: number): Promise<string[]> {
       limit: 100
     });
 
-    console.log(`📋 Raw equipment data for ${tradingPointId}:`, equipmentResponse.data.map(eq => ({
-      id: eq.id,
-      name: eq.display_name,
-      type: eq.system_type,
-      fuelType: eq.params?.fuelType,
-      status: eq.status
-    })));
-
     // Фильтруем только активные резервуары и извлекаем типы топлива
     const fuelTypes = equipmentResponse.data
       .filter(eq => eq.system_type === 'fuel_tank' && eq.params?.fuelType && eq.status !== 'deleted')

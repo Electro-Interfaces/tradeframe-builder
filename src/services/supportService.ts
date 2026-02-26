@@ -17,12 +17,10 @@ import type {
 /**
  * Базовый URL бэкенда (по аналогии с mstoProxyClient.ts)
  */
+import { getBackendOrigin } from '@/utils/backendUrl';
+
 function getBaseUrl(): string {
-  if (typeof window === 'undefined') return 'http://localhost:3001';
-  const origin = window.location?.origin;
-  if (!origin || origin === 'null') return 'http://localhost:3001';
-  if (origin.includes('github.io')) return 'https://testtf.dataworker.ru';
-  return origin;
+  return getBackendOrigin();
 }
 
 /**

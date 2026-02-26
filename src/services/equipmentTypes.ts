@@ -67,16 +67,7 @@ export const equipmentTypesAPI = {
   async list(): Promise<EquipmentType[]> {
     try {
       const templates = await getEquipmentTemplatesFromSupabase()
-      console.log('equipmentTypesAPI.list() - templates from Supabase:', templates)
-      
-      // Детальная проверка статусов
-      templates.forEach((template, index) => {
-        console.log(`Template ${index}: name="${template.name}", status="${template.status}", type="${typeof template.status}"`)
-      })
-      
-      // Временно показываем все шаблоны, пока не выясним правильное имя колонки статуса
-      const activeTemplates = templates // templates.filter(template => template.status)
-      console.log('equipmentTypesAPI.list() - active templates (показываем все):', activeTemplates)
+      const activeTemplates = templates
       const convertedTypes = activeTemplates.map(convertFromEquipmentTemplate)
       return convertedTypes
     } catch (error) {
@@ -193,7 +184,6 @@ export const equipmentTemplatesFromTypesAPI = {
   async list(): Promise<EquipmentTemplate[]> {
     try {
       const templates = await getEquipmentTemplatesFromSupabase()
-      console.log('equipmentTemplatesFromTypesAPI.list() - templates from Supabase:', templates)
       return templates
     } catch (error) {
       console.error('Error in equipmentTemplatesFromTypesAPI.list():', error)

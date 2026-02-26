@@ -420,8 +420,8 @@ export function FuelLevelThresholdsCard({ tanks, isMobile, thresholds, onSaveThr
               criticalTanks.length > 0 ? 'text-red-200' : 'text-yellow-200'
             }`}>
               {criticalTanks.length > 0
-                ? `Критически низкий уровень топлива в ${criticalTanks.length} ${criticalTanks.length === 1 ? 'резервуаре' : 'резервуарах'}!`
-                : `Низкий уровень топлива в ${warningTanks.length} ${warningTanks.length === 1 ? 'резервуаре' : 'резервуарах'}`
+                ? `Критически низкий уровень топлива: ${criticalTanks.map(t => t.name).join(', ')}!`
+                : `Низкий уровень топлива: ${warningTanks.map(t => t.name).join(', ')}`
               }
             </p>
           </div>

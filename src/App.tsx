@@ -18,11 +18,13 @@ import SafariPWAInstaller from "./components/pwa/SafariPWAInstaller";
 import UpdateNotification from "./components/pwa/UpdateNotification";
 import "./cache-buster"; // Принудительное обновление кеша
 
-// Критически важные страницы - загружаются сразу
+// Критически важные страницы - загружаются сразу (первый экран / fallback)
 import LoginPageWithLegal from "./pages/LoginPageWithLegal";
-import NetworkOverview from "./pages/NetworkOverview";
-import Equipment from "./pages/Equipment";
 import NotFound from "./pages/NotFound";
+
+// Главные страницы — lazy (после авторизации)
+const Equipment = lazy(() => import("./pages/Equipment"));
+const NetworkOverview = lazy(() => import("./pages/NetworkOverview"));
 
 // Самые тяжелые страницы - ленивая загрузка (приоритет 1)
 const Prices = lazy(() => import("./pages/Prices"));
@@ -205,8 +207,8 @@ const App = () => {
                 <Routes>
                   {/* Критически важные страницы - без lazy loading */}
                   <Route path="/login" element={<LoginPageWithLegal />} />
-                  <Route path="/" element={<ProtectedRoute><Equipment /></ProtectedRoute>} />
-                  <Route path="/network/overview" element={<ProtectedRoute><NetworkOverview /></ProtectedRoute>} />
+                  <Route path="/" element={<ProtectedRoute><LazyLoader><Equipment /></LazyLoader></ProtectedRoute>} />
+                  <Route path="/network/overview" element={<ProtectedRoute><LazyLoader><NetworkOverview /></LazyLoader></ProtectedRoute>} />
 
                   {/* Самые тяжелые страницы - приоритет 1 */}
                   <Route path="/point/prices" element={<ProtectedRoute><LazyLoader><Prices /></LazyLoader></ProtectedRoute>} />
@@ -238,7 +240,7 @@ const App = () => {
                   <Route path="/network/online-orders" element={<ProtectedRoute><LazyLoader><OnlineOrdersMonitor /></LazyLoader></ProtectedRoute>} />
 
                   {/* Equipment страницы - приоритет 3 */}
-                  <Route path="/point/equipment" element={<ProtectedRoute><Equipment /></ProtectedRoute>} />
+                  <Route path="/point/equipment" element={<ProtectedRoute><LazyLoader><Equipment /></LazyLoader></ProtectedRoute>} />
 
                   {/* Остальные страницы - приоритет 4 */}
                   <Route path="/admin/users-and-roles-new" element={<ProtectedRoute><LazyLoader><NewUsersAndRoles /></LazyLoader></ProtectedRoute>} />

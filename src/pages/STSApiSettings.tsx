@@ -55,9 +55,9 @@ interface STSApiConfig {
 }
 
 const defaultConfig: STSApiConfig = {
-  url: 'https://pos.autooplata.ru/tms',
-  username: 'UserApi',
-  password: 'lHQfLZHzB3tn',
+  url: import.meta.env.VITE_STS_API_URL || '',
+  username: import.meta.env.VITE_STS_API_USERNAME || '',
+  password: import.meta.env.VITE_STS_API_PASSWORD || '',
   enabled: true,
   timeout: 30000,
   retryAttempts: 3

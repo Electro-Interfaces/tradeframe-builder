@@ -5,8 +5,12 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://ssvazdgnmatbdynkhkqo.supabase.co';
-const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '';
+
+if (!supabaseUrl || !serviceRoleKey) {
+  console.warn('⚠️ Supabase credentials not configured in env vars (VITE_SUPABASE_URL, VITE_SUPABASE_SERVICE_ROLE_KEY)');
+}
 
 // Создание service role клиента для админских операций
 export const supabaseService: SupabaseClient = createClient(

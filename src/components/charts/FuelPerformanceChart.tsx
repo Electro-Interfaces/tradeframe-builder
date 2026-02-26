@@ -2,6 +2,7 @@ import React, { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Fuel } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { getFuelColor } from '@/types/shift-dashboard';
 
 interface FuelStat {
   type: string;
@@ -18,18 +19,6 @@ interface FuelPerformanceChartProps {
   data: FuelStat[];
   isMobile?: boolean;
 }
-
-// Определяем цвета для разных видов топлива
-const getFuelColor = (fuelType: string): string => {
-  const fuel = fuelType.toLowerCase();
-  if (fuel.includes('аи-98') || fuel.includes('98')) return '#a855f7'; // purple-500
-  if (fuel.includes('аи-95') || fuel.includes('95')) return '#3b82f6'; // blue-500
-  if (fuel.includes('аи-92') || fuel.includes('92')) return '#10b981'; // green-500
-  if (fuel.includes('аи-91') || fuel.includes('91')) return '#eab308'; // yellow-500
-  if (fuel.includes('дт') || fuel.includes('дизель') || fuel.includes('diesel')) return '#f97316'; // orange-500
-  if (fuel.includes('сут') || fuel.includes('газ')) return '#ef4444'; // red-500
-  return '#6b7280'; // gray-500
-};
 
 export const FuelPerformanceChart = memo(function FuelPerformanceChart({
   data,

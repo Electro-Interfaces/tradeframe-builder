@@ -17,29 +17,9 @@ interface MstoProxyRequestOptions {
   body?: any;
 }
 
-/**
- * Базовый URL для Backend Proxy
- */
-const getProxyBaseUrl = (): string => {
-  // Защита от SSR/service worker контекста
-  if (typeof window === 'undefined') {
-    return 'http://localhost:3001';
-  }
+import { getBackendOrigin } from '@/utils/backendUrl';
 
-  const origin = window.location?.origin;
-
-  if (!origin || origin === 'null' || origin === 'undefined') {
-    // Fallback для development
-    return 'http://localhost:3001';
-  }
-
-  // GitHub Pages использует TEST backend
-  if (origin.includes('github.io')) {
-    return 'https://testtf.dataworker.ru';
-  }
-
-  return origin;
-};
+const getProxyBaseUrl = getBackendOrigin;
 
 /**
  * Выполнить запрос к MSTO API через Backend Proxy

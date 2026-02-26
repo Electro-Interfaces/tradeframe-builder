@@ -21,14 +21,15 @@ interface PaymentDistributionChartProps {
   isMobile?: boolean;
 }
 
-// Цвета для способов оплаты
-const PAYMENT_COLORS = {
+// Цвета для способов оплаты (по ключу категории)
+const PAYMENT_COLORS: Record<string, string> = {
   cash: '#10b981',           // green-500
   bank_card: '#3b82f6',      // blue-500
   online_order: '#8b5cf6',   // purple-500
   fuel_card: '#f59e0b',      // amber-500
-  corporate_card: '#ef4444', // red-500 - корпоративные карты
-  coupon: '#ec4899',         // pink-500 - купоны
+  corporate_card: '#ef4444', // red-500
+  coupon: '#ec4899',         // pink-500
+  other: '#6b7280',          // gray-500
   default: '#6b7280'         // gray-500
 };
 

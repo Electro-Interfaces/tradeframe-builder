@@ -14,10 +14,9 @@ class ExternalRolesService {
   private lastConfigUpdate: number = 0;
 
   private getConfig(): ExternalDatabaseConfig {
-    // Используем фиксированные настройки подключения к Supabase
     const fixedConfig: ExternalDatabaseConfig = {
-      url: 'https://ssvazdgnmatbdynkhkqo.supabase.co',
-      apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0'
+      url: import.meta.env.VITE_SUPABASE_URL || '',
+      apiKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ''
     };
 
     // Обновляем кэш каждую секунду

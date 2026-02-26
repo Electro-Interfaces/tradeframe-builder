@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, Fuel } from 'lucide-react';
 import { fuelStocksHistoryService, FuelStockSnapshot } from '@/services/fuelStocksHistoryService';
+import { getFuelColor } from '@/types/shift-dashboard';
 
 interface FuelStocksChartProps {
   selectedNetwork: string | null;
@@ -29,14 +30,8 @@ interface ChartDataPoint {
   details: FuelStockSnapshot[];
 }
 
-const FUEL_COLORS = {
-  'АИ-92': '#3b82f6', // blue
-  'АИ-95': '#10b981', // green
-  'АИ-98': '#8b5cf6', // purple
-  'АИ-100': '#f59e0b', // amber
-  'ДТ': '#ef4444', // red
-  'Все': '#64748b' // slate
-};
+// FUEL_COLORS удалён — используется getFuelColor() из shift-dashboard
+const ALL_FUEL_COLOR = '#64748b'; // slate — для "Все"
 
 export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelStocksChartProps) {
   const [selectedFuelType, setSelectedFuelType] = useState('Все');
@@ -165,7 +160,7 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
             <div className="flex items-center gap-2">
               <div 
                 className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: FUEL_COLORS[selectedFuelType as keyof typeof FUEL_COLORS] }}
+                style={{ backgroundColor: (selectedFuelType === 'Все' ? ALL_FUEL_COLOR : getFuelColor(selectedFuelType)) }}
               />
               <span className="text-white font-mono">
                 {formatVolume(data.totalVolume)}
@@ -245,7 +240,7 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
                       <div className="flex items-center gap-2">
                         <div 
                           className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: FUEL_COLORS[type as keyof typeof FUEL_COLORS] }}
+                          style={{ backgroundColor: (type === 'Все' ? ALL_FUEL_COLOR : getFuelColor(type)) }}
                         />
                         {type}
                       </div>
@@ -290,10 +285,10 @@ export function FuelStocksChart({ selectedNetwork, selectedTradingPoint }: FuelS
                 <Line 
                   type="monotone" 
                   dataKey="totalVolume" 
-                  stroke={FUEL_COLORS[selectedFuelType as keyof typeof FUEL_COLORS]}
+                  stroke={(selectedFuelType === 'Все' ? ALL_FUEL_COLOR : getFuelColor(selectedFuelType))}
                   strokeWidth={2}
-                  dot={{ fill: FUEL_COLORS[selectedFuelType as keyof typeof FUEL_COLORS], strokeWidth: 2, r: 3 }}
-                  activeDot={{ r: 5, fill: FUEL_COLORS[selectedFuelType as keyof typeof FUEL_COLORS] }}
+                  dot={{ fill: (selectedFuelType === 'Все' ? ALL_FUEL_COLOR : getFuelColor(selectedFuelType)), strokeWidth: 2, r: 3 }}
+                  activeDot={{ r: 5, fill: (selectedFuelType === 'Все' ? ALL_FUEL_COLOR : getFuelColor(selectedFuelType)) }}
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -29,6 +29,7 @@ function getStatusIcon(status: string, className: string = 'w-4 h-4') {
 
 export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
   const isKKT = equipment.name === 'ККТ';
+  const isPOS = equipment.name === 'POS';
   const hasUnpunchedReceipts = equipment.hasUnpunchedReceipts;
   const isEmergencyMode = equipment.isEmergencyMode;
 
@@ -51,8 +52,14 @@ export function EquipmentCard({ equipment, isMobile }: EquipmentCardProps) {
     >
       {/* Заголовок с иконкой */}
       <div className={`flex items-center justify-between ${isMobile ? 'mb-1 gap-1' : 'mb-1.5 gap-2'}`}>
-        <span className={`font-medium text-white truncate flex-1 min-w-0 ${isMobile ? 'text-[11px] leading-tight' : 'text-xs'}`}>
-          {equipment.name}
+        <span className={`font-medium truncate flex-1 min-w-0 ${isMobile ? 'text-[11px] leading-tight' : 'text-xs'} ${
+          isPOS && equipment.posType
+            ? equipment.posType.id === 1 ? 'text-blue-300' : 'text-amber-300'
+            : 'text-white'
+        }`}>
+          {isPOS && equipment.posType
+            ? (equipment.posType.id === 1 ? 'Автомат' : 'Оператор')
+            : equipment.name}
         </span>
         <div className="flex-shrink-0 flex items-center gap-1">
           {/* Индикатор не пробитых чеков для ККТ */}

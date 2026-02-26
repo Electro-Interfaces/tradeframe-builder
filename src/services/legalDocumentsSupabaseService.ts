@@ -599,7 +599,6 @@ export class LegalDocumentsSupabaseService {
         throw new Error('No data returned from insert');
       }
 
-      console.log('✅ Document draft created successfully:', data.id);
       return this.mapDatabaseToDocumentVersion(data);
     } catch (error) {
       console.error('Failed to create document draft:', error);

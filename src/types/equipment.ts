@@ -211,6 +211,8 @@ export interface TerminalEquipmentItem {
   lastUpdate?: string;
   // Номер поста (для многопостовых станций)
   posNumber?: number;
+  // Тип поста: Оператор / Терминал (для POS карточки)
+  posType?: { id: number; name: string };
 }
 
 /**
@@ -230,6 +232,7 @@ export interface PosTerminalInfo {
   status: 'online' | 'offline';
   version?: string;
   lastUpdate?: string;         // Время последнего обновления данных (dt_info)
+  posType?: { id: number; name: string };  // Тип поста: Оператор / Терминал (из v2/info pos[].type)
   cashSum?: number;            // Сумма наличных для пробития (cash_sum)
   bankSum?: number;            // Сумма безнал для пробития (bank_sum)
   devices?: {

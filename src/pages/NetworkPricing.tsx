@@ -33,6 +33,7 @@ export default function NetworkPricing() {
     priceHistoryMap,
     salesByPrice,
     loading,
+    loadingSales,
     error,
     refresh
   } = useNetworkPrices({
@@ -81,7 +82,7 @@ export default function NetworkPricing() {
 
         {/* Заголовок */}
         <div className={`${isMobile ? 'mb-3' : 'mb-6 pt-4'}`}>
-          <div className="flex items-center justify-between gap-4">
+          <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between gap-4'}`}>
             <div className="flex-1 min-w-0">
               <h1 className={`font-semibold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                 Ценообразование
@@ -115,6 +116,14 @@ export default function NetworkPricing() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Индикатор фоновой загрузки продаж */}
+              {loadingSales && (
+                <span className="text-xs text-slate-400 flex items-center gap-1.5 flex-shrink-0">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  {!isMobile && 'Продажи...'}
+                </span>
+              )}
 
               {/* Кнопка обновления */}
               <Button

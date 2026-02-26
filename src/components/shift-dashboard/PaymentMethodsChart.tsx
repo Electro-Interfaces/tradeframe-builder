@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, Sector } from 'recharts';
 import { cn } from '@/lib/utils';
 import type { FinancialMetrics } from '@/types/shift-dashboard';
+import { getPaymentColor } from '@/types/shift-dashboard';
 
 interface PaymentMethodsChartProps {
   /** Финансовые метрики */
@@ -16,23 +17,13 @@ interface PaymentMethodsChartProps {
   className?: string;
 }
 
-// Цвета для способов оплаты
-const PAYMENT_COLORS: Record<string, string> = {
-  cash: '#22c55e',      // Зеленый - Наличные
-  card: '#3b82f6',      // Синий - Карты
-  sbp: '#a855f7',       // Фиолетовый - СБП
-  fuelCard: '#f97316',  // Оранжевый - Топливные карты
-  corporate: '#eab308', // Желтый - Корпоративные
-  other: '#64748b',     // Серый - Прочее
-};
-
-const PAYMENT_NAMES: Record<string, string> = {
+// Названия для известных типов оплаты (используется как fallback)
+const PAYMENT_TYPE_NAMES: Record<string, string> = {
   cash: 'Наличные',
   card: 'Карты',
-  sbp: 'СБП',
-  fuelCard: 'Топливные карты',
+  online: 'Онлайн',
   corporate: 'Корп. карты',
-  other: 'Прочее',
+  coupon: 'Купоны/Талоны',
 };
 
 /**
@@ -116,14 +107,14 @@ const CustomTooltip = ({ active, payload }: any) => {
  */
 const CustomLegend = ({ payload }: any) => {
   return (
-    <div className="flex flex-wrap justify-center gap-3 mt-2">
+    <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2">
       {payload.map((entry: any, index: number) => (
-        <div key={index} className="flex items-center gap-1.5">
+        <div key={index} className="flex items-center gap-1">
           <div
-            className="w-3 h-3 rounded-full"
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
             style={{ backgroundColor: entry.color }}
           />
-          <span className="text-xs text-slate-400">{entry.value}</span>
+          <span className="text-[11px] text-slate-400 whitespace-nowrap">{entry.value}</span>
         </div>
       ))}
     </div>
@@ -133,15 +124,28 @@ const CustomLegend = ({ payload }: any) => {
 export function PaymentMethodsChart({ data, isLoading, className }: PaymentMethodsChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
 
-  // Подготавливаем данные для диаграммы
-  const chartData = [
-    { key: 'cash', name: PAYMENT_NAMES.cash, value: data.cashRevenue, color: PAYMENT_COLORS.cash },
-    { key: 'card', name: PAYMENT_NAMES.card, value: data.cardRevenue, color: PAYMENT_COLORS.card },
-    { key: 'sbp', name: PAYMENT_NAMES.sbp, value: data.sbpRevenue, color: PAYMENT_COLORS.sbp },
-    { key: 'fuelCard', name: PAYMENT_NAMES.fuelCard, value: data.fuelCardRevenue, color: PAYMENT_COLORS.fuelCard },
-    { key: 'corporate', name: PAYMENT_NAMES.corporate, value: data.corporateCardRevenue || 0, color: PAYMENT_COLORS.corporate },
-    { key: 'other', name: PAYMENT_NAMES.other, value: data.otherRevenue, color: PAYMENT_COLORS.other },
-  ].filter(item => item.value > 0);
+  // Подготавливаем данные для диаграммы — динамически из paymentDetails
+  const paymentDetails = data.paymentDetails || {};
+  const hasPaymentDetails = Object.keys(paymentDetails).length > 0;
+
+  const chartData = hasPaymentDetails
+    ? Object.entries(paymentDetails)
+        .filter(([, details]) => details.revenue > 0)
+        .map(([key, details]) => ({
+          key,
+          name: PAYMENT_TYPE_NAMES[key] || key,
+          value: details.revenue,
+          color: getPaymentColor(PAYMENT_TYPE_NAMES[key] || key),
+        }))
+    : [
+        // Legacy fallback — из плоских полей FinancialMetrics
+        { key: 'cash', name: 'Наличные', value: data.cashRevenue, color: getPaymentColor('Наличные') },
+        { key: 'card', name: 'Карты', value: data.cardRevenue, color: getPaymentColor('Карта') },
+        { key: 'sbp', name: 'СБП', value: data.sbpRevenue, color: getPaymentColor('СБП') },
+        { key: 'fuelCard', name: 'Топливные карты', value: data.fuelCardRevenue, color: getPaymentColor('Топливные карты') },
+        { key: 'corporate', name: 'Корп. карты', value: data.corporateCardRevenue || 0, color: getPaymentColor('Корп. карты') },
+        { key: 'other', name: 'Прочее', value: data.otherRevenue, color: '#64748b' },
+      ].filter(item => item.value > 0);
 
   // Добавляем процент
   const total = chartData.reduce((sum, item) => sum + item.value, 0);

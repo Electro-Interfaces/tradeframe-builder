@@ -13,6 +13,7 @@ import { Loader2, AlertCircle, FileText, Shield, Lock, Eye, EyeOff } from 'lucid
 import { legalDocumentsService } from '@/services/legalDocumentsService';
 import { DocumentType } from '@/types/legal';
 import { useMobile } from '@/hooks/useMobile';
+import { sanitizeHtml } from '@/utils/sanitize';
 import { VERSION_INFO } from '@/config/version';
 import { getRememberedCredentials } from '@/utils/secureStorage';
 
@@ -601,7 +602,7 @@ const LoginPageWithLegal = () => {
           <ScrollArea className="h-[60vh] w-full rounded-md border border-slate-700 p-4">
             <div 
               className="prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: getTermsContent() }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(getTermsContent()) }}
             />
           </ScrollArea>
           <DialogFooter>
@@ -630,7 +631,7 @@ const LoginPageWithLegal = () => {
           <ScrollArea className="h-[60vh] w-full rounded-md border border-slate-700 p-4">
             <div 
               className="prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: getPrivacyContent() }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(getPrivacyContent()) }}
             />
           </ScrollArea>
           <DialogFooter>
@@ -659,7 +660,7 @@ const LoginPageWithLegal = () => {
           <ScrollArea className="h-[60vh] w-full rounded-md border border-slate-700 p-4">
             <div 
               className="prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: getPdnContent() }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(getPdnContent()) }}
             />
           </ScrollArea>
           <DialogFooter>

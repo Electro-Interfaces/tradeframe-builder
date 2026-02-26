@@ -65,7 +65,6 @@ export class SupabaseAuthService {
           .select('*')
           .eq('email', email)
           .limit(1);
-        console.log('Users without deleted_at filter:', allUsers);
         throw new Error('Пользователь не найден или заблокирован');
       }
 
@@ -125,9 +124,8 @@ export class SupabaseAuthService {
       storage.setItem('auth_token', token);
       storage.setItem('auth_token_expiry', expiryTime.toISOString());
       storage.setItem('auth_login', email);
-      storage.setItem('auth_password', password); // В production следует использовать refresh token
+      // Пароль НЕ сохраняем в storage (безопасность)
       
-      console.log('User authenticated successfully:', authUser.email, authUser.role, 'tenant:', user.tenant_id);
       return authUser;
 
     } catch (error: any) {
@@ -160,7 +158,6 @@ export class SupabaseAuthService {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       });
-      console.log('User logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
     }

@@ -189,7 +189,7 @@ export default function AuditLog() {
                     <span>
                       Откройте{" "}
                       <a
-                        href="https://supabase.com/dashboard/project/ssvazdgnmatbdynkhkqo/sql/new"
+                        href={`https://supabase.com/dashboard/project/${(import.meta.env.VITE_SUPABASE_URL || '').replace('https://', '').split('.')[0]}/sql/new`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-400 hover:underline"
@@ -223,7 +223,7 @@ export default function AuditLog() {
 
               <div className="flex gap-3">
                 <Button
-                  onClick={() => window.open('https://supabase.com/dashboard/project/ssvazdgnmatbdynkhkqo/sql/new', '_blank')}
+                  onClick={() => window.open(`https://supabase.com/dashboard/project/${(import.meta.env.VITE_SUPABASE_URL || '').replace('https://', '').split('.')[0]}/sql/new`, '_blank')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   Открыть SQL Editor

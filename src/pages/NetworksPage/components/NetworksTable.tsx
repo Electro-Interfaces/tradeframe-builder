@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2 } from "lucide-react";
 import { Network } from "@/types/network";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface NetworksTableProps {
   networks: Network[];
@@ -20,6 +21,66 @@ export function NetworksTable({
   onEdit,
   onDelete
 }: NetworksTableProps) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <div className="space-y-2">
+        {networks.map((network) => (
+          <div
+            key={network.id}
+            onClick={() => onSelect(network.id)}
+            className={`rounded-lg border p-3 cursor-pointer transition-colors ${
+              selectedNetworkId === network.id
+                ? 'bg-blue-600/20 border-blue-500'
+                : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-white">{network.name}</div>
+                {network.description && (
+                  <div className="text-xs text-slate-400 mt-0.5 truncate">{network.description}</div>
+                )}
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-slate-400 hover:text-white"
+                  onClick={(e) => { e.stopPropagation(); onEdit(network); }}
+                  disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-slate-400 hover:text-red-400"
+                  onClick={(e) => { e.stopPropagation(); onDelete(network); }}
+                  disabled={actionLoading === `update-${network.id}` || actionLoading === `delete-${network.id}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {network.external_id && (
+                <span className="text-xs bg-blue-900/50 text-blue-300 px-1.5 py-0.5 rounded font-mono">
+                  {network.external_id}
+                </span>
+              )}
+              <Badge variant="secondary" className="bg-slate-600 text-slate-200 text-xs">
+                {network.type}
+              </Badge>
+              <span className="text-xs text-slate-400">Точек: {network.pointsCount}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto w-full rounded-lg border border-slate-600">
       <table className="w-full text-sm min-w-full table-fixed">

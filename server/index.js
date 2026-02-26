@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const notificationScheduler = require('./services/notificationScheduler');
 const stsRoutes = require('./routes/sts');
@@ -15,9 +16,28 @@ const mstoRoutes = require('./routes/msto');
 const supportRoutes = require('./routes/support');
 const { initTelegramBot } = require('./telegram-bot');
 
+const rateLimit = require('express-rate-limit');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Rate limiting — защита от brute-force
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 минут
+  max: 30, // макс 30 запросов на окно (логин + getUserByEmail)
+  message: { error: 'Слишком много попыток. Повторите через 15 минут.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 минута
+  max: 120, // 120 запросов в минуту на IP
+  message: { error: 'Превышен лимит запросов. Подождите.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Парсинг разрешенных доменов из переменной окружения
 const allowedOrigins = process.env.ALLOWED_ORIGINS
@@ -47,8 +67,14 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-TF-User-Id', 'X-TF-User-Email', 'X-TF-User-Name', 'X-TF-User-Role', 'X-TF-Company-Id']
 }));
 
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // CSP управляется фронтендом
+  crossOriginEmbedderPolicy: false, // Для совместимости с внешними ресурсами
+}));
+
 // Парсинг JSON тела запросов
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // Логирование запросов в режиме разработки
 if (NODE_ENV === 'development') {
@@ -68,6 +94,9 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Общий rate limit на все API
+app.use('/api', apiLimiter);
+
 // Подключаем роуты для STS API
 app.use('/api/sts', stsRoutes);
 
@@ -81,7 +110,8 @@ app.use('/api/telegram', telegramRoutes);
 app.use('/api/messages', messagesRoutes);
 
 // Подключаем роуты для Supabase (прокси для обхода CORS и блокировок)
-app.use('/api/supabase', supabaseRoutes);
+// Rate limit на auth-запросы (login, getUserByEmail)
+app.use('/api/supabase', authLimiter, supabaseRoutes);
 
 // Подключаем роуты для настроек калибровки резервуаров
 app.use('/api/tank-calibration', tankCalibrationRoutes);

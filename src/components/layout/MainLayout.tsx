@@ -82,11 +82,11 @@ const MainLayoutComponent = ({ children, fullWidth = false }: MainLayoutProps) =
           </>
         ) : (
           // Desktop Layout
-          <div className={`flex w-full max-w-none ${isMobile ? 'pt-0' : 'pt-header'} ${fullWidth ? 'h-full' : ''}`}>
+          <div className={`flex w-full max-w-none ${isMobile ? 'pt-0' : 'pt-header'} ${fullWidth ? 'h-full overflow-hidden' : ''}`}>
             <AppSidebar selectedTradingPoint={selectedTradingPoint} />
-            
-            <main className="flex-1 min-w-0 w-full max-w-none overflow-y-auto">
-              <div className={fullWidth ? "w-full max-w-none min-h-full" : "px-4 md:px-6 lg:px-8 w-full max-w-none"}>
+
+            <main className={`flex-1 min-w-0 w-full max-w-none overflow-y-auto ${fullWidth ? 'h-full' : ''}`}>
+              <div className={fullWidth ? "w-full max-w-none h-full" : "px-4 md:px-6 lg:px-8 w-full max-w-none"}>
                 {children}
               </div>
             </main>

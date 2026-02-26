@@ -1,8 +1,14 @@
 /**
  * Хук для загрузки и управления данными о ценах по торговой сети
+ *
+ * Оптимизации:
+ * - Прогрессивная загрузка: цены+история показываются сразу, продажи — фоном
+ * - Batch-загрузка отчётов смен (по 5 параллельно, не все сразу)
+ * - shiftsDays привязан к filterPeriod (не грузим лишнее)
+ * - AbortController для отмены запросов при смене параметров
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { stsApiService, Price } from '@/services/stsApi';
 import { tradingPointsService } from '@/services/tradingPointsService';
 import { shiftsService } from '@/services/shiftsService';
@@ -60,8 +66,34 @@ interface UseNetworkPricesReturn {
   priceHistoryMap: Map<string, Array<{ date: string; price: number; fuelType: string }>> | null;
   salesByPrice: SalesByPrice[]; // Продажи с разбивкой по ценам
   loading: boolean;
+  loadingSales: boolean; // Отдельный флаг для фоновой загрузки продаж
   error: Error | null;
   refresh: () => Promise<void>;
+}
+
+/** Выполняет промисы батчами по N штук */
+async function promiseAllBatched<T>(
+  tasks: (() => Promise<T>)[],
+  batchSize: number,
+  signal?: AbortSignal,
+): Promise<T[]> {
+  const results: T[] = [];
+  for (let i = 0; i < tasks.length; i += batchSize) {
+    if (signal?.aborted) break;
+    const batch = tasks.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(fn => fn()));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
+/** Запись продажи топлива за одну смену (для кэша при смене периода) */
+interface ShiftFuelSale {
+  shiftCloseDate: string;
+  fuelType: string;
+  volume: number;
+  revenue: number;
+  effectivePrice: number;
 }
 
 export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetworkPricesReturn {
@@ -73,7 +105,16 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
   const [priceHistoryMap, setPriceHistoryMap] = useState<Map<string, Array<{ date: string; price: number; fuelType: string }>> | null>(null);
   const [salesByPrice, setSalesByPrice] = useState<SalesByPrice[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingSales, setLoadingSales] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [rawShiftFuelSales, setRawShiftFuelSales] = useState<ShiftFuelSale[]>([]);
+
+  // AbortController для отмены запросов при смене параметров
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Ref для filterPeriod — чтобы смена периода не перезапускала загрузку данных
+  const filterPeriodRef = useRef(filterPeriod);
+  filterPeriodRef.current = filterPeriod;
 
   // Вычисляем разрешенные ID торговых точек из scopeValues пользователя
   const allowedTradingPointIds = useMemo(() => {
@@ -267,8 +308,17 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
       return;
     }
 
+    // Отменяем предыдущие запросы
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortRef.current = abortController;
+    const signal = abortController.signal;
+
     setLoading(true);
     setError(null);
+    setRawShiftFuelSales([]);
 
     try {
       // Получаем все торговые точки сети
@@ -284,7 +334,9 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
         activePoints = activePoints.filter(tp => allowedTradingPointIds.has(tp.id));
       }
 
-      // Загружаем цены для каждой торговой точки
+      if (signal.aborted) return;
+
+      // ===== ФАЗА 1: Загружаем цены и историю параллельно =====
       const pricesPromises = activePoints.map(async (tp) => {
         try {
           const prices = await stsApiService.getPrices({
@@ -311,230 +363,191 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
         }
       });
 
-      const pricesData = await Promise.all(pricesPromises);
-
-      // Загружаем историю цен, если требуется
-      let priceHistoryMap: Map<string, Array<{ date: string; price: number; fuelType: string }>> | undefined;
+      // Загружаем историю цен параллельно с текущими ценами
+      let historyPromise: Promise<Map<string, Array<{ date: string; price: number; fuelType: string }>> | undefined> = Promise.resolve(undefined);
 
       if (loadHistory) {
-        // Вычисляем дату начала периода
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - historyDays);
         const startDateStr = startDate.toISOString().split('T')[0] + 'T00:00:00';
 
-        const historyPromises = activePoints.map(async (tp) => {
-          try {
-            const history = await stsApiService.getPriceSchedule(
-              network.external_id!,
-              tp.external_id!,
-              startDateStr
-            );
+        historyPromise = (async () => {
+          const historyPromises = activePoints.map(async (tp) => {
+            try {
+              const history = await stsApiService.getPriceSchedule(
+                network.external_id!,
+                tp.external_id!,
+                startDateStr
+              );
 
-            return {
-              stationId: tp.id,
-              history: history.map(h => ({
-                date: h.effective_date,
-                price: h.price,
-                fuelType: h.fuel_type || h.service_name || 'Неизвестно'
-              }))
-            };
-          } catch (err) {
-            console.error(`Ошибка загрузки истории цен для ${tp.name}:`, err);
-            return {
-              stationId: tp.id,
-              history: []
-            };
-          }
-        });
-
-        const historyData = await Promise.all(historyPromises);
-
-        // Преобразуем в Map для удобного доступа
-        priceHistoryMap = new Map();
-        historyData.forEach(({ stationId, history }) => {
-          priceHistoryMap!.set(stationId, history);
-        });
-      }
-
-      // Загружаем данные о продажах из смен, если требуется
-      let salesDataByFuel: Map<string, { volume: number; revenue: number }> | undefined;
-
-      if (loadShiftSales && priceHistoryMap) {
-        // Вычисляем период для загрузки смен
-        const shiftsStartDate = new Date();
-        shiftsStartDate.setDate(shiftsStartDate.getDate() - shiftsDays);
-        const shiftsEndDate = new Date();
-
-        const shiftsPromises = activePoints.map(async (tp) => {
-          try {
-            const shifts = await shiftsService.getShifts({
-              system: Number(network.external_id!),
-              station: Number(tp.external_id),
-              dt_beg: shiftsStartDate.toISOString().split('T')[0] + 'T00:00:00',
-              dt_end: shiftsEndDate.toISOString().split('T')[0] + 'T23:59:59'
-            });
-            return shifts;
-          } catch (err) {
-            console.error(`Ошибка загрузки смен для ${tp.name}:`, err);
-            return [];
-          }
-        });
-
-        const allShifts = (await Promise.all(shiftsPromises)).flat();
-
-        // Вычисляем дату начала периода для фильтрации
-        const periodStartDate = getStartDate(filterPeriod);
-
-        // Фильтруем только закрытые смены (те, у которых есть dt_close) и по периоду
-        const closedShifts = allShifts.filter(shift => {
-          if (!shift.dt_close) return false;
-
-          // Если указан период, фильтруем по дате закрытия смены
-          if (periodStartDate) {
-            const shiftCloseDate = shift.dt_close.split('T')[0];
-            return shiftCloseDate >= periodStartDate;
-          }
-
-          return true;
-        });
-
-        // Получаем детальные отчеты по каждой закрытой смене
-        const reportsPromises = closedShifts.map(async (shift) => {
-          try {
-            const report = await shiftsService.getShiftReport({
-              system: shift.system,
-              station: shift.station,
-              shift: shift.shift
-            });
-
-            // Добавляем информацию о смене из исходного объекта
-            if (report) {
-              report.shift.dt_open = shift.dt_open;
-              report.shift.dt_close = shift.dt_close;
-            }
-
-            return report;
-          } catch (err) {
-            console.error(`Ошибка загрузки отчета смены ${shift.shift}:`, err);
-            return null;
-          }
-        });
-
-        const reports = (await Promise.all(reportsPromises)).filter(r => r !== null);
-
-        // Агрегируем продажи по видам топлива
-        salesDataByFuel = new Map();
-
-        // Также расчет продаж по ценам (для таблицы в статистике)
-        const salesByPriceList: SalesByPrice[] = [];
-        let totalSalesVolume = 0;
-        let missedSalesVolume = 0;
-
-        reports.forEach(report => {
-          const shiftCloseDate = report!.shift.dt_close || report!.shift.dt_open;
-
-          report!.fuel_totals.forEach(fuelTotal => {
-            const fuelType = fuelTotal.service_name;
-            const volume = fuelTotal.release.quantity;
-            const revenue = fuelTotal.release.cost;
-
-            totalSalesVolume += volume;
-
-            // Агрегация общих продаж
-            const existing = salesDataByFuel!.get(fuelType) || { volume: 0, revenue: 0 };
-            salesDataByFuel!.set(fuelType, {
-              volume: existing.volume + volume,
-              revenue: existing.revenue + revenue
-            });
-
-            // Определяем цену, действовавшую на момент закрытия смены
-            if (priceHistoryMap && shiftCloseDate) {
-              // Ищем цену среди всех станций в истории
-              let effectivePrice: number | null = null;
-
-              priceHistoryMap.forEach((stationHistory) => {
-                // Сначала ищем цену, действовавшую на дату смены или раньше
-                const pricesForFuel = stationHistory
-                  .filter(h => h.fuelType === fuelType && h.date <= shiftCloseDate)
-                  .sort((a, b) => b.date.localeCompare(a.date)); // Сортируем по убыванию даты
-
-                if (pricesForFuel.length > 0 && effectivePrice === null) {
-                  effectivePrice = pricesForFuel[0].price;
-                }
-              });
-
-              // Если не нашли цену <= дате смены, берем самую раннюю цену из истории
-              // (смена произошла раньше, чем начинается история цен)
-              if (effectivePrice === null) {
-                priceHistoryMap.forEach((stationHistory) => {
-                  const earliestPriceForFuel = stationHistory
-                    .filter(h => h.fuelType === fuelType)
-                    .sort((a, b) => a.date.localeCompare(b.date)); // Сортируем по возрастанию даты
-
-                  if (earliestPriceForFuel.length > 0 && effectivePrice === null) {
-                    effectivePrice = earliestPriceForFuel[0].price;
-                  }
-                });
-              }
-
-              if (effectivePrice !== null) {
-                salesByPriceList.push({
-                  price: effectivePrice,
-                  fuelType,
-                  volume,
-                  revenue
-                });
-              } else {
-                missedSalesVolume += volume;
-              }
+              return {
+                stationId: tp.id,
+                history: history.map(h => ({
+                  date: h.effective_date,
+                  price: h.price,
+                  fuelType: h.fuel_type || h.service_name || 'Неизвестно'
+                }))
+              };
+            } catch (err) {
+              console.error(`Ошибка загрузки истории цен для ${tp.name}:`, err);
+              return { stationId: tp.id, history: [] };
             }
           });
-        });
 
-
-        // Группируем продажи по ценам
-        const salesByPriceMap = new Map<string, SalesByPrice>();
-        salesByPriceList.forEach(sale => {
-          const key = `${sale.fuelType}_${sale.price.toFixed(2)}`;
-          const existing = salesByPriceMap.get(key);
-
-          if (existing) {
-            existing.volume += sale.volume;
-            existing.revenue += sale.revenue;
-          } else {
-            salesByPriceMap.set(key, { ...sale });
-          }
-        });
-
-        setSalesByPrice(Array.from(salesByPriceMap.values()));
+          const historyData = await Promise.all(historyPromises);
+          const map = new Map<string, Array<{ date: string; price: number; fuelType: string }>>();
+          historyData.forEach(({ stationId, history }) => {
+            map.set(stationId, history);
+          });
+          return map;
+        })();
       }
 
-      // Фильтруем станции, где удалось получить цены
-      const validPricesData = pricesData.filter(pd => pd.prices.length > 0).sort((a, b) => { const numA = parseInt(a.stationNumber || "999999", 10); const numB = parseInt(b.stationNumber || "999999", 10); return numA - numB; });
+      // Ждём цены и историю параллельно
+      const [pricesData, priceHistoryResult] = await Promise.all([
+        Promise.all(pricesPromises),
+        historyPromise,
+      ]);
+
+      if (signal.aborted) return;
+
+      // ===== Показываем результат ФАЗЫ 1 сразу =====
+      const validPricesData = pricesData
+        .filter(pd => pd.prices.length > 0)
+        .sort((a, b) => {
+          const numA = parseInt(a.stationNumber || '999999', 10);
+          const numB = parseInt(b.stationNumber || '999999', 10);
+          return numA - numB;
+        });
 
       setNetworkPrices(validPricesData);
-
-      // Вычисляем дату начала периода
-      const periodStartDate = getStartDate(filterPeriod);
-
-      // Вычисляем статистику с учетом истории и продаж
-      const stats = calculateStatistics(validPricesData, priceHistoryMap, salesDataByFuel, periodStartDate);
-      setStatistics(stats);
-
-      // Сохраняем priceHistoryMap для компонента графика
-      setPriceHistoryMap(priceHistoryMap || null);
-
+      setPriceHistoryMap(priceHistoryResult || null);
       setError(null);
+      setLoading(false); // Основная загрузка завершена — статистика пересчитается в effect
+
+      // ===== ФАЗА 2: Загрузка продаж из смен (фоновая) =====
+      // Загружаем ВСЕ смены за shiftsDays — фильтрация по периоду в recalc effect
+      if (loadShiftSales && priceHistoryResult) {
+        setLoadingSales(true);
+
+        try {
+          const shiftsStartDate = new Date();
+          shiftsStartDate.setDate(shiftsStartDate.getDate() - shiftsDays);
+          const shiftsEndDate = new Date();
+
+          // Загрузка списка смен — параллельно по станциям
+          const shiftsPromises = activePoints.map(async (tp) => {
+            try {
+              return await shiftsService.getShifts({
+                system: Number(network.external_id!),
+                station: Number(tp.external_id),
+                dt_beg: shiftsStartDate.toISOString().split('T')[0] + 'T00:00:00',
+                dt_end: shiftsEndDate.toISOString().split('T')[0] + 'T23:59:59'
+              });
+            } catch (err) {
+              console.error(`Ошибка загрузки смен для ${tp.name}:`, err);
+              return [];
+            }
+          });
+
+          const allShifts = (await Promise.all(shiftsPromises)).flat();
+
+          if (signal.aborted) return;
+
+          // Все закрытые смены (без фильтрации по периоду — фильтрация в recalc effect)
+          const closedShifts = allShifts.filter(shift => shift.dt_close);
+
+          // Загружаем отчёты смен БАТЧАМИ по 5 (вместо 100+ одновременно)
+          const reportTasks = closedShifts.map(shift => async () => {
+            try {
+              const report = await shiftsService.getShiftReport({
+                system: shift.system,
+                station: shift.station,
+                shift: shift.shift
+              });
+              if (report) {
+                report.shift.dt_open = shift.dt_open;
+                report.shift.dt_close = shift.dt_close;
+              }
+              return report;
+            } catch (err) {
+              return null;
+            }
+          });
+
+          const reportResults = await promiseAllBatched(reportTasks, 5, signal);
+
+          if (signal.aborted) return;
+
+          const reports = reportResults.filter(r => r !== null);
+
+          // Построение priceLookup: fuelType → отсортированный массив {date, price} (desc)
+          const priceLookup = new Map<string, Array<{ date: string; price: number }>>();
+          priceHistoryResult.forEach((stationHistory) => {
+            for (const h of stationHistory) {
+              let arr = priceLookup.get(h.fuelType);
+              if (!arr) {
+                arr = [];
+                priceLookup.set(h.fuelType, arr);
+              }
+              arr.push({ date: h.date, price: h.price });
+            }
+          });
+          priceLookup.forEach(arr => arr.sort((a, b) => b.date.localeCompare(a.date)));
+
+          // Собираем сырые данные продаж по сменам (для мгновенного пересчёта при смене периода)
+          const shiftFuelSales: ShiftFuelSale[] = [];
+          reports.forEach(report => {
+            const shiftCloseDate = report!.shift.dt_close || report!.shift.dt_open;
+
+            report!.fuel_totals.forEach((fuelTotal: any) => {
+              const fuelType = fuelTotal.service_name;
+              const volume = fuelTotal.release.quantity;
+              const revenue = fuelTotal.release.cost;
+
+              let ep = 0;
+              if (shiftCloseDate) {
+                const fuelPrices = priceLookup.get(fuelType);
+                if (fuelPrices && fuelPrices.length > 0) {
+                  const match = fuelPrices.find(p => p.date <= shiftCloseDate);
+                  ep = match?.price ?? fuelPrices[fuelPrices.length - 1].price;
+                }
+              }
+
+              shiftFuelSales.push({
+                shiftCloseDate: shiftCloseDate || '',
+                fuelType,
+                volume,
+                revenue,
+                effectivePrice: ep
+              });
+            });
+          });
+
+          if (signal.aborted) return;
+
+          // Сохраняем сырые данные — recalc effect пересчитает статистику
+          setRawShiftFuelSales(shiftFuelSales);
+        } catch (err) {
+          if (!signal.aborted) {
+            console.error('Ошибка загрузки продаж по сменам:', err);
+          }
+        } finally {
+          if (!signal.aborted) {
+            setLoadingSales(false);
+          }
+        }
+      }
     } catch (err) {
+      if (signal.aborted) return;
       const error = err instanceof Error ? err : new Error('Ошибка загрузки цен по сети');
       console.error('Ошибка загрузки цен по сети:', error);
       setNetworkPrices([]);
       setStatistics([]);
       setError(error);
-    } finally {
       setLoading(false);
     }
-  }, [network, calculateStatistics, loadHistory, historyDays, loadShiftSales, shiftsDays, filterPeriod, getStartDate, allowedTradingPointIds]);
+  }, [network, calculateStatistics, loadHistory, historyDays, loadShiftSales, shiftsDays, allowedTradingPointIds]);
 
   /**
    * Обновление данных
@@ -548,7 +561,67 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
     if (autoLoad) {
       loadNetworkPrices();
     }
+
+    return () => {
+      // Отмена при размонтировании
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+    };
   }, [autoLoad, loadNetworkPrices]);
+
+  // Пересчёт статистики при смене периода или загрузке данных (без API-запросов)
+  useEffect(() => {
+    if (networkPrices.length === 0) return;
+
+    const periodStartDate = getStartDate(filterPeriod);
+
+    // Фильтрация продаж по периоду
+    const filtered = periodStartDate
+      ? rawShiftFuelSales.filter(s => s.shiftCloseDate.split('T')[0] >= periodStartDate)
+      : rawShiftFuelSales;
+
+    // Агрегация продаж по видам топлива
+    const salesDataByFuel = new Map<string, { volume: number; revenue: number }>();
+    const salesByPriceMap = new Map<string, SalesByPrice>();
+
+    filtered.forEach(s => {
+      // Общие продажи по виду топлива
+      const existing = salesDataByFuel.get(s.fuelType) || { volume: 0, revenue: 0 };
+      salesDataByFuel.set(s.fuelType, {
+        volume: existing.volume + s.volume,
+        revenue: existing.revenue + s.revenue
+      });
+
+      // Группировка по цене
+      if (s.effectivePrice > 0) {
+        const key = `${s.fuelType}_${s.effectivePrice.toFixed(2)}`;
+        const existingByPrice = salesByPriceMap.get(key);
+        if (existingByPrice) {
+          existingByPrice.volume += s.volume;
+          existingByPrice.revenue += s.revenue;
+        } else {
+          salesByPriceMap.set(key, {
+            price: s.effectivePrice,
+            fuelType: s.fuelType,
+            volume: s.volume,
+            revenue: s.revenue
+          });
+        }
+      }
+    });
+
+    setSalesByPrice(Array.from(salesByPriceMap.values()));
+
+    // Пересчёт статистики
+    const updatedStats = calculateStatistics(
+      networkPrices,
+      priceHistoryMap,
+      salesDataByFuel.size > 0 ? salesDataByFuel : undefined,
+      periodStartDate
+    );
+    setStatistics(updatedStats);
+  }, [filterPeriod, rawShiftFuelSales, networkPrices, priceHistoryMap, getStartDate, calculateStatistics]);
 
   return {
     networkPrices,
@@ -556,6 +629,7 @@ export function useNetworkPrices(options: UseNetworkPricesOptions = {}): UseNetw
     priceHistoryMap,
     salesByPrice,
     loading,
+    loadingSales,
     error,
     refresh
   };

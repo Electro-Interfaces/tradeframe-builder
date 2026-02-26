@@ -4,44 +4,11 @@
 
 import { useMemo } from 'react';
 import type { Transaction } from '@/services/stsApi';
+import { getPaymentTypeDisplayName } from '@/utils/paymentUtils';
 
 interface UsePaymentStatsOptions {
   filteredTransactions: Transaction[];
 }
-
-/**
- * Локализация способов оплаты
- */
-const getPaymentTypeDisplayName = (paymentType: string | undefined): string => {
-  const translations: Record<string, string> = {
-    'bank_card': 'Банковская карта',
-    'card': 'Банковская карта',
-    'credit_card': 'Банковская карта',
-    'debit_card': 'Банковская карта',
-    'cash': 'Наличные',
-    'fuel_card': 'Топливная карта',
-    'fleet_card': 'Корпоративная карта',
-    'corporate_card': 'Корп. карты',
-    'coupon': 'Купон',
-    'online_order': 'Онлайн заказ',
-    'mobile': 'Мобильная оплата',
-    'qr': 'QR-код',
-    'contactless': 'Бесконтактная оплата',
-    'online': 'Онлайн платеж',
-    'digital': 'Цифровая оплата',
-    'transfer': 'Перевод',
-    'other': 'Другое',
-    // Русские названия из STS API
-    'наличные': 'Наличные',
-    'карта': 'Банковская карта',
-    'сбербанк': 'Банковская карта',
-    'топливная_карта': 'Топливная карта',
-    'мобил.п': 'Онлайн заказ',
-    'мобильная': 'Онлайн заказ',
-    'мобильная оплата': 'Онлайн заказ'
-  };
-  return translations[paymentType?.toLowerCase() || ''] || paymentType || 'Неизвестно';
-};
 
 export function usePaymentStats({ filteredTransactions }: UsePaymentStatsOptions) {
   // Статистика по способам оплаты

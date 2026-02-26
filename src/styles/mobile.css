@@ -1,32 +1,17 @@
 /* Мобильные стили для лучшего UX */
 
 /* ЗАЩИТА ОТ PULL-TO-REFRESH */
-/* Отключаем pull-to-refresh без нарушения нормального layout */
+/* contain — блокирует pull-to-refresh, но не мешает обычному скроллу */
 @media (hover: none) and (pointer: coarse) {
   html, body {
-    overscroll-behavior: none !important;
-    overscroll-behavior-y: none !important;
-    -webkit-overscroll-behavior: none !important;
-    -webkit-overscroll-behavior-y: none !important;
-    touch-action: pan-x pan-y !important;
+    overscroll-behavior-y: contain;
+    touch-action: pan-x pan-y;
   }
 
   #root {
-    overscroll-behavior: none !important;
-    overscroll-behavior-y: none !important;
-    -webkit-overscroll-behavior: none !important;
-    -webkit-overscroll-behavior-y: none !important;
-    touch-action: pan-x pan-y !important;
-    min-height: 100vh !important;
-    min-height: 100dvh !important;
-  }
-
-  /* Запрещаем любые scroll события на window */
-  .scroll-container {
-    overscroll-behavior: none !important;
-    overscroll-behavior-y: none !important;
-    -webkit-overscroll-behavior: none !important;
-    -webkit-overscroll-behavior-y: none !important;
+    overscroll-behavior-y: contain;
+    min-height: 100dvh;
+    min-height: 100vh; /* fallback */
   }
 }
 
@@ -53,15 +38,15 @@
   min-width: 44px;
 }
 
-/* Скрытие адресной строки на iOS Safari */
+/* Корректная высота на мобильных (динамический viewport) */
 @media screen and (max-width: 768px) {
   body {
-    height: 100vh;
+    height: 100dvh;
     height: -webkit-fill-available;
   }
-  
+
   #root {
-    height: 100vh;
+    height: 100dvh;
     height: -webkit-fill-available;
   }
 }

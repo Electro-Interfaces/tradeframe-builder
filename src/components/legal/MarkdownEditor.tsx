@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { sanitizeHtml } from '@/utils/sanitize';
 import { Badge } from '@/components/ui/badge';
 import { 
   Eye, 
@@ -241,7 +242,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             <CardContent>
               <div 
                 className="min-h-[500px] p-4 bg-white rounded-md border prose prose-slate max-w-none"
-                dangerouslySetInnerHTML={{ __html: htmlPreview }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlPreview) }}
                 style={{
                   fontFamily: 'system-ui, -apple-system, sans-serif',
                   lineHeight: '1.6',

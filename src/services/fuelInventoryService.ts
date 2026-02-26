@@ -98,7 +98,41 @@ async function batchPromises<T>(
 }
 
 /**
- * НОВАЯ ФУНКЦИЯ: Получить остатки на основе ТОЛЬКО сменных отчётов
+ * Получить остатки через серверную агрегацию (один POST-запрос вместо ~200+ round-trips)
+ * Backend агрегирует данные STS API с использованием NodeCache (2h TTL для shift_reports)
+ */
+export async function getInventoryFromServer(params: InventoryParams): Promise<TankInventory[]> {
+  // Получаем список ТТ (из Supabase, кэшируется React Query)
+  const tradingPoints = await tradingPointsService.getByNetworkId(params.networkId);
+
+  const stations = tradingPoints
+    .filter(point => {
+      if (!point.external_id) return false;
+      if (params.station && parseInt(point.external_id) !== params.station) return false;
+      if (params.allowedStations && !params.allowedStations.has(point.external_id)) return false;
+      return true;
+    })
+    .map(point => ({
+      id: parseInt(point.external_id!),
+      name: point.name || `АЗС ${point.external_id}`
+    }));
+
+  if (stations.length === 0) return [];
+
+  return stsProxyRequest<TankInventory[]>('/fuel-inventory', {
+    method: 'POST',
+    body: {
+      system: params.system,
+      stations,
+      dt_beg: params.dt_beg,
+      dt_end: params.dt_end,
+      allowedStations: params.allowedStations ? Array.from(params.allowedStations) : null
+    }
+  });
+}
+
+/**
+ * Получить остатки из сменных отчётов (клиентская агрегация, fallback)
  * Использует только /v1/shifts и /v1/report/shift_report
  */
 export async function getInventoryFromShiftReports(params: InventoryParams): Promise<TankInventory[]> {
@@ -445,21 +479,16 @@ export function aggregateByFuel(inventory: TankInventory[]): FuelInventorySummar
  * Сравнивает наши расчеты с официальными данными из сменных отчетов
  */
 export async function validateBookInventory(params: InventoryParams): Promise<void> {
-  console.log('\n🔍 ========== ВАЛИДАЦИЯ КНИЖНОГО ОСТАТКА ==========');
-  console.log(`📅 Период: с ${params.dt_beg} по ${params.dt_end}`);
-  console.log(`🏢 Сеть: ${params.system}`);
 
   try {
     // Получаем список всех ТТ сети
     const tradingPoints = await tradingPointsService.getByNetworkId(params.networkId);
-    console.log(`🏪 Торговых точек в сети: ${tradingPoints.length}`);
 
     // Для каждой ТТ проверяем смены
     for (const point of tradingPoints) {
       if (!point.external_id) continue;
 
       const stationId = parseInt(point.external_id);
-      console.log(`\n📍 ТТ ${stationId} (${point.name}):`);
 
       // Получаем список всех смен за период
       const shiftsResponse = await stsProxyRequest<any>(
@@ -498,8 +527,6 @@ export async function validateBookInventory(params: InventoryParams): Promise<vo
         return dateA.getTime() - dateB.getTime();
       });
 
-      console.log(`  📊 Закрытых смен в периоде: ${periodicShifts.length}`);
-
       // Для каждой смены сравниваем расчеты
       for (const shift of periodicShifts) {
         try {
@@ -524,15 +551,6 @@ export async function validateBookInventory(params: InventoryParams): Promise<vo
           const release = reportData?.release || [];
           if (release.length === 0) continue;
 
-          const closeDate = new Date(shift.dt_close);
-          console.log(`\n  ⏰ Смена #${shift.shift} (закрыта ${closeDate.toLocaleString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}):`);
-
           // Проверяем каждый резервуар
           for (const tank of release) {
             const docBeg = parseFloat(tank.doc_beg?.volume || '0');
@@ -553,14 +571,8 @@ export async function validateBookInventory(params: InventoryParams): Promise<vo
             const icon = isValid ? '✅' : '❌';
             const status = isValid ? 'СОВПАДАЕТ' : 'РАСХОЖДЕНИЕ';
 
-            console.log(`    ${icon} Р${tank.tank} (${tank.service?.service_name}):`);
-            console.log(`       Начало: ${docBeg.toFixed(2)} л`);
-            console.log(`       + Поступления: ${receipts.toFixed(2)} л`);
-            console.log(`       - Реализация: ${sales.toFixed(2)} л`);
-            console.log(`       = Расчет: ${calculated.toFixed(2)} л`);
-            console.log(`       📋 Официально: ${official.toFixed(2)} л`);
             if (!isValid) {
-              console.log(`       ⚠️ ${status}: ${diff.toFixed(2)} л`);
+              console.warn(`Расхождение: Р${tank.tank} смена #${shift.shift} — расчет: ${calculated.toFixed(2)} л, официально: ${official.toFixed(2)} л, разница: ${diff.toFixed(2)} л`);
             }
           }
         } catch (err) {
@@ -569,7 +581,6 @@ export async function validateBookInventory(params: InventoryParams): Promise<vo
       }
     }
 
-    console.log('\n🔍 ========== ВАЛИДАЦИЯ ЗАВЕРШЕНА ==========\n');
   } catch (error) {
     console.error('❌ Ошибка валидации:', error);
   }

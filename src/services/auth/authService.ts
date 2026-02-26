@@ -4,6 +4,7 @@
  */
 
 import { auditLogService } from '../auditLogService';
+import { getBackendOrigin } from '@/utils/backendUrl';
 
 interface DatabaseUser {
   id: string;
@@ -55,7 +56,20 @@ interface AppUser {
 class AuthService {
   // Определяем URL в зависимости от окружения
   private readonly SUPABASE_URL = this.getSupabaseUrl();
-  private readonly SUPABASE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0';
+  private readonly SUPABASE_KEY = this.getSupabaseKey();
+
+  /**
+   * Получает Supabase ключ из переменных окружения
+   * На production/test используется backend proxy, ключ передаётся через него
+   */
+  private getSupabaseKey(): string {
+    const key = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    if (!key) {
+      console.warn('⚠️ VITE_SUPABASE_SERVICE_ROLE_KEY не задан в окружении');
+      return '';
+    }
+    return key;
+  }
 
   /**
    * Определяет URL для Supabase в зависимости от окружения
@@ -66,18 +80,13 @@ class AuthService {
   private getSupabaseUrl(): string {
     const hostname = window.location.hostname;
 
-    // На production используем backend proxy
-    if (hostname === 'prod.dataworker.ru') {
-      return 'https://prod.dataworker.ru/api/supabase';
+    // На deployed окружениях (prod/test/github) — через backend proxy
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `${getBackendOrigin()}/api/supabase`;
     }
 
-    // На test используем backend proxy
-    if (hostname === 'testtf.dataworker.ru' || hostname.includes('github.io')) {
-      return 'https://testtf.dataworker.ru/api/supabase';
-    }
-
-    // Локально - прямой доступ к Supabase
-    return import.meta.env.VITE_SUPABASE_URL || 'https://ssvazdgnmatbdynkhkqo.supabase.co';
+    // Локально — прямой доступ к Supabase
+    return import.meta.env.VITE_SUPABASE_URL || '';
   }
 
   /**
@@ -371,7 +380,9 @@ class AuthService {
    * Генерирует простую соль
    */
   generateSalt(): string {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array, b => b.toString(36).padStart(2, '0')).join('').substring(0, 24);
   }
 
   /**

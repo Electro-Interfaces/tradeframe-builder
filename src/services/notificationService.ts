@@ -11,8 +11,8 @@ import type {
   RoleNotificationSubscription
 } from '@/types/notification';
 
-const SUPABASE_URL = 'https://ssvazdgnmatbdynkhkqo.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDM4MzQsImV4cCI6MjA3MjkxOTgzNH0.D-sYdRV7AZ9-plDl2Gh5eFW2jfl7-LC2slKQ3CrgqB8';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

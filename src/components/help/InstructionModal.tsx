@@ -24,6 +24,7 @@ import {
 
 import { instructionsService } from '@/services/instructionsService';
 import type { InstructionForUser } from '@/types/instructions';
+import { sanitizeHtml } from '@/utils/sanitize';
 
 interface InstructionModalProps {
   isOpen: boolean;
@@ -135,7 +136,7 @@ export function InstructionModal({ isOpen, onClose, instructionKey }: Instructio
               <div
                 className="instruction-content"
                 dangerouslySetInnerHTML={{
-                  __html: instruction.version.content_html
+                  __html: sanitizeHtml(instruction.version.content_html)
                 }}
               />
             </div>

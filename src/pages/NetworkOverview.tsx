@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useNewAuth } from "@/contexts/NewAuthContext";
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { stsApiService, Transaction } from "@/services/stsApi";
-import { tradingPointsService } from "@/services/tradingPointsService";
+// tradingPointsService больше не нужен — используем selectedStation из контекста
 import { useToast } from "@/hooks/use-toast";
 import { SalesForecast } from "@/components/charts/SalesForecast";
 import { ChartSkeleton, HeatmapSkeleton } from "@/components/ui/chart-skeleton";
@@ -24,14 +24,14 @@ import { HourlyActivityChart } from "@/components/charts/HourlyActivityChart";
 import { StationRevenueChart } from "@/components/charts/StationRevenueChart";
 import { StationFuelSalesChart } from "@/components/charts/StationFuelSalesChart";
 import { StationRevenueTrendChart } from "@/components/charts/StationRevenueTrendChart";
-import * as XLSX from 'xlsx';
-import html2canvas from 'html2canvas';
+// XLSX и html2canvas — dynamic import (тяжёлые, нужны только при экспорте)
 import { loadPdfMake } from "@/utils/pdfMake";
+import { getPaymentTypeDisplayName } from "@/utils/paymentUtils";
 
 
 export default function NetworkOverview() {
   const isMobile = useIsMobile();
-  const { selectedNetwork, selectedTradingPoint, isAllTradingPoints } = useSelection();
+  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized } = useSelection();
   const { user } = useNewAuth();
   const { toast } = useToast();
   
@@ -70,6 +70,9 @@ export default function NetworkOverview() {
   const MAX_PULL_DISTANCE = 120; // Максимальное расстояние растягивания
   const INDICATOR_APPEAR_THRESHOLD = 30; // Порог появления индикатора
 
+  // AbortController для отмены предыдущих запросов
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const isNetworkOnly = selectedNetwork && !selectedTradingPoint;
   const isTradingPointSelected = selectedNetwork && selectedTradingPoint;
   const canShowData = selectedNetwork && (selectedTradingPoint === 'all' || selectedTradingPoint || !selectedTradingPoint); // Показываем данные если выбрана сеть
@@ -103,13 +106,8 @@ export default function NetworkOverview() {
   }, [user?.roles]);
 
   // Функция загрузки транзакций
-  const loadTransactions = async (signal?: AbortSignal) => {
+  const loadTransactions = useCallback(async (signal?: AbortSignal) => {
     if (!selectedNetwork?.external_id) {
-      toast({
-        title: "Ошибка",
-        description: "Выберите сеть с настроенным external_id",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -121,30 +119,21 @@ export default function NetworkOverview() {
       setTerminalInfo(null);
       setPrices([]);
 
-      // Загружаем данные из STS API
-      // Используем правильную логику получения contextParams как в Tanks.tsx
-      let contextParams = {
-        networkId: selectedNetwork?.external_id || selectedNetwork?.code || '1',
-        tradingPointId: undefined
+      // Параметры контекста из уже загруженных данных (без лишних Supabase-запросов)
+      const contextParams: { networkId: string; tradingPointId?: string } = {
+        networkId: selectedNetwork.external_id,
       };
 
-      // Если выбрана конкретная торговая точка (не 'all'), получаем её полные данные
-      if (selectedTradingPoint && selectedTradingPoint !== 'all') {
-        
-        try {
-          const tradingPointObject = await tradingPointsService.getById(selectedTradingPoint);
-          if (tradingPointObject) {
-            contextParams.tradingPointId = tradingPointObject.external_id || '1';
-          }
-        } catch (error) {
-        }
+      // Используем selectedStation из контекста вместо tradingPointsService.getById()
+      if (selectedTradingPoint && selectedTradingPoint !== 'all' && selectedStation?.external_id) {
+        contextParams.tradingPointId = selectedStation.external_id;
       }
 
 
       const stsTransactions = await stsApiService.getTransactions(
         dateFrom,
         dateTo,
-        200,
+        0, // Без лимита — статистика по ВСЕМ транзакциям за период
         contextParams
       );
 
@@ -193,21 +182,25 @@ export default function NetworkOverview() {
       
       const additionalText = additionalDataLoaded.length > 0 ? `, ${additionalDataLoaded.join(', ')}` : '';
       
-    } catch (error) {
+    } catch (error: any) {
+      if (signal?.aborted) return;
       toast({
         title: "Ошибка загрузки",
         description: error.message || "Не удалось загрузить данные",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, [selectedNetwork?.external_id, selectedTradingPoint, selectedStation?.external_id, dateFrom, dateTo]);
 
   // Функция экспорта данных в Excel
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
-      
+      const XLSX = await import('xlsx');
+
       // Создаем новую рабочую книгу
       const workbook = XLSX.utils.book_new();
       
@@ -803,6 +796,7 @@ export default function NetworkOverview() {
       const captureElement = async (element: HTMLDivElement | null) => {
         if (!element) return null;
 
+        const { default: html2canvas } = await import('html2canvas');
         const canvas = await html2canvas(element, {
           backgroundColor: '#0f172a',
           scale: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2,
@@ -1003,31 +997,32 @@ export default function NetworkOverview() {
 
   // Инициализация компонента
   useEffect(() => {
-    // Принудительная проверка конфигурации STS API (обходим кэш)
-    const checkConfig = async () => {
-      try {
-        // Пытаемся получить свежую конфигурацию
-        const isConfigured = stsApiService.isConfigured();
-        setStsApiConfigured(isConfigured);
-        
-        setInitializing(false);
-        
-        // Загружаем данные если выбрана сеть И настроен STS API (торговая точка не обязательна)
-        if (selectedNetwork && isConfigured) {
-          loadTransactions();
-        } else if (selectedNetwork && !isConfigured) {
-          // Не показываем toast сразу, даем пользователю время
-        }
-      } catch (error) {
-        setInitializing(false);
-      }
-    };
-    
-    // Даем время контексту для инициализации, затем проверяем конфигурацию
-    const initTimer = setTimeout(checkConfig, 1500); // Увеличиваем время до 1.5 сек
+    // Проверяем конфигурацию STS API
+    const isConfigured = stsApiService.isConfigured();
+    setStsApiConfigured(isConfigured);
 
-    return () => clearTimeout(initTimer);
-  }, [selectedNetwork, selectedTradingPoint, dateFrom, dateTo]);
+    // Ждём инициализации контекста
+    if (!isInitialized) return;
+    setInitializing(false);
+
+    if (!selectedNetwork?.external_id || !isConfigured) return;
+
+    // Для конкретной точки ждём загрузки selectedStation
+    if (selectedTradingPoint && selectedTradingPoint !== 'all' && !selectedStation?.external_id) return;
+
+    // Отменяем предыдущий запрос
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    loadTransactions(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [isInitialized, selectedNetwork?.external_id, selectedTradingPoint, selectedStation?.external_id, dateFrom, dateTo, loadTransactions]);
 
   // Вычисляемые статистики
   const completedTransactions = useMemo(() => {
@@ -1163,38 +1158,6 @@ export default function NetworkOverview() {
       return b.revenue - a.revenue;
     });
   }, [filteredTransactions]);
-
-  // Функция для локализации способов оплаты
-  const getPaymentTypeDisplayName = (paymentType) => {
-    const translations = {
-      'bank_card': 'Банковская карта',
-      'card': 'Банковская карта',
-      'credit_card': 'Банковская карта',
-      'debit_card': 'Банковская карта',
-      'cash': 'Наличные',
-      'fuel_card': 'Топливная карта',
-      'fleet_card': 'Корпоративная карта',
-      'corporate_card': 'Корп. карты',
-      'coupon': 'Купон',
-      'online_order': 'Онлайн заказ',
-      'mobile': 'Мобильная оплата',
-      'qr': 'QR-код',
-      'contactless': 'Бесконтактная оплата',
-      'online': 'Онлайн платеж',
-      'digital': 'Цифровая оплата',
-      'transfer': 'Перевод',
-      'other': 'Другое',
-      // Добавляем распознавание русских названий из STS API
-      'наличные': 'Наличные',
-      'карта': 'Банковская карта',
-      'сбербанк': 'Банковская карта',
-      'топливная_карта': 'Топливная карта',
-      'мобил.п': 'Онлайн заказ',       // Добавляем обработку "Мобил.П" из STS API
-      'мобильная': 'Онлайн заказ',
-      'мобильная оплата': 'Онлайн заказ'
-    };
-    return translations[paymentType?.toLowerCase()] || paymentType || 'Неизвестно';
-  };
 
   // Статистика по способам оплаты (с учетом фильтра по датам)
   const paymentTypeStats = useMemo(() => {
@@ -1454,9 +1417,19 @@ export default function NetworkOverview() {
   }, [selectedNetwork, transactions, allowedStationNumbers]);
 
   // Pull-to-refresh функционал
+  // Ручное обновление с отменой предыдущего запроса
+  const handleManualRefresh = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    loadTransactions(controller.signal);
+  }, [loadTransactions]);
+
   const handleRefreshData = async () => {
     if (selectedNetwork) {
-      await loadTransactions();
+      handleManualRefresh();
     }
   };
 
@@ -1683,7 +1656,7 @@ export default function NetworkOverview() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        loadTransactions();
+                        handleManualRefresh();
                       }}
                       disabled={loading}
                       className="border-slate-600 text-white hover:bg-slate-700"
@@ -2147,8 +2120,7 @@ export default function NetworkOverview() {
                     setInitializing(false);
                     
                     if (isConfigured) {
-                      // API настроен - уведомление убрано
-                      loadTransactions();
+                      handleManualRefresh();
                     } else {
                       toast({
                         title: "Настройки не найдены",

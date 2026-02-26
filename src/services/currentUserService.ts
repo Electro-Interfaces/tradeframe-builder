@@ -97,7 +97,7 @@ class CurrentUserService {
         return user;
       }
 
-      console.log('❌ Пользователь не найден в базе данных:', email);
+      console.error('Пользователь не найден в базе данных:', email);
       return null;
     } catch (error) {
       console.error('Ошибка получения пользователя по email:', error);
@@ -122,7 +122,7 @@ class CurrentUserService {
         return user;
       }
 
-      console.log('❌ Authentication failed for:', email);
+      console.error('Authentication failed for:', email);
       return null;
     } catch (error) {
       console.error('Ошибка аутентификации:', error);
@@ -142,7 +142,7 @@ class CurrentUserService {
 
     // Проверяем есть ли сохраненные данные пароля в пользователе
     if (!user.pwd_salt || !user.pwd_hash) {
-      console.log('❌ User password data missing - cannot authenticate');
+      console.error('User password data missing - cannot authenticate');
       return false;
     }
 

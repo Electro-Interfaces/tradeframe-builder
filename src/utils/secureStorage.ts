@@ -1,21 +1,20 @@
 /**
  * Безопасное хранилище для PWA
- * Использует IndexedDB для надежного хранения зашифрованных данных
+ * Использует IndexedDB + Web Crypto API (AES-GCM) для хранения учётных данных
  * Поддерживает "Запомнить меня" функционал
  */
 
-import { utf8ToBase64, base64ToUtf8 } from './base64';
-
 // Константы для IndexedDB
 const DB_NAME = 'TradeFrameSecureStorage';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'credentials';
 const CREDENTIALS_KEY = 'remembered_credentials';
+const CRYPTO_KEY_NAME = 'encryption_key';
 
 // Интерфейс сохраняемых учетных данных
 interface StoredCredentials {
   email: string;
-  encryptedPassword: string;
+  encryptedPassword: string; // base64(iv + ciphertext)
   timestamp: number;
   expiresIn: number; // в днях
 }
@@ -40,47 +39,87 @@ async function openDB(): Promise<IDBDatabase> {
 }
 
 /**
- * Простое шифрование пароля (XOR с ключом)
- * Примечание: Это НЕ криптографически стойкое шифрование!
- * Для production лучше использовать Web Crypto API
+ * Получает или создаёт AES-GCM ключ, хранит в IndexedDB
  */
-function simpleEncrypt(text: string, key: string): string {
-  let encrypted = '';
-  for (let i = 0; i < text.length; i++) {
-    const charCode = text.charCodeAt(i) ^ key.charCodeAt(i % key.length);
-    encrypted += String.fromCharCode(charCode);
+async function getCryptoKey(): Promise<CryptoKey> {
+  const db = await openDB();
+
+  // Пробуем загрузить существующий ключ
+  const existingKey: CryptoKey | undefined = await new Promise((resolve, reject) => {
+    const tx = db.transaction([STORE_NAME], 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.get(CRYPTO_KEY_NAME);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  if (existingKey) {
+    return existingKey;
   }
-  return utf8ToBase64(encrypted); // Безопасное base64 кодирование с поддержкой Unicode
+
+  // Генерируем новый AES-GCM 256-bit ключ
+  const key = await crypto.subtle.generateKey(
+    { name: 'AES-GCM', length: 256 },
+    false, // не экспортируемый
+    ['encrypt', 'decrypt']
+  );
+
+  // Сохраняем в IndexedDB
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction([STORE_NAME], 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.put(key, CRYPTO_KEY_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+
+  return key;
 }
 
 /**
- * Простая расшифровка пароля
+ * Шифрует текст с помощью AES-GCM
+ * Возвращает base64(12 bytes IV + ciphertext)
  */
-function simpleDecrypt(encrypted: string, key: string): string {
-  const decoded = base64ToUtf8(encrypted); // Безопасное base64 декодирование с поддержкой Unicode
-  let decrypted = '';
-  for (let i = 0; i < decoded.length; i++) {
-    const charCode = decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length);
-    decrypted += String.fromCharCode(charCode);
-  }
-  return decrypted;
+async function encrypt(text: string, key: CryptoKey): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    data
+  );
+
+  // Склеиваем IV + ciphertext
+  const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(ciphertext), iv.length);
+
+  // Кодируем в base64
+  return btoa(String.fromCharCode(...combined));
 }
 
 /**
- * Генерирует ключ шифрования на основе характеристик устройства
+ * Расшифровывает текст из base64(IV + ciphertext)
  */
-function getDeviceKey(): string {
-  const userAgent = navigator.userAgent;
-  const language = navigator.language;
-  const platform = navigator.platform;
-  const screenResolution = `${screen.width}x${screen.height}`;
+async function decrypt(encoded: string, key: CryptoKey): Promise<string> {
+  const combined = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
 
-  // Используем безопасное base64 кодирование для поддержки Unicode символов
-  return utf8ToBase64(`${userAgent}-${language}-${platform}-${screenResolution}`).substring(0, 32);
+  const iv = combined.slice(0, 12);
+  const ciphertext = combined.slice(12);
+
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ciphertext
+  );
+
+  return new TextDecoder().decode(decrypted);
 }
 
 /**
- * Сохраняет учетные данные в IndexedDB
+ * Сохраняет учетные данные в IndexedDB (AES-GCM шифрование)
  */
 export async function saveRememberedCredentials(
   email: string,
@@ -89,8 +128,8 @@ export async function saveRememberedCredentials(
 ): Promise<void> {
   try {
     const db = await openDB();
-    const deviceKey = getDeviceKey();
-    const encryptedPassword = simpleEncrypt(password, deviceKey);
+    const key = await getCryptoKey();
+    const encryptedPassword = await encrypt(password, key);
 
     const credentials: StoredCredentials = {
       email,
@@ -135,20 +174,18 @@ export async function getRememberedCredentials(): Promise<{ email: string; passw
     // Проверяем не истек ли срок действия
     const expirationTime = credentials.timestamp + credentials.expiresIn * 24 * 60 * 60 * 1000;
     if (Date.now() > expirationTime) {
-      // Истек срок - удаляем
       await clearRememberedCredentials();
       return null;
     }
 
-    // Расшифровываем пароль
-    const deviceKey = getDeviceKey();
-    const password = simpleDecrypt(credentials.encryptedPassword, deviceKey);
+    // Расшифровываем пароль через AES-GCM
+    const key = await getCryptoKey();
+    const password = await decrypt(credentials.encryptedPassword, key);
 
-    return {
-      email: credentials.email,
-      password,
-    };
+    return { email: credentials.email, password };
   } catch (error) {
+    // При ошибке расшифровки (например, смена ключа) — очищаем
+    await clearRememberedCredentials().catch(() => {});
     return null;
   }
 }

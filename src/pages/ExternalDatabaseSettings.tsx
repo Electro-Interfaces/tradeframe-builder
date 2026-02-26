@@ -29,10 +29,10 @@ const ExternalDatabaseSettings = () => {
         console.error('Error parsing saved database settings:', error);
       }
     } else {
-      // Устанавливаем и сохраняем значения по умолчанию
+      // Устанавливаем и сохраняем значения по умолчанию из env vars
       const defaultSettings = {
-        url: "https://ssvazdgnmatbdynkhkqo.supabase.co",
-        apiKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0"
+        url: import.meta.env.VITE_SUPABASE_URL || "",
+        apiKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ""
       };
       setSettings(defaultSettings);
       // Автоматически сохраняем в localStorage
@@ -109,8 +109,8 @@ const ExternalDatabaseSettings = () => {
 
   const handleRestoreDefaults = () => {
     const defaultSettings = {
-      url: "https://ssvazdgnmatbdynkhkqo.supabase.co",
-      apiKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0"
+      url: import.meta.env.VITE_SUPABASE_URL || "",
+      apiKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ""
     };
     setSettings(defaultSettings);
     localStorage.setItem('externalDatabase', JSON.stringify(defaultSettings));

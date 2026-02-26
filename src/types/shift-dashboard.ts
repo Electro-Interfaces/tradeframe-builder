@@ -117,14 +117,8 @@ export interface FinancialMetrics {
   /** Прочая выручка */
   otherRevenue: number;
 
-  /** Детализация по способам оплаты с разбивкой по топливам */
-  paymentDetails: {
-    cash: PaymentMethodDetails;
-    card: PaymentMethodDetails;
-    online: PaymentMethodDetails;
-    corporate: PaymentMethodDetails;
-    coupon: PaymentMethodDetails;
-  };
+  /** Детализация по способам оплаты с разбивкой по топливам (динамический — ключ = тип оплаты из API) */
+  paymentDetails: Record<string, PaymentMethodDetails>;
 }
 
 /**
@@ -678,31 +672,89 @@ export interface DashboardData {
 // ============================================
 
 /**
- * Цвета для топлив
+ * Определяет цвет топлива по названию (паттерн-матчинг)
+ * Работает с любыми названиями: "АИ-92", "Бензин АИ-95", "Диз. топливо", "ДТ зимнее" и т.д.
  */
-export const FUEL_COLORS: Record<number, string> = {
-  1: '#ef4444', // АИ-92 - красный
-  2: '#f97316', // АИ-95 - оранжевый
-  3: '#eab308', // АИ-98 - желтый
-  4: '#22c55e', // ДТ - зеленый
-  5: '#3b82f6', // ДТ Зимнее - синий
-  6: '#8b5cf6', // СУГ - фиолетовый
-};
+export function getFuelColor(fuelName: string): string {
+  const fuel = fuelName.toLowerCase();
+
+  // АИ-92
+  if (fuel.includes('92')) return '#ef4444'; // красный
+  // АИ-95
+  if (fuel.includes('95')) return '#f97316'; // оранжевый
+  // АИ-98
+  if (fuel.includes('98')) return '#eab308'; // жёлтый
+  // АИ-100
+  if (fuel.includes('100')) return '#f59e0b'; // amber
+  // ДТ зимнее / Диз. топливо зимн
+  if ((fuel.includes('дт') || fuel.includes('диз')) && (fuel.includes('зимн') || fuel.includes('аркт'))) return '#3b82f6'; // синий
+  // ДТ летнее / Диз. топливо летн
+  if ((fuel.includes('дт') || fuel.includes('диз')) && fuel.includes('летн')) return '#22c55e'; // зелёный
+  // ДТ / Дизель / Диз. топливо (общий)
+  if (fuel.includes('дт') || fuel.includes('дизель') || fuel.includes('диз') || fuel.includes('diesel')) return '#10b981'; // emerald
+  // СУГ / Газ
+  if (fuel.includes('суг') || fuel.includes('газ') || fuel.includes('gas') || fuel.includes('lpg')) return '#8b5cf6'; // фиолетовый
+  // Бензин (общий, без марки)
+  if (fuel.includes('бензин') || fuel.includes('petrol') || fuel.includes('gasoline')) return '#f472b6'; // pink
+
+  // Fallback: генерация стабильного цвета из хеша имени
+  return hashColor(fuelName);
+}
 
 /**
- * Цвета для способов оплаты
+ * Генерирует стабильный цвет из строки (для неизвестных типов)
  */
-export const PAYMENT_COLORS: Record<number, string> = {
-  1: '#22c55e', // Наличные - зеленый
-  2: '#3b82f6', // Карта - синий
-  3: '#8b5cf6', // СБП - фиолетовый
-  4: '#f97316', // Топливная карта - оранжевый
-  5: '#ef4444', // Корпоративная карта - красный
-  99: '#64748b', // Прочее - серый
-};
+function hashColor(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 65%, 55%)`;
+}
 
 /**
- * Названия способов оплаты
+ * Определяет цвет способа оплаты по названию (паттерн-матчинг)
+ */
+export function getPaymentColor(paymentName: string): string {
+  const name = paymentName.toLowerCase();
+
+  // Наличные
+  if (name.includes('наличн') || name === 'cash') return '#22c55e'; // зелёный
+  // Банковские карты / Безнал.электрон
+  if (name.includes('безнал') && name.includes('электрон')) return '#3b82f6'; // синий
+  // Безнал (обычный)
+  if (name === 'безнал' || name === 'безнал.') return '#60a5fa'; // light blue
+  // Банковские карты
+  if (name.includes('карт') && !name.includes('корп') && !name.includes('топлив')) return '#3b82f6'; // синий
+  // СБП
+  if (name.includes('сбп') || name === 'sbp') return '#a855f7'; // фиолетовый
+  // Топливные карты / НКТ
+  if (name.includes('топливн') || name.includes('нкт') || name.includes('fleet')) return '#f97316'; // оранжевый
+  // Талоны
+  if (name.includes('талон')) return '#f59e0b'; // amber
+  // БАЛТОП
+  if (name.includes('балтоп')) return '#14b8a6'; // teal
+  // Инфорком
+  if (name.includes('инфорком')) return '#06b6d4'; // cyan
+  // VIAcard / ВИАкард
+  if (name.includes('viacard') || name.includes('виакард')) return '#8b5cf6'; // violet
+  // МобилПр. / Мобильная оплата
+  if (name.includes('мобил')) return '#ec4899'; // pink
+  // Корпоративные карты / КР
+  if (name === 'кр' || name.includes('корпоратив') || name.includes('корп')) return '#ef4444'; // красный
+  // Купоны
+  if (name.includes('купон') || name === 'coupon') return '#d97706'; // amber-600
+  // Онлайн
+  if (name.includes('онлайн') || name.includes('online')) return '#ec4899'; // pink
+
+  // Fallback
+  return hashColor(paymentName);
+}
+
+/**
+ * Названия способов оплаты (legacy)
+ * @deprecated Используй paymentTypeName из API напрямую
  */
 export const PAYMENT_NAMES: Record<number, string> = {
   1: 'Наличные',

@@ -42,7 +42,7 @@ class TradingPointScanService {
    * Опрашивает торговую точку через торговое API
    */
   async scanTradingPoint(tradingPointId: string): Promise<TradingPointScanResult> {
-    console.log(`Начинаем сканирование торговой точки: ${tradingPointId}`);
+    // Сканирование торговой точки
     
     try {
       // Симуляция API запроса к торговому API торговой точки
@@ -51,7 +51,6 @@ class TradingPointScanService {
       // Симуляция различных результатов сканирования
       const mockResults = this.generateMockScanResults(tradingPointId);
       
-      console.log('Результат сканирования:', mockResults);
       return mockResults;
       
     } catch (error) {

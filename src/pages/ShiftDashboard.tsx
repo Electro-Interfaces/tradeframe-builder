@@ -293,6 +293,14 @@ export default function ShiftDashboard() {
           </div>
         )}
 
+        {/* Индикатор фоновой загрузки */}
+        {isFetching && data && (
+          <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-blue-900/30 border border-blue-700/30 rounded-lg text-sm text-blue-300">
+            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            Обновление данных...
+          </div>
+        )}
+
         {/* KPI карточки продаж */}
         {data && (
           <div className="mb-6">
@@ -354,13 +362,67 @@ export default function ShiftDashboard() {
         )}
 
 
-        {/* Загрузка */}
+        {/* Загрузка — скелетон */}
         {(isLoading || loadingStations) && !data && (
-          <div className="flex flex-col items-center justify-center h-64">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-slate-400">
-              {loadingStations ? 'Загрузка торговых точек...' : 'Загрузка данных...'}
-            </p>
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Скелетон KPI карточек */}
+            <div>
+              <div className="h-4 w-32 bg-slate-700 rounded mb-3" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-700">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-3 h-3 rounded-full bg-slate-700 animate-pulse" />
+                      <div className="h-3.5 w-16 bg-slate-700 rounded animate-pulse" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="h-6 w-24 bg-slate-700 rounded animate-pulse" />
+                      <div className="h-5 w-20 bg-slate-700 rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Скелетон способов оплаты */}
+            <div>
+              <div className="h-4 w-40 bg-slate-700 rounded mb-3" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-700">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-lg bg-slate-700 animate-pulse" />
+                      <div className="h-3.5 w-20 bg-slate-700 rounded animate-pulse" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="h-5 w-28 bg-slate-700 rounded animate-pulse" />
+                      <div className="h-4 w-20 bg-slate-700 rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Скелетон графиков */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-slate-800 rounded-xl p-4 border border-slate-700 h-64">
+                  <div className="h-4 w-32 bg-slate-700 rounded animate-pulse mb-4" />
+                  <div className="h-44 bg-slate-700/30 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+
+            {/* Индикатор загрузки */}
+            <div className="flex items-center justify-center gap-3 py-4">
+              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-slate-400">
+                {loadingStations
+                  ? 'Загрузка торговых точек...'
+                  : `Загрузка сменных отчетов (${stations.length} ${stations.length === 1 ? 'станция' : 'станций'})...`
+                }
+              </p>
+            </div>
           </div>
         )}
       </div>

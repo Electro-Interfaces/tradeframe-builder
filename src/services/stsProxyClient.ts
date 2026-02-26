@@ -36,7 +36,8 @@ function getUserHeaders(): Record<string, string> {
     }
 
     // Источник 2: Supabase auth token (fallback)
-    const raw = localStorage.getItem('sb-ssvazdgnmatbdynkhkqo-auth-token');
+    const projectRef = (import.meta.env.VITE_SUPABASE_URL || '').replace('https://', '').split('.')[0];
+    const raw = localStorage.getItem(`sb-${projectRef}-auth-token`);
     if (raw) {
       const parsed = JSON.parse(raw);
       const user = parsed?.user;
@@ -54,31 +55,9 @@ function getUserHeaders(): Record<string, string> {
   return {};
 }
 
-/**
- * Базовый URL для Backend Proxy
- * - LOCAL (localhost): http://localhost:3000 (через Vite proxy → localhost:3001)
- * - TEST (GitHub Pages): https://prod.dataworker.ru (использует production backend)
- * - PRODUCTION: https://prod.dataworker.ru (собственный backend)
- */
-const getProxyBaseUrl = (): string => {
-  const origin = window.location.origin;
+import { getBackendOrigin } from '@/utils/backendUrl';
 
-  // Проверка на корректность origin
-  if (!origin || origin === 'null' || origin === 'undefined') {
-    console.error('❌ window.location.origin некорректен:', origin);
-    throw new Error('Cannot determine origin for STS Proxy');
-  }
-
-  // ⚠️ GitHub Pages НЕ может запускать backend proxy (статический хостинг)
-  // TEST окружение использует TEST backend для API запросов
-  if (origin.includes('github.io')) {
-    console.log('🔄 [TEST Environment] Using TEST backend for API requests');
-    return 'https://testtf.dataworker.ru';
-  }
-
-  // LOCAL и PRODUCTION используют собственный origin
-  return origin;
-};
+const getProxyBaseUrl = getBackendOrigin;
 
 /**
  * Выполнить запрос к STS API через Backend Proxy с retry механизмом

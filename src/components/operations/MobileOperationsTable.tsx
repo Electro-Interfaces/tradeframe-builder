@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Fuel, CreditCard, Calendar } from "lucide-react";
+import { normalizePaymentMethod } from "@/utils/paymentUtils";
 
 interface MobileOperationsTableProps {
   operations: any[];
@@ -12,34 +13,6 @@ interface MobileOperationsTableProps {
 }
 
 const MobileOperationsTable = React.memo(({ operations, onOperationClick, isDetailsOpen, selectedOperation }: MobileOperationsTableProps) => {
-  const normalizePaymentMethod = React.useMemo(() => (paymentMethod: string): string => {
-    if (!paymentMethod) return '-';
-
-    const method = paymentMethod.toLowerCase();
-
-    // Наличные
-    if (['cash', 'наличные'].includes(method)) {
-      return 'Наличные';
-    }
-
-    // Банковские карты
-    if (['bank_card', 'карта', 'сбербанк', 'card', 'credit_card', 'debit_card'].includes(method)) {
-      return 'Банк. карты';
-    }
-
-    // Топливные карты
-    if (['fuel_card', 'топливная_карта', 'fleet_card', 'нкт'].includes(method)) {
-      return 'Топл. карты';
-    }
-
-    // Онлайн заказы и мобильные платежи
-    if (['online_order', 'мобил.п', 'мобильная', 'мобильная оплата', 'mobile', 'qr'].includes(method)) {
-      return 'Онлайн';
-    }
-
-    // Если не найдено соответствие, возвращаем исходное значение
-    return paymentMethod;
-  }, []);
 
   return (
     <div>

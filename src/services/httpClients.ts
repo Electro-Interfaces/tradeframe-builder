@@ -129,68 +129,20 @@ class HttpApiClient {
   }
 
   /**
-   * Обновление токена через логин/пароль
+   * При истечении токена — редирект на логин
+   * Пароль больше не хранится в localStorage
    */
   private async refreshToken(): Promise<string | null> {
-    try {
-      const savedLogin = localStorage.getItem('auth_login') || sessionStorage.getItem('auth_login');
-      const savedPassword = localStorage.getItem('auth_password') || sessionStorage.getItem('auth_password');
-      
-      if (!savedLogin || !savedPassword) {
-        console.error('❌ No saved credentials for token refresh');
-        this.clearAuth();
-        // Перенаправляем на страницу входа
-        window.location.href = '/login';
-        return null;
-      }
-
-      
-      // Импортируем сервис аутентификации динамически чтобы избежать циклических зависимостей
-      const { SupabaseAuthService } = await import('./supabaseAuthService');
-      
-      const user = await SupabaseAuthService.login(savedLogin, savedPassword);
-      
-      // Генерируем новый токен (в реальной системе это должен быть JWT)
-      const newToken = this.generateAuthToken(user);
-      const expiryTime = new Date(Date.now() + 60 * 60 * 1000); // 1 час
-      
-      // Сохраняем новый токен
-      const storage = localStorage.getItem('auth_login') ? localStorage : sessionStorage;
-      storage.setItem('auth_token', newToken);
-      storage.setItem('auth_token_expiry', expiryTime.toISOString());
-      storage.setItem('auth_user', JSON.stringify(user));
-      
-      return newToken;
-      
-    } catch (error) {
-      console.error('❌ Token refresh failed:', error);
-      this.clearAuth();
-      // Перенаправляем на страницу входа
-      window.location.href = '/login';
-      return null;
-    }
-  }
-
-  /**
-   * Генерация токена для пользователя (временная реализация)
-   */
-  private generateAuthToken(user: any): string {
-    const payload = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      exp: Math.floor(Date.now() / 1000) + 3600 // 1 час
-    };
-    
-    // В реальной системе здесь должно быть JWT подписывание
-    return `token_${btoa(JSON.stringify(payload))}_${Date.now()}`;
+    this.clearAuth();
+    window.location.href = '/login';
+    return null;
   }
 
   /**
    * Очистка данных аутентификации
    */
   private clearAuth(): void {
-    ['auth_token', 'auth_token_expiry', 'auth_user', 'auth_login', 'auth_password'].forEach(key => {
+    ['auth_token', 'auth_token_expiry', 'auth_user', 'auth_login'].forEach(key => {
       localStorage.removeItem(key);
       sessionStorage.removeItem(key);
     });

@@ -2,10 +2,11 @@
  * Excel экспорт с поддержкой полного форматирования через ExcelJS
  */
 
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
 import { format as formatDate } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import type { ShiftDetails } from '@/types/shift-reports-v2';
+import { isCashOrCard } from '@/utils/paymentUtils';
 
 function formatCurrency(value: number): string {
   return value.toLocaleString('ru-RU', {
@@ -55,7 +56,9 @@ function setNumericCell(
  * Экспорт сменного отчета в Excel с полным форматированием
  */
 export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Blob> {
-  const workbook = new ExcelJS.Workbook();
+  const ExcelJSModule = await import('exceljs');
+  const ExcelJSLib = ExcelJSModule.default;
+  const workbook = new ExcelJSLib.Workbook();
   const worksheet = workbook.addWorksheet('Сменный отчет');
 
   // Базовые стили
@@ -649,114 +652,119 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
     worksheet.getCell(currentRow, 1).style = sectionTitleStyle;
     currentRow += 2;
 
-    const nonCashHeaders = [
-      'Наименование',
-      'Код',
-      'МобилПр. (л.)',
-      'МобилПр. (руб.)',
-      'Корп.карты (л.)',
-      'Корп.карты (руб.)',
-      'Купон на сдачу (л.)',
-      'Купон на сдачу (руб.)',
-      'ИТОГО б/н'
-    ];
+    // isCashOrCard импортирован из paymentUtils
 
-    nonCashHeaders.forEach((header, idx) => {
-      const cell = worksheet.getCell(currentRow, idx + 1);
-      cell.value = header;
-      cell.style = headerStyle;
-    });
-    currentRow++;
-
-    // Обработка новой структуры salesRaw
-    const groupedSales: Record<number, {
-      fuelName: string;
-      fuelCode: number;
-      mobilPrVolume: number;
-      mobilPrCost: number;
-      corporateVolume: number;
-      corporateCost: number;
-      couponVolume: number;
-      couponCost: number;
-    }> = {};
-
-    details.salesRaw.forEach((payGroup: any) => {
-      const paymentName = payGroup.pay_type?.name?.toLowerCase() || '';
-      const isMobilPr = paymentName.includes('мобил') || paymentName.includes('онлайн') || paymentName.includes('online');
-      const isCorporate = paymentName === 'кр' ||
-                          paymentName.includes('корпоратив') ||
-                          paymentName.includes('корп.карт') ||
-                          paymentName.includes('корп карт') ||
-                          paymentName.includes('топливн');
-      const isCoupon = paymentName.includes('купон');
-
-      if (isMobilPr || isCorporate || isCoupon) {
-        payGroup.fuel?.forEach((fuelItem: any) => {
-          const fuelCode = fuelItem.service?.service_code;
-          const fuelName = fuelItem.service?.service_name;
-          const volume = parseFloat(fuelItem.release?.volume || 0);
-          const cost = parseFloat(fuelItem.release?.cost || 0);
-
-          if (fuelCode && fuelName) {
-            if (!groupedSales[fuelCode]) {
-              groupedSales[fuelCode] = {
-                fuelName,
-                fuelCode,
-                mobilPrVolume: 0,
-                mobilPrCost: 0,
-                corporateVolume: 0,
-                corporateCost: 0,
-                couponVolume: 0,
-                couponCost: 0
-              };
-            }
-
-            if (isMobilPr) {
-              groupedSales[fuelCode].mobilPrVolume += volume;
-              groupedSales[fuelCode].mobilPrCost += cost;
-            } else if (isCorporate) {
-              groupedSales[fuelCode].corporateVolume += volume;
-              groupedSales[fuelCode].corporateCost += cost;
-            } else if (isCoupon) {
-              groupedSales[fuelCode].couponVolume += volume;
-              groupedSales[fuelCode].couponCost += cost;
-            }
-          }
-        });
+    // 1. Собираем уникальные безналичные типы оплаты (в порядке появления)
+    const paymentTypesSet = new Map<string, string>(); // lowercase → original name
+    details.salesRaw.forEach((sale: any) => {
+      const payName = sale.pay_type?.name || '';
+      if (payName && !isCashOrCard(payName)) {
+        const key = payName.toLowerCase().trim();
+        if (!paymentTypesSet.has(key)) {
+          paymentTypesSet.set(key, payName);
+        }
       }
     });
+    const paymentTypes = Array.from(paymentTypesSet.entries()); // [[key, displayName], ...]
 
-    let totalMobilPrVolume = 0;
-    let totalMobilPrCost = 0;
-    let totalCorpVolume = 0;
-    let totalCorpCost = 0;
-    let totalCouponVolume = 0;
-    let totalCouponCost = 0;
+    if (paymentTypes.length > 0) {
+      // Заголовки: Наименование, Код, [тип1 (л.), тип1 (руб.)], ..., ИТОГО б/н
+      const nonCashHeaders = ['Наименование', 'Код'];
+      paymentTypes.forEach(([, displayName]) => {
+        nonCashHeaders.push(`${displayName} (л.)`);
+        nonCashHeaders.push(`${displayName} (руб.)`);
+      });
+      nonCashHeaders.push('ИТОГО б/н (л.)');
 
-    Object.values(groupedSales).forEach(group => {
-      const total = group.mobilPrVolume + group.corporateVolume + group.couponVolume;
-      totalMobilPrVolume += group.mobilPrVolume;
-      totalMobilPrCost += group.mobilPrCost;
-      totalCorpVolume += group.corporateVolume;
-      totalCorpCost += group.corporateCost;
-      totalCouponVolume += group.couponVolume;
-      totalCouponCost += group.couponCost;
+      nonCashHeaders.forEach((header, idx) => {
+        const cell = worksheet.getCell(currentRow, idx + 1);
+        cell.value = header;
+        cell.style = headerStyle;
+      });
+      currentRow++;
 
-      const nonCashRowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
-        { value: group.fuelName },
-        { value: group.fuelCode },
-        { value: group.mobilPrVolume, format: 'decimal2' },
-        { value: group.mobilPrCost, format: 'currency' },
-        { value: group.corporateVolume, format: 'decimal2' },
-        { value: group.corporateCost, format: 'currency' },
-        { value: group.couponVolume, format: 'decimal2' },
-        { value: group.couponCost, format: 'currency' },
-        { value: total, format: 'decimal2' }
+      // 2. Группируем по видам топлива с динамическими объёмами/стоимостями по типам оплаты
+      const fuelGroups = new Map<number, {
+        fuelCode: number;
+        fuelName: string;
+        byPayType: Record<string, { volume: number; cost: number }>;
+      }>();
+
+      details.salesRaw.forEach((sale: any) => {
+        const payName = sale.pay_type?.name || '';
+        const payKey = payName.toLowerCase().trim();
+        if (!payName || isCashOrCard(payName)) return;
+
+        sale.fuel?.forEach((fuelItem: any) => {
+          const fuelCode = fuelItem.service?.service_code || 0;
+          const fuelName = fuelItem.service?.service_name || 'Неизвестно';
+          const volume = Math.abs(parseFloat(fuelItem.release?.volume || '0'));
+          const cost = Math.abs(parseFloat(fuelItem.release?.cost || '0'));
+
+          if (!fuelGroups.has(fuelCode)) {
+            fuelGroups.set(fuelCode, { fuelCode, fuelName, byPayType: {} });
+          }
+          const group = fuelGroups.get(fuelCode)!;
+          if (!group.byPayType[payKey]) {
+            group.byPayType[payKey] = { volume: 0, cost: 0 };
+          }
+          group.byPayType[payKey].volume += volume;
+          group.byPayType[payKey].cost += cost;
+        });
+      });
+
+      // 3. Итоги по каждому типу
+      const totals: Record<string, { volume: number; cost: number }> = {};
+      paymentTypes.forEach(([key]) => { totals[key] = { volume: 0, cost: 0 }; });
+
+      Array.from(fuelGroups.values()).forEach(group => {
+        // Строка данных
+        const rowData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
+          { value: group.fuelName },
+          { value: group.fuelCode }
+        ];
+
+        let rowTotalVolume = 0;
+        paymentTypes.forEach(([key]) => {
+          const v = group.byPayType[key]?.volume || 0;
+          const c = group.byPayType[key]?.cost || 0;
+          rowData.push({ value: v, format: 'decimal2' });
+          rowData.push({ value: c, format: 'currency' });
+          totals[key].volume += v;
+          totals[key].cost += c;
+          rowTotalVolume += v;
+        });
+        rowData.push({ value: rowTotalVolume, format: 'decimal2' });
+
+        rowData.forEach((item, colIdx) => {
+          const cell = worksheet.getCell(currentRow, colIdx + 1);
+          cell.style = dataStyle;
+          if (item.format && typeof item.value === 'number') {
+            cell.value = item.value;
+            cell.numFmt = NUM_FORMATS[item.format];
+          } else {
+            cell.value = item.value;
+          }
+        });
+        currentRow++;
+      });
+
+      // Итоговая строка
+      const nonCashTotalsData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
+        { value: 'Всего:' },
+        { value: '' }
       ];
+      let grandTotalVolume = 0;
+      paymentTypes.forEach(([key]) => {
+        nonCashTotalsData.push({ value: totals[key].volume, format: 'decimal2' });
+        nonCashTotalsData.push({ value: totals[key].cost, format: 'currency' });
+        grandTotalVolume += totals[key].volume;
+      });
+      nonCashTotalsData.push({ value: grandTotalVolume, format: 'decimal2' });
 
-      nonCashRowData.forEach((item, colIdx) => {
+      nonCashTotalsData.forEach((item, colIdx) => {
         const cell = worksheet.getCell(currentRow, colIdx + 1);
-        cell.style = dataStyle;
+        cell.style = totalsStyle;
         if (item.format && typeof item.value === 'number') {
           cell.value = item.value;
           cell.numFmt = NUM_FORMATS[item.format];
@@ -765,32 +773,7 @@ export async function exportToExcelWithStyles(details: ShiftDetails): Promise<Bl
         }
       });
       currentRow++;
-    });
-
-    // Итоговая строка
-    const nonCashTotalsData: Array<{ value: any; format?: keyof typeof NUM_FORMATS }> = [
-      { value: 'Всего:' },
-      { value: '' },
-      { value: totalMobilPrVolume, format: 'decimal2' },
-      { value: totalMobilPrCost, format: 'currency' },
-      { value: totalCorpVolume, format: 'decimal2' },
-      { value: totalCorpCost, format: 'currency' },
-      { value: totalCouponVolume, format: 'decimal2' },
-      { value: totalCouponCost, format: 'currency' },
-      { value: totalMobilPrVolume + totalCorpVolume + totalCouponVolume, format: 'decimal2' }
-    ];
-
-    nonCashTotalsData.forEach((item, colIdx) => {
-      const cell = worksheet.getCell(currentRow, colIdx + 1);
-      cell.style = totalsStyle;
-      if (item.format && typeof item.value === 'number') {
-        cell.value = item.value;
-        cell.numFmt = NUM_FORMATS[item.format];
-      } else {
-        cell.value = item.value;
-      }
-    });
-    currentRow++;
+    }
 
     currentRow += 2;
   }

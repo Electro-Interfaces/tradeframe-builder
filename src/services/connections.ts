@@ -148,7 +148,7 @@ export const connectionsApi = {
   },
 };
 
-// Mock data for development
+// Mock data for development (секреты очищены)
 export const mockConnections: Connection[] = [
   {
     id: '1',
@@ -156,12 +156,12 @@ export const mockConnections: Connection[] = [
     type: 'API_DB',
     connectionType: 'OTHER',
     purpose: 'Основная база данных приложения',
-    baseUrl: 'https://xyzabc123.supabase.co',
+    baseUrl: 'https://example.supabase.co',
     transport: 'HTTPS',
     format: 'JSON',
     auth: {
       type: 'API_KEY',
-      apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5emFiYzEyMyIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjk0NzIwNDAwLCJleHAiOjIwMTAyOTY0MDB9.example',
+      apiKey: 'mock-api-key-placeholder',
     },
     exchangeParams: {
       endpoints: ['/rest/v1', '/auth/v1', '/storage/v1'],
@@ -190,7 +190,7 @@ export const mockConnections: Connection[] = [
     format: 'JSON',
     auth: {
       type: 'API_KEY',
-      apiKey: 'ft_api_key_abc123def456ghi789',
+      apiKey: 'mock-api-key-placeholder',
     },
     exchangeParams: {
       endpoints: ['/terminals', '/prices', '/transactions'],

@@ -83,42 +83,6 @@ export async function testBasicServices(): Promise<TestResult[]> {
   }
 
   try {
-    const { shiftReportsService } = await import('@/services/shiftReportsService');
-    const shifts = await shiftReportsService.getAllShiftReports();
-    results.push({
-      service: 'shiftReportsService',
-      status: 'success',
-      message: `Найдено ${shifts.length} сменных отчетов`,
-      data: shifts.slice(0, 1)
-    });
-  } catch (error) {
-    results.push({
-      service: 'shiftReportsService',
-      status: 'error',
-      message: `Ошибка: ${error}`
-    });
-  }
-
-  try {
-    const { messagesService } = await import('@/services/messagesService');
-    const messages = await messagesService.getAllChatMessages();
-    const tickets = await messagesService.getAllTickets();
-    const notifications = await messagesService.getAllNotifications();
-    results.push({
-      service: 'messagesService',
-      status: 'success',
-      message: `Сообщения: ${messages.length}, Тикеты: ${tickets.length}, Уведомления: ${notifications.length}`,
-      data: { messages: messages.slice(0, 1), tickets: tickets.slice(0, 1) }
-    });
-  } catch (error) {
-    results.push({
-      service: 'messagesService',
-      status: 'error',
-      message: `Ошибка: ${error}`
-    });
-  }
-
-  try {
     const { tanksService } = await import('@/services/tanksService');
     const tanks = await tanksService.getTanks();
     results.push({
@@ -130,23 +94,6 @@ export async function testBasicServices(): Promise<TestResult[]> {
   } catch (error) {
     results.push({
       service: 'tanksService',
-      status: 'error',
-      message: `Ошибка: ${error}`
-    });
-  }
-
-  try {
-    const { pricesService } = await import('@/services/pricesService');
-    const prices = await pricesService.getCurrentPrices();
-    results.push({
-      service: 'pricesService',
-      status: 'success',
-      message: `Найдено ${prices.length} текущих цен`,
-      data: prices.slice(0, 1)
-    });
-  } catch (error) {
-    results.push({
-      service: 'pricesService',
       status: 'error',
       message: `Ошибка: ${error}`
     });
@@ -165,23 +112,6 @@ export async function testBasicServices(): Promise<TestResult[]> {
   } catch (error) {
     results.push({
       service: 'commandsService',
-      status: 'error',
-      message: `Ошибка: ${error}`
-    });
-  }
-
-  try {
-    const { componentStatusService } = await import('@/services/componentStatusService');
-    const statuses = await componentStatusService.getAll();
-    results.push({
-      service: 'componentStatusService',
-      status: 'success',
-      message: `Найдено ${statuses.length} статусов компонентов`,
-      data: statuses.slice(0, 1)
-    });
-  } catch (error) {
-    results.push({
-      service: 'componentStatusService',
       status: 'error',
       message: `Ошибка: ${error}`
     });

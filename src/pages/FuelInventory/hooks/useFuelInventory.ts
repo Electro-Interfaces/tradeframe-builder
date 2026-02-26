@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelection } from '@/contexts/SelectionContext';
 import { useNewAuth } from '@/contexts/NewAuthContext';
-import { getInventoryFromShiftReports, aggregateByFuel, type TankInventory, type FuelInventorySummary } from '@/services/fuelInventoryService';
+import { getInventoryFromServer, getInventoryFromShiftReports, aggregateByFuel, type TankInventory, type FuelInventorySummary } from '@/services/fuelInventoryService';
 import { formatDateForApi } from '../utils/fuelInventoryHelpers';
 
 export const useFuelInventory = (dateFrom: string, dateTo: string) => {
@@ -67,39 +67,48 @@ export const useFuelInventory = (dateFrom: string, dateTo: string) => {
   } = useQuery<TankInventory[], Error>({
     queryKey,
     queryFn: async () => {
-      // Сбрасываем прогресс в начале загрузки
-      setLoadingProgress({ loaded: 0, total: 0 });
-
       if (!selectedNetwork) {
         throw new Error('Не выбрана торговая сеть');
       }
 
+      const params = {
+        system: parseInt(selectedNetwork.external_id),
+        networkId: selectedNetwork.id,
+        station: selectedStation ? parseInt(selectedStation.external_id) : undefined,
+        dt_beg: formatDateForApi(dateFrom, false),
+        dt_end: formatDateForApi(dateTo, true),
+        allowedStations: allowedStationNumbers,
+      };
+
+      let data: TankInventory[];
+
       try {
-        const data = await getInventoryFromShiftReports({
-          system: parseInt(selectedNetwork.external_id),
-          networkId: selectedNetwork.id,
-          station: selectedStation ? parseInt(selectedStation.external_id) : undefined,
-          dt_beg: formatDateForApi(dateFrom, false),
-          dt_end: formatDateForApi(dateTo, true),
-          allowedStations: allowedStationNumbers,
-          onProgress: (loaded, total) => {
-            setLoadingProgress({ loaded, total });
-          }
-        });
-
-        // Сбрасываем прогресс после завершения
+        // Серверная агрегация — один POST вместо ~200+ round-trips
+        data = await getInventoryFromServer(params);
+      } catch (serverErr) {
+        // Fallback на клиентскую агрегацию
+        console.warn('Server aggregation failed, falling back to client-side:', serverErr);
         setLoadingProgress({ loaded: 0, total: 0 });
 
-        if (data.length === 0) {
-          throw new Error('Нет данных об остатках топлива');
+        try {
+          data = await getInventoryFromShiftReports({
+            ...params,
+            onProgress: (loaded, total) => {
+              setLoadingProgress({ loaded, total });
+            }
+          });
+          setLoadingProgress({ loaded: 0, total: 0 });
+        } catch (clientErr) {
+          setLoadingProgress({ loaded: 0, total: 0 });
+          throw clientErr;
         }
-
-        return data;
-      } catch (err) {
-        // Сбрасываем прогресс при ошибке
-        setLoadingProgress({ loaded: 0, total: 0 });
-        throw err;
       }
+
+      if (data.length === 0) {
+        throw new Error('Нет данных об остатках топлива');
+      }
+
+      return data;
     },
     enabled: !!selectedNetwork,
     staleTime: 5 * 60 * 1000, // 5 минут - данные считаются свежими

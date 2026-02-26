@@ -101,7 +101,7 @@ const initialConfig: ApiConfig = {
     {
       id: 'supabase-db',
       name: 'Supabase БД',
-      url: 'https://ssvazdgnmatbdynkhkqo.supabase.co',
+      url: import.meta.env.VITE_SUPABASE_URL || '',
       type: 'supabase',
       description: 'Supabase PostgreSQL база данных с REST API (правильный проект)',
       isActive: true,
@@ -109,11 +109,11 @@ const initialConfig: ApiConfig = {
       createdAt: new Date(),
       updatedAt: new Date(),
       settings: {
-        timeout: 30000, // Увеличено для мобильных: 30 секунд
+        timeout: 30000,
         retryAttempts: 3,
         ssl: true,
-        apiKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0',
-        serviceRoleKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdmF6ZGdubWF0YmR5bmtoa3FvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0MzgzNCwiZXhwIjoyMDcyOTE5ODM0fQ.Gen-PI-vDkKjskpIvJNcQw0Uj3d0zGXB98zIxNK6di0',
+        apiKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '',
+        serviceRoleKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '',
         schema: 'public',
         autoApiKey: true
       }
@@ -121,7 +121,7 @@ const initialConfig: ApiConfig = {
     {
       id: 'trading-network-api',
       name: 'API торговой сети',
-      url: import.meta.env.VITE_STS_API_URL || 'https://pos.autooplata.ru/tms/',
+      url: import.meta.env.VITE_STS_API_URL || '',
       type: 'external-api',
       description: 'Внешний API торговой сети для интеграции с POS-системой',
       isActive: false,
@@ -133,8 +133,8 @@ const initialConfig: ApiConfig = {
         retryAttempts: 3,
         ssl: true,
         authType: 'basic',
-        username: import.meta.env.VITE_STS_API_USERNAME || 'UserApi',
-        password: import.meta.env.VITE_STS_API_PASSWORD || 'lHQfLZHzB3tn'
+        username: import.meta.env.VITE_STS_API_USERNAME || '',
+        password: import.meta.env.VITE_STS_API_PASSWORD || ''
       }
     }
   ]

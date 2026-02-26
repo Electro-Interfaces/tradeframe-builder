@@ -17,6 +17,7 @@ import { ExportDialog } from './ExportDialog';
 import { exportShiftReport, type ExportFormat, type ExportMode } from '@/services/shiftReportExportService';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { isCashOrCard } from '@/utils/paymentUtils';
 
 interface ShiftDetailsModalProps {
   isOpen: boolean;
@@ -502,121 +503,157 @@ const ShiftDetailsModal: React.FC<ShiftDetailsModalProps> = ({
                   </table>
                 </div>
 
-                {/* Таблица безналичной реализации */}
+                {/* Таблица безналичной реализации (динамическая) */}
                 <div className="mt-8">
                   <h4 className="text-md font-semibold text-white mb-3 text-center">Безналичная реализация</h4>
                   <div className="overflow-x-auto rounded-lg border border-slate-600">
-                    <table className="w-full text-sm border-collapse">
-                      <thead className="bg-slate-700/80">
-                        <tr className="border-b-2 border-slate-400">
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>Наименование</th>
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>Код</th>
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>МобилПр.<br/>л.</th>
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>Корп.карты<br/>л.</th>
-                          <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>Купон<br/>л.</th>
-                          <th className={`${thClass} text-center text-slate-100`}>ИТОГО б/н<br/>л.</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-slate-800">
-                        {(() => {
-                          // Получаем данные из sales для безналичных способов оплаты
+                    {(() => {
+                      // Динамическое обнаружение всех безналичных типов оплаты из salesRaw
+                      const salesRaw = (details as any).salesRaw || [];
 
-                          // Группируем по видам топлива
-                          const fuelGroups = new Map<number, {
-                            fuelCode: number;
-                            fuelName: string;
-                            mobilprVolume: number;
-                            mobilprCost: number;
-                            corporateVolume: number;
-                            corporateCost: number;
-                            couponVolume: number;
-                            couponCost: number;
-                          }>();
+                      // isCashOrCard импортирован из paymentUtils
 
-                          // Обрабатываем каждую запись
-                          (details as any).salesRaw?.forEach((sale: any) => {
-                            const paymentName = sale.pay_type?.name?.toLowerCase() || '';
+                      // 1. Собираем уникальные безналичные типы оплаты (в порядке появления)
+                      const paymentTypesSet = new Map<string, string>(); // lowercase → original name
+                      salesRaw.forEach((sale: any) => {
+                        const payName = sale.pay_type?.name || '';
+                        if (payName && !isCashOrCard(payName)) {
+                          const key = payName.toLowerCase().trim();
+                          if (!paymentTypesSet.has(key)) {
+                            paymentTypesSet.set(key, payName);
+                          }
+                        }
+                      });
 
-                            // Проверяем каждый вид топлива в записи
-                            sale.fuel?.forEach((fuelItem: any) => {
-                              const fuelCode = fuelItem.service?.service_code || 0;
-                              const fuelName = fuelItem.service?.service_name || 'Неизвестно';
-                              const volume = parseFloat(fuelItem.release?.volume || '0');
-                              const cost = parseFloat(fuelItem.release?.cost || '0');
+                      const paymentTypes = Array.from(paymentTypesSet.entries()); // [[key, displayName], ...]
 
-                              if (!fuelGroups.has(fuelCode)) {
-                                fuelGroups.set(fuelCode, {
-                                  fuelCode,
-                                  fuelName,
-                                  mobilprVolume: 0,
-                                  mobilprCost: 0,
-                                  corporateVolume: 0,
-                                  corporateCost: 0,
-                                  couponVolume: 0,
-                                  couponCost: 0,
-                                });
-                              }
+                      // 2. Группируем: fuelCode → { fuelName, volumes по каждому типу }
+                      const fuelGroups = new Map<number, {
+                        fuelCode: number;
+                        fuelName: string;
+                        byPayType: Record<string, number>; // key → volume
+                      }>();
 
-                              const group = fuelGroups.get(fuelCode)!;
+                      salesRaw.forEach((sale: any) => {
+                        const payName = sale.pay_type?.name || '';
+                        const payKey = payName.toLowerCase().trim();
+                        if (!payName || isCashOrCard(payName)) return;
 
-                              // МобилПр / онлайн заказы
-                              if (paymentName.includes('мобил') || paymentName.includes('онлайн') || paymentName.includes('online')) {
-                                group.mobilprVolume += volume;
-                                group.mobilprCost += cost;
-                              }
-                              // Корпоративные карты (КР, корп.карты, топливные карты)
-                              else if (paymentName === 'кр' ||
-                                       paymentName.includes('корпоратив') ||
-                                       paymentName.includes('корп.карт') ||
-                                       paymentName.includes('корп карт') ||
-                                       paymentName.includes('топливн')) {
-                                group.corporateVolume += volume;
-                                group.corporateCost += cost;
-                              }
-                              // Купон на сдачу
-                              else if (paymentName.includes('купон')) {
-                                group.couponVolume += volume;
-                                group.couponCost += cost;
-                              }
-                            });
-                          });
+                        sale.fuel?.forEach((fuelItem: any) => {
+                          const fuelCode = fuelItem.service?.service_code || 0;
+                          const fuelName = fuelItem.service?.service_name || 'Неизвестно';
+                          const volume = Math.abs(parseFloat(fuelItem.release?.volume || '0'));
 
-                          const rows = Array.from(fuelGroups.values());
+                          if (!fuelGroups.has(fuelCode)) {
+                            fuelGroups.set(fuelCode, { fuelCode, fuelName, byPayType: {} });
+                          }
+                          const group = fuelGroups.get(fuelCode)!;
+                          group.byPayType[payKey] = (group.byPayType[payKey] || 0) + volume;
+                        });
+                      });
 
-                          // Подсчитываем итоги
-                          const totalMobilprVolume = rows.reduce((sum, r) => sum + r.mobilprVolume, 0);
-                          const totalMobilprCost = rows.reduce((sum, r) => sum + r.mobilprCost, 0);
-                          const totalCorporateVolume = rows.reduce((sum, r) => sum + r.corporateVolume, 0);
-                          const totalCorporateCost = rows.reduce((sum, r) => sum + r.corporateCost, 0);
-                          const totalCouponVolume = rows.reduce((sum, r) => sum + r.couponVolume, 0);
-                          const totalCouponCost = rows.reduce((sum, r) => sum + r.couponCost, 0);
-                          const totalNonCashVolume = rows.reduce((sum, r) => sum + r.mobilprVolume + r.corporateVolume + r.couponVolume, 0);
+                      const rows = Array.from(fuelGroups.values());
 
-                          return (
-                            <>
-                              {rows.map((row, idx) => (
+                      // 3. Итоги по каждому типу
+                      const totals: Record<string, number> = {};
+                      paymentTypes.forEach(([key]) => { totals[key] = 0; });
+                      rows.forEach(row => {
+                        paymentTypes.forEach(([key]) => {
+                          totals[key] += row.byPayType[key] || 0;
+                        });
+                      });
+                      const grandTotal = Object.values(totals).reduce((s, v) => s + v, 0);
+
+                      if (paymentTypes.length === 0) return <p className="text-sm text-slate-400 text-center py-4">Нет данных о безналичной реализации</p>;
+
+                      // Мобильная версия — карточки по видам топлива
+                      if (isMobile) {
+                        return (
+                          <div className="space-y-2">
+                            {rows.map((row, idx) => {
+                              const rowTotal = paymentTypes.reduce((s, [key]) => s + (row.byPayType[key] || 0), 0);
+                              return (
+                                <div key={idx} className="bg-slate-800 rounded-lg border border-slate-600 p-2.5">
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-white font-medium text-sm">{row.fuelName}</span>
+                                    <span className="text-slate-400 text-xs">код {row.fuelCode}</span>
+                                  </div>
+                                  <div className="space-y-1">
+                                    {paymentTypes.map(([key, name]) => {
+                                      const vol = row.byPayType[key] || 0;
+                                      if (vol === 0) return null;
+                                      return (
+                                        <div key={key} className="flex items-center justify-between text-xs">
+                                          <span className="text-slate-400">{name}</span>
+                                          <span className="text-white">{vol.toFixed(2)} л.</span>
+                                        </div>
+                                      );
+                                    })}
+                                    <div className="flex items-center justify-between text-xs border-t border-slate-600 pt-1 mt-1">
+                                      <span className="text-slate-300 font-medium">Итого б/н</span>
+                                      <span className="text-white font-bold">{rowTotal.toFixed(2)} л.</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {/* Общий итог */}
+                            <div className="bg-slate-700/50 rounded-lg border border-slate-500 p-2.5">
+                              <div className="space-y-1">
+                                {paymentTypes.map(([key, name]) => (
+                                  <div key={key} className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-300 font-medium">{name}</span>
+                                    <span className="text-white font-bold">{totals[key].toFixed(2)} л.</span>
+                                  </div>
+                                ))}
+                                <div className="flex items-center justify-between text-sm border-t border-slate-400 pt-1.5 mt-1.5">
+                                  <span className="text-white font-bold">ВСЕГО б/н</span>
+                                  <span className="text-white font-bold">{grandTotal.toFixed(2)} л.</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Десктоп — таблица
+                      return (
+                        <table className="w-full text-sm border-collapse">
+                          <thead className="bg-slate-700/80">
+                            <tr className="border-b-2 border-slate-400">
+                              <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>Наименование</th>
+                              <th className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>Код</th>
+                              {paymentTypes.map(([key, name]) => (
+                                <th key={key} className={`${thClass} text-center text-slate-100 border-r-2 border-slate-400`}>{name}<br/>л.</th>
+                              ))}
+                              <th className={`${thClass} text-center text-slate-100`}>ИТОГО б/н<br/>л.</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-slate-800">
+                            {rows.map((row, idx) => {
+                              const rowTotal = paymentTypes.reduce((s, [key]) => s + (row.byPayType[key] || 0), 0);
+                              return (
                                 <tr key={idx} className="border-b border-slate-600">
                                   <td className={`${tdClass} text-white font-medium border-r-2 border-slate-600`}>{row.fuelName}</td>
                                   <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{row.fuelCode}</td>
-                                  <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{row.mobilprVolume.toFixed(2)}</td>
-                                  <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{row.corporateVolume.toFixed(2)}</td>
-                                  <td className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{row.couponVolume.toFixed(2)}</td>
-                                  <td className={`${tdClass} text-center text-white font-medium`}>{(row.mobilprVolume + row.corporateVolume + row.couponVolume).toFixed(2)}</td>
+                                  {paymentTypes.map(([key]) => (
+                                    <td key={key} className={`${tdClass} text-center text-white border-r-2 border-slate-600`}>{(row.byPayType[key] || 0).toFixed(2)}</td>
+                                  ))}
+                                  <td className={`${tdClass} text-center text-white font-medium`}>{rowTotal.toFixed(2)}</td>
                                 </tr>
+                              );
+                            })}
+                            <tr className="border-t-2 border-slate-400 bg-slate-700/50">
+                              <td className={`${tdClass} text-white font-bold text-right`} colSpan={2}>Всего:</td>
+                              {paymentTypes.map(([key]) => (
+                                <td key={key} className={`${tdClass} text-center text-white font-bold border-r-2 border-slate-600`}>{totals[key].toFixed(2)}</td>
                               ))}
-                              {/* Строка "Всего:" */}
-                              <tr className="border-t-2 border-slate-400 bg-slate-700/50">
-                                <td className={`${tdClass} text-white font-bold text-right`} colSpan={2}>Всего:</td>
-                                <td className={`${tdClass} text-center text-white font-bold border-r-2 border-slate-600`}>{totalMobilprVolume.toFixed(2)}</td>
-                                <td className={`${tdClass} text-center text-white font-bold border-r-2 border-slate-600`}>{totalCorporateVolume.toFixed(2)}</td>
-                                <td className={`${tdClass} text-center text-white font-bold border-r-2 border-slate-600`}>{totalCouponVolume.toFixed(2)}</td>
-                                <td className={`${tdClass} text-center text-white font-bold`}>{totalNonCashVolume.toFixed(2)}</td>
-                              </tr>
-                            </>
-                          );
-                        })()}
-                      </tbody>
-                    </table>
+                              <td className={`${tdClass} text-center text-white font-bold`}>{grandTotal.toFixed(2)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      );
+                    })()}
                   </div>
                 </div>
               </TabsContent>

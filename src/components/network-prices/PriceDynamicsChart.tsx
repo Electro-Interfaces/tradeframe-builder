@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { PriceStatistics, NetworkPriceData } from '@/hooks/useNetworkPrices';
+import { getFuelColor } from '@/types/shift-dashboard';
 
 interface PriceDynamicsChartProps {
   statistics: PriceStatistics[];
@@ -17,19 +18,7 @@ interface PriceDynamicsChartProps {
   selectedPeriod: string; // Период передается с родительской страницы
 }
 
-// Цвета для разных типов топлива
-const FUEL_COLORS = {
-  'АИ-92': '#3b82f6', // blue
-  'АИ-95': '#10b981', // green
-  'АИ-98': '#f59e0b', // orange
-  'ДТ': '#8b5cf6',    // purple
-  'ДТ-З': '#ec4899',  // pink
-  'default': '#64748b' // slate
-};
-
-const getFuelColor = (fuelType: string): string => {
-  return FUEL_COLORS[fuelType as keyof typeof FUEL_COLORS] || FUEL_COLORS.default;
-};
+// FUEL_COLORS удалён — используется getFuelColor() из shift-dashboard
 
 /**
  * Форматирование даты для оси X

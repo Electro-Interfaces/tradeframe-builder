@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { 
   Edit, 
   TestTube, 
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Connection, ConnectionTestResult } from "@/types/connections";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface ConnectionsListProps {
   connections: Connection[];
@@ -51,6 +53,7 @@ export function ConnectionsList({
   testLoadingStates = {}
 }: ConnectionsListProps) {
   const [expandedConnections, setExpandedConnections] = useState<string[]>([]);
+  const isMobile = useIsMobile();
   
   // Разделяем подключения на системные и пользовательские
   const systemConnections = connections.filter(conn => conn.isSystem);
@@ -156,16 +159,127 @@ export function ConnectionsList({
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Подключения</h2>
-        <Button onClick={onAddConnection}>
+    <div className="p-3 sm:p-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
+        <h2 className="text-xl sm:text-2xl font-bold">Подключения</h2>
+        <Button onClick={onAddConnection} size={isMobile ? "sm" : "default"}>
           <Plus className="w-4 h-4 mr-2" />
-          Добавить подключение
+          {isMobile ? "Добавить" : "Добавить подключение"}
         </Button>
       </div>
 
-      <div className="border rounded-lg">
+      {/* Мобильный вид — карточки */}
+      {isMobile && (
+        <div className="space-y-3">
+          {allConnections.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Подключения не настроены.
+              <br />
+              Нажмите "Добавить", чтобы создать первое.
+            </div>
+          ) : allConnections.map((connection) => {
+            const isExpanded = expandedConnections.includes(connection.id);
+            return (
+              <Card key={connection.id} className="border rounded-lg">
+                <div className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium truncate">{connection.name}</span>
+                        {connection.isSystem && (
+                          <Badge variant="outline" className="text-xs shrink-0">СИСТЕМНОЕ</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1 truncate">{connection.purpose}</p>
+                    </div>
+                    <ConnectionActions connection={connection} />
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <Badge variant="secondary" className="text-xs">{connection.connectionType}</Badge>
+                    {connection.isEnabled ? (
+                      <Badge variant="outline" className="text-xs text-green-600 border-green-600">Включено</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-red-600 border-red-600">Выключено</Badge>
+                    )}
+                    <div className="flex items-center gap-1 text-xs">
+                      {getStatusIcon(connection)}
+                      <span>{getStatusText(connection)}</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground font-mono mt-2 truncate">{connection.baseUrl}</div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleExpanded(connection.id)}
+                    className="mt-2 w-full text-xs h-7"
+                  >
+                    {isExpanded ? <ChevronDown className="h-3 w-3 mr-1" /> : <ChevronRight className="h-3 w-3 mr-1" />}
+                    {isExpanded ? "Скрыть детали" : "Показать детали"}
+                  </Button>
+                  {isExpanded && (
+                    <div className="bg-muted/50 p-3 rounded-lg space-y-3 mt-2">
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Транспорт и формат</h4>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Транспорт:</span>
+                              <Badge variant="outline" className="text-xs">{connection.transport}</Badge>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Формат:</span>
+                              <Badge variant="outline" className="text-xs">{connection.format}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Аутентификация</h4>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Тип:</span>
+                            <Badge variant="outline" className="text-xs">{connection.auth.type}</Badge>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Endpoints</h4>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Количество:</span>
+                              <span>{connection.exchangeParams.endpoints.length}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Rate Limit:</span>
+                              <span>{connection.exchangeParams.rateLimit}/мин</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {connection.tags.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Теги</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {connection.tags.map((tag) => (
+                              <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {connection.responsible && (
+                        <div>
+                          <h4 className="font-medium text-sm mb-1">Ответственный</h4>
+                          <p className="text-sm text-muted-foreground">{connection.responsible}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Десктопный вид — таблица */}
+      <div className={`border rounded-lg overflow-x-auto ${isMobile ? 'hidden' : ''}`}>
         <Table>
           <TableHeader>
             <TableRow>

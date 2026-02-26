@@ -472,16 +472,35 @@ class STSApiService {
     // - Для тяжелых запросов (транзакции) будет использоваться больший timeout
     const timeout = customTimeout || 15000;
 
-    const response = await fetch(url.toString(), {
-      ...options,
-      headers,
-      signal: AbortSignal.timeout(timeout),
-    });
+    // Retry для временных ошибок (502/503/504, timeout)
+    const MAX_RETRIES = 2;
+    let lastError: Error | null = null;
 
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          const delay = attempt * 3000; // 3с, 6с
+          console.warn(`STS API: Повтор ${attempt}/${MAX_RETRIES} через ${delay/1000}с — ${endpoint}`);
+          await new Promise(r => setTimeout(r, delay));
+        }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`🔍 STS API: Ошибка HTTP ${response.status}:`, errorText);
+        const response = await fetch(url.toString(), {
+          ...options,
+          headers,
+          signal: AbortSignal.timeout(timeout),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+
+          // 502/503/504 — временные ошибки, повторяем
+          if ([502, 503, 504].includes(response.status) && attempt < MAX_RETRIES) {
+            console.warn(`⚠️ STS API: HTTP ${response.status} на ${endpoint}, повтор...`);
+            lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+            continue;
+          }
+
+          console.error(`🔍 STS API: Ошибка HTTP ${response.status}:`, errorText);
       
       // Обрабатываем специфические ошибки
       if (response.status === 422) {
@@ -547,7 +566,7 @@ class STSApiService {
     }
 
     const contentType = response.headers.get('content-type');
-    
+
     if (contentType?.includes('application/json')) {
       const jsonData = await response.json();
       return jsonData;
@@ -555,6 +574,20 @@ class STSApiService {
       const textData = await response.text();
       return textData as T;
     }
+
+      } catch (fetchError: any) {
+        // Timeout и сетевые ошибки — повторяем
+        if (attempt < MAX_RETRIES && (fetchError?.name === 'TimeoutError' || fetchError?.name === 'AbortError' || fetchError?.message?.includes('fetch'))) {
+          console.warn(`⚠️ STS API: ${fetchError.name || 'Network error'} на ${endpoint}, повтор...`);
+          lastError = fetchError;
+          continue;
+        }
+        throw fetchError;
+      }
+    }
+
+    // Все попытки исчерпаны
+    throw lastError || new Error(`STS API: все ${MAX_RETRIES + 1} попыток неудачны для ${endpoint}`);
   }
 
   /**
@@ -849,11 +882,15 @@ class STSApiService {
     const shiftData = data?.shift || posData0?.shift || {};
 
     // Определяем статус устройства
-    const getDeviceStatus = (device: any) => {
+    const getDeviceStatus = (device: any): 'online' | 'error' | 'absent' => {
       const stateParam = device?.params?.find((p: any) => p.name === 'Состояние');
       const directValue = device?.value;
       const directStatus = device?.status;
       const statusValue = stateParam?.value || directValue || directStatus;
+
+      if (statusValue === 'Отсутствует' || statusValue === 'absent') {
+        return 'absent';
+      }
 
       if (statusValue === 'OK' || statusValue === 'ok' ||
           statusValue === 'online' || statusValue === 'active' ||
@@ -884,12 +921,13 @@ class STSApiService {
         status: posItem?.dt_info ? 'online' as const : 'offline' as const,
         version: `POS ${posItem?.number || (index + 1)}`,
         lastUpdate: posItem?.dt_info,
+        posType: posItem?.type ? { id: posItem.type.id, name: posItem.type.name } : undefined,
         lastTransaction: posItem?.dt_info ? new Date(posItem.dt_info).toLocaleTimeString('ru-RU') : '',
         cashierConnected: posShift?.state === 'Открытая',
         cashSum,
         bankSum,
         devices: {
-          ...(billAcceptor ? {
+          ...(billAcceptor && getDeviceStatus(billAcceptor) !== 'absent' ? {
             billAcceptor: {
               status: getDeviceStatus(billAcceptor),
               name: billAcceptor.name || 'Купюроприемник',
@@ -899,13 +937,13 @@ class STSApiService {
                 parseFloat(billAcceptor.params.find((p: any) => p.name === 'Сумма купюр').value) : undefined
             }
           } : {}),
-          ...(cardReader ? {
+          ...(cardReader && getDeviceStatus(cardReader) !== 'absent' ? {
             cardReader: {
               status: getDeviceStatus(cardReader),
               name: cardReader.name || 'Картридер'
             }
           } : {}),
-          ...(mpsReader ? {
+          ...(mpsReader && getDeviceStatus(mpsReader) !== 'absent' ? {
             mpsReader: {
               status: getDeviceStatus(mpsReader),
               name: mpsReader.name || 'МПС-ридер'
@@ -1027,29 +1065,83 @@ class STSApiService {
   async getTransactions(dateFrom?: string, dateTo?: string, limit?: number, contextParams?: {networkId?: string; tradingPointId?: string}): Promise<Transaction[]> {
 
     try {
-      // Формируем endpoint с параметрами
-      // Используем v2 endpoint который работает без обязательного station параметра
+      // Формируем endpoint с параметрами.
+      // Для v2/transactions используем dt_beg/dt_end:
+      // date_from/date_to и limit на стороне STS могут игнорироваться и возвращать всю историю.
       let endpoint = '/v2/transactions';
       const params = new URLSearchParams();
 
-      // Добавляем дополнительные параметры фильтрации если они заданы
-      if (dateFrom) {
-        params.set('date_from', dateFrom);
+      const normalizeStsDate = (value: string | undefined, endOfDay: boolean): string | null => {
+        if (!value) return null;
+
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+
+        // Формат YYYY-MM-DD -> добавляем границы суток
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+          return `${trimmed} ${endOfDay ? '23:59:59' : '00:00:00'}`;
+        }
+
+        // Формат YYYY-MM-DDTHH:mm или YYYY-MM-DD HH:mm -> добавляем секунды
+        if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}$/.test(trimmed)) {
+          return `${trimmed.replace('T', ' ')}:00`;
+        }
+
+        // Формат YYYY-MM-DDTHH:mm:ss -> заменяем T на пробел
+        if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}$/.test(trimmed)) {
+          return trimmed.replace('T', ' ');
+        }
+
+        return trimmed.replace('T', ' ');
+      };
+
+      const dtBeg = normalizeStsDate(dateFrom, false);
+      const dtEnd = normalizeStsDate(dateTo, true);
+
+      if (dtBeg) {
+        params.set('dt_beg', dtBeg);
       }
-      if (dateTo) {
-        params.set('date_to', dateTo);
+      if (dtEnd) {
+        params.set('dt_end', dtEnd);
       }
-      if (limit && limit > 0) {
-        params.set('limit', limit.toString());
+
+      const dateFromMs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
+      const dateToMs = dateTo ? new Date(`${dateTo}T23:59:59`).getTime() : null;
+
+      const normalizeTransactions = (rawTransactions: any[]): Transaction[] => {
+        let mappedTransactions = rawTransactions.map(tx => this.mapApiTransactionToTransaction(tx));
+
+        // Дополнительная клиентская фильтрация по датам как safety-net
+        // на случай, если STS вернет лишние записи.
+        if (dateFromMs !== null || dateToMs !== null) {
+          mappedTransactions = mappedTransactions.filter(tx => {
+            const txMs = new Date(tx.startTime || tx.date).getTime();
+            if (!Number.isFinite(txMs)) return false;
+            if (dateFromMs !== null && txMs < dateFromMs) return false;
+            if (dateToMs !== null && txMs > dateToMs) return false;
+            return true;
+          });
+        }
+
+        mappedTransactions.sort((a, b) => {
+          const aTime = new Date(a.startTime || a.date).getTime();
+          const bTime = new Date(b.startTime || b.date).getTime();
+          return bTime - aTime;
+        });
+
+        if (limit && limit > 0) {
+          mappedTransactions = mappedTransactions.slice(0, limit);
+        }
+
+        return mappedTransactions;
       }
 
       if (params.toString()) {
         endpoint += `?${params.toString()}`;
       }
 
-      // Используем увеличенный timeout для запроса транзакций (45 секунд)
-      // так как это тяжелый запрос с большим объемом данных
-      const data = await this.apiRequest<any>(endpoint, {}, contextParams, 45000);
+      // Увеличенный timeout для транзакций: бэкенд может отвечать медленнее при холодном кэше
+      const data = await this.apiRequest<any>(endpoint, {}, contextParams, 60000);
 
       // Обработка формата v2 API: массив объектов с полем items
       if (Array.isArray(data) && data.length > 0 && data[0].items) {
@@ -1060,18 +1152,15 @@ class STSApiService {
             stationNumber: station.number // Добавляем номер станции к каждой транзакции
           }))
         );
-        const mappedTransactions = allTransactions.map(tx => this.mapApiTransactionToTransaction(tx));
-        return mappedTransactions;
+        return normalizeTransactions(allTransactions);
       }
       // Обработка формата v1 API: массив транзакций напрямую
       else if (Array.isArray(data)) {
-        const mappedTransactions = data.map(tx => this.mapApiTransactionToTransaction(tx));
-        return mappedTransactions;
+        return normalizeTransactions(data);
       }
       // Обработка формата с полем transactions
       else if (data && typeof data === 'object' && data.transactions) {
-        const mappedTransactions = data.transactions.map(tx => this.mapApiTransactionToTransaction(tx));
-        return mappedTransactions;
+        return normalizeTransactions(data.transactions);
       }
 
       console.warn('🔍 STS API: Неожиданный формат данных транзакций:', data);
@@ -1746,4 +1835,3 @@ export type { Transaction, Tank, Pump, Sale, Price, TerminalInfo, PriceSetReques
 // Экспортируем единственный экземпляр сервиса
 export const stsApiService = new STSApiService();
 export default stsApiService;
-

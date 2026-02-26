@@ -31,8 +31,8 @@ class EquipmentService {
       throw new Error('У торговой точки не указан external_id для API');
     }
 
-    // Вызываем STS API через Backend Proxy
-    const terminalInfo = await stsProxyClient.get<TerminalInfo>('/v1/info', {
+    // Вызываем STS API через Backend Proxy (v2)
+    const terminalInfo = await stsProxyClient.get<TerminalInfo>('/v2/info', {
       system: networkId,
       station: tradingPoint.external_id
     });
@@ -88,7 +88,8 @@ class EquipmentService {
       status: isOffline ? 'offline' : pos.status,
       statusText: isOffline ? 'Офлайн' : (pos.status === 'online' ? 'Онлайн' : 'Офлайн'),
       lastUpdate: pos.lastUpdate,
-      posNumber
+      posNumber,
+      posType: pos.posType
     });
 
     // ККТ - Фискальный регистратор
@@ -210,30 +211,10 @@ class EquipmentService {
       // Картридер и МПС
       equipment.push(...posDevices.filter(eq => eq.name === 'Картридер' || eq.name === 'МПС'));
 
-      // QR (общий)
-      equipment.push({
-        id: 'qr',
-        name: 'QR',
-        code: 'Штрих коды',
-        location: '',
-        status: info.shift?.state === 'Открытая' ? 'online' : 'offline',
-        statusText: info.shift?.state === 'Открытая' ? 'Активен' : 'Неактивен'
-      });
-
       // Купюроприемник
       equipment.push(...posDevices.filter(eq => eq.name === 'Купюроприемник'));
     } else {
       // === Несколько постов — группировка по постам ===
-
-      // QR (общий, перед блоками постов)
-      equipment.push({
-        id: 'qr',
-        name: 'QR',
-        code: 'Штрих коды',
-        location: '',
-        status: info.shift?.state === 'Открытая' ? 'online' : 'offline',
-        statusText: info.shift?.state === 'Открытая' ? 'Активен' : 'Неактивен'
-      });
 
       // Для каждого поста — свой набор устройств
       for (const pos of info.pos) {

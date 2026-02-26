@@ -28,7 +28,7 @@ import { normalizePaymentMethod } from "@/utils/paymentUtils";
 import { useOperationsFilters } from "@/hooks/useOperationsFilters";
 
 export default function OperationsTransactionsPageSimple() {
-  const { selectedNetwork, selectedTradingPoint, isAllTradingPoints, isInitialized } = useSelection();
+  const { selectedNetwork, selectedTradingPoint, selectedStation, isAllTradingPoints, isInitialized } = useSelection();
   const { user } = useNewAuth();
   const isMobile = useIsMobile();
 
@@ -105,6 +105,7 @@ export default function OperationsTransactionsPageSimple() {
   // STS API состояние
   const [stsApiConfigured, setStsApiConfigured] = useState(false);
   const [loadingFromSTS, setLoadingFromSTS] = useState(false);
+  const [stsError, setStsError] = useState<string | null>(null);
 
   // Модальное окно деталей операции
   const [selectedOperation, setSelectedOperation] = useState(null);
@@ -123,6 +124,8 @@ export default function OperationsTransactionsPageSimple() {
   const startTouchRef = useRef(null);
   const rafId = useRef(null);
   const scrollContainerRef = useRef(null);
+  const lastAutoLoadKeyRef = useRef<string | null>(null);
+  const currentRequestIdRef = useRef(0);
 
 
   // Обработчики экспорта
@@ -153,13 +156,24 @@ export default function OperationsTransactionsPageSimple() {
   };
 
   // Функция загрузки из STS API
-  const loadFromStsApi = async () => {
+  const loadFromStsApi = async (force = false) => {
     if (!selectedNetwork?.external_id) {
       if (!isMobile) alert('Выберите сеть с настроенным external_id для загрузки из STS API');
       return;
     }
 
+    const stationScope = isAllTradingPoints ? 'all' : (selectedTradingPoint || '');
+    const loadKey = `${selectedNetwork.external_id}|${stationScope}|${dateFrom}|${dateTo}`;
+
+    if (!force && lastAutoLoadKeyRef.current === loadKey) {
+      return;
+    }
+
+    lastAutoLoadKeyRef.current = loadKey;
+    const requestId = ++currentRequestIdRef.current;
+
     setLoadingFromSTS(true);
+    setStsError(null);
     try {
       let transactions;
 
@@ -169,7 +183,7 @@ export default function OperationsTransactionsPageSimple() {
         transactions = await stsApiService.getTransactions(
           dateFrom,
           dateTo,
-          100,
+          0, // Без лимита — статистика по всем транзакциям за период
           {
             networkId: selectedNetwork.external_id
             // tradingPointId не указываем - получим все станции
@@ -177,22 +191,32 @@ export default function OperationsTransactionsPageSimple() {
         );
       } else if (selectedTradingPoint) {
         // Загружаем для конкретной торговой точки
-        const tradingPoint = await tradingPointsService.getById(selectedTradingPoint, selectedNetwork.id);
-        if (!tradingPoint) {
-          throw new Error(`Торговая точка с ID ${selectedTradingPoint} не найдена`);
+        let tradingPointExternalId: string | null | undefined = undefined;
+        let tradingPointName: string | undefined = undefined;
+
+        if (selectedStation?.id === selectedTradingPoint) {
+          tradingPointExternalId = selectedStation.external_id;
+          tradingPointName = selectedStation.name;
+        } else {
+          const tradingPoint = await tradingPointsService.getById(selectedTradingPoint, selectedNetwork.id);
+          if (!tradingPoint) {
+            throw new Error(`Торговая точка с ID ${selectedTradingPoint} не найдена`);
+          }
+          tradingPointExternalId = tradingPoint.external_id;
+          tradingPointName = tradingPoint.name;
         }
 
-        if (tradingPoint.external_id === null || tradingPoint.external_id === undefined || tradingPoint.external_id === '') {
-          throw new Error(`У торговой точки "${tradingPoint.name}" отсутствует external_id. Настройте его в разделе администрирования.`);
+        if (tradingPointExternalId === null || tradingPointExternalId === undefined || tradingPointExternalId === '') {
+          throw new Error(`У торговой точки "${tradingPointName || selectedTradingPoint}" отсутствует external_id. Настройте его в разделе администрирования.`);
         }
 
         transactions = await stsApiService.getTransactions(
           dateFrom,
           dateTo,
-          100,
+          0, // Без лимита — статистика по всем транзакциям за период
           {
             networkId: selectedNetwork.external_id,
-            tradingPointId: tradingPoint.external_id
+            tradingPointId: tradingPointExternalId
           }
         );
       } else {
@@ -259,14 +283,30 @@ export default function OperationsTransactionsPageSimple() {
           apiData: rawTx
         };
       });
-      
+
+      if (requestId !== currentRequestIdRef.current) {
+        return;
+      }
+
       // Заменяем операции новыми данными из STS API
       setOperations(stsTransactionsWithSource);
-      
-    } catch (error) {
-      if (!isMobile) alert(`Ошибка STS API: ${error.message}`);
+
+    } catch (error: any) {
+      if (requestId !== currentRequestIdRef.current) {
+        return;
+      }
+
+      const msg = error?.message?.includes('502') || error?.message?.includes('503')
+        ? 'Сервер STS временно недоступен. Попробуйте обновить через минуту.'
+        : error?.message?.includes('Timeout') || error?.message?.includes('timeout')
+        ? 'Превышено время ожидания ответа от сервера STS.'
+        : `Ошибка загрузки: ${error?.message || 'Неизвестная ошибка'}`;
+      setStsError(msg);
+      console.error('STS API:', error);
     } finally {
-      setLoadingFromSTS(false);
+      if (requestId === currentRequestIdRef.current) {
+        setLoadingFromSTS(false);
+      }
     }
   };
 
@@ -294,9 +334,9 @@ export default function OperationsTransactionsPageSimple() {
   const ensureSTSApiConfigured = () => {
     
     const correctConfig = {
-      url: 'https://pos.autooplata.ru/tms',
-      username: 'UserApi',
-      password: 'lHQfLZHzB3tn',
+      url: import.meta.env.VITE_STS_API_URL || '',
+      username: import.meta.env.VITE_STS_API_USERNAME || '',
+      password: import.meta.env.VITE_STS_API_PASSWORD || '',
       enabled: true,
       timeout: 30000,
       retryAttempts: 3,
@@ -333,6 +373,9 @@ export default function OperationsTransactionsPageSimple() {
 
   // Автоматическая загрузка данных при монтировании компонента
   useEffect(() => {
+    if (!isInitialized) {
+      return;
+    }
 
     // Обеспечиваем правильную настройку STS API
     ensureSTSApiConfigured();
@@ -342,7 +385,7 @@ export default function OperationsTransactionsPageSimple() {
     if (selectedNetwork?.external_id && (isAllTradingPoints || selectedTradingPoint)) {
       loadFromStsApi();
     }
-  }, [selectedTradingPoint, selectedNetwork, isAllTradingPoints]);
+  }, [isInitialized, selectedTradingPoint, selectedNetwork, isAllTradingPoints, dateFrom, dateTo]);
 
 
   // Уникальные номера постов для фильтра (показывать только если > 1)
@@ -431,30 +474,10 @@ export default function OperationsTransactionsPageSimple() {
         return false;
       }
 
-      // KPI фильтры по способу оплаты
+      // KPI фильтры по способу оплаты (динамическая группировка через normalizePaymentMethod)
       if (selectedKpiPayments.size > 0) {
-        const paymentKeyMapping = {
-          'cash': ['cash', 'наличные'],
-          'bank_card': ['bank_card', 'карта', 'сбербанк'],
-          'fuel_card': ['fuel_card', 'топливная_карта', 'нкт'],
-          'corporate_card': ['corporate_card', 'кр'],
-          'online_order': ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата'],
-          'coupon': ['coupon', 'купон', 'купон на сдачу']
-        };
-
-        // Все известные значения для определения "Другое"
-        const allKnownValues = Object.values(paymentKeyMapping).flat();
-
-        const matchesKpiPayment = Array.from(selectedKpiPayments).some(selectedKey => {
-          if (selectedKey === 'other') {
-            // Для "Другое" - проверяем что метод НЕ входит в известные
-            const method = record.paymentMethod?.toLowerCase();
-            return method && !allKnownValues.includes(method);
-          }
-          return paymentKeyMapping[selectedKey]?.includes(record.paymentMethod?.toLowerCase());
-        });
-
-        if (!matchesKpiPayment) return false;
+        const recordNormalized = normalizePaymentMethod(record.paymentMethod || '');
+        if (!selectedKpiPayments.has(recordNormalized)) return false;
       }
 
       return true;
@@ -555,8 +578,8 @@ export default function OperationsTransactionsPageSimple() {
 
   // Pull-to-refresh функционал
   const handleRefreshData = async () => {
-    if (selectedNetwork && selectedTradingPoint) {
-      await loadOperations();
+    if (selectedNetwork && (isAllTradingPoints || selectedTradingPoint)) {
+      await loadFromStsApi(true);
     }
   };
 
@@ -888,7 +911,7 @@ export default function OperationsTransactionsPageSimple() {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      loadFromStsApi();
+                      loadFromStsApi(true);
                     }}
                     disabled={loading || loadingFromSTS}
                     className="border-slate-600 text-white hover:bg-slate-700"
@@ -1143,15 +1166,14 @@ export default function OperationsTransactionsPageSimple() {
         {/* KPI карточки */}
         {!loading && !loadingFromSTS && operations.length > 0 && (
           <div className="space-y-4">
-            {/* Карточки по видам топлива */}
+            {/* Карточки по видам топлива — одна строка */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-2">
                 <h3 className={`text-slate-300 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Виды топлива</h3>
                 <span className="text-xs text-slate-500">выберите один или несколько элементов</span>
               </div>
-              <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+              <div className={`grid gap-3 ${isMobileForced ? 'grid-cols-2' : ''}`} style={isMobileForced ? undefined : { gridTemplateColumns: `repeat(${Math.min([...new Set(operations.map(op => op.fuelType).filter(Boolean))].length, 6)}, 1fr)` }}>
                 {[...new Set(operations.map(op => op.fuelType).filter(Boolean))].map(fuel => {
-                  // Рассчитываем метрики на основе отфильтрованных данных
                   const filteredFuelOps = filteredOperations.filter(op => op.fuelType === fuel && op.status === 'completed');
                   const filteredVolume = filteredFuelOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
                   const filteredRevenue = filteredFuelOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
@@ -1173,80 +1195,91 @@ export default function OperationsTransactionsPageSimple() {
               </div>
             </div>
 
-            {/* Карточки по способам оплаты */}
+            {/* Карточки по способам оплаты — топ-4 крупные + остальные мелкие */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-2">
                 <h3 className={`text-slate-300 font-medium ${isMobileForced ? 'text-sm' : 'text-base'}`}>Способы оплаты</h3>
                 <span className="text-xs text-slate-500">выберите один или несколько элементов</span>
               </div>
-              <div className={`grid gap-4 ${isMobileForced ? 'grid-cols-2 gap-3' : 'grid-cols-3 lg:grid-cols-6'}`}>
-                {(() => {
-                  // Известные способы оплаты
-                  const knownPaymentMethods = [
-                    { key: 'cash', values: ['cash', 'наличные'], display: 'Наличные' },
-                    { key: 'bank_card', values: ['bank_card', 'карта', 'сбербанк'], display: 'Банк. карты' },
-                    { key: 'fuel_card', values: ['fuel_card', 'топливная_карта'], display: 'Топл. карты' },
-                    { key: 'corporate_card', values: ['corporate_card', 'кр'], display: 'Корп. карты' },
-                    { key: 'online_order', values: ['online_order', 'мобил.п', 'мобильная', 'мобильная оплата'], display: 'Онлайн' },
-                    { key: 'coupon', values: ['coupon', 'купон', 'купон на сдачу'], display: 'Купон' }
-                  ];
-
-                  // Все известные значения для определения "Другое"
-                  const allKnownValues = knownPaymentMethods.flatMap(m => m.values);
-
-                  // Карточки для известных способов оплаты
-                  const knownCards = knownPaymentMethods
-                    .map(({ key, values, display }) => {
-                      const allPaymentOps = operations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
-                      const filteredPaymentOps = filteredOperations.filter(op => values.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed');
-                      const filteredRevenue = filteredPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
-                      const filteredVolume = filteredPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
-                      const isSelected = selectedKpiPayments.has(key);
-                      return { key, display, allPaymentOps, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected };
-                    })
-                    .filter(item => item.allPaymentOps.length > 0);
-
-                  // Карточка "Другое" для нераспознанных способов оплаты
-                  const otherOps = operations.filter(op => {
-                    const method = op.paymentMethod?.toLowerCase();
-                    return method && !allKnownValues.includes(method) && op.status === 'completed';
-                  });
-                  const otherFilteredOps = filteredOperations.filter(op => {
-                    const method = op.paymentMethod?.toLowerCase();
-                    return method && !allKnownValues.includes(method) && op.status === 'completed';
-                  });
-
-                  // Собираем уникальные нераспознанные методы для tooltip
-                  const unknownMethods = [...new Set(otherOps.map(op => op.paymentMethod).filter(Boolean))];
-
-                  // Показываем карточку "Другое" только если есть операции после фильтрации
-                  if (otherFilteredOps.length > 0) {
-                    knownCards.push({
-                      key: 'other',
-                      display: `Другое (${unknownMethods.length})`,
-                      allPaymentOps: otherOps,
-                      filteredPaymentOps: otherFilteredOps,
-                      filteredRevenue: otherFilteredOps.reduce((sum, op) => sum + (op.totalCost || 0), 0),
-                      filteredVolume: otherFilteredOps.reduce((sum, op) => sum + (op.quantity || 0), 0),
-                      isSelected: selectedKpiPayments.has('other')
-                    });
+              {(() => {
+                const paymentGroups = new Map<string, Set<string>>();
+                operations.forEach(op => {
+                  if (op.paymentMethod && op.status === 'completed') {
+                    const raw = op.paymentMethod.toLowerCase();
+                    const normalized = normalizePaymentMethod(op.paymentMethod);
+                    if (!paymentGroups.has(normalized)) {
+                      paymentGroups.set(normalized, new Set());
+                    }
+                    paymentGroups.get(normalized)!.add(raw);
                   }
+                });
 
-                  return knownCards.map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected }) => (
-                    <KPIPaymentCard
-                      key={key}
-                      paymentKey={key}
-                      display={display}
-                      isSelected={isSelected}
-                      isMobile={isMobileForced}
-                      volume={filteredVolume}
-                      cost={filteredRevenue}
-                      transactionCount={filteredPaymentOps.length}
-                      onClick={handleKpiPaymentClick}
-                    />
-                  ));
-                })()}
-              </div>
+                const cards = Array.from(paymentGroups.entries())
+                  .map(([display, rawValues]) => {
+                    const rawArr = Array.from(rawValues);
+                    const filteredPaymentOps = filteredOperations.filter(op =>
+                      rawArr.includes(op.paymentMethod?.toLowerCase()) && op.status === 'completed'
+                    );
+                    const filteredRevenue = filteredPaymentOps.reduce((sum, op) => sum + (op.totalCost || 0), 0);
+                    const filteredVolume = filteredPaymentOps.reduce((sum, op) => sum + (op.quantity || 0), 0);
+                    const isSelected = selectedKpiPayments.has(display);
+                    return { key: display, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected };
+                  })
+                  .filter(card => card.filteredPaymentOps.length > 0)
+                  .sort((a, b) => b.filteredRevenue - a.filteredRevenue);
+
+                // Основные 4 типа оплаты — всегда в первом ряду
+                const primaryTypes = ['Банковские', 'Наличные', 'Онлайн', 'Корп. карты'];
+                const topCards = primaryTypes
+                  .map(name => cards.find(c => c.key === name))
+                  .filter(Boolean) as typeof cards;
+                const topKeys = new Set(topCards.map(c => c.key));
+                const restCards = cards.filter(c => !topKeys.has(c.key));
+
+                return (
+                  <div className="space-y-3">
+                    {/* Топ-4 — крупные карточки */}
+                    <div className={`grid gap-3 ${isMobileForced ? 'grid-cols-2' : 'grid-cols-4'}`}>
+                      {topCards.map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected }) => (
+                        <KPIPaymentCard
+                          key={key}
+                          paymentKey={key}
+                          display={display}
+                          isSelected={isSelected}
+                          isMobile={isMobileForced}
+                          volume={filteredVolume}
+                          cost={filteredRevenue}
+                          transactionCount={filteredPaymentOps.length}
+                          onClick={handleKpiPaymentClick}
+                        />
+                      ))}
+                    </div>
+                    {/* Остальные — название, при выборе раскрываются данные */}
+                    {restCards.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {restCards.map(({ key, display, filteredPaymentOps, filteredRevenue, filteredVolume, isSelected }) => (
+                          <button
+                            key={key}
+                            onClick={() => handleKpiPaymentClick(key)}
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                              isSelected
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            {display}
+                            {isSelected && (
+                              <span className="ml-1.5 opacity-90">
+                                {filteredPaymentOps.length} · {filteredVolume >= 1000 ? `${(filteredVolume / 1000).toFixed(1)}K` : filteredVolume.toFixed(0)} л · {filteredRevenue >= 1000 ? `${(filteredRevenue / 1000).toFixed(1)}K` : filteredRevenue.toFixed(0)} ₽
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Итоговая карточка */}
@@ -1333,6 +1366,27 @@ export default function OperationsTransactionsPageSimple() {
           </div>
         )}
 
+        {/* Ошибка загрузки STS */}
+        {stsError && !loadingFromSTS && (
+          <Card className="bg-red-950/50 border border-red-800/50 rounded-lg">
+            <CardContent className="p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                <p className="text-red-300 text-sm">{stsError}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadFromStsApi(true)}
+                className="border-red-700 text-red-300 hover:bg-red-900/50 flex-shrink-0"
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Повторить
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Таблица № */}
         {!loading && !loadingFromSTS && (
           <Card className={`bg-slate-800 border border-slate-700 rounded-lg shadow-lg ${isMobileForced ? 'mx-0 mt-1' : ''}`}>
@@ -1344,37 +1398,15 @@ export default function OperationsTransactionsPageSimple() {
                     Операции
                   </CardTitle>
                   <p className={`text-slate-400 ${isMobileForced ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
-                    Показано {paginatedOperations.length} из {filteredOperations.length}
-                    {totalPages > 1 && ` • Страница ${currentPage} из ${totalPages}`}
+                    {isMobileForced
+                      ? <>Показано {paginatedOperations.length} из {filteredOperations.length}{totalPages > 1 && ` • Страница ${currentPage} из ${totalPages}`}</>
+                      : <>Всего операций: {filteredOperations.length}</>
+                    }
                   </p>
                 </div>
               
               
-              {!isMobile && totalPages > 1 && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    ← Предыдущая
-                  </Button>
-                  <span className="text-sm text-slate-400 px-2">
-                    {currentPage} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    Следующая →
-                  </Button>
-                </div>
-              )}
+              {/* Пагинация только на мобильном — десктоп использует виртуализированный скролл */}
             </div>
           </CardHeader>
           <CardContent className={`${isMobileForced ? 'px-0 pb-3' : ''}`}>

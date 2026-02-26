@@ -60,15 +60,6 @@ export async function executeMstoReconciliation(
         ? Array.from(stationMapping.values())
         : undefined;
 
-  // DEBUG: Логируем параметры фильтрации (временно для диагностики)
-  console.log('[MSTO Reconciliation] DEBUG params.stations:', JSON.stringify(params.stations?.map(s => ({
-    name: s.name,
-    stsStationId: s.stsStationId,
-    mstoServicePointId: s.mstoServicePointId,
-    mstoServicePointIds: s.mstoServicePointIds
-  })), null, 2));
-  console.log('[MSTO Reconciliation] DEBUG mstoIds для фильтрации:', mstoIds);
-
   // Получаем данные параллельно из ЧЕТЫРЁХ источников
   // Используем Promise.allSettled для обработки отдельных ошибок
   // ВАЖНО: systemId передаётся из настроек сети для запросов к STS API

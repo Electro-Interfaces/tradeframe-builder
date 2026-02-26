@@ -40,15 +40,7 @@ export default defineConfig(({ mode }) => {
 
   return {
   base,
-  // Явное определение переменных окружения
-  define: {
-    'import.meta.env.VITE_STS_API_URL': JSON.stringify(process.env.VITE_STS_API_URL),
-    'import.meta.env.VITE_STS_API_USERNAME': JSON.stringify(process.env.VITE_STS_API_USERNAME),
-    'import.meta.env.VITE_STS_API_PASSWORD': JSON.stringify(process.env.VITE_STS_API_PASSWORD),
-    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL),
-    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY),
-    'import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY': JSON.stringify(process.env.VITE_SUPABASE_SERVICE_ROLE_KEY),
-  },
+  // Все VITE_* переменные подхватываются из .env автоматически Vite — define не нужен
   server: {
     host: "127.0.0.1",
     port: 3000,
@@ -116,11 +108,12 @@ export default defineConfig(({ mode }) => {
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // Исключаем тяжёлые vendor-чанки из precache (грузятся по требованию)
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js',
+          '**/pdf-vendor-*.js', '**/xlsx-vendor-*.js', '**/exceljs*'],
         // Критично для SPA: fallback на index.html при навигации
         navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/^\/api\//, /\.[^/?]+$/],
-        // Пропускаем кэширование для API запросов в precache
-        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],
         // Очищаем устаревшие кэши при обновлении
         cleanupOutdatedCaches: true,
         // Не ждём закрытия вкладок - активируем сразу
@@ -205,28 +198,40 @@ export default defineConfig(({ mode }) => {
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // ТОЛЬКО критичные external библиотеки, ВСЕ остальное в main bundle
+          if (!id.includes('node_modules')) return;
 
-          // Large external libraries that are worth splitting
-          if (id.includes('react') && id.includes('node_modules')) {
+          // React core
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
             return 'react-vendor';
           }
 
-          if (id.includes('chart.js') && id.includes('node_modules')) {
-            return 'charts-vendor';
+          // Recharts — самая тяжёлая библиотека графиков (~400KB)
+          if (id.includes('recharts') || id.includes('d3-')) {
+            return 'recharts-vendor';
           }
 
-          // Large utility libraries
-          if (id.includes('date-fns') && id.includes('node_modules')) {
-            return 'date-vendor';
+          // Chart.js (если используется)
+          if (id.includes('chart.js')) {
+            return 'chartjs-vendor';
           }
 
-          if (id.includes('xlsx') && id.includes('node_modules')) {
+          // PDF/Excel экспорт
+          if (id.includes('jspdf') || id.includes('pdfmake')) {
+            return 'pdf-vendor';
+          }
+          if (id.includes('xlsx')) {
             return 'xlsx-vendor';
           }
 
-          // Всё остальное (включая наш код) остаётся в main bundle
-          // Это исключает все проблемы с React contexts и forwardRef
+          // date-fns
+          if (id.includes('date-fns')) {
+            return 'date-vendor';
+          }
+
+          // Tanstack (react-query, react-table)
+          if (id.includes('@tanstack')) {
+            return 'tanstack-vendor';
+          }
         },
       },
     },

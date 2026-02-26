@@ -13,7 +13,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta name="cache-buster" content="v1.9.2-20260126" />
+    <meta name="cache-buster" content="v1.9.2-20260225" />
     
     <!-- Политики безопасности -->
     <!-- CSP отключен для production - слишком строгие правила блокируют ES modules -->
@@ -86,47 +86,17 @@
     <meta name="msapplication-tap-highlight" content="no" />
     <meta name="theme-color" content="#1e293b" />
     <style>
-      /* ЗАЩИТА ОТ PULL-TO-REFRESH НА МОБИЛЬНЫХ УСТРОЙСТВАХ */
+      /* Защита от pull-to-refresh (contain вместо none — не блокирует скролл) */
       @media (hover: none) and (pointer: coarse) {
-        html, body { 
-          overscroll-behavior: none !important;
-          overscroll-behavior-y: none !important;
-          -webkit-overscroll-behavior: none !important;
-          -webkit-overscroll-behavior-y: none !important;
-          touch-action: pan-x pan-y !important;
+        html, body {
+          overscroll-behavior-y: contain;
+          touch-action: pan-x pan-y;
         }
-
         #root {
-          overscroll-behavior: none !important;
-          overscroll-behavior-y: none !important;
-          -webkit-overscroll-behavior: none !important;
-          -webkit-overscroll-behavior-y: none !important;
-          touch-action: pan-x pan-y !important;
-          min-height: 100vh !important;
-          min-height: 100dvh !important;
+          overscroll-behavior-y: contain;
+          min-height: 100dvh;
+          min-height: 100vh; /* fallback */
         }
-      }
-      
-      /* Для всех остальных устройств используем стандартное поведение */
-      @media not all and (hover: none) and (pointer: coarse) {
-        html, body { 
-          -webkit-overflow-scrolling: touch; 
-        }
-      }
-
-      /* Дополнительная защита для всех браузеров */
-      html {
-        overscroll-behavior: none;
-        overscroll-behavior-y: none;
-        -webkit-overscroll-behavior: none;
-        -webkit-overscroll-behavior-y: none;
-      }
-      
-      body {
-        overscroll-behavior: none;
-        overscroll-behavior-y: none;
-        -webkit-overscroll-behavior: none;
-        -webkit-overscroll-behavior-y: none;
       }
 
       /* Предотвращение FOUC (Flash of Unstyled Content) */

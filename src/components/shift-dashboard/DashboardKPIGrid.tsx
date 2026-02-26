@@ -4,8 +4,8 @@
  * Отображает метрики по видам топлива и способам оплаты
  */
 
-import { useState } from 'react';
-import { Fuel, Banknote, CreditCard, Smartphone, Building2, Ticket } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Fuel, Banknote, CreditCard, Smartphone, Building2, Ticket, Wallet, CircleDollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DashboardKPIs, DashboardTrends, FuelVolumeItem, PaymentFuelBreakdown } from '@/types/shift-dashboard';
 import type { ShiftDetails } from '@/types/shift-reports-v2';
@@ -277,60 +277,65 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
     setModalState(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Получаем детализацию по способам оплаты
-  const paymentDetails = kpis.financial.paymentDetails;
+  // Мемоизация вычисления paymentMethods — зависит только от kpis.financial
+  const paymentMethods = useMemo(() => {
+    const paymentDetails = kpis.financial.paymentDetails || {};
 
-  // Данные по способам оплаты с разбивкой по топливам
-  const paymentMethods = [
-    {
-      title: 'Наличные',
-      paymentType: 'cash',
-      revenue: paymentDetails?.cash?.revenue ?? kpis.financial.cashRevenue,
-      volume: paymentDetails?.cash?.volume ?? 0,
-      byFuel: paymentDetails?.cash?.byFuel ?? [],
-      icon: <Banknote className="w-4 h-4 text-white" />,
-      iconBg: 'bg-emerald-600',
-    },
-    {
-      title: 'Банковские карты',
-      paymentType: 'card',
-      revenue: paymentDetails?.card?.revenue ?? kpis.financial.cardRevenue,
-      volume: paymentDetails?.card?.volume ?? 0,
-      byFuel: paymentDetails?.card?.byFuel ?? [],
-      icon: <CreditCard className="w-4 h-4 text-white" />,
-      iconBg: 'bg-blue-600',
-    },
-    {
-      title: 'Онлайн заказы',
-      paymentType: 'online',
-      revenue: paymentDetails?.online?.revenue ?? kpis.financial.sbpRevenue,
-      volume: paymentDetails?.online?.volume ?? 0,
-      byFuel: paymentDetails?.online?.byFuel ?? [],
-      icon: <Smartphone className="w-4 h-4 text-white" />,
-      iconBg: 'bg-purple-600',
-      volumeOnly: true, // Онлайн заказы - только отпуск топлива, не выручка
-    },
-    {
-      title: 'Корп. карты',
-      paymentType: 'corporate',
-      revenue: paymentDetails?.corporate?.revenue ?? ((kpis.financial.corporateCardRevenue || 0) + (kpis.financial.fuelCardRevenue || 0)),
-      volume: paymentDetails?.corporate?.volume ?? 0,
-      byFuel: paymentDetails?.corporate?.byFuel ?? [],
-      icon: <Building2 className="w-4 h-4 text-white" />,
-      iconBg: 'bg-orange-600',
-      volumeOnly: true, // Корп. карты - отпуск по договорам, не выручка в кассе
-    },
-    {
-      title: 'Купоны',
-      paymentType: 'coupon',
-      revenue: paymentDetails?.coupon?.revenue ?? 0,
-      volume: paymentDetails?.coupon?.volume ?? 0,
-      byFuel: paymentDetails?.coupon?.byFuel ?? [],
-      icon: <Ticket className="w-4 h-4 text-white" />,
-      iconBg: 'bg-amber-600',
-      volumeOnly: true, // Купоны - отпуск по ранее оплаченным купонам, не выручка
-    },
-  ];
+    // Конфигурация иконок и стилей для известных типов
+    const paymentTypeConfig: Record<string, {
+      title: string;
+      icon: React.ReactNode;
+      iconBg: string;
+      volumeOnly?: boolean;
+    }> = {
+      cash: { title: 'Наличные', icon: <Banknote className="w-4 h-4 text-white" />, iconBg: 'bg-emerald-600' },
+      card: { title: 'Банковские карты', icon: <CreditCard className="w-4 h-4 text-white" />, iconBg: 'bg-blue-600' },
+      fuel_card: { title: 'Топл. карты', icon: <CreditCard className="w-4 h-4 text-white" />, iconBg: 'bg-amber-600', volumeOnly: true },
+      online: { title: 'Онлайн заказы', icon: <Smartphone className="w-4 h-4 text-white" />, iconBg: 'bg-purple-600', volumeOnly: true },
+      corporate: { title: 'Корп. карты', icon: <Building2 className="w-4 h-4 text-white" />, iconBg: 'bg-orange-600', volumeOnly: true },
+      coupon: { title: 'Купоны/Талоны', icon: <Ticket className="w-4 h-4 text-white" />, iconBg: 'bg-amber-600', volumeOnly: true },
+    };
+
+    const knownOrder = ['cash', 'card', 'fuel_card', 'online', 'corporate', 'coupon'];
+    const allTypes = Object.keys(paymentDetails);
+    const orderedTypes = [
+      ...knownOrder.filter(t => allTypes.includes(t)),
+      ...allTypes.filter(t => !knownOrder.includes(t)),
+    ];
+
+    const methods = orderedTypes
+      .filter(paymentType => {
+        const details = paymentDetails[paymentType];
+        return details && (details.revenue > 0 || details.volume > 0);
+      })
+      .map(paymentType => {
+        const details = paymentDetails[paymentType];
+        const config = paymentTypeConfig[paymentType];
+        return {
+          title: config?.title || paymentType,
+          paymentType,
+          revenue: details.revenue,
+          volume: details.volume,
+          byFuel: details.byFuel || [],
+          icon: config?.icon || <CircleDollarSign className="w-4 h-4 text-white" />,
+          iconBg: config?.iconBg || 'bg-slate-600',
+          volumeOnly: config?.volumeOnly ?? false,
+        };
+      });
+
+    // Fallback: если paymentDetails пустой, генерируем из legacy-полей
+    if (methods.length === 0) {
+      const legacyMethods = [
+        { title: 'Наличные', paymentType: 'cash', revenue: kpis.financial.cashRevenue, volume: 0, byFuel: [] as PaymentFuelBreakdown[], icon: <Banknote className="w-4 h-4 text-white" />, iconBg: 'bg-emerald-600', volumeOnly: false },
+        { title: 'Банковские карты', paymentType: 'card', revenue: kpis.financial.cardRevenue, volume: 0, byFuel: [] as PaymentFuelBreakdown[], icon: <CreditCard className="w-4 h-4 text-white" />, iconBg: 'bg-blue-600', volumeOnly: false },
+        { title: 'Онлайн', paymentType: 'online', revenue: kpis.financial.sbpRevenue, volume: 0, byFuel: [] as PaymentFuelBreakdown[], icon: <Smartphone className="w-4 h-4 text-white" />, iconBg: 'bg-purple-600', volumeOnly: true },
+        { title: 'Корп. карты', paymentType: 'corporate', revenue: (kpis.financial.corporateCardRevenue || 0) + (kpis.financial.fuelCardRevenue || 0), volume: 0, byFuel: [] as PaymentFuelBreakdown[], icon: <Building2 className="w-4 h-4 text-white" />, iconBg: 'bg-orange-600', volumeOnly: true },
+      ].filter(m => m.revenue > 0);
+      methods.push(...legacyMethods);
+    }
+
+    return methods;
+  }, [kpis.financial]);
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -365,8 +370,14 @@ export function DashboardKPIGrid({ kpis, trends, shifts, isLoading, className }:
         <h3 className="text-xs sm:text-sm font-medium text-slate-400 mb-2 sm:mb-3 uppercase tracking-wide">
           По способам оплаты
         </h3>
-        {/* Наличные и Карты - широкие, Онлайн/Корп/Купоны - узкие */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
+        {/* Динамическая сетка: адаптируется к количеству способов оплаты */}
+        <div className={cn(
+          'grid gap-2 sm:gap-3',
+          paymentMethods.length <= 3 ? 'grid-cols-2 sm:grid-cols-3' :
+          paymentMethods.length <= 5 ? 'grid-cols-2 sm:grid-cols-5' :
+          paymentMethods.length <= 6 ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' :
+          'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7',
+        )}>
           {paymentMethods.map((method) => (
             <PaymentCard
               key={method.title}

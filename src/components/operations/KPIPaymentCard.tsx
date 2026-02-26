@@ -13,6 +13,12 @@ interface KPIPaymentCardProps {
   onClick: (paymentKey: string) => void;
 }
 
+const formatCompact = (value: number): string => {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return value.toFixed(0);
+};
+
 const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, volume, cost, transactionCount, onClick }: KPIPaymentCardProps) => {
   const handleClick = React.useCallback(() => {
     onClick(paymentKey);
@@ -29,18 +35,18 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
         }`}
         onClick={handleClick}
       >
-        <CardContent className="p-3">
-          <div className="flex flex-col gap-1">
+        <CardContent className="p-2.5">
+          <div className="flex flex-col gap-0.5">
             <div className="flex items-center justify-between">
-              <p className="text-slate-100 font-semibold text-xs">{display}</p>
-              <div className="flex items-center gap-1">
-                <Activity className="w-3 h-3 text-slate-400" />
-                <span className="text-slate-200 text-xs font-medium">{transactionCount}</span>
+              <p className="text-slate-100 font-semibold text-xs truncate">{display}</p>
+              <div className="flex items-center gap-0.5 ml-1 flex-shrink-0">
+                <Activity className="w-2.5 h-2.5 text-slate-400" />
+                <span className="text-slate-200 text-[10px] font-medium">{transactionCount}</span>
               </div>
             </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300">{volume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</span>
-              <span className="text-slate-200 font-semibold">{cost.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</span>
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-slate-400">{formatCompact(volume)} л</span>
+              <span className="text-slate-200 font-semibold">{formatCompact(cost)} ₽</span>
             </div>
           </div>
         </CardContent>
@@ -48,7 +54,7 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
     );
   }
 
-  // Desktop version
+  // Desktop version — compact chip-style
   return (
     <Card
       key={paymentKey}
@@ -59,18 +65,18 @@ const KPIPaymentCard = React.memo(({ paymentKey, display, isSelected, isMobile, 
       }`}
       onClick={handleClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-slate-100 font-semibold text-base truncate pr-2">{display}</p>
-            <div className="flex items-center gap-1">
+            <p className="text-slate-100 font-semibold text-sm truncate">{display}</p>
+            <div className="flex items-center gap-1 mt-0.5">
               <Activity className="w-3 h-3 text-slate-400" />
-              <span className="text-slate-300 text-sm">{transactionCount}</span>
+              <span className="text-slate-300 text-xs">{transactionCount}</span>
             </div>
           </div>
           <div className="text-right flex-shrink-0">
-            <div className="text-slate-200 text-sm font-semibold">{volume.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} л</div>
-            <div className="text-slate-200 text-sm font-semibold">{cost.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</div>
+            <div className="text-slate-300 text-xs">{formatCompact(volume)} л</div>
+            <div className="text-slate-200 text-xs font-semibold">{formatCompact(cost)} ₽</div>
           </div>
         </div>
       </CardContent>

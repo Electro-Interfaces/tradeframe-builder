@@ -108,16 +108,20 @@ class ShiftReportsV2Service {
    */
   async getShiftDetails(
     params: GetShiftDetailsParams,
-    stationName?: string
+    stationName?: string,
+    preloadedShiftInfo?: any
   ): Promise<ShiftDetails> {
 
     try {
-      // Сначала получаем базовую информацию о смене из /v1/shifts
-      const shifts = await shiftsService.getShifts({
-        system: params.system,
-        station: params.station
-      });
-      const shiftInfo = shifts.find(s => s.shift === params.shift);
+      // Используем переданную информацию о смене или загружаем из API
+      let shiftInfo = preloadedShiftInfo;
+      if (!shiftInfo) {
+        const shifts = await shiftsService.getShifts({
+          system: params.system,
+          station: params.station
+        });
+        shiftInfo = shifts.find(s => s.shift === params.shift);
+      }
 
       // Получаем СЫРЫЕ детальные данные из API (используем getShiftReportRaw)
       const response = await shiftsService.getShiftReportRaw(params);

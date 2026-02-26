@@ -37,6 +37,10 @@ let cacheStats = {
   lastReset: Date.now()
 };
 
+// In-flight request deduplication — если 5 клиентов одновременно запросят /v1/tanks,
+// отправляется один запрос к STS API, результат отдаётся всем
+const inflightRequests = new Map();
+
 // Lazy initialization для STS client и JWT токена
 let stsClient = null;
 let jwtToken = null;
@@ -130,7 +134,7 @@ async function refreshJwtToken(req) {
     const loginClient = axios.create({
       baseURL: process.env.STS_API_URL,
       headers: { 'Content-Type': 'application/json' },
-      timeout: 10000
+      timeout: 30000
     });
 
     // Авторизация через /v2/login с данными пользователя
@@ -218,6 +222,18 @@ async function proxyRequest(req, res) {
       }
     }
 
+    // Request deduplication для GET — если тот же запрос уже in-flight, ждём его
+    if (method === 'GET' && inflightRequests.has(cacheKey)) {
+      try {
+        const result = await inflightRequests.get(cacheKey);
+        const duration = Date.now() - req.startTime;
+        console.log(`[STS Proxy] 🔗 Dedup HIT for ${urlPath} (${duration}ms)`);
+        return res.status(200).json(result);
+      } catch (err) {
+        // In-flight запрос упал — пробуем свой
+      }
+    }
+
     // Формируем параметры запроса к STS API
     const requestConfig = {
       method: method,
@@ -226,43 +242,38 @@ async function proxyRequest(req, res) {
       ...(method !== 'GET' && method !== 'HEAD' && { data: body })
     };
 
-    console.log('[STS Proxy] Request params:', query);
-
     // Обновляем данные пользователя из заголовков frontend-запроса
     updateCurrentUser(req);
 
-    // Выполняем запрос к STS API
-    const client = await getStsClient(req);
-    const response = await client.request(requestConfig);
+    // Создаём promise для дедупликации GET-запросов
+    const fetchPromise = (async () => {
+      const client = await getStsClient(req);
+      const response = await client.request(requestConfig);
+      return { data: response.data, status: response.status };
+    })();
 
-    // Логируем ответ для отладки
-    if (urlPath === '/v1/tanks') {
-      console.log('[STS Proxy] Tanks response:', JSON.stringify(response.data).substring(0, 200));
-    }
-    if (urlPath === '/v1/control/coupon') {
-      console.log('[STS Proxy] 📝 Coupon create REQUEST body:', JSON.stringify(body));
-      console.log('[STS Proxy] 📝 Coupon create REQUEST params:', JSON.stringify(query));
-      console.log('[STS Proxy] Coupon create response:', response.status, JSON.stringify(response.data).substring(0, 300));
-    }
-    if (urlPath === '/v1/coupons_manual') {
-      const dataStr = JSON.stringify(response.data);
-      console.log('[STS Proxy] 📋 coupons_manual response (system=' + query.system + ', station=' + query.station + '):',
-        dataStr.substring(0, 500), '... (total length:', dataStr.length, ')');
+    if (method === 'GET') {
+      inflightRequests.set(cacheKey, fetchPromise.then(r => r.data));
     }
 
-    // Сохраняем в кэш только GET запросы с успешным ответом
-    if (method === 'GET' && response.status === 200) {
-      const ttl = getTTL(urlPath);
-      cache.set(cacheKey, response.data, ttl);
-      console.log(`[STS Proxy] 💾 Cached response for ${urlPath} (TTL: ${ttl}s)`);
+    try {
+      const response = await fetchPromise;
+
+      // Сохраняем в кэш только GET запросы с успешным ответом
+      if (method === 'GET' && response.status === 200) {
+        const ttl = getTTL(urlPath);
+        cache.set(cacheKey, response.data, ttl);
+      }
+
+      // Измеряем время выполнения
+      const duration = Date.now() - req.startTime;
+      console.log(`[STS Proxy] ⏱️ ${req.method} ${urlPath} ${duration}ms`);
+
+      // Возвращаем ответ клиенту
+      res.status(response.status).json(response.data);
+    } finally {
+      inflightRequests.delete(cacheKey);
     }
-
-    // Измеряем время выполнения
-    const duration = Date.now() - req.startTime;
-    console.log(`[STS Proxy] ⏱️ Request ${req.method} ${urlPath} completed in ${duration}ms (cache misses: ${cacheStats.misses})`);
-
-    // Возвращаем ответ клиенту
-    res.status(response.status).json(response.data);
   } catch (error) {
     console.error(`[STS Proxy Error] ${error.message}`);
     if (error.response) {
@@ -367,6 +378,257 @@ router.post('/v1/control/terminal/open', (req, res) => proxyRequest(req, res));
 router.post('/v1/control/terminal/close', (req, res) => proxyRequest(req, res));
 router.post('/v1/control/shift/open', (req, res) => proxyRequest(req, res));
 router.post('/v1/control/shift/close', (req, res) => proxyRequest(req, res));
+
+// === Internal STS API request with caching (for server-side aggregation) ===
+async function stsInternalRequest(urlPath, params, userHeaders) {
+  const cacheKey = generateCacheKey(urlPath, params);
+
+  const cached = cache.get(cacheKey);
+  if (cached !== undefined) {
+    cacheStats.hits++;
+    return cached;
+  }
+  cacheStats.misses++;
+
+  const fakeReq = { headers: userHeaders || {} };
+  const client = await getStsClient(fakeReq);
+  const response = await client.request({
+    method: 'GET',
+    url: urlPath,
+    params
+  });
+
+  const ttl = getTTL(urlPath);
+  cache.set(cacheKey, response.data, ttl);
+
+  return response.data;
+}
+
+// === Endpoint для агрегированных остатков топлива (серверная агрегация) ===
+// Вместо ~200+ HTTP round-trips с фронтенда — один POST-запрос
+router.post('/fuel-inventory', async (req, res) => {
+  const startTime = Date.now();
+
+  try {
+    const { system, stations, dt_beg, dt_end, allowedStations } = req.body;
+
+    if (!system || !stations || !dt_beg || !dt_end) {
+      return res.status(400).json({
+        error: 'Missing required parameters: system, stations, dt_beg, dt_end'
+      });
+    }
+
+    // Проверяем агрегированный кэш
+    const stationIds = stations.map(s => s.id).sort().join(',');
+    const aggCacheKey = `fuel-inv:${system}:${stationIds}:${dt_beg}:${dt_end}`;
+    const cachedResult = cache.get(aggCacheKey);
+    if (cachedResult) {
+      console.log(`[Fuel Inventory] 💾 Cache HIT (${Date.now() - startTime}ms)`);
+      return res.json(cachedResult);
+    }
+
+    const userHeaders = {
+      'x-user-id': req.headers['x-user-id'] || '',
+      'x-user-name': req.headers['x-user-name'] || ''
+    };
+
+    const periodStart = new Date(dt_beg);
+    const periodEnd = new Date(dt_end);
+
+    // Фильтрация по RBAC
+    const allowedSet = allowedStations ? new Set(allowedStations.map(String)) : null;
+    const filteredStations = stations.filter(s => {
+      if (allowedSet && !allowedSet.has(String(s.id))) return false;
+      return true;
+    });
+
+    console.log(`[Fuel Inventory] Processing ${filteredStations.length} stations for system ${system}`);
+
+    // Обрабатываем все станции параллельно
+    const results = await Promise.all(filteredStations.map(async (station) => {
+      try {
+        // 1. Получаем список смен
+        const shiftsResponse = await stsInternalRequest(
+          '/v1/shifts',
+          { system, station: station.id },
+          userHeaders
+        );
+
+        let allShifts = [];
+        if (Array.isArray(shiftsResponse)) {
+          if (shiftsResponse.length > 0 && shiftsResponse[0].shift !== undefined) {
+            allShifts = shiftsResponse;
+          } else {
+            allShifts = shiftsResponse[0]?.shifts || [];
+          }
+        } else if (shiftsResponse?.shifts) {
+          allShifts = shiftsResponse.shifts;
+        }
+
+        // 2. Фильтруем смены по периоду (по dt_open)
+        const validShifts = allShifts.filter(shift => {
+          const openDate = shift.dt_open ? new Date(shift.dt_open) : null;
+          if (!openDate) return false;
+          return openDate >= periodStart && openDate <= periodEnd;
+        }).sort((a, b) => new Date(a.dt_open).getTime() - new Date(b.dt_open).getTime());
+
+        if (validShifts.length === 0) return [];
+
+        // 3. Получаем ёмкости резервуаров
+        const tankCapacities = new Map();
+        try {
+          const tankHistory = await stsInternalRequest(
+            '/v1/tank_history',
+            { system, station: station.id, dt_beg, dt_end },
+            userHeaders
+          );
+
+          if (Array.isArray(tankHistory)) {
+            const latest = new Map();
+            tankHistory.forEach(record => {
+              if (record.number && record.volume_max) {
+                const existing = latest.get(record.number);
+                if (!existing || new Date(record.dt) > new Date(existing.dt)) {
+                  latest.set(record.number, record);
+                }
+              }
+            });
+            latest.forEach((record, num) => tankCapacities.set(num, parseFloat(record.volume_max)));
+          }
+        } catch (e) { /* ignore tank capacity errors */ }
+
+        // 4. Загружаем сменные отчёты пачками по 20 (серверная агрегация — можно агрессивнее)
+        const shiftReports = [];
+        const BATCH_SIZE = 20;
+
+        for (let i = 0; i < validShifts.length; i += BATCH_SIZE) {
+          const batch = validShifts.slice(i, i + BATCH_SIZE);
+          const batchResults = await Promise.all(batch.map(async (shift) => {
+            try {
+              const report = await stsInternalRequest(
+                '/v1/report/shift_report',
+                { system, station: station.id, shift: shift.shift },
+                userHeaders
+              );
+
+              let data = report;
+              if (Array.isArray(report) && report.length > 0) data = report[0];
+
+              if (data?.release?.length > 0) {
+                return {
+                  shiftNumber: shift.shift,
+                  shiftDate: shift.dt_close || shift.dt_open,
+                  data
+                };
+              }
+              return null;
+            } catch (e) { return null; }
+          }));
+
+          shiftReports.push(...batchResults.filter(Boolean));
+        }
+
+        if (shiftReports.length === 0) return [];
+
+        // 5. Агрегируем по резервуарам
+        const tankDataMap = new Map();
+
+        shiftReports.forEach(report => {
+          report.data.release.forEach(tank => {
+            const tankNumber = tank.tank;
+
+            if (!tankDataMap.has(tankNumber)) {
+              tankDataMap.set(tankNumber, {
+                firstShift: report,
+                lastShift: report,
+                receipts: 0,
+                sales: 0,
+                receiptCount: 0,
+                shiftCount: 0,
+                capacity: tankCapacities.get(tankNumber) || 0,
+                fuelCode: tank.service?.service_code || tank.fuel || 0,
+                fuelName: tank.service?.service_name || 'Неизвестно',
+                processedShifts: new Set()
+              });
+            }
+
+            const data = tankDataMap.get(tankNumber);
+
+            const currentDate = new Date(report.shiftDate);
+            if (currentDate > new Date(data.lastShift.shiftDate)) {
+              data.lastShift = report;
+            }
+
+            const receiptVolume = parseFloat(tank.receipt?.volume || '0');
+            data.receipts += receiptVolume;
+            data.sales += parseFloat(tank.release?.volume || '0');
+
+            if (receiptVolume > 0) data.receiptCount++;
+
+            if (!data.processedShifts.has(report.shiftNumber)) {
+              data.processedShifts.add(report.shiftNumber);
+              data.shiftCount++;
+            }
+          });
+        });
+
+        // 6. Формируем TankInventory для каждого резервуара
+        const tankInventories = [];
+
+        tankDataMap.forEach((data, tankNumber) => {
+          const firstTank = data.firstShift.data.release.find(t => t.tank === tankNumber);
+          const lastTank = data.lastShift.data.release.find(t => t.tank === tankNumber);
+
+          const volumeBegin = parseFloat(firstTank?.doc_beg?.volume || '0');
+          const volumeEnd = parseFloat(lastTank?.doc_end?.volume || '0');
+
+          tankInventories.push({
+            station: station.id,
+            stationName: station.name,
+            tankNumber,
+            fuelCode: data.fuelCode,
+            fuelName: data.fuelName,
+            volumeBook: volumeEnd,
+            volumeBegin,
+            volumeReceipts: data.receipts,
+            volumeSales: data.sales,
+            receiptCount: data.receiptCount,
+            shiftCount: data.shiftCount,
+            capacity: data.capacity,
+            freeVolume: data.capacity - volumeEnd,
+            fillPercent: data.capacity > 0 ? (volumeEnd / data.capacity) * 100 : 0,
+            lastUpdate: data.lastShift.shiftDate,
+            initialShift: {
+              number: data.firstShift.shiftNumber,
+              date: data.firstShift.shiftDate
+            }
+          });
+        });
+
+        return tankInventories;
+      } catch (e) {
+        console.error(`[Fuel Inventory] Error for station ${station.id}:`, e.message);
+        return [];
+      }
+    }));
+
+    const inventory = results.flat();
+
+    // Кэшируем агрегированный результат на 5 минут
+    cache.set(aggCacheKey, inventory, 300);
+
+    const duration = Date.now() - startTime;
+    console.log(`[Fuel Inventory] ✅ Completed: ${inventory.length} tanks from ${filteredStations.length} stations (${duration}ms)`);
+
+    res.json(inventory);
+  } catch (error) {
+    console.error(`[Fuel Inventory] ❌ Error:`, error.message);
+    res.status(500).json({
+      error: 'Failed to load fuel inventory',
+      message: error.message
+    });
+  }
+});
 
 // === Универсальный fallback для всех остальных endpoints ===
 router.all('*', (req, res) => {

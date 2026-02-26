@@ -3,38 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Legend } from "recharts";
 import { Transaction } from '@/services/stsApi';
+import { getFuelColor } from '@/types/shift-dashboard';
+import { getFuelPriority } from '@/utils/fuelPriority';
 
 interface StationFuelSalesChartProps {
   transactions: Transaction[];
   className?: string;
   isMobile?: boolean;
 }
-
-// Цвета для разных видов топлива
-const FUEL_COLORS: Record<string, string> = {
-  'АИ-92': '#3b82f6',    // blue
-  'АИ-95': '#8b5cf6',    // violet
-  'АИ-98': '#ec4899',    // pink
-  'АИ-100': '#f59e0b',   // amber
-  'ДТ': '#10b981',       // emerald
-  'ДТ летнее': '#14b8a6', // teal
-  'ДТ зимнее': '#06b6d4', // cyan
-  'Газ': '#f97316',      // orange
-};
-
-// Функция для определения приоритета топлива при сортировке
-const getFuelPriority = (fuelType: string): number => {
-  const fuel = fuelType.toLowerCase();
-  if (fuel.includes('аи-98') || fuel.includes('98')) return 1;
-  if (fuel.includes('аи-95') || fuel.includes('95')) return 2;
-  if (fuel.includes('аи-92') || fuel.includes('92')) return 3;
-  if (fuel.includes('аи-100') || fuel.includes('100')) return 4;
-  if (fuel.includes('дт зимнее') || fuel.includes('зимний')) return 10;
-  if (fuel.includes('дт летнее') || fuel.includes('летний')) return 11;
-  if (fuel.includes('дт') || fuel.includes('дизель') || fuel.includes('diesel')) return 12;
-  if (fuel.includes('газ')) return 20;
-  return 99;
-};
 
 export const StationFuelSalesChart: React.FC<StationFuelSalesChartProps> = ({
   transactions,
@@ -103,10 +79,10 @@ export const StationFuelSalesChart: React.FC<StationFuelSalesChartProps> = ({
   // Генерируем config для всех видов топлива
   const chartConfig = useMemo(() => {
     const config: Record<string, { label: string; color: string }> = {};
-    fuelTypes.forEach((fuelType, index) => {
+    fuelTypes.forEach((fuelType) => {
       config[fuelType] = {
         label: fuelType,
-        color: FUEL_COLORS[fuelType] || `hsl(${(index * 360) / fuelTypes.length}, 70%, 50%)`,
+        color: getFuelColor(fuelType),
       };
     });
     return config;

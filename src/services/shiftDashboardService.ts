@@ -40,10 +40,11 @@ import type {
 import { stsApiService } from './stsApi';
 import type { CashoutRecord, StationCashout } from '@/types/equipment';
 import {
-  FUEL_COLORS,
-  PAYMENT_COLORS,
   PAYMENT_NAMES,
+  getFuelColor,
+  getPaymentColor,
 } from '@/types/shift-dashboard';
+import { classifyPayment } from '@/utils/paymentUtils';
 
 /**
  * Сервис для дашборда аналитики смен
@@ -53,28 +54,26 @@ class ShiftDashboardService {
    * Получить полные данные для дашборда
    */
   async getDashboardData(params: DashboardParams): Promise<DashboardData> {
-    // Загружаем смены за основной период
-    const shifts = await this.loadShiftsWithDetails(params);
+    // Параллельная загрузка: смены + инкассация + период сравнения
+    const compareParams = (params.period.compareEnabled && params.period.compareDateFrom && params.period.compareDateTo)
+      ? {
+          ...params,
+          period: {
+            ...params.period,
+            dateFrom: params.period.compareDateFrom,
+            dateTo: params.period.compareDateTo,
+          },
+        }
+      : null;
 
-    // Загружаем данные инкассации за период
-    const cashoutData = await this.loadCashoutData(params);
+    const [shifts, cashoutData, compareShifts] = await Promise.all([
+      this.loadShiftsWithDetails(params),
+      this.loadCashoutData(params),
+      compareParams ? this.loadShiftsWithDetails(compareParams) : Promise.resolve([]),
+    ]);
 
     // Собираем данные о движении наличных из смен
     const cashFlowData = this.calculateCashFlow(shifts);
-
-    // Загружаем смены за период сравнения (если включено)
-    let compareShifts: ShiftDetails[] = [];
-    if (params.period.compareEnabled && params.period.compareDateFrom && params.period.compareDateTo) {
-      const compareParams: DashboardParams = {
-        ...params,
-        period: {
-          ...params.period,
-          dateFrom: params.period.compareDateFrom,
-          dateTo: params.period.compareDateTo,
-        },
-      };
-      compareShifts = await this.loadShiftsWithDetails(compareParams);
-    }
 
     // Вычисляем KPI
     const kpis = this.calculateKPIs(shifts, cashoutData, cashFlowData);
@@ -111,11 +110,14 @@ class ShiftDashboardService {
   private async loadShiftsWithDetails(params: DashboardParams): Promise<ShiftDetails[]> {
     const stations = params.stations || (params.station ? [params.station] : []);
     const stationNames = params.stationNames || {};
-    const allShifts: ShiftDetails[] = [];
 
-    // Загружаем смены для каждой станции
-    for (const station of stations) {
-      // Получаем название станции из маппинга
+    const dateFrom = new Date(params.period.dateFrom);
+    dateFrom.setHours(0, 0, 0, 0);
+    const dateTo = new Date(params.period.dateTo);
+    dateTo.setHours(23, 59, 59, 999);
+
+    // Параллельная загрузка по станциям
+    const stationResults = await Promise.all(stations.map(async (station) => {
       const stationName = stationNames[station] || `Станция ${station}`;
 
       // Получаем список смен
@@ -128,19 +130,21 @@ class ShiftDashboardService {
 
       const shiftsList = await shiftReportsV2Service.getShifts(shiftsParams, stationName);
 
-      // Фильтруем смены по выбранному периоду (API может вернуть все смены)
-      const dateFrom = new Date(params.period.dateFrom);
-      dateFrom.setHours(0, 0, 0, 0);
-      const dateTo = new Date(params.period.dateTo);
-      dateTo.setHours(23, 59, 59, 999);
+      // Получаем сырой список смен для передачи shiftInfo в getShiftDetails
+      const rawShifts = await import('./shiftsService').then(m =>
+        m.shiftsService.getShifts({ system: params.system, station })
+      );
 
+      // Фильтруем смены по выбранному периоду
       const filteredShiftsList = shiftsList.filter(shift => {
         const shiftDate = new Date(shift.openedAt);
         return shiftDate >= dateFrom && shiftDate <= dateTo;
       });
 
-      // Загружаем детали только для смен в выбранном периоде (batch по 5)
-      const batchSize = 5;
+      // Загружаем детали batch по 10 с передачей preloaded shiftInfo
+      const batchSize = 10;
+      const stationShifts: ShiftDetails[] = [];
+
       for (let i = 0; i < filteredShiftsList.length; i += batchSize) {
         const batch = filteredShiftsList.slice(i, i + batchSize);
         const detailsPromises = batch.map(async (shift) => {
@@ -150,18 +154,22 @@ class ShiftDashboardService {
               station,
               shift: shift.shiftNumber,
             };
-            return await shiftReportsV2Service.getShiftDetails(detailsParams, stationName);
+            // Передаём preloaded shiftInfo — убираем лишний запрос /v1/shifts
+            const shiftInfo = rawShifts.find(s => s.shift === shift.shiftNumber);
+            return await shiftReportsV2Service.getShiftDetails(detailsParams, stationName, shiftInfo);
           } catch (error) {
             return null;
           }
         });
 
         const batchResults = await Promise.all(detailsPromises);
-        allShifts.push(...batchResults.filter((s): s is ShiftDetails => s !== null));
+        stationShifts.push(...batchResults.filter((s): s is ShiftDetails => s !== null));
       }
-    }
 
-    return allShifts;
+      return stationShifts;
+    }));
+
+    return stationResults.flat();
   }
 
   /**
@@ -180,39 +188,41 @@ class ShiftDashboardService {
       const dateTo = new Date(params.period.dateTo);
       dateTo.setHours(23, 59, 59, 999);
 
-      const details: CashoutItem[] = [];
-      let totalAmount = 0;
-      let totalBillAmount = 0;
-
-      // Загружаем инкассации для КАЖДОЙ станции
-      for (const stationId of stations) {
+      // Загружаем инкассации для всех станций параллельно
+      const stationCashouts = await Promise.all(stations.map(async (stationId) => {
         try {
           const cashoutResponse: StationCashout[] = await stsApiService.getCashoutHistory({
             networkId: String(params.system),
             tradingPointId: String(stationId),
           });
+          return cashoutResponse;
+        } catch {
+          return [];
+        }
+      }));
 
-          for (const stationData of cashoutResponse) {
-            for (const record of stationData.cashout || []) {
-              const recordDate = new Date(record.dt);
+      const details: CashoutItem[] = [];
+      let totalAmount = 0;
+      let totalBillAmount = 0;
 
-              // Фильтруем по периоду
-              if (recordDate >= dateFrom && recordDate <= dateTo) {
-                details.push({
-                  shiftNumber: record.shift,
-                  posNumber: record.pos,
-                  cashoutNumber: record.cashoutno,
-                  datetime: record.dt,
-                  totalAmount: record.value,
-                  billAmount: record.billsum,
-                });
-                totalAmount += record.value;
-                totalBillAmount += record.billsum;
-              }
+      for (const cashoutResponse of stationCashouts) {
+        for (const stationData of cashoutResponse) {
+          for (const record of stationData.cashout || []) {
+            const recordDate = new Date(record.dt);
+
+            if (recordDate >= dateFrom && recordDate <= dateTo) {
+              details.push({
+                shiftNumber: record.shift,
+                posNumber: record.pos,
+                cashoutNumber: record.cashoutno,
+                datetime: record.dt,
+                totalAmount: record.value,
+                billAmount: record.billsum,
+              });
+              totalAmount += record.value;
+              totalBillAmount += record.billsum;
             }
           }
-        } catch (stationError) {
-          // Продолжаем для других станций
         }
       }
 
@@ -230,23 +240,7 @@ class ShiftDashboardService {
     }
   }
 
-  /**
-   * Определить тип способа оплаты
-   */
-  private getPaymentType(payTypeName: string): 'cash' | 'card' | 'online' | 'corporate' | 'coupon' | 'other' {
-    const name = payTypeName.toLowerCase();
-    if (name.includes('наличн')) return 'cash';
-    // Купоны на сдачу
-    if (name.includes('купон')) return 'coupon';
-    // ВАЖНО: проверяем корпоративные карты ПЕРЕД обычными картами!
-    // Иначе "корп.карты" попадет в категорию 'card' из-за includes('карт')
-    if (name === 'кр' || name.includes('корпоратив') || name.includes('корп.карт') ||
-        name.includes('корп карт') || name.includes('топливн')) return 'corporate';
-    if (name.includes('карт') || name.includes('сбербанк') || name.includes('сбп') ||
-        name.includes('visa') || name.includes('mastercard') || name.includes('эквайр')) return 'card';
-    if (name.includes('мобил') || name.includes('онлайн') || name.includes('online')) return 'online';
-    return 'other';
-  }
+  // getPaymentType удалён — используется classifyPayment() из paymentUtils
 
   /**
    * Вычислить метрики движения наличных
@@ -336,14 +330,9 @@ class ShiftDashboardService {
     // Агрегация по топливам
     const fuelMap = new Map<number, { volume: number; revenue: number; name: string }>();
 
-    // Агрегация по способам оплаты с разбивкой по топливам
+    // Агрегация по способам оплаты с разбивкой по топливам (динамическая)
     // Структура: paymentType -> fuelCode -> { volume, revenue, name }
     const paymentFuelMap = new Map<string, Map<number, { volume: number; revenue: number; name: string }>>();
-    paymentFuelMap.set('cash', new Map());
-    paymentFuelMap.set('card', new Map());
-    paymentFuelMap.set('online', new Map());
-    paymentFuelMap.set('corporate', new Map());
-    paymentFuelMap.set('coupon', new Map());
 
     const financial = {
       totalRevenue: 0,
@@ -354,13 +343,7 @@ class ShiftDashboardService {
       fuelCardRevenue: 0,
       corporateCardRevenue: 0,
       otherRevenue: 0,
-      paymentDetails: {
-        cash: { revenue: 0, volume: 0, byFuel: [] as PaymentFuelBreakdown[] },
-        card: { revenue: 0, volume: 0, byFuel: [] as PaymentFuelBreakdown[] },
-        online: { revenue: 0, volume: 0, byFuel: [] as PaymentFuelBreakdown[] },
-        corporate: { revenue: 0, volume: 0, byFuel: [] as PaymentFuelBreakdown[] },
-        coupon: { revenue: 0, volume: 0, byFuel: [] as PaymentFuelBreakdown[] },
-      },
+      paymentDetails: {} as Record<string, PaymentMethodDetails>,
     };
 
     const volume = {
@@ -416,9 +399,13 @@ class ShiftDashboardService {
       if (salesRaw && Array.isArray(salesRaw)) {
         for (const sale of salesRaw) {
           const payTypeName = sale.pay_type?.name || '';
-          const paymentType = this.getPaymentType(payTypeName);
+          const paymentType = classifyPayment(payTypeName);
 
           if (paymentType !== 'other' && sale.fuel && Array.isArray(sale.fuel)) {
+            // Динамическое создание записи в Map для нового типа оплаты
+            if (!paymentFuelMap.has(paymentType)) {
+              paymentFuelMap.set(paymentType, new Map());
+            }
             const paymentFuels = paymentFuelMap.get(paymentType)!;
 
             for (const fuelItem of sale.fuel) {
@@ -493,16 +480,15 @@ class ShiftDashboardService {
       volume: data.volume,
       revenue: data.revenue,
       percentOfTotal: volume.totalVolume > 0 ? (data.volume / volume.totalVolume) * 100 : 0,
-      color: FUEL_COLORS[fuelCode] || '#64748b',
+      color: getFuelColor(data.name),
     }));
 
-    // Преобразуем paymentFuelMap в paymentDetails
+    // Преобразуем paymentFuelMap в paymentDetails (динамический)
     for (const [paymentType, fuelsMap] of paymentFuelMap.entries()) {
-      const details = financial.paymentDetails[paymentType as keyof typeof financial.paymentDetails];
       let totalRevenue = 0;
       let totalVolume = 0;
 
-      details.byFuel = Array.from(fuelsMap.entries()).map(([fuelCode, data]) => {
+      const byFuel = Array.from(fuelsMap.entries()).map(([fuelCode, data]) => {
         totalRevenue += data.revenue;
         totalVolume += data.volume;
         return {
@@ -510,12 +496,15 @@ class ShiftDashboardService {
           fuelName: data.name,
           revenue: data.revenue,
           volume: data.volume,
-          color: FUEL_COLORS[fuelCode] || '#64748b',
+          color: getFuelColor(data.name),
         };
       }).sort((a, b) => b.revenue - a.revenue);
 
-      details.revenue = totalRevenue;
-      details.volume = totalVolume;
+      financial.paymentDetails[paymentType] = {
+        revenue: totalRevenue,
+        volume: totalVolume,
+        byFuel,
+      };
     }
 
     // Вычисляем метрики поступлений
@@ -586,7 +575,7 @@ class ShiftDashboardService {
           shiftNumber: shift.shiftNumber,
           stationCode: shift.stationCode,
           stationName: shift.stationName,
-          color: FUEL_COLORS[fuelCode] || '#64748b',
+          color: getFuelColor(fuelName),
         });
 
         // Агрегируем по топливам
@@ -604,7 +593,7 @@ class ShiftDashboardService {
             factVolume,
             volumeDiff,
             ttnCount: 1,
-            color: FUEL_COLORS[fuelCode] || '#64748b',
+            color: getFuelColor(fuelName),
           });
         }
       }
@@ -765,7 +754,7 @@ class ShiftDashboardService {
         volume: data.volume,
         revenue: data.revenue,
         percentOfTotal: totalVolume > 0 ? (data.volume / totalVolume) * 100 : 0,
-        color: FUEL_COLORS[fuelCode] || '#64748b',
+        color: getFuelColor(data.name),
       }))
       .sort((a, b) => b.volume - a.volume);
   }
@@ -803,7 +792,7 @@ class ShiftDashboardService {
         revenue: data.revenue,
         volume: data.volume,
         percentOfTotal: totalRevenue > 0 ? (data.revenue / totalRevenue) * 100 : 0,
-        color: PAYMENT_COLORS[paymentTypeId] || '#64748b',
+        color: getPaymentColor(data.name),
       }))
       .sort((a, b) => b.revenue - a.revenue);
   }
