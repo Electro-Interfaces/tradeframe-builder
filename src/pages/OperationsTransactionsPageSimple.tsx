@@ -25,6 +25,7 @@ import MobileOperationsTable from "@/components/operations/MobileOperationsTable
 import { VirtualizedOperationsTable } from "@/components/operations/VirtualizedOperationsTable";
 import { exportToExcel, exportToPdf } from "@/services/operationsExportService";
 import { normalizePaymentMethod } from "@/utils/paymentUtils";
+import { todayString, daysAgoString } from "@/utils/dateUtils";
 import { useOperationsFilters } from "@/hooks/useOperationsFilters";
 
 export default function OperationsTransactionsPageSimple() {
@@ -896,12 +897,8 @@ export default function OperationsTransactionsPageSimple() {
                       setSelectedStatus("Все");
                       setSelectedPosNumber("Все");
                       setSearchQuery("");
-                      setDateFrom(() => {
-                        const yesterday = new Date();
-                        yesterday.setDate(yesterday.getDate() - 1);
-                        return yesterday.toISOString().split('T')[0];
-                      });
-                      setDateTo(new Date().toISOString().split('T')[0]);
+                      setDateFrom(daysAgoString(1));
+                      setDateTo(todayString());
                     }}
                   >
                     Очистить фильтры

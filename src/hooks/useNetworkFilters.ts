@@ -3,14 +3,11 @@
  */
 
 import { useState } from 'react';
+import { todayString, monthsAgoString } from '@/utils/dateUtils';
 
 export function useNetworkFilters() {
-  const today = new Date();
-  const monthAgo = new Date();
-  monthAgo.setMonth(today.getMonth() - 1);
-
-  const [dateFrom, setDateFrom] = useState(monthAgo.toISOString().split('T')[0]);
-  const [dateTo, setDateTo] = useState(today.toISOString().split('T')[0]);
+  const [dateFrom, setDateFrom] = useState(() => monthsAgoString(1));
+  const [dateTo, setDateTo] = useState(() => todayString());
   const [filtersOpen, setFiltersOpen] = useState(true);
 
   return {

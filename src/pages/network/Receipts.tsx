@@ -11,6 +11,7 @@ import { useNewAuth } from '@/contexts/NewAuthContext';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { networksService } from '@/services/networksService';
 import { tradingPointsService } from '@/services/tradingPointsService';
+import { todayString } from '@/utils/dateUtils';
 import {
   flattenReceipts,
   getFilterOptions,
@@ -95,11 +96,7 @@ export default function Receipts() {
   const [stationIds, setStationIds] = useState<number[]>([]);
   const [selectedKpiFuels, setSelectedKpiFuels] = useState<Set<string>>(new Set());
   const [dateFrom, setDateFrom] = useState<string>('');
-  const [dateTo, setDateTo] = useState<string>(() => {
-    // Устанавливаем текущую дату как дефолт для "дата до"
-    const today = new Date();
-    return today.toISOString().split('T')[0]; // Формат YYYY-MM-DD
-  });
+  const [dateTo, setDateTo] = useState<string>(() => todayString());
   const [shiftNumber, setShiftNumber] = useState<string>('');
   const [baseId, setBaseId] = useState<string>('');
   const [ttnNumber, setTtnNumber] = useState<string>('');
@@ -294,9 +291,7 @@ export default function Receipts() {
     setStationIds([]);
     setSelectedKpiFuels(new Set());
     setDateFrom('');
-    // Возвращаем текущую дату в "дата до"
-    const today = new Date();
-    setDateTo(today.toISOString().split('T')[0]);
+    setDateTo(todayString());
     setShiftNumber('');
     setBaseId('');
     setTtnNumber('');

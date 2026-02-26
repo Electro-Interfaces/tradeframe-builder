@@ -26,6 +26,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSelection } from '@/contexts/SelectionContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { todayString, daysAgoString } from '@/utils/dateUtils';
 
 // Импорты из локальных модулей
 import { useFuelInventory } from './hooks/useFuelInventory';
@@ -51,15 +52,9 @@ export default function FuelInventory() {
   const [sortColumn, setSortColumn] = useState<'station' | 'fuel' | 'volumeBook'>('station');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Фильтры дат - по умолчанию последние 7 дней (оптимально для производительности)
-  const [dateFrom, setDateFrom] = useState<string>(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 7);
-    return date.toISOString().split('T')[0];
-  });
-  const [dateTo, setDateTo] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0];
-  });
+  // Фильтры дат - по умолчанию последние 7 дней (локальный часовой пояс)
+  const [dateFrom, setDateFrom] = useState<string>(() => daysAgoString(7));
+  const [dateTo, setDateTo] = useState<string>(() => todayString());
 
   // Используем хуки для загрузки данных - загружаем ВСЕ станции (фильтр на клиенте)
   const { loading, inventory, fuelSummaries, error, loadInventory, loadingProgress } = useFuelInventory(dateFrom, dateTo);

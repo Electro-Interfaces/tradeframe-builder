@@ -4,6 +4,7 @@
 
 import { useState, useMemo } from 'react';
 import { useDebounce } from './use-debounce';
+import { todayString, daysAgoString } from '@/utils/dateUtils';
 
 export interface OperationsFilters {
   selectedFuelType: string;
@@ -42,13 +43,9 @@ export function useOperationsFilters(): UseOperationsFiltersReturn {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Все");
   const [selectedStatus, setSelectedStatus] = useState("Все");
 
-  // Даты
-  const [dateFrom, setDateFrom] = useState(() => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
-  });
-  const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
+  // Даты (локальный часовой пояс)
+  const [dateFrom, setDateFrom] = useState(() => daysAgoString(1));
+  const [dateTo, setDateTo] = useState(() => todayString());
 
   // Поиск
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,10 +86,8 @@ export function useOperationsFilters(): UseOperationsFiltersReturn {
     setSelectedFuelType("Все");
     setSelectedPaymentMethod("Все");
     setSelectedStatus("Все");
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    setDateFrom(yesterday.toISOString().split('T')[0]);
-    setDateTo(new Date().toISOString().split('T')[0]);
+    setDateFrom(daysAgoString(1));
+    setDateTo(todayString());
     setSearchQuery("");
     setSelectedKpiFuels(new Set());
     setSelectedKpiPayments(new Set());

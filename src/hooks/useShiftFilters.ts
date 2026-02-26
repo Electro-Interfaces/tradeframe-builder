@@ -4,19 +4,14 @@
 
 import { useState } from 'react';
 import type { ShiftFilters } from '@/types/shift-reports-v2';
+import { todayString, daysAgoString } from '@/utils/dateUtils';
 
 export function useShiftFilters() {
-  const [filters, setFilters] = useState<ShiftFilters>(() => {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const today = new Date();
-
-    return {
-      dateFrom: weekAgo.toISOString().split('T')[0],
-      dateTo: today.toISOString().split('T')[0],
-      status: 'all',
-    };
-  });
+  const [filters, setFilters] = useState<ShiftFilters>(() => ({
+    dateFrom: daysAgoString(7),
+    dateTo: todayString(),
+    status: 'all',
+  }));
 
   return {
     filters,

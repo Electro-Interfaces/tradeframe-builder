@@ -27,6 +27,7 @@ import { StationRevenueTrendChart } from "@/components/charts/StationRevenueTren
 // XLSX и html2canvas — dynamic import (тяжёлые, нужны только при экспорте)
 import { loadPdfMake } from "@/utils/pdfMake";
 import { getPaymentTypeDisplayName } from "@/utils/paymentUtils";
+import { todayString, monthsAgoString } from "@/utils/dateUtils";
 
 
 export default function NetworkOverview() {
@@ -35,14 +36,9 @@ export default function NetworkOverview() {
   const { user } = useNewAuth();
   const { toast } = useToast();
   
-  // Даты по умолчанию
-  const today = new Date();
-  const monthAgo = new Date();
-  monthAgo.setMonth(today.getMonth() - 1);
-  
-  // Состояния фильтров
-  const [dateFrom, setDateFrom] = useState(monthAgo.toISOString().split('T')[0]);
-  const [dateTo, setDateTo] = useState(today.toISOString().split('T')[0]);
+  // Состояния фильтров (локальный часовой пояс)
+  const [dateFrom, setDateFrom] = useState(() => monthsAgoString(1));
+  const [dateTo, setDateTo] = useState(() => todayString());
   const [filtersOpen, setFiltersOpen] = useState(true);
 
   // Состояния данных
@@ -1643,10 +1639,8 @@ export default function NetworkOverview() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const monthAgo = new Date();
-                        monthAgo.setMonth(monthAgo.getMonth() - 1);
-                        setDateFrom(monthAgo.toISOString().split('T')[0]);
-                        setDateTo(new Date().toISOString().split('T')[0]);
+                        setDateFrom(monthsAgoString(1));
+                        setDateTo(todayString());
                       }}
                     >
                       Очистить фильтры

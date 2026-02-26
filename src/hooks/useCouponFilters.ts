@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useSelection } from '@/contexts/SelectionContext';
 import type { CouponsFilter } from '@/types/coupons';
+import { daysAgoString } from '@/utils/dateUtils';
 
 export function useCouponFilters() {
   const { selectedNetwork } = useSelection();
@@ -15,9 +16,8 @@ export function useCouponFilters() {
     search: '',
     state: undefined,
     ageFilter: 'all',
-    // Устанавливаем период по умолчанию - 3 месяца назад и до послезавтра (с запасом для часовых поясов)
-    dateFrom: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    dateTo: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // +2 дня для надежности
+    dateFrom: daysAgoString(90),
+    dateTo: daysAgoString(-2) // +2 дня для надёжности
   });
 
   const [filtersOpen, setFiltersOpen] = useState(true);
